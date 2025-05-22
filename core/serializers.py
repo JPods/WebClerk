@@ -3,8 +3,15 @@ from .models import Contact
 import uuid
 from django.utils import timezone
 from datetime import timedelta
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 class ContactSerializer(serializers.ModelSerializer):
+    """Serializer for Contact model, exposing user details."""
+    role = serializers.ListField(
+        child=serializers.ChoiceField(choices=Contact.ROLE_CHOICES),
+        help_text="List of user roles (e.g., ['ADMIN', 'SALE'])"
+    )
+
     class Meta:
         model = Contact
         fields = [
@@ -17,11 +24,13 @@ class ContactSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'uuid', 'verification_code', 'verification_code_expiry', 'is_email_verified']
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    """Serializer for user registration."""
+    password = serializers.CharField(write_only=True, help_text="User password (minimum 8 characters)")
     role = serializers.MultipleChoiceField(
         choices=Contact.ROLE_CHOICES,
         required=False,
-        allow_blank=True
+        allow_blank=True,
+        help_text="List of roles to assign (e.g., ['ADMIN', 'SALE'])"
     )
 
     class Meta:
@@ -43,24 +52,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         return super().to_internal_value(data)
 
     def create(self, validated_data):
-        # Handle undefined fields
         if self.undefined_fields:
             metadata = validated_data.get('metadata', {})
             undefined = metadata.get('undefined', {})
             undefined.update(self.undefined_fields)
             metadata['undefined'] = undefined
             validated_data['metadata'] = metadata
-        # Convert role set to list
         if 'role' in validated_data:
             validated_data['role'] = list(validated_data['role'])
-        # Generate verification code and expiry
         validated_data['verification_code'] = str(uuid.uuid4())[:8]
         validated_data['verification_code_expiry'] = timezone.now() + timedelta(hours=24)
-        # Ensure user is active
         validated_data['is_active'] = True
-        # Extract password
         password = validated_data.pop('password')
-        # Create user with case-normalized email
         validated_data['email'] = validated_data['email'].lower()
         user = Contact(**validated_data)
         user.set_password(password)

@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.postgres',
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
     'core',
 ]
 
@@ -85,6 +86,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 from datetime import timedelta
@@ -140,4 +142,20 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+DRF_SPECTACULAR_SETTINGS = {
+    'TITLE': 'WEBCLERK 3.0 API',
+    'DESCRIPTION': 'API for managing full ERP system with role-based access, email verification, and JWT authentication.',
+    'VERSION': '3.0.0',
+    'SERVE_INCLUDE_SCHEMA': True,
+    'SECURITY': [
+        {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            },
+        },
+    ],
 }
