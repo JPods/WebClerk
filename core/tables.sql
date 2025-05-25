@@ -3,8 +3,7 @@ CREATE TABLE IF NOT EXISTS "contacts" (
     "uuid" VARCHAR(36) NOT NULL UNIQUE,
     "email" VARCHAR(254) NOT NULL UNIQUE,
     "password" VARCHAR(128) NOT NULL,
-    "verification_code" VARCHAR(100),
-    "verification_code_expiry" TIMESTAMP WITH TIME ZONE,
+    "role" TEXT[] NOT NULL DEFAULT '{}',
     "is_email_verified" BOOLEAN NOT NULL DEFAULT FALSE,
     "attention" VARCHAR(255),
     "comment_alert" VARCHAR(255),
@@ -18,14 +17,16 @@ CREATE TABLE IF NOT EXISTS "contacts" (
     "rank" VARCHAR(50),
     "salutation" VARCHAR(50),
     "suffix" VARCHAR(50),
-    "role" TEXT[] NOT NULL DEFAULT '{}',
-    "comment" TEXT,
-    "refs" JSONB NOT NULL DEFAULT '{}',
-    "metadata" JSONB NOT NULL DEFAULT '{}',
     "is_active" BOOLEAN NOT NULL DEFAULT TRUE,
     "is_staff" BOOLEAN NOT NULL DEFAULT FALSE,
     "date_joined" TIMESTAMP WITH TIME ZONE NOT NULL,
-    "is_superuser" BOOLEAN NOT NULL DEFAULT FALSE
+    "is_superuser" BOOLEAN NOT NULL DEFAULT FALSE, 
+    "comment" TEXT,
+    "verification_code" VARCHAR(100),
+    "verification_code_expiry" TIMESTAMP WITH TIME ZONE,
+    "refs" JSONB NOT NULL DEFAULT '{}',
+    "prefs" JSONB NOT NULL DEFAULT '{}',
+    "metadata" JSONB NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS "actions" (
@@ -41,38 +42,38 @@ CREATE TABLE IF NOT EXISTS "actions" (
     "dt_due" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "dt_updated" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "hours" DOUBLE PRECISION,
-    "metadata" JSONB,
-    “refs” JSONB,
     "percent" INTEGER,
     "priority" VARCHAR(255),
     "quality" VARCHAR(255),
-    "references" JSONB,
-    "status" VARCHAR(255)
+    "status" VARCHAR(255),
+    "refs" JSONB NOT NULL DEFAULT '{}',
+    "prefs" JSONB NOT NULL DEFAULT '{}',
+    "metadata" JSONB NOT NULL DEFAULT '{}'
 );
-
 
 CREATE TABLE IF NOT EXISTS "templates" (
     "id" BIGSERIAL PRIMARY KEY,
     "uuid" UUID UNIQUE NOT NULL,
-    "comment" TEXT,
-    "metadata" JSONB,
     "name" VARCHAR(255),
     "purpose" VARCHAR(255),
-    "references" JSONB,
-    "table_name" VARCHAR(255)
+    "table_name" VARCHAR(255),
+    "comment" TEXT,
+    "refs" JSONB NOT NULL DEFAULT '{}',
+    "prefs" JSONB NOT NULL DEFAULT '{}',
+    "metadata" JSONB NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS "settings" (
     "id" BIGSERIAL PRIMARY KEY,
     "uuid" UUID UNIQUE NOT NULL,
-    "comment" TEXT,
     "is_active" BOOLEAN DEFAULT FALSE,
-    "metadata" JSONB,
     "name" VARCHAR(255),
     "purpose" VARCHAR(255),
-    "references" JSONB,
     "role" VARCHAR(255),
-    "security_level" INTEGER,
-    "table_name" VARCHAR(255)
+    "table_name" VARCHAR(255),
+    "comment" TEXT,
+    "refs" JSONB NOT NULL DEFAULT '{}',
+    "prefs" JSONB NOT NULL DEFAULT '{}',
+    "metadata" JSONB NOT NULL DEFAULT '{}'
 );
 
