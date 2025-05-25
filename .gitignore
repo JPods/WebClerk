@@ -4,5 +4,6 @@ bin/
 include/
 pyvenv.cfg
 
-
+.DS_Store
+**/.DS_Store
 .env
