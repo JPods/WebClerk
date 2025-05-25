@@ -2,6 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import Contact, Action, Template, Setting
 
+from django.contrib import admin
+
+admin.site.site_header = "WebClerk 3.0 Admin"
+admin.site.site_title = "WebClerk 3.0 Admin Portal"
+admin.site.index_title = "Welcome to WebClerk 3.0 Admin"
+
 class ContactAdmin(UserAdmin):
     model = Contact
     list_display = ('email', 'name_first', 'name_last', 'get_roles', 'is_email_verified', 'is_active', 'is_staff')
