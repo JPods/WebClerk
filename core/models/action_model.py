@@ -20,9 +20,9 @@ class Action(models.Model):
     dt_due = models.DateTimeField(default=timezone.now)
     dt_updated = models.DateTimeField(default=timezone.now)
     comment = models.TextField(blank=True, null=True)
-    refs = JSONField(default=dict)
-    prefs = JSONField(default=dict)
-    metadata = JSONField(default=dict)
+    refs = JSONField(default=dict, null=True, blank=True)
+    prefs = JSONField(default=dict, null=True, blank=True)
+    metadata = JSONField(default=dict, null=True, blank=True)
 
     class Meta:
         db_table = 'actions'

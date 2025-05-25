@@ -9,9 +9,9 @@ class Template(models.Model):
     purpose = models.CharField(max_length=255, blank=True, null=True)
     table_name = models.CharField(max_length=255, blank=True, null=True)
     comment = models.TextField(blank=True, null=True)
-    refs = JSONField(default=dict)
-    prefs = JSONField(default=dict)
-    metadata = JSONField(default=dict)
+    refs = JSONField(default=dict, null=True, blank=True)
+    prefs = JSONField(default=dict, null=True, blank=True)
+    metadata = JSONField(default=dict, null=True, blank=True)
 
     class Meta:
         db_table = 'templates'
