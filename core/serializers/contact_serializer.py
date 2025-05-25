@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Contact
+from ..models import Contact
 import uuid
 from django.utils import timezone
 from datetime import timedelta

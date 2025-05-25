@@ -46,7 +46,7 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
     uuid = models.CharField(max_length=36, unique=True, editable=False)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)  # Handled by set_password
+    password = models.CharField(max_length=128)
     verification_code = models.CharField(max_length=100, blank=True, null=True)
     verification_code_expiry = models.DateTimeField(blank=True, null=True)
     is_email_verified = models.BooleanField(default=False)

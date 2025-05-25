@@ -1,9 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import RegisterSerializer, ContactSerializer
+from ..serializers import RegisterSerializer, ContactSerializer
 from rest_framework.permissions import AllowAny
-from .models import Contact
+from ..models import Contact
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
@@ -15,7 +15,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiRespon
 
 logger = logging.getLogger(__name__)
 
-class LoginView(TokenObtainPairView):
+class CustomTokenObtainPairView(TokenObtainPairView):
     @extend_schema(
         summary="Login and obtain JWT tokens",
         request={
