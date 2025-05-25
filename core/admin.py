@@ -39,11 +39,11 @@ class ContactAdmin(UserAdmin):
 
 @admin.register(Action)
 class ActionAdmin(admin.ModelAdmin):
-    list_display = ('action', 'uuid', 'action_by', 'status', 'dt_action')
+    list_display = ('action', 'action_by', 'status', 'dt_action')
     list_filter = ('status', 'priority', 'dt_action')
     search_fields = ('action', 'action_by', 'description')
     fieldsets = (
-        (None, {'fields': ('uuid', 'action', 'action_by')}),
+        (None, {'fields': ('action', 'action_by')}),
         ('Details', {'fields': ('priority', 'difficulty', 'hours', 'percent', 'status', 'quality', 'description')}),
         ('Dates', {'fields': ('dt_action', 'dt_completed', 'dt_due', 'dt_updated')}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
@@ -51,21 +51,21 @@ class ActionAdmin(admin.ModelAdmin):
 
 @admin.register(Template)
 class TemplateAdmin(admin.ModelAdmin):
-    list_display = ('name', 'uuid', 'purpose', 'table_name')
+    list_display = ('name', 'purpose', 'table_name')
     list_filter = ('purpose',)
     search_fields = ('name', 'purpose', 'table_name')
     fieldsets = (
-        (None, {'fields': ('uuid', 'name', 'purpose', 'table_name')}),
+        (None, {'fields': ('name', 'purpose', 'table_name')}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
     )
 
 @admin.register(Setting)
 class SettingAdmin(admin.ModelAdmin):
-    list_display = ('name', 'uuid', 'is_active', 'purpose', 'role')
+    list_display = ('name', 'is_active', 'purpose', 'role')
     list_filter = ('is_active', 'role')
     search_fields = ('name', 'purpose', 'role', 'table_name')
     fieldsets = (
-        (None, {'fields': ('uuid', 'is_active', 'name', 'purpose', 'role', 'table_name')}),
+        (None, {'fields': ('is_active', 'name', 'purpose', 'role', 'table_name')}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
     )
 
