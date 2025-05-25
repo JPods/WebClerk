@@ -19,7 +19,7 @@ class ContactSerializer(serializers.ModelSerializer):
             'role', 'is_email_verified', 'verification_code',
             'verification_code_expiry', 'attention', 'comment_alert',
             'company', 'opt_out', 'prefix', 'publish', 'rank',
-            'salutation', 'suffix', 'comment', 'refs', 'metadata'
+            'salutation', 'suffix', 'comment', 'refs', 'prefs', 'metadata'
         ]
         read_only_fields = ['id', 'uuid', 'verification_code', 'verification_code_expiry', 'is_email_verified']
 
@@ -39,7 +39,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             'email', 'name_first', 'name_last', 'name_middle', 'role',
             'password', 'attention', 'comment_alert', 'company', 'opt_out',
             'prefix', 'publish', 'rank', 'salutation', 'suffix', 'comment',
-            'refs', 'metadata'
+            'refs', 'prefs', 'metadata'
         ]
 
     def __init__(self, *args, **kwargs):

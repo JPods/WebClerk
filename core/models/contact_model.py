@@ -19,13 +19,11 @@ class ContactUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault('is_email_verified', True)
+        extra_fields.setdefault('is_staff', True)
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
@@ -46,33 +44,34 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
     uuid = models.CharField(max_length=36, unique=True, editable=False)
     email = models.EmailField(unique=True)
+    opt_out = JSONField(default=dict)
     password = models.CharField(max_length=128)
-    verification_code = models.CharField(max_length=100, blank=True, null=True)
-    verification_code_expiry = models.DateTimeField(blank=True, null=True)
-    is_email_verified = models.BooleanField(default=False)
-    attention = models.CharField(max_length=255, blank=True, null=True)
-    comment_alert = models.CharField(max_length=255, blank=True, null=True)
-    company = models.CharField(max_length=255, blank=True, null=True)
-    name_first = models.CharField(max_length=50, blank=True)
-    name_last = models.CharField(max_length=50, blank=True)
-    name_middle = models.CharField(max_length=50, blank=True, null=True)
-    opt_out = models.CharField(max_length=255, blank=True, null=True)
-    prefix = models.CharField(max_length=50, blank=True, null=True)
-    publish = models.IntegerField(blank=True, null=True)
-    rank = models.CharField(max_length=50, blank=True, null=True)
-    salutation = models.CharField(max_length=50, blank=True, null=True)
-    suffix = models.CharField(max_length=50, blank=True, null=True)
     role = ArrayField(
         models.CharField(max_length=50, choices=ROLE_CHOICES),
         default=list,
         blank=True
     )
-    comment = models.TextField(blank=True, null=True)
-    refs = JSONField(default=dict, blank=True)
-    metadata = JSONField(default=dict, blank=True)
+    is_email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    attention = models.CharField(max_length=255, blank=True, null=True)
+    comment_alert = models.CharField(max_length=255, blank=True, null=True)
+    company = models.CharField(max_length=255, blank=True, null=True)
+    name_first = models.CharField(max_length=50)
+    name_last = models.CharField(max_length=50)
+    name_middle = models.CharField(max_length=50, blank=True, null=True)
+    prefix = models.CharField(max_length=50, blank=True, null=True)
+    suffix = models.CharField(max_length=50, blank=True, null=True)
+    salutation = models.CharField(max_length=50, blank=True, null=True)
+    publish = models.IntegerField(blank=True, null=True)
+    rank = models.CharField(max_length=50, blank=True, null=True)
     date_joined = models.DateTimeField(auto_now_add=True)
+    comment = models.TextField(blank=True, null=True)
+    verification_code = models.CharField(max_length=100, blank=True, null=True)
+    verification_code_expiry = models.DateTimeField(blank=True, null=True)
+    refs = JSONField(default=dict)
+    prefs = JSONField(default=dict)
+    metadata = JSONField(default=dict)
 
     objects = ContactUserManager()
 
