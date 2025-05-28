@@ -1,11 +1,11 @@
 from django.db import models
 
-class LinksModel(models.Model):
+class linkModel(models.Model):
     table_name = models.CharField(
         max_length=255,
         help_text="Name of the table"
     )
-    record_id = models.BigIntegerField(
+    id = models.BigIntegerField(
         help_text="ID of the record"
     )
     denorm = models.TextField(
