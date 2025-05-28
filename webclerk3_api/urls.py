@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('apiwc/core/', include('core.urls')),
     path('apiwc/blanks/', include('blanks.urls')),
+    path('login/', include('django.contrib.auth.urls')),
 ]
