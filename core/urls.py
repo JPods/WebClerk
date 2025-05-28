@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import SignupView, ProfileView, VerifyEmailView, CustomTokenObtainPairView
+from django.urls import include
 
 urlpatterns = [
     path('signup/', SignupView.as_view(), name='signup'),
@@ -8,4 +9,6 @@ urlpatterns = [
     path('refresh-token/', TokenRefreshView.as_view(), name='refresh_token'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify_email'),
+    path('apiwc/contacts/all/', include('contacts.urls')),  # This will route to contacts.urls for all contacts endpoints
+    path('apiwc/contacts/id', include('contacts.urls')),
 ]
