@@ -1,8 +1,8 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
-from django.db.models import JSONField
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.postgres.fields import ArrayField
+from common.models import BaseModel
 import uuid
 
 class ContactUserManager(BaseUserManager):
@@ -29,7 +29,7 @@ class ContactUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-class Contact(AbstractBaseUser, PermissionsMixin):
+class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
         ('SUPER', 'Superuser'),
         ('ADMIN', 'Administrator'),
@@ -44,7 +44,7 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
     uuid = models.CharField(max_length=36, unique=True, editable=False)
     email = models.EmailField(unique=True)
-    opt_out = JSONField(default=dict)
+    opt_out = models.JSONField(default=None, null=True)
     password = models.CharField(max_length=128)
     role = ArrayField(
         models.CharField(max_length=50, choices=ROLE_CHOICES),
@@ -54,6 +54,7 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     is_email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    last_login = models.DateTimeField(blank=True, null=True)
     attention = models.CharField(max_length=255, blank=True, null=True)
     comment_alert = models.CharField(max_length=255, blank=True, null=True)
     company = models.CharField(max_length=255, blank=True, null=True)
@@ -69,9 +70,6 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     comment = models.TextField(blank=True, null=True)
     verification_code = models.CharField(max_length=100, blank=True, null=True)
     verification_code_expiry = models.DateTimeField(blank=True, null=True)
-    refs = JSONField(default=dict)
-    prefs = JSONField(default=dict)
-    metadata = JSONField(default=dict)
 
     objects = ContactUserManager()
 

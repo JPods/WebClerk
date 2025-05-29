@@ -1,9 +1,9 @@
 import uuid
 from django.db import models
-from django.db.models import JSONField
 from django.utils import timezone
+from common.models import BaseModel
 
-class Action(models.Model):
+class Action(BaseModel):
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     action = models.CharField(max_length=255, blank=True, null=True)
@@ -20,9 +20,6 @@ class Action(models.Model):
     dt_due = models.DateTimeField(default=timezone.now)
     dt_updated = models.DateTimeField(default=timezone.now)
     comment = models.TextField(blank=True, null=True)
-    refs = JSONField(default=dict, null=True, blank=True)
-    prefs = JSONField(default=dict, null=True, blank=True)
-    metadata = JSONField(default=dict, null=True, blank=True)
 
     class Meta:
         db_table = 'actions'

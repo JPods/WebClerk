@@ -16,6 +16,7 @@ Project Docs Link: [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa
 
 #### Close all postgreSQL connection:
 ```
+psql -U an7or -d postgres
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = 'commerce_expert'

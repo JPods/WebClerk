@@ -1,8 +1,8 @@
 import uuid
 from django.db import models
-from django.db.models import JSONField
+from common.models import BaseModel
 
-class Setting(models.Model):
+class Setting(BaseModel):
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     is_active = models.BooleanField(default=False)
@@ -11,9 +11,6 @@ class Setting(models.Model):
     role = models.CharField(max_length=255, blank=True, null=True)
     table_name = models.CharField(max_length=255, blank=True, null=True)
     comment = models.TextField(blank=True, null=True)
-    refs = JSONField(default=dict, null=True, blank=True)
-    prefs = JSONField(default=dict, null=True, blank=True)
-    metadata = JSONField(default=dict, null=True, blank=True)
 
     class Meta:
         db_table = 'settings'

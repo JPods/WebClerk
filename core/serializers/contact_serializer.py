@@ -11,17 +11,20 @@ class ContactSerializer(serializers.ModelSerializer):
         child=serializers.ChoiceField(choices=Contact.ROLE_CHOICES),
         help_text="List of user roles (e.g., ['ADMIN', 'SALE'])"
     )
+    opt_out = serializers.JSONField(default=dict, help_text="Optional opt-out preferences")
+    prefs = serializers.JSONField(default=dict, help_text="User preferences")
+    refs = serializers.JSONField(default=dict, help_text="References and links")
+    metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
 
     class Meta:
         model = Contact
         fields = [
-            'id', 'uuid', 'email', 'name_first', 'name_last', 'name_middle',
-            'role', 'is_email_verified', 'verification_code',
-            'verification_code_expiry', 'attention', 'comment_alert',
-            'company', 'opt_out', 'prefix', 'publish', 'rank',
-            'salutation', 'suffix', 'comment', 'refs', 'prefs', 'metadata'
+            'id', 'uuid', 'email', 'opt_out', 'role', 'is_email_verified', 'is_active', 'is_staff',
+            'last_login', 'attention', 'comment_alert', 'company', 'name_first', 'name_last', 'name_middle',
+            'prefix', 'suffix', 'salutation', 'publish', 'rank', 'date_joined', 'comment',
+            'verification_code', 'verification_code_expiry', 'refs', 'prefs', 'metadata'
         ]
-        read_only_fields = ['id', 'uuid', 'verification_code', 'verification_code_expiry', 'is_email_verified']
+        read_only_fields = ['id', 'uuid', 'verification_code', 'verification_code_expiry', 'is_email_verified', 'date_joined', 'last_login']
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Serializer for user registration."""
@@ -32,32 +35,36 @@ class RegisterSerializer(serializers.ModelSerializer):
         allow_blank=True,
         help_text="List of roles to assign (e.g., ['ADMIN', 'SALE'])"
     )
+    opt_out = serializers.JSONField(default=dict, help_text="Optional opt-out preferences")
+    prefs = serializers.JSONField(default=dict, help_text="User preferences")
+    refs = serializers.JSONField(default=dict, help_text="References and links")
+    metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
 
     class Meta:
         model = Contact
         fields = [
-            'email', 'name_first', 'name_last', 'name_middle', 'role',
-            'password', 'attention', 'comment_alert', 'company', 'opt_out',
-            'prefix', 'publish', 'rank', 'salutation', 'suffix', 'comment',
-            'refs', 'prefs', 'metadata'
+            'email', 'opt_out', 'role', 'password', 'is_staff', 'attention', 'comment_alert',
+            'company', 'name_first', 'name_last', 'name_middle', 'prefix', 'suffix', 'salutation',
+            'publish', 'rank', 'comment', 'refs', 'prefs', 'metadata'
         ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.undefined_fields = {}
-
     def to_internal_value(self, data):
+        # Move undefined fields to metadata.undefined
         defined_fields = set(self.fields.keys())
-        self.undefined_fields = {key: value for key, value in data.items() if key not in defined_fields}
+        undefined_fields = {key: value for key, value in data.items() if key not in defined_fields}
+        
+        if undefined_fields:
+            metadata = data.get('metadata', {}).copy()
+            metadata.setdefault('undefined', {})
+            metadata['undefined'].update(undefined_fields)
+            data = data.copy()
+            data['metadata'] = metadata
+            for key in undefined_fields:
+                data.pop(key, None)
+
         return super().to_internal_value(data)
 
     def create(self, validated_data):
-        if self.undefined_fields:
-            metadata = validated_data.get('metadata', {})
-            undefined = metadata.get('undefined', {})
-            undefined.update(self.undefined_fields)
-            metadata['undefined'] = undefined
-            validated_data['metadata'] = metadata
         if 'role' in validated_data:
             validated_data['role'] = list(validated_data['role'])
         validated_data['verification_code'] = str(uuid.uuid4())[:8]
