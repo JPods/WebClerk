@@ -1,1 +1,1 @@
-from .contact_view import SignupView, ProfileView, VerifyEmailView, CustomTokenObtainPairView
+from .contact_view import SignupView, ProfileView, VerifyEmailView, Login

@@ -15,7 +15,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiRespon
 
 logger = logging.getLogger(__name__)
 
-class CustomTokenObtainPairView(TokenObtainPairView):
+class Login(TokenObtainPairView):
     @extend_schema(
         summary="Login and obtain JWT tokens",
         request={
