@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_spectacular',
     'core',
+    'blanks.apps.BlanksConfig',   #recommended instead of 'blanks', for clarity
 ]
 
 MIDDLEWARE = [
