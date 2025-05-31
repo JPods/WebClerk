@@ -1,12 +1,22 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..models import Contact
 import uuid
 from django.utils import timezone
 from datetime import timedelta
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
+class LoginSerializer(TokenObtainPairSerializer):
+    """Serializer for user login, validating email and password."""
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        return data
+
 class ContactSerializer(serializers.ModelSerializer):
-    """Serializer for Contact model, exposing user details."""
+    """Serializer for Contact model with role-based field filtering."""
     role = serializers.ListField(
         child=serializers.ChoiceField(choices=Contact.ROLE_CHOICES),
         help_text="List of user roles (e.g., ['ADMIN', 'SALE'])"
@@ -25,6 +35,31 @@ class ContactSerializer(serializers.ModelSerializer):
             'verification_code', 'verification_code_expiry', 'refs', 'prefs', 'metadata'
         ]
         read_only_fields = ['id', 'uuid', 'verification_code', 'verification_code_expiry', 'is_email_verified', 'date_joined', 'last_login']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            user_roles = request.user.role if hasattr(request.user, 'role') else []
+            allowed_fields = self.get_allowed_fields(user_roles)
+            # Remove fields not allowed for the user's role
+            for field_name in set(self.fields) - set(allowed_fields):
+                self.fields.pop(field_name, None)
+
+    def get_allowed_fields(self, user_roles):
+        """Define fields accessible based on user roles."""
+        if 'SUPER' in user_roles:
+            return self.Meta.fields  # SUPER sees all fields
+        elif 'ADMIN' in user_roles:
+            # ADMIN sees all except sensitive fields
+            return [
+                'id', 'uuid', 'email', 'opt_out', 'role', 'is_active', 'is_staff',
+                'attention', 'comment_alert', 'company', 'name_first', 'name_last', 'name_middle',
+                'prefix', 'suffix', 'salutation', 'publish', 'rank', 'comment', 'refs', 'prefs', 'metadata'
+            ]
+        else:
+            # Other roles see limited fields
+            return ['id', 'email', 'name_first', 'name_last', 'company', 'refs']
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Serializer for user registration."""
@@ -76,3 +111,27 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+class VerifyEmailSerializer(serializers.Serializer):
+    """Serializer for email verification."""
+    email = serializers.EmailField(required=True)
+    code = serializers.CharField(required=True, max_length=8)
+
+    def validate(self, attrs):
+        email = attrs.get('email').lower()
+        code = attrs.get('code')
+        try:
+            user = Contact.objects.get(email=email)
+        except Contact.DoesNotExist:
+            raise serializers.ValidationError({"email": "User with this email does not exist."})
+        
+        if user.is_email_verified:
+            raise serializers.ValidationError({"email": "Email is already verified."})
+        
+        if user.verification_code != code:
+            raise serializers.ValidationError({"code": "Invalid verification code."})
+        
+        if user.verification_code_expiry < timezone.now():
+            raise serializers.ValidationError({"code": "Verification code has expired."})
+        
+        return attrs

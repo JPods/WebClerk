@@ -1,134 +1,239 @@
 from rest_framework.views import APIView
+from rest_framework import status, permissions, generics
 from rest_framework.response import Response
-from rest_framework import status
-from ..serializers import RegisterSerializer, ContactSerializer
-from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+from ..serializers.contact_serializer import ContactSerializer, RegisterSerializer, LoginSerializer, VerifyEmailSerializer
+from ..serializers.action_serializer import ActionSerializer
 from ..models import Contact
-from django.utils import timezone
+from ..permissions import IsOwnerOrAdmin, IsAuthenticatedActive, IsAdminOrSuper
 from django.core.mail import send_mail
 from django.conf import settings
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
-from django.contrib.auth import authenticate
-import logging
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-
-logger = logging.getLogger(__name__)
 
 class LoginView(TokenObtainPairView):
+    """Handles user login and JWT token generation."""
+    serializer_class = LoginSerializer
+
     @extend_schema(
-        summary="Login and obtain JWT tokens",
-        request={
-            'application/json': {
-                'type': 'object',
-                'properties': {
-                    'email': {'type': 'string', 'format': 'email'},
-                    'password': {'type': 'string'},
-                },
-                'required': ['email', 'password'],
-            }
-        },
+        summary="User Login",
+        description="Authenticate a user with email and password, returning JWT access and refresh tokens.",
+        request=LoginSerializer,
         responses={
-            200: OpenApiResponse(description="Returns access and refresh tokens"),
-            401: OpenApiResponse(description="Invalid credentials or unverified email"),
+            200: OpenApiResponse(description="JWT tokens generated successfully"),
+            401: OpenApiResponse(description="Invalid credentials"),
         }
     )
     def post(self, request, *args, **kwargs):
-        email = request.data.get('email', '').lower()
-        password = request.data.get('password', '')
-        logger.info(f"Login attempt for email: {email}")
-        
-        user = authenticate(request, email=email, password=password)
-        logger.debug(f"Authenticate result: user={user}, "
-                     f"is_active={user.is_active if user else None}, "
-                     f"is_email_verified={user.is_email_verified if user else None}, "
-                     f"roles={user.role if user else None}")
-        
-        if not user:
-            user = Contact.objects.filter(email=email).first()
-            logger.debug(f"Manual lookup: user={user}, "
-                         f"password_valid={user.check_password(password) if user else None}")
-            raise AuthenticationFailed('No active account found with the given credentials.')
-        if not user.is_active:
-            raise AuthenticationFailed('Account is inactive.')
-        if not user.is_email_verified:
-            raise AuthenticationFailed('Email not verified. Please verify your email to log in.')
-        if not user.role:
-            raise AuthenticationFailed('Account has no roles assigned. Please contact an administrator.')
-        
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class SignupView(APIView):
-    permission_classes = [AllowAny]
+class RegisterView(APIView):
+    """Handles user registration and sends verification email."""
+    permission_classes = [permissions.AllowAny]
 
     @extend_schema(
-        summary="Register a new user",
+        summary="User Registration",
+        description="Register a new user with required fields (email, password, name_first, name_last) and optional fields. Sends a verification email.",
         request=RegisterSerializer,
         responses={
-            201: RegisterSerializer,
-            400: OpenApiResponse(description="Invalid input data"),
+            201: ContactSerializer,
+            400: OpenApiResponse(description="Invalid data"),
+            409: OpenApiResponse(description="Email already exists"),
         }
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            subject = 'Verify Your Email'
-            message = f'Hi {user.name_first or user.email},\n\nPlease verify your email using this code: {user.verification_code}\nThis code expires in 24 hours.\n\nThank you!'
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
+            # Send verification email
+            subject = 'Verify Your Email Address'
+            message = (
+                f"Hi {user.name_first or 'User'},\n\n"
+                f"Please verify your email address by using the following code:\n\n"
+                f"Verification Code: {user.verification_code}\n\n"
+                f"This code is valid for 24 hours.\n\n"
+                f"Thank you,\nWebClerk3 Team"
             )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                # Log error but don't fail registration
+                print(f"Failed to send email: {str(e)}")
+            return Response(ContactSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProfileView(APIView):
+    """Handles user profile retrieval and updates."""
+    permission_classes = [IsAuthenticatedActive, IsOwnerOrAdmin]
+
     @extend_schema(
-        summary="Retrieve authenticated user's profile",
+        summary="Get User Profile",
+        description="Retrieve the authenticated user's profile details.",
         responses={
             200: ContactSerializer,
             401: OpenApiResponse(description="Unauthorized"),
-        },
-        auth=['BearerAuth']
+            403: OpenApiResponse(description="Forbidden"),
+        }
     )
     def get(self, request):
         serializer = ContactSerializer(request.user)
-        return Response(serializer.data)
-
-class VerifyEmailView(APIView):
-    permission_classes = [AllowAny]
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        summary="Verify user email with code",
+        summary="Update User Profile",
+        description="Update the authenticated user's profile fields (partial update).",
+        request=ContactSerializer,
+        responses={
+            200: ContactSerializer,
+            400: OpenApiResponse(description="Invalid data"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+        }
+    )
+    def patch(self, request):
+        serializer = ContactSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LogoutView(APIView):
+    """Handles user logout by blacklisting refresh token."""
+    permission_classes = [IsAuthenticatedActive]
+
+    @extend_schema(
+        summary="User Logout",
+        description="Blacklist the provided refresh token to log out the user.",
         request={
-            'application/json': {
-                'type': 'object',
-                'properties': {
-                    'email': {'type': 'string', 'format': 'email'},
-                    'code': {'type': 'string'},
-                },
-                'required': ['email', 'code'],
-            }
+            "type": "object",
+            "properties": {
+                "refresh": {"type": "string", "description": "JWT refresh token"}
+            },
+            "required": ["refresh"]
         },
         responses={
-            200: OpenApiResponse(description="Email verified"),
-            400: OpenApiResponse(description="Invalid email or code"),
+            205: OpenApiResponse(description="Successfully logged out"),
+            400: OpenApiResponse(description="Invalid token"),
+            401: OpenApiResponse(description="Unauthorized"),
         }
     )
     def post(self, request):
-        email = request.data.get('email', '').lower()
-        code = request.data.get('code')
         try:
-            contact = Contact.objects.get(email=email, verification_code=code)
-            if contact.verification_code_expiry and contact.verification_code_expiry > timezone.now():
-                contact.is_email_verified = True
-                contact.verification_code = None
-                contact.verification_code_expiry = None
-                contact.save()
-                return Response({"message": "Email verified"}, status=status.HTTP_200_OK)
-            return Response({"error": "Invalid or expired code"}, status=status.HTTP_400_BAD_REQUEST)
-        except Contact.DoesNotExist:
-            return Response({"error": "Invalid email or code"}, status=status.HTTP_400_BAD_REQUEST)
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class ContactView(generics.ListCreateAPIView):
+    """Handles listing and creating contacts."""
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticatedActive, IsAdminOrSuper]
+
+    @extend_schema(
+        summary="List Contacts",
+        description="Retrieve a list of contacts, filtered by user role.",
+        responses={
+            200: ContactSerializer(many=True),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create Contact",
+        description="Create a new contact (ADMIN or SUPER only).",
+        request=ContactSerializer,
+        responses={
+            201: ContactSerializer,
+            400: OpenApiResponse(description="Invalid data"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Handles retrieving, updating, and deleting a contact."""
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticatedActive, IsOwnerOrAdmin]
+
+    @extend_schema(
+        summary="Get Contact",
+        description="Retrieve a specific contact by ID, filtered by user role.",
+        responses={
+            200: ContactSerializer,
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not found"),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Update Contact",
+        description="Update a contact (partial update, owner or ADMIN/SUPER only).",
+        request=ContactSerializer,
+        responses={
+            200: ContactSerializer,
+            400: OpenApiResponse(description="Invalid data"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not found"),
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Delete Contact",
+        description="Delete a contact (owner or ADMIN/SUPER only).",
+        responses={
+            204: OpenApiResponse(description="Successfully deleted"),
+            401: OpenApiResponse(description="Unauthorized"),
+            403: OpenApiResponse(description="Forbidden"),
+            404: OpenApiResponse(description="Not found"),
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
+
+class VerifyEmailView(APIView):
+    """Handles email verification using a code."""
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        summary="Verify Email",
+        description="Verify a user's email address using the provided verification code.",
+        request=VerifyEmailSerializer,
+        responses={
+            200: OpenApiResponse(description="Email verified successfully"),
+            400: OpenApiResponse(description="Invalid or expired code, or email already verified"),
+        }
+    )
+    def post(self, request):
+        serializer = VerifyEmailSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email'].lower()
+            user = Contact.objects.get(email=email)
+            user.is_email_verified = True
+            user.verification_code = None
+            user.verification_code_expiry = None
+            user.save()
+            return Response({"detail": "Email verified successfully"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

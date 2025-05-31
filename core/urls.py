@@ -1,11 +1,17 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
-from .views import SignupView, ProfileView, VerifyEmailView, LoginView
+from .views.contact_view import RegisterView, LoginView, ProfileView, LogoutView, ContactView, ContactDetailView, VerifyEmailView
+from .views.action_view import ActionView, ActionDetailView
+
+app_name = 'core'
 
 urlpatterns = [
-    path('signup/', SignupView.as_view(), name='signup'),
+    path('signup/', RegisterView.as_view(), name='signup'),
     path('login/', LoginView.as_view(), name='login'),
-    path('refresh-token/', TokenRefreshView.as_view(), name='refresh_token'),
     path('profile/', ProfileView.as_view(), name='profile'),
-    path('verify-email/', VerifyEmailView.as_view(), name='verify_email'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('contacts/', ContactView.as_view(), name='contact-list'),
+    path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
+    path('actions/', ActionView.as_view(), name='action-list'),
+    path('actions/<int:pk>/', ActionDetailView.as_view(), name='action-detail'),
+    path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
 ]
