@@ -152,6 +152,17 @@ class BaseModel(models.Model):
                         keyword = str(v).lower()
                         if keyword not in IGNORE_KEYWORDS:
                             keywords.append(keyword)
+            
+        # Append tags from refs if they exist
+        if hasattr(self, 'refs') and isinstance(self.refs, dict) and 'tags' in self.refs:
+            tags = self.refs.get('tags', [])
+            if isinstance(tags, (list, tuple)):
+                for tag in tags:
+                    if isinstance(tag, str):
+                        # Split tag by spaces, trim, lowercase, filter
+                        parts = [part.strip().lower() for part in tag.split() if part.strip()]
+                        filtered_parts = [part for part in parts if part not in IGNORE_KEYWORDS]
+                        keywords.extend(filtered_parts)
 
         return ",".join(set(keywords))
 
