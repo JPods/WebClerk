@@ -1,12 +1,11 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAppSelector } from '../store/hooks';
+//import { useAppSelector } from '../store/hooks';
 import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 import AppSidebar from '../layout/AppSidebar';
 import Backdrop from '../layout/Backdrop';
 import AppHeader from '../layout/AppHeader';
 import { useAuth } from '../hooks/useAuth';
-import CustomHeader from '../layout/CustomHeader';
 
 const AppLayout: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,10 +32,7 @@ const AppLayout: React.FC = () => {
         } ${isMobileOpen ? "ml-0" : ""}`}
       >
         <AppHeader />
-        { segment === 'exam-list' && (
-              <CustomHeader/>
-        )}
-        <div className="p-2 mx-auto max-w-(--breakpoint-2xl) md:px-6">
+        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
           <Outlet />
         </div>
       </div>
@@ -54,3 +50,35 @@ const PrivateRoute: React.FC = () => {
 };
 
 export default PrivateRoute;
+
+
+// const LayoutContent: React.FC = () => {
+//   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+
+//   return (
+//     <div className="min-h-screen xl:flex">
+//       <div>
+//         <AppSidebar />
+//         <Backdrop />
+//       </div>
+//       <div
+//         className={`flex-1 transition-all duration-300 ease-in-out ${
+//           isExpanded || isHovered ? "lg:ml-[290px]" : "lg:ml-[90px]"
+//         } ${isMobileOpen ? "ml-0" : ""}`}
+//       >
+//         <AppHeader />
+//         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+//           <Outlet />
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// const AppLayout: React.FC = () => {
+//   return (
+//     <SidebarProvider>
+//       <LayoutContent />
+//     </SidebarProvider>
+//   );
+// };

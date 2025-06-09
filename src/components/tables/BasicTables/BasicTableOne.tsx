@@ -7,49 +7,109 @@ import {
 } from "../../ui/table";
 
 import Badge from "../../ui/badge/Badge";
-import { useEffect, useState } from "react";
-import { getExamList } from "../../../api/exam";
-import { useAppDispatch } from "../../../store/hooks";
-import { showToast } from "../../../store/slices/toastSlice";
-import Switch from "../../form/switch/Switch";
 
-
-interface examList {
-  test_name: string;
-  date: string; // or Date if you'll parse it
-  subject_id: string;
-  class_id: number | null;
-  division_id: number | null;
-  test_no: string;
-  max_marks: string;
-  status: "Active" | "Inactive" | string; // more specific if you know all possible statuses
+interface Order {
   id: number;
-  subject_name: string;
-  created_on: string; // or Date
-  updated_on: string; // or Date
+  user: {
+    image: string;
+    name: string;
+    role: string;
+  };
+  projectName: string;
+  team: {
+    images: string[];
+  };
+  status: string;
+  budget: string;
 }
 
+// Define the table data using the interface
+const tableData: Order[] = [
+  {
+    id: 1,
+    user: {
+      image: "/images/user/user-17.jpg",
+      name: "Lindsey Curtis",
+      role: "Web Designer",
+    },
+    projectName: "Agency Website",
+    team: {
+      images: [
+        "/images/user/user-22.jpg",
+        "/images/user/user-23.jpg",
+        "/images/user/user-24.jpg",
+      ],
+    },
+    budget: "3.9K",
+    status: "Active",
+  },
+  {
+    id: 2,
+    user: {
+      image: "/images/user/user-18.jpg",
+      name: "Kaiya George",
+      role: "Project Manager",
+    },
+    projectName: "Technology",
+    team: {
+      images: ["/images/user/user-25.jpg", "/images/user/user-26.jpg"],
+    },
+    budget: "24.9K",
+    status: "Pending",
+  },
+  {
+    id: 3,
+    user: {
+      image: "/images/user/user-17.jpg",
+      name: "Zain Geidt",
+      role: "Content Writing",
+    },
+    projectName: "Blog Writing",
+    team: {
+      images: ["/images/user/user-27.jpg"],
+    },
+    budget: "12.7K",
+    status: "Active",
+  },
+  {
+    id: 4,
+    user: {
+      image: "/images/user/user-20.jpg",
+      name: "Abram Schleifer",
+      role: "Digital Marketer",
+    },
+    projectName: "Social Media",
+    team: {
+      images: [
+        "/images/user/user-28.jpg",
+        "/images/user/user-29.jpg",
+        "/images/user/user-30.jpg",
+      ],
+    },
+    budget: "2.8K",
+    status: "Cancel",
+  },
+  {
+    id: 5,
+    user: {
+      image: "/images/user/user-21.jpg",
+      name: "Carla George",
+      role: "Front-end Developer",
+    },
+    projectName: "Website",
+    team: {
+      images: [
+        "/images/user/user-31.jpg",
+        "/images/user/user-32.jpg",
+        "/images/user/user-33.jpg",
+      ],
+    },
+    budget: "4.5K",
+    status: "Active",
+  },
+];
+
 export default function BasicTableOne() {
-     const dispatch = useAppDispatch();
-     const [tableData, setTableData] = useState<examList[]>([]) 
-     useEffect(() => {
-          ExamList()
-     },[])
-
-     const ExamList = async() => {
-          try {
-               const res = await getExamList(1)
-               if(res.return_status === 1)
-                   setTableData(res.return_data)
-          } catch (error:any) {               
-               dispatch(showToast({ message: error.message, type: "error" }));
-          }
-     }
-
-     const handleSwitchChange = (checked: boolean) => {
-      console.log("Switch is now:", checked ? "ON" : "OFF");
-    };
-
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
@@ -61,43 +121,19 @@ export default function BasicTableOne() {
                 isHeader
                 className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
               >
-                Sl No.
+                User
               </TableCell>
               <TableCell
                 isHeader
                 className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
               >
-                Test No.
+                Project Name
               </TableCell>
               <TableCell
                 isHeader
                 className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
               >
-                Test Name
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Date
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Subject
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Max Mark
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Class & Divisions
+                Team
               </TableCell>
               <TableCell
                 isHeader
@@ -109,54 +145,72 @@ export default function BasicTableOne() {
                 isHeader
                 className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
               >
-                Action
+                Budget
               </TableCell>
             </TableRow>
           </TableHeader>
 
           {/* Table Body */}
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {tableData.map((order,index) => (
+            {tableData.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {index + 1}
+                <TableCell className="px-5 py-4 sm:px-6 text-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 overflow-hidden rounded-full">
+                      <img
+                        width={40}
+                        height={40}
+                        src={order.user.image}
+                        alt={order.user.name}
+                      />
+                    </div>
+                    <div>
+                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                        {order.user.name}
+                      </span>
+                      <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                        {order.user.role}
+                      </span>
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.test_no}
+                  {order.projectName}
                 </TableCell>
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.test_name}
-                </TableCell>                
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.date}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.subject_name}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.max_marks}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.class_id}
+                  <div className="flex -space-x-2">
+                    {order.team.images.map((teamImage, index) => (
+                      <div
+                        key={index}
+                        className="w-6 h-6 overflow-hidden border-2 border-white rounded-full dark:border-gray-900"
+                      >
+                        <img
+                          width={24}
+                          height={24}
+                          src={teamImage}
+                          alt={`Team member ${index + 1}`}
+                          className="w-full size-6"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {/* <Badge
+                  <Badge
                     size="sm"
                     color={
                       order.status === "Active"
                         ? "success"
-                        : order.status === "Inactive"
+                        : order.status === "Pending"
                         ? "warning"
                         : "error"
                     }
                   >
                     {order.status}
-                  </Badge> */}
-                  <Switch
-                    label=""
-                    defaultChecked={order.status === "Active" ? true : false}
-                    onChange={handleSwitchChange}
-                  />
+                  </Badge>
+                </TableCell>
+                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                  {order.budget}
                 </TableCell>
               </TableRow>
             ))}

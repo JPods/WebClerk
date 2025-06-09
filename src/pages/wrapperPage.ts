@@ -1,10 +1,11 @@
-
-import NotFound404 from "./error404/NotFound404";
-import ExamList from "./Results/ExamList";
-import ExamAdd from "./Results/ExamAdd";
+import NotFound from "./OtherPage/NotFound";
+import SignIn from "./AuthPages/SignIn";
+import SignUp from "./AuthPages/SignUp";
+import Home from "./Dashboard/Home";
 
 export {  
-  ExamList,
-  ExamAdd,
-  NotFound404,  
+  SignIn,
+  SignUp,
+  NotFound,  
+  Home
 };

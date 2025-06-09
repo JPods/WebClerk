@@ -16,8 +16,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import SidebarWidget from "./SidebarWidget";
-import { PageRoutes } from "../routes/Routes";
+//import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;
@@ -30,12 +29,12 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    path: PageRoutes.dashboard,
+    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
   },
   {
     icon: <CalenderIcon />,
-    name: "Exam List",
-    path: PageRoutes.examList,
+    name: "Calendar",
+    path: "/calendar",
   },
   {
     icon: <UserCircleIcon />,
@@ -286,7 +285,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-4 top-0 px-5 left-0 bg-[#1A468D] dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 p-2 m-4 rounded-2xl border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
         ${
           isExpanded || isMobileOpen
             ? "w-[290px]"
@@ -309,14 +308,14 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo-icon.png"
+                src="/images/logo/logo.svg"
                 alt="Logo"
                 width={150}
                 height={40}
               />
               <img
                 className="hidden dark:block"
-                src="/images/logo/logo-icon.png"
+                src="/images/logo/logo-dark.svg"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -324,7 +323,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="/images/logo/favicon.png"
+              src="/images/logo/logo-icon.svg"
               alt="Logo"
               width={32}
               height={32}
@@ -369,7 +368,7 @@ const AppSidebar: React.FC = () => {
             </div>
           </div>
         </nav>
-        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );

@@ -3,7 +3,7 @@ import { useState } from "react";
 
 interface Option {
   value: string;
-  label: string;
+  text: string;
 }
 
 interface MultiSelectProps {
@@ -45,7 +45,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   };
 
   const selectedValuesText = selectedOptions.map(
-    (value) => options.find((option) => option.value === value)?.label || ""
+    (value) => options.find((option) => option.value === value)?.text || ""
   );
 
   return (
@@ -148,7 +148,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                       }`}
                     >
                       <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
-                        {option.label}
+                        {option.text}
                       </div>
                     </div>
                   </div>

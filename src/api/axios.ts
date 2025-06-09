@@ -1,11 +1,22 @@
-
 import axios from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 
+let accessToken = localStorage.getItem("accessToken");
+
 const axiosInstance = axios.create({
   baseURL: NetworkInfo.URL,
-  withCredentials: true, // IMPORTANT: send cookies!
 });
+
+// Attach token to every request
+axiosInstance.interceptors.request.use(
+  (config) => {
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Automatically try refresh if token fails
 axiosInstance.interceptors.response.use(
@@ -16,12 +27,19 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Try to refresh the token (via cookie)
-        await axiosInstance.post(AuthURL.REFRESH_TOKEN);
-        return axiosInstance(originalRequest); // Retry original request
+        const refreshResponse = await axios.post(AuthURL.REFRESH_TOKEN); // use plain axios
+        const newToken = refreshResponse.data.accessToken;
+
+        // Update token
+        accessToken = newToken;
+        localStorage.setItem("accessToken", newToken);
+
+        // Update header and retry original request
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return axiosInstance(originalRequest);
       } catch (err) {
-        // Redirect to login if refresh fails       
-        //window.location.href = PageRoutes.login;
+        // Redirect or handle logout
+        // window.location.href = PageRoutes.login;
         return Promise.reject(err);
       }
     }

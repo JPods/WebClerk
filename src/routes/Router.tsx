@@ -1,25 +1,25 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
-import LoginPage from '../pages/LoginPage';
-import DashboardPage from '../pages/DashboardPage';
-import { Toster } from '../components/wrapper';
 import { PageRoutes } from './Routes';
-import { ExamAdd, ExamList } from '../pages/wrapperPage';
+import { ScrollToTop, Toster } from '../components/wrapper';
+import { Home, SignIn, SignUp } from '../pages/wrapperPage';
+
 
 const Router: React.FC = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Toster/>
       <Routes>
+                
         {/* Public routes */}
-        <Route path={PageRoutes.login} element={<LoginPage />} />       
-        
+        <Route path={PageRoutes.login} element={<SignIn />} />       
+        <Route path={PageRoutes.register} element={<SignUp />} />
+
         {/* Protected routes */}
         <Route element={<PrivateRoute />}>
-          <Route path={PageRoutes.dashboard} element={<DashboardPage />} />
-          <Route path={PageRoutes.examList} element={<ExamList />} />
-          <Route path={PageRoutes.examAdd} element={<ExamAdd />} />
+          <Route path={PageRoutes.dashboard} element={<Home />} />         
         </Route>
         
         {/* 404 page */}
