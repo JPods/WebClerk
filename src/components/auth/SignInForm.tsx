@@ -40,13 +40,15 @@ export default function SignInForm() {
   const handleFormSubmit = async (data:LoginFormData) => {
        
        try {
-              const response = await login(data);             
-              if(response.return_status === 1 ) {
+              const response = await login(data); 
+              console.log("response",response)
+              if(response.access ) {
+                  localStorage.setItem("accessToken", response.access);
                   dispatch(showToast({ message: "Login successful!", type: "success" }));
-                  dispatch(setUser({ ...response.return_data.user, isAuthenticated: true }));
+                  dispatch(setUser({ ...response.access, isAuthenticated: true }));
                   navigate('/dashboard');
               } else {               
-                  dispatch(showToast({ message: response.return_message, type: "error" }));
+                  dispatch(showToast({ message: "Try again later", type: "error" }));
               }             
        } catch (error : any) {
              dispatch(showToast({ message: error, type: "error" }));
