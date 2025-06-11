@@ -7,12 +7,27 @@ from datetime import timedelta
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 class LoginSerializer(TokenObtainPairSerializer):
-    """Serializer for user login, validating email and password."""
+    """Serializer for user login, validating email, password, and role."""
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
+    role = serializers.ChoiceField(choices=Contact.ROLE_CHOICES, required=True, help_text="Single role value (e.g., 'USER')")
 
     def validate(self, attrs):
+        email = attrs.get('email').lower()
+        role = attrs.get('role')
+
+        # Validate credentials
         data = super().validate(attrs)
+
+        # Check if user exists and role is in their role array
+        try:
+            user = Contact.objects.get(email=email)
+        except Contact.DoesNotExist:
+            raise serializers.ValidationError({"error": "User with this email does not exist."})
+
+        if role not in user.role:
+            raise serializers.ValidationError({"error": f"Role '{role}' is not assigned to this user."})
+
         return data
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -68,6 +83,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         choices=Contact.ROLE_CHOICES,
         required=False,
         allow_blank=True,
+        default=['USER'],
         help_text="List of roles to assign (e.g., ['ADMIN', 'SALE'])"
     )
     opt_out = serializers.JSONField(default=dict, help_text="Optional opt-out preferences")
@@ -123,15 +139,15 @@ class VerifyEmailSerializer(serializers.Serializer):
         try:
             user = Contact.objects.get(email=email)
         except Contact.DoesNotExist:
-            raise serializers.ValidationError({"email": "User with this email does not exist."})
+            raise serializers.ValidationError({"error": "User with this email does not exist."})
         
         if user.is_email_verified:
-            raise serializers.ValidationError({"email": "Email is already verified."})
+            raise serializers.ValidationError({"error": "Email is already verified."})
         
         if user.verification_code != code:
-            raise serializers.ValidationError({"code": "Invalid verification code."})
+            raise serializers.ValidationError({"error": "Invalid verification code."})
         
         if user.verification_code_expiry < timezone.now():
-            raise serializers.ValidationError({"code": "Verification code has expired."})
+            raise serializers.ValidationError({"error": "Verification code has expired."})
         
         return attrs
