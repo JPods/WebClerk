@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..models import Contact
+from communications.models import Address, Email, Phone, Domain
 import uuid
 from django.utils import timezone
 from datetime import timedelta
@@ -125,6 +126,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data['email'] = validated_data['email'].lower()
         user = Contact(**validated_data)
         user.set_password(password)
+        user.save()
+        # Create blank objects
+        address = Address.objects.create()
+        email = Email.objects.create()
+        phone = Phone.objects.create()
+        domain = Domain.objects.create()
+        user.refs.update({
+            'addresses': [str(address.id)],
+            'emails': [str(email.id)],
+            'phones': [str(phone.id)],
+            'domains': [str(domain.id)]
+        })
         user.save()
         return user
 

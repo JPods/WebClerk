@@ -48,7 +48,7 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             # Send verification email
-            subject = 'Verify Your Email Address'
+            subject = 'WebClerk3.0: Verify Your Email Address'
             message = (
                 f"Hi {user.name_first or 'User'},\n\n"
                 f"Please verify your email address by using the following code:\n\n"
@@ -235,5 +235,5 @@ class VerifyEmailView(APIView):
             user.verification_code = None
             user.verification_code_expiry = None
             user.save()
-            return Response({"detail": "Email verified successfully"}, status=status.HTTP_200_OK)
+            return Response({"msg": "Email verified successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

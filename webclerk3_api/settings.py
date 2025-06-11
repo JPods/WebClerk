@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'core',
+    'communications',
 ]
 
 MIDDLEWARE = [
