@@ -21,7 +21,6 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'core',
-    'blanks.apps.BlanksConfig',   #recommended instead of 'blanks', for clarity
 ]
 
 MIDDLEWARE = [
