@@ -27,7 +27,10 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshResponse = await axios.post(AuthURL.REFRESH_TOKEN); // use plain axios
+        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshResponse = await axios.post(AuthURL.REFRESH_TOKEN, {
+          refreshToken,
+        }); // use plain axios
         const newToken = refreshResponse.data.access;
 
         // Update token

@@ -5,21 +5,29 @@ import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import 
 export const login = async (credentials:LoginFormData) => {
   try {
     const res = await axiosInstance.post(AuthURL.LOGIN, credentials);
-    return res.data;
+    return res;
   }
   catch (error: any) { 
     return error.response?.data || error.message   
   }  
 };
 
-export const register = async (userData: RegisterFormData) => {
-  const res = await axiosInstance.post("/auth/register", userData);
+export const signup = async (userData: RegisterFormData) => {
+  const res = await axiosInstance.post(AuthURL.SIGNUP, userData);
   return res.data;
 };
 
 export const logout = async () => {
-  const res = await axiosInstance.post(AuthURL.LOGOUT); // assuming it's a POST
-  return res.data;
+  try {
+        const refreshToken = localStorage.getItem("refreshToken");
+        const res = await axiosInstance.post(AuthURL.LOGOUT,{
+            refresh:refreshToken,
+        });
+        localStorage.clear();  
+        return res.data;
+  } catch (error:any) {
+        return error.response?.status || error.message   
+  } 
 };
 
 export const userDetails = async () => {
