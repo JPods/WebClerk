@@ -3,11 +3,11 @@ import { useState } from "react";
 
 interface Option {
   value: string;
-  text: string;
+  label: string;
 }
 
 interface MultiSelectProps {
-  label: string;
+  label?: string;
   options: Option[];
   defaultSelected?: string[];
   onChange?: (selected: string[]) => void;
@@ -45,14 +45,16 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   };
 
   const selectedValuesText = selectedOptions.map(
-    (value) => options.find((option) => option.value === value)?.text || ""
+    (value) => options.find((option) => option.value === value)?.label || ""
   );
 
   return (
     <div className="w-full">
-      <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-        {label}
-      </label>
+      { label && (
+             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                {label}
+             </label>
+      )}     
 
       <div className="relative z-20 inline-block w-full">
         <div className="relative flex flex-col items-center">
@@ -148,7 +150,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                       }`}
                     >
                       <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
-                        {option.text}
+                        {option.label}
                       </div>
                     </div>
                   </div>

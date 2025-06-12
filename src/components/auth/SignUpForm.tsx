@@ -13,6 +13,7 @@ import { showToast } from "../../store/slices/toastSlice";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { setUser } from "../../store/slices/authSlice";
 import { signup } from "../../api/auth";
+import MultiSelect from "../form/MultiSelect";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -60,9 +61,15 @@ export default function SignUpForm() {
            }   
       };
     
-    const selectOption = [
-                          {value:"customer", label:"Customer"},
-                          {value:"seller", label:"Seller"}                         
+    const selectOption = [                          
+                          {value:"ADMIN", label:"ADMIN"},
+                          {value:"SUPER", label:"SUPER"},
+                          {value:"SALE", label:"Sales"},
+                          {value:"REP", label:"Representative"},
+                          {value:"VENDOR", label:"Vendor"}, 
+                          {value:"CUSTOMER", label:"Customer"},
+                          {value:"USER", label:"User"},
+                          {value:"PUBLIC", label:"Public"},                                                   
                          ]
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">      
@@ -174,12 +181,12 @@ export default function SignUpForm() {
                    <Controller
                       name="role"
                       control={control}
-                      defaultValue="customer"
+                      defaultValue={["ADMIN"]}
                       render={({ field }) => (
-                        <Select
+                        <MultiSelect
                           options={selectOption}                          
                           onChange={field.onChange}
-                          defaultValue={field.value}
+                          defaultSelected={Array.isArray(field.value) ? field.value : [field.value]}
                         />
                       )}
                     />                 

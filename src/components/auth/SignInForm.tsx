@@ -7,12 +7,13 @@ import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { login } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
+import Select from "../form/Select";
 
 export default function SignInForm() {
 
@@ -29,6 +30,7 @@ export default function SignInForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
@@ -58,6 +60,17 @@ export default function SignInForm() {
   };
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+
+   const selectOption = [                          
+                          {value:"ADMIN", label:"ADMIN"},
+                          {value:"SUPER", label:"SUPER"},
+                          {value:"SALE", label:"Sales"},
+                          {value:"REP", label:"Representative"},
+                          {value:"VENDOR", label:"Vendor"}, 
+                          {value:"CUSTOMER", label:"Customer"},
+                          {value:"USER", label:"User"},
+                          {value:"PUBLIC", label:"Public"},                                                   
+                         ]
   return (
     <div className="flex flex-col flex-1">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -101,6 +114,23 @@ export default function SignInForm() {
                       )}
                     </span>
                   </div>
+                </div>
+                <div>
+                    <Label>
+                    Role <span className="text-error-500">* { errors.role && errors.role.message} </span>{" "}
+                  </Label>
+                    <Controller
+                      name="role"
+                      control={control}
+                      defaultValue="customer"
+                      render={({ field }) => (
+                        <Select
+                          options={selectOption}                          
+                          onChange={field.onChange}
+                          defaultValue={field.value}
+                        />
+                      )}
+                    />         
                 </div>
                 <div className="flex items-center justify-between">
                   {/* <div className="flex items-center gap-3">
