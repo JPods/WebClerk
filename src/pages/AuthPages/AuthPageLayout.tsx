@@ -8,12 +8,12 @@ import { useAuth } from "../../hooks/useAuth";
 export default function AuthLayout({children}: {children: React.ReactNode;}) 
 {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate(PageRoutes.dashboard);
-    }
-  }, [isAuthenticated, navigate]);
+  //const { isAuthenticated, isLoading } = useAuth();
+  // useEffect(() => {
+  //   if (isAuthenticated) {
+  //     navigate(PageRoutes.dashboard);
+  //   }
+  // }, [isAuthenticated, navigate]);
   
   return (
     <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
