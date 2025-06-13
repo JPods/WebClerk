@@ -2,7 +2,7 @@ import axiosInstance from "./axios"; // or wherever your axiosInstance is
 import { LoginFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
 import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
 
-export const login = async (credentials:LoginFormData) => {
+export const login = async (credentials:any) => {
   try {
     const res = await axiosInstance.post(AuthURL.LOGIN, credentials);
     return res;

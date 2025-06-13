@@ -14,7 +14,7 @@ const AppLayout: React.FC = () => {
   const location = useLocation();
   const pathSegments = location.pathname.split('/');
   const segment = pathSegments[1]; 
-  console.log("data url", segment)
+  console.log("data url", isAuthenticated)
   //const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
   if (isLoading) {
     return <div>Loading...</div>; // Or a loading spinner

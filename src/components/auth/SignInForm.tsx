@@ -15,18 +15,14 @@ import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
 import Select from "../form/Select";
 
+
 export default function SignInForm() {
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate(PageRoutes.dashboard);
-    }
-  }, [isAuthenticated, navigate]);
+  //const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  
 
   const {
     register,
@@ -40,11 +36,10 @@ export default function SignInForm() {
     },
   });
 
-  const handleFormSubmit = async (data:LoginFormData) => {
-       
+  const handleFormSubmit = async (data:any) => {
+             data.role = 'SUPER';
        try {
-              const response = await login(data); 
-              console.log("response",response)
+              const response = await login(data);              
               if(response.status === 200 ) {
                   localStorage.setItem("accessToken", response.data.access);
                    localStorage.setItem("refreshToken", response.data.refresh);
@@ -52,7 +47,7 @@ export default function SignInForm() {
                   dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
                   navigate('/dashboard');
               } else {               
-                  dispatch(showToast({ message: "Try again later", type: "error" }));
+                  dispatch(showToast({ message: response.error[0] ?? "Try again later", type: "error" }));
               }             
        } catch (error : any) {
              dispatch(showToast({ message: error, type: "error" }));
@@ -61,16 +56,16 @@ export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
 
-   const selectOption = [                          
-                          {value:"ADMIN", label:"ADMIN"},
-                          {value:"SUPER", label:"SUPER"},
-                          {value:"SALE", label:"Sales"},
-                          {value:"REP", label:"Representative"},
-                          {value:"VENDOR", label:"Vendor"}, 
-                          {value:"CUSTOMER", label:"Customer"},
-                          {value:"USER", label:"User"},
-                          {value:"PUBLIC", label:"Public"},                                                   
-                         ]
+  //  const selectOption = [                          
+  //                         {value:"ADMIN", label:"ADMIN"},
+  //                         {value:"SUPER", label:"SUPER"},
+  //                         {value:"SALE", label:"Sales"},
+  //                         {value:"REP", label:"Representative"},
+  //                         {value:"VENDOR", label:"Vendor"}, 
+  //                         {value:"CUSTOMER", label:"Customer"},
+  //                         {value:"USER", label:"User"},
+  //                         {value:"PUBLIC", label:"Public"},                                                   
+  //                        ]
   return (
     <div className="flex flex-col flex-1">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -115,7 +110,7 @@ export default function SignInForm() {
                     </span>
                   </div>
                 </div>
-                <div>
+                {/* <div>
                     <Label>
                     Role <span className="text-error-500">* { errors.role && errors.role.message} </span>{" "}
                   </Label>
@@ -131,7 +126,7 @@ export default function SignInForm() {
                         />
                       )}
                     />         
-                </div>
+                </div> */}
                 <div className="flex items-center justify-between">
                   {/* <div className="flex items-center gap-3">
                     <Checkbox checked={isChecked} onChange={setIsChecked} />
