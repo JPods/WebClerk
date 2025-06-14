@@ -5,7 +5,7 @@ interface User {
   id: string; 
   uuid: string;
   email: string;
-  company: string;
+  role: string[];
   name_first: string;
   name_last: string;
   rank: string

@@ -11,9 +11,22 @@ export const useAuth = () => {
     const fetchUser = async () => {
       try {
         dispatch(setLoading(true));
-        const res = await userDetails();
-        //dispatch(setUser(res.data));
-         dispatch(setUser({ ...res.data, isAuthenticated: true }));
+        const res = await userDetails();      
+       
+        if(res.status === 200)
+        {
+          const { id, uuid, email, role, name_first, name_last, rank } = res.data;
+           const user = {
+            id,
+            uuid,
+            email,
+            role,
+            name_first,
+            name_last,
+            rank,
+          };
+          dispatch(setUser(user));          
+        }       
       } catch (err: any) {
         dispatch(clearUser());
         dispatch(setAuthError(err?.response?.data?.message || "Failed to fetch user"));
@@ -22,7 +35,7 @@ export const useAuth = () => {
       }
     };
 
-    if (!user && !isAuthenticated) {
+    if (!isAuthenticated) {
       fetchUser();
     }
   }, [dispatch, user, isAuthenticated]);

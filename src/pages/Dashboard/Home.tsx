@@ -5,8 +5,20 @@ import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
+import { useAuth } from "../../hooks/useAuth";
+import { useAppSelector } from "../../store/hooks";
+import { useEffect } from "react";
+import { userDetails } from "../../api/auth";
+import { setUser } from "../../store/slices/authSlice";
+import { showToast } from "../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
 
 export default function Home() {
+  
+ 
+  const { user } = useAppSelector((state) => state.auth); 
+  
+  console.log("authhhhhhhhhhhh",user?.role)
   return (
     <>
       <PageMeta

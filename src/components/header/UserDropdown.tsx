@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import { Link, useNavigate } from "react-router";
 import { logout } from "../../api/auth";
 import { PageRoutes } from "../../routes/Routes";
+import { Link, useNavigate } from "react-router";
+import { clearUser } from "../../store/slices/authSlice";
+import { useDispatch } from "react-redux";
+import { useAppSelector } from "../../store/hooks";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+   const { user } = useAppSelector((state) => state.auth);
   function toggleDropdown() {
     setIsOpen(!isOpen);
   }
@@ -17,10 +22,11 @@ export default function UserDropdown() {
     setIsOpen(false);
   }
 
-  const logoutData = async() => {
-       const response = await logout();   
-       console.log("logout", response)     
-       navigate(PageRoutes.login);
+  const logoutData = () => {
+       //const response = await logout();  
+       dispatch(clearUser());       
+       localStorage.clear();    
+       navigate('/');
   }
 
   return (
@@ -33,7 +39,7 @@ export default function UserDropdown() {
           <img src="/images/user/owner.jpg" alt="User" />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">Riju</span>
+        <span className="block mr-1 font-medium text-theme-sm">{ user !== null ? user.name_first + user.name_last : "User" }</span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -61,10 +67,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            Riju Karar
+           { user !== null ? user.name_first + user.name_last : "User" }
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            technoriju@gmail.com
+            { user && user.email }
           </span>
         </div>
 

@@ -9,11 +9,13 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { login } from "../../api/auth";
+import { login, userDetails } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
 import Select from "../form/Select";
+import axiosInstance from "../../api/axios";
+import { PostLoginURL } from "../../routes/network";
 
 
 export default function SignInForm() {
@@ -42,10 +44,24 @@ export default function SignInForm() {
               const response = await login(data);              
               if(response.status === 200 ) {
                   localStorage.setItem("accessToken", response.data.access);
-                   localStorage.setItem("refreshToken", response.data.refresh);
-                  dispatch(showToast({ message: "Login successful!", type: "success" }));
-                  dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
-                  navigate('/dashboard');
+                  localStorage.setItem("refreshToken", response.data.refresh);
+
+                       const res = await axiosInstance.get(PostLoginURL.getUser,{
+                            headers: {
+                              Authorization: `Bearer ${response.data.access}`,
+                            },
+                          });
+                        if(res.status === 200)
+                        {   
+                            const { id, uuid, email, role, name_first, name_last, rank } = res.data;
+                            const user = {id, uuid,email,role,name_first,name_last,rank};
+                            dispatch(setUser(user));  
+                            dispatch(showToast({ message: "Login successful!", type: "success" }));
+                            navigate('/dashboard');
+                        }    
+                 
+                       // dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
+                 
               } else {               
                   dispatch(showToast({ message: response.error[0] ?? "Try again later", type: "error" }));
               }             
