@@ -16,7 +16,7 @@ class ContactAdmin(UserAdmin):
         (None, {'fields': ('email', 'password')}),
         ('Personal Info', {
             'fields': (
-                'name_first', 'name_last', 'name_middle', 'role',
+                'name_first', 'name_last', 'name_middle', 'role', 'role_default',
                 'company', 'prefix', 'salutation', 'suffix', 'rank', 'attention'
             )
         }),

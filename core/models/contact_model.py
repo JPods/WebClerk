@@ -52,6 +52,7 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
         default=list,
         blank=True
     )
+    role_default = models.CharField(max_length=50, blank=True, null=True)
     is_email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

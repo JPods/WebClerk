@@ -42,11 +42,7 @@ def default_refs():
     }
 
 def default_prefs():
-    return {
-        "contactBy": "email",
-        "timeOfDay": "morning",
-        "dayOfWeek": "monday",
-    }
+    return {}
 
 class BaseModel(models.Model):
     refs = JSONField(default=default_refs, null=True, blank=True)
