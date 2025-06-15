@@ -8,19 +8,23 @@ import AppHeader from '../layout/AppHeader';
 import { useAuth } from '../hooks/useAuth';
 
 const AppLayout: React.FC = () => {
+  
   const { isAuthenticated, isLoading } = useAuth();
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   const location = useLocation();
   const pathSegments = location.pathname.split('/');
   const segment = pathSegments[1]; 
-  console.log("data url", isAuthenticated)
+
   //const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
+    console.log("data url", isAuthenticated)
   if (isLoading) {
     return <div>Loading...</div>; // Or a loading spinner
   }
+  
+  const getToken = localStorage.getItem("accessToken");
 
-  return isAuthenticated ? (
+  return getToken ? (
     <div className="min-h-screen xl:flex">
       <div>
         <AppSidebar />
@@ -42,11 +46,12 @@ const AppLayout: React.FC = () => {
 };
 
 const PrivateRoute: React.FC = () => {
-  return (
+  const getToken = localStorage.getItem("accessToken");
+  return getToken ? (
     <SidebarProvider>
       <AppLayout />
     </SidebarProvider>
-  );
+  ) : <Navigate to="/" />;
 };
 
 export default PrivateRoute;

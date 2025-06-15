@@ -33,7 +33,7 @@ export const logout = async () => {
 export const userDetails = async () => {
   try {
     const res = await axiosInstance.get(PostLoginURL.getUser);
-    return res.data;
+    return res;
   }
   catch (error: any) { 
     return error.response?.data || error.message   

@@ -3,9 +3,11 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useAppSelector } from "../../store/hooks";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
+   const { user } = useAppSelector((state) => state.auth);
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
@@ -25,7 +27,7 @@ export default function UserInfoCard() {
                 First Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Riju
+                { user !== null ? user.name_first : "User" }
               </p>
             </div>
 
@@ -34,7 +36,7 @@ export default function UserInfoCard() {
                 Last Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Karar
+                { user !== null ? user.name_last : "User" }
               </p>
             </div>
 
@@ -43,7 +45,7 @@ export default function UserInfoCard() {
                 Email address
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                technoriju@gmail.com
+                { user && user.email }
               </p>
             </div>
 
@@ -61,7 +63,7 @@ export default function UserInfoCard() {
                 Bio
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Super Admin
+                { user !== null ? user.role : 'User' }
               </p>
             </div>
           </div>
