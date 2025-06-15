@@ -1,8 +1,10 @@
 from django.db import models
 from common.models import BaseModel
+import uuid
 
 class Phone(BaseModel):
-    """Model for storing phone information."""
+    id = models.BigAutoField(primary_key=True)
+    uuid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     attention = models.CharField(max_length=255, blank=True)
     country_code = models.CharField(max_length=255, blank=True)
     format = models.CharField(max_length=255, blank=True)

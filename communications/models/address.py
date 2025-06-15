@@ -1,8 +1,10 @@
 from django.db import models
 from common.models import BaseModel
+import uuid
 
 class Address(BaseModel):
-    """Model for storing address information."""
+    id = models.BigAutoField(primary_key=True)
+    uuid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     address1 = models.CharField(max_length=255, blank=True)
     address2 = models.CharField(max_length=255, blank=True)
     address_type = models.CharField(max_length=255, blank=True)

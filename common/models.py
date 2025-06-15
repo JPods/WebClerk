@@ -1,7 +1,6 @@
 from django.db import models
 from django.db.models import JSONField
 from django.utils import timezone
-import uuid
 from .ignore_fields import IGNORE_FIELDS
 from .ignore_keywords import IGNORE_KEYWORDS
 
