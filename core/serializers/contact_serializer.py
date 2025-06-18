@@ -45,7 +45,7 @@ class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
         fields = [
-            'id', 'uuid', 'email', 'opt_out', 'role', 'is_email_verified', 'is_active', 'is_staff',
+            'id', 'uuid', 'email', 'opt_out', 'role', 'role_default', 'is_email_verified', 'is_active', 'is_staff',
             'last_login', 'attention', 'comment_alert', 'company', 'name_first', 'name_last', 'name_middle',
             'prefix', 'suffix', 'salutation', 'publish', 'rank', 'date_joined', 'comment',
             'verification_code', 'verification_code_expiry', 'refs', 'prefs', 'metadata'
@@ -95,7 +95,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
         fields = [
-            'email', 'opt_out', 'role', 'password', 'is_staff', 'attention', 'comment_alert',
+            'email', 'opt_out', 'role', 'role_default', 'password', 'is_staff', 'attention', 'comment_alert',
             'company', 'name_first', 'name_last', 'name_middle', 'prefix', 'suffix', 'salutation',
             'publish', 'rank', 'comment', 'refs', 'prefs', 'metadata'
         ]

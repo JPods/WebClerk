@@ -16,6 +16,7 @@ class Address(BaseModel):
     state = models.CharField(max_length=255, blank=True)
     zip = models.CharField(max_length=255, blank=True)
     full = models.CharField(max_length=255, blank=True)
+    comment = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = 'addresses'

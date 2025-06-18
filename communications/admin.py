@@ -17,7 +17,7 @@ class AddressAdmin(admin.ModelAdmin):
             'fields': ('latitude', 'longitude')
         }),
         ('Additional Info', {
-            'fields': ('instructions', 'refs', 'prefs', 'metadata')
+            'fields': ('comment', 'instructions', 'refs', 'prefs', 'metadata')
         }),
         ('Timestamps', {
             'fields': ('uuid', 'get_dt_created', 'get_dt_updated'),
@@ -49,7 +49,7 @@ class EmailAdmin(admin.ModelAdmin):
             'fields': ('address', 'name', 'attention', 'opt_out')
         }),
         ('Additional Info', {
-            'fields': ('refs', 'prefs', 'metadata')
+            'fields': ('comment', 'refs', 'prefs', 'metadata')
         }),
         ('Timestamps', {
             'fields': ('uuid', 'get_dt_created', 'get_dt_updated'),
@@ -81,7 +81,7 @@ class PhoneAdmin(admin.ModelAdmin):
             'fields': ('number', 'country_code', 'format', 'name', 'attention', 'opt_out')
         }),
         ('Additional Info', {
-            'fields': ('refs', 'prefs', 'metadata')
+            'fields': ('comment', 'refs', 'prefs', 'metadata')
         }),
         ('Timestamps', {
             'fields': ('uuid', 'get_dt_created', 'get_dt_updated'),
@@ -113,7 +113,7 @@ class DomainAdmin(admin.ModelAdmin):
             'fields': ('path', 'type')
         }),
         ('Additional Info', {
-            'fields': ('refs', 'prefs', 'metadata')
+            'fields': ('comment', 'refs', 'prefs', 'metadata')
         }),
         ('Timestamps', {
             'fields': ('uuid', 'get_dt_created', 'get_dt_updated'),

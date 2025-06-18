@@ -11,6 +11,7 @@ class Phone(BaseModel):
     name = models.CharField(max_length=255, blank=True)
     number = models.CharField(max_length=255, blank=True)
     opt_out = models.CharField(max_length=255, blank=True)
+    comment = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = 'phones'

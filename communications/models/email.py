@@ -9,6 +9,7 @@ class Email(BaseModel):
     attention = models.CharField(max_length=255, blank=True)
     name = models.CharField(max_length=255, blank=True)
     opt_out = models.CharField(max_length=255, blank=True)
+    comment = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = 'emails'
