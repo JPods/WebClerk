@@ -5,7 +5,7 @@ from django.utils import timezone
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
     """Admin interface for Address model."""
-    list_display = ('uuid', 'address1', 'city', 'country', 'address_type', 'get_dt_created')
+    list_display = ('id', 'address1', 'city', 'country', 'address_type', 'get_dt_created')
     list_filter = ('address_type', 'country', 'state')
     search_fields = ('address1', 'address2', 'city', 'zip', 'full')
     readonly_fields = ('uuid', 'get_dt_created', 'get_dt_updated')
@@ -40,7 +40,7 @@ class AddressAdmin(admin.ModelAdmin):
 @admin.register(Email)
 class EmailAdmin(admin.ModelAdmin):
     """Admin interface for Email model."""
-    list_display = ('uuid', 'address', 'name', 'opt_out', 'get_dt_created')
+    list_display = ('id', 'address', 'name', 'opt_out', 'get_dt_created')
     list_filter = ('opt_out',)
     search_fields = ('address', 'name', 'attention')
     readonly_fields = ('uuid', 'get_dt_created', 'get_dt_updated')
@@ -72,7 +72,7 @@ class EmailAdmin(admin.ModelAdmin):
 @admin.register(Phone)
 class PhoneAdmin(admin.ModelAdmin):
     """Admin interface for Phone model."""
-    list_display = ('uuid', 'number', 'name', 'country_code', 'opt_out', 'get_dt_created')
+    list_display = ('id', 'number', 'name', 'country_code', 'opt_out', 'get_dt_created')
     list_filter = ('country_code', 'opt_out')
     search_fields = ('number', 'name', 'attention')
     readonly_fields = ('uuid', 'get_dt_created', 'get_dt_updated')
@@ -104,7 +104,7 @@ class PhoneAdmin(admin.ModelAdmin):
 @admin.register(Domain)
 class DomainAdmin(admin.ModelAdmin):
     """Admin interface for Domain model."""
-    list_display = ('uuid', 'path', 'type', 'get_dt_created')
+    list_display = ('id', 'path', 'type', 'get_dt_created')
     list_filter = ('type',)
     search_fields = ('path', 'type')
     readonly_fields = ('uuid', 'get_dt_created', 'get_dt_updated')
