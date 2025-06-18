@@ -19,6 +19,7 @@ class AuthURL {
   static readonly REFRESH_TOKEN: string = "/refresh/"; 
   static readonly LOGOUT: string = "/logout"; 
   static readonly FORGOT_PASS: string = "/forgetPassword";
+  static readonly verifyEmail: string = "/verify-email/"; 
 }
 
 class PostLoginURL {

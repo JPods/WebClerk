@@ -20,7 +20,7 @@ export const registerSchema = loginSchema.extend({
     email:  z.string().min(1, 'Email is required'),
     name_first: z.string().min(1, 'First name is required'),  
     name_last: z.string().min(1, 'Last name is required'),
-     role: z.array(z.string()).min(1, "Select at least one item"),
+    //role: z.array(z.string()).min(1, "Select at least one item"),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {
@@ -29,3 +29,10 @@ export const registerSchema = loginSchema.extend({
 });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const emailVerifySchema = loginSchema.extend({
+    email:  z.string().min(1, 'Email is required'),
+    code: z.string().min(4).max(4),  
+  });
+
+export type EmailVerifyFormData = z.infer<typeof emailVerifySchema>;

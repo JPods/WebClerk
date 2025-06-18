@@ -23,9 +23,9 @@ export default function SignInForm() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  //const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
   
-
+   console.log("User data",user)
   const {
     register,
     control,
