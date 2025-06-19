@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..models import Contact
+from common.models import default_metadata
 from communications.models import Address, Email, Phone, Domain
 import uuid
 from django.utils import timezone
@@ -105,14 +106,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         defined_fields = set(self.fields.keys())
         undefined_fields = {key: value for key, value in data.items() if key not in defined_fields}
         
+        data = data.copy()
+        metadata = data.get('metadata', default_metadata()).copy()
         if undefined_fields:
-            metadata = data.get('metadata', {}).copy()
-            metadata.setdefault('undefined', {})
             metadata['undefined'].update(undefined_fields)
-            data = data.copy()
-            data['metadata'] = metadata
             for key in undefined_fields:
                 data.pop(key, None)
+            data['metadata'] = metadata
 
         return super().to_internal_value(data)
 
@@ -126,7 +126,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data['email'] = validated_data['email'].lower()
         user = Contact(**validated_data)
         user.set_password(password)
-        user.save()
         # Create blank objects
         address = Address.objects.create()
         email = Email.objects.create()

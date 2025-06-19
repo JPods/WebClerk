@@ -6,19 +6,19 @@ from .ignore_keywords import IGNORE_KEYWORDS
 
 def default_metadata():
     return {
-        "security": None,
-        "publish": None,
-        "priority": None,
+        "security": "",
+        "publish": "",
+        "priority": "",
         "version": "1.0",
         "access": {"view": [], "edit": []},
         "approvals": [],
         "health": {
             "dt_created": int(timezone.now().timestamp() * 1000),
-            "dt_updated": None,
-            "dt_completed": None,
-            "dt_expire": None,
-            "dt_retired": None,
-            "dt_last_sync": None
+            "dt_updated": 0,
+            "dt_completed": 0,
+            "dt_expire": 0,
+            "dt_retired": 0,
+            "dt_last_sync": 0
         },
         "history": {
             "created": {},
@@ -56,6 +56,9 @@ class BaseModel(models.Model):
         undefined_fields = {}
         defined_fields = {field.name for field in self._meta.fields}
 
+        if not self.metadata:
+            self.metadata = default_metadata()
+
         # Check kwargs for undefined fields
         if kwargs.get('force_insert') or kwargs.get('force_update'):
             for key, value in kwargs.items():
@@ -72,7 +75,6 @@ class BaseModel(models.Model):
 
         # Update metadata with undefined fields
         if undefined_fields:
-            self.metadata = self.metadata or default_metadata()
             self.metadata["undefined"].update(undefined_fields)
 
         # Generate model-specific metadata
@@ -90,18 +92,16 @@ class BaseModel(models.Model):
         self.refs["keywords"] = keywords
 
         # Update health timestamps
-        self.metadata["health"]["dt_updated"] = int(timezone.now().timestamp() * 1000)
+        if "health" not in self.metadata:
+            self.metadata["health"] = default_metadata()["health"]
+        
         if not self.metadata["health"]["dt_created"]:
             self.metadata["health"]["dt_created"] = int(timezone.now().timestamp() * 1000)
-
-        # Set metadata.undefined from model-specific data
-        self.metadata["undefined"] = self.set_undefined()
+        self.metadata["health"]["dt_updated"] = int(timezone.now().timestamp() * 1000)
 
     def generate_keywords(self):
         """Generate comma-separated keywords from all base and subclass fields, splitting by spaces and trimming."""
         keywords = []
-        model_name = self.__class__.__name__.lower()
-        keywords.append(model_name)
 
         # Get all fields from base and subclass
         for field in self._meta.get_fields():
@@ -160,7 +160,3 @@ class BaseModel(models.Model):
                         keywords.extend(filtered_parts)
 
         return ",".join(set(keywords))
-
-    def set_undefined(self):
-        """Return dictionary to set metadata.undefined (override in subclasses)."""
-        return {}
