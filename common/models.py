@@ -13,31 +13,31 @@ def default_metadata():
         "access": {"view": [], "edit": []},
         "approvals": [],
         "health": {
-            "dtCreated": int(timezone.now().timestamp() * 1000),
-            "dtUpdated": None,
-            "dtCompleted": None,
-            "dtExpire": None,
-            "dtRetired": None,
-            "dtLastSync": None,
+            "dt_created": int(timezone.now().timestamp() * 1000),
+            "dt_updated": None,
+            "dt_completed": None,
+            "dt_expire": None,
+            "dt_retired": None,
+            "dt_last_sync": None
         },
         "history": {
-            "created": None,
-            "modified": None,
-            "active": None,
-            "expire": None,
-            "retired": None,
-            "lastUsed": None,
-            "sync": None,
+            "created": {},
+            "modified": {},
+            "active": {},
+            "expire": {},
+            "retired": {},
+            "last_used": {},
+            "sync": {}
         },
         "profiles": [],
-        "undefined": {},
+        "undefined": {}
     }
 
 def default_refs():
     return {
         "keywords": "",
         "tags": "",
-        "links": [],
+        "links": []
     }
 
 def default_prefs():
@@ -90,9 +90,9 @@ class BaseModel(models.Model):
         self.refs["keywords"] = keywords
 
         # Update health timestamps
-        self.metadata["health"]["dtUpdated"] = int(timezone.now().timestamp() * 1000)
-        if not self.metadata["health"]["dtCreated"]:
-            self.metadata["health"]["dtCreated"] = int(timezone.now().timestamp() * 1000)
+        self.metadata["health"]["dt_updated"] = int(timezone.now().timestamp() * 1000)
+        if not self.metadata["health"]["dt_created"]:
+            self.metadata["health"]["dt_created"] = int(timezone.now().timestamp() * 1000)
 
         # Set metadata.undefined from model-specific data
         self.metadata["undefined"] = self.set_undefined()

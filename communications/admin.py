@@ -26,14 +26,14 @@ class AddressAdmin(admin.ModelAdmin):
     )
 
     def get_dt_created(self, obj):
-        """Get creation timestamp from metadata.health.dtCreated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtCreated')
+        """Get creation timestamp from metadata.health.dt_created."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_created')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_created.short_description = 'Created'
 
     def get_dt_updated(self, obj):
-        """Get update timestamp from metadata.health.dtUpdated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtUpdated')
+        """Get update timestamp from metadata.health.dt_updated."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_updated')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_updated.short_description = 'Updated'
 
@@ -58,14 +58,14 @@ class EmailAdmin(admin.ModelAdmin):
     )
 
     def get_dt_created(self, obj):
-        """Get creation timestamp from metadata.health.dtCreated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtCreated')
+        """Get creation timestamp from metadata.health.dt_created."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_created')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_created.short_description = 'Created'
 
     def get_dt_updated(self, obj):
-        """Get update timestamp from metadata.health.dtUpdated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtUpdated')
+        """Get update timestamp from metadata.health.dt_updated."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_updated')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_updated.short_description = 'Updated'
 
@@ -90,14 +90,14 @@ class PhoneAdmin(admin.ModelAdmin):
     )
 
     def get_dt_created(self, obj):
-        """Get creation timestamp from metadata.health.dtCreated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtCreated')
+        """Get creation timestamp from metadata.health.dt_created."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_created')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_created.short_description = 'Created'
 
     def get_dt_updated(self, obj):
-        """Get update timestamp from metadata.health.dtUpdated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtUpdated')
+        """Get update timestamp from metadata.health.dt_updated."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_updated')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_updated.short_description = 'Updated'
 
@@ -122,13 +122,13 @@ class DomainAdmin(admin.ModelAdmin):
     )
 
     def get_dt_created(self, obj):
-        """Get creation timestamp from metadata.health.dtCreated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtCreated')
+        """Get creation timestamp from metadata.health.dt_created."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_created')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_created.short_description = 'Created'
 
     def get_dt_updated(self, obj):
-        """Get update timestamp from metadata.health.dtUpdated."""
-        dt_ms = obj.metadata.get('health', {}).get('dtUpdated')
+        """Get update timestamp from metadata.health.dt_updated."""
+        dt_ms = obj.metadata.get('health', {}).get('dt_updated')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_updated.short_description = 'Updated'
