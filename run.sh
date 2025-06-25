@@ -1,8 +1,5 @@
 #!/bin/zsh
 
-# Enable debug mode to trace execution
-set -x
-
 # Function to execute command and show status without exiting
 execute_command() {
     local cmd="$1"
