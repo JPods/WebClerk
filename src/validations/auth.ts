@@ -30,9 +30,17 @@ export const registerSchema = loginSchema.extend({
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
-export const emailVerifySchema = loginSchema.extend({
-    email:  z.string().min(1, 'Email is required'),
-    code: z.string().min(4).max(4),  
-  });
+export const emailVerifySchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
+
+  code: z
+    .string()
+    .min(8, { message: 'Code must be exactly 8 digits' })
+    .max(8, { message: 'Code must be exactly 8 digits' })
+    //.regex(/^\d{8}$/, { message: 'Code must be a 8-digit number' }),
+});
 
 export type EmailVerifyFormData = z.infer<typeof emailVerifySchema>;

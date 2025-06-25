@@ -1,23 +1,34 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { EmailVerifyFormData, emailVerifySchema } from '../../validations/auth';
 import Label from '../form/Label';
 import { Input } from '../wrapper';
 import { verifyEmail } from '../../api/auth';
+import { useNavigate } from 'react-router';
+import { PageRoutes } from '../../routes/Routes';
+import { useDispatch } from 'react-redux';
+import { showToast } from '../../store/slices/toastSlice';
 
 interface PersonalInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  data?: string;
 }
 
-const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose }) => {
+const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose, data = '' }) => {
   if (!isOpen) return null;
-
+   
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  useEffect(() => {
+      setValue('email', data)
+  },[])
   const {
         register,
         control,
         handleSubmit,
+        setValue,
         formState: { errors },
       } = useForm<EmailVerifyFormData>({
         resolver: zodResolver(emailVerifySchema),
@@ -30,9 +41,13 @@ const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose }) => {
              try {
                 const res = await verifyEmail(data)
                 if(res)
-                {}
+                 {
+                   dispatch(showToast({ message: "You are verified. Now login to your A/c", type: "success" }));
+                   navigate(PageRoutes.login)
+                   onClose()
+                 }
              } catch (error) {
-                
+                console.log("error")
              }
     }
 
@@ -60,6 +75,7 @@ const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose }) => {
                     id="email"                      
                     placeholder="Enter your email"
                     {...register('email')}
+                    disabled
                 />
             </div>
 
@@ -68,8 +84,8 @@ const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose }) => {
                     Verification code<span className="text-error-500">* { errors.code && errors.code.message}</span>
                 </Label>
                 <Input
-                    type="email"
-                    id="email"                      
+                    type="text"
+                    id="code"                      
                     placeholder="Enter verification code"
                     {...register('code')}
                 />

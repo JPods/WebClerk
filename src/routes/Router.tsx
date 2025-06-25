@@ -6,6 +6,7 @@ import { ScrollToTop, Toster } from '../components/wrapper';
 import { BasicTables, Calendar, FormElements, Home, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
 import { Provider } from 'react-redux';
 import { store } from '../store';
+import UserProfiles2 from '../pages/UserProfiles2';
 
 
 const Router: React.FC = () => {
@@ -23,7 +24,8 @@ const Router: React.FC = () => {
             {/* Protected routes */}
             <Route element={<PrivateRoute />}>
               <Route path={PageRoutes.dashboard} element={<Home />} />   
-              <Route path={PageRoutes.profile} element={<UserProfiles />} />      
+              <Route path={PageRoutes.profile} element={<UserProfiles />} />    
+              <Route path={PageRoutes.profile2} element={<UserProfiles2 />} />    
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />
               <Route path="/basic-tables" element={<BasicTables />} />   

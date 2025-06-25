@@ -19,7 +19,7 @@ import { ModalForm } from "../wrapper";
 export default function SignUpForm() {
   const [modalOpen, setModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showPassword2, setShowPassword2] = useState(false);
+  const [data, setData] = useState<string>('');
   const [isChecked, setIsChecked] = useState(false);
 
   const dispatch = useAppDispatch();
@@ -48,14 +48,15 @@ export default function SignUpForm() {
     const handleFormSubmit = async (data:RegisterFormData) => {
           
            try {
-                  const response = await signup(data); 
-                  console.log("response register",response)
+                  const response = await signup(data);                  
                   if(response) {  
-                      navigate(PageRoutes.login);
+                      setModalOpen(true)
+                      setData(data.email)
+                      // navigate(PageRoutes.login);
                   } else {               
                       dispatch(showToast({ message: "Try again later", type: "error" }));
                   }             
-           } catch (error : any) {
+           } catch (error:any) {
                  dispatch(showToast({ message: error, type: "error" }));
            }   
       };
@@ -228,14 +229,8 @@ export default function SignUpForm() {
                 </Link>
               </p>
             </div>
-          </div>           
-              <button
-                onClick={() => setModalOpen(true)}
-                className="px-6 py-3 bg-indigo-600 text-white rounded-lg"
-              >
-               Email verification modal
-              </button>
-              <ModalForm isOpen={modalOpen} onClose={() => setModalOpen(false)} />           
+          </div> 
+              <ModalForm data={data} isOpen={modalOpen} onClose={() => setModalOpen(false)} />           
         </div>
       </div>
     </div>

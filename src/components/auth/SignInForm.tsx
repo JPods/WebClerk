@@ -39,7 +39,8 @@ export default function SignInForm() {
   });
 
   const handleFormSubmit = async (data:any) => {
-             data.role = 'SUPER';
+          // Overwritten on the backend by user profile
+             data.role = 'USER';
        try {
               const response = await login(data);              
               if(response.status === 200 ) {
