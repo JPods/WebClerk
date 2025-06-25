@@ -105,7 +105,4 @@ else
     execute_command "python manage.py runserver" "Starting Django server"
 fi
 
-# Disable debug mode
-set +x
-
 echo "Script completed execution of all commands."
