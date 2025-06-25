@@ -1,5 +1,8 @@
 #!/bin/zsh
 
+# Enable debug mode to trace execution
+set -x
+
 # Function to execute command and show status without exiting
 execute_command() {
     local cmd="$1"
@@ -104,5 +107,8 @@ else
     execute_command "python manage.py migrate" "Applying migrations"
     execute_command "python manage.py runserver" "Starting Django server"
 fi
+
+# Disable debug mode
+set +x
 
 echo "Script completed execution of all commands."
