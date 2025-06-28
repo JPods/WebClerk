@@ -54,10 +54,13 @@ interface CountryCodeOption {
 
 interface AddressItem {
   id: string;
+  address1: string;
+  address2: string;
   country: string;
   state: string;
+  city: string;
   zipCode: string;
-  streetAddress: string;
+  fullAddress: string;
 }
 
 // --- Data for Select Dropdowns ---
@@ -77,7 +80,7 @@ const countryCodes: CountryCodeOption[] = [
   // Add more country codes as needed
 ];
 
-const countries: string[] = ['USA', 'Canada', 'UK', 'India', 'Australia'];
+const countries: string[] = ['USA', 'India','Bangladesh', 'Canada', 'UK', 'Australia'];
 const states: { [key: string]: string[] } = {
   USA: ['California', 'New York', 'Texas', 'Florida'],
   Canada: ['Ontario', 'Quebec', 'British Columbia'],
@@ -109,7 +112,7 @@ const App: React.FC = () => {
 
   // State for dynamic addresses
   const [addresses, setAddresses] = useState<AddressItem[]>([
-    { id: 'address-1', country: 'USA', state: 'California', zipCode: '90210', streetAddress: '123 Main St' }
+    { id: 'address-1', country: 'USA', state: 'California', 'city': 'Howrah', zipCode: '90210', fullAddress: '123 Main St', 'address1': "123 Main St",'address2': '123 Main St' }
   ]);
 
   /**
@@ -152,7 +155,7 @@ const App: React.FC = () => {
 
   // --- Address Handlers ---
   const handleAddAddress = () => {
-    setAddresses([...addresses, { id: generateUniqueId(), country: countries[0], state: states[countries[0]]?.[0] || '', zipCode: '', streetAddress: '' }]);
+    setAddresses([...addresses, { id: generateUniqueId(), country: countries[0], state: states[countries[0]]?.[0] || '', zipCode: '', fullAddress: '', 'address1':'','address2': '','city':'' }]);
   };
 
   const handleUpdateAddress = (id: string, field: keyof AddressItem, value: string) => {
@@ -332,6 +335,27 @@ const App: React.FC = () => {
             {addresses.map((address) => (
               <div key={address.id} className="flex flex-col gap-2 mb-4 p-3 border border-gray-200 dark:border-gray-700 rounded-md">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                   <div className="col-span-2"> {/* Takes full width on small screens */}
+                    <Label htmlFor={`address1-${address.id}`}>Address 1</Label>
+                    <Input
+                      id={`address1-${address.id}`}
+                      type="text"
+                      value={address.address1}
+                      onChange={(e) => handleUpdateAddress(address.id, 'address1', e.target.value)}
+                      placeholder="Enter address1"
+                    />
+                  </div>
+                    <div className="col-span-2"> {/* Takes full width on small screens */}
+                    <Label htmlFor={`address2-${address.id}`}>Address 2</Label>
+                    <Input
+                      id={`address2-${address.id}`}
+                      type="text"
+                      value={address.address1}
+                      onChange={(e) => handleUpdateAddress(address.id, 'address2', e.target.value)}
+                      placeholder="Enter address 2"
+                    />
+                  </div>
                   {/* Country */}
                   <div>
                     <Label htmlFor={`country-${address.id}`}>Country</Label>
@@ -360,8 +384,21 @@ const App: React.FC = () => {
                       )) || <option value="">Select a country first</option>}
                     </Select>
                   </div>
+                     <div>
+                    <Label htmlFor={`city-${address.id}`}>City</Label>
+                    <Select
+                      id={`city-${address.id}`}
+                      value={address.city}
+                      onChange={(e) => handleUpdateAddress(address.id, 'city', e.target.value)}
+                      className="w-full"
+                    >
+                      {states[address.country]?.map((state) => (
+                        <option key={state} value={state}>{state}</option>
+                      )) || <option value="">Select a country first</option>}
+                    </Select>
+                  </div>
                   {/* Zip Code */}
-                  <div className="col-span-2"> {/* Takes full width on small screens */}
+                  <div className="col-span-2 border-gray-200"> {/* Takes full width on small screens */}
                     <Label htmlFor={`zipCode-${address.id}`}>Zip Code</Label>
                     <Input
                       id={`zipCode-${address.id}`}
@@ -377,8 +414,8 @@ const App: React.FC = () => {
                     <Input
                       id={`streetAddress-${address.id}`}
                       type="text"
-                      value={address.streetAddress}
-                      onChange={(e) => handleUpdateAddress(address.id, 'streetAddress', e.target.value)}
+                      value={address.fullAddress}
+                      onChange={(e) => handleUpdateAddress(address.id, 'fullAddress', e.target.value)}
                       placeholder="Enter street address"
                     />
                   </div>
