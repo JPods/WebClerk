@@ -1,0 +1,1790 @@
+[
+  {
+    "is_active": true,
+    "name": "contact_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "opt_out",
+      "password",
+      "role",
+      "role_default",
+      "is_email_verified",
+      "is_active",
+      "is_staff",
+      "last_login",
+      "attention",
+      "comment_alert",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation",
+      "publish",
+      "rank",
+      "date_joined",
+      "comment",
+      "verification_code",
+      "verification_code_expiry"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "opt_out",
+      "password",
+      "role",
+      "role_default",
+      "is_email_verified",
+      "is_active",
+      "is_staff",
+      "last_login",
+      "attention",
+      "comment_alert",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation",
+      "publish",
+      "rank",
+      "date_joined",
+      "comment",
+      "verification_code",
+      "verification_code_expiry"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "opt_out",
+      "role",
+      "role_default",
+      "is_email_verified",
+      "is_active",
+      "is_staff",
+      "last_login",
+      "attention",
+      "comment_alert",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation",
+      "publish",
+      "rank",
+      "date_joined",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "opt_out",
+      "role",
+      "role_default",
+      "is_email_verified",
+      "is_active",
+      "is_staff",
+      "attention",
+      "comment_alert",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation",
+      "publish",
+      "rank",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "role",
+      "role_default",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation",
+      "publish",
+      "rank",
+      "date_joined",
+      "domains",
+      "emails"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "contact",
+    "data": [
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "role",
+      "role_default",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation",
+      "publish",
+      "rank"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "contact",
+    "data": [
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "contact",
+    "data": [
+      "company",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "contact",
+    "data": [
+      "name_first",
+      "name_last",
+      "name_middle",
+      "prefix",
+      "suffix",
+      "salutation"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "contact",
+    "data": [
+      "email",
+      "name_first",
+      "name_last"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "contact",
+    "data": [
+      "name_first",
+      "name_last"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "contact",
+    "data": [
+      "name_first",
+      "name_last",
+      "company"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "contact_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "contact",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "action",
+    "data": [
+      "action",
+      "action_by",
+      "priority",
+      "difficulty",
+      "hours",
+      "percent",
+      "status",
+      "quality",
+      "description",
+      "dt_action",
+      "dt_completed",
+      "dt_due",
+      "dt_updated",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "action",
+    "data": [
+      "action",
+      "action_by",
+      "priority",
+      "difficulty",
+      "hours",
+      "percent",
+      "status",
+      "quality",
+      "description",
+      "dt_action",
+      "dt_completed",
+      "dt_due",
+      "dt_updated",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "action",
+    "data": [
+      "action",
+      "action_by",
+      "priority",
+      "difficulty",
+      "hours",
+      "percent",
+      "status",
+      "quality",
+      "description",
+      "dt_action",
+      "dt_completed",
+      "dt_due",
+      "dt_updated",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "action",
+    "data": [
+      "action",
+      "action_by",
+      "priority",
+      "difficulty",
+      "hours",
+      "percent",
+      "status",
+      "quality",
+      "description",
+      "dt_action",
+      "dt_completed",
+      "dt_due",
+      "dt_updated",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "action",
+    "data": [
+      "action",
+      "action_by",
+      "priority",
+      "hours",
+      "percent",
+      "status",
+      "description",
+      "dt_action",
+      "dt_due"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "action",
+    "data": [
+      "action",
+      "priority",
+      "hours",
+      "percent",
+      "status",
+      "description"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "action",
+    "data": [
+      "action",
+      "action_by",
+      "priority",
+      "hours",
+      "percent",
+      "status",
+      "description",
+      "dt_action",
+      "dt_due"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "action",
+    "data": [
+      "action",
+      "priority",
+      "hours",
+      "percent",
+      "status",
+      "description"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "action",
+    "data": [
+      "action",
+      "priority",
+      "hours",
+      "status",
+      "description",
+      "dt_due"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "action",
+    "data": [
+      "hours",
+      "status",
+      "description"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "action",
+    "data": [
+      "action",
+      "status",
+      "description",
+      "dt_due"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "action",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "action",
+    "data": [
+      "action",
+      "status",
+      "description"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "action",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "action",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "action_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "action",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "setting",
+    "data": [
+      "is_active",
+      "name",
+      "purpose",
+      "role",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "setting",
+    "data": [
+      "is_active",
+      "name",
+      "purpose",
+      "role",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "setting",
+    "data": [
+      "is_active",
+      "name",
+      "purpose",
+      "role",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "setting",
+    "data": [
+      "is_active",
+      "name",
+      "purpose",
+      "role",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "setting",
+    "data": [
+      "name",
+      "purpose",
+      "table_name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "setting",
+    "data": [
+      "name",
+      "purpose",
+      "table_name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "setting",
+    "data": [
+      "name",
+      "purpose"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "setting",
+    "data": [
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "setting",
+    "data": [
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "setting_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "setting",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose",
+      "table_name",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose",
+      "table_name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose",
+      "table_name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "template",
+    "data": [
+      "name",
+      "purpose"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "template",
+    "data": [
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "template",
+    "data": [
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "template_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "template",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "address_type",
+      "city",
+      "country",
+      "instructions",
+      "latitude",
+      "longitude",
+      "state",
+      "zip",
+      "full",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "address_type",
+      "city",
+      "country",
+      "instructions",
+      "latitude",
+      "longitude",
+      "state",
+      "zip",
+      "full",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "address_type",
+      "city",
+      "country",
+      "instructions",
+      "latitude",
+      "longitude",
+      "state",
+      "zip",
+      "full",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "address_type",
+      "city",
+      "country",
+      "instructions",
+      "latitude",
+      "longitude",
+      "state",
+      "zip",
+      "full",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "address_type",
+      "city",
+      "country",
+      "state",
+      "zip",
+      "full"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "city",
+      "country",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "address_type",
+      "city",
+      "country",
+      "state",
+      "zip",
+      "full"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "address2",
+      "city",
+      "country",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "city",
+      "country",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "city",
+      "country",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "city",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "city",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "city",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "address",
+    "data": [
+      "address1",
+      "city",
+      "state",
+      "zip"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "address",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "address_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "address",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "domain",
+    "data": [
+      "path",
+      "type",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "domain",
+    "data": [
+      "path",
+      "type",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "domain",
+    "data": [
+      "path",
+      "type",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "domain",
+    "data": [
+      "path",
+      "type",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "domain",
+    "data": [
+      "path",
+      "type"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "domain",
+    "data": [
+      "path",
+      "type"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "domain",
+    "data": [
+      "path"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "domain",
+    "data": [
+      "path"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "domain",
+    "data": [
+      "path"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "domain_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "domain",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "email",
+    "data": [
+      "address",
+      "attention",
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "email",
+    "data": [
+      "address",
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "email",
+    "data": [
+      "address",
+      "name"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "email",
+    "data": [
+      "address"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "email",
+    "data": [
+      "address"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "email",
+    "data": [
+      "address"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "email",
+    "data": [
+      "address"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "email",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "email_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "email",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_SUPER_view",
+    "purpose": "view",
+    "role": "SUPER",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "format",
+      "name",
+      "number",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_SUPER_edit",
+    "purpose": "edit",
+    "role": "SUPER",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "format",
+      "name",
+      "number",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_ADMIN_view",
+    "purpose": "view",
+    "role": "ADMIN",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "format",
+      "name",
+      "number",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_ADMIN_edit",
+    "purpose": "edit",
+    "role": "ADMIN",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "format",
+      "name",
+      "number",
+      "opt_out",
+      "comment"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_SALE_view",
+    "purpose": "view",
+    "role": "SALE",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "name",
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_SALE_edit",
+    "purpose": "edit",
+    "role": "SALE",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "name",
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_REP_view",
+    "purpose": "view",
+    "role": "REP",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "name",
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_REP_edit",
+    "purpose": "edit",
+    "role": "REP",
+    "table_name": "phone",
+    "data": [
+      "attention",
+      "country_code",
+      "name",
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_VENDOR_view",
+    "purpose": "view",
+    "role": "VENDOR",
+    "table_name": "phone",
+    "data": [
+      "country_code",
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_VENDOR_edit",
+    "purpose": "edit",
+    "role": "VENDOR",
+    "table_name": "phone",
+    "data": [
+      "country_code",
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_CUSTOMER_view",
+    "purpose": "view",
+    "role": "CUSTOMER",
+    "table_name": "phone",
+    "data": [
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_CUSTOMER_edit",
+    "purpose": "edit",
+    "role": "CUSTOMER",
+    "table_name": "phone",
+    "data": [
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_USER_view",
+    "purpose": "view",
+    "role": "USER",
+    "table_name": "phone",
+    "data": [
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_USER_edit",
+    "purpose": "edit",
+    "role": "USER",
+    "table_name": "phone",
+    "data": [
+      "number"
+    ],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_PUBLIC_view",
+    "purpose": "view",
+    "role": "PUBLIC",
+    "table_name": "phone",
+    "data": [],
+    "comment": ""
+  },
+  {
+    "is_active": true,
+    "name": "phone_PUBLIC_edit",
+    "purpose": "edit",
+    "role": "PUBLIC",
+    "table_name": "phone",
+    "data": [],
+    "comment": ""
+  }
+]

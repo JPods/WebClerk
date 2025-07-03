@@ -71,7 +71,7 @@ class SettingAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'role')
     search_fields = ('name', 'purpose', 'role', 'table_name')
     fieldsets = (
-        (None, {'fields': ('is_active', 'name', 'purpose', 'role', 'table_name')}),
+        (None, {'fields': ('is_active', 'name', 'purpose', 'role', 'table_name', 'data')}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
     )
 

@@ -10,6 +10,7 @@ class Setting(BaseModel):
     purpose = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=255, blank=True, null=True)
     table_name = models.CharField(max_length=255, blank=True, null=True)
+    data = models.JSONField(blank=True, null=True)
     comment = models.TextField(blank=True, null=True)
 
     class Meta:
