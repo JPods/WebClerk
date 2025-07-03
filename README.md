@@ -3,10 +3,15 @@
 Project Docs Link: 
 [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
 
+-----------------------------
 ### How to run this project:
+-----------------------------
 #### a. if everything OK, just run:
   - source ./bin/activate
   - python manage.py runserver
+
+#### if not not for: Port is already in use:
+  - kill -9 $(lsof -t -i :8000)
 
 #### b. if add/remove/modify table or column:
   - source ./bin/activate
