@@ -10,7 +10,7 @@ Project Docs Link:
   - source ./bin/activate
   - python manage.py runserver
 
-#### if not not for: Port is already in use:
+#### if not run for: Port is already in use:
   - kill -9 $(lsof -t -i :8000)
 
 #### b. if add/remove/modify table or column:
