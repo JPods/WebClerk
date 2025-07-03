@@ -33,6 +33,7 @@ Project Docs Link:
   - python manage.py runserver
 
 #### if you face postgres issues, reset it:
+  - source ./bin/activate
   - psql -U an7or -d postgres | psql -U williamjames -d postgres
   - SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
     WHERE datname = 'commerce_expert' AND pid <> pg_backend_pid();
