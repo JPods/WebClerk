@@ -4,6 +4,8 @@ import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 import ContactList from "./contacts/ContactList";
+import ContactAdd from "./contacts/ContactAdd";
+
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
 import BasicTables from "./Tables/BasicTables";
@@ -15,7 +17,7 @@ export {
   Home,
   UserProfiles,
   ContactList,
-
+  ContactAdd,
   
   Calendar,
   FormElements,
