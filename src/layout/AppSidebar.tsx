@@ -26,15 +26,35 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+
+  // {
+  //   icon: <CalenderIcon />,
+  //   name: "Calendar",
+  //   path: "/calendar",
+  // },
   {
-    icon: <GridIcon />,
+    icon:<GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/dashboard",
   },
   {
     icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
+    name: "Contacts",
+    subItems: [
+      {
+         name: "Add Contact", 
+         path: "/contact-add",
+      },
+      {
+         name: "Contact List", 
+         path: "/contact-list",
+      }
+    ],
+  },
+  {
+    icon: <ListIcon />,
+    name: "Action",
+    path: "/profile2",
   },
   {
     icon: <UserCircleIcon />,
