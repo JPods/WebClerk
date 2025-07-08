@@ -20,7 +20,7 @@ Project Docs Link:
   - python manage.py runserver
 
 #### c. if running for the first time:
-  - python venv .
+  - python -m venv .
   - source ./bin/activate
   - pip install -r requirements.txt
   - psql -U an7or -d postgres | psql -U williamjames -d postgres
@@ -30,6 +30,7 @@ Project Docs Link:
   - python manage.py makemigrations
   - python manage.py migrate
   - python manage.py createsuperuser
+  - python manage.py load_default_access
   - python manage.py runserver
 
 #### if you face postgres issues, reset it:
@@ -44,4 +45,5 @@ Project Docs Link:
   - python manage.py makemigrations
   - python manage.py migrate
   - python manage.py createsuperuser
+  - python manage.py load_default_access
   - python manage.py runserver

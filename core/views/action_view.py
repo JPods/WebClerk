@@ -1,19 +1,27 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
-from ..serializers.action_serializer import ActionSerializer
+from ..serializers import ActionSerializer
 from ..models import Action
-from ..permissions import IsAuthenticatedActive, IsAdminOrSuper
+from rest_framework.permissions import IsAuthenticated
+from core.utils import get_accessible_fields
 
 class ActionView(generics.ListCreateAPIView):
-    """Handles listing and creating actions."""
+    """Handles listing and creating actions with role-based field access."""
     queryset = Action.objects.all()
     serializer_class = ActionSerializer
-    permission_classes = [IsAuthenticatedActive, IsAdminOrSuper]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter queryset based on user roles and viewable fields."""
+        accessible_fields = get_accessible_fields('actions', 'view', self.request.user)
+        if not accessible_fields:
+            return Action.objects.none()
+        return Action.objects.all()
 
     @extend_schema(
         summary="List Actions",
-        description="Retrieve a list of actions, filtered by user role.",
+        description="Retrieve a list of actions, filtered by user role permissions from settings.",
         responses={
             200: ActionSerializer(many=True),
             401: OpenApiResponse(description="Unauthorized"),
@@ -25,7 +33,7 @@ class ActionView(generics.ListCreateAPIView):
 
     @extend_schema(
         summary="Create Action",
-        description="Create a new action (ADMIN or SUPER only).",
+        description="Create a new action, restricted by role-based editable fields.",
         request=ActionSerializer,
         responses={
             201: ActionSerializer,
@@ -35,17 +43,30 @@ class ActionView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        accessible_fields = get_accessible_fields('actions', 'edit', request.user)
+        if not accessible_fields:
+            return Response(
+                {"detail": "No editable fields allowed for your role"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().post(request, *args, **kwargs)
 
 class ActionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Handles retrieving, updating, and deleting an action."""
+    """Handles retrieving, updating, and deleting an action with role-based field access."""
     queryset = Action.objects.all()
     serializer_class = ActionSerializer
-    permission_classes = [IsAuthenticatedActive, IsAdminOrSuper]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter queryset based on user roles and viewable fields."""
+        accessible_fields = get_accessible_fields('actions', 'view', self.request.user)
+        if not accessible_fields:
+            return Action.objects.none()
+        return Action.objects.all()
 
     @extend_schema(
         summary="Get Action",
-        description="Retrieve a specific action by ID, filtered by user role.",
+        description="Retrieve a specific action by ID, filtered by user role permissions from settings.",
         responses={
             200: ActionSerializer,
             401: OpenApiResponse(description="Unauthorized"),
@@ -58,7 +79,7 @@ class ActionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     @extend_schema(
         summary="Update Action",
-        description="Update an action (partial update, ADMIN or SUPER only).",
+        description="Update an action (partial update), restricted by role-based editable fields.",
         request=ActionSerializer,
         responses={
             200: ActionSerializer,
@@ -69,11 +90,17 @@ class ActionDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def patch(self, request, *args, **kwargs):
+        accessible_fields = get_accessible_fields('actions', 'edit', request.user)
+        if not accessible_fields:
+            return Response(
+                {"detail": "No editable fields allowed for your role"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().patch(request, *args, **kwargs)
 
     @extend_schema(
         summary="Delete Action",
-        description="Delete an action (ADMIN or SUPER only).",
+        description="Delete an action, restricted by role-based permissions.",
         responses={
             204: OpenApiResponse(description="Successfully deleted"),
             401: OpenApiResponse(description="Unauthorized"),
@@ -82,4 +109,10 @@ class ActionDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def delete(self, request, *args, **kwargs):
+        accessible_fields = get_accessible_fields('actions', 'edit', request.user)
+        if not accessible_fields:
+            return Response(
+                {"detail": "No editable fields allowed for your role"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().delete(request, *args, **kwargs)

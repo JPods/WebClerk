@@ -4,10 +4,9 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiResponse
-from ..serializers.contact_serializer import ContactSerializer, RegisterSerializer, LoginSerializer, VerifyEmailSerializer
-from ..serializers.action_serializer import ActionSerializer
+from ..serializers import ContactSerializer, RegisterSerializer, LoginSerializer, VerifyEmailSerializer
 from ..models import Contact
-from ..permissions import IsOwnerOrAdmin, IsAuthenticatedActive, IsAdminOrSuper
+from core.utils import get_accessible_fields
 from django.core.mail import send_mail
 from django.conf import settings
 
@@ -72,7 +71,7 @@ class RegisterView(APIView):
 
 class ProfileView(APIView):
     """Handles user profile retrieval and updates."""
-    permission_classes = [IsAuthenticatedActive, IsOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
         summary="Get User Profile",
@@ -107,7 +106,7 @@ class ProfileView(APIView):
 
 class LogoutView(APIView):
     """Handles user logout by blacklisting refresh token."""
-    permission_classes = [IsAuthenticatedActive]
+    permission_classes = [permissions.IsAuthenticated]
 
     @extend_schema(
         summary="User Logout",
@@ -135,14 +134,21 @@ class LogoutView(APIView):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class ContactView(generics.ListCreateAPIView):
-    """Handles listing and creating contacts."""
+    """Handles listing and creating contacts with role-based field access."""
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
-    permission_classes = [IsAuthenticatedActive, IsAdminOrSuper]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter queryset based on user roles and viewable fields."""
+        accessible_fields = get_accessible_fields('contacts', 'view', self.request.user)
+        if not accessible_fields:
+            return Contact.objects.none()
+        return Contact.objects.all()
 
     @extend_schema(
         summary="List Contacts",
-        description="Retrieve a list of contacts, filtered by user role.",
+        description="Retrieve a list of contacts, filtered by user role permissions from settings.",
         responses={
             200: ContactSerializer(many=True),
             401: OpenApiResponse(description="Unauthorized"),
@@ -154,7 +160,7 @@ class ContactView(generics.ListCreateAPIView):
 
     @extend_schema(
         summary="Create Contact",
-        description="Create a new contact (ADMIN or SUPER only).",
+        description="Create a new contact, restricted by role-based editable fields.",
         request=ContactSerializer,
         responses={
             201: ContactSerializer,
@@ -164,17 +170,30 @@ class ContactView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        accessible_fields = get_accessible_fields('contacts', 'edit', request.user)
+        if not accessible_fields:
+            return Response(
+                {"detail": "No editable fields allowed for your role"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().post(request, *args, **kwargs)
 
 class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Handles retrieving, updating, and deleting a contact."""
+    """Handles retrieving, updating, and deleting a contact with role-based field access."""
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
-    permission_classes = [IsAuthenticatedActive, IsOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter queryset based on user roles and viewable fields."""
+        accessible_fields = get_accessible_fields('contacts', 'view', self.request.user)
+        if not accessible_fields:
+            return Contact.objects.none()
+        return Contact.objects.all()
 
     @extend_schema(
         summary="Get Contact",
-        description="Retrieve a specific contact by ID, filtered by user role.",
+        description="Retrieve a specific contact by ID, filtered by user role permissions from settings.",
         responses={
             200: ContactSerializer,
             401: OpenApiResponse(description="Unauthorized"),
@@ -187,7 +206,7 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     @extend_schema(
         summary="Update Contact",
-        description="Update a contact (partial update, owner or ADMIN/SUPER only).",
+        description="Update a contact (partial update), restricted by role-based editable fields or owner status.",
         request=ContactSerializer,
         responses={
             200: ContactSerializer,
@@ -198,11 +217,19 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def patch(self, request, *args, **kwargs):
+        contact = self.get_object()
+        is_owner = request.user.id == contact.id
+        accessible_fields = get_accessible_fields('contacts', 'edit', request.user)
+        if not (is_owner or accessible_fields):
+            return Response(
+                {"detail": "No editable fields allowed for your role and you are not the owner"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().patch(request, *args, **kwargs)
 
     @extend_schema(
         summary="Delete Contact",
-        description="Delete a contact (owner or ADMIN/SUPER only).",
+        description="Delete a contact, restricted by role-based permissions or owner status.",
         responses={
             204: OpenApiResponse(description="Successfully deleted"),
             401: OpenApiResponse(description="Unauthorized"),
@@ -211,6 +238,14 @@ class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def delete(self, request, *args, **kwargs):
+        contact = self.get_object()
+        is_owner = request.user.id == contact.id
+        accessible_fields = get_accessible_fields('contacts', 'edit', request.user)
+        if not (is_owner or accessible_fields):
+            return Response(
+                {"detail": "No editable fields allowed for your role and you are not the owner"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().delete(request, *args, **kwargs)
 
 class VerifyEmailView(APIView):

@@ -6,7 +6,7 @@ from communications.models import Address, Email, Phone, Domain
 import uuid
 from django.utils import timezone
 from datetime import timedelta
-from drf_spectacular.utils import extend_schema_field, OpenApiTypes
+from core.utils import get_accessible_fields
 
 class LoginSerializer(TokenObtainPairSerializer):
     """Serializer for user login, validating email, password, and role."""
@@ -57,26 +57,10 @@ class ContactSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
-            user_roles = request.user.role if hasattr(request.user, 'role') else []
-            allowed_fields = self.get_allowed_fields(user_roles)
-            # Remove fields not allowed for the user's role
+            mode = 'edit' if request.method in ['POST', 'PATCH', 'PUT'] else 'view'
+            allowed_fields = get_accessible_fields('contacts', mode, request.user)
             for field_name in set(self.fields) - set(allowed_fields):
                 self.fields.pop(field_name, None)
-
-    def get_allowed_fields(self, user_roles):
-        """Define fields accessible based on user roles."""
-        if 'SUPER' in user_roles:
-            return self.Meta.fields  # SUPER sees all fields
-        elif 'ADMIN' in user_roles:
-            # ADMIN sees all except sensitive fields
-            return [
-                'id', 'uuid', 'email', 'opt_out', 'role', 'is_active', 'is_staff',
-                'attention', 'comment_alert', 'company', 'name_first', 'name_last', 'name_middle',
-                'prefix', 'suffix', 'salutation', 'publish', 'rank', 'comment', 'refs', 'prefs', 'metadata'
-            ]
-        else:
-            # Other roles see limited fields
-            return ['id', 'email', 'name_first', 'name_last', 'company', 'refs']
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Serializer for user registration."""

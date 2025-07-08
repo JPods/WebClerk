@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from ..models import Action
+from core.utils import get_accessible_fields
 
 class ActionSerializer(serializers.ModelSerializer):
     """Serializer for Action model with role-based field filtering."""
@@ -20,19 +21,7 @@ class ActionSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
-            user_roles = request.user.role if hasattr(request.user, 'role') else []
-            allowed_fields = self.get_allowed_fields(user_roles)
-            # Remove fields not allowed for the user's role
+            mode = 'edit' if request.method in ['POST', 'PATCH', 'PUT'] else 'view'
+            allowed_fields = get_accessible_fields('actions', mode, request.user)
             for field_name in set(self.fields) - set(allowed_fields):
                 self.fields.pop(field_name, None)
-
-    def get_allowed_fields(self, user_roles):
-        """Define fields accessible based on user roles."""
-        if 'SUPER' in user_roles:
-            return self.Meta.fields  # SUPER sees all fields
-        elif 'ADMIN' in user_roles:
-            # ADMIN sees all fields
-            return self.Meta.fields
-        else:
-            # Other roles see limited fields
-            return ['id', 'action', 'action_by', 'status', 'dt_due', 'refs']
