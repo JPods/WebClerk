@@ -1,15 +1,20 @@
 from django.core.exceptions import ObjectDoesNotExist
-from ..models import Setting
+from core.models import Setting
+from .global_storage import GlobalStorage
 
-def get_accessible_fields(table_name, mode, user):
+# Initialize global storage
+global_storage = GlobalStorage()
+
+def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool = False) -> list:
     """
-    Retrieve accessible fields for a given table and mode based on user roles.
-    
+    Retrieve accessible fields for a given table and mode based on user roles, with caching.
+
     Args:
-        table_name (str): The name of the table (e.g., 'addresses', 'emails').
-        mode (str): The access mode ('view' or 'edit').
+        table_name: The name of the table (e.g., 'contacts', 'actions').
+        mode: The access mode ('view' or 'edit').
         user: The authenticated user object from the request.
-    
+        force_refresh: If True, bypasses cache and queries database (default: False).
+
     Returns:
         list: List of accessible fields. Returns [] if user is not authenticated or no fields are allowed.
     """
@@ -17,6 +22,14 @@ def get_accessible_fields(table_name, mode, user):
         return []
 
     user_roles = user.role if hasattr(user, 'role') and user.role else ['PUBLIC']
+    
+    # Generate cache key based on table_name, mode, and user roles
+    cache_key = f"accessible_fields_{table_name}_{mode}_{'_'.join(sorted(user_roles))}"
+    
+    # Check cache first
+    cached_fields = global_storage.get(cache_key, force_refresh=force_refresh)
+    if cached_fields is not None:
+        return cached_fields
 
     try:
         setting = Setting.objects.get(
@@ -29,6 +42,12 @@ def get_accessible_fields(table_name, mode, user):
         for role in user_roles:
             role_data = setting.data.get(role, {})
             accessible_fields.update(role_data.get(mode, []))
-        return list(accessible_fields)
+        
+        # Cache the result with default expiration of 3600 seconds
+        accessible_fields_list = list(accessible_fields)
+        global_storage.set(cache_key, accessible_fields_list, expiry_seconds=3600)
+        return accessible_fields_list
     except ObjectDoesNotExist:
+        # Cache empty result to avoid repeated queries
+        global_storage.set(cache_key, [], expiry_seconds=3600)
         return []
