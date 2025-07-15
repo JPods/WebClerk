@@ -31,13 +31,14 @@ export default function ContactAdd() {
       }
     }
     return {
-      phoneNumbers: [{ type: "", countryCode: "", number: "" }],
+      phoneNumbers: [{ format: "", country_code: "", number: "" }],
       emails: [{ type: "", email: "" }],
       addresses: [{ country: "", state: "", pincode: "", streetAddress: "" }],
-      firstName: "",
-      lastName: "",
-      companyName: "",
+      name_first: "",
+      name_last: "",
+      company: "",
       role: "",
+      attention:""
     };
   };
   // Define initial default values
@@ -45,9 +46,9 @@ export default function ContactAdd() {
   //   phoneNumbers: [{ type: "", countryCode: "", number: "" }],
   //   emails: [{ type: "", email: "" }],
   //   addresses: [{ country: "", state: "", pincode: "", streetAddress: "" }],
-  //   firstName: "",
-  //   lastName: "",
-  //   companyName: "",
+  //   name_first: "",
+  //   name_last: "",
+  //   company: "",
   //   role: "",
   // };
   // const getInitialFormData = (): z.infer<typeof contactSchema> => {
@@ -167,30 +168,30 @@ export default function ContactAdd() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="name_first">First Name</Label>
               <Input
                 type="text"
-                id="firstName"
+                id="name_first"
                 placeholder="First Name"
-                {...register("firstName")}
+                {...register("name_first")}
               />
-              {errors.firstName && (
+              {errors.name_first && (
                 <span className="text-red-500 text-sm">
-                  {errors.firstName.message}
+                  {errors.name_first.message}
                 </span>
               )}
             </div>
             <div>
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="name_last">Last Name</Label>
               <Input
                 type="text"
-                id="lastName"
+                id="name_last"
                 placeholder="Last Name"
-                {...register("lastName")}
+                {...register("name_last")}
               />
-              {errors.lastName && (
+              {errors.name_last && (
                 <span className="text-red-500 text-sm">
-                  {errors.lastName.message}
+                  {errors.name_last.message}
                 </span>
               )}
             </div>
@@ -198,16 +199,16 @@ export default function ContactAdd() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="companyName">Company Name</Label>
+              <Label htmlFor="company">Company Name</Label>
               <Input
                 type="text"
-                id="companyName"
+                id="company"
                 placeholder="Company"
-                {...register("companyName")}
+                {...register("company")}
               />
-              {errors.companyName && (
+              {errors.company && (
                 <span className="text-red-500 text-sm">
-                  {errors.companyName.message}
+                  {errors.company.message}
                 </span>
               )}
             </div>
@@ -241,9 +242,9 @@ export default function ContactAdd() {
             {phoneFields.map((field, index) => (
               <div key={field.id} className="flex items-end space-x-2 mb-2">
                 <div className="w-1/4">
-                  <Label htmlFor={`phoneNumbers.${index}.type`}>Type</Label>
+                  <Label htmlFor={`phoneNumbers.${index}.format`}>Type</Label>
                   <Controller
-                    name={`phoneNumbers.${index}.type`}
+                    name={`phoneNumbers.${index}.format`}
                     control={control}
                     render={({ field }) => (
                       <Select
@@ -262,16 +263,16 @@ export default function ContactAdd() {
                   )}
                 </div>
                 <div className="w-1/6">
-                  <Label htmlFor={`phoneNumbers.${index}.countryCode`}>Code</Label>
+                  <Label htmlFor={`phoneNumbers.${index}.country_code`}>Code</Label>
                   <Input
                     type="text"
-                    id={`phoneNumbers.${index}.countryCode`}
+                    id={`phoneNumbers.${index}.country_code`}
                     placeholder="+91"
-                    {...register(`phoneNumbers.${index}.countryCode`)}
+                    {...register(`phoneNumbers.${index}.country_code`)}
                   />
-                  {errors.phoneNumbers?.[index]?.countryCode && (
+                  {errors.phoneNumbers?.[index]?.country_code && (
                     <span className="text-red-500 text-sm">
-                      {errors.phoneNumbers[index].countryCode.message}
+                      {errors.phoneNumbers[index].country_code.message}
                     </span>
                   )}
                 </div>
@@ -307,7 +308,7 @@ export default function ContactAdd() {
             )}
             <button
               type="button"
-              onClick={() => appendPhone({ type: "", countryCode: "", number: "" })}
+              onClick={() => appendPhone({ format: "", country_code: "", number: "" })}
               className="flex items-center mt-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
             >
               <PlusIcon className="mr-2 size-5" />

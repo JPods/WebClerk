@@ -4,15 +4,63 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useAppSelector } from "../../store/hooks";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { contactSchema } from "../../validations/contact";
+import { zodResolver } from "@hookform/resolvers/zod";
+import z from "zod";
+import { PlusIcon, TrashBinIcon } from "../../icons";
+import { Select } from "../wrapper";
+import { patchPhone } from "../../api/userProfile";
+
+const phoneTypeOptions = [
+    { value: "mobile", label: "Mobile" },
+    { value: "home", label: "Home" },
+    { value: "work", label: "Work" },
+    { value: "fax", label: "Fax" },
+  ];
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
    const { user } = useAppSelector((state) => state.auth);
+
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
     closeModal();
   };
+
+  const { register, handleSubmit, control, formState: { errors }, watch, reset } = useForm<z.infer<typeof contactSchema>>({
+      resolver: zodResolver(contactSchema),
+      defaultValues: {   
+         phoneNumbers: [{ format: "", country_code: "", number: "" }],    
+         emails: [{ type: "", email: "" }],  
+      },
+    });
+    
+   const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
+       control,
+       name: "phoneNumbers",
+     });
+
+    const { fields: emailFields, append: appendEmail, remove: removeEmail } = useFieldArray({
+      control,
+      name: "emails",
+    });
+
+   const onSubmit = async(data: any) => {
+      console.log("Form Data:", data.phoneNumbers);
+      try {
+          const res = await patchPhone(user?.id || 1,data.phoneNumbers)
+          console.log("response", res)
+      } catch (error) {
+        
+      }
+      //localStorage.removeItem("contactFormData");
+      //reset(getInitialFormData);
+    };
+    
+    console.log("errors", errors)
+    
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -36,7 +84,7 @@ export default function UserInfoCard() {
                 Last Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                { user !== null ? user.name_last : "User" }
+                { user !== null ? user.name_last : "" }
               </p>
             </div>
 
@@ -102,9 +150,9 @@ export default function UserInfoCard() {
               Update your details to keep your profile up-to-date.
             </p>
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={handleSubmit(onSubmit)}>
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-              <div>
+              {/* <div>
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Social Links
                 </h5>
@@ -136,7 +184,7 @@ export default function UserInfoCard() {
                     <Input type="text" value="https://instagram.com/PimjoHQ" />
                   </div>
                 </div>
-              </div>
+              </div> */}
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
@@ -145,22 +193,22 @@ export default function UserInfoCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
-                    <Input type="text" value="Riju" />
+                    <Input type="text" {...register("name_first")}/>
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Middle Name</Label>
+                    <Input type="text" {...register("name_middle")}/>
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Last Name</Label>
-                    <Input type="text" value="Karar" />
+                    <Input placeholder="Last name" type="text" {...register("name_last")} />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Email Address</Label>
-                    <Input type="text" value="technoriju@gmail.com" />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
-                    <Input type="text" value="+09 363 398 46" />
+                    <Label>Company</Label>
+                    <Input type="text" {...register("company")} />
                   </div>
 
                   <div className="col-span-2">
@@ -169,12 +217,156 @@ export default function UserInfoCard() {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-7">
+                <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
+                 Phones & Emails
+                </h5>
+
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">               
+
+                  <div className="col-span-2">
+                    <Label>Phone</Label>
+                    {phoneFields.map((field, index) => (
+                      <div key={field.id} className="flex items-end space-x-2 mb-2">
+                        <div className="w-1/4">
+                          <Label htmlFor={`phoneNumbers.${index}.format`}>Type</Label>
+                          <Controller
+                            name={`phoneNumbers.${index}.format`}
+                            control={control}
+                            render={({ field }) => (
+                              <Select
+                                options={phoneTypeOptions}
+                                placeholder="Select Type"
+                                value={field.value}
+                                onChange={field.onChange}
+                                className="dark:bg-dark-900"
+                              />
+                            )}
+                          />                 
+                          {errors.phoneNumbers?.[index]?.number?.message && (
+                            <span className="text-red-500 text-sm">
+                              {errors.phoneNumbers[index].number.message}
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-1/6">
+                          <Label htmlFor={`phoneNumbers.${index}.country_code`}>Code</Label>
+                          <Input
+                            type="text"
+                            id={`phoneNumbers.${index}.country_code`}
+                            placeholder="+91"
+                            {...register(`phoneNumbers.${index}.country_code`)}
+                          />
+                          {errors.phoneNumbers?.[index]?.country_code && (
+                            <span className="text-red-500 text-sm">
+                              {errors.phoneNumbers[index].country_code.message}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <Label htmlFor={`phoneNumbers.${index}.number`}>Number</Label>
+                          <Input
+                            type="text"
+                            id={`phoneNumbers.${index}.number`}
+                            placeholder="Enter phone number"
+                            {...register(`phoneNumbers.${index}.number`)}
+                          />
+                          {errors.phoneNumbers?.[index]?.number && (
+                            <span className="text-red-500 text-sm">
+                              {errors.phoneNumbers[index].number.message}
+                            </span>
+                          )}
+                        </div>
+                        {phoneFields.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removePhone(index)}
+                            className="p-2 text-red-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            <TrashBinIcon className="size-5" />
+                          </button>
+                        )}
+                      </div>              
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => appendPhone({ format: "", country_code: "", number: "" })}
+                      className="flex items-center mt-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                    >
+                      <PlusIcon className="mr-2 size-5" />
+                      Add Phone Number
+                    </button>
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label>Email</Label>
+                     {emailFields.map((field, index) => (
+                        <div key={field.id} className="flex items-end space-x-2 mb-2">
+                          <div className="w-1/4">
+                            <Label htmlFor={`emails.${index}.type`}>Type</Label>
+                            <Controller
+                              name={`emails.${index}.type`}
+                              control={control}
+                              render={({ field }) => (
+                                <Select
+                                  options={phoneTypeOptions}
+                                  placeholder="Select Type"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  className="dark:bg-dark-900"
+                                />
+                              )}
+                            />   
+                            {errors.emails?.[index] && (
+                              <span className="text-red-500 text-sm">
+                                {errors.emails?.[index]?.message}
+                              </span>
+                            )}              
+                            
+                          </div>
+                          <div className="flex-1">
+                            <Label htmlFor={`emails.${index}.email`}>Email</Label>
+                            <Input
+                              type="text"
+                              id={`emails.${index}.email`}
+                              placeholder="Enter email"
+                              {...register(`emails.${index}.email`)}
+                            />
+                            {errors.emails?.[index]?.email && (
+                              <span className="text-red-500 text-sm">
+                                {errors.emails[index].email.message}
+                              </span>
+                            )}
+                          </div>
+                          {emailFields.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeEmail(index)}
+                              className="p-2 text-red-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <TrashBinIcon className="size-5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                     <button
+                        type="button"
+                        onClick={() => appendEmail({ type: "", email: "" })}
+                        className="flex items-center mt-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                      >
+                        <PlusIcon className="mr-2 size-5 text-white" />
+                        Add Email
+                      </button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
               <Button size="sm" variant="outline" onClick={closeModal}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
+              <Button size="sm">
                 Save Changes
               </Button>
             </div>

@@ -16,14 +16,15 @@ class HTTPMethod {
 class AuthURL {
   static readonly SIGNUP: string = "/signup/";
   static readonly LOGIN: string = "/login/"; 
-  static readonly REFRESH_TOKEN: string = "/refresh/"; 
+  static readonly REFRESH_TOKEN: string = "refresh/"; 
   static readonly LOGOUT: string = "/logout"; 
   static readonly FORGOT_PASS: string = "/forgetPassword";
   static readonly verifyEmail: string = "/verify-email/"; 
 }
 
 class PostLoginURL {
-  static readonly getUser: string = "/profile/";  
+  static readonly getUser: string = "/profile/"; 
+  static readonly addPhone: string = "/communications/phones/";   
 }
 
 export { NetworkInfo, AuthURL, PostLoginURL, HTTPMethod };
