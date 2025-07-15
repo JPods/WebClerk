@@ -24,7 +24,11 @@ class AuthURL {
 
 class PostLoginURL {
   static readonly getUser: string = "/profile/"; 
-  static readonly addPhone: string = "/communications/phones/";   
+  static readonly addPhone: string = "/communications/phones/"; 
+  static readonly addEmail: string = "/communications/emails/";
+  static readonly addAddress: string = "/communications/addresses/";
+  static readonly addDomains: string = "/communications/domains/";
+  static readonly updateProfile: string = "/profile/";   
 }
 
 export { NetworkInfo, AuthURL, PostLoginURL, HTTPMethod };

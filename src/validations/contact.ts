@@ -26,14 +26,23 @@ export const contactSchema = z.object({
       email: z.string().email("Invalid email address"),
     })
   ).min(1, "At least one email is required"),
-  // addresses: z
-  //   .array(
-  //     z.object({
-  //       country: z.string().min(1, "Country is required"),
-  //       state: z.string().min(1, "State is required"),
-  //       pincode: z.string().min(1, "Pincode is required"),
-  //       streetAddress: z.string().min(1, "Street address is required"),
-  //     })
-  //   )
-  //   .min(1, "At least one address is required"),
  });
+
+ export const addressSchema = z.object({
+   addresses: z.array(
+      z.object({
+        country: z.string().min(1, "Country is required"),
+        state: z.string().min(1, "State is required"),
+        zip: z.string().min(1, "Zip is required"),
+        address1: z.string().min(1, "Street address is required"),
+      })
+    )
+    .min(1, "At least one address is required"),
+    domains: z.array(
+      z.object({
+        path: z.string().min(1, "Country is required"),
+        type: z.string().min(1, "State is required"),
+        comment: z.string().min(1, "Pincode is required"),
+      })
+    )
+ })

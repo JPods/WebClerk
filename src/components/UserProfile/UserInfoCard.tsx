@@ -10,7 +10,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { PlusIcon, TrashBinIcon } from "../../icons";
 import { Select } from "../wrapper";
-import { patchPhone } from "../../api/userProfile";
+import { patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
+import { showToast } from "../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
 
 const phoneTypeOptions = [
     { value: "mobile", label: "Mobile" },
@@ -22,7 +24,7 @@ const phoneTypeOptions = [
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
    const { user } = useAppSelector((state) => state.auth);
-
+   const dispatch = useDispatch()
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
@@ -48,12 +50,21 @@ export default function UserInfoCard() {
     });
 
    const onSubmit = async(data: any) => {
-      console.log("Form Data:", data.phoneNumbers);
+      const {name_first, name_last, name_middle, company} = data
+      const userProfile = {name_first,name_last,name_middle,company}
       try {
-          const res = await patchPhone(user?.id || 1,data.phoneNumbers)
-          console.log("response", res)
+           const [userResponse, phoneResponses, emailResponse] = await Promise.all([
+              patchUserProfile(userProfile),
+              Promise.all(data.phoneNumbers.map((list: any) => postPhone(list))),
+              Promise.all(data.emails.map((list: any) => postEmail(list))),
+           ]);
+           
+           if(userResponse.status === 200)
+              dispatch(showToast({ message: "Profile Updated successfully", type: "success" }));
+           
+          console.log("response", phoneResponses, emailResponse)
       } catch (error) {
-        
+           dispatch(showToast({ message: " Error on form submit", type: "error" }));
       }
       //localStorage.removeItem("contactFormData");
       //reset(getInitialFormData);
@@ -212,8 +223,8 @@ export default function UserInfoCard() {
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Bio</Label>
-                    <Input type="text" value="Super Admin" />
+                    <Label>Role</Label>
+                    <Input type="text" value="Super Admin" disabled/>
                   </div>
                 </div>
               </div>
@@ -376,3 +387,4 @@ export default function UserInfoCard() {
     </div>
   );
 }
+

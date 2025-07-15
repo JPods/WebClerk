@@ -3,6 +3,15 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import z from "zod";
+import { addressSchema } from "../../validations/contact";
+import { PlusIcon, TrashBinIcon } from "../../icons";
+import { Select } from "../wrapper";
+import { showToast } from "../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
+import { postAddress, postDomain } from "../../api/userProfile";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -11,13 +20,59 @@ export default function UserAddressCard() {
     console.log("Saving changes...");
     closeModal();
   };
+  
+  const dispatch = useDispatch()
+
+  const { register, handleSubmit, control, formState: { errors }, watch, reset } = useForm<z.infer<typeof addressSchema>>({
+      resolver: zodResolver(addressSchema),
+      defaultValues:{
+        addresses: [{ country: "", state: "", zip: "", address1: "" }],
+        domains: [{ path: "", type: "", comment: "" }]
+      },
+    });
+
+  const { fields: addressFields, append: appendAddress, remove: removeAddress } = useFieldArray({
+      control,
+      name: "addresses",
+    });
+
+  const { fields: domainFields, append: appendDomain, remove: removeDomain } = useFieldArray({
+      control,
+      name: "domains",
+    });
+
+    const countryOptions = [
+    { value: "IN", label: "India" },
+    { value: "BN", label: "Bangladesh" },
+    { value: "US", label: "United States" },
+    { value: "GB", label: "United Kingdom" },
+    { value: "CA", label: "Canada" },
+    { value: "AU", label: "Australia" },
+  ];
+
+   const onSubmit = async(data: any) => {
+     
+     try {
+         const [addressResponse, domainResponse] = await Promise.all([
+                      Promise.all(data.addresses.map((list: any) => postAddress(list))),
+                      Promise.all(data.domains.map((list: any) => postDomain(list))),
+                   ]);                   
+                  dispatch(showToast({ message: "Profile addresses uploaded successfully", type: "success" }));
+     } catch (error:any) {
+          dispatch(showToast({ message: error.message, type: "error" }));
+     }
+
+      // localStorage.removeItem("contactFormData");
+      // reset();
+    };
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
+              Addresses & Domains
             </h4>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
@@ -86,41 +141,194 @@ export default function UserAddressCard() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Edit Address and Domains
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               Update your details to keep your profile up-to-date.
             </p>
           </div>
-          <form className="flex flex-col">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
             <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Country</Label>
-                  <Input type="text" value="United States" />
-                </div>
-
-                <div>
-                  <Label>City/State</Label>
-                  <Input type="text" value="Arizona, United States." />
-                </div>
-
-                <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" value="ERT 2489" />
-                </div>
-
-                <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" value="AS4568384" />
-                </div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
+                 <div>
+                      <Label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                        Addresses
+                      </Label>
+                      {addressFields.map((field, index) => (
+                        <div key={field.id} className="grid grid-cols-1 xl:grid-cols-3 gap-x-6 gap-y-5 mb-4 p-2 border border-gray-200 dark:border-amber-500 rounded-xl">
+                          <div className="w-full ml-2">
+                            <Label htmlFor={`addresses.${index}.country`}>Country</Label>
+                            <Controller
+                              name={`addresses.${index}.country`}
+                              control={control}
+                              render={({ field }) => (
+                                <Select
+                                  options={countryOptions}
+                                  placeholder="Select Country"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  className="dark:bg-dark-900"
+                                />
+                              )}
+                            />
+                            {errors.addresses?.[index]?.country?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.addresses?.[index]?.country?.message}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full">
+                            <Label htmlFor={`addresses.${index}.state`}>State</Label>
+                            <Input
+                              type="text"
+                              id={`addresses.${index}.state`}
+                              placeholder="Enter state"
+                              {...register(`addresses.${index}.state`)}
+                            />
+                            {errors.addresses?.[index]?.state?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.addresses?.[index]?.state?.message}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full">
+                            <Label htmlFor={`addresses.${index}.zip`}>Zipcode</Label>
+                            <Input
+                              type="text"
+                              id={`addresses.${index}.zip`}
+                              placeholder="Enter zip"
+                              {...register(`addresses.${index}.zip`)}
+                              className="mr-3"
+                            />
+                            {errors.addresses?.[index]?.zip?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.addresses?.[index]?.zip?.message}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full ml-2 mb-2">
+                            <Label htmlFor={`addresses.${index}.address1`}>Street Address</Label>
+                            <Input
+                              type="text"
+                              id={`addresses.${index}.address1`}
+                              placeholder="Enter street address"
+                              {...register(`addresses.${index}.address1`)}
+                            />
+                            {errors.addresses?.[index]?.address1?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.addresses?.[index]?.address1?.message}
+                              </span>
+                            )}
+                          </div>
+                          {addressFields.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAddress(index)}
+                              className="mt-6 p-2 text-red-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <TrashBinIcon className="size-5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {errors.addresses?.message && (
+                        <span className="text-red-500 text-sm">
+                          {errors.addresses.message}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => appendAddress({ country: "", state: "", zip: "", address1: "" })}
+                        className="flex items-center mt-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                      >
+                        <PlusIcon className="mr-2 size-5" />
+                        Add Address
+                      </button>
+                  </div>
+              </div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5">
+                 <div>
+                      <Label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                        Domains
+                      </Label>
+                      {domainFields.map((field, index) => (
+                        <div key={field.id} className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-5 mb-4 p-2 border border-gray-200 dark:border-pink-500 rounded-xl">
+                          
+                          <div className="w-full">
+                            <Label htmlFor={`domains.${index}.state`}>Path</Label>
+                            <Input
+                              type="text"
+                              id={`domains.${index}.path`}
+                              placeholder="Enter state"
+                              {...register(`domains.${index}.path`)}
+                            />
+                            {errors.domains?.[index]?.path?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.domains?.[index]?.path?.message}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full">
+                            <Label htmlFor={`domains.${index}.type`}>Type</Label>
+                            <Input
+                              type="text"
+                              id={`domains.${index}.type`}
+                              placeholder="Enter type"
+                              {...register(`domains.${index}.type`)}
+                              className="mr-3"
+                            />
+                            {errors.domains?.[index]?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.domains?.[index]?.message}
+                              </span>
+                            )}
+                          </div>
+                          <div className="w-full ml-2 mb-2">
+                            <Label htmlFor={`domains.${index}.comment`}>Comments</Label>
+                            <Input
+                              type="text"
+                              id={`domains.${index}.comment`}
+                              placeholder="Enter street address"
+                              {...register(`domains.${index}.comment`)}
+                            />
+                            {errors.domains?.[index]?.comment?.message && (
+                              <span className="text-red-500 text-sm">
+                                {errors.domains?.[index]?.comment?.message}
+                              </span>
+                            )}
+                          </div>
+                          {domainFields.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeDomain(index)}
+                              className="mt-6 p-2 text-red-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <TrashBinIcon className="size-5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {errors.addresses?.message && (
+                        <span className="text-red-500 text-sm">
+                          {errors.addresses.message}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => appendDomain({ path: "", type: "", comment: "" })}
+                        className="flex items-center mt-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                      >
+                        <PlusIcon className="mr-2 size-5" />
+                        Add Domain
+                      </button>
+                  </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
               <Button size="sm" variant="outline" onClick={closeModal}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
+              <Button type="submit" size="sm">
                 Save Changes
               </Button>
             </div>
