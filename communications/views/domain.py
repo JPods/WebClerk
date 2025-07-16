@@ -55,15 +55,16 @@ class DomainView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         domain = serializer.save()
-        contact_id = request.data.get('contact_id')
-        if contact_id:
-            try:
-                contact = Contact.objects.get(id=contact_id)
+        # Link to contact if provided
+        try:
+            contact_email = request.user.email.lower()
+            if contact_email:
+                contact = Contact.objects.get(email=contact_email)
                 contact.refs.setdefault('domains', []).append(str(domain.id))
                 contact.save()
-            except Contact.DoesNotExist:
-                domain.delete()
-                return Response({"contact_id": "Invalid contact ID"}, status=status.HTTP_400_BAD_REQUEST)
+        except Contact.DoesNotExist:
+            domain.delete()
+            return Response({"contact": "Invalid contact email"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class DomainDetailView(generics.RetrieveUpdateDestroyAPIView):

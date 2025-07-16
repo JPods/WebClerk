@@ -56,15 +56,15 @@ class AddressView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         address = serializer.save()
         # Link to contact if provided
-        contact_id = request.data.get('contact_id')
-        if contact_id:
-            try:
-                contact = Contact.objects.get(id=contact_id)
+        try:
+            contact_email = request.user.email.lower()
+            if contact_email:
+                contact = Contact.objects.get(email=contact_email)
                 contact.refs.setdefault('addresses', []).append(str(address.id))
                 contact.save()
-            except Contact.DoesNotExist:
-                address.delete()
-                return Response({"contact_id": "Invalid contact ID"}, status=status.HTTP_400_BAD_REQUEST)
+        except Contact.DoesNotExist:
+            address.delete()
+            return Response({"contact": "Invalid contact email"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
