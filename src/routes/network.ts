@@ -28,6 +28,7 @@ class PostLoginURL {
   static readonly addEmail: string = "/communications/emails/";
   static readonly addAddress: string = "/communications/addresses/";
   static readonly addDomains: string = "/communications/domains/";
+  static readonly addActions: string = "/actions/";
   static readonly updateProfile: string = "/profile/";   
 }
 

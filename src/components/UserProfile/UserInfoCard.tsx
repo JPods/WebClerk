@@ -10,9 +10,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { PlusIcon, TrashBinIcon } from "../../icons";
 import { Select } from "../wrapper";
-import { patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
+import { getAddress, patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
+import { useEffect } from "react";
 
 const phoneTypeOptions = [
     { value: "mobile", label: "Mobile" },
@@ -25,11 +26,26 @@ export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
    const { user } = useAppSelector((state) => state.auth);
    const dispatch = useDispatch()
+
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
     closeModal();
   };
+  
+  useEffect(() => {
+      getAddressData()
+  },[])
+
+  const getAddressData = () => {
+      try {
+         
+         const res = getAddress(user?.id)
+        console.log("address data", res)
+      } catch (error) {
+        
+      }
+  }
 
   const { register, handleSubmit, control, formState: { errors }, watch, reset } = useForm<z.infer<typeof contactSchema>>({
       resolver: zodResolver(contactSchema),

@@ -1,6 +1,6 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
-import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
+
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { useState } from "react";
 

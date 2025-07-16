@@ -3,8 +3,8 @@ import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
-import ContactList from "./contacts/ContactList";
-import ContactAdd from "./contacts/ContactAdd";
+import ActionList from "./actions/ActionList";
+import ActionAdd from "./actions/ActionAdd";
 
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
@@ -16,8 +16,8 @@ export {
   NotFound,  
   Home,
   UserProfiles,
-  ContactList,
-  ContactAdd,
+  ActionList,
+  ActionAdd,
   
   Calendar,
   FormElements,

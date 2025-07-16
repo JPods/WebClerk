@@ -5,8 +5,8 @@ export class PageRoutes {
   static readonly dashboard: string = "/dashboard";
   static readonly profile: string = "/profile";
   static readonly profile2: string = "/profile2";
-  static readonly contactList: string = "/contact-list";
-  static readonly contactAdd: string = "/contact-add";
+  static readonly actionList: string = "/action-list";
+  static readonly actionAdd: string = "/action-add";
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";
