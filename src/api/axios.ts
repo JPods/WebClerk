@@ -34,7 +34,7 @@ axiosInstance.interceptors.response.use(
         const newToken = refreshResponse.data.access;
 
         // Update token
-        accessToken = newToken;
+        //accessToken = newToken;
         localStorage.setItem("accessToken", newToken);
 
         // Update header and retry original request

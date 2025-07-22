@@ -10,10 +10,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { PlusIcon, TrashBinIcon } from "../../icons";
 import { Select } from "../wrapper";
-import { getAddress, patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
+import { getAddress, getEmail, getPhone, patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { dynamicData } from "../../model/dynamicData";
 
 const phoneTypeOptions = [
     { value: "mobile", label: "Mobile" },
@@ -26,7 +27,7 @@ export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
    const { user } = useAppSelector((state) => state.auth);
    const dispatch = useDispatch()
-
+   
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
@@ -35,25 +36,53 @@ export default function UserInfoCard() {
   
   useEffect(() => {
       getAddressData()
+      getPhones()
+      getEmails()
   },[])
+  
+   const getPhones = async() => {
+      try {         
+        const res = await getPhone()       
+        setValue('phoneNumbers',res.filter((list:any) => list.number !== ''))
+      } catch (error) {
+        
+      }
+  }
+
+   const getEmails = async() => {
+      try {         
+        const res = await getEmail()       
+        setValue('emails', res)
+  
+      } catch (error) {
+        
+      }
+  }
 
   const getAddressData = () => {
-      try {
-         
-         const res = getAddress(user?.id)
+      try {         
+        const res = getAddress(user?.id)
         console.log("address data", res)
       } catch (error) {
         
       }
   }
 
-  const { register, handleSubmit, control, formState: { errors }, watch, reset } = useForm<z.infer<typeof contactSchema>>({
+  const { register, handleSubmit, control, formState: { errors }, setValue, getValues, reset } = useForm<z.infer<typeof contactSchema>>({
       resolver: zodResolver(contactSchema),
-      defaultValues: {   
+      defaultValues: { 
+         name_first: user ? user.name_first : '',
+         name_middle: user ? user.name_middle : '',
+         name_last: user ? user.name_last : '',         
          phoneNumbers: [{ format: "", country_code: "", number: "" }],    
          emails: [{ type: "", email: "" }],  
       },
     });
+
+    useEffect(() => {
+      console.log("user", user)
+         setValue('company', user ? user.company: '');
+    },[])
     
    const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
        control,
@@ -105,6 +134,14 @@ export default function UserInfoCard() {
                 { user !== null ? user.name_first : "User" }
               </p>
             </div>
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Middle Name
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                { user !== null ? user.name_middle : "" }
+              </p>
+            </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
@@ -129,16 +166,41 @@ export default function UserInfoCard() {
                 Phone
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +09 363 398 46
+                {getValues('phoneNumbers').filter((list:any) => list.number !== '').map((list: any) => list.number !== '' && list.number)[0]}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Bio
+                Role
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 { user !== null ? user.role : 'User' }
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Company
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                { user && user.company }
+              </p>
+            </div>
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Joining Date
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                { user && user.date_joined }
+              </p>
+            </div>
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                rank
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                { user && user.rank }
               </p>
             </div>
           </div>

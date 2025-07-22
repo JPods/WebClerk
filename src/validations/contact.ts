@@ -6,7 +6,7 @@ export const contactSchema = z.object({
   name_last: z.string().min(1, "Last name is required"),
   name_middle: z.string().optional(),
   attention: z.string().optional(),
-  rank: z.string().optional(),
+  //rank: z.string().optional(),
   date_joined: z.string().optional(),
   role: z.string().optional(),
   company: z.string().optional(),

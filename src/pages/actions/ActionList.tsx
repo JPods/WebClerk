@@ -2,81 +2,90 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 
 import DataTable, { TableColumn } from 'react-data-table-component';
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { deleteAction, getAction } from "../../api/userProfile";
+import { dynamicData } from "../../model/dynamicData";
+import { FaEye, FaEdit, FaTrash } from 'react-icons/fa'; 
+import { useNavigate } from "react-router";
+import { PageRoutes } from "../../routes/Routes";
+import { showToast } from "../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
 
 export default function ContactList() {
 
 const [globalFilter, setGlobalFilter] = useState('');
-interface User {
-  id: number;
-  email: string;
-  role: string[]; // ArrayField
-  role_default?: string;
-  company?: string;
-  name_first: string;
-  name_last: string;
-  name_middle?: string;
-  rank?: string;
-  date_joined: string;
-}
+const [data, setData] = useState<dynamicData[]>([]);
 
+const navigate = useNavigate()
+const dispatch = useDispatch()
 
-const columns: TableColumn<User>[] = [
-  {
-    name: 'Name',
-    selector: row => row.name_first,
-    sortable: true,
-  },
-  {
-    name: 'Email',
-    selector: row => row.email,
-    sortable: true,
-  },
-];
+const handleView = (row: any) => {
+    navigate(PageRoutes.actionAdd, {state: {mode:'view', data:row}})
+};
 
-const userColumns: TableColumn<User>[] = [
-  { name: 'First Name', selector: row => row.name_first, sortable: true },
-  { name: 'Last Name', selector: row => row.name_last, sortable: true },
-  { name: 'Email', selector: row => row.email, sortable: true },
-  { name: 'Company', selector: row => row.company || '-', sortable: true },
-  { name: 'Role(s)', selector: row => row.role.join(', '), sortable: false },
-  { name: 'Default Role', selector: row => row.role_default || '-', sortable: true },
-  { name: 'Date Joined', selector: row => row.date_joined, sortable: true },
-];
-const data: User[] = [
-  {
-    id: 1,
-    email: 'admin@example.com',
-    role: ['SUPER', 'ADMIN'],
-    role_default: 'ADMIN',
-    company: 'Webclerk Ltd.',
-    name_first: 'Riju',
-    name_last: 'Karar',
-    name_middle: '',
-    rank: 'Top',
-    date_joined: '2024-12-15T09:30:00Z',
-  },
-  {
-    id: 2,
-    email: 'vendor1@example.com',
-    role: ['VENDOR'],
-    role_default: 'VENDOR',
-    company: 'VendorCorp Pvt. Ltd.',
-    name_first: 'Anita',
-    name_last: 'Sharma',
-    rank: 'Mid',
-    date_joined: '2024-10-01T10:00:00Z',
- },
-  {
-    id: 3,
-    email: 'customer99@example.com',
-    role: ['CUSTOMER', 'USER'],
-    role_default: 'CUSTOMER',   
-    name_first: 'Rahul',
-    name_last: 'Verma',
-    name_middle: '',   
-    date_joined: '2025-01-15T08:00:00Z',
+  const handleEdit = (row: any) => {
+    navigate(PageRoutes.actionAdd, {state: {mode:'edit', data:row}})
+  };
+
+  const handleDelete = async(row: any) => {
+    if (window.confirm(`Delete task with ID ${row.id}?`)) {
+      try {
+        deleteAction(row.id)      
+        dispatch(showToast({ message: "Action delete Successfully", type: "success" }));
+        setData((prev:dynamicData) => 
+            prev.filter((list: { id: any; }) => list.id !== row.id))
+      } catch (error) {
+        
+      }
+    }
+  };
+
+useEffect(() => {
+   getActionData()
+},[])
+ const getActionData = async() => {
+      try {
+         const res = await getAction()       
+         if(res.status === 200)
+         {            
+            setData(res.data)
+         }
+         
+      } catch (error) {
+        
+      }
   }
+
+const userColumns: TableColumn<dynamicData>[] = [
+  { name: 'ID', selector: row => row.id, sortable: true },
+  { name: 'Priority', selector: row => row.priority, sortable: true },
+  { name: 'Difficulty', selector: row => row.difficulty, sortable: true },
+  { name: 'Status', selector: row => row.status, sortable: true },
+  { name: 'Quality', selector: row => row.quality, sortable: true },
+  { name: 'Hours', selector: row => row.hours, sortable: true },
+  { name: 'Percent', selector: row => `${row.percent}%`, sortable: true },
+  { name: 'Due Date', selector: row => new Date(row.dt_due).toLocaleString(), sortable: true },
+  { name: 'Completed On', selector: row => new Date(row.dt_completed).toLocaleString(), sortable: true },
+  { name: 'Last Updated', selector: row => new Date(row.dt_updated).toLocaleString(), sortable: true },
+  {
+    name: 'Action',
+    cell: (row) => (
+      <div className="flex gap-2">
+        <button onClick={() => handleView(row)} title="View">
+          <FaEye className="text-blue-600 hover:scale-110 transition" />
+        </button>
+        <button onClick={() => handleEdit(row)} title="Edit">
+          <FaEdit className="text-green-600 hover:scale-110 transition" />
+        </button>
+        <button onClick={() => handleDelete(row)} title="Delete">
+          <FaTrash className="text-red-600 hover:scale-110 transition" />
+        </button>
+      </div>
+    ),
+    ignoreRowClick: true,
+    allowOverflow: true,
+    button: true,
+  },
 ];
 
   return (

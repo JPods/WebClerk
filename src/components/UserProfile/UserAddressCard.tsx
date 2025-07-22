@@ -11,7 +11,8 @@ import { PlusIcon, TrashBinIcon } from "../../icons";
 import { Select } from "../wrapper";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { postAddress, postDomain } from "../../api/userProfile";
+import { getAddress, getDomain, postAddress, postDomain } from "../../api/userProfile";
+import { useEffect } from "react";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -23,7 +24,7 @@ export default function UserAddressCard() {
   
   const dispatch = useDispatch()
 
-  const { register, handleSubmit, control, formState: { errors }, watch, reset } = useForm<z.infer<typeof addressSchema>>({
+  const { register, handleSubmit, control, formState: { errors }, setValue, getValues, watch, reset } = useForm<z.infer<typeof addressSchema>>({
       resolver: zodResolver(addressSchema),
       defaultValues:{
         addresses: [{ country: "", state: "", zip: "", address1: "" }],
@@ -49,6 +50,30 @@ export default function UserAddressCard() {
     { value: "CA", label: "Canada" },
     { value: "AU", label: "Australia" },
   ];
+
+  useEffect(() => {      
+        getAddresses()
+        getDomains()
+    },[])
+    
+     const getAddresses = async() => {
+        try {         
+          const res = await getAddress()       
+          setValue('addresses',res)
+        } catch (error) {
+          
+        }
+    }
+  
+     const getDomains = async() => {
+        try {         
+          const res = await getDomain()       
+          setValue('domains', res)
+    
+        } catch (error) {
+          
+        }
+    }
 
    const onSubmit = async(data: any) => {
      

@@ -7,8 +7,13 @@ interface User {
   email: string;
   role: string[];
   name_first: string;
+  name_middle: string;
   name_last: string;
-  rank: string
+  rank: string,
+  company: string,
+  date_joined: string,
+  salutation: string,
+  attention:string
 }
 
 interface AuthState {

@@ -15,7 +15,7 @@ export const useAuth = () => {
        
         if(res.status === 200)
         {
-          const { id, uuid, email, role, name_first, name_last, rank } = res.data;
+          const { id, uuid, email, role, name_first, name_last, rank,company,date_joined,salutation,attention } = res.data;
            const user = {
             id,
             uuid,
@@ -24,6 +24,7 @@ export const useAuth = () => {
             name_first,
             name_last,
             rank,
+            company,date_joined,salutation,attention
           };
           dispatch(setUser(user));          
         }       

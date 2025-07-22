@@ -30,7 +30,7 @@ const Toster = () => {
     <div
       style={{
         position: "fixed",
-        top: "30px",
+        top: "90px",
         right: "30px",
         padding: "12px 20px",
         backgroundColor: toastColors[type as keyof typeof toastColors],

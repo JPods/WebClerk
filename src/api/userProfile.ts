@@ -21,10 +21,32 @@ export const postPhone = async (data:any) => {
   }  
 };
 
+export const getPhone = async (id:any = '') => {
+  const url = (id === '') ? PostLoginURL.addPhone : PostLoginURL.addPhone + id;
+  try {
+    const res = await axiosInstance.get(url);
+    return res.data;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
 export const postEmail = async (data:any) => {
   try {
     const res = await axiosInstance.post(PostLoginURL.addEmail,{...data});
     return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+export const getEmail = async (id:any = '') => {
+  const url = (id === '') ? PostLoginURL.addEmail : PostLoginURL.addEmail + id;
+  try {
+    const res = await axiosInstance.get(url);
+    return res.data;
   }
   catch (error: any) { 
     return error.response?.data || error.message   
@@ -41,10 +63,11 @@ export const postAddress = async (data:any) => {
   }  
 };
 
-export const getAddress = async (id:any) => {
+export const getAddress = async (id:any='') => {
+   const url = (id === '') ? PostLoginURL.addAddress : PostLoginURL.addAddress + id;
   try {
-    const res = await axiosInstance.get(PostLoginURL.addAddress + id);
-    return res;
+    const res = await axiosInstance.get(url);
+    return res.data;
   }
   catch (error: any) { 
     return error.response?.data || error.message   
@@ -61,6 +84,17 @@ export const postDomain = async (data:any) => {
   }  
 };
 
+export const getDomain = async (id:any='') => {
+   const url = (id === '') ? PostLoginURL.addDomains : PostLoginURL.addDomains + id;
+  try {
+    const res = await axiosInstance.get(url);
+    return res.data;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
 export const postAction = async (data:any) => {
   try {
     const res = await axiosInstance.post(PostLoginURL.addActions,{...data});
@@ -71,9 +105,10 @@ export const postAction = async (data:any) => {
   }  
 };
 
-export const getAction = async (id:any) => {
+export const getAction = async (id:any = '') => {
+  const url = (id === '') ? PostLoginURL.addActions : PostLoginURL.addActions + id;
   try {
-    const res = await axiosInstance.get(PostLoginURL.addActions + id);
+    const res = await axiosInstance.get(url);
     return res;
   }
   catch (error: any) { 
@@ -83,7 +118,17 @@ export const getAction = async (id:any) => {
 
 export const patchAction = async (id:any,data:any) => {
   try {
-    const res = await axiosInstance.patch(PostLoginURL.addActions + id +'/', {data});
+    const res = await axiosInstance.patch(PostLoginURL.addActions + id +'/', {...data});
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+export const deleteAction = async (id:any) => {
+  try {
+    const res = await axiosInstance.delete(PostLoginURL.addActions + id +'/');
     return res;
   }
   catch (error: any) { 

@@ -11,7 +11,7 @@ import { store } from '../store';
 
 const Router: React.FC = () => {
   return (
-    <Provider store={store}>
+    // <Provider store={store}>
         <BrowserRouter>
           <ScrollToTop />
           <Toster/>
@@ -27,6 +27,7 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.profile} element={<UserProfiles />} />   
               <Route path={PageRoutes.actionList} element={<ActionList />} />
               <Route path={PageRoutes.actionAdd} element={<ActionAdd />} />  
+              <Route path={PageRoutes.actionAdd + '/:id'} element={<ActionAdd />} />  
           
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />
@@ -37,7 +38,7 @@ const Router: React.FC = () => {
             <Route path="*" element={<div>404 Not Found</div>} />
           </Routes>
         </BrowserRouter>
-    </Provider>    
+    // </Provider>    
   );
 };
 

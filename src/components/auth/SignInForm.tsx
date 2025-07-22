@@ -1,19 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
+import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import Checkbox from "../form/input/Checkbox";
+// import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { login, userDetails } from "../../api/auth";
+import { login } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
-import Select from "../form/Select";
 import axiosInstance from "../../api/axios";
 import { PostLoginURL } from "../../routes/network";
 
@@ -40,7 +39,7 @@ export default function SignInForm() {
 
   const handleFormSubmit = async (data:any) => {
           // Overwritten on the backend by user profile
-             data.role = 'SUPER';
+             data.role = 'USER';
        try {
               const response = await login(data);              
               if(response.status === 200 ) {
@@ -54,8 +53,8 @@ export default function SignInForm() {
                           });
                         if(res.status === 200)
                         {   
-                            const { id, uuid, email, role, name_first, name_last, rank } = res.data;
-                            const user = {id, uuid,email,role,name_first,name_last,rank};
+                            const { id, uuid, email, role, name_first, name_last, rank,company,date_joined,salutation,attention } = res.data;
+                            const user = {id, uuid,email,role,name_first,name_last,rank,company,date_joined,salutation,attention};
                             dispatch(setUser(user));  
                             dispatch(showToast({ message: "Login successful!", type: "success" }));
                             navigate('/dashboard');
