@@ -9,6 +9,13 @@ from ...models import Setting
 # allows you to run management commands.
 # execute this in terminal with: python manage.py load_default_company
 
+# approved for unit testing by Bill on 2023-10-30
+# request Antor to run tests on 2023-10-30
+# approved for backendby Antor on 2023-10-30
+# approved for frontend by Antor on 2023-10-30
+# pushed to by Bill main branch on 2023-10-30
+
+
 class Command(BaseCommand):
     help = "Load default company"
 

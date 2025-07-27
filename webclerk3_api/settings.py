@@ -40,7 +40,7 @@ ROOT_URLCONF = 'webclerk3_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # Add this line - change from empty list []
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
