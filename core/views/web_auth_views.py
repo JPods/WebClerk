@@ -56,11 +56,12 @@ class WebLoginView(View):
         password = request.POST.get('password')
         
         try:
-            # Find user by email
+            # Find contact by email
             contact = Contact.objects.get(email=email)
             
             # Authenticate using Django's built-in authentication
-            user = authenticate(request, username=contact.user.username, password=password)
+            # Since Contact extends AbstractBaseUser, we use email as username
+            user = authenticate(request, username=contact.email, password=password)
             
             if user is not None:
                 login(request, user)
