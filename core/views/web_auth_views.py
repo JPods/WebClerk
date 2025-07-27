@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.views import View
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.http import JsonResponse
 from ..serializers import RegisterSerializer
@@ -75,3 +75,11 @@ class WebLoginView(View):
             messages.error(request, f'Login error: {str(e)}')
         
         return render(request, 'login.html')
+
+class WebLogoutView(View):
+    """Template-based logout view"""
+    
+    def post(self, request):
+        logout(request)
+        messages.success(request, 'You have been successfully logged out.')
+        return redirect('home')

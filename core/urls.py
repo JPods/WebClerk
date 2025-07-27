@@ -1,7 +1,7 @@
 from django.urls import path
 from .views.contact_view import RegisterView, LoginView, ProfileView, LogoutView, ContactView, ContactDetailView, VerifyEmailView
 from .views.action_view import ActionView, ActionDetailView
-from .views.web_auth_views import WebSignupView, WebLoginView
+from .views.web_auth_views import WebSignupView, WebLoginView, WebLogoutView
 
 app_name = 'core'
 
@@ -16,6 +16,7 @@ urlpatterns = [
     # Web-based authentication pages
     path('web-signup/', WebSignupView.as_view(), name='web-signup'),
     path('web-login/', WebLoginView.as_view(), name='web-login'),
+    path('web-logout/', WebLogoutView.as_view(), name='logout'),
 
     path('contacts/', ContactView.as_view(), name='contact-list'),
     path('contacts/<int:pk>/', ContactDetailView.as_view(), name='contact-detail'),
