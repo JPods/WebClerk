@@ -34,7 +34,7 @@ class WebSignupView(View):
             try:
                 user = serializer.save()
                 messages.success(request, 'Account created successfully! Please check your email for verification.')
-                return redirect('core:web-login')
+                return redirect('web-login')
             except Exception as e:
                 messages.error(request, f'Error creating account: {str(e)}')
         else:
@@ -66,7 +66,9 @@ class WebLoginView(View):
             if user is not None:
                 login(request, user)
                 messages.success(request, 'Successfully logged in!')
-                return redirect('home')  # Redirect to home page
+                # Check if there's a 'next' parameter for redirect
+                next_url = request.GET.get('next', '/')
+                return redirect(next_url)
             else:
                 messages.error(request, 'Invalid email or password.')
         except Contact.DoesNotExist:

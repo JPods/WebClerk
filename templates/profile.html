@@ -1,0 +1,382 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Profile - {{ user.name_first }} {{ user.name_last }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>{{ user.prefix|default:"" }} {{ user.name_first }} {{ user.name_middle|default:"" }} {{ user.name_last }} {{ user.suffix|default:"" }}</h1>
+        <p class="profile-email">{{ user.email }}</p>
+        {% if user.company %}
+            <p class="profile-company">{{ user.company }}</p>
+        {% endif %}
+        {% if user.attention %}
+            <p class="profile-attention">Attention: {{ user.attention }}</p>
+        {% endif %}
+    </div>
+
+    <div class="profile-content">
+        <!-- Complete Contact Information Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Contact Information</h2>
+                <a href="/edit-profile/" class="btn btn-primary btn-sm">Edit Profile</a>
+            </div>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th class="value-column">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="field-label">Email</td>
+                            <td class="value-cell">{{ user.email }}</td>
+                        </tr>
+                        <tr>
+                            <td class="field-label">Full Name</td>
+                            <td class="value-cell">{{ user.prefix|default:"" }} {{ user.name_first }} {{ user.name_middle|default:"" }} {{ user.name_last }} {{ user.suffix|default:"" }}</td>
+                        </tr>
+                        {% if user.salutation %}
+                        <tr>
+                            <td class="field-label">Salutation</td>
+                            <td class="value-cell">{{ user.salutation }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if user.company %}
+                        <tr>
+                            <td class="field-label">Company</td>
+                            <td class="value-cell">{{ user.company }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if user.attention %}
+                        <tr>
+                            <td class="field-label">Attention</td>
+                            <td class="value-cell">{{ user.attention }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if user.rank %}
+                        <tr>
+                            <td class="field-label">Rank/Title</td>
+                            <td class="value-cell">{{ user.rank }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="field-label">Roles</td>
+                            <td class="value-cell">
+                                {% for role in user.role %}
+                                    <span class="role-badge">{{ role }}</span>
+                                {% empty %}
+                                    <span class="text-muted">No roles assigned</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% if user.role_default %}
+                        <tr>
+                            <td class="field-label">Default Role</td>
+                            <td class="value-cell"><span class="role-badge primary">{{ user.role_default }}</span></td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="field-label">Account Status</td>
+                            <td class="value-cell">
+                                <span class="status-badge {{ user.is_active|yesno:'active,inactive' }}">
+                                    {{ user.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="field-label">Email Verified</td>
+                            <td class="value-cell">
+                                <span class="status-badge {{ user.is_email_verified|yesno:'verified,unverified' }}">
+                                    {{ user.is_email_verified|yesno:"✓ Verified,✗ Not Verified" }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="field-label">Staff Access</td>
+                            <td class="value-cell">
+                                <span class="status-badge {{ user.is_staff|yesno:'staff,user' }}">
+                                    {{ user.is_staff|yesno:"Staff Member,Regular User" }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="field-label">Member Since</td>
+                            <td class="value-cell">{{ user.date_joined|date:"F d, Y g:i A" }}</td>
+                        </tr>
+                        {% if user.last_login %}
+                        <tr>
+                            <td class="field-label">Last Login</td>
+                            <td class="value-cell">{{ user.last_login|date:"F d, Y g:i A" }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if user.publish %}
+                        <tr>
+                            <td class="field-label">Publish Level</td>
+                            <td class="value-cell">{{ user.publish }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="field-label">User ID</td>
+                            <td class="value-cell"><code>{{ user.id }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="field-label">UUID</td>
+                            <td class="value-cell"><code>{{ user.uuid }}</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Addresses Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Addresses ({{ addresses|length }})</h2>
+                <a href="/manage-addresses/" class="btn btn-secondary btn-sm">
+                    {% if addresses %}Manage All{% else %}Add Address{% endif %}
+                </a>
+            </div>
+            {% if addresses %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Address</th>
+                            <th>City</th>
+                            <th>State</th>
+                            <th>ZIP</th>
+                            <th>Country</th>
+                            <th>Instructions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for address in addresses %}
+                        <tr>
+                            <td><span class="type-badge">{{ address.address_type|default:"Address" }}</span></td>
+                            <td>
+                                {% if address.address1 %}{{ address.address1 }}{% endif %}
+                                {% if address.address2 %}<br><small>{{ address.address2 }}</small>{% endif %}
+                            </td>
+                            <td>{{ address.city|default:"-" }}</td>
+                            <td>{{ address.state|default:"-" }}</td>
+                            <td>{{ address.zip|default:"-" }}</td>
+                            <td>{{ address.country|default:"-" }}</td>
+                            <td>{{ address.instructions|default:"-"|truncatechars:50 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No addresses on file</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Phone Numbers Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Phone Numbers ({{ phones|length }})</h2>
+                <a href="/manage-phones/" class="btn btn-secondary btn-sm">
+                    {% if phones %}Manage All{% else %}Add Phone{% endif %}
+                </a>
+            </div>
+            {% if phones %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Phone Number</th>
+                            <th>Extension</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for phone in phones %}
+                        <tr>
+                            <td><span class="type-badge">{{ phone.phone_type|default:"Phone" }}</span></td>
+                            <td class="phone-number">{{ phone.phone_number }}</td>
+                            <td>{{ phone.extension|default:"-" }}</td>
+                            <td>{{ phone.comment|default:"-"|truncatechars:50 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No phone numbers on file</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Email Addresses Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Email Addresses ({{ emails|length }})</h2>
+                <a href="/manage-emails/" class="btn btn-secondary btn-sm">
+                    {% if emails %}Manage All{% else %}Add Email{% endif %}
+                </a>
+            </div>
+            {% if emails %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Email Address</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for email in emails %}
+                        <tr>
+                            <td><span class="type-badge">{{ email.email_type|default:"Email" }}</span></td>
+                            <td class="email-address">{{ email.email_address }}</td>
+                            <td>
+                                {% if email.is_verified %}
+                                    <span class="status-badge verified">Verified</span>
+                                {% else %}
+                                    <span class="status-badge unverified">Unverified</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ email.comment|default:"-"|truncatechars:50 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No additional email addresses on file</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Domains Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Associated Domains ({{ domains|length }})</h2>
+                <a href="/manage-domains/" class="btn btn-secondary btn-sm">
+                    {% if domains %}Manage All{% else %}Add Domain{% endif %}
+                </a>
+            </div>
+            {% if domains %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Domain Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for domain in domains %}
+                        <tr>
+                            <td><span class="type-badge">{{ domain.domain_type|default:"Domain" }}</span></td>
+                            <td class="domain-name">{{ domain.domain_name }}</td>
+                            <td>{{ domain.description|default:"-"|truncatechars:50 }}</td>
+                            <td>
+                                {% if domain.is_active %}
+                                    <span class="status-badge active">Active</span>
+                                {% else %}
+                                    <span class="status-badge inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No domains associated</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Actions Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Recent Actions ({{ actions|length }})</h2>
+                <a href="/manage-actions/" class="btn btn-secondary btn-sm">
+                    {% if actions %}Manage All{% else %}Add Action{% endif %}
+                </a>
+            </div>
+            {% if actions %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for action in actions %}
+                        <tr>
+                            <td class="action-date">{{ action.created_at|date:"M d, Y g:i A" }}</td>
+                            <td><span class="type-badge">{{ action.action_type|default:"Action" }}</span></td>
+                            <td>{{ action.description|default:"-"|truncatechars:60 }}</td>
+                            <td>
+                                {% if action.status %}
+                                    <span class="status-badge">{{ action.status }}</span>
+                                {% else %}
+                                    <span class="status-badge">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ action.notes|default:"-"|truncatechars:40 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No recent actions recorded</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Comments/Notes Section -->
+        {% if user.comment %}
+        <div class="section">
+            <h2>Notes & Comments</h2>
+            <div class="comment-box">
+                {{ user.comment|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Alert Comments -->
+        {% if user.comment_alert %}
+        <div class="section alert-section">
+            <h2>⚠️ Alert Notes</h2>
+            <div class="alert-box">
+                {{ user.comment_alert|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="profile-actions">
+        <a href="/" class="btn btn-secondary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

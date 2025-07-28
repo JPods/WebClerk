@@ -1,0 +1,169 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Manage Domains{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/manage.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="manage-container">
+    <a href="/profile/" class="back-link">← Back to Profile</a>
+    
+    <div class="page-header">
+        <h1>Manage Domains</h1>
+        <div class="breadcrumb">
+            <a href="/profile/">Profile</a> / Domains
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Add New Domain -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Add New Domain</h2>
+        </div>
+        <div class="section-content">
+            <form method="post" action="/add-domain/">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="domain_name">Domain Name</label>
+                        <input type="text" name="domain_name" id="domain_name" class="form-control" 
+                               placeholder="example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="domain_type">Type</label>
+                        <select name="domain_type" id="domain_type" class="form-control">
+                            <option value="">Select Type</option>
+                            <option value="primary">Primary</option>
+                            <option value="website">Website</option>
+                            <option value="email">Email</option>
+                            <option value="subdomain">Subdomain</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" name="description" id="description" class="form-control" 
+                               placeholder="Main company website">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="instructions">Instructions</label>
+                        <input type="text" name="instructions" id="instructions" class="form-control" 
+                               placeholder="Admin access details">
+                    </div>
+                    <div class="form-group">
+                        <label for="comment">Comment</label>
+                        <input type="text" name="comment" id="comment" class="form-control" 
+                               placeholder="Additional notes">
+                    </div>
+                    <div class="form-group" style="flex: 0 0 auto;">
+                        <button type="submit" class="btn btn-success">Add Domain</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Domains -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Your Domains ({{ domains|length }})</h2>
+        </div>
+        <div class="section-content">
+            {% if domains %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Domain Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Instructions</th>
+                            <th>Comment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for domain in domains %}
+                        <tr>
+                            <td>
+                                {% if domain.domain_name %}
+                                    <a href="http://{{ domain.domain_name }}" target="_blank" class="domain-link">
+                                        <span class="domain-name">{{ domain.domain_name }}</span>
+                                    </a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ domain.domain_type|default:'-'|title }}</td>
+                            <td>{{ domain.description|default:'-' }}</td>
+                            <td>{{ domain.instructions|default:'-' }}</td>
+                            <td>{{ domain.comment|default:'-' }}</td>
+                            <td>
+                                <div class="actions">
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="editDomain({{ domain.id }})">Edit</button>
+                                    <form method="post" action="/delete-domain/{{ domain.id }}/" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete this domain?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <i>🌐</i>
+                    <h3>No Domains</h3>
+                    <p>You haven't added any domains yet. Add one using the form above.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function editDomain(domainId) {
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = `/edit-domain/${domainId}/`;
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Domain name validation and formatting
+document.getElementById('domain_name').addEventListener('input', function(e) {
+    let value = e.target.value.toLowerCase().trim();
+    // Remove http:// or https:// if user enters it
+    value = value.replace(/^https?:\/\//, '');
+    // Remove trailing slash
+    value = value.replace(/\/$/, '');
+    e.target.value = value;
+});
+
+document.getElementById('domain_name').addEventListener('blur', function(e) {
+    const domain = e.target.value;
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.([a-zA-Z]{2,})+$/;
+    if (domain && !domainRegex.test(domain)) {
+        e.target.style.borderColor = '#dc3545';
+    } else {
+        e.target.style.borderColor = '#ddd';
+    }
+});
+</script>
+{% endblock %}

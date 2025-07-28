@@ -1,0 +1,203 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Manage Actions{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/manage.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="manage-container">
+    <a href="/profile/" class="back-link">← Back to Profile</a>
+    
+    <div class="page-header">
+        <h1>Manage Actions</h1>
+        <div class="breadcrumb">
+            <a href="/profile/">Profile</a> / Actions
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Add New Action -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Add New Action</h2>
+        </div>
+        <div class="section-content">
+            <form method="post" action="/add-action/">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="action_title">Title</label>
+                        <input type="text" name="action_title" id="action_title" class="form-control" 
+                               placeholder="Action title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="action_type">Type</label>
+                        <select name="action_type" id="action_type" class="form-control">
+                            <option value="">Select Type</option>
+                            <option value="task">Task</option>
+                            <option value="reminder">Reminder</option>
+                            <option value="follow-up">Follow-up</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="call">Call</option>
+                            <option value="email">Email</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority</label>
+                        <select name="priority" id="priority" class="form-control">
+                            <option value="">Select Priority</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select name="status" id="status" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="due_date">Due Date</label>
+                        <input type="date" name="due_date" id="due_date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="assigned_to">Assigned To</label>
+                        <input type="text" name="assigned_to" id="assigned_to" class="form-control" 
+                               placeholder="Person responsible">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea name="description" id="description" class="form-control" 
+                                  placeholder="Detailed description of the action"></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="comment">Comment</label>
+                        <input type="text" name="comment" id="comment" class="form-control" 
+                               placeholder="Additional notes">
+                    </div>
+                    <div class="form-group" style="flex: 0 0 auto;">
+                        <button type="submit" class="btn btn-success">Add Action</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Actions -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Your Actions ({{ actions|length }})</h2>
+        </div>
+        <div class="section-content">
+            {% if actions %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Title & Description</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Due Date</th>
+                            <th>Assigned To</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for action in actions %}
+                        <tr>
+                            <td>
+                                <div class="action-title">{{ action.action_title|default:'Untitled Action' }}</div>
+                                {% if action.description %}
+                                    <div class="action-description">{{ action.description|truncatechars:100 }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ action.action_type|default:'-'|title }}</td>
+                            <td>
+                                <span class="action-status-badge status-{{ action.status|default:'pending' }}">
+                                    {{ action.status|default:'Pending'|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if action.priority %}
+                                    <span class="priority-badge priority-{{ action.priority }}">
+                                        {{ action.priority|title }}
+                                    </span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if action.due_date %}
+                                    {{ action.due_date|date:"M d, Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ action.assigned_to|default:'-' }}</td>
+                            <td>
+                                <div class="actions">
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="editAction({{ action.id }})">Edit</button>
+                                    <form method="post" action="/delete-action/{{ action.id }}/" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete this action?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <i>📋</i>
+                    <h3>No Actions</h3>
+                    <p>You haven't added any actions yet. Add one using the form above.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function editAction(actionId) {
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = `/edit-action/${actionId}/`;
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Set default due date to tomorrow
+document.addEventListener('DOMContentLoaded', function() {
+    const dueDateInput = document.getElementById('due_date');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowString = tomorrow.toISOString().split('T')[0];
+    dueDateInput.value = tomorrowString;
+});
+</script>
+{% endblock %}
