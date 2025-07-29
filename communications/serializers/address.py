@@ -13,7 +13,7 @@ class AddressSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'uuid', 'address1', 'address2', 'address_type', 'city', 'country',
             'instructions', 'latitude', 'longitude', 'state', 'zip', 'full', 'comment',
-            'refs', 'prefs', 'metadata'
+            'dt_verified', 'refs', 'prefs', 'metadata'
         ]
         read_only_fields = ['id', 'uuid']
 

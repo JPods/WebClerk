@@ -17,6 +17,7 @@ class Address(BaseModel):
     zip = models.CharField(max_length=255, blank=True)
     full = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True, null=True)
+    dt_verified = models.DateTimeField(null=True, blank=True, help_text="When address was verified")
 
     class Meta:
         db_table = 'addresses'

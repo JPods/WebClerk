@@ -1,0 +1,298 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Manage Domains{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'css/manage.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="manage-container">
+    <a href="/contact/" class="back-link">← Back to Contact</a>
+    
+    <div class="page-header">
+        <h1>Manage Domains</h1>
+        <div class="breadcrumb">
+            <a href="/contact/">Contact</a> / Domains
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Existing Domains -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Your Domains ({{ domains|length }})</h2>
+        </div>
+        <div class="section-content">
+            {% if domains %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Domain Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Instructions</th>
+                            <th>Verified</th>
+                            <th>Comment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for domain in domains %}
+                        <tr class="domain-row" data-domain-id="{{ domain.id }}"
+                            data-domain-name="{{ domain.domain_name|default:'' }}"
+                            data-domain-type="{{ domain.domain_type|default:'' }}"
+                            data-description="{{ domain.description|default:'' }}"
+                            data-instructions="{{ domain.instructions|default:'' }}"
+                            data-comment="{{ domain.comment|default:'' }}"
+                            style="cursor: pointer;">
+                            <td>
+                                {% if domain.domain_name %}
+                                    <a href="http://{{ domain.domain_name }}" target="_blank" class="domain-link">
+                                        <span class="domain-name">{{ domain.domain_name }}</span>
+                                    </a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ domain.domain_type|default:'-'|title }}</td>
+                            <td>{{ domain.description|default:'-' }}</td>
+                            <td>{{ domain.instructions|default:'-' }}</td>
+                            <td>
+                                {% if domain.dt_verified %}
+                                    <span class="status-badge status-verified">✓ Verified</span>
+                                    <br><small>{{ domain.dt_verified|date:"M d, Y" }}</small>
+                                {% else %}
+                                    <span class="status-badge status-unverified">Unverified</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ domain.comment|default:'-' }}</td>
+                            <td>
+                                <div class="actions">
+                                    <form method="post" action="/delete-domain/{{ domain.id }}/" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete this domain?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="no-data">No domains found. Add one below to get started.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Domain Form -->
+    <div class="section">
+        <div class="section-header">
+            <h2 id="form-title">Add New Domain</h2>
+        </div>
+        <div class="section-content">
+            <form method="post" id="domain-form" action="/add-domain/">
+                {% csrf_token %}
+                <input type="hidden" name="domain_id" id="domain_id" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="domain_name">Domain Name</label>
+                        <input type="text" name="domain_name" id="domain_name" class="form-control" 
+                               placeholder="example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="domain_type">Type</label>
+                        <select name="domain_type" id="domain_type" class="form-control">
+                            <option value="">Select Type</option>
+                            <option value="primary">Primary</option>
+                            <option value="website">Website</option>
+                            <option value="email">Email</option>
+                            <option value="subdomain">Subdomain</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" name="description" id="description" class="form-control" 
+                               placeholder="Main company website">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="instructions">Instructions</label>
+                        <input type="text" name="instructions" id="instructions" class="form-control" 
+                               placeholder="Admin access details">
+                    </div>
+                    <div class="form-group">
+                        <label for="comment">Comment</label>
+                        <input type="text" name="comment" id="comment" class="form-control" 
+                               placeholder="Additional notes">
+                    </div>
+                    <div class="form-group" style="flex: 0 0 auto;">
+                        <button type="button" id="new-btn" class="btn btn-secondary">New</button>
+                        <button type="submit" id="submit-btn" class="btn btn-success">Add</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form management variables
+let currentDomainId = null;
+let isEditMode = false;
+
+// Initialize event listeners when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click listeners to domain rows
+    document.querySelectorAll('.domain-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking on a link
+            if (e.target.tagName !== 'A' && !e.target.closest('a')) {
+                populateForm(this);
+            }
+        });
+    });
+
+    // New button functionality
+    document.getElementById('new-btn').addEventListener('click', function() {
+        clearForm();
+    });
+
+    // Form submission handling
+    document.getElementById('domain-form').addEventListener('submit', function(e) {
+        if (isEditMode) {
+            // Change form action for editing
+            this.action = `/edit-domain/${currentDomainId}/`;
+        } else {
+            // Keep default action for adding
+            this.action = '/add-domain/';
+        }
+    });
+
+    // Domain name validation and formatting
+    document.getElementById('domain_name').addEventListener('input', function(e) {
+        let value = e.target.value.toLowerCase().trim();
+        // Remove http:// or https:// if user enters it
+        value = value.replace(/^https?:\/\//, '');
+        // Remove trailing slash
+        value = value.replace(/\/$/, '');
+        e.target.value = value;
+    });
+
+    document.getElementById('domain_name').addEventListener('blur', function(e) {
+        const domain = e.target.value;
+        const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.([a-zA-Z]{2,})+$/;
+        if (domain && !domainRegex.test(domain)) {
+            e.target.style.borderColor = '#dc3545';
+        } else {
+            e.target.style.borderColor = '#ddd';
+        }
+    });
+});
+
+// Populate form with domain data when row is clicked
+function populateForm(row) {
+    currentDomainId = row.dataset.domainId;
+    isEditMode = true;
+
+    // Fill form fields
+    document.getElementById('domain_id').value = currentDomainId;
+    document.getElementById('domain_name').value = row.dataset.domainName;
+    document.getElementById('domain_type').value = row.dataset.domainType;
+    document.getElementById('description').value = row.dataset.description;
+    document.getElementById('instructions').value = row.dataset.instructions;
+    document.getElementById('comment').value = row.dataset.comment;
+
+    // Update form UI
+    document.getElementById('form-title').textContent = 'Edit Domain';
+    document.getElementById('submit-btn').textContent = 'Save';
+    document.getElementById('submit-btn').className = 'btn btn-primary';
+
+    // Highlight selected row
+    document.querySelectorAll('.domain-row').forEach(r => r.classList.remove('selected'));
+    row.classList.add('selected');
+
+    // Scroll to form
+    document.getElementById('domain-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Clear form and reset to add mode
+function clearForm() {
+    currentDomainId = null;
+    isEditMode = false;
+
+    // Clear form fields
+    document.getElementById('domain-form').reset();
+    document.getElementById('domain_id').value = '';
+
+    // Update form UI
+    document.getElementById('form-title').textContent = 'Add New Domain';
+    document.getElementById('submit-btn').textContent = 'Add';
+    document.getElementById('submit-btn').className = 'btn btn-success';
+
+    // Remove row highlighting
+    document.querySelectorAll('.domain-row').forEach(r => r.classList.remove('selected'));
+}
+</script>
+
+<style>
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-verified {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-unverified {
+    background-color: #e2e3e5;
+    color: #6c757d;
+}
+
+/* Row selection styling */
+.domain-row:hover {
+    background-color: #f8f9fa;
+}
+
+.domain-row.selected {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.domain-row.selected td {
+    border-color: #2196f3;
+}
+
+/* Form button styling */
+#new-btn {
+    margin-right: 10px;
+}
+
+/* Domain link styling */
+.domain-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.domain-link:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}

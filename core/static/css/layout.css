@@ -1,12 +1,12 @@
 /* Layout Navigation CSS */
 
-.profile-link {
+.contact-link {
     color: #007cba;
     text-decoration: none;
     font-weight: bold;
 }
 
-.profile-link:hover {
+.contact-link:hover {
     text-decoration: underline;
 }
 

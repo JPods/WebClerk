@@ -11,7 +11,7 @@ class ManageEmailsView(LoginRequiredMixin, View):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        # Get user emails using the same method as profile view
+        # Get user emails using the same method as contact view
         user = request.user
         user_id_str = str(user.id)
         user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
@@ -32,7 +32,7 @@ class ManageEmailsView(LoginRequiredMixin, View):
             'user': user,
             'emails': emails,
         }
-        return render(request, 'manage_emails.html', context)
+        return render(request, 'communications/manage_emails.html', context)
 
 class AddEmailView(LoginRequiredMixin, View):
     """Add new email address"""
@@ -46,11 +46,18 @@ class AddEmailView(LoginRequiredMixin, View):
             
             # Create new email
             email = Email()
-            email.email_type = request.POST.get('email_type', '').strip()
-            email.email_address = request.POST.get('email_address', '').strip()
-            email.display_name = request.POST.get('display_name', '').strip()
-            email.instructions = request.POST.get('instructions', '').strip()
+            email.email = request.POST.get('email', '').strip()
+            email.name = request.POST.get('name', '').strip()
+            email.attention = request.POST.get('attention', '').strip()
+            email.opt_out = request.POST.get('opt_out', '').strip()
             email.comment = request.POST.get('comment', '').strip()
+            email.is_primary = request.POST.get('is_primary') == 'true'
+            email.is_verified = request.POST.get('is_verified') == 'true'
+            
+            # Set verified_at if marked as verified
+            if email.is_verified:
+                from django.utils import timezone
+                email.dt_verified = timezone.now()
             
             # Link to user via refs JSON field
             if not email.refs:
@@ -99,7 +106,7 @@ class EditEmailView(LoginRequiredMixin, View):
                 'email': email,
                 'user': request.user,
             }
-            return render(request, 'edit_email.html', context)
+            return render(request, 'communications/edit_email.html', context)
             
         except Exception as e:
             messages.error(request, f'Error loading email: {str(e)}')
@@ -124,11 +131,23 @@ class EditEmailView(LoginRequiredMixin, View):
                 return redirect('/manage-emails/')
             
             # Update email
-            email.email_type = request.POST.get('email_type', '').strip()
-            email.email_address = request.POST.get('email_address', '').strip()
-            email.display_name = request.POST.get('display_name', '').strip()
-            email.instructions = request.POST.get('instructions', '').strip()
+            email.email = request.POST.get('email', '').strip()
+            email.name = request.POST.get('name', '').strip()
+            email.attention = request.POST.get('attention', '').strip()
+            email.opt_out = request.POST.get('opt_out', '').strip()
             email.comment = request.POST.get('comment', '').strip()
+            
+            # Handle new boolean fields
+            email.is_primary = request.POST.get('is_primary') == 'true'
+            was_verified = email.is_verified
+            email.is_verified = request.POST.get('is_verified') == 'true'
+            
+            # Set verified_at if newly verified
+            if email.is_verified and not was_verified:
+                from django.utils import timezone
+                email.dt_verified = timezone.now()
+            elif not email.is_verified:
+                email.dt_verified = None
             
             email.save()
             messages.success(request, 'Email address updated successfully!')

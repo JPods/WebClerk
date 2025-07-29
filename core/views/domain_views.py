@@ -11,7 +11,7 @@ class ManageDomainsView(LoginRequiredMixin, View):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        # Get user domains using the same method as profile view
+        # Get user domains using the same method as contact view
         user = request.user
         user_id_str = str(user.id)
         user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
@@ -32,7 +32,7 @@ class ManageDomainsView(LoginRequiredMixin, View):
             'user': user,
             'domains': domains,
         }
-        return render(request, 'manage_domains.html', context)
+        return render(request, 'communications/manage_domains.html', context)
 
 class AddDomainView(LoginRequiredMixin, View):
     """Add new domain"""

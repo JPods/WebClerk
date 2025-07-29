@@ -11,7 +11,7 @@ class ManagePhonesView(LoginRequiredMixin, View):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        # Get user phones using the same method as profile view
+        # Get user phones using the same method as contact view
         user = request.user
         user_id_str = str(user.id)
         user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
@@ -32,7 +32,7 @@ class ManagePhonesView(LoginRequiredMixin, View):
             'user': user,
             'phones': phones,
         }
-        return render(request, 'manage_phones.html', context)
+        return render(request, 'communications/manage_phones.html', context)
 
 class AddPhoneView(LoginRequiredMixin, View):
     """Add new phone number"""

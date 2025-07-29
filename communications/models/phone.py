@@ -12,6 +12,7 @@ class Phone(BaseModel):
     number = models.CharField(max_length=255, blank=True)
     opt_out = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True, null=True)
+    dt_verified = models.DateTimeField(null=True, blank=True, help_text="When phone was verified")
 
     class Meta:
         db_table = 'phones'

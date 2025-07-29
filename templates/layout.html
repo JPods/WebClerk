@@ -23,7 +23,7 @@
         <a href="/about">About</a> |
         {% if user.is_authenticated %}
             <a href="/admin">Admin</a> |
-            <a href="/profile/" class="profile-link">Hi, {{ user.name_first }} {{ user.name_last }}!</a> |
+            <a href="/contact/" class="contact-link">Hi, {{ user.name_first }} {{ user.name_last }}!</a> |
             <form class="logout" method="post" action="{% url 'web-logout' %}" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="logout-button" aria-label="Logout" title="Logout">🤚</button>

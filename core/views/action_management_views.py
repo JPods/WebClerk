@@ -12,7 +12,7 @@ class ManageActionsView(LoginRequiredMixin, View):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        # Get user actions using the same method as profile view
+        # Get user actions using the same method as contact view
         user = request.user
         user_id_str = str(user.id)
         user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
@@ -33,7 +33,7 @@ class ManageActionsView(LoginRequiredMixin, View):
             'user': user,
             'actions': actions,
         }
-        return render(request, 'manage_actions.html', context)
+        return render(request, 'core/manage_actions.html', context)
 
 class AddActionView(LoginRequiredMixin, View):
     """Add new action"""

@@ -11,7 +11,7 @@ class DomainSerializer(serializers.ModelSerializer):
     class Meta:
         model = Domain
         fields = [
-            'id', 'uuid', 'path', 'type', 'comment', 'refs', 'prefs', 'metadata'
+            'id', 'uuid', 'path', 'type', 'comment', 'dt_verified', 'refs', 'prefs', 'metadata'
         ]
         read_only_fields = ['id', 'uuid']
 

@@ -4,8 +4,8 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from core.views.web_auth_views import WebSignupView, WebLoginView, WebLogoutView
-from core.views.profile_view import WebProfileView
-from core.views.edit_views import EditProfileView, ManageAddressesView, AddAddressView, EditAddressView, DeleteAddressView
+from core.views.contact_view import WebContactView
+from core.views.edit_views import EditContactView, ManageAddressesView, AddAddressView, EditAddressView, DeleteAddressView
 from core.views.phone_views import ManagePhonesView, AddPhoneView, EditPhoneView, DeletePhoneView
 from core.views.email_views import ManageEmailsView, AddEmailView, EditEmailView, DeleteEmailView
 from core.views.domain_views import ManageDomainsView, AddDomainView, EditDomainView, DeleteDomainView
@@ -19,10 +19,12 @@ urlpatterns = [
     path('signup/', WebSignupView.as_view(), name='web-signup'),
     path('login/', WebLoginView.as_view(), name='web-login'),
     path('logout/', WebLogoutView.as_view(), name='web-logout'),
-    path('profile/', WebProfileView.as_view(), name='profile'),
+    path('contact/', WebContactView.as_view(), name='contact'),
     
-    # Profile editing pages
-    path('edit-profile/', EditProfileView.as_view(), name='edit-profile'),
+    # Contact editing pages
+    path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
+    
+    # Address management pages
     path('manage-addresses/', ManageAddressesView.as_view(), name='manage-addresses'),
     path('add-address/', AddAddressView.as_view(), name='add-address'),
     path('edit-address/<int:address_id>/', EditAddressView.as_view(), name='edit-address'),

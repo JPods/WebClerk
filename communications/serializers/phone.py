@@ -12,7 +12,7 @@ class PhoneSerializer(serializers.ModelSerializer):
         model = Phone
         fields = [
             'id', 'uuid', 'attention', 'country_code', 'format', 'name', 'number',
-            'opt_out', 'comment', 'refs', 'prefs', 'metadata'
+            'opt_out', 'comment', 'dt_verified', 'refs', 'prefs', 'metadata'
         ]
         read_only_fields = ['id', 'uuid']
 

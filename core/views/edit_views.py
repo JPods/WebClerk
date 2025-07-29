@@ -7,8 +7,8 @@ from ..models import Contact
 from ..models.contact_model import Contact
 import json
 
-class EditProfileView(LoginRequiredMixin, View):
-    """Edit contact profile information"""
+class EditContactView(LoginRequiredMixin, View):
+    """Edit contact information"""
     
     def get(self, request):
         if not request.user.is_authenticated:
@@ -21,7 +21,7 @@ class EditProfileView(LoginRequiredMixin, View):
             'user': request.user,
             'role_choices': role_choices,
         }
-        return render(request, 'edit_profile.html', context)
+        return render(request, 'core/edit_contact.html', context)
     
     def post(self, request):
         if not request.user.is_authenticated:
@@ -62,18 +62,18 @@ class EditProfileView(LoginRequiredMixin, View):
             # Validate required fields
             if not user.name_first or not user.name_last or not user.email:
                 messages.error(request, 'First name, last name, and email are required.')
-                return render(request, 'edit_profile.html', {
+                return render(request, 'core/edit_contact.html', {
                     'user': user,
                     'role_choices': Contact.ROLE_CHOICES,
                 })
             
             user.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('/profile/')
+            messages.success(request, 'Contact updated successfully!')
+            return redirect('/contact/')
             
         except Exception as e:
-            messages.error(request, f'Error updating profile: {str(e)}')
-            return render(request, 'edit_profile.html', {
+            messages.error(request, f'Error updating contact: {str(e)}')
+            return render(request, 'core/edit_contact.html', {
                 'user': user,
                 'role_choices': Contact.ROLE_CHOICES,
             })
@@ -85,7 +85,7 @@ class ManageAddressesView(LoginRequiredMixin, View):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        # Get user addresses using the same method as profile view
+        # Get user addresses using the same method as contact view
         user = request.user
         user_id_str = str(user.id)
         user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
@@ -106,7 +106,7 @@ class ManageAddressesView(LoginRequiredMixin, View):
             'user': user,
             'addresses': addresses,
         }
-        return render(request, 'manage_addresses.html', context)
+        return render(request, 'communications/manage_addresses.html', context)
 
 class AddAddressView(LoginRequiredMixin, View):
     """Add new address"""

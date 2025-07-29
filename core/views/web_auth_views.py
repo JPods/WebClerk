@@ -10,7 +10,7 @@ class WebSignupView(View):
     """Template-based signup view that extends layout.html"""
     
     def get(self, request):
-        return render(request, 'signup.html')
+        return render(request, 'core/signup.html')
     
     def post(self, request):
         # Extract form data
@@ -26,7 +26,7 @@ class WebSignupView(View):
         # Check if passwords match
         if form_data['password'] != password_confirm:
             messages.error(request, 'Passwords do not match.')
-            return render(request, 'signup.html')
+            return render(request, 'core/signup.html')
         
         # Use the existing serializer for validation
         serializer = RegisterSerializer(data=form_data)
@@ -43,13 +43,13 @@ class WebSignupView(View):
                 for error in errors:
                     messages.error(request, f'{field}: {error}')
         
-        return render(request, 'signup.html')
+        return render(request, 'core/signup.html')
 
 class WebLoginView(View):
     """Template-based login view that extends layout.html"""
     
     def get(self, request):
-        return render(request, 'login.html')
+        return render(request, 'core/login.html')
     
     def post(self, request):
         email = request.POST.get('email')
@@ -76,7 +76,7 @@ class WebLoginView(View):
         except Exception as e:
             messages.error(request, f'Login error: {str(e)}')
         
-        return render(request, 'login.html')
+        return render(request, 'core/login.html')
 
 class WebLogoutView(View):
     """Template-based logout view"""
