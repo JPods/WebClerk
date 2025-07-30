@@ -15,10 +15,10 @@ class Action(BaseModel):
     status = models.CharField(max_length=255, blank=True, null=True)
     quality = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
-    dt_action = models.DateTimeField(default=timezone.now)
-    dt_completed = models.DateTimeField(default=timezone.now)
-    dt_due = models.DateTimeField(default=timezone.now)
-    dt_updated = models.DateTimeField(default=timezone.now)
+    dt_action = models.DateTimeField(null=True, blank=True)
+    dt_completed = models.DateTimeField(null=True, blank=True)
+    dt_due = models.DateTimeField(null=True, blank=True)
+    dt_updated = models.DateTimeField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
 
     class Meta:

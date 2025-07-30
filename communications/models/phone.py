@@ -9,6 +9,7 @@ class Phone(BaseModel):
     country_code = models.CharField(max_length=255, blank=True)
     format = models.CharField(max_length=255, blank=True)
     name = models.CharField(max_length=255, blank=True)
+    type = models.CharField(max_length=255, blank=True)
     number = models.CharField(max_length=255, blank=True)
     opt_out = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True, null=True)
