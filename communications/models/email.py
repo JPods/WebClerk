@@ -28,6 +28,12 @@ class Email(BaseModel):
     dt_verified = models.DateTimeField(null=True, blank=True, help_text="When email was verified")
     dt_bounced = models.DateTimeField(null=True, blank=True, help_text="Last bounce date")
 
+    # Add the missing webClerk3 standard JSONB fields
+    refs = models.JSONField(default=dict, blank=True, help_text="Keywords, tags, and related references")
+    metadata = models.JSONField(default=dict, blank=True, help_text="Health, profiles, undefined and other user defined data")
+    pres = models.JSONField(default=dict, blank=True, help_text="Various user defined preferences for the data")
+
+
     class Meta:
         db_table = 'emails'
         verbose_name = 'Email Address'

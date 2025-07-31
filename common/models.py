@@ -13,21 +13,16 @@ def default_metadata():
         "access": {"view": [], "edit": []},
         "approvals": [],
         "health": {
-            "dt_created": int(timezone.now().timestamp() * 1000),
-            "dt_updated": 0,
-            "dt_completed": 0,
-            "dt_expire": 0,
-            "dt_retired": 0,
-            "dt_last_sync": 0
+            "rating":{"value": 0,"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
+
         },
         "history": {
-            "created": {},
-            "modified": {},
-            "active": {},
-            "expire": {},
-            "retired": {},
-            "last_used": {},
-            "sync": {}
+            "created":{"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
+            "updated":{"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
+            "completed":{"dt": 0,"id_contact":0},
+            "expire":{"dt": 0,"id_contact":0},
+            "retired":{"dt": 0,"id_contact":0},
+            "sync":{"dt": 0,"id_contact":0}
         },
         "profiles": [],
         "undefined": {}
@@ -37,7 +32,7 @@ def default_refs():
     return {
         "keywords": "",
         "tags": "",
-        "links": []
+        "links": {}
     }
 
 def default_prefs():

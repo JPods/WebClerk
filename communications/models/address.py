@@ -19,5 +19,17 @@ class Address(BaseModel):
     comment = models.TextField(blank=True, null=True)
     dt_verified = models.DateTimeField(null=True, blank=True, help_text="When address was verified")
 
+
+    # Add the missing webClerk3 standard JSONB fields
+    refs = models.JSONField(default=dict, blank=True, help_text="Keywords, tags, and related references")
+    metadata = models.JSONField(default=dict, blank=True, help_text="Health, profiles, undefined and other user defined data")
+    pres = models.JSONField(default=dict, blank=True, help_text="Various user defined preferences for the data")
+
+    class Meta:
+        db_table = 'addresses'
+        
+    def __str__(self):
+        return f"{self.address1}, {self.city}, {self.state}"
+
     class Meta:
         db_table = 'addresses'
