@@ -55,6 +55,7 @@ class AddressView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         address.refs.setdefault('contacts', []).append(request.user.id)
+        address.refs.setdefault('test', []).append(1)
         address = serializer.save()
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
