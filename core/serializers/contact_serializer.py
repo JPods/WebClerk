@@ -110,17 +110,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data['email'] = validated_data['email'].lower()
         user = Contact(**validated_data)
         user.set_password(password)
-        # Create blank objects
-        address = Address.objects.create()
-        email = Email.objects.create()
-        phone = Phone.objects.create()
-        domain = Domain.objects.create()
-        user.refs.update({
-            'addresses': [str(address.id)],
-            'emails': [str(email.id)],
-            'phones': [str(phone.id)],
-            'domains': [str(domain.id)]
-        })
         user.save()
         return user
 
