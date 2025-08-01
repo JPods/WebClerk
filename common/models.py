@@ -13,7 +13,7 @@ def default_metadata():
         "access": {"view": [], "edit": []},
         "approvals": [],
         "health": {
-            "rating":{"value": 0,"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
+            "rating":{"value": 0,"dt": 0,"id_contact":0},
 
         },
         "history": {

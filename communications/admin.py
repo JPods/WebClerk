@@ -121,7 +121,7 @@ class PhoneAdmin(admin.ModelAdmin):
 
     def get_dt_created(self, obj):
         """Get creation timestamp from metadata.health.dt_created."""
-        dt_ms = obj.metadata.get('health', {}).get('dt_created')
+        dt_ms = obj.metadata.get('history', {}).get('created', {}).get('dt')
         return timezone.datetime.fromtimestamp(dt_ms / 1000, tz=timezone.get_current_timezone()) if dt_ms else None
     get_dt_created.short_description = 'Created'
 
