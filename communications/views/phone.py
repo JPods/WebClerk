@@ -7,6 +7,7 @@ from core.models import Contact
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from core.utils import get_accessible_fields
+from common.models import default_refs  # ✅ ADD THIS IMPORT
 
 class PhoneView(generics.ListCreateAPIView):
     """Handles listing and creating phones with role-based field access."""
@@ -54,8 +55,28 @@ class PhoneView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        phone.refs.setdefault('contacts', []).append(request.user.id)
+ 
+                 
+        # ✅ STEP 1: Create phone FIRST
         phone = serializer.save()
+        
+        # ✅ STEP 2: Setup refs structure properly
+        if not phone.refs:
+            phone.refs = default_refs()
+        
+        if 'links' not in phone.refs:
+            phone.refs['links'] = {}
+            
+        if 'contacts' not in phone.refs['links']:
+            phone.refs['links']['contacts'] = []
+        
+        # ✅ STEP 3: Add contact ID to proper location
+        if request.user.id not in phone.refs['links']['contacts']:
+            phone.refs['links']['contacts'].append(request.user.id)
+        
+        # ✅ STEP 4: Save the updated refs
+        phone.save()
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class PhoneDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -122,9 +143,4 @@ class PhoneDetailView(generics.RetrieveUpdateDestroyAPIView):
                 {"detail": "No editable fields allowed for your role"},
                 status=status.HTTP_403_FORBIDDEN
             )
-
-        phone = self.get_object()
-        Contact.objects.filter(refs__phones__contains=[str(phone.id)]).update(
-            **{'refs__phones': models.F('refs__phones').exclude(str(phone.id))}
-        )
         return super().delete(request, *args, **kwargs)

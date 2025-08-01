@@ -7,6 +7,7 @@ from core.models import Contact
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from core.utils import get_accessible_fields
+from common.models import default_refs  # Add this import
 
 class AddressView(generics.ListCreateAPIView):
     """Handles listing and creating addresses with role-based field access."""
@@ -54,11 +55,30 @@ class AddressView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        address.refs.setdefault('contacts', []).append(request.user.id)
-        address.refs.setdefault('test', []).append(1)
+        
+        # FIXED: Create address first, then set refs
         address = serializer.save()
         
+        # FIXED: Properly handle refs.links.contacts structure
+        if not address.refs:
+            address.refs = default_refs()
+        
+        if 'links' not in address.refs:
+            address.refs['links'] = {}
+            
+        if 'contacts' not in address.refs['links']:
+            address.refs['links']['contacts'] = []
+        
+        # Add contact ID to the proper location
+        if request.user.id not in address.refs['links']['contacts']:
+            address.refs['links']['contacts'].append(request.user.id)
+        
+        # Save the updated refs
+        address.save()
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# ... existing AddressView code ...
 
 class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Handles retrieving, updating, and deleting an address with role-based field access."""
@@ -124,10 +144,4 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
                 {"detail": "No editable fields allowed for your role"},
                 status=status.HTTP_403_FORBIDDEN
             )
-
-        address = self.get_object()
-        # Remove from contact refs
-        Contact.objects.filter(refs__addresses__contains=[str(address.id)]).update(
-            **{'refs__addresses': models.F('refs__addresses').exclude(str(address.id))}
-        )
         return super().delete(request, *args, **kwargs)

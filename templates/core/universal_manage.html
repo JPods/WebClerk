@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage {{ table_name|capfirst }} - WebClerk3</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .subtitle {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .content {
+            padding: 30px;
+        }
+        .status-banner {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #2e7d32;
+        }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .nav-links a:hover {
+            background: #5a6fd8;
+        }
+        .api-demo {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .endpoint {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .method {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Universal {{ table_name|capfirst }} Management</h1>
+            <p class="subtitle">WebClerk3 Universal API - 4D Architecture in Django</p>
+        </div>
+        
+        <div class="content">
+            <div class="status-banner">
+                <strong>🎉 Universal API is Live!</strong> Your 30-year-old 4D architecture is now running in Django.
+            </div>
+            
+            <div class="nav-links">
+                <a href="/contact/">🏠 Home</a>
+                <a href="/WCapi/addresses/manage/">📍 Addresses</a>
+                <a href="/WCapi/phones/manage/">📞 Phones</a>
+                <a href="/WCapi/emails/manage/">📧 Emails</a>
+                <a href="/WCapi/domains/manage/">🌐 Domains</a>
+                <a href="/WCapi/contacts/manage/">👥 Contacts</a>
+                <a href="/admin/">⚙️ Admin</a>
+            </div>
+            
+            <div class="api-demo">
+                <h3>🔧 Universal API Endpoints for {{ table_name|capfirst }}</h3>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> /WCapi/query/
+                    <br>{ "table_name": "{{ table_name }}", "city": "New York", "active": true }
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> /WCapi/save/
+                    <br>{ "table_name": "{{ table_name }}", "id": null, "name": "New Record" }
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> /WCapi/get/
+                    <br>{ "table_name": "{{ table_name }}", "id": 123 }
+                </div>
+            </div>
+
+            <div class="status-banner">
+                <strong>🎯 Your 4D Architecture is Live!</strong><br>
+                30 years of framework experience successfully translated to modern Django! 🏆
+            </div>
+        </div>
+    </div>
+</body>
+</html>

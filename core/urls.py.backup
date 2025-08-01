@@ -1,0 +1,37 @@
+from django.urls import path
+from .views.contact_view import WebContactView
+from .views.action_view import ActionView, ActionDetailView
+from .views.web_auth_views import WebSignupView, WebLoginView, WebLogoutView
+from .views.edit_views import EditContactView, ManageAddressesView, AddAddressView, EditAddressView, DeleteAddressView
+
+app_name = 'core'
+
+urlpatterns = [
+    # Web-based authentication pages
+    path('web-signup/', WebSignupView.as_view(), name='web-signup'),
+    path('web-login/', WebLoginView.as_view(), name='web-login'),
+    path('web-logout/', WebLogoutView.as_view(), name='logout'),
+    path('web-contact/', WebContactView.as_view(), name='web-contact'),
+    
+    # Contact editing pages
+    path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
+    
+    # API endpoints for ALL data operations
+    path('WCapi/contacts/save/', ContactSaveView.as_view(), name='contact-save'),
+    path('WCapi/contacts/get/<int:id>/', ContactGetView.as_view(), name='contact-get'),
+    
+    path('WCapi/addresses/save/', AddressSaveView.as_view(), name='address-save'),
+    path('WCapi/addresses/get/<int:id>/', AddressGetView.as_view(), name='address-get'),
+    
+    path('WCapi/phones/save/', PhoneSaveView.as_view(), name='phone-save'),
+    path('WCapi/phones/get/<int:id>/', PhoneGetView.as_view(), name='phone-get'),
+    
+    path('WCapi/emails/save/', EmailSaveView.as_view(), name='email-save'),
+    path('WCapi/emails/get/<int:id>/', EmailGetView.as_view(), name='email-get'),
+    
+    path('WCapi/domains/save/', DomainSaveView.as_view(), name='domain-save'),
+    path('WCapi/domains/get/<int:id>/', DomainGetView.as_view(), name='domain-get'),
+    
+    path('WCapi/actions/save/', ActionSaveView.as_view(), name='action-save'),
+    path('WCapi/actions/get/<int:id>/', ActionGetView.as_view(), name='action-get')
+]

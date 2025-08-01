@@ -1,60 +1,52 @@
 from django.conf import settings
 from django.urls import path, include
 from django.contrib import admin
-from django.http import HttpResponseRedirect
-from django.urls import path, include
 from django.views.generic import TemplateView
+from django.http import HttpResponseRedirect
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+
+# Import web views
 from core.views.web_auth_views import WebSignupView, WebLoginView, WebLogoutView
 from core.views.contact_view import WebContactView
-from core.views.edit_views import EditContactView, ManageAddressesView, AddAddressView, EditAddressView, DeleteAddressView
-from core.views.phone_views import ManagePhonesView, AddPhoneView, EditPhoneView, DeletePhoneView
-from core.views.email_views import ManageEmailsView, AddEmailView, EditEmailView, DeleteEmailView
-from core.views.domain_views import ManageDomainsView, AddDomainView, EditDomainView, DeleteDomainView
-from core.views.action_management_views import ManageActionsView, AddActionView, EditActionView, DeleteActionView
+from core.views.edit_views import EditContactView
+
+# 🎯 Import Universal API views (now that the file exists)
+from core.views.generic_views import (
+    UniversalQueryView, 
+    UniversalSaveView, 
+    UniversalGetView, 
+    UniversalDeleteView, 
+    UniversalCloneView,
+    UniversalManageView
+)
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('about/', TemplateView.as_view(template_name='about.html'), name='about'),
     
-    # Web-based authentication pages (outside API namespace)
+    # Web authentication pages
     path('signup/', WebSignupView.as_view(), name='web-signup'),
     path('login/', WebLoginView.as_view(), name='web-login'),
     path('logout/', WebLogoutView.as_view(), name='web-logout'),
     path('contact/', WebContactView.as_view(), name='contact'),
-    
-    # Contact editing pages
     path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
     
-    # Address management pages
-    path('manage-addresses/', ManageAddressesView.as_view(), name='manage-addresses'),
-    path('add-address/', AddAddressView.as_view(), name='add-address'),
-    path('edit-address/<int:address_id>/', EditAddressView.as_view(), name='edit-address'),
-    path('delete-address/<int:address_id>/', DeleteAddressView.as_view(), name='delete-address'),
+    # 🎯 UNIVERSAL API ENDPOINTS - Now Active!
+    path('WCapi/query/', UniversalQueryView.as_view(), name='universal-query'),
+    path('WCapi/save/', UniversalSaveView.as_view(), name='universal-save'),
+    path('WCapi/get/', UniversalGetView.as_view(), name='universal-get'),
+    path('WCapi/delete/', UniversalDeleteView.as_view(), name='universal-delete'),
+    path('WCapi/clone/', UniversalCloneView.as_view(), name='universal-clone'),
     
-    # Phone management pages
-    path('manage-phones/', ManagePhonesView.as_view(), name='manage-phones'),
-    path('add-phone/', AddPhoneView.as_view(), name='add-phone'),
-    path('edit-phone/<int:phone_id>/', EditPhoneView.as_view(), name='edit-phone'),
-    path('delete-phone/<int:phone_id>/', DeletePhoneView.as_view(), name='delete-phone'),
+    # Universal management pages for ANY table
+    path('WCapi/<str:table_name>/manage/', UniversalManageView.as_view(), name='universal-manage'),
     
-    # Email management pages
-    path('manage-emails/', ManageEmailsView.as_view(), name='manage-emails'),
-    path('add-email/', AddEmailView.as_view(), name='add-email'),
-    path('edit-email/<int:email_id>/', EditEmailView.as_view(), name='edit-email'),
-    path('delete-email/<int:email_id>/', DeleteEmailView.as_view(), name='delete-email'),
-    
-    # Domain management pages
-    path('manage-domains/', ManageDomainsView.as_view(), name='manage-domains'),
-    path('add-domain/', AddDomainView.as_view(), name='add-domain'),
-    path('edit-domain/<int:domain_id>/', EditDomainView.as_view(), name='edit-domain'),
-    path('delete-domain/<int:domain_id>/', DeleteDomainView.as_view(), name='delete-domain'),
-    
-    # Action management pages
-    path('manage-actions/', ManageActionsView.as_view(), name='manage-actions'),
-    path('add-action/', AddActionView.as_view(), name='add-action'),
-    path('edit-action/<int:action_id>/', EditActionView.as_view(), name='edit-action'),
-    path('delete-action/<int:action_id>/', DeleteActionView.as_view(), name='delete-action'),
+    # Legacy redirects (these were giving 404 before)
+    path('manage-addresses/', lambda r: HttpResponseRedirect('/WCapi/addresses/manage/')),
+    path('manage-phones/', lambda r: HttpResponseRedirect('/WCapi/phones/manage/')),
+    path('manage-emails/', lambda r: HttpResponseRedirect('/WCapi/emails/manage/')),
+    path('manage-domains/', lambda r: HttpResponseRedirect('/WCapi/domains/manage/')),
+    path('manage-actions/', lambda r: HttpResponseRedirect('/WCapi/actions/manage/')),
     
     path('admin/', admin.site.urls),
     path('WCapi/', include('core.urls')),

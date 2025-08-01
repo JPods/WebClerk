@@ -7,6 +7,7 @@ from core.models import Contact
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from core.utils import get_accessible_fields
+from common.models import default_refs  # ✅ ADD THIS IMPORT
 
 class DomainView(generics.ListCreateAPIView):
     """Handles listing and creating domains with role-based field access."""
@@ -54,9 +55,29 @@ class DomainView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        domain.refs.setdefault('contacts', []).append(request.user.id)
+        
+        # ✅ STEP 1: Create domain FIRST
         domain = serializer.save()
+        
+        # ✅ STEP 2: Setup refs structure properly
+        if not domain.refs:
+            domain.refs = default_refs()
+        
+        if 'links' not in domain.refs:
+            domain.refs['links'] = {}
+            
+        if 'contacts' not in domain.refs['links']:
+            domain.refs['links']['contacts'] = []
+        
+        # ✅ STEP 3: Add contact ID to proper location
+        if request.user.id not in domain.refs['links']['contacts']:
+            domain.refs['links']['contacts'].append(request.user.id)
+        
+        # ✅ STEP 4: Save the updated refs
+        domain.save()
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class DomainDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Handles retrieving, updating, and deleting a domain with role-based field access."""

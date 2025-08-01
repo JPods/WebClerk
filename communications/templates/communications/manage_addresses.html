@@ -109,7 +109,7 @@
             <h2 id="form-title">Add New Address</h2>
         </div>
         <div class="section-content">
-            <form method="post" id="address-form" action="/add-address/">
+            <form method="post" id="address-form" action="/WCapi/addresses/save/">
                 {% csrf_token %}
                 <input type="hidden" name="address_id" id="address_id" value="">
                 <div class="form-row">

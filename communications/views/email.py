@@ -7,6 +7,7 @@ from core.models import Contact
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from core.utils import get_accessible_fields
+from common.models import default_refs  # ✅ ADD THIS IMPORT
 
 class EmailView(generics.ListCreateAPIView):
     """Handles listing and creating emails with role-based field access."""
@@ -54,9 +55,31 @@ class EmailView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email.refs.setdefault('contacts', []).append(request.user.id)
+
+    
+    
+        # ✅ STEP 1: Create domain FIRST
         email = serializer.save()
+        
+        # ✅ STEP 2: Setup refs structure properly
+        if not email.refs:
+            email.refs = default_refs()
+
+        if 'links' not in email.refs:
+            email.refs['links'] = {}
+
+        if 'contacts' not in email.refs['links']:
+            email.refs['links']['contacts'] = []
+
+        # ✅ STEP 3: Add contact ID to proper location
+        if request.user.id not in email.refs['links']['contacts']:
+            email.refs['links']['contacts'].append(request.user.id)
+        
+        # ✅ STEP 4: Save the updated refs
+        email.save()
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class EmailDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Handles retrieving, updating, and deleting an email with role-based field access."""
