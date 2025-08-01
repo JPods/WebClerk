@@ -1,5 +1,6 @@
 from django.db import models
 from common.models import BaseModel
+from django.utils import timezone  # Add this import
 import uuid
 
 class Email(BaseModel):
@@ -24,10 +25,11 @@ class Email(BaseModel):
     
     # Add useful tracking fields
     is_primary = models.BooleanField(default=False, help_text="Mark as primary email address")
-    is_verified = models.BooleanField(default=False, help_text="Email address has been verified")
-    dt_verified = models.DateTimeField(null=True, blank=True, help_text="When email was verified")
-    dt_bounced = models.DateTimeField(null=True, blank=True, help_text="Last bounce date")
-
+    is_verified = models.BooleanField(default=False, help_text="Email has been verified")  # Add this field
+    
+    # put these in metadata.history
+    #dt_verified = models.DateTimeField(null=True, blank=True, help_text="When email was verified")
+    #dt_bounced = models.DateTimeField(null=True, blank=True, help_text="Last bounce date")
 
     class Meta:
         db_table = 'emails'
@@ -36,7 +38,7 @@ class Email(BaseModel):
         indexes = [
             models.Index(fields=['email']),
             models.Index(fields=['is_primary']),
-            models.Index(fields=['opt_out']),
+            models.Index(fields=['opt_out'])
         ]
 
     def __str__(self):
@@ -54,16 +56,33 @@ class Email(BaseModel):
                 validate_email(self.email)
             except ValidationError:
                 raise ValidationError({'email': 'Enter a valid email address.'})
-        
-        # Ensure only one primary email per user (you'd need to add user relationship)
-        # This is a placeholder - you'd implement based on your user model relationship
 
-    @property
+    @property  # MOVED INSIDE THE CLASS - proper indentation
+    def dt_verified(self):
+        """Get verified timestamp from metadata.history.verified.dt."""
+        if not self.metadata:
+            return None
+        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
+        if verified_dt_ms:
+            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.get_current_timezone())
+        return None
+
+    @property  # MOVED INSIDE THE CLASS - proper indentation
+    def dt_bounced(self):
+        """Get bounced timestamp from metadata.history.bounced.dt."""
+        if not self.metadata:
+            return None
+        bounced_dt_ms = self.metadata.get('history', {}).get('bounced', {}).get('dt', 0)
+        if bounced_dt_ms:
+            return timezone.datetime.fromtimestamp(bounced_dt_ms / 1000, tz=timezone.get_current_timezone())
+        return None
+
+    @property  # MOVED INSIDE THE CLASS - proper indentation
     def status_display(self):
         """Human-readable status display."""
         return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')
 
-    @property
+    @property  # MOVED INSIDE THE CLASS - proper indentation
     def is_active(self):
         """Check if email is active (not opted out, bounced, etc.)."""
         return not self.opt_out

@@ -18,7 +18,7 @@ jane_address = Address.objects.create(
     longitude=-122.4194,
     full="123 Main Street, Apt 4B, San Francisco, CA 94102, USA",
     comment="Primary residence address",
-    dt_verified=timezone.now(),
+    dt_verified=0,
     refs={
         "keywords": "main,street,apartment,residential,san,francisco",
         "tags": ["primary", "verified", "residential"],
@@ -29,7 +29,7 @@ jane_address = Address.objects.create(
         "priority": "high",
         "profiles": ["primary_address"],
         "health": {
-            "rating": {"value": 5, "dt": int(timezone.now().timestamp() * 1000), "id_contact": 0}
+            "rating": {"value": 5, "dt": 0, "id_contact": 0}
         }
     },
     pres={

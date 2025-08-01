@@ -13,8 +13,7 @@ def default_metadata():
         "access": {"view": [], "edit": []},
         "approvals": [],
         "health": {
-            "rating":{"value": 0,"dt": 0,"id_contact":0},
-
+            "rating":{"value": 0,"dt": 0,"id_contact":0}
         },
         "history": {
             "created":{"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
@@ -22,6 +21,7 @@ def default_metadata():
             "completed":{"dt": 0,"id_contact":0},
             "expire":{"dt": 0,"id_contact":0},
             "retired":{"dt": 0,"id_contact":0},
+            "verified":{"dt": 0,"id_contact":0},
             "sync":{"dt": 0,"id_contact":0}
         },
         "profiles": [],

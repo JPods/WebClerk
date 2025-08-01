@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from ..models import Email
 from core.utils import get_accessible_fields
+from common.models import default_metadata 
 
 class EmailSerializer(serializers.ModelSerializer):
     """Serializer for Email model with role-based field filtering."""
