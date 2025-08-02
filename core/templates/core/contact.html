@@ -107,34 +107,14 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if contact.actions.all %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th>Status</th>
-                                    <th>Priority</th>
-                                    <th>Due Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for action in contact.actions.all|slice:":5" %}
-                                <tr>
-                                    <td><span class="badge bg-info">{{ action.action_type|default:"Action" }}</span></td>
-                                    <td>{{ action.description|default:action.name|truncatechars:50 }}</td>
-                                    <td><span class="badge bg-{{ action.status|default:'secondary' }}">{{ action.status|default:"Pending" }}</span></td>
-                                    <td>{{ action.priority|default:"Normal" }}</td>
-                                    <td>{{ action.due_date|date:"M d, Y"|default:"-" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="actions-table">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading actions...</span>
+                            </div>
+                            <p class="mt-2">Loading actions...</p>
+                        </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted">No actions found. <a href="/WCapi/actions/manage/?contact_id={{ contact.id }}">Add some actions</a></p>
-                    {% endif %}
                 </div>
             </div>
 
@@ -147,47 +127,14 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if contact.emails.all %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Email</th>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for email in contact.emails.all %}
-                                <tr>
-                                    <td>
-                                        {{ email.email }}
-                                        {% if email.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
-                                    </td>
-                                    <td>{{ email.name|default:"-" }}</td>
-                                    <td>{{ email.type|default:"Work" }}</td>
-                                    <td>
-                                        {% if email.is_verified %}
-                                        <span class="badge bg-success">Verified</span>
-                                        {% else %}
-                                        <span class="badge bg-warning">Unverified</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="mailto:{{ email.email }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-paper-plane"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="emails-table">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading emails...</span>
+                            </div>
+                            <p class="mt-2">Loading emails...</p>
+                        </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted">No email addresses found. <a href="/WCapi/emails/manage/?contact_id={{ contact.id }}">Add email addresses</a></p>
-                    {% endif %}
                 </div>
             </div>
 
@@ -200,39 +147,14 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if contact.phones.all %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Number</th>
-                                    <th>Name</th>
-                                    <th>Format</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for phone in contact.phones.all %}
-                                <tr>
-                                    <td>
-                                        {{ phone.number }}
-                                        {% if phone.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
-                                    </td>
-                                    <td>{{ phone.name|default:"-" }}</td>
-                                    <td>{{ phone.format|default:phone.number }}</td>
-                                    <td>
-                                        <a href="tel:{{ phone.number }}" class="btn btn-sm btn-outline-success">
-                                            <i class="fas fa-phone"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="phones-table">
+                        <div class="text-center">
+                            <div class="spinner-border text-success" role="status">
+                                <span class="visually-hidden">Loading phones...</span>
+                            </div>
+                            <p class="mt-2">Loading phone numbers...</p>
+                        </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted">No phone numbers found. <a href="/WCapi/phones/manage/?contact_id={{ contact.id }}">Add phone numbers</a></p>
-                    {% endif %}
                 </div>
             </div>
 
@@ -245,44 +167,14 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if contact.domains.all %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Domain</th>
-                                    <th>Name</th>
-                                    <th>Registrar</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for domain in contact.domains.all %}
-                                <tr>
-                                    <td>{{ domain.domain }}</td>
-                                    <td>{{ domain.name|default:"-" }}</td>
-                                    <td>{{ domain.registrar|default:"-" }}</td>
-                                    <td>
-                                        {% if domain.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">Inactive</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="https://{{ domain.domain }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                            <i class="fas fa-external-link-alt"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="domains-table">
+                        <div class="text-center">
+                            <div class="spinner-border text-info" role="status">
+                                <span class="visually-hidden">Loading domains...</span>
+                            </div>
+                            <p class="mt-2">Loading domains...</p>
+                        </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted">No domains found. <a href="/WCapi/domains/manage/?contact_id={{ contact.id }}">Add domains</a></p>
-                    {% endif %}
                 </div>
             </div>
 
@@ -295,41 +187,14 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if contact.addresses.all %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Address</th>
-                                    <th>City</th>
-                                    <th>State</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for address in contact.addresses.all %}
-                                <tr>
-                                    <td>
-                                        {{ address.name|default:"Address" }}
-                                        {% if address.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
-                                    </td>
-                                    <td>{{ address.line1 }}</td>
-                                    <td>{{ address.city }}</td>
-                                    <td>{{ address.state }}</td>
-                                    <td>
-                                        <a href="https://maps.google.com/?q={{ address.line1 }}, {{ address.city }}, {{ address.state }}" target="_blank" class="btn btn-sm btn-outline-warning">
-                                            <i class="fas fa-map"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="addresses-table">
+                        <div class="text-center">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading addresses...</span>
+                            </div>
+                            <p class="mt-2">Loading addresses...</p>
+                        </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted">No addresses found. <a href="/WCapi/addresses/manage/?contact_id={{ contact.id }}">Add addresses</a></p>
-                    {% endif %}
                 </div>
             </div>
 
@@ -338,13 +203,346 @@
 </div>
 
 <script>
+// Universal API calls to load related data
+const contactId = {{ contact.id }};
+
+// Load Actions via Universal API
+async function loadActions() {
+    try {
+        const response = await fetch(`/WCapi/find/?table_name=actions&refs.links.contacts=${contactId}&limit=5`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Due Date</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.data.forEach(action => {
+                const statusBadge = getStatusBadge(action.status);
+                const priorityBadge = getPriorityBadge(action.priority);
+                const dueDate = action.dt_due ? new Date(action.dt_due).toLocaleDateString() : '-';
+                const progress = action.percent || 0;
+                
+                html += `
+                    <tr>
+                        <td>${action.action || 'Untitled Action'}</td>
+                        <td>${statusBadge}</td>
+                        <td>${priorityBadge}</td>
+                        <td>${dueDate}</td>
+                        <td>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: ${progress}%" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small>${progress}%</small>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('actions-table').innerHTML = html;
+        } else {
+            document.getElementById('actions-table').innerHTML = `
+                <p class="text-muted">No actions found. <a href="/WCapi/actions/manage/?contact_id=${contactId}">Add some actions</a></p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading actions:', error);
+        document.getElementById('actions-table').innerHTML = `
+            <p class="text-danger">Error loading actions. <a href="javascript:loadActions()">Try again</a></p>
+        `;
+    }
+}
+
+// Load Emails via Universal API
+async function loadEmails() {
+    try {
+        const response = await fetch(`/WCapi/find/?table_name=emails&refs.links.contacts=${contactId}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.data.forEach(email => {
+                const isPrimary = email.is_primary ? '<span class="badge bg-primary ms-1">Primary</span>' : '';
+                const isVerified = email.is_verified ? '<span class="badge bg-success">Verified</span>' : '<span class="badge bg-warning">Unverified</span>';
+                
+                html += `
+                    <tr>
+                        <td>
+                            ${email.email}
+                            ${isPrimary}
+                        </td>
+                        <td>${email.name || '-'}</td>
+                        <td>${email.type || 'Work'}</td>
+                        <td>${isVerified}</td>
+                        <td>
+                            <a href="mailto:${email.email}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-paper-plane"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('emails-table').innerHTML = html;
+        } else {
+            document.getElementById('emails-table').innerHTML = `
+                <p class="text-muted">No email addresses found. <a href="/WCapi/emails/manage/?contact_id=${contactId}">Add email addresses</a></p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading emails:', error);
+        document.getElementById('emails-table').innerHTML = `
+            <p class="text-danger">Error loading emails. <a href="javascript:loadEmails()">Try again</a></p>
+        `;
+    }
+}
+
+// Load Phones via Universal API
+async function loadPhones() {
+    try {
+        const response = await fetch(`/WCapi/find/?table_name=phones&refs.links.contacts=${contactId}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Number</th>
+                                <th>Name</th>
+                                <th>Format</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.data.forEach(phone => {
+                html += `
+                    <tr>
+                        <td>${phone.number}</td>
+                        <td>${phone.name || '-'}</td>
+                        <td>${phone.format || phone.number}</td>
+                        <td>
+                            <a href="tel:${phone.number}" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('phones-table').innerHTML = html;
+        } else {
+            document.getElementById('phones-table').innerHTML = `
+                <p class="text-muted">No phone numbers found. <a href="/WCapi/phones/manage/?contact_id=${contactId}">Add phone numbers</a></p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading phones:', error);
+        document.getElementById('phones-table').innerHTML = `
+            <p class="text-danger">Error loading phones. <a href="javascript:loadPhones()">Try again</a></p>
+        `;
+    }
+}
+
+// Load Domains via Universal API
+async function loadDomains() {
+    try {
+        const response = await fetch(`/WCapi/find/?table_name=domains&refs.links.contacts=${contactId}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.data.forEach(domain => {
+                html += `
+                    <tr>
+                        <td>${domain.path}</td>
+                        <td>${domain.type || 'Website'}</td>
+                        <td>
+                            <a href="https://${domain.path}" target="_blank" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('domains-table').innerHTML = html;
+        } else {
+            document.getElementById('domains-table').innerHTML = `
+                <p class="text-muted">No domains found. <a href="/WCapi/domains/manage/?contact_id=${contactId}">Add domains</a></p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading domains:', error);
+        document.getElementById('domains-table').innerHTML = `
+            <p class="text-danger">Error loading domains. <a href="javascript:loadDomains()">Try again</a></p>
+        `;
+    }
+}
+
+// Load Addresses via Universal API
+async function loadAddresses() {
+    try {
+        const response = await fetch(`/WCapi/find/?table_name=addresses&refs.links.contacts=${contactId}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Address</th>
+                                <th>City</th>
+                                <th>State</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.data.forEach(address => {
+                const googleMapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address.full || `${address.address1}, ${address.city}, ${address.state}`)}`;
+                
+                html += `
+                    <tr>
+                        <td>${address.address_type || 'Address'}</td>
+                        <td>${address.address1}</td>
+                        <td>${address.city}</td>
+                        <td>${address.state}</td>
+                        <td>
+                            <a href="${googleMapsUrl}" target="_blank" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-map"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('addresses-table').innerHTML = html;
+        } else {
+            document.getElementById('addresses-table').innerHTML = `
+                <p class="text-muted">No addresses found. <a href="/WCapi/addresses/manage/?contact_id=${contactId}">Add addresses</a></p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading addresses:', error);
+        document.getElementById('addresses-table').innerHTML = `
+            <p class="text-danger">Error loading addresses. <a href="javascript:loadAddresses()">Try again</a></p>
+        `;
+    }
+}
+
+// Helper functions for status and priority badges
+function getStatusBadge(status) {
+    const badges = {
+        'pending': '<span class="badge bg-warning">Pending</span>',
+        'in_progress': '<span class="badge bg-primary">In Progress</span>',
+        'completed': '<span class="badge bg-success">Completed</span>',
+        'cancelled': '<span class="badge bg-danger">Cancelled</span>',
+        'on_hold': '<span class="badge bg-secondary">On Hold</span>'
+    };
+    return badges[status] || `<span class="badge bg-secondary">${status || 'Unknown'}</span>`;
+}
+
+function getPriorityBadge(priority) {
+    const badges = {
+        'low': '<span class="badge bg-info">Low</span>',
+        'medium': '<span class="badge bg-warning">Medium</span>',
+        'high': '<span class="badge bg-danger">High</span>',
+        'urgent': '<span class="badge bg-danger bg-gradient">Urgent</span>'
+    };
+    return badges[priority] || `<span class="badge bg-secondary">${priority || 'Normal'}</span>`;
+}
+
+// Other functions
 function sendTestEmail() {
     alert('Test email functionality - implement via Universal API');
 }
 
 function exportContact() {
     // Use Universal API to export contact data
-    window.open(`/WCapi/get/?table_name=contacts&id={{ contact.id }}&format=json`, '_blank');
+    window.open(`/WCapi/get/?table_name=contacts&id=${contactId}&format=json`, '_blank');
 }
+
+// Load all related data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadActions();
+    loadEmails();
+    loadPhones();
+    loadDomains();
+    loadAddresses();
+});
 </script>
 {% endblock %}

@@ -179,16 +179,18 @@ class Command(BaseCommand):
         
         return contacts
     
+    
+    
     def _create_actions(self, contacts, full=False):
-        """Create actions for contacts"""
+        """Create actions for contacts - CORRECTED REFS STRUCTURE"""
         action_types = ['Call client', 'Send email', 'Schedule meeting', 'Follow up', 'Complete task', 'Review document']
         statuses = ['pending', 'in_progress', 'completed', 'cancelled', 'on_hold']
         priorities = ['low', 'medium', 'high', 'urgent']
         difficulties = ['easy', 'medium', 'hard', 'expert']
         qualities = ['draft', 'good', 'excellent', 'perfect']
-        
+
         count_per_contact = 6 if full else 3
-        
+
         for i, contact in enumerate(contacts):
             for j in range(count_per_contact):
                 action_type = action_types[j % len(action_types)]
@@ -196,7 +198,7 @@ class Command(BaseCommand):
                 priority = priorities[j % len(priorities)]
                 difficulty = difficulties[j % len(difficulties)]
                 quality = qualities[j % len(qualities)]
-                
+
                 try:
                     action = Action.objects.create(
                         action=f'{action_type} - {contact.name_first}',
@@ -211,22 +213,30 @@ class Command(BaseCommand):
                         dt_action=datetime.now() - timedelta(days=j),
                         dt_due=datetime.now() + timedelta(days=j+1),
                         dt_updated=datetime.now(),
-                        refs={'contact_id': contact.id, 'contact_email': contact.email},
+                        refs={
+                            "keywords": [action_type.lower(), "action", "task", priority, status, contact.name_first.lower(), contact.company.lower()],
+                            "tags": [action_type.replace(' ', '_').lower(), priority, status, "task"],
+                            "links": {"contacts": [contact.id]},  # ✅ CORRECT STRUCTURE
+                            "categories": ["action", "task_management"],
+                            "related_ids": []
+                        },
                         comment=f'Action {j+1} for {contact.email} - {action_type}'
                     )
                     self.stdout.write(f'✅ Created action: {action.action} ({priority}) for {contact.email}')
                 except Exception as e:
                     self.stdout.write(f'⚠️ Could not create action: {e}')
-    
+
+    # Add these methods to your Command class:
+
     def _create_phones(self, contacts, full=False):
-        """Create phone numbers for contacts"""
+        """Create phone numbers for contacts - CORRECTED REFS STRUCTURE"""
         phone_types = ['Work', 'Mobile', 'Home', 'Fax', 'Office', 'Direct']
         
         base_phones = ['+1-555-01', '+1-555-02', '+1-555-03', '+1-555-04']
         count_per_contact = 6 if full else 3
         
-        for i, contact in enumerate(contacts):
-            base = base_phones[i % len(base_phones)]
+        for contact in contacts:
+            base = base_phones[contacts.index(contact) % len(base_phones)]
             
             for j in range(count_per_contact):
                 phone_number = f'{base}{j:02d}'
@@ -234,22 +244,28 @@ class Command(BaseCommand):
                 phone_type = phone_types[j % len(phone_types)]
                 
                 try:
-                    phone = Phone.objects.create(
+                    Phone.objects.create(
                         number=phone_number,
                         country_code='+1',
                         format=formatted_number,
                         name=f'{contact.name_first}\'s {phone_type}',
                         attention=f'{contact.name_first} {contact.name_last}',
                         opt_out=False,
-                        refs={'contact_id': contact.id, 'contact_email': contact.email, 'type': phone_type},
+                        refs={
+                            "keywords": [phone_type.lower(), "phone", "communication", contact.name_first.lower(), contact.company.lower()],
+                            "tags": [phone_type, "communication", "phone"],
+                            "links": {"contacts": [contact.id]},
+                            "categories": ["phone", "contact_info"],
+                            "related_ids": []
+                        },
                         comment=f'{phone_type} phone for {contact.email}'
                     )
-                    self.stdout.write(f'✅ Created phone: {phone.number} ({phone_type}) for {contact.email}')
+                    self.stdout.write(f'✅ Created phone: {phone_number} ({phone_type}) for {contact.email}')
                 except Exception as e:
                     self.stdout.write(f'⚠️ Could not create phone: {e}')
-    
+
     def _create_emails(self, contacts, full=False):
-        """Create email addresses for contacts"""
+        """Create email addresses for contacts - CORRECTED REFS STRUCTURE"""
         email_types = ['work', 'personal', 'billing', 'support', 'marketing', 'admin']
         
         count_per_contact = 4 if full else 2
@@ -260,7 +276,6 @@ class Command(BaseCommand):
             
             for j in range(count_per_contact):
                 if j == 0:
-                    # First email is the main contact email
                     email_address = contact.email
                     email_type = 'work'
                     is_primary = True
@@ -280,21 +295,27 @@ class Command(BaseCommand):
                         opt_out='',
                         is_primary=is_primary,
                         is_verified=is_verified,
-                        refs={'contact_id': contact.id, 'contact_email': contact.email},
+                        refs={
+                            "keywords": [email_type, "email", "communication", contact.name_first.lower(), contact.company.lower(), domain],
+                            "tags": [email_type, "communication", "email", "primary" if is_primary else "secondary"],
+                            "links": {"contacts": [contact.id]},
+                            "categories": ["email", "contact_info"],
+                            "related_ids": []
+                        },
                         comment=f'{email_type.title()} email for {contact.email}'
                     )
                     self.stdout.write(f'✅ Created email: {email.email} ({email_type}) for {contact.email}')
                 except Exception as e:
                     self.stdout.write(f'⚠️ Could not create email: {e}')
-    
+
     def _create_domains(self, contacts, full=False):
-        """Create domains for contacts"""
+        """Create domains for contacts - CORRECTED REFS STRUCTURE"""
         domain_extensions = ['.com', '.net', '.org', '.io', '.biz', '.co']
         domain_types = ['website', 'email', 'api', 'cdn', 'subdomain']
         
         count_per_contact = 3 if full else 2
         
-        for i, contact in enumerate(contacts):
+        for contact in contacts:
             base_domain = contact.email.split('@')[1].split('.')[0]
             
             for j in range(count_per_contact):
@@ -303,34 +324,40 @@ class Command(BaseCommand):
                 domain_type = domain_types[j % len(domain_types)]
                 
                 try:
-                    domain = Domain.objects.create(
+                    Domain.objects.create(
                         path=domain_name,
                         type=domain_type,
-                        refs={'contact_id': contact.id, 'contact_email': contact.email, 'company': contact.company},
+                        refs={
+                            "keywords": [domain_type, "domain", "web", base_domain, contact.company.lower(), extension[1:]],
+                            "tags": [domain_type, "web", "infrastructure", "domain"],
+                            "links": {"contacts": [contact.id]},
+                            "categories": ["domain", "web_infrastructure"],
+                            "related_ids": []
+                        },
                         comment=f'{domain_type.title()} domain for {contact.company}'
                     )
                     self.stdout.write(f'✅ Created domain: {domain_name} ({domain_type}) for {contact.email}')
                 except Exception as e:
                     self.stdout.write(f'⚠️ Could not create domain: {e}')
-    
+
     def _create_addresses(self, contacts, full=False):
-        """Create addresses for contacts"""
+        """Create addresses for contacts - CORRECTED REFS STRUCTURE"""
         address_types = ['Work', 'Home', 'Billing', 'Shipping', 'Corporate', 'Branch']
         cities = ['San Francisco', 'New York', 'Austin', 'Seattle', 'Denver', 'Portland']
         states = ['CA', 'NY', 'TX', 'WA', 'CO', 'OR']
         
         count_per_contact = 4 if full else 2
         
-        for i, contact in enumerate(contacts):
+        for idx, contact in enumerate(contacts):
             for j in range(count_per_contact):
-                city = cities[i % len(cities)]
-                state = states[i % len(states)]
+                city = cities[idx % len(cities)]
+                state = states[idx % len(states)]
                 address_type = address_types[j % len(address_types)]
-                street_address = f'{(i+1)*1000 + j*100} {address_type} Street'
-                zip_code = f'{90000 + i*1000 + j*100}'
+                street_address = f'{(idx+1)*1000 + j*100} {address_type} Street'
+                zip_code = f'{90000 + idx*1000 + j*100}'
                 
                 try:
-                    address = Address.objects.create(
+                    Address.objects.create(
                         address1=street_address,
                         address2=f'Suite {j+1}' if j > 0 else '',
                         address_type=address_type,
@@ -340,14 +367,24 @@ class Command(BaseCommand):
                         country='United States',
                         full=f'{street_address}, {city}, {state} {zip_code}',
                         instructions=f'Deliver to {address_type} address during business hours',
-                        latitude=37.7749 + (i * 0.1),
+                        latitude=37.7749 + (idx * 0.1),
                         longitude=-122.4194 + (j * 0.1),
-                        refs={'contact_id': contact.id, 'contact_email': contact.email},
+                        refs={
+                            "keywords": [address_type.lower(), "address", "location", city.lower(), state.lower(), contact.name_first.lower(), contact.company.lower()],
+                            "tags": [address_type, "location", "physical", "address"],
+                            "links": {"contacts": [contact.id]},
+                            "categories": ["address", "location"],
+                            "related_ids": []
+                        },
                         comment=f'{address_type} address for {contact.email}'
                     )
                     self.stdout.write(f'✅ Created address: {city} ({address_type}) for {contact.email}')
                 except Exception as e:
                     self.stdout.write(f'⚠️ Could not create address: {e}')
+
+
+
+
     
     def _create_settings(self):
         """Create system settings"""

@@ -44,13 +44,6 @@ def default_metadata():
             "freshness": 0,
             "consistency": 0
         },
-        "refs": {
-            "keywords": [],
-            "tags": [],
-            "categories": [],
-            "related_ids": []
-        },
-        "prefs": {},
         "undefined": {}
     }
 
@@ -60,6 +53,7 @@ def default_refs():
     return {
         "keywords": [],
         "tags": [],
+        "links": {"contacts": []},
         "categories": [],
         "related_ids": []
     }
