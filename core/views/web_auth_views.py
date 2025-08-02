@@ -1,16 +1,16 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth import login, logout, authenticate
 from django.views import View
-from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.http import JsonResponse
-from ..serializers import RegisterSerializer
-from ..models import Contact
+from django.urls import reverse
+from core.serializers import RegisterSerializer
+from core.models import Contact
 
 class WebSignupView(View):
-    """Template-based signup view that extends layout.html"""
+    template_name = 'auth/signup.html'  # Updated path
     
     def get(self, request):
-        return render(request, 'core/signup.html')
+        return render(request, self.template_name)
     
     def post(self, request):
         # Extract form data
@@ -26,62 +26,65 @@ class WebSignupView(View):
         # Check if passwords match
         if form_data['password'] != password_confirm:
             messages.error(request, 'Passwords do not match.')
-            return render(request, 'core/signup.html')
+            return render(request, self.template_name)
         
-        # Use the existing serializer for validation
+        # Use your existing RegisterSerializer for validation
         serializer = RegisterSerializer(data=form_data)
+        
         if serializer.is_valid():
             try:
+                # Create user
                 user = serializer.save()
-                messages.success(request, 'Account created successfully! Please check your email for verification.')
-                return redirect('web-login')
+                
+                # Log them in
+                login(request, user)
+                
+                messages.success(request, f'Welcome {user.get_full_name()}! Your account has been created.')
+                
+                # Redirect to their profile
+                return redirect('/contact/')
+                
             except Exception as e:
-                messages.error(request, f'Error creating account: {str(e)}')
+                messages.error(request, f'Account creation failed: {str(e)}')
+                return render(request, self.template_name)
         else:
             # Handle validation errors
             for field, errors in serializer.errors.items():
                 for error in errors:
-                    messages.error(request, f'{field}: {error}')
-        
-        return render(request, 'core/signup.html')
+                    messages.error(request, f'{field.title()}: {error}')
+            return render(request, self.template_name)
 
 class WebLoginView(View):
-    """Template-based login view that extends layout.html"""
+    template_name = 'auth/login.html'  # Updated path
     
     def get(self, request):
-        return render(request, 'core/login.html')
+        # If already logged in, redirect to profile
+        if request.user.is_authenticated:
+            return redirect('/contact/')
+        return render(request, self.template_name)
     
     def post(self, request):
         email = request.POST.get('email')
         password = request.POST.get('password')
+        next_url = request.GET.get('next', '/contact/')
         
-        try:
-            # Find contact by email
-            contact = Contact.objects.get(email=email)
-            
-            # Authenticate using Django's built-in authentication
-            # Since Contact extends AbstractBaseUser, we use email as username
-            user = authenticate(request, username=contact.email, password=password)
-            
-            if user is not None:
-                login(request, user)
-                messages.success(request, 'Successfully logged in!')
-                # Check if there's a 'next' parameter for redirect
-                next_url = request.GET.get('next', '/')
-                return redirect(next_url)
-            else:
-                messages.error(request, 'Invalid email or password.')
-        except Contact.DoesNotExist:
-            messages.error(request, 'No account found with this email address.')
-        except Exception as e:
-            messages.error(request, f'Login error: {str(e)}')
+        if not email or not password:
+            messages.error(request, 'Please provide both email and password.')
+            return render(request, self.template_name)
         
-        return render(request, 'core/login.html')
+        # Authenticate user
+        user = authenticate(request, username=email, password=password)
+        
+        if user is not None:
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.get_full_name()}!')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Invalid email or password.')
+            return render(request, self.template_name)
 
 class WebLogoutView(View):
-    """Template-based logout view"""
-    
-    def post(self, request):
+    def get(self, request):
         logout(request)
-        messages.success(request, 'You have been successfully logged out.')
-        return redirect('home')
+        messages.info(request, 'You have been logged out successfully.')
+        return redirect('/')

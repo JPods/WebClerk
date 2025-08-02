@@ -1,138 +1,221 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage {{ table_name|capfirst }} - WebClerk3</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f7;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 300;
-        }
-        .subtitle {
-            margin: 10px 0 0 0;
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
-        .content {
-            padding: 30px;
-        }
-        .status-banner {
-            background: #e8f5e8;
-            border: 1px solid #4caf50;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-            color: #2e7d32;
-        }
-        .nav-links {
-            display: flex;
-            gap: 15px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-        .nav-links a {
-            background: #667eea;
-            color: white;
-            padding: 12px 20px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-            transition: background 0.3s;
-        }
-        .nav-links a:hover {
-            background: #5a6fd8;
-        }
-        .api-demo {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 20px 0;
-        }
-        .endpoint {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            margin: 10px 0;
-            overflow-x: auto;
-        }
-        .method {
-            color: #3498db;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🎯 Universal {{ table_name|capfirst }} Management</h1>
-            <p class="subtitle">WebClerk3 Universal API - 4D Architecture in Django</p>
-        </div>
-        
-        <div class="content">
-            <div class="status-banner">
-                <strong>🎉 Universal API is Live!</strong> Your 30-year-old 4D architecture is now running in Django.
-            </div>
-            
-            <div class="nav-links">
-                <a href="/contact/">🏠 Home</a>
-                <a href="/WCapi/addresses/manage/">📍 Addresses</a>
-                <a href="/WCapi/phones/manage/">📞 Phones</a>
-                <a href="/WCapi/emails/manage/">📧 Emails</a>
-                <a href="/WCapi/domains/manage/">🌐 Domains</a>
-                <a href="/WCapi/contacts/manage/">👥 Contacts</a>
-                <a href="/admin/">⚙️ Admin</a>
-            </div>
-            
-            <div class="api-demo">
-                <h3>🔧 Universal API Endpoints for {{ table_name|capfirst }}</h3>
-                
-                <div class="endpoint">
-                    <span class="method">POST</span> /WCapi/query/
-                    <br>{ "table_name": "{{ table_name }}", "city": "New York", "active": true }
-                </div>
-                
-                <div class="endpoint">
-                    <span class="method">POST</span> /WCapi/save/
-                    <br>{ "table_name": "{{ table_name }}", "id": null, "name": "New Record" }
-                </div>
-                
-                <div class="endpoint">
-                    <span class="method">POST</span> /WCapi/get/
-                    <br>{ "table_name": "{{ table_name }}", "id": 123 }
-                </div>
-            </div>
+{% extends 'layout.html' %}
+{% load static %}
 
-            <div class="status-banner">
-                <strong>🎯 Your 4D Architecture is Live!</strong><br>
-                30 years of framework experience successfully translated to modern Django! 🏆
+{% block title %}Manage {{ table_name|capfirst }} - WebClerk 3.0{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-banner {
+        background: #e8f5e8;
+        border: 1px solid #4caf50;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        text-align: center;
+        color: #2e7d32;
+    }
+    .api-demo {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 20px 0;
+    }
+    .endpoint {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 6px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 14px;
+        margin: 10px 0;
+        overflow-x: auto;
+    }
+    .method {
+        color: #3498db;
+        font-weight: bold;
+    }
+    .test-button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        margin: 5px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s;
+    }
+    .test-button:hover {
+        background: #5a6fd8;
+    }
+    .test-results {
+        margin-top: 20px;
+        background: #f0f0f0;
+        padding: 15px;
+        border-radius: 6px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item"><a href="/WCapi/">Universal API</a></li>
+    <li class="breadcrumb-item active">Manage {{ table_name|capfirst }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="mb-0">
+                        <i class="fas fa-database"></i> Universal {{ table_name|capfirst }} Management
+                    </h1>
+                    <p class="mb-0 mt-2">WebClerk 3.0 Universal API - 4D Architecture in Django</p>
+                </div>
+                
+                <div class="card-body">
+                    <div class="status-banner">
+                        <strong>🎉 Universal API is Live!</strong> Your 30-year-old 4D architecture is now running in Django.
+                    </div>
+                    
+                    <div class="api-demo">
+                        <h3><i class="fas fa-code"></i> Universal API Endpoints for {{ table_name|capfirst }}</h3>
+                        
+                        <div class="endpoint">
+                            <span class="method">POST</span> /WCapi/query/
+                            <br>{ "table_name": "{{ table_name }}", "filters": {...} }
+                        </div>
+                        
+                        <div class="endpoint">
+                            <span class="method">GET</span> /WCapi/get/?table_name={{ table_name }}&id=123
+                        </div>
+                        
+                        <div class="endpoint">
+                            <span class="method">POST</span> /WCapi/save/
+                            <br>{ "table_name": "{{ table_name }}", "data": {...} }
+                        </div>
+                        
+                        <div class="endpoint">
+                            <span class="method">DELETE</span> /WCapi/delete/
+                            <br>{ "table_name": "{{ table_name }}", "id": 123 }
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button class="test-button" onclick="testQuery()">
+                                <i class="fas fa-search"></i> Test Query
+                            </button>
+                            <button class="test-button" onclick="testSave()">
+                                <i class="fas fa-save"></i> Test Save
+                            </button>
+                            <button class="test-button" onclick="testGet()">
+                                <i class="fas fa-download"></i> Test Get
+                            </button>
+                            <button class="test-button" onclick="testDelete()">
+                                <i class="fas fa-trash"></i> Test Delete
+                            </button>
+                        </div>
+
+                        <div id="test-results" class="test-results" style="display: none;">
+                            <h4>Test Results:</h4>
+                            <pre id="results-content"></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const tableName = '{{ table_name }}';
+
+async function testQuery() {
+    showResults('Testing Query...');
+    try {
+        const response = await fetch('/WCapi/query/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                table_name: tableName,
+                filters: {}
+            })
+        });
+        const data = await response.json();
+        showResults(JSON.stringify(data, null, 2));
+    } catch (error) {
+        showResults('Error: ' + error.message);
+    }
+}
+
+async function testSave() {
+    showResults('Testing Save...');
+    try {
+        const response = await fetch('/WCapi/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                table_name: tableName,
+                data: { test: true }
+            })
+        });
+        const data = await response.json();
+        showResults(JSON.stringify(data, null, 2));
+    } catch (error) {
+        showResults('Error: ' + error.message);
+    }
+}
+
+async function testGet() {
+    showResults('Testing Get...');
+    try {
+        const response = await fetch(`/WCapi/get/?table_name=${tableName}&id=1`);
+        const data = await response.json();
+        showResults(JSON.stringify(data, null, 2));
+    } catch (error) {
+        showResults('Error: ' + error.message);
+    }
+}
+
+async function testDelete() {
+    showResults('Testing Delete...');
+    try {
+        const response = await fetch('/WCapi/delete/', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                table_name: tableName,
+                id: 999
+            })
+        });
+        const data = await response.json();
+        showResults(JSON.stringify(data, null, 2));
+    } catch (error) {
+        showResults('Error: ' + error.message);
+    }
+}
+
+function showResults(content) {
+    document.getElementById('test-results').style.display = 'block';
+    document.getElementById('results-content').textContent = content;
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+           document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+</script>
+{% endblock %}

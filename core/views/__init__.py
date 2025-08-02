@@ -1,7 +1,36 @@
+# Import only the views that actually exist
 from .contact_view import WebContactView
-from .action_view import ActionView, ActionDetailView
-from .edit_views import EditContactView, ManageAddressesView, AddAddressView, EditAddressView, DeleteAddressView
-from .phone_views import ManagePhonesView, AddPhoneView, EditPhoneView, DeletePhoneView
-from .email_views import ManageEmailsView, AddEmailView, EditEmailView, DeleteEmailView
-from .domain_views import ManageDomainsView, AddDomainView, EditDomainView, DeleteDomainView
-from .action_management_views import ManageActionsView, AddActionView, EditActionView, DeleteActionView
+from .edit_views import EditContactView
+from .web_auth_views import WebSignupView, WebLoginView, WebLogoutView
+
+# Import Universal API views if they exist
+try:
+    from .generic_views import (
+        UniversalQueryView,
+        UniversalSaveView, 
+        UniversalGetView,
+        UniversalDeleteView,
+        UniversalCloneView,
+        UniversalCRUDView
+    )
+    GENERIC_VIEWS_AVAILABLE = True
+except ImportError:
+    GENERIC_VIEWS_AVAILABLE = False
+
+__all__ = [
+    'WebContactView',
+    'EditContactView', 
+    'WebSignupView',
+    'WebLoginView', 
+    'WebLogoutView',
+]
+
+if GENERIC_VIEWS_AVAILABLE:
+    __all__.extend([
+        'UniversalQueryView',
+        'UniversalSaveView',
+        'UniversalGetView', 
+        'UniversalDeleteView',
+        'UniversalCloneView',
+        'UniversalCRUDView',
+    ])
