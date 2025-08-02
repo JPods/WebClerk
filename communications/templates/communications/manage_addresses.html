@@ -1,301 +1,326 @@
-{% extends 'layout.html' %}
+<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/templates/communications/manage_addresses.html -->
+<!-- 
+PURPOSE: Address management interface using Universal API for full CRUD operations
+UNIVERSAL API: Uses /WCapi/get/, /WCapi/save/, /WCapi/delete/ endpoints
+REPLACES: Old hardcoded address management system with individual views
+TEAM NOTE: This template shows the complete pattern for building Universal API interfaces
+ARCHITECTURE: Client-side JavaScript communicates with Universal API endpoints
+FEATURES:
+  - Real-time Add/Edit/Delete via Universal API
+  - Form auto-population from Universal API data
+  - Contact-specific filtering (?contact_id=X)
+  - Responsive table display
+  - Error handling and user feedback
+TABLES: Works with 'addresses' table via Universal API
+JAVASCRIPT: Uses fetch() to communicate with Universal API endpoints
+SECURITY: Inherits authentication requirements from Universal API
+-->
+
 {% load static %}
 
-{% block title %}Manage Addresses{% endblock %}
-
-{% block styles %}
-<link rel="stylesheet" href="{% static 'css/manage.css' %}">
-<link rel="stylesheet" href="{% static 'css/contact.css' %}">
-{% endblock %}
+{% block title %}Manage Addresses{% if contact %} - {{ contact.name_first }} {{ contact.name_last }}{% endif %}{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/contact.css' %}">
+
 <div class="contact-container">
-    <a href="/contact/" class="back-link">← Back to Contact</a>
-    
     <div class="contact-header">
-        <h1>Manage Addresses</h1>
-        <div class="breadcrumb">
-            <a href="/contact/">Contact</a> / Addresses
-        </div>
+        {% if contact %}
+            <h1>Manage Addresses - {{ contact.name_first }} {{ contact.name_last }}</h1>
+            <p class="contact-email">{{ contact.email }}</p>
+        {% else %}
+            <h1>Manage Addresses</h1>
+        {% endif %}
     </div>
 
     <div class="contact-content">
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
+        <!-- Address Management Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Addresses{% if addresses %} ({{ addresses|length }}){% endif %}</h2>
+                <button onclick="addNewAddress()" class="btn btn-primary btn-sm">➕ Add New Address</button>
             </div>
-        {% endfor %}
-    {% endif %}
 
-    <!-- Existing Addresses -->
-    <div class="section">
-        <div class="section-header">
-            <h2>Your Addresses ({{ addresses|length }})</h2>
-        </div>
-        <div class="section-content">
-            {% if addresses %}
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Address</th>
-                            <th>City</th>
-                            <th>State</th>
-                            <th>ZIP</th>
-                            <th>Country</th>
-                            <th>Verified</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for address in addresses %}
-                        <tr class="address-row" data-address-id="{{ address.id }}"
-                            data-address-type="{{ address.address_type|default:'' }}"
-                            data-address1="{{ address.address1|default:'' }}"
-                            data-address2="{{ address.address2|default:'' }}"
-                            data-city="{{ address.city|default:'' }}"
-                            data-state="{{ address.state|default:'' }}"
-                            data-zip="{{ address.zip|default:'' }}"
-                            data-country="{{ address.country|default:'' }}"
-                            data-instructions="{{ address.instructions|default:'' }}"
-                            data-comment="{{ address.comment|default:'' }}"
-                            style="cursor: pointer;">
-                            <td>
-                                <span class="type-badge">
-                                    {{ address.address_type|default:'Other'|title }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if address.address1 %}{{ address.address1 }}{% endif %}
-                                {% if address.address2 %}<br><small>{{ address.address2 }}</small>{% endif %}
-                            </td>
-                            <td>{{ address.city|default:'-' }}</td>
-                            <td>{{ address.state|default:'-' }}</td>
-                            <td>{{ address.zip|default:'-' }}</td>
-                            <td>{{ address.country|default:'-' }}</td>
-                            <td>
-                                {% if address.dt_verified %}
-                                    <span class="status-badge status-verified">✓ Verified</span>
-                                    <br><small>{{ address.dt_verified|date:"M d, Y" }}</small>
-                                {% else %}
-                                    <span class="status-badge status-unverified">Unverified</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="actions">
-                                    <form method="post" action="/delete-address/{{ address.id }}/" 
-                                          style="display: inline;"
-                                          onsubmit="return confirm('Are you sure you want to delete this address?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="no-data">No addresses found. Add one below to get started.</p>
-            {% endif %}
+            <!-- Address List -->
+            <div id="address-list">
+                {% if addresses %}
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>City</th>
+                                    <th>State</th>
+                                    <th>ZIP</th>
+                                    <th>Country</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for address in addresses %}
+                                <tr id="address-{{ address.id }}">
+                                    <td><span class="type-badge">{{ address.address_type|default:"Address" }}</span></td>
+                                    <td>
+                                        {% if address.address1 %}{{ address.address1 }}{% endif %}
+                                        {% if address.address2 %}<br><small>{{ address.address2 }}</small>{% endif %}
+                                    </td>
+                                    <td>{{ address.city|default:"-" }}</td>
+                                    <td>{{ address.state|default:"-" }}</td>
+                                    <td>{{ address.zip|default:"-" }}</td>
+                                    <td>{{ address.country|default:"-" }}</td>
+                                    <td>
+                                        <button onclick="editAddress({{ address.id }})" class="btn btn-sm btn-secondary">Edit</button>
+                                        <button onclick="deleteAddress({{ address.id }})" class="btn btn-sm btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p>No addresses on file</p>
+                        <button onclick="addNewAddress()" class="btn btn-primary">Add First Address</button>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Add/Edit Form -->
+            <div id="address-form" style="display: none;" class="form-section">
+                <h3 id="form-title">Add New Address</h3>
+                <form id="addressForm">
+                    <input type="hidden" id="address-id" name="id">
+                    {% if contact %}
+                        <input type="hidden" name="contact_id" value="{{ contact.id }}">
+                    {% endif %}
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="address_type">Address Type</label>
+                            <select id="address_type" name="address_type" class="form-control">
+                                <option value="home">Home</option>
+                                <option value="work">Work</option>
+                                <option value="billing">Billing</option>
+                                <option value="shipping">Shipping</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="address1">Address Line 1</label>
+                            <input type="text" id="address1" name="address1" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="address2">Address Line 2</label>
+                            <input type="text" id="address2" name="address2" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city">City</label>
+                            <input type="text" id="city" name="city" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="state">State</label>
+                            <input type="text" id="state" name="state" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="zip">ZIP Code</label>
+                            <input type="text" id="zip" name="zip" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <input type="text" id="country" name="country" class="form-control" value="USA">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="instructions">Instructions/Notes</label>
+                            <textarea id="instructions" name="instructions" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Address</button>
+                        <button type="button" onclick="cancelForm()" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Address Form -->
-    <div class="section">
-        <div class="section-header">
-            <h2 id="form-title">Add New Address</h2>
-        </div>
-        <div class="section-content">
-            <form method="post" id="address-form" action="/WCapi/addresses/save/">
-                {% csrf_token %}
-                <input type="hidden" name="address_id" id="address_id" value="">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="address_type">Type</label>
-                        <select name="address_type" id="address_type" class="form-control" required>
-                            <option value="">Select Type</option>
-                            <option value="home">Home</option>
-                            <option value="work">Work</option>
-                            <option value="billing">Billing</option>
-                            <option value="shipping">Shipping</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="address1">Address Line 1</label>
-                        <input type="text" name="address1" id="address1" class="form-control" 
-                               placeholder="123 Main Street" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="address2">Address Line 2</label>
-                        <input type="text" name="address2" id="address2" class="form-control" 
-                               placeholder="Apt 4B, Suite 200">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="city">City</label>
-                        <input type="text" name="city" id="city" class="form-control" 
-                               placeholder="New York" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="state">State/Province</label>
-                        <input type="text" name="state" id="state" class="form-control" 
-                               placeholder="NY">
-                    </div>
-                    <div class="form-group">
-                        <label for="zip">ZIP/Postal Code</label>
-                        <input type="text" name="zip" id="zip" class="form-control" 
-                               placeholder="10001">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="country">Country</label>
-                        <input type="text" name="country" id="country" class="form-control" 
-                               placeholder="United States" value="United States">
-                    </div>
-                    <div class="form-group">
-                        <label for="instructions">Instructions</label>
-                        <input type="text" name="instructions" id="instructions" class="form-control" 
-                               placeholder="Special delivery instructions">
-                    </div>
-                    <div class="form-group">
-                        <label for="comment">Comment</label>
-                        <input type="text" name="comment" id="comment" class="form-control" 
-                               placeholder="Additional notes">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group" style="flex: 0 0 auto;">
-                        <button type="button" id="new-btn" class="btn btn-secondary">New</button>
-                        <button type="submit" id="submit-btn" class="btn btn-success">Add</button>
-                    </div>
-                </div>
-            </form>
-        </div>
+    <div class="contact-actions">
+        {% if contact %}
+            <a href="/contacts/{{ contact.id }}/" class="btn btn-secondary">Back to Contact</a>
+        {% else %}
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+        {% endif %}
     </div>
 </div>
 
 <script>
-// Form management variables
-let currentAddressId = null;
-let isEditMode = false;
-
-// Initialize event listeners when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Add click listeners to address rows
-    document.querySelectorAll('.address-row').forEach(row => {
-        row.addEventListener('click', function() {
-            populateForm(this);
-        });
-    });
-
-    // New button functionality
-    document.getElementById('new-btn').addEventListener('click', function() {
-        clearForm();
-    });
-
-    // Form submission handling
-    document.getElementById('address-form').addEventListener('submit', function(e) {
-        if (isEditMode) {
-            // Change form action for editing
-            this.action = `/edit-address/${currentAddressId}/`;
-        } else {
-            // Keep default action for adding
-            this.action = '/add-address/';
-        }
-    });
-});
-
-// Populate form with address data when row is clicked
-function populateForm(row) {
-    currentAddressId = row.dataset.addressId;
-    isEditMode = true;
-
-    // Fill form fields
-    document.getElementById('address_id').value = currentAddressId;
-    document.getElementById('address_type').value = row.dataset.addressType;
-    document.getElementById('address1').value = row.dataset.address1;
-    document.getElementById('address2').value = row.dataset.address2;
-    document.getElementById('city').value = row.dataset.city;
-    document.getElementById('state').value = row.dataset.state;
-    document.getElementById('zip').value = row.dataset.zip;
-    document.getElementById('country').value = row.dataset.country;
-    document.getElementById('instructions').value = row.dataset.instructions;
-    document.getElementById('comment').value = row.dataset.comment;
-
-    // Update form UI
-    document.getElementById('form-title').textContent = 'Edit Address';
-    document.getElementById('submit-btn').textContent = 'Save';
-    document.getElementById('submit-btn').className = 'btn btn-primary';
-
-    // Highlight selected row
-    document.querySelectorAll('.address-row').forEach(r => r.classList.remove('selected'));
-    row.classList.add('selected');
-
-    // Scroll to form
-    document.getElementById('address-form').scrollIntoView({ behavior: 'smooth' });
-}
-
-// Clear form and reset to add mode
-function clearForm() {
-    currentAddressId = null;
-    isEditMode = false;
-
-    // Clear form fields
-    document.getElementById('address-form').reset();
-    document.getElementById('address_id').value = '';
-
-    // Update form UI
+// Universal API JavaScript for Address Management
+async function addNewAddress() {
     document.getElementById('form-title').textContent = 'Add New Address';
-    document.getElementById('submit-btn').textContent = 'Add';
-    document.getElementById('submit-btn').className = 'btn btn-success';
-
-    // Remove row highlighting
-    document.querySelectorAll('.address-row').forEach(r => r.classList.remove('selected'));
+    document.getElementById('address-id').value = '';
+    document.getElementById('addressForm').reset();
+    document.getElementById('address-form').style.display = 'block';
+    document.getElementById('addressForm').scrollIntoView();
 }
+
+async function editAddress(addressId) {
+    try {
+        // Get address data via Universal API
+        const response = await fetch('/WCapi/get/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                table_name: 'addresses',
+                id: addressId
+            })
+        });
+        
+        const result = await response.json();
+        if (result.status === 'success') {
+            const address = result.data;
+            
+            // Populate form
+            document.getElementById('form-title').textContent = 'Edit Address';
+            document.getElementById('address-id').value = address.id;
+            document.getElementById('address_type').value = address.address_type || 'home';
+            document.getElementById('address1').value = address.address1 || '';
+            document.getElementById('address2').value = address.address2 || '';
+            document.getElementById('city').value = address.city || '';
+            document.getElementById('state').value = address.state || '';
+            document.getElementById('zip').value = address.zip || '';
+            document.getElementById('country').value = address.country || 'USA';
+            document.getElementById('instructions').value = address.instructions || '';
+            
+            document.getElementById('address-form').style.display = 'block';
+            document.getElementById('addressForm').scrollIntoView();
+        } else {
+            alert('Error loading address: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function deleteAddress(addressId) {
+    if (!confirm('Are you sure you want to delete this address?')) return;
+    
+    try {
+        const response = await fetch('/WCapi/delete/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                table_name: 'addresses',
+                id: addressId
+            })
+        });
+        
+        const result = await response.json();
+        if (result.status === 'success') {
+            // Remove row from table
+            document.getElementById('address-' + addressId).remove();
+            alert('Address deleted successfully');
+        } else {
+            alert('Error deleting address: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+function cancelForm() {
+    document.getElementById('address-form').style.display = 'none';
+}
+
+// Handle form submission
+document.getElementById('addressForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    data.table_name = 'addresses';
+    
+    try {
+        const response = await fetch('/WCapi/save/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.status === 'success') {
+            alert('Address saved successfully');
+            window.location.reload(); // Refresh to show updated data
+        } else {
+            alert('Error saving address: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
 </script>
 
 <style>
-.status-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
+.form-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
     font-weight: bold;
-    text-transform: uppercase;
 }
 
-.status-verified {
-    background-color: #d4edda;
-    color: #155724;
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
 }
 
-.status-unverified {
-    background-color: #e2e3e5;
-    color: #6c757d;
+.form-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
 }
 
-/* Row selection styling */
-.address-row:hover {
-    background-color: #f8f9fa;
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
 }
 
-.address-row.selected {
-    background-color: #e3f2fd;
-    border-left: 4px solid #2196f3;
-}
-
-.address-row.selected td {
-    border-color: #2196f3;
-}
-
-/* Form button styling */
-#new-btn {
-    margin-right: 10px;
+.btn-danger:hover {
+    background: #c82333;
 }
 </style>
 {% endblock %}

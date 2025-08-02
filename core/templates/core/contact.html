@@ -1,425 +1,210 @@
-{% extends 'layout.html' %}
+<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/templates/core/contact.html -->
+<!-- 
+PURPOSE: Main contact detail page with Universal API navigation links
+UNIVERSAL API: Links to /WCapi/{table}/manage/ endpoints for related data
+REPLACES: Old hardcoded URLs like /manage-addresses/, /manage-phones/
+TEAM NOTE: Shows how to convert traditional Django links to Universal API URLs
+ARCHITECTURE: Central hub that connects to all related data via Universal API
+URL PATTERN: href="/WCapi/{table_name}/manage/?contact_id={{ user.id }}"
+NAVIGATION:
+  - Addresses: /WCapi/addresses/manage/?contact_id=X
+  - Phones: /WCapi/phones/manage/?contact_id=X
+  - Emails: /WCapi/emails/manage/?contact_id=X
+  - Domains: /WCapi/domains/manage/?contact_id=X
+  - Actions: /WCapi/actions/manage/?contact_id=X
+TABLES: Links to all communication tables via Universal API
+CONTEXT: Receives contact data from Django view, passes to Universal API via URLs
+-->
+
+<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/templates/core/contact.html -->
+{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Contact - {{ user.name_first }} {{ user.name_last }}{% endblock %}
+{% block title %}Contact: {{ contact.get_full_name }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/contact.css' %}">
-
-<div class="contact-container">
-    <div class="contact-header">
-        <h1>{{ user.prefix|default:"" }} {{ user.name_first }} {{ user.name_middle|default:"" }} {{ user.name_last }} {{ user.suffix|default:"" }}</h1>
-        <p class="contact-email">{{ user.email }}</p>
-        {% if user.company %}
-            <p class="contact-company">{{ user.company }}</p>
-        {% endif %}
-        {% if user.attention %}
-            <p class="contact-attention">Attention: {{ user.attention }}</p>
-        {% endif %}
-    </div>
-
-    <div class="contact-content">
-        <!-- Complete Contact Information Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Contact Information</h2>
-                <a href="/edit-contact/" class="btn btn-primary btn-sm">Edit Contact</a>
-            </div>
-            <div class="data-table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Field</th>
-                            <th class="value-column">Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="field-label">Email</td>
-                            <td class="value-cell">{{ user.email }}</td>
-                        </tr>
-                        <tr>
-                            <td class="field-label">Full Name</td>
-                            <td class="value-cell">{{ user.prefix|default:"" }} {{ user.name_first }} {{ user.name_middle|default:"" }} {{ user.name_last }} {{ user.suffix|default:"" }}</td>
-                        </tr>
-                        {% if user.salutation %}
-                        <tr>
-                            <td class="field-label">Salutation</td>
-                            <td class="value-cell">{{ user.salutation }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if user.company %}
-                        <tr>
-                            <td class="field-label">Company</td>
-                            <td class="value-cell">{{ user.company }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if user.attention %}
-                        <tr>
-                            <td class="field-label">Attention</td>
-                            <td class="value-cell">{{ user.attention }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if user.rank %}
-                        <tr>
-                            <td class="field-label">Rank/Title</td>
-                            <td class="value-cell">{{ user.rank }}</td>
-                        </tr>
-                        {% endif %}
-                        <tr>
-                            <td class="field-label">Roles</td>
-                            <td class="value-cell">
-                                {% for role in user.role %}
-                                    <span class="role-badge">{{ role }}</span>
-                                {% empty %}
-                                    <span class="text-muted">No roles assigned</span>
-                                {% endfor %}
-                            </td>
-                        </tr>
-                        {% if user.role_default %}
-                        <tr>
-                            <td class="field-label">Default Role</td>
-                            <td class="value-cell"><span class="role-badge primary">{{ user.role_default }}</span></td>
-                        </tr>
-                        {% endif %}
-                        <tr>
-                            <td class="field-label">Account Status</td>
-                            <td class="value-cell">
-                                <span class="status-badge {{ user.is_active|yesno:'active,inactive' }}">
-                                    {{ user.is_active|yesno:"Active,Inactive" }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="field-label">Email Verified</td>
-                            <td class="value-cell">
-                                <span class="status-badge {{ user.is_email_verified|yesno:'verified,unverified' }}">
-                                    {{ user.is_email_verified|yesno:"✓ Verified,✗ Not Verified" }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="field-label">Staff Access</td>
-                            <td class="value-cell">
-                                <span class="status-badge {{ user.is_staff|yesno:'staff,user' }}">
-                                    {{ user.is_staff|yesno:"Staff Member,Regular User" }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="field-label">Member Since</td>
-                            <td class="value-cell">{{ user.date_joined|date:"F d, Y g:i A" }}</td>
-                        </tr>
-                        {% if user.last_login %}
-                        <tr>
-                            <td class="field-label">Last Login</td>
-                            <td class="value-cell">{{ user.last_login|date:"F d, Y g:i A" }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if user.publish %}
-                        <tr>
-                            <td class="field-label">Publish Level</td>
-                            <td class="value-cell">{{ user.publish }}</td>
-                        </tr>
-                        {% endif %}
-                        <tr>
-                            <td class="field-label">User ID</td>
-                            <td class="value-cell"><code>{{ user.id }}</code></td>
-                        </tr>
-                        <tr>
-                            <td class="field-label">UUID</td>
-                            <td class="value-cell"><code>{{ user.uuid }}</code></td>
-                        </tr>
-                    </tbody>
-                </table>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Contact Details Section -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user"></i> 
+                        {{ contact.get_full_name|default:contact.email }}
+                    </h3>
+                    <span class="badge badge-primary">{{ contact.get_role_display_name }}</span>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Personal Information -->
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-id-card"></i> Personal Information</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ contact.email }}</td>
+                                </tr>
+                                {% if contact.name_first %}
+                                <tr>
+                                    <td><strong>First Name:</strong></td>
+                                    <td>{{ contact.name_first }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if contact.name_last %}
+                                <tr>
+                                    <td><strong>Last Name:</strong></td>
+                                    <td>{{ contact.name_last }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if contact.name_middle %}
+                                <tr>
+                                    <td><strong>Middle Name:</strong></td>
+                                    <td>{{ contact.name_middle }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        
+                        <!-- Business Information -->
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-building"></i> Business Information</h5>
+                            <table class="table table-sm">
+                                {% if contact.company %}
+                                <tr>
+                                    <td><strong>Company:</strong></td>
+                                    <td>{{ contact.company }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if contact.title %}
+                                <tr>
+                                    <td><strong>Title:</strong></td>
+                                    <td>{{ contact.title }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if contact.department %}
+                                <tr>
+                                    <td><strong>Department:</strong></td>
+                                    <td>{{ contact.department }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Member Since:</strong></td>
+                                    <td>{{ contact.date_joined|date:"M d, Y" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- Addresses Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Addresses ({{ addresses|length }})</h2>
-                <a href="/manage-addresses/" class="btn btn-secondary btn-sm">
-                    {% if addresses %}Manage All{% else %}Add Address{% endif %}
-                </a>
+        
+        <!-- Universal API Navigation -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-link"></i> 
+                        Universal API Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <!-- Addresses Management -->
+                        <a href="/WCapi/addresses/manage/?contact_id={{ contact.id }}" 
+                           class="list-group-item list-group-item-action">
+                            <i class="fas fa-map-marker-alt text-primary"></i>
+                            <strong>Manage Addresses</strong>
+                            <small class="text-muted d-block">Physical and mailing addresses</small>
+                        </a>
+                        
+                        <!-- Phones Management -->
+                        <a href="/WCapi/phones/manage/?contact_id={{ contact.id }}" 
+                           class="list-group-item list-group-item-action">
+                            <i class="fas fa-phone text-success"></i>
+                            <strong>Manage Phone Numbers</strong>
+                            <small class="text-muted d-block">Mobile, office, and home phones</small>
+                        </a>
+                        
+                        <!-- Emails Management -->
+                        <a href="/WCapi/emails/manage/?contact_id={{ contact.id }}" 
+                           class="list-group-item list-group-item-action">
+                            <i class="fas fa-envelope text-info"></i>
+                            <strong>Manage Email Addresses</strong>
+                            <small class="text-muted d-block">Additional email accounts</small>
+                        </a>
+                        
+                        <!-- Domains Management -->
+                        <a href="/WCapi/domains/manage/?contact_id={{ contact.id }}" 
+                           class="list-group-item list-group-item-action">
+                            <i class="fas fa-globe text-warning"></i>
+                            <strong>Manage Domains</strong>
+                            <small class="text-muted d-block">Website and domain ownership</small>
+                        </a>
+                        
+                        <!-- Actions/History (if you have this table) -->
+                        <a href="/WCapi/actions/manage/?contact_id={{ contact.id }}" 
+                           class="list-group-item list-group-item-action">
+                            <i class="fas fa-history text-secondary"></i>
+                            <strong>View Actions</strong>
+                            <small class="text-muted d-block">Activity history and logs</small>
+                        </a>
+                    </div>
+                </div>
             </div>
-            {% if addresses %}
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Address</th>
-                            <th>City</th>
-                            <th>State</th>
-                            <th>ZIP</th>
-                            <th>Country</th>
-                            <th>Instructions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for address in addresses %}
-                        <tr>
-                            <td><span class="type-badge">{{ address.address_type|default:"Address" }}</span></td>
-                            <td>
-                                {% if address.address1 %}{{ address.address1 }}{% endif %}
-                                {% if address.address2 %}<br><small>{{ address.address2 }}</small>{% endif %}
-                            </td>
-                            <td>{{ address.city|default:"-" }}</td>
-                            <td>{{ address.state|default:"-" }}</td>
-                            <td>{{ address.zip|default:"-" }}</td>
-                            <td>{{ address.country|default:"-" }}</td>
-                            <td>{{ address.instructions|default:"-"|truncatechars:50 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <p>No addresses on file</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Phone Numbers Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Phone Numbers ({{ phones|length }})</h2>
-                <a href="/manage-phones/" class="btn btn-secondary btn-sm">
-                    {% if phones %}Manage All{% else %}Add Phone{% endif %}
-                </a>
-            </div>
-            {% if phones %}
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Phone Number</th>
-                            <th>Country Code</th>
-                            <th>Verified</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for phone in phones %}
-                        <tr>
-                            <td><span class="type-badge">{{ phone.format|default:"Phone" }}</span></td>
-                            <td class="phone-number">{{ phone.number }}</td>
-                            <td>{{ phone.country_code|default:"-" }}</td>
-                            <td>
-                                {% if phone.dt_verified %}
-                                    <span class="status-badge verified">✓ Verified</span>
-                                    <br><small>{{ phone.dt_verified|date:"M d, Y" }}</small>
-                                {% else %}
-                                    <span class="status-badge unverified">Unverified</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ phone.comment|default:"-"|truncatechars:50 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <p>No phone numbers on file</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Email Addresses Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Email Addresses ({{ emails|length }})</h2>
-                <a href="/manage-emails/" class="btn btn-secondary btn-sm">
-                    {% if emails %}Manage All{% else %}Add Email{% endif %}
-                </a>
-            </div>
-            {% if emails %}
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email Address</th>
-                            <th>Primary</th>
-                            <th>Verified</th>
-                            <th>Opt Out Status</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for email in emails %}
-                        <tr>
-                            <td><span class="type-badge">{{ email.name|default:"Email" }}</span></td>
-                            <td class="email-address">{{ email.email }}</td>
-                            <td>
-                                {% if email.is_primary %}
-                                    <span class="status-badge primary">Primary</span>
-                                {% else %}
-                                    <span class="status-badge">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if email.dt_verified %}
-                                    <span class="status-badge verified">✓ Verified</span>
-                                    <br><small>{{ email.dt_verified|date:"M d, Y" }}</small>
-                                {% else %}
-                                    <span class="status-badge unverified">Unverified</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if email.opt_out %}
-                                    <span class="status-badge {{ email.opt_out }}">{{ email.get_opt_out_display }}</span>
-                                {% else %}
-                                    <span class="status-badge active">Active</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ email.comment|default:"-"|truncatechars:50 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <p>No additional email addresses on file</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Domains Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Associated Domains ({{ domains|length }})</h2>
-                <a href="/manage-domains/" class="btn btn-secondary btn-sm">
-                    {% if domains %}Manage All{% else %}Add Domain{% endif %}
-                </a>
-            </div>
-            {% if domains %}
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Domain Path</th>
-                            <th>Verified</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for domain in domains %}
-                        <tr>
-                            <td><span class="type-badge">{{ domain.type|default:"Domain" }}</span></td>
-                            <td class="domain-name">{{ domain.path }}</td>
-                            <td>
-                                {% if domain.dt_verified %}
-                                    <span class="status-badge verified">✓ Verified</span>
-                                    <br><small>{{ domain.dt_verified|date:"M d, Y" }}</small>
-                                {% else %}
-                                    <span class="status-badge unverified">Unverified</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ domain.comment|default:"-"|truncatechars:50 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <p>No domains associated</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Actions Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Recent Actions ({{ actions|length }})</h2>
-                <a href="/manage-actions/" class="btn btn-secondary btn-sm">
-                    {% if actions %}Manage All{% else %}Add Action{% endif %}
-                </a>
-            </div>
-            {% if actions %}
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Action Date</th>
-                            <th>Action</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th>Due Date</th>
-                            <th>Priority</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for action in actions %}
-                        <tr>
-                            <td class="action-date">{{ action.dt_action|date:"M d, Y g:i A" }}</td>
-                            <td><span class="type-badge">{{ action.action|default:"Action" }}</span></td>
-                            <td>{{ action.description|default:"-"|truncatechars:60 }}</td>
-                            <td>
-                                {% if action.status %}
-                                    <span class="status-badge">{{ action.status }}</span>
-                                {% else %}
-                                    <span class="status-badge">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if action.dt_due %}
-                                    {{ action.dt_due|date:"M d, Y" }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if action.priority %}
-                                    <span class="priority-badge">{{ action.priority }}</span>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>{{ action.comment|default:"-"|truncatechars:40 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <p>No recent actions recorded</p>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Comments/Notes Section -->
-        {% if user.comment %}
-        <div class="section">
-            <h2>Notes & Comments</h2>
-            <div class="comment-box">
-                {{ user.comment|linebreaks }}
+            
+            <!-- Quick Actions -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt"></i> Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <a href="/edit-contact/" class="btn btn-primary btn-sm btn-block">
+                        <i class="fas fa-edit"></i> Edit Contact
+                    </a>
+                    <button class="btn btn-info btn-sm btn-block" onclick="sendTestEmail()">
+                        <i class="fas fa-paper-plane"></i> Send Test Email
+                    </button>
+                    <button class="btn btn-secondary btn-sm btn-block" onclick="exportContact()">
+                        <i class="fas fa-download"></i> Export Data
+                    </button>
+                </div>
             </div>
         </div>
-        {% endif %}
-
-        <!-- Alert Comments -->
-        {% if user.comment_alert %}
-        <div class="section alert-section">
-            <h2>⚠️ Alert Notes</h2>
-            <div class="alert-box">
-                {{ user.comment_alert|linebreaks }}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <div class="contact-actions">
-        <a href="/" class="btn btn-secondary">Back to Home</a>
     </div>
 </div>
+
+<!-- JavaScript for Quick Actions -->
+<script>
+function sendTestEmail() {
+    alert('Test email functionality - integrate with your email system');
+}
+
+function exportContact() {
+    // Use Universal API to export contact data
+    window.location.href = '/WCapi/get/';
+}
+
+// Universal API Integration Examples
+function loadAddresses() {
+    fetch('/WCapi/query/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            'table_name': 'addresses',
+            'filters': {'contact_id': {{ contact.id }}}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Addresses:', data);
+    });
+}
+</script>
 {% endblock %}

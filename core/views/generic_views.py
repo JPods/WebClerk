@@ -1,3 +1,19 @@
+# 
+# PURPOSE: Universal CRUD views that handle ANY table across ALL apps
+# UNIVERSAL API: Core implementation of query, save, get, delete, clone operations
+# REPLACES: Individual hardcoded views for each table type (addresses, phones, emails, etc.)
+# TEAM NOTE: This is the heart of the Universal API - one set of views handles all tables
+# ARCHITECTURE: Recreates 30-year-old 4D database universal table access in modern Django
+# TABLES: Works with any table registered in TABLE_REGISTRY (addresses, phones, emails, domains, contacts)
+# PATTERN: Uses dynamic model loading and serialization for any Django model
+# SECURITY: Requires login authentication for all operations
+# FEATURES: 
+#   - Dynamic model class loading from any app
+#   - Automatic serializer generation
+#   - Table registry for configuration
+#   - Universal CRUD operations
+#   - Background task support (django-q)
+
 import json
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpResponseRedirect
@@ -18,10 +34,12 @@ except ImportError:
 
 from common.models import default_refs
 
+
 class UniversalCRUDView(LoginRequiredMixin, View):
     """Universal CRUD operations for ALL tables across ALL apps"""
     
-    # TABLE_REGISTRY - Comprehensive registry
+    # TABLE_REGISTRY - Comprehensive registry for all Universal API tables
+    # TEAM NOTE: Add new tables here to make them available via Universal API
     TABLE_REGISTRY = {
         'addresses': {
             'app': 'communications',
@@ -60,119 +78,247 @@ class UniversalCRUDView(LoginRequiredMixin, View):
         },
     }
     
-    def get_table_config(self, table_name):
-        """Get model and configuration for table"""
-        config = self.TABLE_REGISTRY.get(table_name)
-        if not config:
-            raise ValueError(f"Unknown table: {table_name}")
-        return config
-    
-    def get_model_class(self, config):
-        """Dynamically get model class from any app"""
-        app_label = config['app']
-        model_name = config['model']
+    def get(self, request, table_name):
+        """Universal management interface for any table"""
+        if table_name not in self.TABLE_REGISTRY:
+            return JsonResponse({'error': f'Table {table_name} not found in registry'}, status=404)
         
+        table_config = self.TABLE_REGISTRY[table_name]
+        
+        # Get the model class dynamically
         try:
-            return apps.get_model(app_label, model_name)
+            model_class = apps.get_model(table_config['app'], table_config['model'])
         except LookupError:
-            raise ValueError(f"Model {model_name} not found in app {app_label}")
-    
-    def get_serializer_class(self, config):
-        """Get serializer - create basic one if needed"""
-        from rest_framework import serializers
+            return JsonResponse({'error': f'Model {table_config["model"]} not found'}, status=404)
         
-        model_class = self.get_model_class(config)
+        # Get contact_id filter if provided
+        contact_id = request.GET.get('contact_id')
         
-        class BasicSerializer(serializers.ModelSerializer):
-            class Meta:
-                model = model_class
-                fields = '__all__'
+        # Query the data
+        queryset = model_class.objects.all()
+        if contact_id and hasattr(model_class, 'contact'):
+            queryset = queryset.filter(contact_id=contact_id)
         
-        return BasicSerializer
+        # Serialize the data
+        data = []
+        for obj in queryset:
+            item = {'id': obj.pk}
+            for field in table_config['list_fields']:
+                if hasattr(obj, field):
+                    value = getattr(obj, field)
+                    if hasattr(value, 'isoformat'):  # DateTime objects
+                        value = value.isoformat()
+                    item[field] = value
+            data.append(item)
+        
+        # Return JSON for API calls or template for web
+        if request.headers.get('Accept') == 'application/json':
+            return JsonResponse({'status': 'success', 'data': data})
+        
+        # Render template for web interface
+        context = {
+            'table_name': table_name,
+            'data': data,
+            'table_config': table_config,
+            'contact_id': contact_id,
+        }
+        
+        template_name = f'communications/manage_{table_name}.html'
+        try:
+            return render(request, template_name, context)
+        except:
+            # Fallback to generic template
+            return render(request, 'core/universal_manage.html', context)
 
 
-class UniversalQueryView(UniversalCRUDView):
-    """Universal query endpoint - handles any table"""
+class UniversalQueryView(LoginRequiredMixin, View):
+    """Universal query endpoint for any table"""
     
     def post(self, request):
+        """Handle Universal API query requests"""
         try:
             data = json.loads(request.body)
-            table_name = data.pop('table_name')
+            table_name = data.get('table_name')
             
-            config = self.get_table_config(table_name)
-            model_class = self.get_model_class(config)
-            serializer_class = self.get_serializer_class(config)
+            if table_name not in UniversalCRUDView.TABLE_REGISTRY:
+                return JsonResponse({'status': 'error', 'message': f'Table {table_name} not found'}, status=404)
             
-            queryset = model_class.objects.all()[:50]  # Limit for safety
+            table_config = UniversalCRUDView.TABLE_REGISTRY[table_name]
+            model_class = apps.get_model(table_config['app'], table_config['model'])
             
-            serializer = serializer_class(queryset, many=True)
+            # Build query
+            queryset = model_class.objects.all()
+            
+            # Apply filters from request
+            filters = data.get('filters', {})
+            for field, value in filters.items():
+                if hasattr(model_class, field):
+                    queryset = queryset.filter(**{field: value})
+            
+            # Apply search
+            search = data.get('search', '')
+            if search and 'search_fields' in table_config:
+                q_objects = Q()
+                for field in table_config['search_fields']:
+                    q_objects |= Q(**{f'{field}__icontains': search})
+                queryset = queryset.filter(q_objects)
+            
+            # Serialize results
+            results = []
+            for obj in queryset:
+                item = {'id': obj.pk}
+                for field in table_config['list_fields']:
+                    if hasattr(obj, field):
+                        value = getattr(obj, field)
+                        if hasattr(value, 'isoformat'):
+                            value = value.isoformat()
+                        item[field] = value
+                results.append(item)
             
             return JsonResponse({
                 'status': 'success',
-                'table_name': table_name,
-                'count': queryset.count(),
-                'data': serializer.data
+                'data': results,
+                'count': len(results)
             })
             
         except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+class UniversalSaveView(LoginRequiredMixin, View):
+    """Universal save endpoint for any table"""
+    
+    def post(self, request):
+        """Handle Universal API save requests"""
+        try:
+            data = json.loads(request.body)
+            table_name = data.get('table_name')
+            
+            if table_name not in UniversalCRUDView.TABLE_REGISTRY:
+                return JsonResponse({'status': 'error', 'message': f'Table {table_name} not found'}, status=404)
+            
+            table_config = UniversalCRUDView.TABLE_REGISTRY[table_name]
+            model_class = apps.get_model(table_config['app'], table_config['model'])
+            
+            # Get or create object
+            obj_id = data.get('id')
+            if obj_id:
+                obj = get_object_or_404(model_class, pk=obj_id)
+            else:
+                obj = model_class()
+            
+            # Update fields
+            for field, value in data.items():
+                if field not in ['table_name', 'id'] and hasattr(obj, field):
+                    setattr(obj, field, value)
+            
+            # Save object
+            obj.save()
+            
             return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=400)
+                'status': 'success',
+                'message': 'Record saved successfully',
+                'id': obj.pk
+            })
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-class UniversalSaveView(UniversalCRUDView):
-    """Universal save endpoint"""
+class UniversalGetView(LoginRequiredMixin, View):
+    """Universal get endpoint for any table"""
     
     def post(self, request):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Save functionality coming soon'
-        }, status=501)
+        """Handle Universal API get requests"""
+        try:
+            data = json.loads(request.body)
+            table_name = data.get('table_name')
+            obj_id = data.get('id')
+            
+            if table_name not in UniversalCRUDView.TABLE_REGISTRY:
+                return JsonResponse({'status': 'error', 'message': f'Table {table_name} not found'}, status=404)
+            
+            table_config = UniversalCRUDView.TABLE_REGISTRY[table_name]
+            model_class = apps.get_model(table_config['app'], table_config['model'])
+            
+            obj = get_object_or_404(model_class, pk=obj_id)
+            
+            # Serialize object
+            result = {'id': obj.pk}
+            for field in obj._meta.fields:
+                value = getattr(obj, field.name)
+                if hasattr(value, 'isoformat'):
+                    value = value.isoformat()
+                result[field.name] = value
+            
+            return JsonResponse({
+                'status': 'success',
+                'data': result
+            })
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-class UniversalGetView(UniversalCRUDView):
-    """Get single record"""
+class UniversalDeleteView(LoginRequiredMixin, View):
+    """Universal delete endpoint for any table"""
     
     def post(self, request):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Get functionality coming soon'
-        }, status=501)
+        """Handle Universal API delete requests"""
+        try:
+            data = json.loads(request.body)
+            table_name = data.get('table_name')
+            obj_id = data.get('id')
+            
+            if table_name not in UniversalCRUDView.TABLE_REGISTRY:
+                return JsonResponse({'status': 'error', 'message': f'Table {table_name} not found'}, status=404)
+            
+            table_config = UniversalCRUDView.TABLE_REGISTRY[table_name]
+            model_class = apps.get_model(table_config['app'], table_config['model'])
+            
+            obj = get_object_or_404(model_class, pk=obj_id)
+            obj.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Record deleted successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-class UniversalDeleteView(UniversalCRUDView):
-    """Delete any record"""
+class UniversalCloneView(LoginRequiredMixin, View):
+    """Universal clone endpoint for any table"""
     
     def post(self, request):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Delete functionality coming soon'
-        }, status=501)
+        """Handle Universal API clone requests"""
+        try:
+            data = json.loads(request.body)
+            table_name = data.get('table_name')
+            obj_id = data.get('id')
+            
+            if table_name not in UniversalCRUDView.TABLE_REGISTRY:
+                return JsonResponse({'status': 'error', 'message': f'Table {table_name} not found'}, status=404)
+            
+            table_config = UniversalCRUDView.TABLE_REGISTRY[table_name]
+            model_class = apps.get_model(table_config['app'], table_config['model'])
+            
+            original = get_object_or_404(model_class, pk=obj_id)
+            
+            # Clone the object
+            clone = model_class()
+            for field in original._meta.fields:
+                if field.name != 'id' and not field.primary_key:
+                    setattr(clone, field.name, getattr(original, field.name))
+            
+            clone.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Record cloned successfully',
+                'id': clone.pk
+            })
 
-
-class UniversalCloneView(UniversalCRUDView):
-    """Clone any record"""
-    
-    def post(self, request):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Clone functionality coming soon'
-        }, status=501)
-
-
-class UniversalManageView(LoginRequiredMixin, TemplateView):
-    """Universal management page"""
-    template_name = 'core/universal_manage.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        table_name = kwargs.get('table_name')
-        
-        context.update({
-            'table_name': table_name,
-            'message': f'Management page for {table_name} - coming soon!',
-            'records': [],
-        })
-        
-        return context
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

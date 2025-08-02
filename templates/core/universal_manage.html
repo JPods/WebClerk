@@ -85,6 +85,28 @@
             color: #3498db;
             font-weight: bold;
         }
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .test-button:hover {
+            background: #5a6fd8;
+        }
+        .test-results {
+            margin-top: 20px;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -119,12 +141,38 @@
                 
                 <div class="endpoint">
                     <span class="method">POST</span> /WCapi/save/
-                    <br>{ "table_name": "{{ table_name }}", "id": null, "name": "New Record" }
+                    <br>{ "table_name": "{{ table_name }}", "id": null, "username": "new_user", "email": "user@example.com" }
                 </div>
                 
                 <div class="endpoint">
                     <span class="method">POST</span> /WCapi/get/
                     <br>{ "table_name": "{{ table_name }}", "id": 123 }
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> /WCapi/delete/
+                    <br>{ "table_name": "{{ table_name }}", "id": 123 }
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> /WCapi/clone/
+                    <br>{ "table_name": "{{ table_name }}", "id": 123, "modifications": {"username": "cloned_user"} }
+                </div>
+            </div>
+
+            <div class="api-demo">
+                <h3>🧪 Live API Tests</h3>
+                <p>Click buttons to test the Universal API:</p>
+                
+                <button class="test-button" onclick="testQuery()">📊 Test Query</button>
+                <button class="test-button" onclick="testSave()">💾 Test Save</button>
+                <button class="test-button" onclick="testGet()">🔍 Test Get</button>
+                <button class="test-button" onclick="testDelete()">🗑️ Test Delete</button>
+                <button class="test-button" onclick="testClone()">📋 Test Clone</button>
+                
+                <div class="test-results">
+                    <strong>Test Results:</strong>
+                    <pre id="results-output">Click a test button to see results...</pre>
                 </div>
             </div>
 
@@ -134,5 +182,67 @@
             </div>
         </div>
     </div>
+
+<script>
+async function testSave() {
+    try {
+        let testData = { table_name: '{{ table_name }}' };
+        
+        switch('{{ table_name }}') {
+            case 'contacts':
+                testData = {
+                    ...testData,
+                    email: 'test' + Date.now() + '@example.com',
+                    name_first: 'Test',
+                    name_last: 'User',
+                    company: 'Universal Corp'
+                };
+                break;
+            case 'addresses':
+                testData = {
+                    ...testData,
+                    address1: '123 Test Street',
+                    city: 'Test City',
+                    state: 'CA',
+                    zip: '90210',
+                    address_type: 'home'
+                };
+                break;
+            case 'phones':
+                testData = {
+                    ...testData,
+                    name: 'Mobile Phone',
+                    number: '555-TEST-' + (Date.now() % 10000),
+                    attention: 'Primary Contact'
+                };
+                break;
+            case 'emails':
+                testData = {
+                    ...testData,
+                    name: 'Work Email',
+                    email: 'test' + Date.now() + '@universal-api.com',
+                    attention: 'Main Contact',
+                    is_primary: true
+                };
+                break;
+            default:
+                testData = {
+                    ...testData,
+                    name: 'test_record_' + Date.now()
+                };
+        }
+        
+        const response = await fetch('/WCapi/save/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(testData)
+        });
+        const result = await response.json();
+        displayResult('Save Test', result);
+    } catch (error) {
+        displayResult('Save Test', { error: error.message });
+    }
+}
+</script>
 </body>
 </html>

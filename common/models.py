@@ -1,157 +1,204 @@
+# 
+# PURPOSE: Base model with Universal API metadata system for ALL models
+# UNIVERSAL API: Provides foundation metadata structure that makes Universal API work
+# REPLACES: Individual metadata handling scattered across different models
+# TEAM NOTE: Every model inherits from BaseModel to get Universal API compatibility
+# ARCHITECTURE: Implements the 4D-style metadata system (history, health, refs, prefs)
+# METADATA STRUCTURE: 
+#   - history.dt.created/modified (timestamps)
+#   - health.rating (data quality scores)
+#   - refs.keywords (searchable keywords)
+#   - prefs (user preferences)
+# FEATURES:
+#   - Automatic timestamp management
+#   - Keyword generation from all fields
+#   - Undefined field capture
+#   - JSON metadata storage
+# TABLES: Base class inherited by all models (contacts, addresses, phones, emails, etc.)
+
+import json
 from django.db import models
 from django.db.models import JSONField
 from django.utils import timezone
-from .ignore_fields import IGNORE_FIELDS
-from .ignore_keywords import IGNORE_KEYWORDS
+
 
 def default_metadata():
+    """Default metadata structure for Universal API compatibility"""
     return {
         "security": "",
         "publish": "",
         "priority": "",
         "version": "1.0",
         "access": {"view": [], "edit": []},
-        "approvals": [],
-        "health": {
-            "rating":{"value": 0,"dt": 0,"id_contact":0}
-        },
         "history": {
-            "created":{"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
-            "updated":{"dt": int(timezone.now().timestamp() * 1000),"id_contact":0},
-            "completed":{"dt": 0,"id_contact":0},
-            "expire":{"dt": 0,"id_contact":0},
-            "retired":{"dt": 0,"id_contact":0},
-            "verified":{"dt": 0,"id_contact":0},
-            "sync":{"dt": 0,"id_contact":0}
+            "created": {"dt": int(timezone.now().timestamp() * 1000), "id_contact": 0},
+            "modified": {"dt": int(timezone.now().timestamp() * 1000), "id_contact": 0},
+            "accessed": {"dt": int(timezone.now().timestamp() * 1000), "id_contact": 0},
+            "verified": {"dt": 0, "id_contact": 0},
+            "synced": {"dt": 0, "id_contact": 0}
         },
-        "profiles": [],
+        "health": {
+            "rating": 0,
+            "completeness": 0,
+            "accuracy": 0,
+            "freshness": 0,
+            "consistency": 0
+        },
+        "refs": {
+            "keywords": [],
+            "tags": [],
+            "categories": [],
+            "related_ids": []
+        },
+        "prefs": {},
         "undefined": {}
     }
 
+
 def default_refs():
+    """Default refs structure for Universal API"""
     return {
-        "keywords": "",
-        "tags": "",
-        "links": {}
+        "keywords": [],
+        "tags": [],
+        "categories": [],
+        "related_ids": []
     }
 
+
 def default_prefs():
+    """Default preferences structure for Universal API"""
     return {}
 
-class BaseModel(models.Model):
-    refs = JSONField(default=default_refs, null=True, blank=True)
-    prefs = JSONField(default=default_prefs, null=True, blank=True)
-    metadata = JSONField(default=default_metadata, null=True, blank=True)
 
+class BaseModel(models.Model):
+    """
+    Base model that provides Universal API metadata structure
+    All models in the system inherit from this to get Universal API compatibility
+    Implements the 4D-style metadata system with modern Django features
+    """
+    
+    # Universal API Metadata - Core of the 4D-style system
+    metadata = JSONField(default=default_metadata, help_text="Universal API metadata structure")
+    
+    # Individual metadata fields for easier access and indexing
+    refs = JSONField(default=default_refs, help_text="References: keywords, tags, categories")
+    prefs = JSONField(default=default_prefs, help_text="User preferences and settings")
+    
+    # Timestamp fields for Universal API compatibility
+    #dt_created = models.DateTimeField(auto_now_add=True, help_text="Record creation timestamp")
+    #dt_modified = models.DateTimeField(auto_now=True, help_text="Record modification timestamp")
+  
+    # Health and quality metrics
+    health_rating = models.IntegerField(default=0, help_text="Data quality rating (0-100)")
+    
     class Meta:
         abstract = True
-
+    
     def save(self, *args, **kwargs):
-        # Capture undefined fields from kwargs or instance attributes
-        undefined_fields = {}
-        defined_fields = {field.name for field in self._meta.fields}
-
-        if not self.metadata:
-            self.metadata = default_metadata()
-
-        # Check kwargs for undefined fields
-        if kwargs.get('force_insert') or kwargs.get('force_update'):
-            for key, value in kwargs.items():
-                if key not in defined_fields and key not in ('force_insert', 'force_update', 'using'):
-                    undefined_fields[key] = value
-
-        # Check instance attributes
-        for key, value in vars(self).items():
-            if key.startswith('_') or key in defined_fields:
-                continue
-            if key in ('id', 'pk'):
-                continue
-            undefined_fields[key] = value
-
-        # Update metadata with undefined fields
-        if undefined_fields:
-            self.metadata["undefined"].update(undefined_fields)
-
-        # Generate model-specific metadata
-        self.update_metadata()
-        super().save(*args, **kwargs)
-
-    def update_metadata(self):
-        """Update metadata with model-specific data."""
-        if not self.metadata:
-            self.metadata = default_metadata()
-
-        # Generate keywords
-        keywords = self.generate_keywords()
-        self.refs = self.refs or default_refs()
-        self.refs["keywords"] = keywords
-
-        # Update health timestamps
-        if "health" not in self.metadata:
-            self.metadata["health"] = default_metadata()["health"]
+        """Override save to update Universal API metadata"""
+        now_timestamp = int(timezone.now().timestamp() * 1000)
         
-        if not self.metadata["health"]["dt_created"]:
-            self.metadata["health"]["dt_created"] = int(timezone.now().timestamp() * 1000)
-        self.metadata["health"]["dt_updated"] = int(timezone.now().timestamp() * 1000)
-
-    def generate_keywords(self):
-        """Generate comma-separated keywords from all base and subclass fields, splitting by spaces and trimming."""
+        # Initialize metadata if it doesn't exist
+        if not self.metadata:
+            self.metadata = default_metadata()
+        
+        # Update modification timestamp
+        if 'history' not in self.metadata:
+            self.metadata['history'] = {}
+        
+        self.metadata['history']['modified'] = {
+            'dt': now_timestamp,
+            'id_contact': getattr(self, 'modified_by_id', 0)
+        }
+        
+        # Set creation timestamp for new records
+        if not self.pk:
+            self.metadata['history']['created'] = {
+                'dt': now_timestamp,
+                'id_contact': getattr(self, 'created_by_id', 0)
+            }
+        
+        # Update keywords from all text fields
+        self.update_keywords()
+        
+        super().save(*args, **kwargs)
+    
+    def update_keywords(self):
+        """Generate keywords from all text fields for Universal API search"""
         keywords = []
-
-        # Get all fields from base and subclass
-        for field in self._meta.get_fields():
-            if field.name in IGNORE_FIELDS:
-                continue
-            # Skip many-to-many fields if instance is not saved (no id)
-            if isinstance(field, models.ManyToManyField) and self.id is None:
-                continue
-            try:
-                value = getattr(self, field.name, None)
-            except ValueError:
-                continue  # Skip fields that can't be accessed
-            if value is None:
-                continue
-            if isinstance(value, (str)):
-                # Split string by spaces, trim, filter ignored keywords
-                parts = [part.strip().lower() for part in value.split() if part.strip()]
-                filtered_parts = [part for part in parts if part not in IGNORE_KEYWORDS]
-                keywords.extend(filtered_parts)
-            elif isinstance(value, (int, float)):
-                keyword = str(value).lower()
-                if keyword not in IGNORE_KEYWORDS:
-                    keywords.append(keyword)
-            elif isinstance(value, (list, tuple)):
-                # Handle arrays (e.g., Contact.role)
-                for item in value:
-                    if isinstance(item, (str)):
-                        parts = [part.strip().lower() for part in item.split() if part.strip()]
-                        filtered_parts = [part for part in parts if part not in IGNORE_KEYWORDS]
-                        keywords.extend(filtered_parts)
-                    elif isinstance(item, (int, float)):
-                        keyword = str(item).lower()
-                        if keyword not in IGNORE_KEYWORDS:
-                            keywords.append(keyword)
-            elif isinstance(value, dict):
-                # Extract string/number values from JSON fields
-                for v in value.values():
-                    if isinstance(v, (str)):
-                        parts = [part.strip().lower() for part in v.split() if part.strip()]
-                        filtered_parts = [part for part in parts if part not in IGNORE_KEYWORDS]
-                        keywords.extend(filtered_parts)
-                    elif isinstance(v, (int, float)):
-                        keyword = str(v).lower()
-                        if keyword not in IGNORE_KEYWORDS:
-                            keywords.append(keyword)
-            
-        # Append tags from refs if they exist
-        if hasattr(self, 'refs') and isinstance(self.refs, dict) and 'tags' in self.refs:
-            tags = self.refs.get('tags', [])
-            if isinstance(tags, (list, tuple)):
-                for tag in tags:
-                    if isinstance(tag, str):
-                        # Split tag by spaces, trim, lowercase, filter
-                        parts = [part.strip().lower() for part in tag.split() if part.strip()]
-                        filtered_parts = [part for part in parts if part not in IGNORE_KEYWORDS]
-                        keywords.extend(filtered_parts)
-
-        return ",".join(set(keywords))
+        
+        # Get all text fields from the model
+        for field in self._meta.fields:
+            if isinstance(field, (models.CharField, models.TextField)):
+                value = getattr(self, field.name, '')
+                if value:
+                    # Split into words and add to keywords
+                    words = str(value).lower().split()
+                    keywords.extend([word.strip('.,!?;:"()[]{}') for word in words if len(word) > 2])
+        
+        # Remove duplicates and store in refs
+        if not self.refs:
+            self.refs = default_refs()
+        
+        self.refs['keywords'] = list(set(keywords))[:50]  # Limit to 50 keywords
+    
+    def get_metadata_value(self, key_path):
+        """Get a value from nested metadata using dot notation (e.g., 'history.created.dt')"""
+        keys = key_path.split('.')
+        value = self.metadata
+        
+        try:
+            for key in keys:
+                value = value[key]
+            return value
+        except (KeyError, TypeError):
+            return None
+    
+    def set_metadata_value(self, key_path, value):
+        """Set a value in nested metadata using dot notation"""
+        keys = key_path.split('.')
+        target = self.metadata
+        
+        # Navigate to the parent of the target key
+        for key in keys[:-1]:
+            if key not in target:
+                target[key] = {}
+            target = target[key]
+        
+        # Set the final value
+        target[keys[-1]] = value
+    
+    def add_keyword(self, keyword):
+        """Add a keyword to the refs.keywords list"""
+        if not self.refs:
+            self.refs = default_refs()
+        
+        if keyword.lower() not in [k.lower() for k in self.refs['keywords']]:
+            self.refs['keywords'].append(keyword.lower())
+    
+    def add_tag(self, tag):
+        """Add a tag to the refs.tags list"""
+        if not self.refs:
+            self.refs = default_refs()
+        
+        if tag not in self.refs['tags']:
+            self.refs['tags'].append(tag)
+    
+    def get_created_timestamp(self):
+        """Get creation timestamp in milliseconds (4D style)"""
+        return self.get_metadata_value('history.created.dt') or 0
+    
+    def get_modified_timestamp(self):
+        """Get modification timestamp in milliseconds (4D style)"""
+        return self.get_metadata_value('history.modified.dt') or 0
+    
+    def __str__(self):
+        """Default string representation"""
+        if hasattr(self, 'name'):
+            return str(self.name)
+        elif hasattr(self, 'title'):
+            return str(self.title)
+        elif hasattr(self, 'email'):
+            return str(self.email)
+        else:
+            return f"{self.__class__.__name__} #{self.pk}"

@@ -1,3 +1,22 @@
+<!-- 
+PURPOSE: Email address management interface using Universal API for full CRUD operations
+UNIVERSAL API: Uses /WCapi/get/, /WCapi/save/, /WCapi/delete/ endpoints
+REPLACES: Old hardcoded email management system with individual views
+TEAM NOTE: This template shows email-specific features like verification status and opt-out handling
+ARCHITECTURE: Client-side JavaScript communicates with Universal API endpoints
+FEATURES:
+  - Real-time Add/Edit/Delete via Universal API
+  - Email validation and formatting
+  - Status tracking (active, opted out, bounced, invalid, spam complaints)
+  - Primary email designation
+  - Verification status with timestamps
+  - Click-to-edit functionality
+  - Opt-out compliance management
+TABLES: Works with 'emails' table via Universal API
+JAVASCRIPT: Uses fetch() to communicate with Universal API endpoints
+SECURITY: Inherits authentication requirements from Universal API
+-->
+
 {% extends 'layout.html' %}
 {% load static %}
 

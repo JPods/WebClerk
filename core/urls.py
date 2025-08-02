@@ -1,36 +1,33 @@
-from django.urls import path
-from .views.contact_view import WebContactView
-from .views.action_view import ActionView, ActionDetailView
-from .views.web_auth_views import WebSignupView, WebLoginView, WebLogoutView
-from .views.edit_views import EditContactView, ManageAddressesView, AddAddressView, EditAddressView, DeleteAddressView
+# 
+# PURPOSE: URL routing for Universal API endpoints and standard Django views
+# UNIVERSAL API: Routes /WCapi/ URLs to universal views that handle any table
+# REPLACES: Individual URL patterns for each table management interface
+# TEAM NOTE: These patterns enable Universal API to work with any table name dynamically
+# ARCHITECTURE: Implements 4D-style universal table access via URLs
+# URL PATTERNS:
+#   - /WCapi/<table_name>/manage/ -> Universal management interface
+#   - /WCapi/query/ -> Universal query endpoint
+#   - /WCapi/save/ -> Universal save endpoint
+#   - /WCapi/get/ -> Universal get endpoint
+#   - /WCapi/delete/ -> Universal delete endpoint
+#   - /WCapi/clone/ -> Universal clone endpoint
+# SECURITY: All Universal API endpoints require authentication
+# TABLES: Works with any table registered in UniversalCRUDView.TABLE_REGISTRY
 
-app_name = 'core'
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from .views import generic_views
 
 urlpatterns = [
-    # Web-based authentication pages
-    path('web-signup/', WebSignupView.as_view(), name='web-signup'),
-    path('web-login/', WebLoginView.as_view(), name='web-login'),
-    path('web-logout/', WebLogoutView.as_view(), name='logout'),
-    path('web-contact/', WebContactView.as_view(), name='web-contact'),
+    # Authentication URLs - Essential for Universal API security
+    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     
-    # Contact editing pages
-    path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
-    
-    # Actions
-    path('actions/', ActionView.as_view(), name='action-list'),
-    path('actions/<int:pk>/', ActionDetailView.as_view(), name='action-detail'),
-    
-    # Address management pages
-    path('manage-addresses/', ManageAddressesView.as_view(), name='manage-addresses'),
-    path('add-address/', AddAddressView.as_view(), name='add-address'),
-    path('edit-address/<int:pk>/', EditAddressView.as_view(), name='edit-address'),
-    path('delete-address/<int:pk>/', DeleteAddressView.as_view(), name='delete-address'),
-    
-    # API endpoints commented out until Universal API is implemented
-    # These will be replaced by Universal API endpoints:
-    # POST /WCapi/query/     - Query any table
-    # POST /WCapi/save/      - Save any record  
-    # POST /WCapi/get/       - Get single record
-    # POST /WCapi/delete/    - Delete any record
-    # POST /WCapi/clone/     - Clone any record
+    # Universal API Endpoints - Core of the 4D-style system
+    path('<str:table_name>/manage/', generic_views.UniversalCRUDView.as_view(), name='universal_manage'),
+    path('query/', generic_views.UniversalQueryView.as_view(), name='universal_query'),
+    path('save/', generic_views.UniversalSaveView.as_view(), name='universal_save'),
+    path('get/', generic_views.UniversalGetView.as_view(), name='universal_get'),
+    path('delete/', generic_views.UniversalDeleteView.as_view(), name='universal_delete'),
+    path('clone/', generic_views.UniversalCloneView.as_view(), name='universal_clone'),
 ]

@@ -17,7 +17,7 @@ from core.views.generic_views import (
     UniversalGetView, 
     UniversalDeleteView, 
     UniversalCloneView,
-    UniversalManageView
+    UniversalCRUDView  # Changed from UniversalManageView
 )
 
 urlpatterns = [
@@ -30,6 +30,11 @@ urlpatterns = [
     path('logout/', WebLogoutView.as_view(), name='web-logout'),
     path('contact/', WebContactView.as_view(), name='contact'),
     path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
+
+
+    path('WCapi/mypage/', WebContactView.as_view(), name='contact'),
+    #path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
+
     
     # 🎯 UNIVERSAL API ENDPOINTS - Now Active!
     path('WCapi/query/', UniversalQueryView.as_view(), name='universal-query'),
@@ -39,14 +44,7 @@ urlpatterns = [
     path('WCapi/clone/', UniversalCloneView.as_view(), name='universal-clone'),
     
     # Universal management pages for ANY table
-    path('WCapi/<str:table_name>/manage/', UniversalManageView.as_view(), name='universal-manage'),
-    
-    # Legacy redirects (these were giving 404 before)
-    path('manage-addresses/', lambda r: HttpResponseRedirect('/WCapi/addresses/manage/')),
-    path('manage-phones/', lambda r: HttpResponseRedirect('/WCapi/phones/manage/')),
-    path('manage-emails/', lambda r: HttpResponseRedirect('/WCapi/emails/manage/')),
-    path('manage-domains/', lambda r: HttpResponseRedirect('/WCapi/domains/manage/')),
-    path('manage-actions/', lambda r: HttpResponseRedirect('/WCapi/actions/manage/')),
+    path('WCapi/<str:table_name>/manage/', UniversalCRUDView.as_view(), name='universal-manage'),
     
     path('admin/', admin.site.urls),
     path('WCapi/', include('core.urls')),

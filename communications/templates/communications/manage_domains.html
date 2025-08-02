@@ -1,3 +1,21 @@
+<!-- 
+PURPOSE: Domain management interface using Universal API for full CRUD operations
+UNIVERSAL API: Uses /WCapi/get/, /WCapi/save/, /WCapi/delete/ endpoints
+REPLACES: Old hardcoded domain management system with individual views
+TEAM NOTE: This template shows domain-specific features like verification status and web links
+ARCHITECTURE: Client-side JavaScript communicates with Universal API endpoints
+FEATURES:
+  - Real-time Add/Edit/Delete via Universal API
+  - Domain name validation and formatting
+  - Type categorization (primary, website, email, subdomain)
+  - Click-to-edit functionality
+  - Verification status tracking
+  - Direct links to domain websites
+TABLES: Works with 'domains' table via Universal API
+JAVASCRIPT: Uses fetch() to communicate with Universal API endpoints
+SECURITY: Inherits authentication requirements from Universal API
+-->
+
 {% extends 'layout.html' %}
 {% load static %}
 
