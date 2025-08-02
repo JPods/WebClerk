@@ -61,7 +61,7 @@ def default_refs():
 
 def default_prefs():
     """Default preferences structure for Universal API"""
-    return {}
+    return {"userdefined": ""}
 
 
 class BaseModel(models.Model):

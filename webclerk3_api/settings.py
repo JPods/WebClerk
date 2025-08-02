@@ -42,7 +42,9 @@ ROOT_URLCONF = 'webclerk3_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Add this line - change from empty list []
+        'DIRS': [
+            BASE_DIR / 'core' / 'templates',  # Only core/templates now
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -54,6 +56,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'webclerk3_api.wsgi.application'
 

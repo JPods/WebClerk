@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About - WebClerk 3.0 Universal API{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-info text-white p-5 rounded mb-4">
+                <h1 class="display-4">
+                    <i class="fas fa-info-circle"></i> About WebClerk 3.0
+                </h1>
+                <p class="lead">Universal API System for Modern Contact Management</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <h2>System Overview</h2>
+            <p>WebClerk 3.0 represents a revolutionary approach to contact and data management through a unified Universal API architecture.</p>
+            
+            <h3>Key Features</h3>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <i class="fas fa-database text-primary"></i>
+                    <strong>Universal Data Management</strong> - One API handles all table operations
+                </li>
+                <li class="list-group-item">
+                    <i class="fas fa-users text-success"></i>
+                    <strong>Contact Management</strong> - Comprehensive contact profiles and relationships
+                </li>
+                <li class="list-group-item">
+                    <i class="fas fa-envelope text-warning"></i>
+                    <strong>Communications Hub</strong> - Email, phone, and address management
+                </li>
+                <li class="list-group-item">
+                    <i class="fas fa-tasks text-info"></i>
+                    <strong>Action Tracking</strong> - Task and follow-up management system
+                </li>
+                <li class="list-group-item">
+                    <i class="fas fa-code text-danger"></i>
+                    <strong>RESTful API</strong> - Clean, consistent endpoint patterns
+                </li>
+            </ul>
+            
+            <div class="mt-4">
+                <h3>Universal API Endpoints</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Endpoint</th>
+                                <th>Purpose</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>/WCapi/manage/</code></td>
+                                <td>Management Interface</td>
+                                <td><a href="/WCapi/manage/?table_name=contacts">?table_name=contacts</a></td>
+                            </tr>
+                            <tr>
+                                <td><code>/WCapi/get/</code></td>
+                                <td>Retrieve Data</td>
+                                <td><a href="/WCapi/get/?table_name=emails">?table_name=emails</a></td>
+                            </tr>
+                            <tr>
+                                <td><code>/WCapi/query/</code></td>
+                                <td>Search & Filter</td>
+                                <td><code>?table_name=contacts&search=john</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>/WCapi/save/</code></td>
+                                <td>Create/Update</td>
+                                <td><code>POST ?table_name=actions</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>/WCapi/delete/</code></td>
+                                <td>Remove Records</td>
+                                <td><code>DELETE ?table_name=phones&id=456</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> System Stats</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <h3 class="text-primary">5</h3>
+                        <p class="text-muted">Universal API Endpoints</p>
+                    </div>
+                    <div class="mb-3">
+                        <h3 class="text-success">∞</h3>
+                        <p class="text-muted">Supported Table Types</p>
+                    </div>
+                    <div class="mb-3">
+                        <h3 class="text-warning">100%</h3>
+                        <p class="text-muted">RESTful Compliance</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5><i class="fas fa-rocket"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="/WCapi/manage/?table_name=contacts" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-users"></i> Manage Contacts
+                    </a>
+                    <a href="/WCapi/manage/?table_name=emails" class="btn btn-success w-100 mb-2">
+                        <i class="fas fa-envelope"></i> View Communications
+                    </a>
+                    <a href="/WCapi/manage/?table_name=actions" class="btn btn-warning w-100">
+                        <i class="fas fa-tasks"></i> Track Actions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

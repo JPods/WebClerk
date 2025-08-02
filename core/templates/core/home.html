@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}WebClerk 3.0 - Universal API System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Hero Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+                <div class="container">
+                    <h1 class="display-4">
+                        <i class="fas fa-code"></i> WebClerk 3.0
+                    </h1>
+                    <p class="lead">Universal API System for Modern Contact Management</p>
+                    
+                    {% if user.is_authenticated %}
+                        <div class="mt-4">
+                            <a class="btn btn-light btn-lg" href="/profile/" role="button">
+                                <i class="fas fa-user"></i> My Profile
+                            </a>
+                            {% if user.is_staff or user.is_superuser %}
+                                <a class="btn btn-outline-light btn-lg ms-2" href="/contacts/" role="button">
+                                    <i class="fas fa-users"></i> Manage All Contacts
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="mt-4">
+                            <a class="btn btn-light btn-lg" href="/login/" role="button">
+                                <i class="fas fa-sign-in-alt"></i> Login to Get Started
+                            </a>
+                            <a class="btn btn-outline-light btn-lg ms-2" href="/signup/" role="button">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role-Based Quick Access -->
+    {% if user.is_authenticated %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tachometer-alt"></i> Quick Access Dashboard
+                        {% if user.is_superuser %}
+                            <span class="badge bg-danger ms-2">Admin</span>
+                        {% elif user.is_staff %}
+                            <span class="badge bg-warning ms-2">Staff</span>
+                        {% else %}
+                            <span class="badge bg-success ms-2">User</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- User-Level Access -->
+                        <div class="col-md-3">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-user"></i> Personal</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-grid gap-1">
+                                        <a href="/profile/" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-id-card"></i> My Profile
+                                        </a>
+                                        <a href="/manage/actions/?contact_id={{ user.contact_id|default:'1' }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-tasks"></i> My Actions
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Staff/Admin Level Access -->
+                        {% if user.is_staff or user.is_superuser %}
+                        <div class="col-md-3">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-users"></i> Contact Management</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-grid gap-1">
+                                        <a href="/contacts/" class="btn btn-outline-warning btn-sm">
+                                            <i class="fas fa-users"></i> All Contacts
+                                        </a>
+                                        <a href="/WCapi/manage/?table_name=contacts" class="btn btn-outline-warning btn-sm">
+                                            <i class="fas fa-database"></i> Universal API
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-cogs"></i> Data Management</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-grid gap-1">
+                                        <a href="/manage/actions/" class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-tasks"></i> All Actions
+                                        </a>
+                                        <a href="/WCapi/manage/?table_name=emails" class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-envelope"></i> Communications
+                                        </a>
+                                        <a href="/WCapi/manage/?table_name=phones" class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-phone"></i> Phone Numbers
+                                        </a>
+                                        <a href="/WCapi/manage/?table_name=addresses" class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-map-marker-alt"></i> Addresses
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Super Admin Only -->
+                        {% if user.is_superuser %}
+                        <div class="col-md-3">
+                            <div class="card border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0"><i class="fas fa-shield-alt"></i> Administration</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-grid gap-1">
+                                        <a href="/admin/" class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-cog"></i> Django Admin
+                                        </a>
+                                        <a href="/WCapi/query/?table_name=contacts&debug=1" class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-bug"></i> API Debug
+                                        </a>
+                                        <a href="/about/" class="btn btn-outline-danger btn-sm">
+                                            <i class="fas fa-info-circle"></i> System Info
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Existing Feature Cards Section -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5>Contact Management</h5>
+                    <p>Unified contact database with Universal API</p>
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff or user.is_superuser %}
+                            <a href="/contacts/" class="btn btn-primary">
+                                Manage All Contacts
+                            </a>
+                        {% else %}
+                            <a href="/profile/" class="btn btn-primary">
+                                View My Profile
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="/login/" class="btn btn-primary">
+                            Login to Access
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-tasks fa-3x text-warning mb-3"></i>
+                    <h5>Action Management</h5>
+                    <p>Track tasks, follow-ups, and progress</p>
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff or user.is_superuser %}
+                            <a href="/manage/actions/" class="btn btn-warning">
+                                Manage All Actions
+                            </a>
+                        {% else %}
+                            <a href="/manage/actions/?contact_id={{ user.contact_id|default:'1' }}" class="btn btn-warning">
+                                My Actions
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="/login/" class="btn btn-warning">
+                            Login to Access
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-envelope fa-3x text-success mb-3"></i>
+                    <h5>Communications</h5>
+                    <p>Email, phone, and address management</p>
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff or user.is_superuser %}
+                            <a href="/WCapi/manage/?table_name=emails" class="btn btn-success">
+                                Manage Communications
+                            </a>
+                        {% else %}
+                            <a href="/profile/" class="btn btn-success">
+                                My Contact Info
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="/login/" class="btn btn-success">
+                            Login to Access
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Documentation Section (for authenticated users) -->
+    {% if user.is_authenticated and user.is_staff %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-code"></i> Universal API Quick Reference</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Management Interfaces:</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="/WCapi/manage/?table_name=contacts"><code>/WCapi/manage/?table_name=contacts</code></a></li>
+                                <li><a href="/WCapi/manage/?table_name=actions"><code>/WCapi/manage/?table_name=actions</code></a></li>
+                                <li><a href="/WCapi/manage/?table_name=emails"><code>/WCapi/manage/?table_name=emails</code></a></li>
+                                <li><a href="/WCapi/manage/?table_name=phones"><code>/WCapi/manage/?table_name=phones</code></a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>API Endpoints:</h6>
+                            <ul class="list-unstyled">
+                                <li><code>GET /WCapi/get/?table_name=contacts</code></li>
+                                <li><code>POST /WCapi/save/?table_name=contacts</code></li>
+                                <li><code>PUT /WCapi/save/?table_name=contacts&id=123</code></li>
+                                <li><code>DELETE /WCapi/delete/?table_name=contacts&id=123</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

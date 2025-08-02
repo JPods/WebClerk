@@ -1,126 +1,35 @@
-{% extends 'layout.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Manage {{ table_name|capfirst }} - WebClerk 3.0{% endblock %}
-
-{% block extra_css %}
-<style>
-    .status-banner {
-        background: #e8f5e8;
-        border: 1px solid #4caf50;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 30px;
-        text-align: center;
-        color: #2e7d32;
-    }
-    .api-demo {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 25px;
-        margin: 20px 0;
-    }
-    .endpoint {
-        background: #2c3e50;
-        color: #ecf0f1;
-        padding: 15px;
-        border-radius: 6px;
-        font-family: 'Monaco', 'Menlo', monospace;
-        font-size: 14px;
-        margin: 10px 0;
-        overflow-x: auto;
-    }
-    .method {
-        color: #3498db;
-        font-weight: bold;
-    }
-    .test-button {
-        background: #667eea;
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        margin: 5px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: background 0.3s;
-    }
-    .test-button:hover {
-        background: #5a6fd8;
-    }
-    .test-results {
-        margin-top: 20px;
-        background: #f0f0f0;
-        padding: 15px;
-        border-radius: 6px;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-</style>
-{% endblock %}
-
-{% block breadcrumb_items %}
-    <li class="breadcrumb-item"><a href="/WCapi/">Universal API</a></li>
-    <li class="breadcrumb-item active">Manage {{ table_name|capfirst }}</li>
-{% endblock %}
+{% block title %}Manage {{ table_name|title }} - WebClerk 3.0{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h1 class="mb-0">
-                        <i class="fas fa-database"></i> Universal {{ table_name|capfirst }} Management
-                    </h1>
-                    <p class="mb-0 mt-2">WebClerk 3.0 Universal API - 4D Architecture in Django</p>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-database"></i> 
+                        Manage {{ table_name|title }}
+                    </h3>
+                    <div>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                        <button onclick="createNew()" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> New {{ table_name|title|slice:"::-1" }}
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="card-body">
-                    <div class="status-banner">
-                        <strong>🎉 Universal API is Live!</strong> Your 30-year-old 4D architecture is now running in Django.
-                    </div>
-                    
-                    <div class="api-demo">
-                        <h3><i class="fas fa-code"></i> Universal API Endpoints for {{ table_name|capfirst }}</h3>
-                        
-                        <div class="endpoint">
-                            <span class="method">POST</span> /WCapi/query/
-                            <br>{ "table_name": "{{ table_name }}", "filters": {...} }
-                        </div>
-                        
-                        <div class="endpoint">
-                            <span class="method">GET</span> /WCapi/get/?table_name={{ table_name }}&id=123
-                        </div>
-                        
-                        <div class="endpoint">
-                            <span class="method">POST</span> /WCapi/save/
-                            <br>{ "table_name": "{{ table_name }}", "data": {...} }
-                        </div>
-                        
-                        <div class="endpoint">
-                            <span class="method">DELETE</span> /WCapi/delete/
-                            <br>{ "table_name": "{{ table_name }}", "id": 123 }
-                        </div>
-
-                        <div class="text-center mt-4">
-                            <button class="test-button" onclick="testQuery()">
-                                <i class="fas fa-search"></i> Test Query
-                            </button>
-                            <button class="test-button" onclick="testSave()">
-                                <i class="fas fa-save"></i> Test Save
-                            </button>
-                            <button class="test-button" onclick="testGet()">
-                                <i class="fas fa-download"></i> Test Get
-                            </button>
-                            <button class="test-button" onclick="testDelete()">
-                                <i class="fas fa-trash"></i> Test Delete
-                            </button>
-                        </div>
-
-                        <div id="test-results" class="test-results" style="display: none;">
-                            <h4>Test Results:</h4>
-                            <pre id="results-content"></pre>
+                    <div id="management-interface">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading {{ table_name }}...</span>
+                            </div>
+                            <p class="mt-2">Loading {{ table_name }} management interface...</p>
                         </div>
                     </div>
                 </div>
@@ -128,94 +37,109 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
 const tableName = '{{ table_name }}';
+const recordId = '{{ record_id }}';
 
-async function testQuery() {
-    showResults('Testing Query...');
+async function loadManagementInterface() {
     try {
-        const response = await fetch('/WCapi/query/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                table_name: tableName,
-                filters: {}
-            })
-        });
+        const response = await fetch(`/WCapi/get/?table_name=${tableName}`);
         const data = await response.json();
-        showResults(JSON.stringify(data, null, 2));
+        
+        let html = `
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> 
+                Universal API is working! Connected to <strong>${tableName}</strong> table.
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Table</th>
+                            <th>Sample Data</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        if (data.success && data.data.length > 0) {
+            data.data.forEach(record => {
+                html += `
+                    <tr>
+                        <td>${record.id}</td>
+                        <td>${record.table}</td>
+                        <td>${record.sample}</td>
+                        <td>
+                            <button onclick="editRecord(${record.id})" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button onclick="deleteRecord(${record.id})" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } else {
+            html += `
+                <tr>
+                    <td colspan="4" class="text-center text-muted">
+                        No records found. <button onclick="createNew()" class="btn btn-sm btn-primary">Create your first record</button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4">
+                <h5>Universal API Endpoints for ${tableName}:</h5>
+                <ul class="list-unstyled">
+                    <li><code>GET /WCapi/get/?table_name=${tableName}</code> - List all records</li>
+                    <li><code>GET /WCapi/get/?table_name=${tableName}&id=123</code> - Get specific record</li>
+                    <li><code>POST /WCapi/save/?table_name=${tableName}</code> - Create new record</li>
+                    <li><code>PUT /WCapi/save/?table_name=${tableName}&id=123</code> - Update record</li>
+                    <li><code>DELETE /WCapi/delete/?table_name=${tableName}&id=123</code> - Delete record</li>
+                </ul>
+            </div>
+        `;
+        
+        document.getElementById('management-interface').innerHTML = html;
     } catch (error) {
-        showResults('Error: ' + error.message);
+        console.error('Error loading management interface:', error);
+        document.getElementById('management-interface').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 
+                Error loading ${tableName} data. <a href="javascript:loadManagementInterface()">Try again</a>
+            </div>
+        `;
     }
 }
 
-async function testSave() {
-    showResults('Testing Save...');
-    try {
-        const response = await fetch('/WCapi/save/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                table_name: tableName,
-                data: { test: true }
-            })
-        });
-        const data = await response.json();
-        showResults(JSON.stringify(data, null, 2));
-    } catch (error) {
-        showResults('Error: ' + error.message);
+function createNew() {
+    alert(`Creating new ${tableName} record\nThis would use: POST /WCapi/save/?table_name=${tableName}`);
+}
+
+function editRecord(id) {
+    alert(`Editing ${tableName} record ${id}\nThis would use: GET /WCapi/get/?table_name=${tableName}&id=${id}`);
+}
+
+function deleteRecord(id) {
+    if (confirm(`Are you sure you want to delete this ${tableName} record?`)) {
+        alert(`Deleting ${tableName} record ${id}\nThis would use: DELETE /WCapi/delete/?table_name=${tableName}&id=${id}`);
+        loadManagementInterface(); // Reload
     }
 }
 
-async function testGet() {
-    showResults('Testing Get...');
-    try {
-        const response = await fetch(`/WCapi/get/?table_name=${tableName}&id=1`);
-        const data = await response.json();
-        showResults(JSON.stringify(data, null, 2));
-    } catch (error) {
-        showResults('Error: ' + error.message);
-    }
-}
-
-async function testDelete() {
-    showResults('Testing Delete...');
-    try {
-        const response = await fetch('/WCapi/delete/', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({
-                table_name: tableName,
-                id: 999
-            })
-        });
-        const data = await response.json();
-        showResults(JSON.stringify(data, null, 2));
-    } catch (error) {
-        showResults('Error: ' + error.message);
-    }
-}
-
-function showResults(content) {
-    document.getElementById('test-results').style.display = 'block';
-    document.getElementById('results-content').textContent = content;
-}
-
-function getCsrfToken() {
-    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-           document.querySelector('meta[name="csrf-token"]')?.content || '';
-}
+document.addEventListener('DOMContentLoaded', function() {
+    loadManagementInterface();
+});
 </script>
 {% endblock %}

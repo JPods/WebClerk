@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from core.models import Contact
+from core.models.contact import Contact
 
 class WebContactView(LoginRequiredMixin, TemplateView):
     template_name = 'core/contact.html'
@@ -11,15 +11,7 @@ class WebContactView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         contact = self.request.user
         
-        # Add related data using select_related and prefetch_related for efficiency
-        try:
-            contact = Contact.objects.prefetch_related(
-                'emails', 'phones', 'domains', 'addresses', 'actions'
-            ).get(id=contact.id)
-        except:
-            # Fallback if prefetch fails
-            contact = self.request.user
-        
+        # No more Django relationships - Universal API handles this
         context['contact'] = contact
         context['is_own_profile'] = True
         
@@ -32,15 +24,10 @@ class ContactDetailView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         contact_id = kwargs.get('contact_id')
         
-        try:
-            contact = Contact.objects.prefetch_related(
-                'emails', 'phones', 'domains', 'addresses', 'actions'
-            ).get(id=contact_id)
-        except Contact.DoesNotExist:
-            contact = get_object_or_404(Contact, id=contact_id)
+        # Simple contact lookup - no prefetch needed with Universal API
+        contact = get_object_or_404(Contact, id=contact_id)
         
         context['contact'] = contact
         context['is_own_profile'] = (contact.id == self.request.user.id)
         
         return context
-    

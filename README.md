@@ -3,6 +3,17 @@
 Project Docs Link: 
 [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
 
+Path basics
+core/templates/
+├── base.html                 # Main layout with lesson1-style nav
+├── core/
+│   ├── home.html            # Landing page
+│   ├── about.html           # About page
+│   └── contact.html         # Contact detail (if still needed)
+└── auth/
+    ├── login.html           # Authentication
+    └── signup.html          # Registration
+
 -----------------------------
 ### How to run this project:
 -----------------------------
@@ -47,3 +58,120 @@ Project Docs Link:
   - python manage.py createsuperuser
   - python manage.py load_default_access
   - python manage.py runserver
+
+
+  ## 🎯 Architecture Overview
+
+**Universal API System** - One API pattern handles all data operations across all tables (contacts, actions, emails, phones, domains, addresses).
+
+### Template Structure for development use without front end
+```
+core/templates/
+├── base.html                 # Main layout with lesson1-style nav
+├── core/
+│   ├── home.html            # Landing page
+│   ├── about.html           # About page
+│   └── contact.html         # Contact detail (if still needed)
+└── auth/
+    ├── login.html           # Authentication
+    └── signup.html          # Registration
+```
+
+### Universal API Endpoints
+  - details are below other project commands
+
+-----------------------------
+### How to run this project:
+-----------------------------
+
+#### a. if everything OK, just run:
+  - `source ./bin/activate`
+  - `python manage.py runserver`
+  - Visit: `http://localhost:8000/`
+
+#### if not run for: Port is already in use:
+  - `kill -9 $(lsof -t -i :8000)`
+
+#### b. if add/remove/modify table or column:
+  - `source ./bin/activate`
+  - `python manage.py makemigrations`
+  - `python manage.py migrate`
+  - `python manage.py runserver`
+
+#### c. if running for the first time:
+  - `python -m venv .`
+  - `source ./bin/activate`
+  - `pip install -r requirements.txt`
+  - `psql -U an7or -d postgres` | `psql -U williamjames -d postgres`
+  - `CREATE DATABASE commerce_expert;`
+  - `CTRL+Z`
+  - `rm */migrations/0*.py`
+  - `python manage.py makemigrations`
+  - `python manage.py migrate`
+  - `python manage.py createsuperuser`
+  - `python manage.py load_default_access`
+  - `python manage.py runserver`
+
+#### scripts are in webclerk3/core/management/commands:
+  -  build demo data: python manage.py populate_test_data
+        runs populate_test_data.py
+  % 
+
+#### if you face postgres issues, reset it:
+  - `source ./bin/activate`
+  - `psql -U an7or -d postgres` | `psql -U williamjames -d postgres`
+  - `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'commerce_expert' AND pid <> pg_backend_pid();`
+  - `DROP DATABASE IF EXISTS commerce_expert;`
+  - `CREATE DATABASE commerce_expert;`
+  - `CTRL+Z`
+  - `rm */migrations/0*.py`
+  - `python manage.py makemigrations`
+  - `python manage.py migrate`
+  - `python manage.py createsuperuser`
+  - `python manage.py load_default_access`
+  - `python manage.py runserver`
+
+-----------------------------
+### Universal API Usage Examples:
+  - webclerk3/core/urls.py
+
+#### View All Contacts:
+`http://localhost:8000/WCapi/manage/?table_name=contacts`
+
+#### View Specific Contact:
+`http://localhost:8000/WCapi/manage/?table_name=contacts&id=123`
+
+#### Manage Contact's Emails:
+`http://localhost:8000/WCapi/manage/?table_name=emails&contact_id=123`
+
+#### Create New Action:
+`http://localhost:8000/WCapi/manage/?table_name=actions&mode=create`
+
+#### API Data Retrieval:
+`http://localhost:8000/WCapi/get/?table_name=contacts&id=123`
+
+-----------------------------
+### Key Features:
+-----------------------------
+
+✅ **Universal API** - One pattern for all tables
+✅ **Contact-Centric** - Everything revolves around contacts
+✅ **Relationship Management** - JSON refs system
+✅ **Lesson1-Style Navigation** - Clean, emoji-driven nav
+✅ **Bootstrap 5 UI** - Modern, responsive design
+✅ **Django Default 404** - Developer-friendly error pages
+✅ **Consolidated Templates** - All in core/templates/
+✅ **Future-Proof** - Ready for React front-end migration
+
+-----------------------------
+### Navigation Structure:
+-----------------------------
+
+🏠 **Home** → Landing page with system overview
+**About** → System documentation and features
+**Contacts** → `/WCapi/manage/?table_name=contacts`
+**Actions** → `/WCapi/manage/?table_name=actions`
+**Communications** → `/WCapi/manage/?table_name=emails`
+🥳 **New Contact** → Quick create contact
+**Admin** → Django admin (superusers only)
+🤚 **Logout** → Clean session termination
