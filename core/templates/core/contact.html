@@ -1,22 +1,3 @@
-<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/templates/core/contact.html -->
-<!-- 
-PURPOSE: Main contact detail page with Universal API navigation links
-UNIVERSAL API: Links to /WCapi/{table}/manage/ endpoints for related data
-REPLACES: Old hardcoded URLs like /manage-addresses/, /manage-phones/
-TEAM NOTE: Shows how to convert traditional Django links to Universal API URLs
-ARCHITECTURE: Central hub that connects to all related data via Universal API
-URL PATTERN: href="/WCapi/{table_name}/manage/?contact_id={{ user.id }}"
-NAVIGATION:
-  - Addresses: /WCapi/addresses/manage/?contact_id=X
-  - Phones: /WCapi/phones/manage/?contact_id=X
-  - Emails: /WCapi/emails/manage/?contact_id=X
-  - Domains: /WCapi/domains/manage/?contact_id=X
-  - Actions: /WCapi/actions/manage/?contact_id=X
-TABLES: Links to all communication tables via Universal API
-CONTEXT: Receives contact data from Django view, passes to Universal API via URLs
--->
-
-<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/templates/core/contact.html -->
 {% extends 'base.html' %}
 {% load static %}
 
