@@ -238,28 +238,67 @@ function getAlertIcon(type) {
 }
 
 // Initialize page
-document.addEventListener('DOMContentLoaded', function() {
-    // Add fade-in animation to cards
-    document.querySelectorAll('.card').forEach(card => {
-        card.classList.add('fade-in');
-    });
+// In core/static/js/app.js - Update to use id_contact convention
+function getContactIdFromPage() {
+    // Try multiple methods to get contact ID using id_contact convention
+    const urlPath = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
     
-    // Add click handlers for Universal API links
-    document.querySelectorAll('a[href*="/WCapi/"]').forEach(link => {
-        link.addEventListener('click', function(e) {
-            // Add loading state to the link
-            this.classList.add('loading');
-        });
-    });
-    
-    // Add contact ID to page for JavaScript access
-    const contactId = getContactIdFromPage();
-    if (contactId) {
-        document.body.setAttribute('data-contact-id', contactId);
+    // From URL path: /contact/123/ or /contact/123
+    const pathMatch = urlPath.match(/\/contact\/(\d+)\/?$/);
+    if (pathMatch) {
+        return pathMatch[1];
     }
     
-    console.log('WebClerk 3.0 Universal API JavaScript initialized');
-});
+    // From URL parameters: ?id_contact=123 (Universal API convention)
+    const contactId = urlParams.get('id_contact');
+    if (contactId) {
+        return contactId;
+    }
+    
+    // Legacy support for ?id=123
+    const legacyId = urlParams.get('id');
+    if (legacyId) {
+        return legacyId;
+    }
+    
+    // From data attribute on the page
+    const contactElement = document.querySelector('[data-id-contact]');
+    if (contactElement) {
+        return contactElement.getAttribute('data-id-contact');
+    }
+    
+    return null;
+}
+
+// Universal API Management Functions with id_contact convention
+function manageEmails() {
+    const idContact = getContactIdFromPage();
+    if (idContact) {
+        window.location.href = `/WCapi/emails/manage/?id_contact=${idContact}`;
+    }
+}
+
+function managePhones() {
+    const idContact = getContactIdFromPage();
+    if (idContact) {
+        window.location.href = `/WCapi/phones/manage/?id_contact=${idContact}`;
+    }
+}
+
+function manageDomains() {
+    const idContact = getContactIdFromPage();
+    if (idContact) {
+        window.location.href = `/WCapi/domains/manage/?id_contact=${idContact}`;
+    }
+}
+
+function manageAddresses() {
+    const idContact = getContactIdFromPage();
+    if (idContact) {
+        window.location.href = `/WCapi/addresses/manage/?id_contact=${idContact}`;
+    }
+}
 
 // Export for global use
 window.UniversalAPI = UniversalAPI;

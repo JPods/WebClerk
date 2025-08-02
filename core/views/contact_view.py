@@ -1,119 +1,84 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.views import View
-from django.contrib import messages
-from django.http import HttpResponse
-from ..models import Contact
+from django.views.generic import TemplateView
+from django.http import JsonResponse
+from core.models import Contact
 
-@method_decorator(csrf_exempt, name='dispatch')
-class WebContactView(View):
-    """User contact view that displays contact information and all related data"""
+@method_decorator(login_required, name='dispatch')
+class WebContactView(TemplateView):
+    template_name = 'core/contact.html'
     
-    def dispatch(self, request, *args, **kwargs):
-        # Bypass DRF authentication by ensuring we're using Django's session auth
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get(self, request):
-        # Debug: Check authentication status
-        if not request.user.is_authenticated:
-            messages.error(request, 'Please log in to view your contact.')
-            return redirect('web-login')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         
-        user = request.user
+        # Get contact ID from URL parameter using id_contact convention
+        id_contact = self.kwargs.get('id_contact')
         
-        # Get related data - since this system uses JSON refs instead of ForeignKeys
-        context = {
-            'user': user,
-            'addresses': [],
-            'phones': [],
-            'emails': [],
-            'domains': [],
-            'actions': [],
-        }
-        
-        # Try to get related addresses - check if refs contains user reference
-        try:
-            from communications.models.address import Address
-            # Since the system uses JSON refs, we need to search differently
-            # Look for user ID in refs JSON field or try other relationship patterns
-            user_id_str = str(user.id)
-            user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
+        if id_contact:
+            # View specific contact: /contact/123/
+            contact = get_object_or_404(Contact, id=id_contact)
             
-            addresses = Address.objects.all()
-            user_addresses = []
-            for address in addresses:
-                if address.refs and isinstance(address.refs, dict):
-                    # Check if user is referenced in the refs JSON
-                    if (user_id_str in str(address.refs) or 
-                        (user_uuid_str and user_uuid_str in str(address.refs))):
-                        user_addresses.append(address)
-            context['addresses'] = user_addresses
-        except (ImportError, AttributeError) as e:
-            print(f"Address model error: {e}")
-            context['addresses'] = []
+            # Check permissions - users can only view their own contact unless they're staff
+            if contact != self.request.user and not self.request.user.is_staff:
+                contact = self.request.user  # Fallback to own profile
+                
+        else:
+            # View current user profile: /contact/
+            contact = self.request.user
         
-        # Try to get related phone numbers
-        try:
-            from communications.models.phone import Phone
-            phones = Phone.objects.all()
-            user_phones = []
-            for phone in phones:
-                if phone.refs and isinstance(phone.refs, dict):
-                    if (user_id_str in str(phone.refs) or 
-                        (user_uuid_str and user_uuid_str in str(phone.refs))):
-                        user_phones.append(phone)
-            context['phones'] = user_phones
-        except (ImportError, AttributeError) as e:
-            print(f"Phone model error: {e}")
-            context['phones'] = []
+        context.update({
+            'contact': contact,  # This fixes your template variable error!
+            'id_contact': contact.id,  # Universal API convention
+            'page_title': f'Contact: {contact.get_full_name()}',
+            'api_url': f'/WCapi/get/?table_name=contacts&id={contact.id}',
+            'is_own_profile': contact == self.request.user,
+        })
         
-        # Try to get related emails
-        try:
-            from communications.models.email import Email
-            emails = Email.objects.all()
-            user_emails = []
-            for email in emails:
-                if email.refs and isinstance(email.refs, dict):
-                    if (user_id_str in str(email.refs) or 
-                        (user_uuid_str and user_uuid_str in str(email.refs))):
-                        user_emails.append(email)
-            context['emails'] = user_emails
-        except (ImportError, AttributeError) as e:
-            print(f"Email model error: {e}")
-            context['emails'] = []
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        # Handle API format requests
+        if request.GET.get('format') == 'json':
+            id_contact = self.kwargs.get('id_contact', request.user.id)
+            contact = get_object_or_404(Contact, id=id_contact)
+            
+            # Check permissions for API access
+            if contact != request.user and not request.user.is_staff:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            
+            # Return Universal API compliant JSON
+            return JsonResponse({
+                'table_name': 'contacts',
+                'id': contact.id,
+                'id_contact': contact.id,  # Universal API convention
+                'data': {
+                    'id': contact.id,
+                    'email': contact.email,
+                    'name_first': contact.name_first,
+                    'name_last': contact.name_last,
+                    'name_middle': contact.name_middle,
+                    'name_prefix': contact.name_prefix,
+                    'name_suffix': contact.name_suffix,
+                    'company': contact.company,
+                    'title': contact.title,
+                    'department': contact.department,
+                    'role': contact.role,
+                    'is_active': contact.is_active,
+                    'is_staff': contact.is_staff,
+                    'date_joined': contact.date_joined.isoformat(),
+                    'last_login': contact.last_login.isoformat() if contact.last_login else None,
+                    'metadata': contact.metadata,
+                },
+                'api_urls': {
+                    'update': f'/WCapi/save/?table_name=contacts&id={contact.id}',
+                    'delete': f'/WCapi/delete/?table_name=contacts&id={contact.id}',
+                    'clone': f'/WCapi/clone/?table_name=contacts&id={contact.id}',
+                    'emails': f'/WCapi/emails/manage/?id_contact={contact.id}',
+                    'phones': f'/WCapi/phones/manage/?id_contact={contact.id}',
+                    'domains': f'/WCapi/domains/manage/?id_contact={contact.id}',
+                    'addresses': f'/WCapi/addresses/manage/?id_contact={contact.id}',
+                }
+            })
         
-        # Try to get related domains
-        try:
-            from communications.models.domain import Domain
-            domains = Domain.objects.all()
-            user_domains = []
-            for domain in domains:
-                if domain.refs and isinstance(domain.refs, dict):
-                    if (user_id_str in str(domain.refs) or 
-                        (user_uuid_str and user_uuid_str in str(domain.refs))):
-                        user_domains.append(domain)
-            context['domains'] = user_domains
-        except (ImportError, AttributeError) as e:
-            print(f"Domain model error: {e}")
-            context['domains'] = []
-        
-        # Try to get related actions - this might have a more direct relationship
-        try:
-            from core.models.action_model import Action
-            # Actions might have a direct relationship with Contact
-            # Let's try different approaches
-            actions = Action.objects.all()
-            user_actions = []
-            for action in actions:
-                if hasattr(action, 'refs') and action.refs and isinstance(action.refs, dict):
-                    if (user_id_str in str(action.refs) or 
-                        (user_uuid_str and user_uuid_str in str(action.refs))):
-                        user_actions.append(action)
-            context['actions'] = user_actions[:10]  # Limit to 10 most recent
-        except (ImportError, AttributeError) as e:
-            print(f"Action model error: {e}")
-            context['actions'] = []
-        
-        return render(request, 'core/contact.html', context)
+        return super().get(request, *args, **kwargs)
