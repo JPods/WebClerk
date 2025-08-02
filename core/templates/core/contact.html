@@ -11,7 +11,7 @@
 <div class="container-fluid" data-id-contact="{{ contact.id }}">
     <div class="row">
         <!-- Contact Details Section -->
-        <div class="col-md-8">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">
@@ -72,33 +72,9 @@
                             <td>{{ contact.date_joined|date:"M d, Y" }}</td>
                         </tr>
                     </table>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Universal API Quick Actions -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-tools"></i> Universal API Actions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="/WCapi/emails/manage/?id_contact={{ contact.id }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-envelope"></i> Manage Emails
-                        </a>
-                        <a href="/WCapi/phones/manage/?id_contact={{ contact.id }}" class="btn btn-success btn-sm">
-                            <i class="fas fa-phone"></i> Manage Phones
-                        </a>
-                        <a href="/WCapi/domains/manage/?id_contact={{ contact.id }}" class="btn btn-info btn-sm">
-                            <i class="fas fa-globe"></i> Manage Domains
-                        </a>
-                        <a href="/WCapi/addresses/manage/?id_contact={{ contact.id }}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-map-marker-alt"></i> Manage Addresses
-                        </a>
-                        
-                        <!-- Quick Actions -->
-                        <hr>
+                    
+                    <!-- Quick Actions -->
+                    <div class="d-grid gap-2 mt-3">
                         <button onclick="sendTestEmail()" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-paper-plane"></i> Send Test Email
                         </button>
@@ -118,6 +94,257 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Related Data Tables -->
+        <div class="col-md-8">
+            
+            <!-- Actions Table -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Actions</h5>
+                    <a href="/WCapi/actions/manage/?contact_id={{ contact.id }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-cog"></i> Manage Actions
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if contact.actions.all %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for action in contact.actions.all|slice:":5" %}
+                                <tr>
+                                    <td><span class="badge bg-info">{{ action.action_type|default:"Action" }}</span></td>
+                                    <td>{{ action.description|default:action.name|truncatechars:50 }}</td>
+                                    <td><span class="badge bg-{{ action.status|default:'secondary' }}">{{ action.status|default:"Pending" }}</span></td>
+                                    <td>{{ action.priority|default:"Normal" }}</td>
+                                    <td>{{ action.due_date|date:"M d, Y"|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No actions found. <a href="/WCapi/actions/manage/?contact_id={{ contact.id }}">Add some actions</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Emails Table -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-envelope"></i> Email Addresses</h5>
+                    <a href="/WCapi/emails/manage/?contact_id={{ contact.id }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-cog"></i> Manage Emails
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if contact.emails.all %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for email in contact.emails.all %}
+                                <tr>
+                                    <td>
+                                        {{ email.email }}
+                                        {% if email.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
+                                    </td>
+                                    <td>{{ email.name|default:"-" }}</td>
+                                    <td>{{ email.type|default:"Work" }}</td>
+                                    <td>
+                                        {% if email.is_verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Unverified</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="mailto:{{ email.email }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No email addresses found. <a href="/WCapi/emails/manage/?contact_id={{ contact.id }}">Add email addresses</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Phones Table -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-phone"></i> Phone Numbers</h5>
+                    <a href="/WCapi/phones/manage/?contact_id={{ contact.id }}" class="btn btn-sm btn-success">
+                        <i class="fas fa-cog"></i> Manage Phones
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if contact.phones.all %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Number</th>
+                                    <th>Name</th>
+                                    <th>Format</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for phone in contact.phones.all %}
+                                <tr>
+                                    <td>
+                                        {{ phone.number }}
+                                        {% if phone.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
+                                    </td>
+                                    <td>{{ phone.name|default:"-" }}</td>
+                                    <td>{{ phone.format|default:phone.number }}</td>
+                                    <td>
+                                        <a href="tel:{{ phone.number }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-phone"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No phone numbers found. <a href="/WCapi/phones/manage/?contact_id={{ contact.id }}">Add phone numbers</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Domains Table -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-globe"></i> Domains</h5>
+                    <a href="/WCapi/domains/manage/?contact_id={{ contact.id }}" class="btn btn-sm btn-info">
+                        <i class="fas fa-cog"></i> Manage Domains
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if contact.domains.all %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Domain</th>
+                                    <th>Name</th>
+                                    <th>Registrar</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for domain in contact.domains.all %}
+                                <tr>
+                                    <td>{{ domain.domain }}</td>
+                                    <td>{{ domain.name|default:"-" }}</td>
+                                    <td>{{ domain.registrar|default:"-" }}</td>
+                                    <td>
+                                        {% if domain.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="https://{{ domain.domain }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No domains found. <a href="/WCapi/domains/manage/?contact_id={{ contact.id }}">Add domains</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Addresses Table -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Addresses</h5>
+                    <a href="/WCapi/addresses/manage/?contact_id={{ contact.id }}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-cog"></i> Manage Addresses
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if contact.addresses.all %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th>City</th>
+                                    <th>State</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for address in contact.addresses.all %}
+                                <tr>
+                                    <td>
+                                        {{ address.name|default:"Address" }}
+                                        {% if address.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
+                                    </td>
+                                    <td>{{ address.line1 }}</td>
+                                    <td>{{ address.city }}</td>
+                                    <td>{{ address.state }}</td>
+                                    <td>
+                                        <a href="https://maps.google.com/?q={{ address.line1 }}, {{ address.city }}, {{ address.state }}" target="_blank" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-map"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No addresses found. <a href="/WCapi/addresses/manage/?contact_id={{ contact.id }}">Add addresses</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
+
+<script>
+function sendTestEmail() {
+    alert('Test email functionality - implement via Universal API');
+}
+
+function exportContact() {
+    // Use Universal API to export contact data
+    window.open(`/WCapi/get/?table_name=contacts&id={{ contact.id }}&format=json`, '_blank');
+}
+</script>
 {% endblock %}

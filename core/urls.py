@@ -24,3 +24,4 @@ urlpatterns = [
     path('WCapi/save/', UniversalSaveView.as_view(), name='universal-save'),
     path('WCapi/delete/', UniversalDeleteView.as_view(), name='universal-delete'),
 ]
+

@@ -19,7 +19,7 @@ class ManageActionsView(LoginRequiredMixin, View):
         
         actions = []
         try:
-            from core.models.action_model import Action
+            from core.models.action import Action
             all_actions = Action.objects.all()
             for action in all_actions:
                 if action.refs and isinstance(action.refs, dict):
@@ -43,7 +43,7 @@ class AddActionView(LoginRequiredMixin, View):
             return redirect('/login/')
         
         try:
-            from core.models.action_model import Action
+            from core.models.action import Action
             
             # Create new action
             action = Action()
@@ -93,7 +93,7 @@ class EditActionView(LoginRequiredMixin, View):
             return redirect('/login/')
         
         try:
-            from core.models.action_model import Action
+            from core.models.action import Action
             action = get_object_or_404(Action, id=action_id)
             
             # Verify user owns this action
@@ -121,7 +121,7 @@ class EditActionView(LoginRequiredMixin, View):
             return redirect('/login/')
         
         try:
-            from core.models.action_model import Action
+            from core.models.action import Action
             action = get_object_or_404(Action, id=action_id)
             
             # Verify user owns this action
@@ -169,7 +169,7 @@ class DeleteActionView(LoginRequiredMixin, View):
             return redirect('/login/')
         
         try:
-            from core.models.action_model import Action
+            from core.models.action import Action
             action = get_object_or_404(Action, id=action_id)
             
             # Verify user owns this action

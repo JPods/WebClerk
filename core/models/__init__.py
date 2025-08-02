@@ -1,4 +1,6 @@
-from .contact_model import Contact
-from .action_model import Action
-from .setting_model import Setting
-from .template_model import Template
+from .contact import Contact
+from .action import Action
+from .setting import Setting
+from .template import Template
+
+__all__ = ['Contact', 'Action', 'Setting', 'Template']

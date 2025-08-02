@@ -9,6 +9,8 @@ class Email(BaseModel):
     email = models.EmailField(max_length=254, blank=False, help_text="Email address")
     name = models.CharField(max_length=100, blank=True, help_text="Display name for this email")
     attention = models.CharField(max_length=100, blank=True, help_text="Person or department attention line")
+    type = models.CharField(max_length=50, blank=True, help_text="Type of email (e.g., work, personal)")
+
     
     # Use choices for better data integrity
     OPT_OUT_CHOICES = [
