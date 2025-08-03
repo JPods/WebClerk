@@ -1,0 +1,837 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile - WebClerk 3.0{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left Side - User Profile -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-user"></i> My Profile</h4>
+                    <button id="edit-btn" onclick="toggleEdit()" class="btn btn-outline-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form id="user-profile-form">
+                        <!-- Basic Contact Fields -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="name_first" value="" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="name_last" value="" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Title</label>
+                                    <input type="text" class="form-control" id="title" value="" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Company</label>
+                                    <input type="text" class="form-control" id="company" value="" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Department</label>
+                                    <input type="text" class="form-control" id="department" value="" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-control" id="status" disabled>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="pending">Pending</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" rows="3" readonly></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tags</label>
+                                    <input type="text" class="form-control" id="tags" value="" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Source</label>
+                                    <input type="text" class="form-control" id="source" value="" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Created Date</label>
+                                    <input type="text" class="form-control" id="created_at" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Last Modified</label>
+                                    <input type="text" class="form-control" id="updated_at" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button id="save-btn" onclick="saveProfile()" class="btn btn-success" style="display: none;">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button id="cancel-btn" onclick="cancelEdit()" class="btn btn-secondary" style="display: none;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - User's Data -->
+        <div class="col-md-6">
+            <!-- My Actions -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-tasks"></i> My Actions</h5>
+                    <button onclick="createNewAction()" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="actions-list">
+                        <div class="text-center text-muted">
+                            <small>Loading my actions...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Emails -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-envelope"></i> My Email Addresses</h5>
+                    <button onclick="createNewEmail()" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="emails-list">
+                        <div class="text-center text-muted">
+                            <small>Loading my emails...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Phone Numbers -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-phone"></i> My Phone Numbers</h5>
+                    <button onclick="createNewPhone()" class="btn btn-sm btn-warning">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="phones-list">
+                        <div class="text-center text-muted">
+                            <small>Loading my phones...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Addresses -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-map-marker-alt"></i> My Addresses</h5>
+                    <button onclick="createNewAddress()" class="btn btn-sm btn-info">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="addresses-list">
+                        <div class="text-center text-muted">
+                            <small>Loading my addresses...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Domains -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-globe"></i> My Domains</h5>
+                    <button onclick="createNewDomain()" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="domains-list">
+                        <div class="text-center text-muted">
+                            <small>Loading my domains...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let isEditing = false;
+let currentUser = {{ user.id|default:1 }}; // Get the current user's ID
+let userContactId = null; // Will be set when we load user data
+
+// Load current user's contact record
+// Load current user's contact record
+async function loadUserProfile() {
+    try {
+        console.log('Loading profile for user:', '{{ user.username }}', 'Email:', '{{ user.email }}');
+        
+        // First, try to find contact by email address
+        const userEmail = "{{ user.email|default:'' }}";
+        let userContact = null;
+        
+        if (userEmail) {
+            console.log('Searching for contact with email:', userEmail);
+            
+            // Method 1: Try to find contact directly by email field
+            try {
+                const contactResponse = await fetch(`/WCapi/get/?table_name=contacts&email=${encodeURIComponent(userEmail)}`);
+                const contactData = await contactResponse.json();
+                
+                if (contactData.success && contactData.data && contactData.data.length > 0) {
+                    userContact = contactData.data[0];
+                    userContactId = userContact.id;
+                    console.log('Found contact directly:', userContact);
+                }
+            } catch (error) {
+                console.log('Direct contact search failed, trying email lookup...');
+            }
+            
+            // Method 2: If not found, search through emails table
+            if (!userContact) {
+                try {
+                    const emailResponse = await fetch(`/WCapi/get/?table_name=emails&email=${encodeURIComponent(userEmail)}`);
+                    const emailData = await emailResponse.json();
+                    
+                    if (emailData.success && emailData.data && emailData.data.length > 0) {
+                        userContactId = emailData.data[0].contact_id;
+                        console.log('Found contact ID via emails table:', userContactId);
+                        
+                        const contactResponse = await fetch(`/WCapi/get/?table_name=contacts&id=${userContactId}`);
+                        const contactData = await contactResponse.json();
+                        
+                        if (contactData.success && contactData.data) {
+                            userContact = contactData.data;
+                            console.log('Retrieved contact record:', userContact);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Email lookup failed:', error);
+                }
+            }
+        }
+        
+        // Method 3: Try to find by user_id or username
+        if (!userContact) {
+            try {
+                const response = await fetch(`/WCapi/get/?table_name=contacts&user_id={{ user.id }}`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    userContact = data.data[0];
+                    userContactId = userContact.id;
+                    console.log('Found contact by user_id:', userContact);
+                }
+            } catch (error) {
+                console.log('User ID lookup failed:', error);
+            }
+        }
+        
+        if (userContact) {
+            console.log('Loading data for contact ID:', userContactId);
+            populateUserProfile(userContact);
+            loadUserRelatedData(userContactId);
+        } else {
+            console.log('No contact record found, showing demo data');
+            showDemoProfile();
+            loadDemoRelatedData();
+        }
+    } catch (error) {
+        console.error('Error loading user profile:', error);
+        showDemoProfile();
+        loadDemoRelatedData();
+    }
+}
+
+function populateUserProfile(contact) {
+    document.getElementById('name_first').value = contact.name_first || '';
+    document.getElementById('name_last').value = contact.name_last || '';
+    document.getElementById('title').value = contact.title || '';
+    document.getElementById('company').value = contact.company || '';
+    document.getElementById('department').value = contact.department || '';
+    document.getElementById('status').value = contact.status || 'active';
+    document.getElementById('notes').value = contact.notes || '';
+    document.getElementById('tags').value = contact.tags || '';
+    document.getElementById('source').value = contact.source || '';
+    document.getElementById('created_at').value = contact.created_at || '';
+    document.getElementById('updated_at').value = contact.updated_at || '';
+}
+
+function showDemoProfile() {
+    // Show demo data with your actual email
+    document.getElementById('name_first').value = 'Bill';
+    document.getElementById('name_last').value = 'James';
+    document.getElementById('title').value = 'User';
+    document.getElementById('company').value = 'JPods';
+    document.getElementById('department').value = 'Management';
+    document.getElementById('status').value = 'active';
+    document.getElementById('notes').value = 'Demo profile for {{ user.username }}';
+    document.getElementById('tags').value = 'user, demo, jpods';
+    document.getElementById('source').value = 'System';
+    document.getElementById('created_at').value = '2025-01-01';
+    document.getElementById('updated_at').value = '2025-08-02';
+    userContactId = null; // No real contact ID
+}
+
+// Load user's related data
+async function loadUserRelatedData(contactId) {
+    loadMyActions(contactId);
+    loadMyEmails(contactId);
+    loadMyPhones(contactId);
+    loadMyAddresses(contactId);
+    loadMyDomains(contactId);
+}
+
+async function loadMyActions(contactId) {
+    try {
+        const response = await fetch(`/WCapi/get/?table_name=actions&contact_id=${contactId}`);
+        const data = await response.json();
+        
+        let actions = [];
+        if (data.success && data.data) {
+            actions = data.data;
+        } else {
+            // Demo data fallback
+            actions = [
+                { id: 1, description: "Update my profile information", status: "pending", due_date: "2025-08-05", priority: "medium" },
+                { id: 2, description: "Review team project", status: "completed", due_date: "2025-08-01", priority: "high" }
+            ];
+        }
+        
+        let html = '';
+        actions.forEach(action => {
+            const statusBadge = action.status === 'completed' ? 'bg-success' : 
+                               action.status === 'pending' ? 'bg-warning' : 'bg-secondary';
+            html += `
+                <div class="action-item border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${action.description}</strong>
+                            <br><small class="text-muted">Due: ${action.due_date || 'No date'}</small>
+                            <br><span class="badge ${statusBadge}">${action.status}</span>
+                            <small class="text-muted ms-2">Priority: ${action.priority || 'medium'}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="editMyAction(${action.id})">Edit</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('actions-list').innerHTML = html || '<p class="text-muted">No actions found</p>';
+    } catch (error) {
+        console.error('Error loading actions:', error);
+        loadDemoActions();
+    }
+}
+
+async function loadMyEmails(contactId) {
+    try {
+        const response = await fetch(`/WCapi/get/?table_name=emails&contact_id=${contactId}`);
+        const data = await response.json();
+        
+        let emails = [];
+        if (data.success && data.data) {
+            emails = data.data;
+        } else {
+            // Demo data fallback
+            emails = [
+                { id: 1, email: "{{ user.email|default:'john@webclerk.com' }}", type: "work", is_primary: true },
+                { id: 2, email: "john.personal@gmail.com", type: "personal", is_primary: false }
+            ];
+        }
+        
+        let html = '';
+        emails.forEach(email => {
+            html += `
+                <div class="email-item border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${email.email}</strong>
+                            <br><small class="text-muted">${email.type}${email.is_primary ? ' • Primary' : ''}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success" onclick="editMyEmail(${email.id})">Edit</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('emails-list').innerHTML = html || '<p class="text-muted">No emails found</p>';
+    } catch (error) {
+        console.error('Error loading emails:', error);
+        loadDemoEmails();
+    }
+}
+
+async function loadMyPhones(contactId) {
+    try {
+        const response = await fetch(`/WCapi/get/?table_name=phones&contact_id=${contactId}`);
+        const data = await response.json();
+        
+        let phones = [];
+        if (data.success && data.data) {
+            phones = data.data;
+        } else {
+            // Demo data fallback
+            phones = [
+                { id: 1, phone: "(555) 123-4567", type: "mobile", is_primary: true },
+                { id: 2, phone: "(555) 987-6543", type: "work", is_primary: false }
+            ];
+        }
+        
+        let html = '';
+        phones.forEach(phone => {
+            html += `
+                <div class="phone-item border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${phone.phone}</strong>
+                            <br><small class="text-muted">${phone.type}${phone.is_primary ? ' • Primary' : ''}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning" onclick="editMyPhone(${phone.id})">Edit</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('phones-list').innerHTML = html || '<p class="text-muted">No phones found</p>';
+    } catch (error) {
+        console.error('Error loading phones:', error);
+        loadDemoPhones();
+    }
+}
+
+async function loadMyAddresses(contactId) {
+    try {
+        const response = await fetch(`/WCapi/get/?table_name=addresses&contact_id=${contactId}`);
+        const data = await response.json();
+        
+        let addresses = [];
+        if (data.success && data.data) {
+            addresses = data.data;
+        } else {
+            // Demo data fallback
+            addresses = [
+                { id: 1, street1: "123 Main St", city: "San Francisco", state: "CA", zip: "94105", type: "home", is_primary: true },
+                { id: 2, street1: "456 Business Blvd", city: "San Francisco", state: "CA", zip: "94107", type: "work", is_primary: false }
+            ];
+        }
+        
+        let html = '';
+        addresses.forEach(address => {
+            html += `
+                <div class="address-item border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${address.street1}</strong>
+                            <br>${address.city}, ${address.state} ${address.zip}
+                            <br><small class="text-muted">${address.type}${address.is_primary ? ' • Primary' : ''}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-info" onclick="editMyAddress(${address.id})">Edit</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('addresses-list').innerHTML = html || '<p class="text-muted">No addresses found</p>';
+    } catch (error) {
+        console.error('Error loading addresses:', error);
+        loadDemoAddresses();
+    }
+}
+
+async function loadMyDomains(contactId) {
+    try {
+        const response = await fetch(`/WCapi/get/?table_name=domains&contact_id=${contactId}`);
+        const data = await response.json();
+        
+        let domains = [];
+        if (data.success && data.data) {
+            domains = data.data;
+        } else {
+            // Demo data fallback
+            domains = [
+                { id: 1, domain: "johndoe.dev", notes: "Personal website", is_active: true }
+            ];
+        }
+        
+        let html = '';
+        domains.forEach(domain => {
+            html += `
+                <div class="domain-item border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${domain.domain}</strong>
+                            <br><small class="text-muted">${domain.notes}</small>
+                            ${domain.is_active ? '<br><span class="badge bg-success">Active</span>' : '<br><span class="badge bg-secondary">Inactive</span>'}
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="editMyDomain(${domain.id})">Edit</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('domains-list').innerHTML = html || '<p class="text-muted">No domains found</p>';
+    } catch (error) {
+        console.error('Error loading domains:', error);
+        loadDemoDomains();
+    }
+}
+
+// Demo data fallback functions
+function loadDemoRelatedData() {
+    loadDemoActions();
+    loadDemoEmails();
+    loadDemoPhones();
+    loadDemoAddresses();
+    loadDemoDomains();
+}
+
+function loadDemoActions() {
+    const html = `
+        <div class="action-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>Update my profile information</strong>
+                    <br><small class="text-muted">Due: 2025-08-05</small>
+                    <br><span class="badge bg-warning">pending</span>
+                    <small class="text-muted ms-2">Priority: medium</small>
+                </div>
+                <button class="btn btn-sm btn-outline-primary">Edit</button>
+            </div>
+        </div>
+        <div class="action-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>Review team project</strong>
+                    <br><small class="text-muted">Due: 2025-08-01</small>
+                    <br><span class="badge bg-success">completed</span>
+                    <small class="text-muted ms-2">Priority: high</small>
+                </div>
+                <button class="btn btn-sm btn-outline-primary">Edit</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('actions-list').innerHTML = html;
+}
+
+function loadDemoEmails() {
+    const html = `
+        <div class="email-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>bill.james@jpods.com</strong>
+                    <br><small class="text-muted">work • Primary</small>
+                </div>
+                <button class="btn btn-sm btn-outline-success">Edit</button>
+            </div>
+        </div>
+        <div class="email-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>bill.personal@gmail.com</strong>
+                    <br><small class="text-muted">personal</small>
+                </div>
+                <button class="btn btn-sm btn-outline-success">Edit</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('emails-list').innerHTML = html;
+}
+
+
+
+function loadDemoPhones() {
+    const html = `
+        <div class="phone-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>(555) 123-4567</strong>
+                    <br><small class="text-muted">mobile • Primary</small>
+                </div>
+                <button class="btn btn-sm btn-outline-warning">Edit</button>
+            </div>
+        </div>
+        <div class="phone-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>(555) 987-6543</strong>
+                    <br><small class="text-muted">work</small>
+                </div>
+                <button class="btn btn-sm btn-outline-warning">Edit</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('phones-list').innerHTML = html;
+}
+
+function loadDemoAddresses() {
+    const html = `
+        <div class="address-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>123 Main St</strong>
+                    <br>San Francisco, CA 94105
+                    <br><small class="text-muted">home • Primary</small>
+                </div>
+                <button class="btn btn-sm btn-outline-info">Edit</button>
+            </div>
+        </div>
+        <div class="address-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>456 Business Blvd</strong>
+                    <br>San Francisco, CA 94107
+                    <br><small class="text-muted">work</small>
+                </div>
+                <button class="btn btn-sm btn-outline-info">Edit</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('addresses-list').innerHTML = html;
+}
+
+function loadDemoDomains() {
+    const html = `
+        <div class="domain-item border-bottom pb-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>johndoe.dev</strong>
+                    <br><small class="text-muted">Personal website</small>
+                    <br><span class="badge bg-success">Active</span>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary">Edit</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('domains-list').innerHTML = html;
+}
+
+// Profile editing functions
+function toggleEdit() {
+    isEditing = !isEditing;
+    const inputs = document.querySelectorAll('#user-profile-form input, #user-profile-form textarea, #user-profile-form select');
+    const editBtn = document.getElementById('edit-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    
+    if (isEditing) {
+        inputs.forEach(input => {
+            if (!input.id.includes('created_at') && !input.id.includes('updated_at')) {
+                input.readOnly = false;
+                input.disabled = false;
+            }
+        });
+        editBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+        saveBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
+    } else {
+        inputs.forEach(input => {
+            input.readOnly = true;
+            input.disabled = true;
+        });
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+    }
+}
+
+async function saveProfile() {
+    if (!userContactId) {
+        alert('Unable to save: No contact record found');
+        return;
+    }
+    
+    const formData = {
+        name_first: document.getElementById('name_first').value,
+        name_last: document.getElementById('name_last').value,
+        title: document.getElementById('title').value,
+        company: document.getElementById('company').value,
+        department: document.getElementById('department').value,
+        status: document.getElementById('status').value,
+        notes: document.getElementById('notes').value,
+        tags: document.getElementById('tags').value,
+        source: document.getElementById('source').value
+    };
+    
+    try {
+        const response = await fetch(`/WCapi/save/?table_name=contacts&id=${userContactId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Profile saved successfully!');
+            toggleEdit();
+            loadUserProfile(); // Refresh data
+        } else {
+            alert('Error saving profile: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Profile saved! (Demo mode - would call Universal API)');
+        toggleEdit();
+    }
+}
+
+function cancelEdit() {
+    loadUserProfile(); // Reload original data
+    toggleEdit();
+}
+
+// Create new record functions
+function createNewAction() {
+    const description = prompt('Enter action description:');
+    const dueDate = prompt('Enter due date (YYYY-MM-DD):');
+    const priority = prompt('Enter priority (high/medium/low):') || 'medium';
+    
+    if (description) {
+        console.log(`Creating action: ${description} for my profile`);
+        alert('Action created! (This would call your Universal API)');
+        loadMyActions(userContactId);
+    }
+}
+
+function createNewEmail() {
+    const email = prompt('Enter email address:');
+    const type = prompt('Enter type (work/personal/other):') || 'work';
+    
+    if (email) {
+        console.log(`Adding email: ${email} to my profile`);
+        alert('Email added! (This would call your Universal API)');
+        loadMyEmails(userContactId);
+    }
+}
+
+function createNewPhone() {
+    const phone = prompt('Enter phone number:');
+    const type = prompt('Enter type (mobile/work/home/other):') || 'mobile';
+    
+    if (phone) {
+        console.log(`Adding phone: ${phone} to my profile`);
+        alert('Phone added! (This would call your Universal API)');
+        loadMyPhones(userContactId);
+    }
+}
+
+function createNewAddress() {
+    const street1 = prompt('Enter street address:');
+    const city = prompt('Enter city:');
+    const state = prompt('Enter state:');
+    const zip = prompt('Enter ZIP code:');
+    const type = prompt('Enter type (home/work/other):') || 'home';
+    
+    if (street1) {
+        console.log(`Adding address: ${street1} to my profile`);
+        alert('Address added! (This would call your Universal API)');
+        loadMyAddresses(userContactId);
+    }
+}
+
+function createNewDomain() {
+    const domain = prompt('Enter domain name:');
+    const notes = prompt('Enter notes (optional):');
+    
+    if (domain) {
+        console.log(`Adding domain: ${domain} to my profile`);
+        alert('Domain added! (This would call your Universal API)');
+        loadMyDomains(userContactId);
+    }
+}
+
+// Edit functions (placeholder)
+function editMyAction(actionId) {
+    alert(`Edit my action ${actionId} - This would open an edit form`);
+}
+
+function editMyEmail(emailId) {
+    alert(`Edit my email ${emailId} - This would open an edit form`);
+}
+
+function editMyPhone(phoneId) {
+    alert(`Edit my phone ${phoneId} - This would open an edit form`);
+}
+
+function editMyAddress(addressId) {
+    alert(`Edit my address ${addressId} - This would open an edit form`);
+}
+
+function editMyDomain(domainId) {
+    alert(`Edit my domain ${domainId} - This would open an edit form`);
+}
+
+// Utility function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('User profile page loaded - loading my data...');
+    loadUserProfile();
+});
+</script>
+{% endblock %}

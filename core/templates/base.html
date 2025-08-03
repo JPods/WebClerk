@@ -1,108 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}WebClerk 3.0{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-   <!-- Custom CSS -->
+    
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    
-    <style>
-    /* Lesson1-style navigation styling */
-    .lesson1-nav {
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .lesson1-nav a {
-        color: #007bff;
-        text-decoration: none;
-        margin: 0 0.5rem;
-    }
-    
-    .lesson1-nav a:hover {
-        text-decoration: underline;
-    }
-    
-    .logout-button {
-        background: none;
-        border: none;
-        color: #007bff;
-        font: inherit;
-        cursor: pointer;
-        padding: 0;
-        text-decoration: none;
-        margin: 0 0.5rem;
-    }
-    
-    .logout-button:hover {
-        text-decoration: underline;
-    }
-    </style>
-    
     {% block extra_css %}{% endblock %}
-
-
-
 </head>
 <body>
-    <!-- Simple Navigation for Testing -->
-   <!-- Lesson1-Style Navigation -->
-    <nav class="lesson1-nav">
-        <a href="/">
-            <span role="img" aria-label="Home" title="Home">🏠</span>
-        </a> | 
-        
-        <a href="/about/">About</a> |
-        
-        <a href="/WCapi/manage/?table_name=contacts">Contacts</a> |
-        
-        <a href="/WCapi/manage/?table_name=actions">Actions</a> |
-        
-        <a href="/WCapi/manage/?table_name=emails">Emails</a> |
-        
-        <a href="/WCapi/manage/?table_name=phones">Phones</a> |
-        
-        <a href="/WCapi/manage/?table_name=domains">Domains</a> |
-        
-        {% if user.is_authenticated %}
-            <a href="/WCapi/manage/?table_name=contacts&mode=create" title="New Contact">🥳</a> |
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-code"></i> WebClerk 3.0
+            </a>
             
-            {% if user.is_superuser %}
-                <a href="/admin/">Admin</a> |
-            {% endif %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             
-            <span>Hi, {{ user.name_last|default:user.email }}!</span> |
-            
-            <form class="logout" method="post" action="/logout/" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="logout-button" aria-label="Logout" title="Logout">🤚</button>
-            </form>
-        {% else %}
-            <a href="/login/">Login</a> |
-            <a href="/signup/">Register</a>
-        {% endif %}
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about/">About</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/profile/">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                        </li>
+                        {% if user.is_staff or user.is_superuser %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="/contacts/">
+                                    <i class="fas fa-users"></i> Contacts
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/manage/actions/">
+                                    <i class="fas fa-tasks"></i> Actions
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="navbar-text me-3">
+                                <i class="fas fa-user-circle"></i> Hi, {{ user.name_first }}!
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout/">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/login/">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/signup/">
+                                <i class="fas fa-user-plus"></i> Sign Up
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
     </nav>
 
-    
     <!-- Main Content -->
     <main class="py-4">
         {% block content %}
-        <div class="container">
-            <h1>Default Base Template</h1>
-            <p>If you see this, base.html is working but your content block isn't loading.</p>
-        </div>
         {% endblock %}
     </main>
-    
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-3 mt-5">
+        <div class="container text-center">
+            <p>&copy; 2025 WebClerk 3.0 - Universal API System</p>
+        </div>
+    </footer>
+
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

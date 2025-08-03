@@ -18,8 +18,8 @@ urlpatterns = [
     path('logout/', WebLogoutView.as_view(), name='logout'),
     
     # Contact Management Pages
-    path('profile/', TemplateView.as_view(template_name='core/contact_user.html'), name='user-profile'),
-    path('contacts/', TemplateView.as_view(template_name='core/contact_admin.html'), name='admin-contacts'),
+    path('profile/', TemplateView.as_view(template_name='core/user.html'), name='user-profile'),
+    path('contacts/', TemplateView.as_view(template_name='core/manager.html'), name='admin-contacts'),
     
         # Dedicated Management Pages
     path('manage/actions/', TemplateView.as_view(template_name='core/manage_actions.html'), name='manage-actions'),
