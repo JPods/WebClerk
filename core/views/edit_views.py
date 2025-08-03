@@ -15,12 +15,12 @@ class EditContactView(UpdateView):
     ]
     
     def get_object(self):
-        # Get contact ID from URL parameter using id_contact convention
-        id_contact = self.kwargs.get('id_contact')
+        # Get contact ID from URL parameter using contact_id convention
+        contact_id = self.kwargs.get('contact_id')
         
-        if id_contact:
+        if contact_id:
             # Edit specific contact: /edit-contact/123/
-            contact = get_object_or_404(Contact, id=id_contact)
+            contact = get_object_or_404(Contact, id=contact_id)
             
             # Check permissions - users can only edit their own contact unless they're staff
             if contact != self.request.user and not self.request.user.is_staff:
@@ -37,7 +37,7 @@ class EditContactView(UpdateView):
         contact = self.get_object()
         
         context.update({
-            'id_contact': contact.id,  # Universal API convention
+            'contact_id': contact.id,  # Universal API convention
             'page_title': f'Edit Contact: {contact.get_full_name()}',
             'api_url': f'/WCapi/get/?table_name=contacts&id={contact.id}',
             'is_own_profile': contact == self.request.user,
@@ -49,7 +49,7 @@ class EditContactView(UpdateView):
         contact = self.get_object()
         messages.success(self.request, f'Contact {contact.get_full_name()} updated successfully!')
         
-        # Redirect to contact detail page using id_contact
+        # Redirect to contact detail page using contact_id
         if contact == self.request.user:
             return '/contact/'
         else:

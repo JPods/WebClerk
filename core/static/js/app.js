@@ -238,9 +238,9 @@ function getAlertIcon(type) {
 }
 
 // Initialize page
-// In core/static/js/app.js - Update to use id_contact convention
+// In core/static/js/app.js - Update to use contact_id convention
 function getContactIdFromPage() {
-    // Try multiple methods to get contact ID using id_contact convention
+    // Try multiple methods to get contact ID using contact_id convention
     const urlPath = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     
@@ -250,8 +250,8 @@ function getContactIdFromPage() {
         return pathMatch[1];
     }
     
-    // From URL parameters: ?id_contact=123 (Universal API convention)
-    const contactId = urlParams.get('id_contact');
+    // From URL parameters: ?contact_id=123 (Universal API convention)
+    const contactId = urlParams.get('contact_id');
     if (contactId) {
         return contactId;
     }
@@ -271,32 +271,32 @@ function getContactIdFromPage() {
     return null;
 }
 
-// Universal API Management Functions with id_contact convention
+// Universal API Management Functions with contact_id convention
 function manageEmails() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/emails/manage/?id_contact=${idContact}`;
+        window.location.href = `/WCapi/emails/manage/?contact_id=${idContact}`;
     }
 }
 
 function managePhones() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/phones/manage/?id_contact=${idContact}`;
+        window.location.href = `/WCapi/phones/manage/?contact_id=${idContact}`;
     }
 }
 
 function manageDomains() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/domains/manage/?id_contact=${idContact}`;
+        window.location.href = `/WCapi/domains/manage/?contact_id=${idContact}`;
     }
 }
 
 function manageAddresses() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/addresses/manage/?id_contact=${idContact}`;
+        window.location.href = `/WCapi/addresses/manage/?contact_id=${idContact}`;
     }
 }
 

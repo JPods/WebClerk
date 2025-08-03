@@ -86,7 +86,7 @@ class Command(BaseCommand):
                     status='completed' if j % 2 == 0 else 'pending',
                     priority='high' if j == 0 else 'medium',
                     due_date=datetime.now() + timedelta(days=j+1),
-                    refs={'links': {'contacts': [contact.id_contact]}}
+                    refs={'links': {'contacts': [contact.contact_id]}}
                 )
                 self.stdout.write(f'✅ Created action: {action.action_type} for {contact.email}')
         
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                     phone_type=phone_type,
                     extension='1001' if phone_type == 'work' else '',
                     is_primary=j == 0,
-                    refs={'links': {'contacts': [contact.id_contact]}}
+                    refs={'links': {'contacts': [contact.contact_id]}}
                 )
                 self.stdout.write(f'✅ Created phone: {phone.phone_number} for {contact.email}')
         
@@ -126,7 +126,7 @@ class Command(BaseCommand):
                     postal_code=f'{90000 + i*1000 + j*100}',
                     country='United States',
                     is_primary=j == 0,
-                    refs={'links': {'contacts': [contact.id_contact]}}
+                    refs={'links': {'contacts': [contact.contact_id]}}
                 )
                 self.stdout.write(f'✅ Created address: {address.city} for {contact.email}')
         
@@ -146,7 +146,7 @@ class Command(BaseCommand):
                     registrar='GoDaddy' if j % 2 == 0 else 'Namecheap',
                     expiry_date=datetime.now() + timedelta(days=365 + j*30),
                     is_active=True,
-                    refs={'links': {'contacts': [contact.id_contact]}}
+                    refs={'links': {'contacts': [contact.contact_id]}}
                 )
                 self.stdout.write(f'✅ Created domain: {domain.domain_name} for {contact.email}')
         
@@ -170,7 +170,7 @@ class Command(BaseCommand):
                     email_type=email_type,
                     is_primary=j == 0,
                     is_verified=True,
-                    refs={'links': {'contacts': [contact.id_contact]}}
+                    refs={'links': {'contacts': [contact.contact_id]}}
                 )
                 self.stdout.write(f'✅ Created email: {email.email_address} for {contact.email}')
         

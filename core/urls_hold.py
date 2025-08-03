@@ -29,11 +29,11 @@ urlpatterns = [
     path('login/', WebLoginView.as_view(), name='web-login'),
     path('logout/', WebLogoutView.as_view(), name='web-logout'),
     
-    # 🎯 CONTACT VIEWS - Universal API compliant using 'id_contact' convention
+    # 🎯 CONTACT VIEWS - Universal API compliant using 'contact_id' convention
     path('contact/', WebContactView.as_view(), name='contact-profile'),  # Current user
-    path('contact/<int:id_contact>/', WebContactView.as_view(), name='contact-detail'),  # Specific contact
+    path('contact/<int:contact_id>/', WebContactView.as_view(), name='contact-detail'),  # Specific contact
     path('edit-contact/', EditContactView.as_view(), name='edit-contact'),  # Edit current user
-    path('edit-contact/<int:id_contact>/', EditContactView.as_view(), name='edit-contact-detail'),  # Edit contact
+    path('edit-contact/<int:contact_id>/', EditContactView.as_view(), name='edit-contact-detail'),  # Edit contact
 
     # Legacy compatibility
     path('WCapi/mypage/', lambda request: HttpResponseRedirect('/contact/'), name='legacy-mypage'),
@@ -45,7 +45,7 @@ urlpatterns = [
     path('WCapi/delete/', UniversalDeleteView.as_view(), name='universal-delete'),
     path('WCapi/clone/', UniversalCloneView.as_view(), name='universal-clone'),
     
-    # Universal management pages - using id_contact for related data
+    # Universal management pages - using contact_id for related data
     #QQQ table_name is now passed as a URL parameter
     path('WCapi/manage/', UniversalCRUDView.as_view(), name='universal-manage'),
     #QQQ no idea what this was for

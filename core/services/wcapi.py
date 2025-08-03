@@ -34,7 +34,7 @@ class UniversalGetView(View):
     
 def get(self, request):
     table_name = request.GET.get('table_name')
-    id_record = request.GET.get('id')
+    record_id = request.GET.get('id')
     query = request.GET.get('query')
     model = MODEL_MAP.get(table_name)
     if not model:
@@ -42,8 +42,8 @@ def get(self, request):
 
     # --- Role check: customers cannot get another customer's record (stub for future) ---
     # user = request.user
-    # if table_name == 'customers' and id_record:
-    #     # if not user.is_staff and not user.is_superuser and int(id_record) != user.customer.id:
+    # if table_name == 'customers' and record_id:
+    #     # if not user.is_staff and not user.is_superuser and int(record_id) != user.customer.id:
     #     #     return JsonResponse({'success': False, 'message': 'Permission denied'}, status=403)
     #     pass
 
@@ -53,9 +53,9 @@ def get(self, request):
         return JsonResponse({'success': False, 'message': 'Advanced query not yet implemented'})
 
     # --- Single record by ID ---
-    if id_record:
+    if record_id:
         try:
-            record = model.objects.get(id=id_record)
+            record = model.objects.get(id=record_id)
             data = record.__dict__.copy()
             data.pop('_state', None)
             return JsonResponse({'success': True, 'data': data})
@@ -132,7 +132,7 @@ def get(self, request):
         return JsonResponse({'success': True, 'data': data})
     
     
-    
+    def manager
 
 
 

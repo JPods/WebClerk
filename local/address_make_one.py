@@ -29,7 +29,7 @@ jane_address = Address.objects.create(
         "priority": "high",
         "profiles": ["primary_address"],
         "health": {
-            "rating": {"value": 5, "dt": 0, "id_contact": 0}
+            "rating": {"value": 5, "dt": 0, "contact_id": 0}
         }
     },
     pres={

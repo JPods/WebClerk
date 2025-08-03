@@ -31,11 +31,11 @@ def default_metadata():
         "version": "1.0",
         "access": {"view": [], "edit": []},
         "history": {
-            "created": {"dt": int(timezone.now().timestamp() * 1000), "id_contact": 0},
-            "modified": {"dt": int(timezone.now().timestamp() * 1000), "id_contact": 0},
-            "accessed": {"dt": int(timezone.now().timestamp() * 1000), "id_contact": 0},
-            "verified": {"dt": 0, "id_contact": 0},
-            "synced": {"dt": 0, "id_contact": 0}
+            "created": {"dt": int(timezone.now().timestamp() * 1000), "contact_id": 0},
+            "modified": {"dt": int(timezone.now().timestamp() * 1000), "contact_id": 0},
+            "accessed": {"dt": int(timezone.now().timestamp() * 1000), "contact_id": 0},
+            "verified": {"dt": 0, "contact_id": 0},
+            "synced": {"dt": 0, "contact_id": 0}
         },
         "health": {
             "rating": 0,
@@ -102,14 +102,14 @@ class BaseModel(models.Model):
         
         self.metadata['history']['modified'] = {
             'dt': now_timestamp,
-            'id_contact': getattr(self, 'modified_by_id', 0)
+            'contact_id': getattr(self, 'modified_by_id', 0)
         }
         
         # Set creation timestamp for new records
         if not self.pk:
             self.metadata['history']['created'] = {
                 'dt': now_timestamp,
-                'id_contact': getattr(self, 'created_by_id', 0)
+                'contact_id': getattr(self, 'created_by_id', 0)
             }
         
         # Update keywords from all text fields
