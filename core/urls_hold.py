@@ -46,8 +46,10 @@ urlpatterns = [
     path('WCapi/clone/', UniversalCloneView.as_view(), name='universal-clone'),
     
     # Universal management pages - using id_contact for related data
-    path('WCapi/<str:table_name>/manage/', UniversalCRUDView.as_view(), name='universal-manage'),
-    path('WCapi/<str:table_name>/<int:id>/', UniversalGetView.as_view(), name='universal-detail'),  # RESTful API
+    #QQQ table_name is now passed as a URL parameter
+    path('WCapi/manage/', UniversalCRUDView.as_view(), name='universal-manage'),
+    #QQQ no idea what this was for
+    path('WCapi/<int:id>/', UniversalGetView.as_view(), name='universal-detail'),  # RESTful API
     
     path('admin/', admin.site.urls),
     path('WCapi/', include('core.urls')),
