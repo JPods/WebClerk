@@ -17,17 +17,14 @@ urlpatterns = [
     path('login/', WebLoginView.as_view(), name='login'),
     path('logout/', WebLogoutView.as_view(), name='logout'),
     
-    # Contact Management Pages
-    path('wcapi/user/', TemplateView.as_view(template_name='core/user.html'), name='user-profile'),
-    path('wcapi/manager/', TemplateView.as_view(template_name='core/manager.html'), name='admin-contacts'),
-    
+   
         # Dedicated Management Pages
     path('manage/actions/', TemplateView.as_view(template_name='core/manage_actions.html'), name='manage-actions'),
     
 
     # Universal API endpoints
     # Rare for sockets. We will more likely create an api app for websockets
-    path('connect', TemplateView.as_view(template_name='core/connect.html'), name='connect'),
+    path('wcapi/connect', TemplateView.as_view(template_name='core/connect.html'), name='connect'),
     # delete
     path('wcapi/delete', UniversalCRUDView.as_view(), name='delete-crud'),
     # list/read records

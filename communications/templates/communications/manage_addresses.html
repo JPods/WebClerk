@@ -162,7 +162,7 @@ SECURITY: Inherits authentication requirements from Universal API
 
     <div class="contact-actions">
         {% if contact %}
-            <a href="wcapi/{{ contact.id }}/" class="btn btn-secondary">Back to Contact</a>
+            <a href="/wcapi/get?table_name=contacts&id={{ contact.id }}/" class="btn btn-secondary">Back to Contact</a>
         {% else %}
             <a href="/" class="btn btn-secondary">Back to Home</a>
         {% endif %}

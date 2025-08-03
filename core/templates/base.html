@@ -43,12 +43,12 @@
                         </li>
                         {% if user.is_staff or user.is_superuser %}
                             <li class="nav-item">
-                                <a class="nav-link" href="/contacts/">
+                                <a class="nav-link" href="/wcapi/get?table_name=contacts">
                                     <i class="fas fa-users"></i> Contacts
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="/manage/actions/">
+                                <a class="nav-link" href="/wcapi/get?table_name=actions">
                                     <i class="fas fa-tasks"></i> Actions
                                 </a>
                             </li>
