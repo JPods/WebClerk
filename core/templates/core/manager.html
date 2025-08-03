@@ -159,7 +159,7 @@ const CURRENT_USER = {
 };
 
 // Global variables
-let selectedContactId = null;
+let selecteduser_id = null;
 let editingContact = false;
 let allContacts = [];
 
@@ -196,6 +196,8 @@ async function loadContactsList() {
         } else {
             console.log('No valid data from API, creating demo contact');
             // Create demo contact based on current user
+            // This is a fallback if no contacts exist
+            // QQQ: Implement a proper demo contact creation logic
             allContacts = [{
                 id: CURRENT_USER.id || 1,
                 name_first: 'Bill',
@@ -240,7 +242,7 @@ function renderContactsList(contacts) {
             fullName = contact.sample || `Contact #${contact.id}`;
         }
         
-        const isSelected = contact.id == selectedContactId ? 'active' : '';
+        const isSelected = contact.id == selecteduser_id ? 'active' : '';
         const isCurrentUser = contact.id == CURRENT_USER.id;
         
         html += `
@@ -355,7 +357,7 @@ function renderContactDetails(contact) {
     document.getElementById('contact-details').innerHTML = html;
 }
 
-async function populateRealData(contactId) {
+async function populateRealData(user_id) {
     if (confirm('This will populate the contact with real data for your account. Continue?')) {
         try {
             const formData = {
@@ -371,7 +373,7 @@ async function populateRealData(contactId) {
                 source: 'Updated'
             };
             
-            const response = await fetch(`/WCapi/save/?table_name=contacts&id=${contactId}`, {
+            const response = await fetch(`/WCapi/save/?table_name=contacts&id=${user_id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -385,7 +387,7 @@ async function populateRealData(contactId) {
             
             alert('Contact updated with real data! (Check console for API response)');
             loadContactsList();
-            selectContact(contactId);
+            selectContact(user_id);
             
         } catch (error) {
             console.error('Error populating real data:', error);
@@ -419,21 +421,21 @@ function searchContacts() {
 }
 
 // Select a contact and load their details
-async function selectContact(contactId) {
-    selectedContactId = contactId;
+async function selectContact(user_id) {
+    selecteduser_id = user_id;
     
-    console.log('Selecting contact:', contactId);
+    console.log('Selecting contact:', user_id);
     
     // Update breadcrumb
     const breadcrumb = document.getElementById('contact-breadcrumb');
     const breadcrumbText = document.getElementById('breadcrumb-text');
     
-    if (contactId == CURRENT_USER.id) {
+    if (user_id == CURRENT_USER.id) {
         breadcrumbText.innerHTML = 'Viewing your own profile';
         breadcrumb.style.display = 'block';
         breadcrumb.className = 'small text-success';
     } else {
-        breadcrumbText.innerHTML = `Viewing contact #${contactId} • <a href="#" onclick="selectMyContact()" class="text-decoration-none">Return to my profile</a>`;
+        breadcrumbText.innerHTML = `Viewing contact #${user_id} • <a href="#" onclick="selectMyContact()" class="text-decoration-none">Return to my profile</a>`;
         breadcrumb.style.display = 'block';
         breadcrumb.className = 'small text-muted';
     }
@@ -441,28 +443,28 @@ async function selectContact(contactId) {
     renderContactsList(allContacts); // Re-render to show selection
     
     try {
-        const response = await fetch(`/WCapi/get/?table_name=contacts&id=${contactId}`);
+        const response = await fetch(`/WCapi/get/?table_name=contacts&id=${user_id}`);
         const data = await response.json();
         
         console.log('Contact details response:', data);
         
         if (data.success && data.data) {
             renderContactDetails(data.data);
-            loadRelatedData(contactId);
+            loadRelatedData(user_id);
         } else {
             // Fallback to contact from list
-            const contact = allContacts.find(c => c.id == contactId);
+            const contact = allContacts.find(c => c.id == user_id);
             if (contact) {
                 renderContactDetails(contact);
-                loadRelatedData(contactId);
+                loadRelatedData(user_id);
             }
         }
     } catch (error) {
         console.error('Error loading contact details:', error);
-        const contact = allContacts.find(c => c.id == contactId);
+        const contact = allContacts.find(c => c.id == user_id);
         if (contact) {
             renderContactDetails(contact);
-            loadRelatedData(contactId);
+            loadRelatedData(user_id);
         }
     }
 }
@@ -472,21 +474,21 @@ async function selectContact(contactId) {
 
 
 // Load related data for selected contact
-async function loadRelatedData(contactId) {
-    console.log(`Loading related data for contact ${contactId}`);
+async function loadRelatedData(user_id) {
+    console.log(`Loading related data for contact ${user_id}`);
     
-    loadActions(contactId);
-    loadEmails(contactId);
-    loadPhones(contactId);
-    loadAddresses(contactId);
-    loadDomains(contactId);
+    loadActions(user_id);
+    loadEmails(user_id);
+    loadPhones(user_id);
+    loadAddresses(user_id);
+    loadDomains(user_id);
 }
 
 
 // Update the related data functions to handle your API structure
-async function loadActions(contactId) {
+async function loadActions(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=actions&contact_id=${contactId}`);
+        const response = await fetch(`/WCapi/get/?table_name=actions&id=${user_id}`);
         const data = await response.json();
         
         console.log('Actions response:', data);
@@ -501,7 +503,7 @@ async function loadActions(contactId) {
         actionsHeader.innerHTML = `<i class="fas fa-tasks"></i> Actions <span class="badge bg-secondary">${actions.length}</span>`;
         
         if (actions.length === 0) {
-            document.getElementById('actions-table').innerHTML = '<div class="text-center text-muted"><small>No actions found for contact ' + contactId + '</small></div>';
+            document.getElementById('actions-table').innerHTML = '<div class="text-center text-muted"><small>No actions found for contact ' + user_id + '</small></div>';
             return;
         }
         
@@ -539,9 +541,9 @@ async function loadActions(contactId) {
 
 
 
-async function loadEmails(contactId) {
+async function loadEmails(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=emails&contact_id=${contactId}`);
+        const response = await fetch(`/WCapi/get/?table_name=emails&id=${user_id}`);
         const data = await response.json();
         
         console.log('Emails response:', data);
@@ -589,9 +591,9 @@ async function loadEmails(contactId) {
     }
 }
 
-async function loadPhones(contactId) {
+async function loadPhones(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=phones&contact_id=${contactId}`);
+        const response = await fetch(`/WCapi/get/?table_name=phones&id=${user_id}`);
         const data = await response.json();
         
         let phones = [];
@@ -637,9 +639,9 @@ async function loadPhones(contactId) {
     }
 }
 
-async function loadAddresses(contactId) {
+async function loadAddresses(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=addresses&contact_id=${contactId}`);
+        const response = await fetch(`/WCapi/get/?table_name=addresses&id=${user_id}`);
         const data = await response.json();
         
         let addresses = [];
@@ -687,9 +689,9 @@ async function loadAddresses(contactId) {
     }
 }
 
-async function loadDomains(contactId) {
+async function loadDomains(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=domains&contact_id=${contactId}`);
+        const response = await fetch(`/WCapi/get/?table_name=domains&id=${user_id}`);
         const data = await response.json();
         
         let domains = [];
@@ -780,7 +782,7 @@ function toggleContactEdit() {
 }
 
 async function saveContact() {
-    if (!selectedContactId) return;
+    if (!selecteduser_id) return;
     
     const formData = {
         name_first: document.getElementById('name_first').value,
@@ -795,7 +797,7 @@ async function saveContact() {
     };
     
     try {
-        const response = await fetch(`/WCapi/save/?table_name=contacts&id=${selectedContactId}`, {
+        const response = await fetch(`/WCapi/save/?table_name=contacts&id=${selecteduser_id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -820,8 +822,8 @@ async function saveContact() {
 }
 
 function cancelContactEdit() {
-    if (selectedContactId) {
-        selectContact(selectedContactId);
+    if (selecteduser_id) {
+        selectContact(selecteduser_id);
     }
     toggleContactEdit();
 }
@@ -869,11 +871,11 @@ async function createNewContact() {
 }
 
 async function deleteContact() {
-    if (!selectedContactId) return;
+    if (!selecteduser_id) return;
     
     if (confirm('Are you sure you want to delete this contact? This will also delete all related records.')) {
         try {
-            const response = await fetch(`/WCapi/delete/?table_name=contacts&id=${selectedContactId}`, {
+            const response = await fetch(`/WCapi/delete/?table_name=contacts&id=${selecteduser_id}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
@@ -883,7 +885,7 @@ async function deleteContact() {
             const result = await response.json();
             if (result.success) {
                 alert('Contact deleted successfully!');
-                selectedContactId = null;
+                selecteduser_id = null;
                 document.getElementById('contact-details').innerHTML = `
                     <div class="text-center text-muted">
                         <i class="fas fa-user-circle fa-3x mb-3"></i>
@@ -921,43 +923,43 @@ function clearRelatedTables() {
 
 // Placeholder create functions
 function createNewAction() {
-    if (!selectedContactId) {
+    if (!selecteduser_id) {
         alert('Please select a contact first');
         return;
     }
-    alert('Create new action for contact ' + selectedContactId);
+    alert('Create new action for contact ' + selecteduser_id);
 }
 
 function createNewEmail() {
-    if (!selectedContactId) {
+    if (!selecteduser_id) {
         alert('Please select a contact first');
         return;
     }
-    alert('Create new email for contact ' + selectedContactId);
+    alert('Create new email for contact ' + selecteduser_id);
 }
 
 function createNewPhone() {
-    if (!selectedContactId) {
+    if (!selecteduser_id) {
         alert('Please select a contact first');
         return;
     }
-    alert('Create new phone for contact ' + selectedContactId);
+    alert('Create new phone for contact ' + selecteduser_id);
 }
 
 function createNewAddress() {
-    if (!selectedContactId) {
+    if (!selecteduser_id) {
         alert('Please select a contact first');
         return;
     }
-    alert('Create new address for contact ' + selectedContactId);
+    alert('Create new address for contact ' + selecteduser_id);
 }
 
 function createNewDomain() {
-    if (!selectedContactId) {
+    if (!selecteduser_id) {
         alert('Please select a contact first');
         return;
     }
-    alert('Create new domain for contact ' + selectedContactId);
+    alert('Create new domain for contact ' + selecteduser_id);
 }
 
 // Placeholder edit functions
