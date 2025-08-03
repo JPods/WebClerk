@@ -1,7 +1,7 @@
 <!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/templates/communications/manage_addresses.html -->
 <!-- 
 PURPOSE: Address management interface using Universal API for full CRUD operations
-UNIVERSAL API: Uses /WCapi/get/, /WCapi/save/, /WCapi/delete/ endpoints
+UNIVERSAL API: Uses /wcapi/get/, /wcapi/save/, /wcapi/delete/ endpoints
 REPLACES: Old hardcoded address management system with individual views
 TEAM NOTE: This template shows the complete pattern for building Universal API interfaces
 ARCHITECTURE: Client-side JavaScript communicates with Universal API endpoints
@@ -182,7 +182,7 @@ async function addNewAddress() {
 async function editAddress(addressId) {
     try {
         // Get address data via Universal API
-        const response = await fetch('/WCapi/get/', {
+        const response = await fetch('/wcapi/get/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -221,7 +221,7 @@ async function deleteAddress(addressId) {
     if (!confirm('Are you sure you want to delete this address?')) return;
     
     try {
-        const response = await fetch('/WCapi/delete/', {
+        const response = await fetch('/wcapi/delete/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -256,7 +256,7 @@ document.getElementById('addressForm').addEventListener('submit', async function
     data.table_name = 'addresses';
     
     try {
-        const response = await fetch('/WCapi/save/', {
+        const response = await fetch('/wcapi/save/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)

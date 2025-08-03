@@ -519,4 +519,4 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS('\n🚀 Your Beautiful Contact Page:'))
         self.stdout.write('📞 Contact View: http://localhost:8000/contact/')
-        self.stdout.write('⚡ Universal API: http://localhost:8000/WCapi/')
+        self.stdout.write('⚡ Universal API: http://localhost:8000/wcapi/')

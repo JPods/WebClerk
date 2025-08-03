@@ -11,7 +11,7 @@ function getCSRFToken() {
 class UniversalAPI {
     static async query(tableName, filters = {}) {
         try {
-            const response = await fetch('/WCapi/query/', {
+            const response = await fetch('/wcapi/query/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -31,7 +31,7 @@ class UniversalAPI {
     
     static async get(tableName, id) {
         try {
-            const response = await fetch(`/WCapi/${tableName}/${id}/`);
+            const response = await fetch(`/wcapi/${tableName}/${id}/`);
             return await response.json();
         } catch (error) {
             console.error('Universal API Get Error:', error);
@@ -41,7 +41,7 @@ class UniversalAPI {
     
     static async create(tableName, data) {
         try {
-            const response = await fetch(`/WCapi/${tableName}/`, {
+            const response = await fetch(`/wcapi/${tableName}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ class UniversalAPI {
     
     static async update(tableName, id, data) {
         try {
-            const response = await fetch(`/WCapi/${tableName}/${id}/`, {
+            const response = await fetch(`/wcapi/${tableName}/${id}/`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ class UniversalAPI {
     
     static async delete(tableName, id) {
         try {
-            const response = await fetch(`/WCapi/${tableName}/${id}/`, {
+            const response = await fetch(`/wcapi/${tableName}/${id}/`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': getCSRFToken()
@@ -153,28 +153,28 @@ function editContact() {
 function manageEmails() {
     const contactId = getContactIdFromPage();
     if (contactId) {
-        window.location.href = `/WCapi/emails/manage/?contact_id=${contactId}`;
+        window.location.href = `/wcapi/emails/manage/?contact_id=${contactId}`;
     }
 }
 
 function managePhones() {
     const contactId = getContactIdFromPage();
     if (contactId) {
-        window.location.href = `/WCapi/phones/manage/?contact_id=${contactId}`;
+        window.location.href = `/wcapi/phones/manage/?contact_id=${contactId}`;
     }
 }
 
 function manageDomains() {
     const contactId = getContactIdFromPage();
     if (contactId) {
-        window.location.href = `/WCapi/domains/manage/?contact_id=${contactId}`;
+        window.location.href = `/wcapi/domains/manage/?contact_id=${contactId}`;
     }
 }
 
 function manageAddresses() {
     const contactId = getContactIdFromPage();
     if (contactId) {
-        window.location.href = `/WCapi/addresses/manage/?contact_id=${contactId}`;
+        window.location.href = `/wcapi/addresses/manage/?contact_id=${contactId}`;
     }
 }
 
@@ -275,28 +275,28 @@ function getContactIdFromPage() {
 function manageEmails() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/emails/manage/?contact_id=${idContact}`;
+        window.location.href = `/wcapi/emails/manage/?contact_id=${idContact}`;
     }
 }
 
 function managePhones() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/phones/manage/?contact_id=${idContact}`;
+        window.location.href = `/wcapi/phones/manage/?contact_id=${idContact}`;
     }
 }
 
 function manageDomains() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/domains/manage/?contact_id=${idContact}`;
+        window.location.href = `/wcapi/domains/manage/?contact_id=${idContact}`;
     }
 }
 
 function manageAddresses() {
     const idContact = getContactIdFromPage();
     if (idContact) {
-        window.location.href = `/WCapi/addresses/manage/?contact_id=${idContact}`;
+        window.location.href = `/wcapi/addresses/manage/?contact_id=${idContact}`;
     }
 }
 

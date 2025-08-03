@@ -136,19 +136,19 @@ core/templates/
   - webclerk3/core/urls.py
 
 #### View All Contacts:
-`http://localhost:8000/WCapi/manage/?table_name=contacts`
+`http://localhost:8000/wcapi/manage/?table_name=contacts`
 
 #### View Specific Contact:
-`http://localhost:8000/WCapi/manage/?table_name=contacts&id=123`
+`http://localhost:8000/wcapi/manage/?table_name=contacts&id=123`
 
 #### Manage Contact's Emails:
-`http://localhost:8000/WCapi/manage/?table_name=emails&contact_id=123`
+`http://localhost:8000/wcapi/manage/?table_name=emails&contact_id=123`
 
 #### Create New Action:
-`http://localhost:8000/WCapi/manage/?table_name=actions&mode=create`
+`http://localhost:8000/wcapi/manage/?table_name=actions&mode=create`
 
 #### API Data Retrieval:
-`http://localhost:8000/WCapi/get/?table_name=contacts&id=123`
+`http://localhost:8000/wcapi/get/?table_name=contacts&id=123`
 
 -----------------------------
 ### Key Features:
@@ -169,9 +169,9 @@ core/templates/
 
 🏠 **Home** → Landing page with system overview
 **About** → System documentation and features
-**Contacts** → `/WCapi/manage/?table_name=contacts`
-**Actions** → `/WCapi/manage/?table_name=actions`
-**Communications** → `/WCapi/manage/?table_name=emails`
+**Contacts** → `/wcapi/manage/?table_name=contacts`
+**Actions** → `/wcapi/manage/?table_name=actions`
+**Communications** → `/wcapi/manage/?table_name=emails`
 🥳 **New Contact** → Quick create contact
 **Admin** → Django admin (superusers only)
 🤚 **Logout** → Clean session termination

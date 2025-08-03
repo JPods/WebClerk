@@ -79,9 +79,9 @@ def get(self, request):
             return JsonResponse({'success': False, 'message': 'Invalid table_name'})
         data = list(model.objects.all().values())
         return JsonResponse({'success': True, 'data': data})    
-    # Help page for WCapi - could be a static page, duplicate of options and root? QQQ
+    # Help page for wcapi - could be a static page, duplicate of options and root? QQQ
     def help(self, request):
-        return JsonResponse({'success': True, 'message': 'Help page for WCapi'})
+        return JsonResponse({'success': True, 'message': 'Help page for wcapi'})
 
     def manage(self, request):
         table_name = request.GET.get('table_name') or request.POST.get('table_name')

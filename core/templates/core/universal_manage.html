@@ -44,7 +44,7 @@ const recordId = '{{ record_id }}';
 
 async function loadManagementInterface() {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=${tableName}`);
+        const response = await fetch(`/wcapi/get/?table_name=${tableName}`);
         const data = await response.json();
         
         let html = `
@@ -102,11 +102,11 @@ async function loadManagementInterface() {
             <div class="mt-4">
                 <h5>Universal API Endpoints for ${tableName}:</h5>
                 <ul class="list-unstyled">
-                    <li><code>GET /WCapi/get/?table_name=${tableName}</code> - List all records</li>
-                    <li><code>GET /WCapi/get/?table_name=${tableName}&id=123</code> - Get specific record</li>
-                    <li><code>POST /WCapi/save/?table_name=${tableName}</code> - Create new record</li>
-                    <li><code>PUT /WCapi/save/?table_name=${tableName}&id=123</code> - Update record</li>
-                    <li><code>DELETE /WCapi/delete/?table_name=${tableName}&id=123</code> - Delete record</li>
+                    <li><code>GET /wcapi/get/?table_name=${tableName}</code> - List all records</li>
+                    <li><code>GET /wcapi/get/?table_name=${tableName}&id=123</code> - Get specific record</li>
+                    <li><code>POST /wcapi/save/?table_name=${tableName}</code> - Create new record</li>
+                    <li><code>PUT /wcapi/save/?table_name=${tableName}&id=123</code> - Update record</li>
+                    <li><code>DELETE /wcapi/delete/?table_name=${tableName}&id=123</code> - Delete record</li>
                 </ul>
             </div>
         `;
@@ -124,16 +124,16 @@ async function loadManagementInterface() {
 }
 
 function createNew() {
-    alert(`Creating new ${tableName} record\nThis would use: POST /WCapi/save/?table_name=${tableName}`);
+    alert(`Creating new ${tableName} record\nThis would use: POST /wcapi/save/?table_name=${tableName}`);
 }
 
 function editRecord(id) {
-    alert(`Editing ${tableName} record ${id}\nThis would use: GET /WCapi/get/?table_name=${tableName}&id=${id}`);
+    alert(`Editing ${tableName} record ${id}\nThis would use: GET /wcapi/get/?table_name=${tableName}&id=${id}`);
 }
 
 function deleteRecord(id) {
     if (confirm(`Are you sure you want to delete this ${tableName} record?`)) {
-        alert(`Deleting ${tableName} record ${id}\nThis would use: DELETE /WCapi/delete/?table_name=${tableName}&id=${id}`);
+        alert(`Deleting ${tableName} record ${id}\nThis would use: DELETE /wcapi/delete/?table_name=${tableName}&id=${id}`);
         loadManagementInterface(); // Reload
     }
 }

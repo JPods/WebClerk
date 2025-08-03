@@ -17,21 +17,21 @@ urlpatterns = [
     path('edit-contact/', EditContactView.as_view(), name='edit-contact'),
     
     # API endpoints for ALL data operations
-    path('WCapi/contacts/save/', ContactSaveView.as_view(), name='contact-save'),
-    path('WCapi/contacts/get/<int:id>/', ContactGetView.as_view(), name='contact-get'),
+    path('wcapi/contacts/save/', ContactSaveView.as_view(), name='contact-save'),
+    path('wcapi/contacts/get/<int:id>/', ContactGetView.as_view(), name='contact-get'),
     
-    path('WCapi/addresses/save/', AddressSaveView.as_view(), name='address-save'),
-    path('WCapi/addresses/get/<int:id>/', AddressGetView.as_view(), name='address-get'),
+    path('wcapi/addresses/save/', AddressSaveView.as_view(), name='address-save'),
+    path('wcapi/addresses/get/<int:id>/', AddressGetView.as_view(), name='address-get'),
     
-    path('WCapi/phones/save/', PhoneSaveView.as_view(), name='phone-save'),
-    path('WCapi/phones/get/<int:id>/', PhoneGetView.as_view(), name='phone-get'),
+    path('wcapi/phones/save/', PhoneSaveView.as_view(), name='phone-save'),
+    path('wcapi/phones/get/<int:id>/', PhoneGetView.as_view(), name='phone-get'),
     
-    path('WCapi/emails/save/', EmailSaveView.as_view(), name='email-save'),
-    path('WCapi/emails/get/<int:id>/', EmailGetView.as_view(), name='email-get'),
+    path('wcapi/emails/save/', EmailSaveView.as_view(), name='email-save'),
+    path('wcapi/emails/get/<int:id>/', EmailGetView.as_view(), name='email-get'),
     
-    path('WCapi/domains/save/', DomainSaveView.as_view(), name='domain-save'),
-    path('WCapi/domains/get/<int:id>/', DomainGetView.as_view(), name='domain-get'),
+    path('wcapi/domains/save/', DomainSaveView.as_view(), name='domain-save'),
+    path('wcapi/domains/get/<int:id>/', DomainGetView.as_view(), name='domain-get'),
     
-    path('WCapi/actions/save/', ActionSaveView.as_view(), name='action-save'),
-    path('WCapi/actions/get/<int:id>/', ActionGetView.as_view(), name='action-get')
+    path('wcapi/actions/save/', ActionSaveView.as_view(), name='action-save'),
+    path('wcapi/actions/get/<int:id>/', ActionGetView.as_view(), name='action-get')
 ]

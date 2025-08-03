@@ -11,7 +11,7 @@
 #   - Role-based permissions
 #   - UUID generation
 #   - Superuser auto-role assignment
-# TABLES: Stored in 'contacts' table, accessible via /WCapi/contacts/
+# TABLES: Stored in 'contacts' table, accessible via /wcapi/contacts/
 # METADATA: Uses contact.metadata.history.created.dt instead of dt  _created
 
 import uuid

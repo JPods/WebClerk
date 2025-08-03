@@ -213,7 +213,7 @@ let userContactId = null; // Will be set when we load user data
 async function loadUserProfile() {
     try {
         // Fetch the contact record by id (user.id)
-        const response = await fetch(`/WCapi/get/?table_name=contacts&id={{ user.id }}`);
+        const response = await fetch(`/wcapi/get/?table_name=contacts&id={{ user.id }}`);
         const data = await response.json();
 
         let userContact = null;
@@ -281,7 +281,7 @@ async function loadUserRelatedData(contactId) {
 
 async function loadMyActions(contactId) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=actions&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${contactId}`);
         const data = await response.json();
         
         let actions = [];
@@ -323,7 +323,7 @@ async function loadMyActions(contactId) {
 
 async function loadMyEmails(contactId) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=emails&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${contactId}`);
         const data = await response.json();
         
         let emails = [];
@@ -361,7 +361,7 @@ async function loadMyEmails(contactId) {
 
 async function loadMyPhones(contactId) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=phones&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${contactId}`);
         const data = await response.json();
         
         let phones = [];
@@ -399,7 +399,7 @@ async function loadMyPhones(contactId) {
 
 async function loadMyAddresses(contactId) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=addresses&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${contactId}`);
         const data = await response.json();
         
         let addresses = [];
@@ -438,7 +438,7 @@ async function loadMyAddresses(contactId) {
 
 async function loadMyDomains(contactId) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=domains&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${contactId}`);
         const data = await response.json();
         
         let domains = [];
@@ -651,7 +651,7 @@ async function saveProfile() {
     };
     
     try {
-        const response = await fetch(`/WCapi/save/?table_name=contacts&id=${userContactId}`, {
+        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${userContactId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

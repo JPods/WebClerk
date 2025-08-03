@@ -39,7 +39,7 @@ class EditContactView(UpdateView):
         context.update({
             'contact_id': contact.id,  # Universal API convention
             'page_title': f'Edit Contact: {contact.get_full_name()}',
-            'api_url': f'/WCapi/get/?table_name=contacts&id={contact.id}',
+            'api_url': f'/wcapi/get/?table_name=contacts&id={contact.id}',
             'is_own_profile': contact == self.request.user,
         })
         

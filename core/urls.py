@@ -29,28 +29,28 @@ urlpatterns = [
     # Rare for sockets. We will more likely create an api app for websockets
     path('connect', TemplateView.as_view(template_name='core/connect.html'), name='connect'),
     # delete
-    path('WCapi/delete', UniversalCRUDView.as_view(), name='delete-crud'),
+    path('wcapi/delete', UniversalCRUDView.as_view(), name='delete-crud'),
     # list/read records
-    # path('WCapi/query/', UniversalQueryView.as_view(), name='query'),
-    path('WCapi/get', UniversalGetView.as_view(), name='get'),
+    # path('wcapi/query/', UniversalQueryView.as_view(), name='query'),
+    path('wcapi/get', UniversalGetView.as_view(), name='get'),
     # Headers only
-    path('WCapi/head', UniversalCRUDView.as_view(), name='head'),
-    # Help page for WCapi - could be a static page, duplicate of options and root? QQQ
-    path('WCapi/help', UniversalCRUDView.as_view(), name='core/help.html'),
+    path('wcapi/head', UniversalCRUDView.as_view(), name='head'),
+    # Help page for wcapi - could be a static page, duplicate of options and root? QQQ
+    path('wcapi/help', UniversalCRUDView.as_view(), name='core/help.html'),
     # do not know
-    path('WCapi/manage', UniversalCRUDView.as_view(), name='manage'),
+    path('wcapi/manage', UniversalCRUDView.as_view(), name='manage'),
     # options, supports CORS preflight, method to get allowed methods, meta info
-    path('WCapi/options', UniversalCRUDView.as_view(), name='options'),
+    path('wcapi/options', UniversalCRUDView.as_view(), name='options'),
     # partial update
-    path('WCapi/patch', UniversalCRUDView.as_view(), name='patch'),
+    path('wcapi/patch', UniversalCRUDView.as_view(), name='patch'),
     # create or full update
-    path('WCapi/post', UniversalCRUDView.as_view(), name='post'),
+    path('wcapi/post', UniversalCRUDView.as_view(), name='post'),
     # full update
-    path('WCapi/put', UniversalCRUDView.as_view(), name='put'),
+    path('wcapi/put', UniversalCRUDView.as_view(), name='put'),
     # save was used in 4D, replace with post/put
-    # path('WCapi/save/', UniversalSaveView.as_view(), name='save'),
-    # Root endpoint for WCapi
+    # path('wcapi/save/', UniversalSaveView.as_view(), name='save'),
+    # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
-    path('WCapi/trace', UniversalCRUDView.as_view(), name='trace'),
+    path('wcapi/trace', UniversalCRUDView.as_view(), name='trace'),
 
 ]

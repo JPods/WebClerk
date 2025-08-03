@@ -44,7 +44,7 @@ const contactId = new URLSearchParams(window.location.search).get('contact_id');
 
 async function loadActionsManagement() {
     try {
-        let url = '/WCapi/get/?table_name=actions';
+        let url = '/wcapi/get/?table_name=actions';
         if (contactId) {
             url += `&refs.links.contacts=${contactId}`;
         }
@@ -140,21 +140,21 @@ async function loadActionsManagement() {
 function createNewAction() {
     const actionName = prompt('Enter action name:');
     if (actionName) {
-        alert(`Creating action: ${actionName}\nThis would use: POST /WCapi/save/?table_name=actions`);
+        alert(`Creating action: ${actionName}\nThis would use: POST /wcapi/save/?table_name=actions`);
         loadActionsManagement(); // Reload
     }
 }
 
 function updateStatus(actionId, newStatus) {
-    alert(`Updating action ${actionId} status to: ${newStatus}\nThis would use: PUT /WCapi/save/?table_name=actions&id=${actionId}`);
+    alert(`Updating action ${actionId} status to: ${newStatus}\nThis would use: PUT /wcapi/save/?table_name=actions&id=${actionId}`);
 }
 
 function updatePriority(actionId, newPriority) {
-    alert(`Updating action ${actionId} priority to: ${newPriority}\nThis would use: PUT /WCapi/save/?table_name=actions&id=${actionId}`);
+    alert(`Updating action ${actionId} priority to: ${newPriority}\nThis would use: PUT /wcapi/save/?table_name=actions&id=${actionId}`);
 }
 
 function updateProgress(actionId, newProgress) {
-    alert(`Updating action ${actionId} progress to: ${newProgress}%\nThis would use: PUT /WCapi/save/?table_name=actions&id=${actionId}`);
+    alert(`Updating action ${actionId} progress to: ${newProgress}%\nThis would use: PUT /wcapi/save/?table_name=actions&id=${actionId}`);
 }
 
 function editAction(actionId) {
@@ -163,7 +163,7 @@ function editAction(actionId) {
 
 function deleteAction(actionId) {
     if (confirm('Are you sure you want to delete this action?')) {
-        alert(`Deleting action ${actionId}\nThis would use: DELETE /WCapi/delete/?table_name=actions&id=${actionId}`);
+        alert(`Deleting action ${actionId}\nThis would use: DELETE /wcapi/delete/?table_name=actions&id=${actionId}`);
         loadActionsManagement(); // Reload
     }
 }

@@ -14,7 +14,7 @@ cat > temp_header.txt << 'EOF'
 <!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/templates/communications/manage_addresses.html -->
 <!-- 
 PURPOSE: Address management interface using Universal API for full CRUD operations
-UNIVERSAL API: Uses /WCapi/get/, /WCapi/save/, /WCapi/delete/ endpoints
+UNIVERSAL API: Uses /wcapi/get/, /wcapi/save/, /wcapi/delete/ endpoints
 REPLACES: Old hardcoded address management system with individual views
 TEAM NOTE: This template shows the complete pattern for building Universal API interfaces
 ARCHITECTURE: Client-side JavaScript communicates with Universal API endpoints
@@ -41,17 +41,17 @@ cat > temp_header.txt << 'EOF'
 <!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/templates/core/contact.html -->
 <!-- 
 PURPOSE: Main contact detail page with Universal API navigation links
-UNIVERSAL API: Links to /WCapi/{table}/manage/ endpoints for related data
+UNIVERSAL API: Links to /wcapi/{table}/manage/ endpoints for related data
 REPLACES: Old hardcoded URLs like /manage-addresses/, /manage-phones/
 TEAM NOTE: Shows how to convert traditional Django links to Universal API URLs
 ARCHITECTURE: Central hub that connects to all related data via Universal API
-URL PATTERN: href="/WCapi/{table_name}/manage/?contact_id={{ user.id }}"
+URL PATTERN: href="/wcapi/{table_name}/manage/?contact_id={{ user.id }}"
 NAVIGATION:
-  - Addresses: /WCapi/addresses/manage/?contact_id=X
-  - Phones: /WCapi/phones/manage/?contact_id=X
-  - Emails: /WCapi/emails/manage/?contact_id=X
-  - Domains: /WCapi/domains/manage/?contact_id=X
-  - Actions: /WCapi/actions/manage/?contact_id=X
+  - Addresses: /wcapi/addresses/manage/?contact_id=X
+  - Phones: /wcapi/phones/manage/?contact_id=X
+  - Emails: /wcapi/emails/manage/?contact_id=X
+  - Domains: /wcapi/domains/manage/?contact_id=X
+  - Actions: /wcapi/actions/manage/?contact_id=X
 TABLES: Links to all communication tables via Universal API
 CONTEXT: Receives contact data from Django view, passes to Universal API via URLs
 -->
@@ -148,7 +148,7 @@ cat > temp_header.txt << 'EOF'
 #   - Role-based permissions
 #   - UUID generation
 #   - Superuser auto-role assignment
-# TABLES: Stored in 'contacts' table, accessible via /WCapi/contacts/
+# TABLES: Stored in 'contacts' table, accessible via /wcapi/contacts/
 
 EOF
 
@@ -196,17 +196,17 @@ cat > temp_header.txt << 'EOF'
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py
 # 
 # PURPOSE: URL routing for Universal API endpoints and standard Django views
-# UNIVERSAL API: Routes /WCapi/ URLs to universal views that handle any table
+# UNIVERSAL API: Routes /wcapi/ URLs to universal views that handle any table
 # REPLACES: Individual URL patterns for each table management interface
 # TEAM NOTE: These patterns enable Universal API to work with any table name dynamically
 # ARCHITECTURE: Implements 4D-style universal table access via URLs
 # URL PATTERNS:
-#   - /WCapi/<table_name>/manage/ -> Universal management interface
-#   - /WCapi/query/ -> Universal query endpoint
-#   - /WCapi/save/ -> Universal save endpoint
-#   - /WCapi/get/ -> Universal get endpoint
-#   - /WCapi/delete/ -> Universal delete endpoint
-#   - /WCapi/clone/ -> Universal clone endpoint
+#   - /wcapi/<table_name>/manage/ -> Universal management interface
+#   - /wcapi/query/ -> Universal query endpoint
+#   - /wcapi/save/ -> Universal save endpoint
+#   - /wcapi/get/ -> Universal get endpoint
+#   - /wcapi/delete/ -> Universal delete endpoint
+#   - /wcapi/clone/ -> Universal clone endpoint
 # SECURITY: All Universal API endpoints require authentication
 # TABLES: Works with any table registered in UniversalCRUDView.TABLE_REGISTRY
 

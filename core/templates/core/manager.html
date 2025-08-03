@@ -169,7 +169,7 @@ console.log('Current user:', CURRENT_USER);
 async function loadContactsList() {
     try {
         console.log('Loading contacts list from Universal API...');
-        const response = await fetch('/WCapi/get/?table_name=contacts');
+        const response = await fetch('/wcapi/get/?table_name=contacts');
         const data = await response.json();
         
         console.log('API Response:', data);
@@ -373,7 +373,7 @@ async function populateRealData(user_id) {
                 source: 'Updated'
             };
             
-            const response = await fetch(`/WCapi/save/?table_name=contacts&id=${user_id}`, {
+            const response = await fetch(`/wcapi/save/?table_name=contacts&id=${user_id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -443,7 +443,7 @@ async function selectContact(user_id) {
     renderContactsList(allContacts); // Re-render to show selection
     
     try {
-        const response = await fetch(`/WCapi/get/?table_name=contacts&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
         const data = await response.json();
         
         console.log('Contact details response:', data);
@@ -488,7 +488,7 @@ async function loadRelatedData(user_id) {
 // Update the related data functions to handle your API structure
 async function loadActions(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=actions&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=actions&id=${user_id}`);
         const data = await response.json();
         
         console.log('Actions response:', data);
@@ -543,7 +543,7 @@ async function loadActions(user_id) {
 
 async function loadEmails(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=emails&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=emails&id=${user_id}`);
         const data = await response.json();
         
         console.log('Emails response:', data);
@@ -593,7 +593,7 @@ async function loadEmails(user_id) {
 
 async function loadPhones(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=phones&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=phones&id=${user_id}`);
         const data = await response.json();
         
         let phones = [];
@@ -641,7 +641,7 @@ async function loadPhones(user_id) {
 
 async function loadAddresses(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=addresses&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=addresses&id=${user_id}`);
         const data = await response.json();
         
         let addresses = [];
@@ -691,7 +691,7 @@ async function loadAddresses(user_id) {
 
 async function loadDomains(user_id) {
     try {
-        const response = await fetch(`/WCapi/get/?table_name=domains&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=domains&id=${user_id}`);
         const data = await response.json();
         
         let domains = [];
@@ -797,7 +797,7 @@ async function saveContact() {
     };
     
     try {
-        const response = await fetch(`/WCapi/save/?table_name=contacts&id=${selecteduser_id}`, {
+        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${selecteduser_id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -843,7 +843,7 @@ async function createNewContact() {
         };
         
         try {
-            const response = await fetch('/WCapi/save/?table_name=contacts', {
+            const response = await fetch('/wcapi/save/?table_name=contacts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -875,7 +875,7 @@ async function deleteContact() {
     
     if (confirm('Are you sure you want to delete this contact? This will also delete all related records.')) {
         try {
-            const response = await fetch(`/WCapi/delete/?table_name=contacts&id=${selecteduser_id}`, {
+            const response = await fetch(`/wcapi/delete/?table_name=contacts&id=${selecteduser_id}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
@@ -1007,12 +1007,12 @@ async function debugUniversalAPI() {
     console.log('=== UNIVERSAL API DEBUG TEST ===');
     
     const tests = [
-        '/WCapi/get/?table_name=contacts',
-        '/WCapi/get/?table_name=actions',
-        '/WCapi/get/?table_name=emails',
-        '/WCapi/get/?table_name=phones',
-        '/WCapi/get/?table_name=addresses',
-        '/WCapi/get/?table_name=domains'
+        '/wcapi/get/?table_name=contacts',
+        '/wcapi/get/?table_name=actions',
+        '/wcapi/get/?table_name=emails',
+        '/wcapi/get/?table_name=phones',
+        '/wcapi/get/?table_name=addresses',
+        '/wcapi/get/?table_name=domains'
     ];
     
     for (const endpoint of tests) {

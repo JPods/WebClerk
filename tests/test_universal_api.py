@@ -40,7 +40,7 @@ class UniversalAPITestCase(TestCase):
             data.update(filters)
         
         response = self.client.post(
-            '/WCapi/query/',
+            '/wcapi/query/',
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -52,7 +52,7 @@ class UniversalAPITestCase(TestCase):
         data.update(record_data)
         
         response = self.client.post(
-            '/WCapi/save/',
+            '/wcapi/save/',
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -66,7 +66,7 @@ class UniversalAPITestCase(TestCase):
         }
         
         response = self.client.post(
-            '/WCapi/get/',
+            '/wcapi/get/',
             data=json.dumps(data),
             content_type='application/json'
         )
