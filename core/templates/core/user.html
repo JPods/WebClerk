@@ -212,69 +212,18 @@ let userContactId = null; // Will be set when we load user data
 // Load current user's contact record
 async function loadUserProfile() {
     try {
-        console.log('Loading profile for user:', '{{ user.username }}', 'Email:', '{{ user.email }}');
-        
-        // First, try to find contact by email address
-        const userEmail = "{{ user.email|default:'' }}";
+        // Fetch the contact record by id (user.id)
+        const response = await fetch(`/WCapi/get/?table_name=contacts&id={{ user.id }}`);
+        const data = await response.json();
+
         let userContact = null;
-        
-        if (userEmail) {
-            console.log('Searching for contact with email:', userEmail);
-            
-            // Method 1: Try to find contact directly by email field
-            try {
-                const contactResponse = await fetch(`/WCapi/get/?table_name=contacts&email=${encodeURIComponent(userEmail)}`);
-                const contactData = await contactResponse.json();
-                
-                if (contactData.success && contactData.data && contactData.data.length > 0) {
-                    userContact = contactData.data[0];
-                    userContactId = userContact.id;
-                    console.log('Found contact directly:', userContact);
-                }
-            } catch (error) {
-                console.log('Direct contact search failed, trying email lookup...');
-            }
-            
-            // Method 2: If not found, search through emails table
-            if (!userContact) {
-                try {
-                    const emailResponse = await fetch(`/WCapi/get/?table_name=emails&email=${encodeURIComponent(userEmail)}`);
-                    const emailData = await emailResponse.json();
-                    
-                    if (emailData.success && emailData.data && emailData.data.length > 0) {
-                        userContactId = emailData.data[0].contact_id;
-                        console.log('Found contact ID via emails table:', userContactId);
-                        
-                        const contactResponse = await fetch(`/WCapi/get/?table_name=contacts&id=${userContactId}`);
-                        const contactData = await contactResponse.json();
-                        
-                        if (contactData.success && contactData.data) {
-                            userContact = contactData.data;
-                            console.log('Retrieved contact record:', userContact);
-                        }
-                    }
-                } catch (error) {
-                    console.log('Email lookup failed:', error);
-                }
-            }
+        if (data.success && data.data) {
+            // If your API returns a single object for one record
+            userContact = data.data;
+            userContactId = userContact.id;
+            console.log('Loaded contact by id:', userContact);
         }
-        
-        // Method 3: Try to find by user_id or username
-        if (!userContact) {
-            try {
-                const response = await fetch(`/WCapi/get/?table_name=contacts&user_id={{ user.id }}`);
-                const data = await response.json();
-                
-                if (data.success && data.data && data.data.length > 0) {
-                    userContact = data.data[0];
-                    userContactId = userContact.id;
-                    console.log('Found contact by user_id:', userContact);
-                }
-            } catch (error) {
-                console.log('User ID lookup failed:', error);
-            }
-        }
-        
+
         if (userContact) {
             console.log('Loading data for contact ID:', userContactId);
             populateUserProfile(userContact);
