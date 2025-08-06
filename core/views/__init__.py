@@ -1,6 +1,8 @@
 from django.views.generic import TemplateView
 from django.http import JsonResponse, HttpResponse
 from django.views import View
+from django.apps import apps
+from django.core import serializers
 from .contact_view import WebContactView
 from .edit_views import EditContactView
 from .web_auth_views import WebSignupView, WebLoginView, WebLogoutView
@@ -15,53 +17,50 @@ class AboutView(TemplateView):
 # Universal API Views - Simple implementations for now
 class UniversalCRUDView(TemplateView):
     """Universal management interface for all tables"""
-    template_name = 'core/universal_manage.html'
+    template_name = 'core/uni.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['table_name'] = self.request.GET.get('table_name', 'contacts')
         context['record_id'] = self.request.GET.get('id')
         context['mode'] = self.request.GET.get('mode', 'list')
+        print(context)  # Debugging output
         return context
 
+
+
 class UniversalGetView(View):
-    """Get records from any table"""
     def get(self, request):
         table_name = request.GET.get('table_name', 'contacts')
         record_id = request.GET.get('id')
-        
-        # Placeholder response - replace with real database queries
-        if record_id:
-            data = {
-                'success': True,
-                'data': {'id': record_id, 'table': table_name, 'sample': 'data'}
-            }
-        else:
-            data = {
-                'success': True,
-                'data': [
-                    {'id': 1, 'table': table_name, 'sample': 'record 1'},
-                    {'id': 2, 'table': table_name, 'sample': 'record 2'},
-                ]
-            }
-        
-        return JsonResponse(data)
+        print(f"UniversalGetView: table_name={table_name}, record_id={record_id}")
 
-class UniversalQueryView(View):
-    """Query/search records from any table"""
-    def get(self, request):
-        table_name = request.GET.get('table_name', 'contacts')
-        search = request.GET.get('search', '')
-        
-        data = {
-            'success': True,
-            'data': [
-                {'id': 1, 'table': table_name, 'search_result': f'Match for: {search}'},
-            ],
-            'total': 1
-        }
-        
-        return JsonResponse(data)
+        # Singularize and capitalize table name for model lookup
+        model_name = table_name.rstrip('s').capitalize()
+        print(f"UniversalGetView: model_name={model_name}")
+
+        model = apps.get_model('core', model_name)
+        print(f"UniversalGetView: model={model}")
+
+        if record_id:
+            queryset = model.objects.filter(id=record_id)
+        else:
+            queryset = model.objects.all()
+        print(f"UniversalGetView: queryset count={queryset.count()}")
+
+        data = []
+        for obj in queryset:
+            record = obj.__dict__.copy()
+            record.pop('_state', None)
+            record['id'] = obj.id
+            record['table'] = table_name
+            record['sample'] = str(obj)
+            print(f"UniversalGetView: record={record}")
+            data.append(record)
+
+        print(f"UniversalGetView: response data count={len(data)}")
+        return JsonResponse({'success': True, 'data': data})
+
 
 class UniversalSaveView(View):
     """Save (create/update) records to any table"""

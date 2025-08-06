@@ -2,8 +2,9 @@ from django.urls import path
 from core.views import (
     HomeView, AboutView,
     WebSignupView, WebLoginView, WebLogoutView,
-    UniversalCRUDView
-    
+    UniversalCRUDView,
+    UniversalGetView
+
 )
 from django.views.generic import TemplateView
 
@@ -40,7 +41,7 @@ urlpatterns = [
     path('wcapi/delete/', UniversalCRUDView.as_view(), name='delete-crud'),
     
     # list/read records
-    path('wcapi/get/', UniversalCRUDView.as_view(), name='get'),
+    path('wcapi/get/', UniversalGetView.as_view(), name='get'),
     
     # Headers only
     path('wcapi/head/', UniversalCRUDView.as_view(), name='head'),

@@ -1,0 +1,69 @@
+
+    """Get records from any table"""
+    def get(self, request):
+        table_name = request.GET.get('table_name', 'contacts')
+        record_id = request.GET.get('id')
+
+        # Dynamically get the model class
+        try:
+            model = apps.get_model('core', table_name.capitalize())
+        except LookupError:
+            return JsonResponse({'success': False, 'error': f'Model for table {table_name} not found.'}, status=400)
+
+        if record_id:
+            try:
+                obj = model.objects.get(id=record_id)
+                data = {
+                    'success': True,
+                    'data': serializers.serialize('python', [obj])[0]['fields']
+                }
+            except model.DoesNotExist:
+                data = {'success': False, 'error': 'Record not found.'}
+        else:
+            queryset = model.objects.all()
+            data = {
+                'success': True,
+                'data': [item['fields'] for item in serializers.serialize('python', queryset)]
+            }
+
+        return JsonResponse(data)
+    
+
+    """Get records from any table"""
+    def get(self, request):
+        table_name = request.GET.get('table_name', 'contacts')
+        record_id = request.GET.get('id')
+        
+        # Placeholder response - replace with real database queries
+        if record_id:
+            data = {
+                'success': True,
+                'data': {'id': record_id, 'table': table_name, 'sample': 'data'}
+            }
+        else:
+            data = {
+                'success': True,
+                'data': [
+                    {'id': 1, 'table': table_name, 'sample': 'record 1'},
+                    {'id': 2, 'table': table_name, 'sample': 'record 2'},
+                ]
+            }
+        
+        return JsonResponse(data)
+
+
+        class UniversalGetView(View):
+    def get(self, request):
+        table_name = request.GET.get('table_name', 'contacts')
+        model = apps.get_model('core', table_name.capitalize())
+        queryset = model.objects.all()  # <-- Define queryset here
+
+        data = []
+        for obj in queryset:
+            record = obj.__dict__.copy()
+            record.pop('_state', None)
+            record['id'] = obj.id
+            record['table'] = table_name
+            record['sample'] = str(obj)
+            data.append(record)
+        return JsonResponse({'success': True, 'data': data})
