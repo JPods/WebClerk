@@ -67,7 +67,7 @@ core/templates/
 ### Template Structure for development use without front end
 ```
 core/templates/
-├── base.html                 # Main layout with lesson1-style nav
+├── base.html                 # Main base with lesson1-style nav
 ├── core/
 │   ├── home.html            # Landing page
 │   ├── about.html           # About page
