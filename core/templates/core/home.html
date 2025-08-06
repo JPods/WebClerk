@@ -53,7 +53,7 @@
                     <div class="btn-group" role="group" aria-label="View selector">
                         <!-- User View Button -->
                         {% if user.is_authenticated %}
-                            <a href="/wcapi/get/?table_name=contacts&id={{ user.id }}&template_name=core/contact.html" class="btn btn-outline-success btn-lg">
+                            <a href="/user/" class="btn btn-outline-success btn-lg">
                                 <i class="fas fa-user"></i> User View
                                 <br><small>Personal Profile & Actions</small>
                             </a>
