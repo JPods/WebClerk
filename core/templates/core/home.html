@@ -17,7 +17,8 @@
                     
                     {% if user.is_authenticated %}
                         <div class="mt-4">
-                            <a class="btn btn-light btn-lg" href="/user/{{ user.id }}" role="button">
+                            <a class="btn btn-light btn-lg" href="/user/" role="button">
+                                
                                 <i class="fas fa-user"></i> My Profile
                             </a>
                             {% if user.is_staff or user.is_superuser %}
