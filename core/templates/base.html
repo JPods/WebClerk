@@ -37,13 +37,13 @@
                     </li>
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/profile/">
+                            <a class="nav-link" href="/wcapi/get/?table_name=contacts&id={{ user.id }}">
                                 <i class="fas fa-user"></i> Profile
                             </a>
                         </li>
                         {% if user.is_staff or user.is_superuser %}
                             <li class="nav-item">
-                                <a class="nav-link" href="/wcapi/get?table_name=contacts">
+                                <a class="nav-link" href="/wcapi/get/?table_name=contacts&id={{ user.id }}">
                                     <i class="fas fa-users"></i> Contacts
                                 </a>
                             </li>

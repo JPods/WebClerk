@@ -72,10 +72,16 @@
                                 <td>Search & Filter</td>
                                 <td><code>?table_name=contacts&search=john</code></td>
                             </tr>
+
+                            <tr>
+                                <td><code>/wcapi/keywords/</code></td>
+                                <td>Search & Filter</td>
+                                <td><code>?table_name=contacts&keywords=john,Smith</code></td>
+                            </tr>
                             <tr>
                                 <td><code>/wcapi/save/</code></td>
                                 <td>Create/Update</td>
-                                <td><code>POST ?table_name=actions</code></td>
+                                <td><code>POST ?table_name=actions&id=456&template_name=core/action.html</code></td>
                             </tr>
                             <tr>
                                 <td><code>/wcapi/delete/</code></td>

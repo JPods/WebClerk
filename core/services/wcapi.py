@@ -21,6 +21,7 @@ class UniversalCRUDView(View):
         print("=== UniversalCRUDView CALLED ===")  # <--- Add this line
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
+        template_name = request.GET.get('template_name')
         model = MODEL_MAP.get(table_name)
         if not model:
             return JsonResponse({'success': False, 'message': 'Invalid table_name'})

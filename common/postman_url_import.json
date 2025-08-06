@@ -1,330 +1,569 @@
 {
-  "info": {
-    "name": "WebClerk API Endpoints",
-    "_postman_id": "webclerk-api-endpoints-2025",
-    "description": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"table_name\":\"contacts\",\"id\":3})",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Signup",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/signup/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["signup", ""]
-        }
-      }
-    },
-    {
-      "name": "Login",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/login/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["login", ""]
-        }
-      }
-    },
-    {
-      "name": "Logout",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/logout/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["logout", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Connect",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/connect/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "connect", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Delete",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/delete/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "delete", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Query",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/query/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "query", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Get",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/get/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "get", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Head",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/head/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "head", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Help",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/help/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "help", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Manage",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/manage/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "manage", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Options",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/options/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "options", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Patch",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/patch/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "patch", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Post",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/post/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "post", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Save",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/save/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "save", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Put",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/put/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "put", ""]
-        }
-      }
-    },
-    {
-      "name": "WCAPI Trace",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
-        },
-        "url": {
-          "raw": "http://localhost:8000/wcapi/trace/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "8000",
-          "path": ["wcapi", "trace", ""]
-        }
-      }
-    }
-  ]
+	"info": {
+		"_postman_id": "22cefbe9-95e0-4354-b2f7-86e9bf42eeba",
+		"name": "WebClerk API Endpoints",
+		"description": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"table_name\":\"contacts\",\"id\":3})",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14022474",
+		"_collection_link": "https://www.postman.com/restless-moon-518305/workspace/webclerk/collection/45428116-22cefbe9-95e0-4354-b2f7-86e9bf42eeba?action=share&source=collection_link&creator=14022474"
+	},
+	"item": [
+		{
+			"name": "Signup",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/signup/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"signup",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/login/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"login",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Logout",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/logout/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"logout",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Connect",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/connect/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"connect",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Delete",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/delete/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"delete",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Query",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/query/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"query",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Get",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/get/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"get",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Head",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/head/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"head",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Help",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/help/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"help",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Manage",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/manage/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"manage",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Options",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/options/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"options",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Patch",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/patch/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"patch",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Post",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/post/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"post",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Save",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/save/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"save",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Put",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/put/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"put",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WCAPI Trace",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/wcapi/trace/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"wcapi",
+						"trace",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/token/",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the JSON response",
+							"var jsonData = pm.response.json();",
+							"// Set 'access' and 'refresh' tokens as environment variables",
+							"if (jsonData.access) {",
+							"    pm.environment.set(\"access_token\", jsonData.access);",
+							"}",
+							"if (jsonData.refresh) {",
+							"    pm.environment.set(\"refresh_token\", jsonData.refresh);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"bill.james@jpods.com\",\n  \"password\": \"bill1234\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/token/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"token",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
 }
