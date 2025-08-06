@@ -66,7 +66,7 @@ class WebLoginView(View):
     def post(self, request):
         email = request.POST.get('email')
         password = request.POST.get('password')
-        next_url = request.GET.get('next', '/contact/')
+        next_url = request.GET.get('next', '/user/')
         
         if not email or not password:
             messages.error(request, 'Please provide both email and password.')
