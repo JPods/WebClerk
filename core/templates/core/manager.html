@@ -161,6 +161,8 @@ const CURRENT_USER = {
 // Global variables
 let allContacts = [];
 let selecteduser_id = null;
+let isEditingContact = false;
+let isCreatingContact = false;
 
 // Fetch contacts from your backend API
 async function loadContacts() {
@@ -303,17 +305,81 @@ function renderContactsList(contacts) {
 
 function renderContactDetails(contact) {
     const details = document.getElementById('contact-details');
-    if (!contact) {
+    if (!contact && !isCreatingContact) {
         details.innerHTML = '<div class="text-center text-muted"><i class="fas fa-user-circle fa-3x mb-3"></i><p>Select a contact from the list above</p></div>';
         return;
     }
-    details.innerHTML = `
-        <h5>${contact.name_first} ${contact.name_last}</h5>
-        <p><strong>Email:</strong> ${contact.email || ''}</p>
-        <p><strong>Company:</strong> ${contact.company || ''}</p>
-        <p><strong>Title:</strong> ${contact.title || ''}</p>
-        <p><strong>Role:</strong> ${contact.role || ''}</p>
-    `;
+
+    // Use blank fields if creating new
+    const c = contact || {};
+
+    if (isEditingContact || isCreatingContact) {
+        details.innerHTML = `
+            <div class="mb-2">
+                <label>First Name</label>
+                <input class="form-control" id="edit-name-first" value="${c.name_first || ''}">
+            </div>
+            <div class="mb-2">
+                <label>Last Name</label>
+                <input class="form-control" id="edit-name-last" value="${c.name_last || ''}">
+            </div>
+            <div class="mb-2">
+                <label>Email</label>
+                <input class="form-control" id="edit-email" value="${c.email || ''}">
+            </div>
+            <div class="mb-2">
+                <label>Company</label>
+                <input class="form-control" id="edit-company" value="${c.company || ''}">
+            </div>
+            <div class="mb-2">
+                <label>Title</label>
+                <input class="form-control" id="edit-title" value="${c.title || ''}">
+            </div>
+            <div class="mb-2">
+                <label>Role</label>
+                <input class="form-control" id="edit-role" value="${c.role || ''}">
+            </div>
+        `;
+    } else {
+        details.innerHTML = `
+            <h5>${c.name_first || ''} ${c.name_last || ''}</h5>
+            <p><strong>Email:</strong> ${c.email || ''}</p>
+            <p><strong>Company:</strong> ${c.company || ''}</p>
+            <p><strong>Title:</strong> ${c.title || ''}</p>
+            <p><strong>Role:</strong> ${c.role || ''}</p>
+        `;
+    }
+}
+
+function toggleContactEdit() {
+    if (isEditingContact) {
+        // Save logic here
+        const updated = {
+            name_first: document.getElementById('edit-name-first').value,
+            name_last: document.getElementById('edit-name-last').value,
+            email: document.getElementById('edit-email').value,
+            company: document.getElementById('edit-company').value,
+            title: document.getElementById('edit-title').value,
+            role: document.getElementById('edit-role').value,
+            id: selecteduser_id
+        };
+        // TODO: Send updated to backend via fetch/POST
+        isEditingContact = false;
+        renderContactDetails(updated);
+        document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-edit"></i> Edit';
+    } else {
+        isEditingContact = true;
+        renderContactDetails(allContacts.find(c => c.id == selecteduser_id));
+        document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-save"></i> Save';
+    }
+}
+
+function createNewContact() {
+    isCreatingContact = true;
+    isEditingContact = false;
+    selecteduser_id = null;
+    renderContactDetails({});
+    document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-save"></i> Save';
 }
 
 // Do NOT call renderContactsList inside selectContact or renderContactDetails!
