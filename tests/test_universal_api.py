@@ -46,7 +46,7 @@ class UniversalAPITestCase(TestCase):
         )
         return response
     
-    def universal_save(self, table_name, record_data):
+    def save_view(self, table_name, record_data):
         """Universal save method - works for ANY table"""
         data = {'table_name': table_name}
         data.update(record_data)
@@ -96,7 +96,7 @@ class ContactAPITests(UniversalAPITestCase):
             'company': 'Universal Corp'
         }
         
-        response = self.universal_save('contacts', contact_data)
+        response = self.save_view('contacts', contact_data)
         
         # Check response
         print(f"📝 Save contact response: {response.status_code}")
@@ -135,7 +135,7 @@ class AddressAPITests(UniversalAPITestCase):
             'address_type': 'home'
         }
         
-        response = self.universal_save('addresses', address_data)
+        response = self.save_view('addresses', address_data)
         
         # Check response
         print(f"📍 Save address response: {response.status_code}")
@@ -169,7 +169,7 @@ class PhoneAPITests(UniversalAPITestCase):
             'attention': 'Primary Contact'
         }
         
-        response = self.universal_save('phones', phone_data)
+        response = self.save_view('phones', phone_data)
         
         # Check response
         print(f"📞 Save phone response: {response.status_code}")
@@ -203,7 +203,7 @@ class EmailAPITests(UniversalAPITestCase):
             'is_primary': True
         }
         
-        response = self.universal_save('emails', email_data)
+        response = self.save_view('emails', email_data)
         
         # Check response
         print(f"📧 Save email response: {response.status_code}")

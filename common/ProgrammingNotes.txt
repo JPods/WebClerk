@@ -1,0 +1,12 @@
+core/views/__init__.py 
+
+Care must be taken if the table 
+name is not a standard "s" ending
+
+
+        app_label = TABLE_APP_MAP.get(table_name, 'core')
+        if table_name == "addresses":
+            model_name = "Address"
+        else:
+            model_name = table_name.rstrip('s').capitalize()
+

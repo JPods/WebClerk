@@ -6,6 +6,7 @@ from django.core import serializers
 from .contact_view import WebContactView
 from .edit_views import EditContactView
 from .web_auth_views import WebSignupView, WebLoginView, WebLogoutView
+from django.db.models import Q
 
 # Define HomeView and AboutView directly in this file
 class HomeView(TemplateView):
@@ -38,7 +39,10 @@ class UniversalGetView(View):
 
         # Get app label from map, default to 'core'
         app_label = TABLE_APP_MAP.get(table_name, 'core')
-        model_name = table_name.rstrip('s').capitalize()
+        if table_name == "addresses":
+            model_name = "Address"
+        else:
+            model_name = table_name.rstrip('s').capitalize()
         print(f"UniversalGetView: app_label={app_label}, model_name={model_name}")
 
         model = apps.get_model(app_label, model_name)
@@ -48,8 +52,14 @@ class UniversalGetView(View):
         queryset = model.objects.all()
         if record_id:
             queryset = queryset.filter(id=record_id)
-        if contact_id and hasattr(model, 'contact_id'):
-            queryset = queryset.filter(contact_id=contact_id)
+        if contact_id and contact_id.isdigit():
+            if hasattr(model, 'contact_id'):
+                queryset = queryset.filter(contact_id=contact_id)
+            elif table_name in ['actions', 'emails', 'phones', 'addresses', 'domains']:
+                queryset = queryset.filter(**{'refs__links__contacts__contains': [int(contact_id)]})
+        elif table_name in ['actions', 'emails', 'phones', 'addresses', 'domains']:
+            print(f"UniversalGetView: No valid contact_id for {table_name}, returning empty queryset.")
+            queryset = model.objects.none()
         print(f"UniversalGetView: queryset count={queryset.count()}")
 
         data = []
@@ -66,7 +76,7 @@ class UniversalGetView(View):
         return JsonResponse({'success': True, 'data': data})
 
 
-class UniversalSaveView(View):
+class SaveView(View):
     """Save (create/update) records to any table"""
     def post(self, request):
         table_name = request.GET.get('table_name', 'contacts')
@@ -116,6 +126,6 @@ __all__ = [
     'UniversalCRUDView',
     'UniversalGetView',
     'UniversalQueryView',
-    'UniversalSaveView',
+    'SaveView',
     'UniversalDeleteView',
 ]

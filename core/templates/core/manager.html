@@ -159,918 +159,170 @@ const CURRENT_USER = {
 };
 
 // Global variables
-let selecteduser_id = null;
-let editingContact = false;
 let allContacts = [];
+let selecteduser_id = null;
 
-console.log('Current user:', CURRENT_USER);
-
-// Load all contacts from Universal API
-async function loadContactsList() {
+// Fetch contacts from your backend API
+async function loadContacts() {
     try {
-        console.log('Loading contacts list from Universal API...');
         const response = await fetch('/wcapi/get/?table_name=contacts');
         const data = await response.json();
-        
-        console.log('API Response:', data);
-        
-        if (data.success && data.data && Array.isArray(data.data)) {
+        if (data.success && Array.isArray(data.data)) {
             allContacts = data.data;
-            console.log('Loaded contacts:', allContacts.length);
-            
-            // Auto-select current user's contact if found
-            if (CURRENT_USER.id) {
-                const userContact = allContacts.find(contact => contact.id == CURRENT_USER.id);
-                if (userContact) {
-                    console.log('Found user contact:', userContact);
-                    setTimeout(() => selectContact(CURRENT_USER.id), 500);
-                } else {
-                    console.log('User contact not found, trying first contact');
-                    if (allContacts.length > 0) {
-                        setTimeout(() => selectContact(allContacts[0].id), 500);
-                    }
-                }
+            renderContactsList(allContacts);
+            // Only select the first contact if none is selected yet
+            if (!selecteduser_id && allContacts.length > 0) {
+                selectContact(allContacts[0].id);
             }
-            
-            renderContactsList(allContacts);
         } else {
-            console.log('No valid data from API, creating demo contact');
-            // Create demo contact based on current user
-            // This is a fallback if no contacts exist
-            // QQQ: Implement a proper demo contact creation logic
-            allContacts = [{
-                id: CURRENT_USER.id || 1,
-                name_first: 'Bill',
-                name_last: 'James',
-                email: CURRENT_USER.email || 'bill.james@jpods.com',
-                company: 'JPods',
-                title: 'Manager',
-                department: 'Management',
-                status: 'active',
-                notes: 'Demo contact for ' + (CURRENT_USER.username || 'user'),
-                tags: 'user, demo',
-                source: 'System',
-                created_at: new Date().toISOString().split('T')[0],
-                updated_at: new Date().toISOString().split('T')[0]
-            }];
-            
-            renderContactsList(allContacts);
-            setTimeout(() => selectContact(CURRENT_USER.id || 1), 500);
+            // handle error or empty state
+            document.getElementById('contacts-list').innerHTML = '<div class="text-danger">No contacts found.</div>';
         }
-    } catch (error) {
-        console.error('Error loading contacts:', error);
-        document.getElementById('contacts-list').innerHTML = '<p class="text-danger">Error loading contacts: ' + error.message + '</p>';
+    } catch (e) {
+        document.getElementById('contacts-list').innerHTML = '<div class="text-danger">Failed to load contacts.</div>';
     }
 }
 
-function renderContactsList(contacts) {
-    let html = '';
-    contacts.forEach(contact => {
-        // Handle the actual API response structure
-        const firstName = contact.name_first || contact.first_name || '';
-        const lastName = contact.name_last || contact.last_name || '';
-        const email = contact.email || '';
-        const company = contact.company || '';
-        
-        // For your current API, use the sample field as a fallback
-        let fullName = `${firstName} ${lastName}`.trim();
-        if (!fullName) {
-            // Use the sample data from your API
-            fullName = contact.sample || `Contact #${contact.id}`;
-        }
-        
-        const isSelected = contact.id == selecteduser_id ? 'active' : '';
-        const isCurrentUser = contact.id == CURRENT_USER.id;
-        
-        html += `
-            <div class="contact-item p-2 border-bottom ${isSelected} ${isCurrentUser ? 'border-success border-2' : ''}" 
-                 onclick="selectContact(${contact.id})" 
-                 style="cursor: pointer; ${isSelected ? 'background-color: #e3f2fd;' : ''} ${isCurrentUser ? 'background-color: #f8fff8;' : ''}" data-contact-id="${contact.id}">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <strong>${fullName}</strong>
-                        ${isCurrentUser ? '<span class="badge bg-success ms-1"><i class="fas fa-star"></i> You</span>' : ''}
-                        ${email && email !== fullName ? `<br><small class="text-muted">${email}</small>` : ''}
-                        ${company ? `<br><small class="text-muted">${company}</small>` : ''}
-                        <br><small class="text-muted">Table: ${contact.table}</small>
-                    </div>
-                    <small class="text-muted">
-                        #${contact.id}
-                        ${isCurrentUser ? '<br><i class="fas fa-home text-success"></i>' : ''}
-                    </small>
-                </div>
-            </div>
-        `;
-    });
-    
-    if (html === '') {
-        html = '<div class="text-center text-muted">No contacts found</div>';
-    }
-    
-    document.getElementById('contacts-list').innerHTML = html;
-}
+// Call this ONCE on page load
+loadContacts();
 
-function renderContactDetails(contact) {
-    console.log('Rendering contact details:', contact);
-    
-    // Handle your actual API response structure
-    const firstName = contact.name_first || '';
-    const lastName = contact.name_last || '';
-    const title = contact.title || '';
-    const company = contact.company || '';
-    const department = contact.department || '';
-    const status = contact.status || 'active';
-    const notes = contact.notes || contact.sample || '';  // Use sample as fallback
-    const tags = contact.tags || '';
-    const source = contact.source || 'API';
-    const createdAt = contact.created_at || '';
-    const updatedAt = contact.updated_at || '';
-    
-    const html = `
-        <form id="contact-form">
-            <div class="alert alert-info">
-                <small><strong>API Debug Info:</strong> Table: ${contact.table}, Sample: ${contact.sample}</small>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="name_first" value="${firstName}" readonly>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="name_last" value="${lastName}" readonly>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Title</label>
-                        <input type="text" class="form-control" id="title" value="${title}" readonly>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Company</label>
-                        <input type="text" class="form-control" id="company" value="${company}" readonly>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Notes / Sample Data</label>
-                <textarea class="form-control" id="notes" rows="3" readonly>${notes}</textarea>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">API Table</label>
-                        <input type="text" class="form-control" value="${contact.table}" readonly>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Record ID</label>
-                        <input type="text" class="form-control" value="${contact.id}" readonly>
-                    </div>
-                </div>
-            </div>
-            
-            <button onclick="populateRealData(${contact.id})" class="btn btn-warning">
-                <i class="fas fa-database"></i> Populate with Real Data
-            </button>
-            <button onclick="deleteContact()" class="btn btn-outline-danger">
-                <i class="fas fa-trash"></i> Delete
-            </button>
-        </form>
-    `;
-    
-    document.getElementById('contact-details').innerHTML = html;
-}
-
-async function populateRealData(user_id) {
-    if (confirm('This will populate the contact with real data for your account. Continue?')) {
-        try {
-            const formData = {
-                name_first: 'Bill',
-                name_last: 'James',
-                email: CURRENT_USER.email || 'bill.james@jpods.com',
-                company: 'JPods',
-                title: 'Manager',
-                department: 'Management',
-                status: 'active',
-                notes: 'Real contact data for ' + CURRENT_USER.username,
-                tags: 'user, manager, real',
-                source: 'Updated'
-            };
-            
-            const response = await fetch(`/wcapi/save/?table_name=contacts&id=${user_id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(formData)
-            });
-            
-            const result = await response.json();
-            console.log('Populate result:', result);
-            
-            alert('Contact updated with real data! (Check console for API response)');
-            loadContactsList();
-            selectContact(user_id);
-            
-        } catch (error) {
-            console.error('Error populating real data:', error);
-            alert('Error updating contact: ' + error.message);
-        }
-    }
-}
-
-
-function searchContacts() {
-    const searchTerm = document.getElementById('contact-search').value.toLowerCase();
-    
-    if (searchTerm === '') {
-        renderContactsList(allContacts);
-        return;
-    }
-    
-    const filtered = allContacts.filter(contact => {
-        const firstName = contact.name_first || contact.first_name || '';
-        const lastName = contact.name_last || contact.last_name || '';
-        const fullName = `${firstName} ${lastName}`.toLowerCase();
-        const email = (contact.email || '').toLowerCase();
-        const company = (contact.company || '').toLowerCase();
-        
-        return fullName.includes(searchTerm) || 
-               email.includes(searchTerm) || 
-               company.includes(searchTerm);
-    });
-    
-    renderContactsList(filtered);
-}
-
-// Select a contact and load their details
 async function selectContact(user_id) {
-    selecteduser_id = user_id;
-    
-    console.log('Selecting contact:', user_id);
-    
-    // Update breadcrumb
-    const breadcrumb = document.getElementById('contact-breadcrumb');
-    const breadcrumbText = document.getElementById('breadcrumb-text');
-    
-    if (user_id == CURRENT_USER.id) {
-        breadcrumbText.innerHTML = 'Viewing your own profile';
-        breadcrumb.style.display = 'block';
-        breadcrumb.className = 'small text-success';
-    } else {
-        breadcrumbText.innerHTML = `Viewing contact #${user_id} • <a href="#" onclick="selectMyContact()" class="text-decoration-none">Return to my profile</a>`;
-        breadcrumb.style.display = 'block';
-        breadcrumb.className = 'small text-muted';
-    }
-    
-    renderContactsList(allContacts); // Re-render to show selection
-    
+    console.log('selectContact called with:', user_id);
+    selecteduser_id = user_id; // Set the global variable
+
     try {
         const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
         const data = await response.json();
-        
-        console.log('Contact details response:', data);
-        
+
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-            renderContactDetails(data.data[0]); // CORRECT: pass the first contact object
-            loadRelatedData();
+            renderContactDetails(data.data[0]);
+            loadRelatedData(selecteduser_id);
         } else {
-            // Fallback to contact from list
             const contact = allContacts.find(c => c.id == user_id);
             if (contact) {
                 renderContactDetails(contact);
-                loadRelatedData();
+                loadRelatedData(selecteduser_id);
             }
         }
-    } catch (error) {
-        console.error('Error loading contact details:', error);
-        const contact = allContacts.find(c => c.id == user_id);
-        if (contact) {
-            renderContactDetails(contact);
-            loadRelatedData(user_id);
-        }
+        // Re-render the list to update the highlight
+        renderContactsList(allContacts);
+    } catch (e) {
+        // handle error
     }
 }
 
-// Load related data for selected contact
 async function loadRelatedData(contact_id) {
+    console.log('loadRelatedData called with:', contact_id);
+    //if (!contact_id || contact_id === "undefined" || isNaN(Number(contact_id))) return;
+    
+    if (!contact_id || isNaN(Number(contact_id))) return; // Prevent bad calls
     loadActions(contact_id);
     loadEmails(contact_id);
     loadPhones(contact_id);
     loadAddresses(contact_id);
     loadDomains(contact_id);
 }
-
-
-// Update the related data functions to handle your API structure
-async function loadActions(user_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${user_id}`);
-        const data = await response.json();
-        
-        console.log('Actions response:', data);
-        
-        let actions = [];
-        if (data.success && data.data && Array.isArray(data.data)) {
-            actions = data.data;
-        }
-        
-        // Update header with count
-        const actionsHeader = document.querySelector('#actions-table').closest('.card').querySelector('.card-header h5');
-        actionsHeader.innerHTML = `<i class="fas fa-tasks"></i> Actions <span class="badge bg-secondary">${actions.length}</span>`;
-        
-        if (actions.length === 0) {
-            document.getElementById('actions-table').innerHTML = '<div class="text-center text-muted"><small>No actions found for contact ' + user_id + '</small></div>';
-            return;
-        }
-        
-        let html = '';
-        actions.forEach((action, index) => {
-            // Handle your API structure
-            const description = action.description || action.action || action.sample || `Action #${action.id}`;
-            const dueDate = action.due_date || action.dt_due || 'No date';
-            const priority = action.priority || 'medium';
-            const status = action.status || 'pending';
-            
-            html += `
-                <div class="action-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${description}</strong>
-                            <br><small class="text-muted">Due: ${dueDate}</small>
-                            <br><small class="text-muted">Table: ${action.table}, Sample: ${action.sample}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="editAction(${action.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('actions-table').innerHTML = html;
-        
-    } catch (error) {
-        console.error('Error loading actions:', error);
-        const actionsHeader = document.querySelector('#actions-table').closest('.card').querySelector('.card-header h5');
-        actionsHeader.innerHTML = `<i class="fas fa-tasks"></i> Actions <span class="badge bg-danger">Error</span>`;
-        document.getElementById('actions-table').innerHTML = '<p class="text-danger">Error loading actions</p>';
-    }
-}
-
-
-
-async function loadEmails(user_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${user_id}`);
-        const data = await response.json();
-        
-        console.log('Emails response:', data);
-        
-        let emails = [];
-        if (data.success && data.data && Array.isArray(data.data)) {
-            emails = data.data;
-        }
-        
-        // Update header with count
-        const emailsHeader = document.querySelector('#emails-table').closest('.card').querySelector('.card-header h5');
-        emailsHeader.innerHTML = `<i class="fas fa-envelope"></i> Emails <span class="badge bg-secondary">${emails.length}</span>`;
-        
-        if (emails.length === 0) {
-            document.getElementById('emails-table').innerHTML = '<div class="text-center text-muted"><small>No emails found</small></div>';
-            return;
-        }
-        
-        let html = '';
-        emails.forEach(email => {
-            const emailAddr = (email.email || 'No email').toString();
-            const emailName = (email.name || '').toString();
-            const type = (email.type || 'work').toString();
-            
-            html += `
-                <div class="email-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${emailAddr}</strong>
-                            ${emailName ? `<br><small class="text-muted">${emailName}</small>` : ''}
-                            <br><small class="text-muted">${type}${email.is_primary ? ' • Primary' : ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-success" onclick="editEmail(${email.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('emails-table').innerHTML = html;
-    } catch (error) {
-        console.error('Error loading emails:', error);
-        const emailsHeader = document.querySelector('#emails-table').closest('.card').querySelector('.card-header h5');
-        emailsHeader.innerHTML = `<i class="fas fa-envelope"></i> Emails <span class="badge bg-danger">Error</span>`;
-        document.getElementById('emails-table').innerHTML = '<p class="text-danger">Error loading emails</p>';
-    }
-}
-
-async function loadPhones(user_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${user_id}`);
-        const data = await response.json();
-        
-        let phones = [];
-        if (data.success && data.data && Array.isArray(data.data)) {
-            phones = data.data;
-        }
-        
-        // Update header with count
-        const phonesHeader = document.querySelector('#phones-table').closest('.card').querySelector('.card-header h5');
-        phonesHeader.innerHTML = `<i class="fas fa-phone"></i> Phone Numbers <span class="badge bg-secondary">${phones.length}</span>`;
-        
-        if (phones.length === 0) {
-            document.getElementById('phones-table').innerHTML = '<div class="text-center text-muted"><small>No phones found</small></div>';
-            return;
-        }
-        
-        let html = '';
-        phones.forEach(phone => {
-            const phoneNum = (phone.format || phone.number || phone.phone || 'No phone').toString();
-            const phoneName = (phone.name || '').toString();
-            const type = (phone.type || 'mobile').toString();
-            
-            html += `
-                <div class="phone-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${phoneNum}</strong>
-                            ${phoneName ? `<br><small class="text-muted">${phoneName}</small>` : ''}
-                            <br><small class="text-muted">${type}${phone.is_primary ? ' • Primary' : ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-warning" onclick="editPhone(${phone.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('phones-table').innerHTML = html;
-    } catch (error) {
-        console.error('Error loading phones:', error);
-        const phonesHeader = document.querySelector('#phones-table').closest('.card').querySelector('.card-header h5');
-        phonesHeader.innerHTML = `<i class="fas fa-phone"></i> Phone Numbers <span class="badge bg-danger">Error</span>`;
-        document.getElementById('phones-table').innerHTML = '<p class="text-danger">Error loading phones</p>';
-    }
-}
-
-async function loadAddresses(user_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${user_id}`);
-        const data = await response.json();
-        
-        let addresses = [];
-        if (data.success && data.data && Array.isArray(data.data)) {
-            addresses = data.data;
-        }
-        
-        // Update header with count
-        const addressesHeader = document.querySelector('#addresses-table').closest('.card').querySelector('.card-header h5');
-        addressesHeader.innerHTML = `<i class="fas fa-map-marker-alt"></i> Addresses <span class="badge bg-secondary">${addresses.length}</span>`;
-        
-        if (addresses.length === 0) {
-            document.getElementById('addresses-table').innerHTML = '<div class="text-center text-muted"><small>No addresses found</small></div>';
-            return;
-        }
-        
-        let html = '';
-        addresses.forEach(address => {
-            const street = (address.address1 || address.street1 || 'No address').toString();
-            const city = (address.city || '').toString();
-            const state = (address.state || '').toString();
-            const zip = (address.zip || '').toString();
-            const type = (address.address_type || address.type || 'home').toString();
-            
-            html += `
-                <div class="address-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${street}</strong>
-                            ${city && state ? `<br>${city}, ${state} ${zip}` : ''}
-                            <br><small class="text-muted">${type}${address.is_primary ? ' • Primary' : ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-info" onclick="editAddress(${address.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('addresses-table').innerHTML = html;
-    } catch (error) {
-        console.error('Error loading addresses:', error);
-        const addressesHeader = document.querySelector('#addresses-table').closest('.card').querySelector('.card-header h5');
-        addressesHeader.innerHTML = `<i class="fas fa-map-marker-alt"></i> Addresses <span class="badge bg-danger">Error</span>`;
-        document.getElementById('addresses-table').innerHTML = '<p class="text-danger">Error loading addresses</p>';
-    }
-}
-
-async function loadDomains(user_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${user_id}`);
-        const data = await response.json();
-        
-        let domains = [];
-        if (data.success && data.data && Array.isArray(data.data)) {
-            domains = data.data;
-        }
-        
-        // Update header with count
-        const domainsHeader = document.querySelector('#domains-table').closest('.card').querySelector('.card-header h5');
-        domainsHeader.innerHTML = `<i class="fas fa-globe"></i> Domains <span class="badge bg-secondary">${domains.length}</span>`;
-        
-        if (domains.length === 0) {
-            document.getElementById('domains-table').innerHTML = '<div class="text-center text-muted"><small>No domains found</small></div>';
-            return;
-        }
-        
-        let html = '';
-        domains.forEach(domain => {
-            const domainName = (domain.path || domain.domain || 'No domain').toString();
-            const description = (domain.description || domain.notes || '').toString();
-            const type = (domain.domain_type || domain.type || 'website').toString();
-            
-            html += `
-                <div class="domain-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${domainName}</strong>
-                            ${description ? `<br><small class="text-muted">${type} - ${description}</small>` : `<br><small class="text-muted">${type}</small>`}
-                            ${domain.is_active ? '<br><span class="badge bg-success">Active</span>' : '<br><span class="badge bg-secondary">Inactive</span>'}
-                        </div>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="editDomain(${domain.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('domains-table').innerHTML = html;
-    } catch (error) {
-        console.error('Error loading domains:', error);
-        const domainsHeader = document.querySelector('#domains-table').closest('.card').querySelector('.card-header h5');
-        domainsHeader.innerHTML = `<i class="fas fa-globe"></i> Domains <span class="badge bg-danger">Error</span>`;
-        document.getElementById('domains-table').innerHTML = '<p class="text-danger">Error loading domains</p>';
-    }
-}
-
-
-// Quick return to current user's contact
-function selectMyContact() {
-    if (CURRENT_USER.id) {
-        console.log('Returning to my contact:', CURRENT_USER.id);
-        selectContact(CURRENT_USER.id);
-        
-        // Clear search to show full list
-        document.getElementById('contact-search').value = '';
-        renderContactsList(allContacts);
-    } else {
-        alert('Your contact record not found');
-    }
-}
-
-// Contact editing functions
-function toggleContactEdit() {
-    editingContact = !editingContact;
-    const inputs = document.querySelectorAll('#contact-form input, #contact-form textarea, #contact-form select');
-    const editBtn = document.getElementById('edit-contact-btn');
-    const saveBtn = document.getElementById('save-contact-btn');
-    const cancelBtn = document.getElementById('cancel-contact-btn');
-    
-    if (editingContact) {
-        inputs.forEach(input => {
-            if (!input.value.includes('2025-') && !input.readOnly) {
-                input.readOnly = false;
-                input.disabled = false;
-            }
-        });
-        editBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
-        saveBtn.style.display = 'inline-block';
-        cancelBtn.style.display = 'inline-block';
-    } else {
-        inputs.forEach(input => {
-            input.readOnly = true;
-            input.disabled = true;
-        });
-        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
-        saveBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
-    }
-}
-
-async function saveContact() {
-    if (!selecteduser_id) return;
-    
-    const formData = {
-        name_first: document.getElementById('name_first').value,
-        name_last: document.getElementById('name_last').value,
-        title: document.getElementById('title').value,
-        company: document.getElementById('company').value,
-        department: document.getElementById('department').value,
-        status: document.getElementById('status').value,
-        notes: document.getElementById('notes').value,
-        tags: document.getElementById('tags').value,
-        source: document.getElementById('source').value
-    };
-    
-    try {
-        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${selecteduser_id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-            alert('Contact saved successfully!');
-            toggleContactEdit();
-            loadContactsList();
-        } else {
-            alert('Error saving contact: ' + result.message);
-        }
-    } catch (error) {
-        console.error('Error saving contact:', error);
-        alert('Contact saved! (Demo mode)');
-        toggleContactEdit();
-    }
-}
-
-function cancelContactEdit() {
-    if (selecteduser_id) {
-        selectContact(selecteduser_id);
-    }
-    toggleContactEdit();
-}
-
-// CRUD functions for related records
-async function createNewContact() {
-    const firstName = prompt('Enter first name:');
-    const lastName = prompt('Enter last name:');
-    const company = prompt('Enter company (optional):');
-    
-    if (firstName || lastName) {
-        const formData = {
-            name_first: firstName || '',
-            name_last: lastName || '',
-            company: company || '',
-            status: 'active'
-        };
-        
-        try {
-            const response = await fetch('/wcapi/save/?table_name=contacts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(formData)
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                alert('Contact created successfully!');
-                loadContactsList();
-                if (result.data && result.data.id) {
-                    selectContact(result.data.id);
-                }
-            } else {
-                alert('Error creating contact: ' + result.message);
-            }
-        } catch (error) {
-            console.error('Error creating contact:', error);
-            alert('Contact created! (Demo mode)');
-            loadContactsList();
-        }
-    }
-}
-
-async function deleteContact() {
-    if (!selecteduser_id) return;
-    
-    if (confirm('Are you sure you want to delete this contact? This will also delete all related records.')) {
-        try {
-            const response = await fetch(`/wcapi/delete/?table_name=contacts&id=${selecteduser_id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                alert('Contact deleted successfully!');
-                selecteduser_id = null;
-                document.getElementById('contact-details').innerHTML = `
-                    <div class="text-center text-muted">
-                        <i class="fas fa-user-circle fa-3x mb-3"></i>
-                        <p>Select a contact from the list above</p>
-                    </div>
-                `;
-                clearRelatedTables();
-                loadContactsList();
-            } else {
-                alert('Error deleting contact: ' + result.message);
-            }
-        } catch (error) {
-            console.error('Error deleting contact:', error);
-            alert('Contact deleted! (Demo mode)');
-            loadContactsList();
-        }
-    }
-}
-
-function clearRelatedTables() {
-    // Reset headers to show 0 counts
-    document.querySelector('#actions-table').closest('.card').querySelector('.card-header h5').innerHTML = '<i class="fas fa-tasks"></i> Actions <span class="badge bg-secondary">0</span>';
-    document.querySelector('#emails-table').closest('.card').querySelector('.card-header h5').innerHTML = '<i class="fas fa-envelope"></i> Emails <span class="badge bg-secondary">0</span>';
-    document.querySelector('#phones-table').closest('.card').querySelector('.card-header h5').innerHTML = '<i class="fas fa-phone"></i> Phone Numbers <span class="badge bg-secondary">0</span>';
-    document.querySelector('#addresses-table').closest('.card').querySelector('.card-header h5').innerHTML = '<i class="fas fa-map-marker-alt"></i> Addresses <span class="badge bg-secondary">0</span>';
-    document.querySelector('#domains-table').closest('.card').querySelector('.card-header h5').innerHTML = '<i class="fas fa-globe"></i> Domains <span class="badge bg-secondary">0</span>';
-    
-    // Clear content areas
-    document.getElementById('actions-table').innerHTML = '<div class="text-center text-muted"><small>Select a contact to view actions</small></div>';
-    document.getElementById('emails-table').innerHTML = '<div class="text-center text-muted"><small>Select a contact to view emails</small></div>';
-    document.getElementById('phones-table').innerHTML = '<div class="text-center text-muted"><small>Select a contact to view phones</small></div>';
-    document.getElementById('addresses-table').innerHTML = '<div class="text-center text-muted"><small>Select a contact to view addresses</small></div>';
-    document.getElementById('domains-table').innerHTML = '<div class="text-center text-muted"><small>Select a contact to view domains</small></div>';
-}
-
-// Placeholder create functions
-function createNewAction() {
-    if (!selecteduser_id) {
-        alert('Please select a contact first');
-        return;
-    }
-    alert('Create new action for contact ' + selecteduser_id);
-}
-
-function createNewEmail() {
-    if (!selecteduser_id) {
-        alert('Please select a contact first');
-        return;
-    }
-    alert('Create new email for contact ' + selecteduser_id);
-}
-
-function createNewPhone() {
-    if (!selecteduser_id) {
-        alert('Please select a contact first');
-        return;
-    }
-    alert('Create new phone for contact ' + selecteduser_id);
-}
-
-function createNewAddress() {
-    if (!selecteduser_id) {
-        alert('Please select a contact first');
-        return;
-    }
-    alert('Create new address for contact ' + selecteduser_id);
-}
-
-function createNewDomain() {
-    if (!selecteduser_id) {
-        alert('Please select a contact first');
-        return;
-    }
-    alert('Create new domain for contact ' + selecteduser_id);
-}
-
-// Placeholder edit functions
-function editAction(actionId) {
-    alert('Edit action ' + actionId);
-}
-
-function editEmail(emailId) {
-    alert('Edit email ' + emailId);
-}
-
-function editPhone(phoneId) {
-    alert('Edit phone ' + phoneId);
-}
-
-function editAddress(addressId) {
-    alert('Edit address ' + addressId);
-}
-
-function editDomain(domainId) {
-    alert('Edit domain ' + domainId);
-}
-
-
-
-// Utility function
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-
-// Add this debug function temporarily
-async function debugUniversalAPI() {
-    console.log('=== UNIVERSAL API DEBUG TEST ===');
-    
-    const tests = [
-        '/wcapi/get/?table_name=contacts',
-        '/wcapi/get/?table_name=actions',
-        '/wcapi/get/?table_name=emails',
-        '/wcapi/get/?table_name=phones',
-        '/wcapi/get/?table_name=addresses',
-        '/wcapi/get/?table_name=domains'
-    ];
-    
-    for (const endpoint of tests) {
-        try {
-            console.log(`\n--- Testing ${endpoint} ---`);
-            const response = await fetch(endpoint);
-            console.log('Status:', response.status);
-            console.log('Status Text:', response.statusText);
-            
-            const text = await response.text();
-            console.log('Raw response:', text);
-            
-            try {
-                const data = JSON.parse(text);
-                console.log('Parsed JSON:', data);
-                console.log('Success:', data.success);
-                console.log('Data type:', typeof data.data);
-                console.log('Data length:', data.data ? data.data.length : 'N/A');
-                if (data.data && data.data.length > 0) {
-                    console.log('First record:', data.data[0]);
-                    console.log('First record fields:', Object.keys(data.data[0]));
-                }
-            } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-            }
-        } catch (error) {
-            console.error(`Error testing ${endpoint}:`, error);
-        }
-    }
-}
-
-// Call this in the browser console to test your API
-// debugUniversalAPI();
-
-// Initialize on page load
-// Add this to the end of your DOMContentLoaded event
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Manager view loaded - initializing...');
-    
-    // Debug the API first
-    debugUniversalAPI();
-    
-    // Then load contacts
-    loadContactsList();
-    
-    // Attach click handlers to contact list items
-    document.getElementById('contacts-list').addEventListener('click', function(e) {
-        const item = e.target.closest('.contact-item');
-        if (item) {
-            const contactId = item.getAttribute('data-contact-id');
-            selectContact(contactId);
-        }
-    });
-});
-
-// Function to load and display contact details
-async function loadContactDetail(contactId) {
-    // Fetch contact detail
-    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${contactId}`);
+//  QQQ replace with core/views/related_views.
+async function loadActions(contact_id) {
+    const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${contact_id}`);
     const data = await response.json();
+    const table = document.getElementById('actions-table');
     if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        const contact = data.data[0];
-        populateUserProfile(contact); // Reuse your existing function
-        loadUserRelatedData(contact.id); // Load related data
+        table.innerHTML = data.data.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
     } else {
-        alert('Contact not found');
+        table.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
     }
 }
+async function loadEmails(contact_id) {
+    const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${contact_id}`);
+    const data = await response.json();
+    const table = document.getElementById('emails-table');
+    console.log('Emails data:', data);
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        table.innerHTML = data.data.map(a => `<div>${a.email || 'Email'}</div>`).join('');
+    } else {
+        table.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
+    }
+}
+
+async function loadPhones(contact_id) {
+    const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${contact_id}`);
+    const data = await response.json();
+    const table = document.getElementById('phones-table');
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        table.innerHTML = data.data.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
+    } else {
+        table.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
+    }
+}
+
+async function loadAddresses(contact_id) {
+    const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${contact_id}`);
+    const data = await response.json();
+    const table = document.getElementById('addresses-table');
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        table.innerHTML = data.data.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
+    } else {
+        table.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
+    }
+}
+
+
+async function loadDomains(contact_id) {
+    const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${contact_id}`);
+    const data = await response.json();
+    const table = document.getElementById('domains-table');
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        table.innerHTML = data.data.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
+    } else {
+        table.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
+    }
+}
+
+
+function renderContactsList(contacts) {
+    const list = document.getElementById('contacts-list');
+    list.innerHTML = '';
+    contacts.forEach(contact => {
+        const div = document.createElement('div');
+        div.className = 'contact-list-item';
+        div.innerHTML = `
+            <strong>${contact.name_first} ${contact.name_last}</strong>
+            <br>
+            <small>${contact.email || ''}</small>
+            <br>
+            <small>${contact.company || ''}</small>
+        `;
+        if (String(selecteduser_id) === String(contact.id)) {
+            div.classList.add('active');
+        }
+        div.onclick = () => selectContact(contact.id);
+        list.appendChild(div);
+    });
+}
+
+function renderContactDetails(contact) {
+    const details = document.getElementById('contact-details');
+    if (!contact) {
+        details.innerHTML = '<div class="text-center text-muted"><i class="fas fa-user-circle fa-3x mb-3"></i><p>Select a contact from the list above</p></div>';
+        return;
+    }
+    details.innerHTML = `
+        <h5>${contact.name_first} ${contact.name_last}</h5>
+        <p><strong>Email:</strong> ${contact.email || ''}</p>
+        <p><strong>Company:</strong> ${contact.company || ''}</p>
+        <p><strong>Title:</strong> ${contact.title || ''}</p>
+        <p><strong>Role:</strong> ${contact.role || ''}</p>
+    `;
+}
+
+// Do NOT call renderContactsList inside selectContact or renderContactDetails!
 </script>
+
+<style>
+.contact-list-item.active {
+    background: #e0f3ff;
+    font-weight: bold;
+}
+</style>
 {% endblock %}

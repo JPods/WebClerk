@@ -13,7 +13,13 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from core.views.related_view import RelatedDataView
-from core.views.universal_save import UniversalSaveView
+# from core.views.save_view import SaveView
+
+# Try importing SaveView from core.views if it exists there
+try:
+    from core.views import SaveView
+except ImportError:
+    SaveView = None  # Or handle appropriately if SaveView is required
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -74,12 +80,10 @@ urlpatterns = [
  # full update
     path('wcapi/related/', UniversalCRUDView.as_view(), name='related'),
 
-    # full update
-    path('wcapi/save/', UniversalCRUDView.as_view(), name='save'),
- 
+  
     path('wcapi/put/', UniversalCRUDView.as_view(), name='put'),
     # save was used in 4D, replace with post/put
-    path('wcapi/save/', UniversalSaveView.as_view(), name='save'),
+    path('wcapi/save/', SaveView.as_view(), name='save'),
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
     path('wcapi/trace/', UniversalCRUDView.as_view(), name='trace'),

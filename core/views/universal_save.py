@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
 
-class UniversalSaveView(View):
+class SaveView(View):
     def put(self, request):
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')

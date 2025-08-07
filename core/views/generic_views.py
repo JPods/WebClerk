@@ -20,7 +20,7 @@ class UniversalQueryView(TemplateView):
             return JsonResponse({'error': str(e)}, status=400)
 
 @method_decorator(csrf_exempt, name='dispatch')
-class UniversalSaveView(TemplateView):
+class SaveView(TemplateView):
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
