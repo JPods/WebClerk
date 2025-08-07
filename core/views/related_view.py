@@ -19,6 +19,18 @@ RELATED_MODELS: Dict[str, List[type]] = {
     # etc.
 }
 
+def get_executable(name: str) -> str:
+    """
+    Given a table name, return the name of the executable function
+    that can fetch related data for that table.
+    """
+    return f"get_related_{name}_data"
+
+
+def get_one_from_many(related_table: str, parent_id: int) -> List[dict]:
+    pass
+
+
 # Loops through all related models for the given parent table.
 # Dynamically builds the foreign key filter (e.g., contact_id=..., order_id=...).
 # Returns a dictionary with each related model’s data as a list.
