@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
 
+from core import tasks  # Import your tasks module
+
 class SaveView(View):
     def put(self, request):
         table_name = request.GET.get('table_name')
@@ -16,10 +18,18 @@ class SaveView(View):
         except model.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Record not found'}, status=404)
 
-        # Parse incoming data
         data = json.loads(request.body)
+        user_id = request.user.id if request.user.is_authenticated else None
 
-        # Pre-save hook
+        # Pre-save hook: Celery task if defined
+        celery_task_name = f"{table_name.rstrip('s')}_save_before"
+        celery_task = getattr(tasks, celery_task_name, None)
+        if celery_task:
+            result = celery_task.delay(data, user_id).get(timeout=10)
+            if not result.get('success', True):
+                return JsonResponse({'success': False, 'message': result.get('message', 'save_before failed')}, status=400)
+
+        # Pre-save hook: model method if defined
         if hasattr(obj, 'save_before') and callable(getattr(obj, 'save_before')):
             result = obj.save_before(data)
             if result is False:
@@ -29,7 +39,15 @@ class SaveView(View):
         for field, value in data.items():
             setattr(obj, field, value)
 
-        # Post-save hook (before actual save, in case you want to modify fields)
+        # Post-save hook: Celery task if defined
+        celery_task_name = f"{table_name.rstrip('s')}_save_after"
+        celery_task = getattr(tasks, celery_task_name, None)
+        if celery_task:
+            result = celery_task.delay(data, user_id).get(timeout=10)
+            if not result.get('success', True):
+                return JsonResponse({'success': False, 'message': result.get('message', 'save_after failed')}, status=400)
+
+        # Post-save hook: model method if defined
         if hasattr(obj, 'save_after') and callable(getattr(obj, 'save_after')):
             result = obj.save_after(data)
             if result is False:

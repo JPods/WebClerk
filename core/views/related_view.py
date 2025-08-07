@@ -4,6 +4,7 @@ from core.models import Contact, Action
 from communications.models import Phone, Email, Address, Domain
 from django.http import JsonResponse
 from django.views import View
+from django.apps import apps
 
 RELATED_TABLES: Dict[str, List[str]] = {
     #'customers': ['contacts', 'orders'],
@@ -36,19 +37,24 @@ def get_one_from_many(related_table: str, parent_id: int) -> List[dict]:
 # Returns a dictionary with each related model’s data as a list.
 
 def get_related_data(parent_table: str, parent_id: int) -> dict:
-    """
-    Given a parent table name and parent id, return a dict of related records
-    using the RELATED_MODELS mapping.
-    """
-    results = {}
-    related_models = RELATED_MODELS.get(parent_table, [])
-    for model in related_models:
-        # Assumes all related models have a ForeignKey to the parent named 'contact_id', 'order_id', etc.
-        # Build the filter key dynamically
-        fk_field = f"{parent_table.rstrip('s')}_id"
-        queryset = model.objects.filter(**{fk_field: parent_id})
-        results[model.__name__.lower() + 's'] = list(queryset.values())
-    return results
+    related = {}
+    # Map each related key to (app_label, model_name)
+    related_models = {
+        'actions': ('core', 'Action'),
+        'emails': ('communications', 'Email'),
+        'phones': ('communications', 'Phone'),
+        'addresses': ('communications', 'Address'),
+        'domains': ('communications', 'Domain'),
+    }
+    for key, (app_label, model_name) in related_models.items():
+        model = apps.get_model(app_label, model_name)
+        model_fields = [f.name for f in model._meta.get_fields()]
+        if 'contact_id' in model_fields:
+            queryset = model.objects.filter(contact_id=parent_id)
+        else:
+            queryset = model.objects.filter(refs__links__contacts__contains=[int(parent_id)])
+        related[key] = list(queryset.values())
+    return related
 
 class RelatedDataView(View):
     def get(self, request):

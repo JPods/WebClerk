@@ -203,7 +203,7 @@ async function selectContact(user_id) {
             const related = data.related || {};
 
             // Actions
-            const actionsTable = document.getElementById('actions');
+            const actionsTable = document.getElementById('actions-table');
             if (Array.isArray(related.actions) && related.actions.length > 0) {
                 actionsTable.innerHTML = related.actions.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
             } else {
@@ -211,7 +211,7 @@ async function selectContact(user_id) {
             }
 
             // Emails
-            const emailsTable = document.getElementById('emails');
+            const emailsTable = document.getElementById('emails-table');
             if (Array.isArray(related.emails) && related.emails.length > 0) {
                 emailsTable.innerHTML = related.emails.map(a => `<div>${a.email || 'Email'}</div>`).join('');
             } else {
@@ -219,7 +219,7 @@ async function selectContact(user_id) {
             }
 
             // Phones
-            const phonesTable = document.getElementById('phones');
+            const phonesTable = document.getElementById('phones-table');
             if (Array.isArray(related.phones) && related.phones.length > 0) {
                 phonesTable.innerHTML = related.phones.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
             } else {
@@ -227,7 +227,7 @@ async function selectContact(user_id) {
             }
 
             // Addresses
-            const addressesTable = document.getElementById('addresses');
+            const addressesTable = document.getElementById('addresses-table');
             if (Array.isArray(related.addresses) && related.addresses.length > 0) {
                 addressesTable.innerHTML = related.addresses.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
             } else {
@@ -235,7 +235,7 @@ async function selectContact(user_id) {
             }
 
             // Domains
-            const domainsTable = document.getElementById('domains');
+            const domainsTable = document.getElementById('domains-table');
             if (Array.isArray(related.domains) && related.domains.length > 0) {
                 domainsTable.innerHTML = related.domains.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
             } else {
@@ -348,6 +348,67 @@ function createNewContact() {
     selecteduser_id = null;
     renderContactDetails({});
     document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-save"></i> Save';
+}
+
+// New functions for loading user profile and related data
+async function loadUserProfile() {
+    try {
+        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
+        const data = await response.json();
+        console.log('Contact/related data:', data);
+        let contact_user = null;
+        if (data.success && data.contact) {
+            contact_user = data.contact;
+            user_id = contact_user.id;
+            console.log('Loaded contact by id:', user_id);
+        }
+        if (contact_user) {
+            populateUserProfile(contact_user);
+            populateUserRelatedData(data.related);
+        } else {
+            console.log('No contact record found, showing demo data');
+        }
+    } catch (error) {
+        console.error('Error loading user profile:', error);
+    }
+}
+
+function populateUserRelatedData(related) {
+    // Actions
+    const actionsList = document.getElementById('actions-list');
+    if (Array.isArray(related.actions) && related.actions.length > 0) {
+        actionsList.innerHTML = related.actions.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
+    } else {
+        actionsList.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
+    }
+    // Emails
+    const emailsList = document.getElementById('emails-list');
+    if (Array.isArray(related.emails) && related.emails.length > 0) {
+        emailsList.innerHTML = related.emails.map(a => `<div>${a.email || 'Email'}</div>`).join('');
+    } else {
+        emailsList.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
+    }
+    // Phones
+    const phonesList = document.getElementById('phones-list');
+    if (Array.isArray(related.phones) && related.phones.length > 0) {
+        phonesList.innerHTML = related.phones.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
+    } else {
+        phonesList.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
+    }
+    // Addresses
+    const addressesList = document.getElementById('addresses-list');
+    if (Array.isArray(related.addresses) && related.addresses.length > 0) {
+        addressesList.innerHTML = related.addresses.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
+    } else {
+        addressesList.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
+    }
+    // Domains
+    const domainsList = document.getElementById('domains-list');
+    if (Array.isArray(related.domains) && related.domains.length > 0) {
+        domainsList.innerHTML = related.domains.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
+    } else {
+        domainsList.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
+    }
 }
 
 // Do NOT call renderContactsList inside selectContact or renderContactDetails!
