@@ -190,103 +190,65 @@ loadContacts();
 
 async function selectContact(user_id) {
     console.log('selectContact called with:', user_id);
-    selecteduser_id = user_id; // Set the global variable
+    selecteduser_id = user_id;
 
     try {
         const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
         const data = await response.json();
 
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-            renderContactDetails(data.data[0]);
-            loadRelatedData(selecteduser_id);
-        } else {
-            const contact = allContacts.find(c => c.id == user_id);
-            if (contact) {
-                renderContactDetails(contact);
-                loadRelatedData(selecteduser_id);
+        if (data.success && data.contact) {
+            renderContactDetails(data.contact);
+
+            // --- Render related tables ---
+            const related = data.related || {};
+
+            // Actions
+            const actionsTable = document.getElementById('actions');
+            if (Array.isArray(related.actions) && related.actions.length > 0) {
+                actionsTable.innerHTML = related.actions.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
+            } else {
+                actionsTable.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
             }
+
+            // Emails
+            const emailsTable = document.getElementById('emails');
+            if (Array.isArray(related.emails) && related.emails.length > 0) {
+                emailsTable.innerHTML = related.emails.map(a => `<div>${a.email || 'Email'}</div>`).join('');
+            } else {
+                emailsTable.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
+            }
+
+            // Phones
+            const phonesTable = document.getElementById('phones');
+            if (Array.isArray(related.phones) && related.phones.length > 0) {
+                phonesTable.innerHTML = related.phones.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
+            } else {
+                phonesTable.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
+            }
+
+            // Addresses
+            const addressesTable = document.getElementById('addresses');
+            if (Array.isArray(related.addresses) && related.addresses.length > 0) {
+                addressesTable.innerHTML = related.addresses.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
+            } else {
+                addressesTable.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
+            }
+
+            // Domains
+            const domainsTable = document.getElementById('domains');
+            if (Array.isArray(related.domains) && related.domains.length > 0) {
+                domainsTable.innerHTML = related.domains.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
+            } else {
+                domainsTable.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
+            }
+        } else {
+            renderContactDetails(null);
         }
-        // Re-render the list to update the highlight
         renderContactsList(allContacts);
     } catch (e) {
         // handle error
     }
 }
-
-async function get_related() {
-    // get_related
-    //loadRelatedData(CURRENT_USER.id);
-    //QQQ
-}
-
-async function loadRelatedData(contact_id) {
-    console.log('loadRelatedData called with:', contact_id);
-    //if (!contact_id || contact_id === "undefined" || isNaN(Number(contact_id))) return;
-    
-    if (!contact_id || isNaN(Number(contact_id))) return; // Prevent bad calls
-    loadActions(contact_id);
-    loadEmails(contact_id);
-    loadPhones(contact_id);
-    loadAddresses(contact_id);
-    loadDomains(contact_id);
-}
-//  QQQ replace with core/views/related_views.
-async function loadActions(contact_id) {
-    const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${contact_id}`);
-    const data = await response.json();
-    const table = document.getElementById('actions-table');
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        table.innerHTML = data.data.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
-    } else {
-        table.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
-    }
-}
-async function loadEmails(contact_id) {
-    const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${contact_id}`);
-    const data = await response.json();
-    const table = document.getElementById('emails-table');
-    console.log('Emails data:', data);
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        table.innerHTML = data.data.map(a => `<div>${a.email || 'Email'}</div>`).join('');
-    } else {
-        table.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
-    }
-}
-
-async function loadPhones(contact_id) {
-    const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${contact_id}`);
-    const data = await response.json();
-    const table = document.getElementById('phones-table');
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        table.innerHTML = data.data.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
-    } else {
-        table.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
-    }
-}
-
-async function loadAddresses(contact_id) {
-    const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${contact_id}`);
-    const data = await response.json();
-    const table = document.getElementById('addresses-table');
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        table.innerHTML = data.data.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
-    } else {
-        table.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
-    }
-}
-
-
-async function loadDomains(contact_id) {
-    const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${contact_id}`);
-    const data = await response.json();
-    const table = document.getElementById('domains-table');
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        table.innerHTML = data.data.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
-    } else {
-        table.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
-    }
-}
-
 
 function renderContactsList(contacts) {
     const list = document.getElementById('contacts-list');
