@@ -3,10 +3,13 @@ from django.http import JsonResponse, HttpResponse
 from django.views import View
 from django.apps import apps
 from django.core import serializers
+from django.forms.models import model_to_dict
 from .contact_view import WebContactView
 from .edit_views import EditContactView
 from .web_auth_views import WebSignupView, WebLoginView, WebLogoutView
 from django.db.models import Q
+from core.views.related_view import get_related_data
+
 
 # Define HomeView and AboutView directly in this file
 class HomeView(TemplateView):
@@ -34,8 +37,34 @@ class UniversalGetView(View):
     def get(self, request):
         table_name = request.GET.get('table_name', 'contacts')
         record_id = request.GET.get('id')
-        contact_id = request.GET.get('contact_id')
+        contact_id = record_id or request.GET.get('contact_id')
         print(f"UniversalGetView: table_name={table_name}, record_id={record_id}, contact_id={contact_id}")
+
+        # Special case: related data
+        if table_name == "related" and contact_id:
+            # parent_table and parent_id are the expected args for get_related_data
+            data = get_related_data("contacts", int(contact_id))
+            return JsonResponse({'success': True, 'data': data})
+
+        if table_name == "contacts" and record_id:
+            # Get the contact
+            from core.models import Contact
+            try:
+                contact = Contact.objects.get(id=record_id)
+                # Use your model's to_dict or Django's model_to_dict
+                contact_json = contact.to_dict() if hasattr(contact, 'to_dict') else model_to_dict(contact)
+            except Contact.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Contact not found'}, status=404)
+
+            # Get related data using your library function
+            related = get_related_data("contacts", int(record_id))
+
+            # Return both
+            return JsonResponse({
+                'success': True,
+                'contact': contact_json,
+                'related': related,
+            })
 
         # Get app label from map, default to 'core'
         app_label = TABLE_APP_MAP.get(table_name, 'core')
