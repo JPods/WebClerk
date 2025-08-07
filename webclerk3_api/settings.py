@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'core',
     'communications',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -205,3 +206,7 @@ INTERNAL_IPS = [
     '127.0.0.1',
     'localhost',
 ]
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or use RabbitMQ if you prefer
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

@@ -60,6 +60,21 @@ core/templates/
   - python manage.py runserver
 
 
+#### working with github:
+  - pull from dev at the start of every local effort
+    - git pull origin dev
+  - add changes to git site
+    -  git add .
+    -  git commit -m"message"
+    -  git push
+
+  - go to [github.com](https://github.com/JPods/webClerk3/branches)
+    - click Pull requests tab
+    - click button New pull request
+    - Comparing changes dev <- user_dev
+    - Click through the buttons
+
+
   ## 🎯 Architecture Overview
 
 **Universal API System** - One API pattern handles all data operations across all tables (contacts, actions, emails, phones, domains, addresses).

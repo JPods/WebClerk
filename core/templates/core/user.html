@@ -124,7 +124,7 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="actions-list">
+                    <div id="actions-table">
                         <div class="text-center text-muted">
                             <small>Loading my actions...</small>
                         </div>
@@ -141,7 +141,7 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="emails-list">
+                    <div id="emails-table">
                         <div class="text-center text-muted">
                             <small>Loading my emails...</small>
                         </div>
@@ -158,7 +158,7 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="phones-list">
+                    <div id="phones-table">
                         <div class="text-center text-muted">
                             <small>Loading my phones...</small>
                         </div>
@@ -175,7 +175,7 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="addresses-list">
+                    <div id="addresses-table">
                         <div class="text-center text-muted">
                             <small>Loading my addresses...</small>
                         </div>
@@ -192,7 +192,7 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="domains-list">
+                    <div id="domains-table">
                         <div class="text-center text-muted">
                             <small>Loading my domains...</small>
                         </div>
@@ -205,28 +205,24 @@
 
 <script>
 let isEditing = false;
-let user_id_current = {{ user.id|default:1 }}; // Get the current user's ID
-let user_id = null; // Will be set when we load user data
+let user_id_current = {{ user.id|default:1 }};
+let user_id = user_id_current; // initialize user_id to the current user's id
 
-// Load current user's contact record
 // Load current user's contact record
 async function loadUserProfile() {
     try {
-        // Fetch the contact record by id (user.id)
-        const response = await fetch(`/wcapi/get/?table_name=contacts&id={{ user.id }}`);
+        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
         const data = await response.json();
-        console.log('API response:', data);
+        console.log('Contact/related data:', data);
         let contact_user = null;
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-            contact_user = data.data[0];
+        if (data.success && data.contact) {
+            contact_user = data.contact;
             user_id = contact_user.id;
-            console.log('Loaded contact by id:', {{ user.id }});
+            console.log('Loaded contact by id:', user_id);
         }
-
         if (contact_user) {
-            console.log('Loading data for contact ID:', user_id);
             populateUserProfile(contact_user);
-            loadUserRelatedData(user_id);
+            populateUserRelatedData(data.related);
         } else {
             console.log('No contact record found, showing demo data');
         }
@@ -249,237 +245,42 @@ function populateUserProfile(contact) {
     document.getElementById('updated_at').value = contact.updated_at || '';
 }
 
-
-
-// Load user's related data
-async function loadUserRelatedData(contact_id) {
-    loadMyActions(contact_id);
-    loadMyEmails(contact_id);
-    loadMyPhones(contact_id);
-    loadMyAddresses(contact_id);
-    loadMyDomains(contact_id);
-}
-
-async function loadMyActions(contact_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${contact_id}`);
-        const data = await response.json();
-        
-        let actions = [];
-        if (data.success && data.data) {
-            actions = data.data;
-        } else {
-            // Demo data fallback
-            actions = [
-                { id: 1, description: "Update my profile information", status: "pending", due_date: "2025-08-05", priority: "medium" },
-                { id: 2, description: "Review team project", status: "completed", due_date: "2025-08-01", priority: "high" }
-            ];
-        }
-        
-        let html = '';
-        actions.forEach(action => {
-            const statusBadge = action.status === 'completed' ? 'bg-success' : 
-                               action.status === 'pending' ? 'bg-warning' : 'bg-secondary';
-            html += `
-                <div class="action-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${action.description}</strong>
-                            <br><small class="text-muted">Due: ${action.due_date || 'No date'}</small>
-                            <br><span class="badge ${statusBadge}">${action.status}</span>
-                            <small class="text-muted ms-2">Priority: ${action.priority || 'medium'}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="editMyAction(${action.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('actions-list').innerHTML = html || '<p class="text-muted">No actions found</p>';
-    } catch (error) {
-        console.error('Error loading actions:', error);
-        loadDemoActions();
+function populateUserRelatedData(related) {
+    // Actions
+    const actionsList = document.getElementById('actions-table');
+    if (Array.isArray(related.actions) && related.actions.length > 0) {
+        actionsList.innerHTML = related.actions.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
+    } else {
+        actionsList.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
     }
-}
-
-async function loadMyEmails(contact_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${contact_id}`);
-        const data = await response.json();
-        
-        let emails = [];
-        if (data.success && data.data) {
-            emails = data.data;
-        } else {
-            // Demo data fallback
-            emails = [
-                { id: 1, email: "{{ user.email|default:'john@webclerk.com' }}", type: "work", is_primary: true },
-                { id: 2, email: "john.personal@gmail.com", type: "personal", is_primary: false }
-            ];
-        }
-        
-        let html = '';
-        emails.forEach(email => {
-            html += `
-                <div class="email-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${email.email}</strong>
-                            <br><small class="text-muted">${email.type}${email.is_primary ? ' • Primary' : ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-success" onclick="editMyEmail(${email.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('emails-list').innerHTML = html || '<p class="text-muted">No emails found</p>';
-    } catch (error) {
-        console.error('Error loading emails:', error);
-        loadDemoEmails();
+    // Emails
+    const emailsList = document.getElementById('emails-table');
+    if (Array.isArray(related.emails) && related.emails.length > 0) {
+        emailsList.innerHTML = related.emails.map(a => `<div>${a.email || 'Email'}</div>`).join('');
+    } else {
+        emailsList.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
     }
-}
-
-async function loadMyPhones(contact_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${contact_id}`);
-        const data = await response.json();
-        
-        let phones = [];
-        if (data.success && data.data) {
-            phones = data.data;
-        } else {
-            // Demo data fallback
-            phones = [
-                { id: 1, phone: "(555) 123-4567", type: "mobile", is_primary: true },
-                { id: 2, phone: "(555) 987-6543", type: "work", is_primary: false }
-            ];
-        }
-        
-        let html = '';
-        phones.forEach(phone => {
-            html += `
-                <div class="phone-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${phone.phone}</strong>
-                            <br><small class="text-muted">${phone.type}${phone.is_primary ? ' • Primary' : ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-warning" onclick="editMyPhone(${phone.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('phones-list').innerHTML = html || '<p class="text-muted">No phones found</p>';
-    } catch (error) {
-        console.error('Error loading phones:', error);
-        loadDemoPhones();
+    // Phones
+    const phonesList = document.getElementById('phones-table');
+    if (Array.isArray(related.phones) && related.phones.length > 0) {
+        phonesList.innerHTML = related.phones.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
+    } else {
+        phonesList.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
     }
-}
-
-async function loadMyAddresses(contact_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${user.id}`);
-        const data = await response.json();
-        
-        let addresses = [];
-        if (data.success && data.data) {
-            addresses = data.data;
-        } else {
-            console.log('No addresses found, showing demo data');
-        }
-        
-        let html = '';
-        addresses.forEach(address => {
-            html += `
-                <div class="address-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${address.street1}</strong>
-                            <br>${address.city}, ${address.state} ${address.zip}
-                            <br><small class="text-muted">${address.type}${address.is_primary ? ' • Primary' : ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-info" onclick="editMyAddress(${address.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('addresses-list').innerHTML = html || '<p class="text-muted">No addresses found</p>';
-    } catch (error) {
-        console.error('Error loading addresses:', error);
-        loadDemoAddresses();
+    // Addresses
+    const addressesList = document.getElementById('addresses-table');
+    if (Array.isArray(related.addresses) && related.addresses.length > 0) {
+        addressesList.innerHTML = related.addresses.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
+    } else {
+        addressesList.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
     }
-}
-
-async function loadMyDomains(contact_id) {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${contact_id}`);
-        const data = await response.json();
-        
-        let domains = [];
-        if (data.success && data.data) {
-            domains = data.data;
-        } else {
-            // Demo data fallback
-            domains = [
-                { id: 1, domain: "johndoe.dev", notes: "Personal website", is_active: true }
-            ];
-        }
-        
-        let html = '';
-        domains.forEach(domain => {
-            html += `
-                <div class="domain-item border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${domain.domain}</strong>
-                            <br><small class="text-muted">${domain.notes}</small>
-                            ${domain.is_active ? '<br><span class="badge bg-success">Active</span>' : '<br><span class="badge bg-secondary">Inactive</span>'}
-                        </div>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="editMyDomain(${domain.id})">Edit</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        document.getElementById('domains-list').innerHTML = html || '<p class="text-muted">No domains found</p>';
-    } catch (error) {
-        console.error('Error loading domains:', error);
-        loadDemoDomains();
+    // Domains
+    const domainsList = document.getElementById('domains-table');
+    if (Array.isArray(related.domains) && related.domains.length > 0) {
+        domainsList.innerHTML = related.domains.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
+    } else {
+        domainsList.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
     }
-}
-
-// Demo data fallback functions
-function loadDemoRelatedData() {
-    loadDemoActions();
-    loadDemoEmails();
-    loadDemoPhones();
-    loadDemoAddresses();
-    loadDemoDomains();
-}
-
-function loadDemoActions() {
-    console.log('Demo: loadDemoActions called');
-}
-
-function loadDemoEmails() {
-    console.log('Demo: loadDemoEmails called');
-}
-
-
-
-function loadDemoPhones() {
-    console.log('Demo: loadDemoPhones called');
-}
-
-function loadDemoAddresses() {
-    console.log('Demo: loadDemoAddresses called');
-}
-
-function loadDemoDomains() {
-    console.log('Demo: loadDemoDomains called');
 }
 
 // Profile editing functions
@@ -551,6 +352,23 @@ async function saveProfile() {
         console.error('Error saving profile:', error);
         alert('Profile saved! (Demo mode - would call Universal API)');
         toggleEdit();
+    }
+}
+
+async function saveUserChanges(userId, data) {
+    const response = await fetch(`/wcapi/save/?table_name=contacts&id=${userId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'), // if using Django CSRF
+        },
+        body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (result.success) {
+        alert('User saved!');
+    } else {
+        alert('Save failed: ' + (result.message || 'Unknown error'));
     }
 }
 
@@ -660,7 +478,6 @@ function getCookie(name) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('User profile page loaded - loading my data...');
     loadUserProfile();
-    loadRelatedData('contacts', {{ user.id }});
 });
 </script>
 {% endblock %}

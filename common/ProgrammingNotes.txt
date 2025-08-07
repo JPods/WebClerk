@@ -10,3 +10,6 @@ name is not a standard "s" ending
         else:
             model_name = table_name.rstrip('s').capitalize()
 
+Form versus table references to tables
+  "tablename-table" suffix for all table references displayed in a table or list
+  "table" only in forms or flat display
