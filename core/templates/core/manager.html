@@ -225,9 +225,6 @@ async function loadContactsList() {
 
 function renderContactsList(contacts) {
     let html = '';
-    
-    console.log('Rendering contacts:', contacts);
-    
     contacts.forEach(contact => {
         // Handle the actual API response structure
         const firstName = contact.name_first || contact.first_name || '';
@@ -248,7 +245,7 @@ function renderContactsList(contacts) {
         html += `
             <div class="contact-item p-2 border-bottom ${isSelected} ${isCurrentUser ? 'border-success border-2' : ''}" 
                  onclick="selectContact(${contact.id})" 
-                 style="cursor: pointer; ${isSelected ? 'background-color: #e3f2fd;' : ''} ${isCurrentUser ? 'background-color: #f8fff8;' : ''}">
+                 style="cursor: pointer; ${isSelected ? 'background-color: #e3f2fd;' : ''} ${isCurrentUser ? 'background-color: #f8fff8;' : ''}" data-contact-id="${contact.id}">
                 <div class="d-flex justify-content-between">
                     <div>
                         <strong>${fullName}</strong>
@@ -435,7 +432,7 @@ async function selectContact(user_id) {
         breadcrumb.style.display = 'block';
         breadcrumb.className = 'small text-success';
     } else {
-        breadcrumbText.innerHTML = `Viewing contact #${user.id} • <a href="#" onclick="selectMyContact()" class="text-decoration-none">Return to my profile</a>`;
+        breadcrumbText.innerHTML = `Viewing contact #${user_id} • <a href="#" onclick="selectMyContact()" class="text-decoration-none">Return to my profile</a>`;
         breadcrumb.style.display = 'block';
         breadcrumb.className = 'small text-muted';
     }
@@ -448,15 +445,15 @@ async function selectContact(user_id) {
         
         console.log('Contact details response:', data);
         
-        if (data.success && data.data) {
-            renderContactDetails(data.data);
-            loadRelatedData(user_id);
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            renderContactDetails(data.data[0]); // CORRECT: pass the first contact object
+            loadRelatedData();
         } else {
             // Fallback to contact from list
             const contact = allContacts.find(c => c.id == user_id);
             if (contact) {
                 renderContactDetails(contact);
-                loadRelatedData(user_id);
+                loadRelatedData();
             }
         }
     } catch (error) {
@@ -469,26 +466,20 @@ async function selectContact(user_id) {
     }
 }
 
-
-
-
-
 // Load related data for selected contact
-async function loadRelatedData(user_id) {
-    console.log(`Loading related data for contact ${user_id}`);
-    
-    loadActions(user_id);
-    loadEmails(user_id);
-    loadPhones(user_id);
-    loadAddresses(user_id);
-    loadDomains(user_id);
+async function loadRelatedData(contact_id) {
+    loadActions(contact_id);
+    loadEmails(contact_id);
+    loadPhones(contact_id);
+    loadAddresses(contact_id);
+    loadDomains(contact_id);
 }
 
 
 // Update the related data functions to handle your API structure
 async function loadActions(user_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=actions&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${user_id}`);
         const data = await response.json();
         
         console.log('Actions response:', data);
@@ -543,7 +534,7 @@ async function loadActions(user_id) {
 
 async function loadEmails(user_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=emails&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${user_id}`);
         const data = await response.json();
         
         console.log('Emails response:', data);
@@ -593,7 +584,7 @@ async function loadEmails(user_id) {
 
 async function loadPhones(user_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=phones&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${user_id}`);
         const data = await response.json();
         
         let phones = [];
@@ -641,7 +632,7 @@ async function loadPhones(user_id) {
 
 async function loadAddresses(user_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=addresses&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${user_id}`);
         const data = await response.json();
         
         let addresses = [];
@@ -691,7 +682,7 @@ async function loadAddresses(user_id) {
 
 async function loadDomains(user_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=domains&id=${user_id}`);
+        const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${user_id}`);
         const data = await response.json();
         
         let domains = [];
@@ -1057,8 +1048,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Then load contacts
     loadContactsList();
+    
+    // Attach click handlers to contact list items
+    document.getElementById('contacts-list').addEventListener('click', function(e) {
+        const item = e.target.closest('.contact-item');
+        if (item) {
+            const contactId = item.getAttribute('data-contact-id');
+            selectContact(contactId);
+        }
+    });
 });
 
-
+// Function to load and display contact details
+async function loadContactDetail(contactId) {
+    // Fetch contact detail
+    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${contactId}`);
+    const data = await response.json();
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        const contact = data.data[0];
+        populateUserProfile(contact); // Reuse your existing function
+        loadUserRelatedData(contact.id); // Load related data
+    } else {
+        alert('Contact not found');
+    }
+}
 </script>
 {% endblock %}

@@ -12,6 +12,8 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from core.views.related_view import RelatedDataView
+from core.views.universal_save import UniversalSaveView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -31,6 +33,8 @@ urlpatterns = [
     path('manage/actions/', TemplateView.as_view(template_name='core/manage_actions.html'), name='manage-actions'),
     path('user/', TemplateView.as_view(template_name='core/user.html'), name='users'),
     path('manager/', TemplateView.as_view(template_name='core/manager.html'), name='manager'),
+
+    path('manager/related/', RelatedDataView.as_view(), name='manager-related'),
     # Universal API endpoints
     # Rare for sockets. We will more likely create an api app for websockets
     
@@ -67,12 +71,15 @@ urlpatterns = [
     
     path('wcapi/query/', UniversalCRUDView.as_view(), name='query'),
 
+ # full update
+    path('wcapi/related/', UniversalCRUDView.as_view(), name='related'),
+
     # full update
     path('wcapi/save/', UniversalCRUDView.as_view(), name='save'),
  
     path('wcapi/put/', UniversalCRUDView.as_view(), name='put'),
     # save was used in 4D, replace with post/put
-    # path('wcapi/save/', UniversalSaveView.as_view(), name='save'),
+    path('wcapi/save/', UniversalSaveView.as_view(), name='save'),
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
     path('wcapi/trace/', UniversalCRUDView.as_view(), name='trace'),

@@ -203,3 +203,15 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     def get_role_display_name(self):
         """Get human-readable role name"""
         return dict(self.ROLE_CHOICES).get(self.role, self.role)
+    
+    def save_before(self, data):
+        # Custom logic before save
+        print("Pre-save logic here")
+        # return False  # Return False to abort save
+        return True  # Return False to abort save
+
+    def save_after(self, data):
+        # Custom logic after fields are set, before save
+        print("Post-save logic here")
+        # return False  # Return False to abort save
+        return True  # Return False to abort save

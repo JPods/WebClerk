@@ -544,5 +544,33 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDomains();
     loadAddresses();
 });
+
+// Load related data for contact
+async function loadRelatedData(parentTable, parentId) {
+    try {
+        const response = await fetch(`/manager/related/?parent_table=${parentTable}&parent_id=${parentId}`);
+        const data = await response.json();
+        if (data.success) {
+            // Loop through each related table's data
+            for (const [table, records] of Object.entries(data.data)) {
+                const container = document.getElementById(`${table}-list`);
+                if (container) {
+                    container.innerHTML = records.length
+                        ? `<ul>${records.map(r => `<li>${JSON.stringify(r)}</li>`).join('')}</ul>`
+                        : '<p class="text-muted">No records found</p>';
+                }
+            }
+        } else {
+            console.error('API error:', data.error);
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+    }
+}
+
+// Example usage: load related data for contact with id 6
+document.addEventListener('DOMContentLoaded', function() {
+    loadRelatedData('contacts', 6); // Replace 6 with the actual contact id as needed
+});
 </script>
 {% endblock %}

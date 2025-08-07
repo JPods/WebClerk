@@ -205,8 +205,8 @@
 
 <script>
 let isEditing = false;
-let currentUser = {{ user.id|default:1 }}; // Get the current user's ID
-let userContactId = null; // Will be set when we load user data
+let user_id_current = {{ user.id|default:1 }}; // Get the current user's ID
+let user_id = null; // Will be set when we load user data
 
 // Load current user's contact record
 // Load current user's contact record
@@ -215,28 +215,23 @@ async function loadUserProfile() {
         // Fetch the contact record by id (user.id)
         const response = await fetch(`/wcapi/get/?table_name=contacts&id={{ user.id }}`);
         const data = await response.json();
-
-        let userContact = null;
-        if (data.success && data.data) {
-            // If your API returns a single object for one record
-            userContact = data.data;
-            userContactId = userContact.id;
-            console.log('Loaded contact by id:', userContact);
+        console.log('API response:', data);
+        let contact_user = null;
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            contact_user = data.data[0];
+            user_id = contact_user.id;
+            console.log('Loaded contact by id:', {{ user.id }});
         }
 
-        if (userContact) {
-            console.log('Loading data for contact ID:', userContactId);
-            populateUserProfile(userContact);
-            loadUserRelatedData(userContactId);
+        if (contact_user) {
+            console.log('Loading data for contact ID:', user_id);
+            populateUserProfile(contact_user);
+            loadUserRelatedData(user_id);
         } else {
             console.log('No contact record found, showing demo data');
-            showDemoProfile();
-            loadDemoRelatedData();
         }
     } catch (error) {
         console.error('Error loading user profile:', error);
-        showDemoProfile();
-        loadDemoRelatedData();
     }
 }
 
@@ -254,34 +249,20 @@ function populateUserProfile(contact) {
     document.getElementById('updated_at').value = contact.updated_at || '';
 }
 
-function showDemoProfile() {
-    // Show demo data with your actual email
-    document.getElementById('name_first').value = 'Bill';
-    document.getElementById('name_last').value = 'James';
-    document.getElementById('title').value = 'User';
-    document.getElementById('company').value = 'JPods';
-    document.getElementById('department').value = 'Management';
-    document.getElementById('status').value = 'active';
-    document.getElementById('notes').value = 'Demo profile for {{ user.username }}';
-    document.getElementById('tags').value = 'user, demo, jpods';
-    document.getElementById('source').value = 'System';
-    document.getElementById('created_at').value = '2025-01-01';
-    document.getElementById('updated_at').value = '2025-08-02';
-    userContactId = null; // No real contact ID
-}
+
 
 // Load user's related data
-async function loadUserRelatedData(contactId) {
-    loadMyActions(contactId);
-    loadMyEmails(contactId);
-    loadMyPhones(contactId);
-    loadMyAddresses(contactId);
-    loadMyDomains(contactId);
+async function loadUserRelatedData(contact_id) {
+    loadMyActions(contact_id);
+    loadMyEmails(contact_id);
+    loadMyPhones(contact_id);
+    loadMyAddresses(contact_id);
+    loadMyDomains(contact_id);
 }
 
-async function loadMyActions(contactId) {
+async function loadMyActions(contact_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=actions&contact_id=${contact_id}`);
         const data = await response.json();
         
         let actions = [];
@@ -321,9 +302,9 @@ async function loadMyActions(contactId) {
     }
 }
 
-async function loadMyEmails(contactId) {
+async function loadMyEmails(contact_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=emails&contact_id=${contact_id}`);
         const data = await response.json();
         
         let emails = [];
@@ -359,9 +340,9 @@ async function loadMyEmails(contactId) {
     }
 }
 
-async function loadMyPhones(contactId) {
+async function loadMyPhones(contact_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=phones&contact_id=${contact_id}`);
         const data = await response.json();
         
         let phones = [];
@@ -397,20 +378,16 @@ async function loadMyPhones(contactId) {
     }
 }
 
-async function loadMyAddresses(contactId) {
+async function loadMyAddresses(contact_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=addresses&contact_id=${user.id}`);
         const data = await response.json();
         
         let addresses = [];
         if (data.success && data.data) {
             addresses = data.data;
         } else {
-            // Demo data fallback
-            addresses = [
-                { id: 1, street1: "123 Main St", city: "San Francisco", state: "CA", zip: "94105", type: "home", is_primary: true },
-                { id: 2, street1: "456 Business Blvd", city: "San Francisco", state: "CA", zip: "94107", type: "work", is_primary: false }
-            ];
+            console.log('No addresses found, showing demo data');
         }
         
         let html = '';
@@ -436,9 +413,9 @@ async function loadMyAddresses(contactId) {
     }
 }
 
-async function loadMyDomains(contactId) {
+async function loadMyDomains(contact_id) {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${contactId}`);
+        const response = await fetch(`/wcapi/get/?table_name=domains&contact_id=${contact_id}`);
         const data = await response.json();
         
         let domains = [];
@@ -484,123 +461,25 @@ function loadDemoRelatedData() {
 }
 
 function loadDemoActions() {
-    const html = `
-        <div class="action-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <strong>Update my profile information</strong>
-                    <br><small class="text-muted">Due: 2025-08-05</small>
-                    <br><span class="badge bg-warning">pending</span>
-                    <small class="text-muted ms-2">Priority: medium</small>
-                </div>
-                <button class="btn btn-sm btn-outline-primary">Edit</button>
-            </div>
-        </div>
-        <div class="action-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <strong>Review team project</strong>
-                    <br><small class="text-muted">Due: 2025-08-01</small>
-                    <br><span class="badge bg-success">completed</span>
-                    <small class="text-muted ms-2">Priority: high</small>
-                </div>
-                <button class="btn btn-sm btn-outline-primary">Edit</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('actions-list').innerHTML = html;
+    console.log('Demo: loadDemoActions called');
 }
 
 function loadDemoEmails() {
-    const html = `
-        <div class="email-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>bill.james@jpods.com</strong>
-                    <br><small class="text-muted">work • Primary</small>
-                </div>
-                <button class="btn btn-sm btn-outline-success">Edit</button>
-            </div>
-        </div>
-        <div class="email-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>bill.personal@gmail.com</strong>
-                    <br><small class="text-muted">personal</small>
-                </div>
-                <button class="btn btn-sm btn-outline-success">Edit</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('emails-list').innerHTML = html;
+    console.log('Demo: loadDemoEmails called');
 }
 
 
 
 function loadDemoPhones() {
-    const html = `
-        <div class="phone-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>(555) 123-4567</strong>
-                    <br><small class="text-muted">mobile • Primary</small>
-                </div>
-                <button class="btn btn-sm btn-outline-warning">Edit</button>
-            </div>
-        </div>
-        <div class="phone-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>(555) 987-6543</strong>
-                    <br><small class="text-muted">work</small>
-                </div>
-                <button class="btn btn-sm btn-outline-warning">Edit</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('phones-list').innerHTML = html;
+    console.log('Demo: loadDemoPhones called');
 }
 
 function loadDemoAddresses() {
-    const html = `
-        <div class="address-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <strong>123 Main St</strong>
-                    <br>San Francisco, CA 94105
-                    <br><small class="text-muted">home • Primary</small>
-                </div>
-                <button class="btn btn-sm btn-outline-info">Edit</button>
-            </div>
-        </div>
-        <div class="address-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <strong>456 Business Blvd</strong>
-                    <br>San Francisco, CA 94107
-                    <br><small class="text-muted">work</small>
-                </div>
-                <button class="btn btn-sm btn-outline-info">Edit</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('addresses-list').innerHTML = html;
+    console.log('Demo: loadDemoAddresses called');
 }
 
 function loadDemoDomains() {
-    const html = `
-        <div class="domain-item border-bottom pb-2 mb-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>johndoe.dev</strong>
-                    <br><small class="text-muted">Personal website</small>
-                    <br><span class="badge bg-success">Active</span>
-                </div>
-                <button class="btn btn-sm btn-outline-secondary">Edit</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('domains-list').innerHTML = html;
+    console.log('Demo: loadDemoDomains called');
 }
 
 // Profile editing functions
@@ -633,7 +512,7 @@ function toggleEdit() {
 }
 
 async function saveProfile() {
-    if (!userContactId) {
+    if (!user_id) {
         alert('Unable to save: No contact record found');
         return;
     }
@@ -651,7 +530,7 @@ async function saveProfile() {
     };
     
     try {
-        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${userContactId}`, {
+        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${user_id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -689,7 +568,7 @@ function createNewAction() {
     if (description) {
         console.log(`Creating action: ${description} for my profile`);
         alert('Action created! (This would call your Universal API)');
-        loadMyActions(userContactId);
+        loadMyActions(user_id);
     }
 }
 
@@ -700,7 +579,7 @@ function createNewEmail() {
     if (email) {
         console.log(`Adding email: ${email} to my profile`);
         alert('Email added! (This would call your Universal API)');
-        loadMyEmails(userContactId);
+        loadMyEmails(user_id);
     }
 }
 
@@ -711,7 +590,7 @@ function createNewPhone() {
     if (phone) {
         console.log(`Adding phone: ${phone} to my profile`);
         alert('Phone added! (This would call your Universal API)');
-        loadMyPhones(userContactId);
+        loadMyPhones(user_id);
     }
 }
 
@@ -725,7 +604,7 @@ function createNewAddress() {
     if (street1) {
         console.log(`Adding address: ${street1} to my profile`);
         alert('Address added! (This would call your Universal API)');
-        loadMyAddresses(userContactId);
+        loadMyAddresses(user_id);
     }
 }
 
@@ -736,7 +615,7 @@ function createNewDomain() {
     if (domain) {
         console.log(`Adding domain: ${domain} to my profile`);
         alert('Domain added! (This would call your Universal API)');
-        loadMyDomains(userContactId);
+        loadMyDomains(user_id);
     }
 }
 
@@ -781,6 +660,7 @@ function getCookie(name) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('User profile page loaded - loading my data...');
     loadUserProfile();
+    loadRelatedData('contacts', {{ user.id }});
 });
 </script>
 {% endblock %}

@@ -33,19 +33,23 @@ class UniversalGetView(View):
     def get(self, request):
         table_name = request.GET.get('table_name', 'contacts')
         record_id = request.GET.get('id')
-        print(f"UniversalGetView: table_name={table_name}, record_id={record_id}")
+        contact_id = request.GET.get('contact_id')
+        print(f"UniversalGetView: table_name={table_name}, record_id={record_id}, contact_id={contact_id}")
 
-        # Singularize and capitalize table name for model lookup
+        # Get app label from map, default to 'core'
+        app_label = TABLE_APP_MAP.get(table_name, 'core')
         model_name = table_name.rstrip('s').capitalize()
-        print(f"UniversalGetView: model_name={model_name}")
+        print(f"UniversalGetView: app_label={app_label}, model_name={model_name}")
 
-        model = apps.get_model('core', model_name)
+        model = apps.get_model(app_label, model_name)
         print(f"UniversalGetView: model={model}")
 
+        # Build queryset
+        queryset = model.objects.all()
         if record_id:
-            queryset = model.objects.filter(id=record_id)
-        else:
-            queryset = model.objects.all()
+            queryset = queryset.filter(id=record_id)
+        if contact_id and hasattr(model, 'contact_id'):
+            queryset = queryset.filter(contact_id=contact_id)
         print(f"UniversalGetView: queryset count={queryset.count()}")
 
         data = []
@@ -88,6 +92,17 @@ class UniversalDeleteView(View):
         }
         
         return JsonResponse(data)
+
+# Table to app mapping
+TABLE_APP_MAP = {
+    'contacts': 'core',
+    'actions': 'core',
+    'emails': 'communications',
+    'phones': 'communications',
+    'addresses': 'communications',
+    'domains': 'communications',
+    # Add more as needed
+}
 
 # Export all views
 __all__ = [
