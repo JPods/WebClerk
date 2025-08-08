@@ -1,14 +1,19 @@
 import json
+from urllib import request
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
 from django.views.decorators.csrf import csrf_exempt
 from core import tasks  # Import your tasks module
+from core.models import Contact  # or your dynamic model logic
+
 
 class SaveView(View):
-    def put(self, request):
+    def post(self, request):
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
+        print("Request body:", request.body)
+
         if not table_name or not record_id:
             return JsonResponse({'success': False, 'message': 'Missing table_name or id'}, status=400)
 
@@ -18,40 +23,16 @@ class SaveView(View):
         except model.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Record not found'}, status=404)
 
-        data = json.loads(request.body)
-        user_id = request.user.id if request.user.is_authenticated else None
+        # Parse JSON body
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Invalid JSON: {e}'}, status=400)
 
-        # Pre-save hook: Celery task if defined
-        celery_task_name = f"{table_name.rstrip('s')}_save_before"
-        celery_task = getattr(tasks, celery_task_name, None)
-        if celery_task:
-            result = celery_task.delay(data, user_id).get(timeout=10)
-            if not result.get('success', True):
-                return JsonResponse({'success': False, 'message': result.get('message', 'save_before failed')}, status=400)
-
-        # Pre-save hook: model method if defined
-        if hasattr(obj, 'save_before') and callable(getattr(obj, 'save_before')):
-            result = obj.save_before(data)
-            if result is False:
-                return JsonResponse({'success': False, 'message': 'save_before failed'}, status=400)
-
-        # Update fields
+        # Loop through each field in the body and set it on the object
         for field, value in data.items():
-            setattr(obj, field, value)
-
-        # Post-save hook: Celery task if defined
-        celery_task_name = f"{table_name.rstrip('s')}_save_after"
-        celery_task = getattr(tasks, celery_task_name, None)
-        if celery_task:
-            result = celery_task.delay(data, user_id).get(timeout=10)
-            if not result.get('success', True):
-                return JsonResponse({'success': False, 'message': result.get('message', 'save_after failed')}, status=400)
-
-        # Post-save hook: model method if defined
-        if hasattr(obj, 'save_after') and callable(getattr(obj, 'save_after')):
-            result = obj.save_after(data)
-            if result is False:
-                return JsonResponse({'success': False, 'message': 'save_after failed'}, status=400)
+            if hasattr(obj, field):
+                setattr(obj, field, value)
 
         obj.save()
         return JsonResponse({'success': True, 'id': obj.id})

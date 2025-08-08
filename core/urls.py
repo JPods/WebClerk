@@ -1,11 +1,13 @@
 from django.urls import path
+
 from core.views import (
     HomeView, AboutView,
     WebSignupView, WebLoginView, WebLogoutView,
     UniversalCRUDView,
     UniversalGetView
-
 )
+from core.views.save_view import SaveView
+
 from django.views.generic import TemplateView
 
 from rest_framework_simplejwt.views import (
@@ -15,11 +17,6 @@ from rest_framework_simplejwt.views import (
 from core.views.related_view import RelatedDataView
 # from core.views.save_view import SaveView
 
-# Try importing SaveView from core.views if it exists there
-try:
-    from core.views import SaveView
-except ImportError:
-    SaveView = None  # Or handle appropriately if SaveView is required
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
