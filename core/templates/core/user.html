@@ -68,15 +68,15 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" id="notes" rows="3" readonly></textarea>
+                            <label class="form-label">Comment</label>
+                            <textarea class="form-control" id="comment" rows="3" readonly></textarea>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Tags</label>
-                                    <input type="text" class="form-control" id="tags" value="" readonly>
+                                    <input type="text" class="form-control" id="refs_tags">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -238,11 +238,11 @@ function populateUserProfile(contact) {
     document.getElementById('company').value = contact.company || '';
     document.getElementById('department').value = contact.department || '';
     document.getElementById('status').value = contact.status || 'active';
-    document.getElementById('notes').value = contact.notes || '';
-    document.getElementById('tags').value = contact.tags || '';
+    document.getElementById('comment').value = contact.comment || '';
+    document.getElementById('ref_tags').value = contact.refs.tags || '';
     document.getElementById('source').value = contact.source || '';
-    document.getElementById('created_at').value = contact.created_at || '';
-    document.getElementById('updated_at').value = contact.updated_at || '';
+    document.getElementById('created_at').value = contact.metadata.history.created.dt || '';
+    document.getElementById('updated_at').value = contact.metadata.history.modified.dt || '';
 }
 
 function populateUserRelatedData(related) {
@@ -319,6 +319,7 @@ async function saveProfile() {
     }
     
     const formData = {
+        table_name: 'contacts',
         id: user_id,
         name_first: document.getElementById('name_first').value,
         name_last: document.getElementById('name_last').value,
@@ -326,13 +327,15 @@ async function saveProfile() {
         company: document.getElementById('company').value,
         department: document.getElementById('department').value,
         status: document.getElementById('status').value,
-        notes: document.getElementById('notes').value,
-        tags: document.getElementById('tags').value,
+        comment: document.getElementById('comment').value,
+        refs: {
+            tags: document.getElementById('refs_tags').value
+        },
         source: document.getElementById('source').value
     };
     
     try {
-        const response = await fetch('/wcapi/save/', {
+        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${user_id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -411,7 +414,7 @@ function createNewAddress() {
 
 function createNewDomain() {
     const domain = prompt('Enter domain name:');
-    const notes = prompt('Enter notes (optional):');
+    const comment = prompt('Enter comments (optional):');
     
     if (domain) {
         console.log(`Adding domain: ${domain} to my profile`);

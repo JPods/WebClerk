@@ -79,7 +79,7 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     company = models.CharField(max_length=200, blank=True, help_text="Company name")
     title = models.CharField(max_length=100, blank=True, help_text="Job title")
     department = models.CharField(max_length=100, blank=True, help_text="Department")
-    
+    comment = models.TextField(blank=True, help_text="Additional comments")
     # System Fields
     role = models.CharField(
         max_length=50, 
