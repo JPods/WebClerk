@@ -2,7 +2,7 @@ import json
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
-
+from django.views.decorators.csrf import csrf_exempt
 from core import tasks  # Import your tasks module
 
 class SaveView(View):

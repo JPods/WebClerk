@@ -102,7 +102,7 @@
                             </div>
                         </div>
                         
-                        <button id="save-btn" onclick="saveProfile()" class="btn btn-success" style="display: none;">
+                        <button id="save-btn" onclick="saveProfile(); return false;" class="btn btn-success" style="display: none;">
                             <i class="fas fa-save"></i> Save Changes
                         </button>
                         <button id="cancel-btn" onclick="cancelEdit()" class="btn btn-secondary" style="display: none;">
@@ -319,6 +319,7 @@ async function saveProfile() {
     }
     
     const formData = {
+        id: user_id,
         name_first: document.getElementById('name_first').value,
         name_last: document.getElementById('name_last').value,
         title: document.getElementById('title').value,
@@ -331,8 +332,8 @@ async function saveProfile() {
     };
     
     try {
-        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${user_id}`, {
-            method: 'PUT',
+        const response = await fetch('/wcapi/save/', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
@@ -350,25 +351,7 @@ async function saveProfile() {
         }
     } catch (error) {
         console.error('Error saving profile:', error);
-        alert('Profile saved! (Demo mode - would call Universal API)');
-        toggleEdit();
-    }
-}
-
-async function saveUserChanges(userId, data) {
-    const response = await fetch(`/wcapi/save/?table_name=contacts&id=${userId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'), // if using Django CSRF
-        },
-        body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (result.success) {
-        alert('User saved!');
-    } else {
-        alert('Save failed: ' + (result.message || 'Unknown error'));
+        alert('Error saving profile!');
     }
 }
 
