@@ -68,11 +68,15 @@ core/templates/
     -  git commit -m"message"
     -  git push
 
-  - go to [github.com](https://github.com/JPods/webClerk3/branches)
+  -go to [github.com](https://github.com/JPods/webClerk3/branches)
     - click Pull requests tab
     - click button New pull request
     - Comparing changes dev <- user_dev
     - Click through the buttons
+
+
+  -Start working
+    - git pull origin dev
 
 
   ## 🎯 Architecture Overview
