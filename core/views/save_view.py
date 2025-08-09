@@ -13,6 +13,7 @@ ALLOWED_NESTED_KEYS = {
     'metadata': {'notes'},
 }
 
+# QQQ add pre and post save hooks to celery
 
 class SaveView(View):
     def post(self, request):
