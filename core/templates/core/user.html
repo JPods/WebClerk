@@ -203,6 +203,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
 let isEditing = false;
 let user_id_current = {{ user.id|default:1 }};
@@ -211,8 +212,8 @@ let user_id = user_id_current; // initialize user_id to the current user's id
 // Load current user's contact record
 async function loadUserProfile() {
     try {
-        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
-        const data = await response.json();
+        const response = await axios.get(`/wcapi/get/?table_name=contacts&id=${user_id}`);
+        const data = response.data;
         console.log('Contact/related data:', data);
         let contact_user = null;
         if (data.success && data.contact) {
@@ -317,7 +318,7 @@ async function saveProfile() {
         alert('Unable to save: No contact record found');
         return;
     }
-    
+
     const formData = {
         table_name: 'contacts',
         id: user_id,
@@ -333,18 +334,15 @@ async function saveProfile() {
         },
         source: document.getElementById('source').value
     };
-    //  ?table_name=contacts&id=${user_id}
+
     try {
-        const response = await fetch(`/wcapi/save/`, {
-            method: 'POST',
+        const response = await axios.post('/wcapi/save/', formData, {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(formData)
+            }
         });
-        
-        const result = await response.json();
+        const result = response.data;
         if (result.success) {
             alert('Profile saved successfully!');
             toggleEdit();

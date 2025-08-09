@@ -14,6 +14,22 @@ core/templates/
     ├── login.html           # Authentication
     └── signup.html          # Registration
 
+webClerk3/
+├── core/
+│   ├── models.py
+│   ├── views.py
+│   ├── tasks.py      # <--- Put tasks here for core app
+│   └── ...
+├── communications/
+│   ├── models.py
+│   ├── views.py
+│   ├── tasks.py      # <--- Put tasks here for communications app
+│   └── ...
+├── webclerk3_api/
+│   ├── settings.py
+│   ├── celery.py     # <--- Celery app config only
+│   └── ...
+
 -----------------------------
 ### How to run this project:
 -----------------------------
