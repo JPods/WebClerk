@@ -1,4 +1,3 @@
-import json
 from urllib import request
 from django.http import JsonResponse
 from django.views import View
@@ -8,6 +7,7 @@ from core import tasks  # Import your tasks module
 from core.models import Contact  # or your dynamic model logic
 
 ALLOWED_NESTED_KEYS = {
+    # Limit the size and branching of what can be saved
     'refs': {'tags'},
     'prefs': {'theme', 'lang'},
     'metadata': {'notes'},
@@ -16,8 +16,14 @@ ALLOWED_NESTED_KEYS = {
 
 class SaveView(View):
     def post(self, request):
-        table_name = request.GET.get('table_name')
-        record_id = request.GET.get('id')
+        import json
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Invalid JSON: {e}'}, status=400)
+
+        table_name = data.get('table_name')
+        record_id = data.get('id')
         if not table_name or not record_id:
             return JsonResponse({'success': False, 'message': 'Missing table_name or id'}, status=400)
 
@@ -27,7 +33,6 @@ class SaveView(View):
         except model.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Record not found'}, status=404)
 
-        data = json.loads(request.body)
         nested_fields = ['refs', 'prefs', 'metadata']
 
         for field, value in data.items():

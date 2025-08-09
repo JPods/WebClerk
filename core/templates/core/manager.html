@@ -322,18 +322,7 @@ function renderContactDetails(contact) {
 function toggleContactEdit() {
     if (isEditingContact) {
         // Save logic here
-        const updated = {
-            name_first: document.getElementById('edit-name-first').value,
-            name_last: document.getElementById('edit-name-last').value,
-            email: document.getElementById('edit-email').value,
-            company: document.getElementById('edit-company').value,
-            title: document.getElementById('edit-title').value,
-            role: document.getElementById('edit-role').value,
-            id: selecteduser_id
-        };
-        // TODO: Send updated to backend via fetch/POST
-        isEditingContact = false;
-        renderContactDetails(updated);
+        saveContact();
         document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-edit"></i> Edit';
     } else {
         isEditingContact = true;
@@ -410,6 +399,51 @@ function populateUserRelatedData(related) {
         domainsList.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
     }
 }
+
+// --- New saveContact function ---
+function saveContact() {
+    if (!selecteduser_id) {
+        alert('No contact selected to save.');
+        return;
+    }
+
+    const updated = {
+        table_name: 'contacts',
+        id: selecteduser_id,
+        name_first: document.getElementById('edit-name-first').value,
+        name_last: document.getElementById('edit-name-last').value,
+        email: document.getElementById('edit-email').value,
+        company: document.getElementById('edit-company').value,
+        title: document.getElementById('edit-title').value,
+        role: document.getElementById('edit-role').value
+    };
+
+    console.log('Saving contact:', updated);
+
+    fetch('/wcapi/save/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(updated)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Contact saved!');
+            isEditingContact = false;
+            loadContacts(); // Refresh list and details
+        } else {
+            alert('Error saving contact: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error saving contact: ' + error);
+    });
+}
+
+document.getElementById('save-btn').addEventListener('click', saveContact);
 
 // Do NOT call renderContactsList inside selectContact or renderContactDetails!
 </script>

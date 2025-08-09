@@ -333,9 +333,9 @@ async function saveProfile() {
         },
         source: document.getElementById('source').value
     };
-    
+    //  ?table_name=contacts&id=${user_id}
     try {
-        const response = await fetch(`/wcapi/save/?table_name=contacts&id=${user_id}`, {
+        const response = await fetch(`/wcapi/save/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

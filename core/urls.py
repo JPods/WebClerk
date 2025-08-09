@@ -81,6 +81,7 @@ urlpatterns = [
     path('wcapi/put/', UniversalCRUDView.as_view(), name='put'),
     # save was used in 4D, replace with post/put
     path('wcapi/save/', SaveView.as_view(), name='save'),
+    # pass table_name and id wcapi/save/?table_name=<table_name>&id=<id>
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
     path('wcapi/trace/', UniversalCRUDView.as_view(), name='trace'),
