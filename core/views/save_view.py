@@ -7,13 +7,17 @@ from django.views.decorators.csrf import csrf_exempt
 from core import tasks  # Import your tasks module
 from core.models import Contact  # or your dynamic model logic
 
+ALLOWED_NESTED_KEYS = {
+    'refs': {'tags'},
+    'prefs': {'theme', 'lang'},
+    'metadata': {'notes'},
+}
+
 
 class SaveView(View):
     def post(self, request):
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
-        print("Request body:", request.body)
-
         if not table_name or not record_id:
             return JsonResponse({'success': False, 'message': 'Missing table_name or id'}, status=400)
 
@@ -23,15 +27,24 @@ class SaveView(View):
         except model.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Record not found'}, status=404)
 
-        # Parse JSON body
-        try:
-            data = json.loads(request.body)
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'Invalid JSON: {e}'}, status=400)
+        data = json.loads(request.body)
+        nested_fields = ['refs', 'prefs', 'metadata']
 
-        # Loop through each field in the body and set it on the object
         for field, value in data.items():
-            if hasattr(obj, field):
+            if field in nested_fields and hasattr(obj, field):
+                allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())
+                current = getattr(obj, field) or {}
+                if isinstance(current, str):
+                    try:
+                        current = json.loads(current)
+                    except Exception:
+                        current = {}
+                if isinstance(value, dict):
+                    for k, v in value.items():
+                        if k in allowed_keys:
+                            current[k] = v
+                setattr(obj, field, current)
+            elif hasattr(obj, field):
                 setattr(obj, field, value)
 
         obj.save()
