@@ -61,9 +61,11 @@ core/templates/
 
 
 #### working with github:
-  - pull from dev at the start of every local effort
+  -Start working -- every day at start
     - git pull origin dev
-  - add changes to git site
+
+
+  - After adding a feature add changes to git site
     -  git add .
     -  git commit -m"message"
     -  git push
@@ -74,9 +76,6 @@ core/templates/
     - Comparing changes dev <- user_dev
     - Click through the buttons
 
-
-  -Start working
-    - git pull origin dev
 
 
   ## 🎯 Architecture Overview
