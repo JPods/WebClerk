@@ -1,3 +1,4 @@
+
 # webClerk3
 
 Project Docs Link: 
@@ -29,7 +30,6 @@ webClerk3/
 │   ├── settings.py
 │   ├── celery.py     # <--- Celery app config only
 │   └── ...
-
 
 -----------------------------
 ### Install:
