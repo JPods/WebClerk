@@ -30,6 +30,14 @@ webClerk3/
 │   ├── celery.py     # <--- Celery app config only
 │   └── ...
 
+
+-----------------------------
+### Install:
+-----------------------------
+  - Docker
+  - Celery
+  - Redis
+  
 -----------------------------
 ### How to run this project:
 -----------------------------
