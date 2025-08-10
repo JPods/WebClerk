@@ -2,18 +2,13 @@ from urllib import request
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
-from django.views.decorators.csrf import csrf_exempt
-from core import tasks  # Import your tasks module
-from core.models import Contact  # or your dynamic model logic
+from core import tasks
 
 ALLOWED_NESTED_KEYS = {
-    # Limit the size and branching of what can be saved
     'refs': {'tags'},
     'prefs': {'theme', 'lang'},
     'metadata': {'notes'},
 }
-
-# QQQ add pre and post save hooks to celery
 
 class SaveView(View):
     def post(self, request):
@@ -24,15 +19,22 @@ class SaveView(View):
             return JsonResponse({'success': False, 'message': f'Invalid JSON: {e}'}, status=400)
 
         table_name = data.get('table_name')
-        record_id = data.get('id')
-        if not table_name or not record_id:
-            return JsonResponse({'success': False, 'message': 'Missing table_name or id'}, status=400)
+        record_id = data.get('id', None)
+        if not table_name:
+            return JsonResponse({'success': False, 'message': 'Missing table_name'}, status=400)
 
         model = apps.get_model('core', table_name.rstrip('s').capitalize())
-        try:
-            obj = model.objects.get(id=record_id)
-        except model.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Record not found'}, status=404)
+
+        # Determine if this is a create or update
+        is_create = not record_id or str(record_id) in ('0', 'null', 'None')
+
+        if is_create:
+            obj = model()
+        else:
+            try:
+                obj = model.objects.get(id=record_id)
+            except model.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Record not found'}, status=404)
 
         nested_fields = ['refs', 'prefs', 'metadata']
 
@@ -53,7 +55,7 @@ class SaveView(View):
                         if k in allowed_keys:
                             current[k] = v
                 setattr(obj, field, current)
-            elif hasattr(obj, field):
+            elif hasattr(obj, field) and field not in ['id', 'table_name']:
                 setattr(obj, field, value)
 
         obj.save()
