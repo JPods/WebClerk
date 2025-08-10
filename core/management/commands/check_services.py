@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 import subprocess
 import socket
-import pkg_resources
+import importlib.metadata
 
 REQUIRED_PACKAGES = [
     'Django',
@@ -45,8 +45,8 @@ class Command(BaseCommand):
         missing = []
         for pkg in REQUIRED_PACKAGES:
             try:
-                pkg_resources.get_distribution(pkg)
-            except pkg_resources.DistributionNotFound:
+                importlib.metadata.version(pkg)
+            except importlib.metadata.PackageNotFoundError:
                 missing.append(pkg)
         if missing:
             deps_status = f"Python dependencies: ❌ missing: {', '.join(missing)}"
