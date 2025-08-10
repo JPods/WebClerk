@@ -7,10 +7,10 @@ class ContactAdmin(UserAdmin):
     """Admin interface for Contact model with Universal API support"""
     
     # Fields to display in the list view (FIXED - removed is_email_verified)
-    list_display = ['email', 'name_first', 'name_last', 'company', 'role', 'is_active', 'date_joined']
-    
+    list_display = ['id', 'email', 'name_first', 'name_last', 'company', 'role', 'comment', 'is_active', 'date_joined']
+
     # Fields to filter by (FIXED - removed is_email_verified)
-    list_filter = ['role', 'is_active', 'is_staff', 'is_superuser', 'date_joined']
+    list_filter = ['id', 'role', 'is_active', 'is_staff', 'is_superuser', 'date_joined']
     
     # Fields to search
     search_fields = ['email', 'name_first', 'name_last', 'company']
