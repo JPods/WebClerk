@@ -1,69 +1,78 @@
 from typing import Dict, List
-from core.models import Contact, Action
-#Order, Item
-from communications.models import Phone, Email, Address, Domain
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
+from django.core.exceptions import ObjectDoesNotExist
+from core.models import Contact, Action
+from communications.models import Phone, Email, Address, Domain
 
 RELATED_TABLES: Dict[str, List[str]] = {
-    #'customers': ['contacts', 'orders'],
     'contacts': ['phones', 'emails', 'addresses', 'actions', 'domains'],
-    #'orders': ['items', 'payments', 'shipments'],
-    #'items': ['categories', 'suppliers'],
-    # Add more as needed
 }
 
 RELATED_MODELS: Dict[str, List[type]] = {
     'contacts': [Phone, Email, Address, Domain, Action],
-    #'orders': [Item],
-    # etc.
 }
 
-def get_executable(name: str) -> str:
+def get_related_data(contact: Contact) -> dict:
     """
-    Given a table name, return the name of the executable function
-    that can fetch related data for that table.
+    Fetches all related data for a given contact, returning a single JSON object.
     """
-    return f"get_related_{name}_data"
-
-
-def get_one_from_many(related_table: str, parent_id: int) -> List[dict]:
-    pass
-
-
-# Loops through all related models for the given parent table.
-# Dynamically builds the foreign key filter (e.g., contact_id=..., order_id=...).
-# Returns a dictionary with each related model’s data as a list.
-
-def get_related_data(parent_table: str, parent_id: int) -> dict:
     related = {}
-    # Map each related key to (app_label, model_name)
     related_models = {
-        'actions': ('core', 'Action'),
-        'emails': ('communications', 'Email'),
         'phones': ('communications', 'Phone'),
+        'emails': ('communications', 'Email'),
         'addresses': ('communications', 'Address'),
         'domains': ('communications', 'Domain'),
+        'actions': ('core', 'Action'),
     }
-    for key, (app_label, model_name) in related_models.items():
-        model = apps.get_model(app_label, model_name)
-        model_fields = [f.name for f in model._meta.get_fields()]
-        if 'contact_id' in model_fields:
-            queryset = model.objects.filter(contact_id=parent_id)
+
+    for related_table in RELATED_TABLES.get('contacts', []):
+        if related_table in related_models:
+            app_label, model_name = related_models[related_table]
+            model = apps.get_model(app_label, model_name)
+            model_fields = [f.name for f in model._meta.get_fields()]
+            if 'contact_id' in model_fields:
+                queryset = model.objects.filter(contact_id=contact.id)
+            else:
+                queryset = model.objects.filter(refs__links__contacts__contains=[contact.id])
+            related[related_table] = list(queryset.values())
         else:
-            queryset = model.objects.filter(refs__links__contacts__contains=[int(parent_id)])
-        related[key] = list(queryset.values())
-    return related
+            related[related_table] = []
+
+    # Get all fields from the Contact model dynamically
+    contact_data = {
+        field.name: getattr(contact, field.name)
+        for field in contact._meta.get_fields()
+        if field.concrete and not field.many_to_many
+    }
+    contact_data['related'] = related
+
+    return contact_data
 
 class RelatedDataView(View):
-    def get(self, request):
-        parent_table = request.GET.get('parent_table')
-        parent_id = request.GET.get('parent_id')
-        if not parent_table or not parent_id:
-            return JsonResponse({'success': False, 'error': 'parent_table and parent_id required'}, status=400)
-        data = get_related_data(parent_table, parent_id)
+    def get(self, request, contact_id=None, contact_email=None):
+        if not contact_id and not contact_email:
+            return JsonResponse(
+                {'success': False, 'error': 'contact_id or contact_email is required'},
+                status=400
+            )
+
+        try:
+            if contact_id:
+                contact = Contact.objects.get(id=int(contact_id))
+            else:
+                contact = Contact.objects.get(email=contact_email)
+        except ObjectDoesNotExist:
+            return JsonResponse(
+                {'success': False, 'error': 'Contact not found'},
+                status=404
+            )
+        except ValueError:
+            return JsonResponse(
+                {'success': False, 'error': 'Invalid contact_id'},
+                status=400
+            )
+
+        data = get_related_data(contact)
         return JsonResponse({'success': True, 'data': data})
-
-
-
