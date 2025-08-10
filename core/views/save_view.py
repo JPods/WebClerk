@@ -36,6 +36,9 @@ class SaveView(View):
 
         nested_fields = ['refs', 'prefs', 'metadata']
 
+        # Call pre-save task
+        # tasks.save_pre(table_name, data)
+
         for field, value in data.items():
             if field in nested_fields and hasattr(obj, field):
                 allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())
@@ -52,6 +55,9 @@ class SaveView(View):
                 setattr(obj, field, current)
             elif hasattr(obj, field):
                 setattr(obj, field, value)
+
+        # Call post-save task
+        # tasks.save_post(table_name, obj)
 
         obj.save()
         return JsonResponse({'success': True, 'id': obj.id})
