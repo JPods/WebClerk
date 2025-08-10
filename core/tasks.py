@@ -1,17 +1,30 @@
 from celery import shared_task
 
 @shared_task
-def contact_save_before(data, user_id=None):
-    # Example: check roles, permissions, or custom logic
-    if data.get('role') == 'admin' and not user_id_is_superuser(user_id):
-        return {'success': False, 'message': 'Only superusers can assign admin role.'}
+def save_pre(table_name, data):
+    # Dynamically call a table-specific pre-save task if it exists
+    func_name = f"{table_name.rstrip('s')}_save_pre"
+    if func_name in globals():
+        return globals()[func_name](data)
+    # Default: do nothing
     return {'success': True}
 
 @shared_task
-def contact_save_after(data, user_id=None):
-    # Example: send notification, log, etc.
+def save_post(table_name, data):
+    # Dynamically call a table-specific post-save task if it exists
+    func_name = f"{table_name.rstrip('s')}_save_post"
+    if func_name in globals():
+        return globals()[func_name](data)
+    # Default: do nothing
     return {'success': True}
 
-def user_id_is_superuser(user_id):
-    # Implement your logic here
-    return True
+# Example table-specific pre/post tasks
+def contact_save_pre(data):
+    # Custom logic for contacts before save
+    print("Pre-save for contact:", data)
+    return {'success': True}
+
+def contact_save_post(data):
+    # Custom logic for contacts after save
+    print("Post-save for contact:", data)
+    return {'success': True}
