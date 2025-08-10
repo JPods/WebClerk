@@ -79,7 +79,7 @@ webClerk3/
 #### working with github:
   -Start working -- every day at start
     - git pull origin dev
-
+    - Run python [manage.py](http://_vscodecontentref_/0) check_services or ./check_services.sh before starting development.
 
   - After adding a feature add changes to git site
     -  git add .
