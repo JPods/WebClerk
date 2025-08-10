@@ -12,6 +12,7 @@ def save_pre(table_name, data):
 @shared_task
 def save_post(table_name, data):
     # Dynamically call a table-specific post-save task if it exists
+    print("Post-save for:", table_name)
     func_name = f"{table_name.rstrip('s')}_save_post"
     if func_name in globals():
         return globals()[func_name](data)
