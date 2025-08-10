@@ -36,8 +36,8 @@ class SaveView(View):
 
         nested_fields = ['refs', 'prefs', 'metadata']
 
-        # Call pre-save task
-        # tasks.save_pre(table_name, data)
+        # Call pre-save task asynchronously
+        tasks.save_pre.delay(table_name, data)
 
         for field, value in data.items():
             if field in nested_fields and hasattr(obj, field):
@@ -56,8 +56,9 @@ class SaveView(View):
             elif hasattr(obj, field):
                 setattr(obj, field, value)
 
-        # Call post-save task
-        # tasks.save_post(table_name, obj)
-
         obj.save()
+
+        # Call post-save task asynchronously
+        tasks.save_post.delay(table_name, data)
+
         return JsonResponse({'success': True, 'id': obj.id})
