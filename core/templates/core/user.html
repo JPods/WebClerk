@@ -339,7 +339,7 @@ async function saveProfile() {
         const response = await axios.post('/wcapi/save/', formData, {
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': window.CSRF_TOKEN
             }
         });
         const result = response.data;
@@ -443,6 +443,8 @@ function editMyDomain(domainId) {
 }
 
 // Utility function to get CSRF token
+// assign csrf in base.html 
+// getCookie if not used but is left as an example
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
