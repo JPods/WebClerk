@@ -1,3 +1,4 @@
+# fields to ignore in getting keywords
 IGNORE_FIELDS = [
     "id",
     "uuid",

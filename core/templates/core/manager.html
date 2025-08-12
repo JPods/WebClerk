@@ -158,9 +158,8 @@ const CURRENT_USER = {
     username: '{{ user.username|default:"" }}'
 };
 
-// Global variables
 let allContacts = [];
-let selecteduser_id = null;
+let selected_id = null;
 let isEditingContact = false;
 let isCreatingContact = false;
 
@@ -171,13 +170,17 @@ async function loadContacts() {
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
             allContacts = data.data;
+            // On first load, set selected_id to CURRENT_USER.id if not set
+            if (!selected_id && CURRENT_USER.id) {
+                selected_id = CURRENT_USER.id;
+            }
             renderContactsList(allContacts);
-            // Only select the first contact if none is selected yet
-            if (!selecteduser_id && allContacts.length > 0) {
-                selectContact(allContacts[0].id);
+
+            // Fetch and render selected contact details and related tables
+            if (selected_id) {
+                await loadAndRenderContact(selected_id);
             }
         } else {
-            // handle error or empty state
             document.getElementById('contacts-list').innerHTML = '<div class="text-danger">No contacts found.</div>';
         }
     } catch (e) {
@@ -185,69 +188,40 @@ async function loadContacts() {
     }
 }
 
+// Fetch and render contact details and related tables
+async function loadAndRenderContact(user_id) {
+    try {
+        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
+        const data = await response.json();
+        if (data.success && data.contact) {
+            // Update allContacts with the latest data for this contact
+            const idx = allContacts.findIndex(c => String(c.id) === String(user_id));
+            if (idx !== -1) {
+                allContacts[idx] = data.contact;
+            }
+            renderContactDetails(data.contact);
+            populateRelatedTables(data.related);
+            renderContactsList(allContacts); // update highlight
+        } else {
+            renderContactDetails(null);
+            populateRelatedTables({});
+            renderContactsList(allContacts);
+        }
+    } catch (e) {
+        renderContactDetails(null);
+        populateRelatedTables({});
+        renderContactsList(allContacts);
+    }
+}
+
 // Call this ONCE on page load
 loadContacts();
 
 async function selectContact(user_id) {
-    console.log('selectContact called with:', user_id);
-    selecteduser_id = user_id;
-
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
-        const data = await response.json();
-
-        if (data.success && data.contact) {
-            renderContactDetails(data.contact);
-
-            // --- Render related tables ---
-            const related = data.related || {};
-
-            // Actions
-            const actionsTable = document.getElementById('actions-table');
-            if (Array.isArray(related.actions) && related.actions.length > 0) {
-                actionsTable.innerHTML = related.actions.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
-            } else {
-                actionsTable.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
-            }
-
-            // Emails
-            const emailsTable = document.getElementById('emails-table');
-            if (Array.isArray(related.emails) && related.emails.length > 0) {
-                emailsTable.innerHTML = related.emails.map(a => `<div>${a.email || 'Email'}</div>`).join('');
-            } else {
-                emailsTable.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
-            }
-
-            // Phones
-            const phonesTable = document.getElementById('phones-table');
-            if (Array.isArray(related.phones) && related.phones.length > 0) {
-                phonesTable.innerHTML = related.phones.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
-            } else {
-                phonesTable.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
-            }
-
-            // Addresses
-            const addressesTable = document.getElementById('addresses-table');
-            if (Array.isArray(related.addresses) && related.addresses.length > 0) {
-                addressesTable.innerHTML = related.addresses.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
-            } else {
-                addressesTable.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
-            }
-
-            // Domains
-            const domainsTable = document.getElementById('domains-table');
-            if (Array.isArray(related.domains) && related.domains.length > 0) {
-                domainsTable.innerHTML = related.domains.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
-            } else {
-                domainsTable.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
-            }
-        } else {
-            renderContactDetails(null);
-        }
-        renderContactsList(allContacts);
-    } catch (e) {
-        // handle error
-    }
+    selected_id = user_id;
+    isEditingContact = false;
+    isCreatingContact = false;
+    await loadAndRenderContact(user_id);
 }
 
 function renderContactsList(contacts) {
@@ -263,7 +237,7 @@ function renderContactsList(contacts) {
             <br>
             <small>${contact.company || ''}</small>
         `;
-        if (String(selecteduser_id) === String(contact.id)) {
+        if (String(selected_id) === String(contact.id)) {
             div.classList.add('active');
         }
         div.onclick = () => selectContact(contact.id);
@@ -277,10 +251,7 @@ function renderContactDetails(contact) {
         details.innerHTML = '<div class="text-center text-muted"><i class="fas fa-user-circle fa-3x mb-3"></i><p>Select a contact from the list above</p></div>';
         return;
     }
-
-    // Use blank fields if creating new
     const c = contact || {};
-
     if (isEditingContact || isCreatingContact) {
         details.innerHTML = `
             <div class="mb-2">
@@ -319,14 +290,72 @@ function renderContactDetails(contact) {
     }
 }
 
+// Helper to render related tables
+function populateRelatedTables(related) {
+    // Actions
+    const actionsTable = document.getElementById('actions-table');
+    if (actionsTable) {
+        if (related && Array.isArray(related.actions) && related.actions.length > 0) {
+            actionsTable.innerHTML = related.actions.map(a =>
+                `<div>${a.action || a.sample || 'Action'}</div>`
+            ).join('');
+        } else {
+            actionsTable.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
+        }
+    }
+    // Emails
+    const emailsTable = document.getElementById('emails-table');
+    if (emailsTable) {
+        if (related && Array.isArray(related.emails) && related.emails.length > 0) {
+            emailsTable.innerHTML = related.emails.map(a =>
+                `<div>${a.email || 'Email'}</div>`
+            ).join('');
+        } else {
+            emailsTable.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
+        }
+    }
+    // Phones
+    const phonesTable = document.getElementById('phones-table');
+    if (phonesTable) {
+        if (related && Array.isArray(related.phones) && related.phones.length > 0) {
+            phonesTable.innerHTML = related.phones.map(a =>
+                `<div>${a.number || a.phone || 'Phone'}</div>`
+            ).join('');
+        } else {
+            phonesTable.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
+        }
+    }
+    // Addresses
+    const addressesTable = document.getElementById('addresses-table');
+    if (addressesTable) {
+        if (related && Array.isArray(related.addresses) && related.addresses.length > 0) {
+            addressesTable.innerHTML = related.addresses.map(a =>
+                `<div>${a.address || a.street || a.sample || 'Address'}</div>`
+            ).join('');
+        } else {
+            addressesTable.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
+        }
+    }
+    // Domains
+    const domainsTable = document.getElementById('domains-table');
+    if (domainsTable) {
+        if (related && Array.isArray(related.domains) && related.domains.length > 0) {
+            domainsTable.innerHTML = related.domains.map(a =>
+                `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`
+            ).join('');
+        } else {
+            domainsTable.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
+        }
+    }
+}
+
 function toggleContactEdit() {
     if (isEditingContact) {
-        // Save logic here
         saveContact();
         document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-edit"></i> Edit';
     } else {
         isEditingContact = true;
-        renderContactDetails(allContacts.find(c => c.id == selecteduser_id));
+        renderContactDetails(allContacts.find(c => c.id == selected_id));
         document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-save"></i> Save';
     }
 }
@@ -334,82 +363,19 @@ function toggleContactEdit() {
 function createNewContact() {
     isCreatingContact = true;
     isEditingContact = false;
-    selecteduser_id = null;
+    selected_id = null;
     renderContactDetails({});
     document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-save"></i> Save';
 }
 
-// New functions for loading user profile and related data
-async function loadUserProfile() {
-    try {
-        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
-        const data = await response.json();
-        console.log('Contact/related data:', data);
-        let contact_user = null;
-        if (data.success && data.contact) {
-            contact_user = data.contact;
-            user_id = contact_user.id;
-            console.log('Loaded contact by id:', user_id);
-        }
-        if (contact_user) {
-            populateUserProfile(contact_user);
-            populateUserRelatedData(data.related);
-        } else {
-            console.log('No contact record found, showing demo data');
-        }
-    } catch (error) {
-        console.error('Error loading user profile:', error);
-    }
-}
-
-function populateUserRelatedData(related) {
-    // Actions
-    const actionsList = document.getElementById('actions-list');
-    if (Array.isArray(related.actions) && related.actions.length > 0) {
-        actionsList.innerHTML = related.actions.map(a => `<div>${a.action || a.sample || 'Action'}</div>`).join('');
-    } else {
-        actionsList.innerHTML = '<div class="text-muted"><small>No actions found.</small></div>';
-    }
-    // Emails
-    const emailsList = document.getElementById('emails-list');
-    if (Array.isArray(related.emails) && related.emails.length > 0) {
-        emailsList.innerHTML = related.emails.map(a => `<div>${a.email || 'Email'}</div>`).join('');
-    } else {
-        emailsList.innerHTML = '<div class="text-muted"><small>No emails found.</small></div>';
-    }
-    // Phones
-    const phonesList = document.getElementById('phones-list');
-    if (Array.isArray(related.phones) && related.phones.length > 0) {
-        phonesList.innerHTML = related.phones.map(a => `<div>${a.number || a.phone || 'Phone'}</div>`).join('');
-    } else {
-        phonesList.innerHTML = '<div class="text-muted"><small>No phones found.</small></div>';
-    }
-    // Addresses
-    const addressesList = document.getElementById('addresses-list');
-    if (Array.isArray(related.addresses) && related.addresses.length > 0) {
-        addressesList.innerHTML = related.addresses.map(a => `<div>${a.address || a.street || a.sample || 'Address'}</div>`).join('');
-    } else {
-        addressesList.innerHTML = '<div class="text-muted"><small>No addresses found.</small></div>';
-    }
-    // Domains
-    const domainsList = document.getElementById('domains-list');
-    if (Array.isArray(related.domains) && related.domains.length > 0) {
-        domainsList.innerHTML = related.domains.map(a => `<div>${a.domain || a.path || a.sample || 'Domain'}</div>`).join('');
-    } else {
-        domainsList.innerHTML = '<div class="text-muted"><small>No domains found.</small></div>';
-    }
-}
-
-// --- New saveContact function ---
 function saveContact() {
-    if (!selecteduser_id) {
+    if (!selected_id) {
         alert('No contact selected to save.');
         return;
     }
-
     const updated = {
         table_name: 'contacts',
-        id: selecteduser_id,
+        id: selected_id,
         name_first: document.getElementById('edit-name-first').value,
         name_last: document.getElementById('edit-name-last').value,
         email: document.getElementById('edit-email').value,
@@ -417,9 +383,6 @@ function saveContact() {
         title: document.getElementById('edit-title').value,
         role: document.getElementById('edit-role').value
     };
-
-    console.log('Saving contact:', updated);
-
     fetch('/wcapi/save/', {
         method: 'POST',
         headers: {
@@ -443,9 +406,8 @@ function saveContact() {
     });
 }
 
-document.getElementById('save-btn').addEventListener('click', saveContact);
+// Optionally, implement selectMyContact and searchContacts as needed
 
-// Do NOT call renderContactsList inside selectContact or renderContactDetails!
 </script>
 
 <style>

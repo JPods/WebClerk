@@ -5,14 +5,24 @@ from django.contrib import messages
 from django.http import JsonResponse
 from datetime import datetime
 
+# --- RECOMMENDED: Import your role-based access utility ---
+# from common.role_access import get_role_settings, can_user_edit, can_user_view
+
 class ManageActionsView(LoginRequiredMixin, View):
     """Manage user actions"""
-    
+
+    # Existing: This view lists actions linked to the current user by searching for their id or uuid in the refs field.
+    # TODO: For better performance and security, consider using a utility function or cached role-based access logic
+    #       (see settings table and role-based access recommendations) to filter actions by user permissions/roles,
+    #       instead of string matching in refs. This will make permission checks more robust and maintainable.
+
+    # ADD: Use get_role_settings() to filter actions by user role and allowed view fields.
+
     def get(self, request):
         if not request.user.is_authenticated:
             return redirect('/login/')
         
-        # Get user actions using the same method as contact view
+        # Existing: Get user actions using the same method as contact view
         user = request.user
         user_id_str = str(user.id)
         user_uuid_str = str(user.uuid) if hasattr(user, 'uuid') else None
@@ -29,6 +39,8 @@ class ManageActionsView(LoginRequiredMixin, View):
         except (ImportError, AttributeError):
             actions = []
         
+        # ADD: Optionally, filter fields in each action based on role's allowed "view" fields from settings.
+
         context = {
             'user': user,
             'actions': actions,
@@ -37,7 +49,13 @@ class ManageActionsView(LoginRequiredMixin, View):
 
 class AddActionView(LoginRequiredMixin, View):
     """Add new action"""
-    
+
+    # Existing: This view creates a new action and links it to the current user via the refs JSON field.
+    # TODO: Consider enforcing role-based field-level permissions (from settings table) when creating actions,
+    #       so only allowed fields are set per user role.
+
+    # ADD: Use can_user_edit('actions', user.role, field) to restrict which fields can be set.
+
     def post(self, request):
         if not request.user.is_authenticated:
             return redirect('/login/')
@@ -45,7 +63,7 @@ class AddActionView(LoginRequiredMixin, View):
         try:
             from core.models.action import Action
             
-            # Create new action
+            # Existing: Create new action
             action = Action()
             action.action_title = request.POST.get('action_title', '').strip()
             action.action_type = request.POST.get('action_type', '').strip()
@@ -77,6 +95,8 @@ class AddActionView(LoginRequiredMixin, View):
             }
             action.refs['links'].append(user_ref)
             
+            # ADD: Only set fields allowed by role's "edit" array in settings for "actions" table.
+
             action.save()
             messages.success(request, 'Action added successfully!')
             
@@ -87,7 +107,13 @@ class AddActionView(LoginRequiredMixin, View):
 
 class EditActionView(LoginRequiredMixin, View):
     """Edit existing action"""
-    
+
+    # Existing: This view allows editing an action only if the current user is linked in refs.
+    # TODO: For more granular control, check the user's role and allowed edit fields from the settings table,
+    #       and only permit editing fields listed in the role's "edit" array for the "actions" table.
+
+    # ADD: Use can_user_edit('actions', user.role, field) to restrict which fields can be edited.
+
     def get(self, request, action_id):
         if not request.user.is_authenticated:
             return redirect('/login/')
@@ -96,7 +122,7 @@ class EditActionView(LoginRequiredMixin, View):
             from core.models.action import Action
             action = get_object_or_404(Action, id=action_id)
             
-            # Verify user owns this action
+            # Existing: Verify user owns this action
             user_id_str = str(request.user.id)
             user_uuid_str = str(request.user.uuid) if hasattr(request.user, 'uuid') else None
             
@@ -106,6 +132,8 @@ class EditActionView(LoginRequiredMixin, View):
                 messages.error(request, 'Permission denied.')
                 return redirect('/manage-actions/')
             
+            # ADD: Optionally, filter fields in action based on role's allowed "view" fields.
+
             context = {
                 'action': action,
                 'user': request.user,
@@ -124,7 +152,7 @@ class EditActionView(LoginRequiredMixin, View):
             from core.models.action import Action
             action = get_object_or_404(Action, id=action_id)
             
-            # Verify user owns this action
+            # Existing: Verify user owns this action
             user_id_str = str(request.user.id)
             user_uuid_str = str(request.user.uuid) if hasattr(request.user, 'uuid') else None
             
@@ -134,7 +162,7 @@ class EditActionView(LoginRequiredMixin, View):
                 messages.error(request, 'Permission denied.')
                 return redirect('/manage-actions/')
             
-            # Update action
+            # Existing: Update action
             action.action_title = request.POST.get('action_title', '').strip()
             action.action_type = request.POST.get('action_type', '').strip()
             action.description = request.POST.get('description', '').strip()
@@ -153,6 +181,8 @@ class EditActionView(LoginRequiredMixin, View):
             else:
                 action.due_date = None
             
+            # ADD: Only update fields allowed by role's "edit" array in settings for "actions" table.
+
             action.save()
             messages.success(request, 'Action updated successfully!')
             
@@ -163,7 +193,13 @@ class EditActionView(LoginRequiredMixin, View):
 
 class DeleteActionView(LoginRequiredMixin, View):
     """Delete action"""
-    
+
+    # Existing: This view deletes an action only if the current user is linked in refs.
+    # TODO: Optionally, enforce role-based delete permissions using the settings table,
+    #       so only users with the correct role can delete actions.
+
+    # ADD: Use can_user_edit('actions', user.role, 'delete') or similar to check delete permission.
+
     def post(self, request, action_id):
         if not request.user.is_authenticated:
             return redirect('/login/')
@@ -172,7 +208,7 @@ class DeleteActionView(LoginRequiredMixin, View):
             from core.models.action import Action
             action = get_object_or_404(Action, id=action_id)
             
-            # Verify user owns this action
+            # Existing: Verify user owns this action
             user_id_str = str(request.user.id)
             user_uuid_str = str(request.user.uuid) if hasattr(request.user, 'uuid') else None
             
@@ -182,6 +218,8 @@ class DeleteActionView(LoginRequiredMixin, View):
                 messages.error(request, 'Permission denied.')
                 return redirect('/manage-actions/')
             
+            # ADD: Check if user has delete permission for actions table.
+
             action.delete()
             messages.success(request, 'Action deleted successfully!')
             

@@ -25,6 +25,7 @@ class ManageDomainsView(LoginRequiredMixin, View):
         domains = []
         try:
             from core.models.domain import Domain
+            # Example: filter by user or organization, or all if admin
             domains = Domain.objects.all()
         except (ImportError, AttributeError):
             domains = []
@@ -147,7 +148,3 @@ class DeleteDomainView(LoginRequiredMixin, View):
             messages.error(request, f'Error deleting domain: {str(e)}')
         
         return redirect('/manage-domains/')
-
-def custom_save_function(request, data):
-    # Implement your custom save logic here
-    return JsonResponse({'success': True, 'message': 'Custom save executed'})

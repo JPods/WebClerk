@@ -14,7 +14,7 @@ RELATED_MODELS: Dict[str, List[type]] = {
     'contacts': [Phone, Email, Address, Domain, Action],
 }
 
-def get_related_data(contact: Contact) -> dict:
+def get_related_data(table_name: str, id: int) -> dict:
     """
     Fetches all related data for a given contact, returning a single JSON object.
     """
@@ -27,28 +27,29 @@ def get_related_data(contact: Contact) -> dict:
         'actions': ('core', 'Action'),
     }
 
-    for related_table in RELATED_TABLES.get('contacts', []):
+    for related_table in RELATED_TABLES.get(table_name, []):
         if related_table in related_models:
             app_label, model_name = related_models[related_table]
             model = apps.get_model(app_label, model_name)
             model_fields = [f.name for f in model._meta.get_fields()]
             if 'contact_id' in model_fields:
-                queryset = model.objects.filter(contact_id=contact.id)
+                queryset = model.objects.filter(id=id)
             else:
-                queryset = model.objects.filter(refs__links__contacts__contains=[contact.id])
+                queryset = model.objects.filter(refs__links__contacts__contains=[id])
             related[related_table] = list(queryset.values())
         else:
             related[related_table] = []
 
     # Get all fields from the Contact model dynamically
-    contact_data = {
-        field.name: getattr(contact, field.name)
-        for field in contact._meta.get_fields()
-        if field.concrete and not field.many_to_many
-    }
-    contact_data['related'] = related
+    #contact_data = {
+    #    field.name: getattr(id, field.name)
+    #    for field in id._meta.g#et_fields()
+    #    if field.concrete and not field.many_to_many
+    #}
+    related_data = {}
+    related_data['related'] = related
 
-    return contact_data
+    return related_data
 
 class RelatedDataView(View):
     def get(self, request, contact_id=None, contact_email=None):
