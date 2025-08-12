@@ -5,12 +5,27 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.text import capfirst
 import json
 from core import tasks
+from django.db import IntegrityError
+from django.forms.models import model_to_dict
+import logging
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
     'prefs': {'theme', 'lang'},
     'metadata': {'notes'},
 }
+
+SPECIAL_CASES = {
+    'some_special_table': custom_save_function,
+    # ...
+}
+
+MAX_FIELD_SIZE = 2000  # bytes, example
+
+def check_field_size(field_value, max_size, field_name):
+    size = len(json.dumps(field_value).encode('utf-8'))
+    if size > max_size:
+        raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
 
 def find_model_for_table(table_name: str):
     """
@@ -60,6 +75,10 @@ class SaveView(View):
                 status=400
             )
 
+        # Check for special cases
+        if table_name in SPECIAL_CASES:
+            return SPECIAL_CASES[table_name](request, data)
+
         nested_fields = ['refs', 'prefs', 'metadata']
  
         # is it a new record or an update
@@ -81,7 +100,13 @@ class SaveView(View):
         # Call pre-save task asynchronously
         tasks.save_pre.delay(table_name, data)
 
+        # Before saving:
+        if hasattr(obj, 'pre_save_hook'):
+            result = obj.pre_save_hook(data)
+            if result is not None:
+                return JsonResponse({'success': False, 'message': result}, status=400)
 
+        field_size_errors = []
         for field, value in data.items():
             if field in nested_fields and hasattr(obj, field):
                 allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())
@@ -91,24 +116,40 @@ class SaveView(View):
                         current = json.loads(current)
                     except json.JSONDecodeError:
                         current = {}
-                # dict 
                 if isinstance(value, dict):
                     for k, v in value.items():
                         if k in allowed_keys:
-                            current[k] = v
-                setattr(obj, field, current)
+                            try:
+                                check_field_size(v, MAX_FIELD_SIZE, f"{field}.{k}")
+                                current[k] = v
+                            except ValueError as e:
+                                field_size_errors.append(str(e))
+                try:
+                    check_field_size(current, MAX_FIELD_SIZE, field)
+                    setattr(obj, field, current)
+                except ValueError as e:
+                    field_size_errors.append(str(e))
+                    # Do not set the field if the whole dict is too large
             elif field not in ('table_name', 'id') and hasattr(obj, field):
-                setattr(obj, field, value)
+                try:
+                    check_field_size(value, MAX_FIELD_SIZE, field)
+                    setattr(obj, field, value)
+                except ValueError as e:
+                    field_size_errors.append(str(e))
 
         try:
             obj.save()
+        except IntegrityError as e:
+            return JsonResponse({'success': False, 'message': f'Integrity error: {e}'}, status=400)
         except Exception as e:
-            return JsonResponse(
-                {'success': False, 'message': f'Failed to save: {e}'},
-                status=500
-            )
+            return JsonResponse({'success': False, 'message': f'Failed to save: {e}'}, status=500)
 
         # Call post-save task asynchronously (after successful save)
         tasks.save_post.delay(table_name, data)
-        
-        return JsonResponse({'success': True, 'id': obj.id})
+        logger = logging.getLogger(__name__)
+        logger.info(f"Saved {table_name} record {obj.id}")
+
+        response = {'success': True, 'id': obj.id, 'record': model_to_dict(obj)}
+        if field_size_errors:
+            response['messages'] = field_size_errors
+        return JsonResponse(response)
