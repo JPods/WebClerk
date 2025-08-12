@@ -64,6 +64,10 @@ def default_prefs():
     return {"userdefined": ""}
 
 
+MAX_METADATA_SIZE = 5000  # bytes
+MAX_REFS_SIZE = 2000      # bytes
+MAX_PREFS_SIZE = 2000     # bytes
+
 class BaseModel(models.Model):
     """
     Base model that provides Universal API metadata structure
@@ -115,6 +119,18 @@ class BaseModel(models.Model):
         # Update keywords from all text fields
         self.update_keywords()
         
+        # Enforce size limits
+        import sys
+
+        def check_size(field_value, max_size, field_name):
+            size = len(json.dumps(field_value).encode('utf-8'))
+            if size > max_size:
+                raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
+
+        check_size(self.metadata, MAX_METADATA_SIZE, "metadata")
+        check_size(self.refs, MAX_REFS_SIZE, "refs")
+        check_size(self.prefs, MAX_PREFS_SIZE, "prefs")
+
         super().save(*args, **kwargs)
     
     def update_keywords(self):
