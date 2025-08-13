@@ -1,24 +1,29 @@
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
-from django.core.exceptions import ObjectDoesNotExist
-from core.models import Contact, Action
-from communications.models import Phone, Email, Address, Domain
+from django.core.paginator import Paginator, EmptyPage
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
 
 RELATED_TABLES: Dict[str, List[str]] = {
     'contacts': ['phones', 'emails', 'addresses', 'actions', 'domains'],
 }
 
-RELATED_MODELS: Dict[str, List[type]] = {
-    'contacts': [Phone, Email, Address, Domain, Action],
-}
-
-def get_related_data(contact: Contact) -> dict:
+def get_related_data(
+    table_name: str,
+    id: int,
+    related_tables_dict: Optional[Dict[str, List[str]]] = None,
+    pagination: Optional[Dict[str, Dict[str, int]]] = None
+) -> dict:
     """
     Fetches all related data for a given contact, returning a single JSON object.
+    related_tables_dict: Optional override for which related tables to use.
+    pagination: Optional dict of {related_table: {'page': int, 'page_size': int}}
     """
     related = {}
+    errors = {}
     related_models = {
         'phones': ('communications', 'Phone'),
         'emails': ('communications', 'Email'),
@@ -27,52 +32,117 @@ def get_related_data(contact: Contact) -> dict:
         'actions': ('core', 'Action'),
     }
 
-    for related_table in RELATED_TABLES.get('contacts', []):
+    tables_dict = related_tables_dict if related_tables_dict is not None else RELATED_TABLES
+
+    print(f"get_related_data called with table_name={table_name}, id={id}")
+    print(f"related_tables_dict={related_tables_dict}, pagination={pagination}")
+
+    for related_table in tables_dict.get(table_name, []):
+        print(f"Processing related_table: {related_table}")
         if related_table in related_models:
             app_label, model_name = related_models[related_table]
-            model = apps.get_model(app_label, model_name)
-            model_fields = [f.name for f in model._meta.get_fields()]
-            if 'contact_id' in model_fields:
-                queryset = model.objects.filter(contact_id=contact.id)
-            else:
-                queryset = model.objects.filter(refs__links__contacts__contains=[contact.id])
-            related[related_table] = list(queryset.values())
+            print(f"Using model: {app_label}.{model_name}")
+            try:
+                model = apps.get_model(app_label, model_name)
+                queryset = model.objects.filter(**{f"refs__links__{table_name}__contains": [id]})
+                print(f"Queryset count for {related_table}: {queryset.count()}")
+                # Pagination support
+                if pagination and related_table in pagination:
+                    page = pagination[related_table].get('page', 1)
+                    page_size = pagination[related_table].get('page_size', 20)
+                    paginator = Paginator(queryset, page_size)
+                    try:
+                        page_obj = paginator.page(page)
+                        related[related_table] = list(page_obj.object_list.values())
+                        related[f"{related_table}_pagination"] = {
+                            "page": page,
+                            "page_size": page_size,
+                            "num_pages": paginator.num_pages,
+                            "count": paginator.count,
+                        }
+                    except EmptyPage:
+                        related[related_table] = []
+                        related[f"{related_table}_pagination"] = {
+                            "page": page,
+                            "page_size": page_size,
+                            "num_pages": paginator.num_pages,
+                            "count": paginator.count,
+                            "error": "Page out of range"
+                        }
+                else:
+                    related[related_table] = list(queryset.values())
+            except Exception as e:
+                print(f"Error processing {related_table}: {e}")
+                related[related_table] = []
+                errors[related_table] = str(e)
         else:
+            print(f"Unknown related table: {related_table}")
             related[related_table] = []
+            errors[related_table] = "Unknown related table"
+    return {"related": related, "errors": errors}
 
-    # Get all fields from the Contact model dynamically
-    contact_data = {
-        field.name: getattr(contact, field.name)
-        for field in contact._meta.get_fields()
-        if field.concrete and not field.many_to_many
-    }
-    contact_data['related'] = related
 
-    return contact_data
+class RelatedDataAdvancedView(View):
+    """
+    Django view for returning related data as JSON.
+    """
+    def post(self, request):
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+            table_name = body.get('table_name')
+            record_id = body.get('id')
+            related_tables_dict = body.get('related_tables_dict')  # Optional
+            pagination = body.get('pagination')  # Optional
+            if not table_name or not record_id:
+                return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
+            result = get_related_data(
+                table_name,
+                int(record_id),
+                related_tables_dict=related_tables_dict,
+                pagination=pagination
+            )
+            print("Returning related data:", result)
+            return JsonResponse({'success': True, 'related': result['related'], 'errors': result['errors']})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    def get(self, request):
+        table_name = request.GET.get('table_name')
+        record_id = request.GET.get('id')
+        related_tables_dict = request.GET.get('related_tables_dict')
+        pagination = request.GET.get('pagination')
+        if related_tables_dict:
+            try:
+                related_tables_dict = json.loads(related_tables_dict)
+            except Exception:
+                related_tables_dict = None
+        if pagination:
+            try:
+                pagination = json.loads(pagination)
+            except Exception:
+                pagination = None
+        if not table_name or not record_id:
+            return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
+        try:
+            result = get_related_data(
+                table_name,
+                int(record_id),
+                related_tables_dict=related_tables_dict,
+                pagination=pagination
+            )
+            print("Returning related data:", result)
+            return JsonResponse({'success': True, 'related': result['related'], 'errors': result['errors']})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 class RelatedDataView(View):
-    def get(self, request, contact_id=None, contact_email=None):
-        if not contact_id and not contact_email:
-            return JsonResponse(
-                {'success': False, 'error': 'contact_id or contact_email is required'},
-                status=400
-            )
-
+    def get(self, request):
+        table_name = request.GET.get('table_name')
+        record_id = request.GET.get('id')
+        if not table_name or not record_id:
+            return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
         try:
-            if contact_id:
-                contact = Contact.objects.get(id=int(contact_id))
-            else:
-                contact = Contact.objects.get(email=contact_email)
-        except ObjectDoesNotExist:
-            return JsonResponse(
-                {'success': False, 'error': 'Contact not found'},
-                status=404
-            )
-        except ValueError:
-            return JsonResponse(
-                {'success': False, 'error': 'Invalid contact_id'},
-                status=400
-            )
-
-        data = get_related_data(contact)
-        return JsonResponse({'success': True, 'data': data})
+            result = get_related_data(table_name, int(record_id))
+            return JsonResponse({'success': True, 'related': result['related'], 'errors': result['errors']})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)

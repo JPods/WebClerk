@@ -1,3 +1,5 @@
+delete_NotNeeded based on the schedule
+
 core/views/__init__.py 
 
 Care must be taken if the table 
@@ -13,3 +15,5 @@ name is not a standard "s" ending
 Form versus table references to tables
   "tablename-table" suffix for all table references displayed in a table or list
   "table" only in forms or flat display
+
+

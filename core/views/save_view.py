@@ -15,12 +15,12 @@ ALLOWED_NESTED_KEYS = {
     'metadata': {'notes'},
 }
 
-SPECIAL_CASES = {
-    'some_special_table': custom_save_function,
+#SPECIAL_CASES = {
+#    'some_special_table': custom_save_function,
     # ...
-}
+#}
 
-MAX_FIELD_SIZE = 2000  # bytes, example
+MAX_FIELD_SIZE = 15000  # bytes, example
 
 def check_field_size(field_value, max_size, field_name):
     size = len(json.dumps(field_value).encode('utf-8'))
@@ -35,6 +35,7 @@ def find_model_for_table(table_name: str):
     model_name = capfirst(table_name.rstrip('s'))
     for app_config in apps.get_app_configs():
         try:
+            # QQQ check for role access
             model = apps.get_model(app_config.label, model_name)
             return model
         except LookupError:
@@ -76,8 +77,8 @@ class SaveView(View):
             )
 
         # Check for special cases
-        if table_name in SPECIAL_CASES:
-            return SPECIAL_CASES[table_name](request, data)
+        #if table_name in SPECIAL_CASES:
+            #return SPECIAL_CASES[table_name](request, data)
 
         nested_fields = ['refs', 'prefs', 'metadata']
  
@@ -100,11 +101,13 @@ class SaveView(View):
         # Call pre-save task asynchronously
         tasks.save_pre.delay(table_name, data)
 
+        
         # Before saving:
         if hasattr(obj, 'pre_save_hook'):
             result = obj.pre_save_hook(data)
             if result is not None:
                 return JsonResponse({'success': False, 'message': result}, status=400)
+        # QQQ can this be accomplished with python threading
 
         field_size_errors = []
         for field, value in data.items():

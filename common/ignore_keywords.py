@@ -1,3 +1,4 @@
+# our_comments: words to ignore in creating keywords
 IGNORE_KEYWORDS = [
     "is",
     "the",

@@ -14,8 +14,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from core.views.related_view import RelatedDataView
-# from core.views.save_view import SaveView
+from core.views.related_view import RelatedDataView, RelatedDataAdvancedView
 
 
 urlpatterns = [
@@ -76,7 +75,7 @@ urlpatterns = [
 
  # full update
     path('wcapi/related/', UniversalCRUDView.as_view(), name='related'),
-
+    path('wcapi/related/advanced/', RelatedDataAdvancedView.as_view(), name='related-data-advanced'),
   
     path('wcapi/put/', UniversalCRUDView.as_view(), name='put'),
     # save was used in 4D, replace with post/put
@@ -85,4 +84,5 @@ urlpatterns = [
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
     path('wcapi/trace/', UniversalCRUDView.as_view(), name='trace'),
+
 ]

@@ -1,4 +1,6 @@
 {
+	"delete_NotNeeded":"2025-10-15",
+	"setup_postman_endpoints": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"table_name\":\"contacts\",\"id\":3})",
 	"info": {
 		"_postman_id": "22cefbe9-95e0-4354-b2f7-86e9bf42eeba",
 		"name": "WebClerk API Endpoints",
