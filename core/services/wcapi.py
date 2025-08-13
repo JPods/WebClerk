@@ -1,6 +1,8 @@
 from django.views import View
 from django.http import JsonResponse
-from core.models import Contact, Action, Phone, Domain, Email, Address  # Import only allowed models
+from core.models import Contact, Action  # Only core models here
+from communications.models import Phone, Domain, Email, Address  # Communications models here
+
 
 MODEL_MAP = {
     'contacts': Contact,
@@ -15,10 +17,10 @@ MODEL_MAP = {
 # We need to replace "__dict__" with our role based field filtering in the future.QQQ
 
 
-class UniversalCRUDWCAPI(View):
+class WcapiView(View):
 
     def get(self, request):
-        print("=== UniversalCRUDWCAPI CALLED ===")  # <--- Add this line
+        print("=== WcapiView CALLED ===")  # <--- Add this line
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
         template_name = request.GET.get('template_name')
@@ -132,6 +134,6 @@ class UniversalCRUDWCAPI(View):
             return JsonResponse({'success': False, 'message': 'Invalid table_name'})
         data = list(model.objects.all().values())
         return JsonResponse({'success': True, 'data': data})
-    
-    
+
+
 

@@ -165,7 +165,7 @@ async function loadContacts() {
     console.log("loadContacts called");
     try {
         const response = await fetch('/wcapi/get/?table_name=contacts');
-        
+        console.log("Response received:", response);
         const data = await response.json(); // <-- UNCOMMENT THIS LINE
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
             allContacts = data.data;
@@ -193,12 +193,12 @@ async function loadContacts() {
 async function loadAndRenderContact(user_id) {
     const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
     const data = await response.json();
-    if (data.success && data.contact) {
-        renderContactDetails(data.contact);
+    // If your backend returns a single object:
+    if (data.success && data.data) {
+        renderContactDetails(data.data);
         await fetchRelatedData('contacts', user_id);
     } else {
         renderContactDetails(null);
-        //qqq populateRelatedTables({});
     }
 }
 
@@ -359,10 +359,10 @@ function saveContact() {
 //}
 async function fetchRelatedData(table_name, selected_id) {
     console.log("Calling fetchRelatedData", table_name, selected_id);
-    const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}=${encodeURIComponent(selected_id)}`);
+    const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}&id=${encodeURIComponent(selected_id)}`);
     const data = await response.json();
     if (data.success) {
-        // qqq populateRelatedTables(data.data); // Use .data, not .related
+        // populateRelatedTables(data.data); // Use .data, not .related
     }
 }
 

@@ -52,7 +52,7 @@
         return JsonResponse(data)
 
 
-        class UniversalGetView(View):
+        class WcapiView(View):
     def get(self, request):
         table_name = request.GET.get('table_name', 'contacts')
         model = apps.get_model('core', table_name.capitalize())

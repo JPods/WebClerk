@@ -42,7 +42,7 @@ def find_model_for_table(table_name: str):
             continue
     return None
 
-class SaveView(View):
+class WcapiView(View):
     # apply exempt to CSRF for save view actions
     # already passed CSRF protection
     # QQQ frontends must pass CSRF token, so exemption is not needed

@@ -3,11 +3,11 @@ from .contact_view import WebContactView
 from .edit_views import EditContactView
 from .web_auth_views import WebSignupView, WebLoginView, WebLogoutView
 from core.services.wcapi import (
-    UniversalCRUDWCAPI,
-    UniversalGetView,
-    UniversalQueryView,
-    SaveView,
-    UniversalDeleteView,
+    WcapiView,
+    WcapiView,
+    WcapiView,
+    WcapiView,
+    WcapiView,
 )
 
 
@@ -19,7 +19,7 @@ class AboutView(TemplateView):
     template_name = 'core/about.html'
 
 # # Universal API Views - Simple implementations for now
-# class UniversalCRUDWCAPI(TemplateView):
+# class WcapiView(TemplateView):
 #     """Universal management interface for all tables"""
 #     template_name = 'core/uni.html'
     
@@ -29,7 +29,7 @@ class AboutView(TemplateView):
 
 
 
-# class SaveView(View):
+# class WcapiView(View):
 #     """Save (create/update) records to any table"""
 #     def post(self, request):
 #         table_name = request.GET.get('table_name', 'contacts')
@@ -43,7 +43,7 @@ class AboutView(TemplateView):
         
 #         return JsonResponse(data)
 
-# class UniversalDeleteView(View):
+# class WcapiView(View):
 #     """Delete records from any table"""
 #     def delete(self, request):
 #         table_name = request.GET.get('table_name', 'contacts')
@@ -67,9 +67,9 @@ __all__ = [
     'WebSignupView',
     'WebLoginView', 
     'WebLogoutView',
-    'UniversalCRUDWCAPI',
-    'UniversalGetView',
-    'UniversalQueryView',
-    'SaveView',
-    'UniversalDeleteView',
+    'WcapiView',
+    'WcapiView',
+    'WcapiView',
+    'WcapiView',
+    'WcapiView',
 ]

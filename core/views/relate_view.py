@@ -23,7 +23,7 @@ def get_related_data(parent_table: str, parent_id: int) -> dict:
     Fetches all related data for a given parent record (e.g., contact).
     Returns a dictionary with each related model’s data as a list.
     """
-    related = {}
+    data = {}
     for related_table in RELATED_TABLES.get(parent_table, []):
         if related_table in RELATED_MODELS:
             app_label, model_name = RELATED_MODELS[related_table]
@@ -35,10 +35,10 @@ def get_related_data(parent_table: str, parent_id: int) -> dict:
             else:
                 # Fallback: try to find by refs or other logic if needed
                 queryset = model.objects.none()
-            related[related_table] = list(queryset.values())
+            data[related_table] = list(queryset.values())
         else:
-            related[related_table] = []
-    return related
+            data[related_table] = []
+    return data
 
 class RelatedDataView(View):
     def get(self, request):

@@ -19,14 +19,14 @@ TABLE_APP_MAP = {
     # Add more as needed
 }
 
-class UniversalGetView(View):
+class WcapiView(View):
     
     
     def get(self, request):
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
         
-        # print(f"UniversalGetView: table_name={table_name}, record_id={record_id}, contact_id={contact_id}")
+        # print(f"WcapiView: table_name={table_name}, record_id={record_id}, contact_id={contact_id}")
 
         if table_name == "contacts" and record_id:
             # Get the contact
@@ -54,10 +54,10 @@ class UniversalGetView(View):
             model_name = "Address"
         else:
             model_name = table_name.rstrip('s').capitalize()
-        print(f"UniversalGetView: app_label={app_label}, model_name={model_name}")
+        print(f"WcapiView: app_label={app_label}, model_name={model_name}")
 
         model = apps.get_model(app_label, model_name)
-        print(f"UniversalGetView: model={model}")
+        print(f"WcapiView: model={model}")
 
         # Build queryset
         queryset = model.objects.all()
@@ -69,9 +69,9 @@ class UniversalGetView(View):
             elif table_name in ['actions', 'emails', 'phones', 'addresses', 'domains']:
                 queryset = queryset.filter(**{'refs__links__contacts__contains': [int(contact_id)]})
         elif table_name in ['actions', 'emails', 'phones', 'addresses', 'domains']:
-            print(f"UniversalGetView: No valid contact_id for {table_name}, returning empty queryset.")
+            print(f"WcapiView: No valid contact_id for {table_name}, returning empty queryset.")
             queryset = model.objects.none()
-        print(f"UniversalGetView: queryset count={queryset.count()}")
+        print(f"WcapiView: queryset count={queryset.count()}")
 
         data = []
         for obj in queryset:
@@ -80,8 +80,8 @@ class UniversalGetView(View):
             record['id'] = obj.id
             record['table'] = table_name
             record['sample'] = str(obj)
-            print(f"UniversalGetView: record={record}")
+            print(f"WcapiView: record={record}")
             data.append(record)
 
-        print(f"UniversalGetView: response data count={len(data)}")
+        print(f"WcapiView: response data count={len(data)}")
         return JsonResponse({'success': True, 'data': data})

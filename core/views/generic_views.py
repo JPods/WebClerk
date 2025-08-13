@@ -5,7 +5,7 @@ from django.utils.decorators import method_decorator
 import json
 
 @method_decorator(csrf_exempt, name='dispatch')
-class UniversalQueryView(TemplateView):
+class WcapiView(TemplateView):
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
@@ -20,7 +20,7 @@ class UniversalQueryView(TemplateView):
             return JsonResponse({'error': str(e)}, status=400)
 
 @method_decorator(csrf_exempt, name='dispatch')
-class SaveView(TemplateView):
+class WcapiView(TemplateView):
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
@@ -32,7 +32,7 @@ class SaveView(TemplateView):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
-class UniversalGetView(TemplateView):
+class WcapiView(TemplateView):
     def get(self, request, *args, **kwargs):
         return JsonResponse({
             'success': True,
@@ -41,7 +41,7 @@ class UniversalGetView(TemplateView):
         })
 
 @method_decorator(csrf_exempt, name='dispatch')
-class UniversalDeleteView(TemplateView):
+class WcapiView(TemplateView):
     def delete(self, request, *args, **kwargs):
         return JsonResponse({
             'success': True,
@@ -56,7 +56,7 @@ class UniversalCloneView(TemplateView):
             'message': '✅ Universal Clone API working!'
         })
 
-class UniversalCRUDWCAPI(TemplateView):
+class WcapiView(TemplateView):
     template_name = 'core/universal_manage.html'
     
     def get_context_data(self, **kwargs):
