@@ -151,68 +151,75 @@
 
 <!-- Pass Django data to JavaScript -->
 <script>
-
-// Get signed-in contact id from Django
-const SIGNED_CONTACT_ID = {{ user.id|default:'null' }};
+// Get current user data from Django
+const CURRENT_USER = {
+    id: {{ user.id|default:'null' }},
+    email: '{{ user.email|default:"" }}',
+    username: '{{ user.username|default:"" }}'
+};
 
 let allContacts = [];
 let selected_id = null;
-let _contactsLoadedOnce = false;
 let isEditingContact = false;
 let isCreatingContact = false;
+let _contactsLoadedOnce = false;
 
+// Fetch contacts from your backend API
 async function loadContacts() {
-    console.log("loadContacts called");
     try {
         const response = await fetch('/wcapi/get/?table_name=contacts');
-        
-        const data = await response.json(); // <-- UNCOMMENT THIS LINE
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
             allContacts = data.data;
-            if (!_contactsLoadedOnce) {
-                selected_id = allContacts[0].id;
+            renderContactsList(allContacts);
+
+            // Only auto-select on first load
+            if (!_contactsLoadedOnce && CURRENT_USER.id) {
                 _contactsLoadedOnce = true;
+                selected_id = CURRENT_USER.id;
                 await loadAndRenderContact(selected_id);
-                renderContactsList(allContacts);
-            } else {
-                renderContactsList(allContacts);
             }
         } else {
             document.getElementById('contacts-list').innerHTML = '<div class="text-danger">No contacts found.</div>';
-            renderContactDetails(null);
-            populateRelatedTables({});
         }
     } catch (e) {
-        console.error("Error loading contacts:", e);
         document.getElementById('contacts-list').innerHTML = '<div class="text-danger">Failed to load contacts.</div>';
-        renderContactDetails(null);
-        populateRelatedTables({});
     }
 }
 
 // Fetch and render contact details and related tables
+// Fetch and render contact details and related tables
 async function loadAndRenderContact(user_id) {
-    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
-    const data = await response.json();
-    if (data.success && data.contact) {
-        renderContactDetails(data.contact);
-        await fetchRelatedData('contacts', user_id);
-    } else {
+    try {
+        const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
+        const data = await response.json();
+        if (data.success && data.contact) {
+            // Update the contact in allContacts
+            const idx = allContacts.findIndex(c => String(c.id) === String(user_id));
+            if (idx !== -1) {
+                allContacts[idx] = data.contact;
+            }
+            renderContactDetails(data.contact);
+            renderContactsList(allContacts); // Update the list to reflect any changes (e.g., highlight)
+            await fetchRelatedData('contacts', user_id);
+        } else {
+            renderContactDetails(null);
+            populateRelatedTables({});
+        }
+    } catch (e) {
         renderContactDetails(null);
         populateRelatedTables({});
     }
 }
 
+// Call this ONCE on page load
+loadContacts();
+
 async function selectContact(id) {
-    if (String(selected_id) === String(id)) {
-        // Already selected, do nothing
-        return;
-    }
     selected_id = id;
     isEditingContact = false;
     isCreatingContact = false;
     await loadAndRenderContact(selected_id);
-    renderContactsList(allContacts); // Ensure highlight updates
 }
 
 function renderContactsList(contacts) {
@@ -221,9 +228,6 @@ function renderContactsList(contacts) {
     contacts.forEach(contact => {
         const div = document.createElement('div');
         div.className = 'contact-list-item';
-        if (String(selected_id) === String(contact.id)) { // Always use .id
-            div.classList.add('active');
-        }
         div.innerHTML = `
             <strong>${contact.name_first} ${contact.name_last}</strong>
             <br>
@@ -231,6 +235,9 @@ function renderContactsList(contacts) {
             <br>
             <small>${contact.company || ''}</small>
         `;
+        if (String(selected_id) === String(contact.id)) {
+            div.classList.add('active');
+        }
         div.onclick = () => selectContact(contact.id);
         list.appendChild(div);
     });
@@ -283,7 +290,6 @@ function renderContactDetails(contact) {
 
 // Helper to render related tables
 function populateRelatedTables(related) {
-    console.log("Related data:", related);
     ['actions', 'emails', 'phones', 'addresses', 'domains'].forEach(table => {
         const tableDiv = document.getElementById(`${table}-list`);
         if (tableDiv) {
@@ -318,13 +324,14 @@ function createNewContact() {
 }
 
 function saveContact() {
-    if (!selected_id) {
-        alert('No contact selected to save.');
+    if (!isEditingContact && !isCreatingContact) {
+        alert('Not in edit or create mode.');
         return;
     }
+
     const updated = {
         table_name: 'contacts',
-        id: selected_id,
+        id: isCreatingContact ? null : selected_id,
         name_first: document.getElementById('edit-name-first').value,
         name_last: document.getElementById('edit-name-last').value,
         email: document.getElementById('edit-email').value,
@@ -332,6 +339,7 @@ function saveContact() {
         title: document.getElementById('edit-title').value,
         role: document.getElementById('edit-role').value
     };
+
     fetch('/wcapi/save/', {
         method: 'POST',
         headers: {
@@ -342,12 +350,22 @@ function saveContact() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
+        if (data.success && data.contact) {
             alert('Contact saved!');
-            //isEditingContact = false;
-            // QQQ perhaps reloading is good incase there were server-side changes
-            //_contactsLoadedOnce = false; // <-- Add this line
-            //loadContacts(); // Refresh list and details
+            // Update the contact in allContacts
+            const idx = allContacts.findIndex(c => String(c.id) === String(data.contact.id));
+            if (idx !== -1) {
+                allContacts[idx] = data.contact; // Update existing contact
+            } else {
+                allContacts.push(data.contact); // Add new contact
+            }
+            selected_id = data.contact.id; // Update selected_id for new contacts
+            isEditingContact = false;
+            isCreatingContact = false;
+            renderContactDetails(data.contact);
+            renderContactsList(allContacts); // Refresh the list to reflect changes
+            document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-edit"></i> Edit';
+            fetchRelatedData('contacts', selected_id); // Refresh related tables
         } else {
             alert('Error saving contact: ' + (data.message || 'Unknown error'));
         }
@@ -357,46 +375,32 @@ function saveContact() {
     });
 }
 
-//cdn.jsdelivr.net/npm/axios/dist/axios.min.js#async function fetchRelatedData(table_name, selected_id) {
-    //console.log("Calling fetchRelatedData", table_name, selected_id);
-    //const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}&id=${encodeURIComponent(selected_id)}`);
-   // //const response = await fetch(`/wcapi/get/?table_name=related&contact_id=${encodeURIComponent(selected_id)}`);
-    //const data = await response.json();
-    //if (data.success) {
-   //     populateRelatedTables(data.related);
-   // }
-//}
-async function fetchRelatedData(table_name, selected_id) {
-    console.log("Calling fetchRelatedData", table_name, selected_id);
-    const response = await fetch(`/wcapi/get/?table_name=related&contact_id=${encodeURIComponent(selected_id)}`);
+async function fetchRelatedData(tableName, id) {
+    console.log("Calling fetchRelatedData", tableName, id);
+    const response = await fetch('/wcapi/related/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.CSRF_TOKEN },
+        body: JSON.stringify({ table_name: tableName, id: id })
+    });
     const data = await response.json();
     if (data.success) {
-        populateRelatedTables(data.data); // Use .data, not .related
+        populateRelatedTables(data.related);
     }
 }
-
-
 function selectMyContact() {
-    if (selected_id) {
-        selectContact(selected_id);
+    if (CURRENT_USER.id) {
+        selectContact(CURRENT_USER.id);
     }
 }
 
 // Optionally, implement searchContacts as needed
-// must be last
-document.addEventListener('DOMContentLoaded', loadContacts);
-</script>
-<style>
-.contact-list-item {
-    display: block;
-    cursor: pointer;
-    padding: 6px 8px;
-    border-radius: 4px;
-}
 
+// Optionally, implement searchContacts as needed
+
+</script>
+.contact-list-item.active {
+<style>kground: #e0f3ff;
 .contact-list-item.active {
     background: #e0f3ff;
     font-weight: bold;
-}
-</style>
-{% endblock %}
+}% endblock %}</style>{% endblock %}
