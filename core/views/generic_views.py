@@ -56,7 +56,7 @@ class UniversalCloneView(TemplateView):
             'message': '✅ Universal Clone API working!'
         })
 
-class UniversalCRUDView(TemplateView):
+class UniversalCRUDWCAPI(TemplateView):
     template_name = 'core/universal_manage.html'
     
     def get_context_data(self, **kwargs):

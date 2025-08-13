@@ -143,6 +143,7 @@ class RelatedDataView(View):
             return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
         try:
             result = get_related_data(table_name, int(record_id))
+            print("Returning related data:", result)
             return JsonResponse({'success': True, 'related': result['related'], 'errors': result['errors']})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)

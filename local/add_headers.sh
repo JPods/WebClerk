@@ -208,7 +208,7 @@ cat > temp_header.txt << 'EOF'
 #   - /wcapi/delete/ -> Universal delete endpoint
 #   - /wcapi/clone/ -> Universal clone endpoint
 # SECURITY: All Universal API endpoints require authentication
-# TABLES: Works with any table registered in UniversalCRUDView.TABLE_REGISTRY
+# TABLES: Works with any table registered in UniversalCRUDWCAPI.TABLE_REGISTRY
 
 EOF
 

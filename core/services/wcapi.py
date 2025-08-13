@@ -15,10 +15,10 @@ MODEL_MAP = {
 # We need to replace "__dict__" with our role based field filtering in the future.QQQ
 
 
-class UniversalCRUDView(View):
+class UniversalCRUDWCAPI(View):
 
     def get(self, request):
-        print("=== UniversalCRUDView CALLED ===")  # <--- Add this line
+        print("=== UniversalCRUDWCAPI CALLED ===")  # <--- Add this line
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
         template_name = request.GET.get('template_name')

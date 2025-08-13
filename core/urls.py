@@ -3,8 +3,7 @@ from django.urls import path
 from core.views import (
     HomeView, AboutView,
     WebSignupView, WebLoginView, WebLogoutView,
-    UniversalCRUDView,
-    UniversalGetView
+    UniversalCRUDWCAPI
 )
 from core.views.save_view import SaveView
 
@@ -41,48 +40,48 @@ urlpatterns = [
     # Rare for sockets. We will more likely create an api app for websockets
     
 
-    path('wcapi/connect/', UniversalCRUDView.as_view(template_name='core/connect.html'), name='connect'),
+    path('wcapi/connect/', UniversalCRUDWCAPI.as_view(template_name='core/connect.html'), name='connect'),
     
     # delete
-    path('wcapi/delete/', UniversalCRUDView.as_view(), name='delete-crud'),
+    path('wcapi/delete/', UniversalCRUDWCAPI.as_view(), name='delete-crud'),
     
     # list/read records
-    path('wcapi/get/', UniversalGetView.as_view(), name='get'),
+    path('wcapi/get/', UniversalCRUDWCAPI.as_view(), name='get'),
     
     # Headers only
-    path('wcapi/head/', UniversalCRUDView.as_view(), name='head'),
+    path('wcapi/head/', UniversalCRUDWCAPI.as_view(), name='head'),
     
     # Help page for wcapi - could be a static page, duplicate of options and root? QQQ
-    path('wcapi/help/', UniversalCRUDView.as_view(), name='core/help.html'),
+    path('wcapi/help/', UniversalCRUDWCAPI.as_view(), name='core/help.html'),
     
     # list/read records
-    path('wcapi/keywords/', UniversalCRUDView.as_view(), name='keywords'),
+    path('wcapi/keywords/', UniversalCRUDWCAPI.as_view(), name='keywords'),
 
 
     # do not know
-    path('wcapi/manage/', UniversalCRUDView.as_view(), name='manage'),
+    path('wcapi/manage/', UniversalCRUDWCAPI.as_view(), name='manage'),
     
     # options, supports CORS preflight, method to get allowed methods, meta info
-    path('wcapi/options/', UniversalCRUDView.as_view(), name='options'),
+    path('wcapi/options/', UniversalCRUDWCAPI.as_view(), name='options'),
     
     # partial update
-    path('wcapi/patch/', UniversalCRUDView.as_view(), name='patch'),
+    path('wcapi/patch/', UniversalCRUDWCAPI.as_view(), name='patch'),
     
     # create or full update
-    path('wcapi/post/', UniversalCRUDView.as_view(), name='post'),
+    path('wcapi/post/', UniversalCRUDWCAPI.as_view(), name='post'),
     
-    path('wcapi/query/', UniversalCRUDView.as_view(), name='query'),
+    path('wcapi/query/', UniversalCRUDWCAPI.as_view(), name='query'),
 
  # full update
-    path('wcapi/related/', UniversalCRUDView.as_view(), name='related'),
+    path('wcapi/related/', UniversalCRUDWCAPI.as_view(), name='related'),
     path('wcapi/related/advanced/', RelatedDataAdvancedView.as_view(), name='related-data-advanced'),
   
-    path('wcapi/put/', UniversalCRUDView.as_view(), name='put'),
+    path('wcapi/put/', UniversalCRUDWCAPI.as_view(), name='put'),
     # save was used in 4D, replace with post/put
     path('wcapi/save/', SaveView.as_view(), name='save'),
     # pass table_name and id wcapi/save/?table_name=<table_name>&id=<id>
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
-    path('wcapi/trace/', UniversalCRUDView.as_view(), name='trace'),
+    path('wcapi/trace/', UniversalCRUDWCAPI.as_view(), name='trace'),
 
 ]
