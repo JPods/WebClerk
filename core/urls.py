@@ -32,9 +32,9 @@ urlpatterns = [
     
    
         # Dedicated Management Pages
-    path('manage/actions/', TemplateView.as_view(template_name='core/manage_actions.html'), name='manage-actions'),
-    path('user/', TemplateView.as_view(template_name='core/user.html'), name='users'),
-    path('manager/', TemplateView.as_view(template_name='core/manager.html'), name='manager'),
+    path('manage/actions/', TemplateView.as_view(template_name='manage_actions.html'), name='manage-actions'),
+    path('user/', TemplateView.as_view(template_name='user.html'), name='users'),
+    path('manager/', TemplateView.as_view(template_name='manager.html'), name='manager'),
 
     #path('manager/related/', RelatedDataView.as_view(), name='manager-related'),
     # Universal API endpoints
