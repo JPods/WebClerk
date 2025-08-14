@@ -6,6 +6,7 @@ from django.core.paginator import Paginator, EmptyPage
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+from core.services.access_fields import get_allowed_fields
 
 RELATED_TABLES: Dict[str, List[str]] = {
     'contacts': ['phones', 'emails', 'addresses', 'actions', 'domains'],
@@ -143,7 +144,28 @@ class RelatedDataView(View):
             return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
         try:
             result = get_related_data(table_name, int(record_id))
-            print("Returning related data:", result)
-            return JsonResponse({'success': True, 'related': result['related'], 'errors': result['errors']})
+            user_role = request.user.role  # or however you get the user's role
+            filtered = filter_related_data(result['related'], user_role)
+            return JsonResponse({'success': True, 'data': filtered, 'errors': result['errors']})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def filter_safe_fields(record, allowed_fields):
+    safe = {}
+    for k, v in record.items():
+        if k == "uuid":
+            continue
+        if k.startswith("dt_"):
+            continue  # Or convert to string if you want to display
+        if k in allowed_fields:
+            safe[k] = v
+    return safe
+
+def filter_related_data(related_data, user_role):
+    filtered_related = {}
+    for related_table, records in related_data.items():
+        allowed = get_allowed_fields(related_table, user_role, "view")
+        filtered_related[related_table] = [
+            filter_safe_fields(r, allowed) for r in records
+        ]
+    return filtered_related

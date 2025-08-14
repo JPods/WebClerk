@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
+import os
 
-ACCESS_PATH = Path(__file__).resolve().parent.parent / "common" / "default_access.json"
+ACCESS_PATH = Path(__file__).resolve().parents[2] / "common" / "default_access.json"
+
 
 # Load once at import time
 with open(ACCESS_PATH) as f:

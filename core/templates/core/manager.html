@@ -149,6 +149,21 @@
     </div>
 </div>
 
+<!-- Add this block where you want the controls to appear, e.g. above the contact list -->
+<div class="card mb-3">
+    <div class="card-header">
+        <strong>Check Allowed Fields</strong>
+    </div>
+    <div class="card-body d-flex gap-2 align-items-center">
+        <input type="text" id="allowed-fields-table" class="form-control form-control-sm" placeholder="Table name (e.g. emails)">
+        <input type="text" id="allowed-fields-role" class="form-control form-control-sm" placeholder="Role (e.g. ADMIN)">
+        <button class="btn btn-sm btn-info" onclick="runAllowedFieldsCheck()">Check</button>
+    </div>
+    <div class="card-body">
+        <pre id="allowed-fields-result" style="font-size: 0.9em; background: #f8f9fa; padding: 8px;"></pre>
+    </div>
+</div>
+
 <!-- Pass Django data to JavaScript -->
 <script>
 
@@ -362,7 +377,7 @@ async function fetchRelatedData(table_name, selected_id) {
     const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}&id=${encodeURIComponent(selected_id)}`);
     const data = await response.json();
     if (data.success) {
-        // populateRelatedTables(data.data); // Use .data, not .related
+        populateRelatedTables(data.data); // Use .data, not .related
     }
 }
 
@@ -370,16 +385,29 @@ async function fetchRelatedData(table_name, selected_id) {
 
 // Helper to render related tables
 function populateRelatedTables(related) {
-    console.log("Related data:", related);
     ['actions', 'emails', 'phones', 'addresses', 'domains'].forEach(table => {
         const tableDiv = document.getElementById(`${table}-list`);
         if (tableDiv) {
-            console.log(`Table: ${table}`, related[table]);
             if (related && Array.isArray(related[table]) && related[table].length > 0) {
                 tableDiv.innerHTML = related[table].map(a => {
-                    console.log(`Rendering ${table}:`, a);
-                    // Show all fields for debugging
-                    return `<div>${a.email || a.number || a.phone || a.address || a.domain || a.action || a.sample || JSON.stringify(a) || 'Item'}</div>`;
+                    // Custom rendering per table
+                    if (table === 'emails') {
+                        return `<div>${a.email || '[no email]'}${a.name ? ' (' + a.name + ')' : ''}</div>`;
+                    }
+                    if (table === 'phones') {
+                        return `<div>${a.number || '[no number]'}${a.name ? ' (' + a.name + ')' : ''}</div>`;
+                    }
+                    if (table === 'addresses') {
+                        return `<div>${a.address1 || ''} ${a.address2 || ''} ${a.city || ''} ${a.state || ''} ${a.zip || ''}</div>`;
+                    }
+                    if (table === 'domains') {
+                        return `<div>${a.domain || a.path || '[no domain]'}</div>`;
+                    }
+                    if (table === 'actions') {
+                        return `<div>${a.action || '[no action]'}${a.status ? ' - ' + a.status : ''}</div>`;
+                    }
+                    // Fallback
+                    return `<div>${JSON.stringify(a)}</div>`;
                 }).join('');
             } else {
                 tableDiv.innerHTML = `<div class="text-muted"><small>No ${table} found.</small></div>`;
@@ -392,6 +420,26 @@ function populateRelatedTables(related) {
 function selectMyContact() {
     if (selected_id) {
         selectContact(selected_id);
+    }
+}
+
+function runAllowedFieldsCheck() {
+    const table = document.getElementById('allowed-fields-table').value.trim();
+    const role = document.getElementById('allowed-fields-role').value.trim();
+    if (!table || !role) {
+        alert('Please enter both table name and role.');
+        return;
+    }
+    fetchAllowedFields(table, role);
+}
+
+async function fetchAllowedFields(table_query, role, access_type="view") {
+    const response = await fetch(`/wcapi/utilities/allowed-fields/?table=${encodeURIComponent(table_query)}&role=${encodeURIComponent(role)}&access_type=${encodeURIComponent(access_type)}`);
+    const data = await response.json();
+    if (data.success) {
+        document.getElementById('allowed-fields-result').textContent = JSON.stringify(data.fields, null, 2);
+    } else {
+        document.getElementById('allowed-fields-result').textContent = "Error: " + (data.error || "Unknown error");
     }
 }
 

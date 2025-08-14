@@ -13,7 +13,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from core.views.related_view import RelatedDataView, RelatedDataAdvancedView
-from core.views.utilities import FieldAccessView
+# from core.views.utilities import FieldAccessView
+from core.views.utilities_view import AllowedFieldsView
 
 
 urlpatterns = [
@@ -84,6 +85,7 @@ urlpatterns = [
     # Diagnostic endpoint for tracing
     path('wcapi/trace/', WcapiView.as_view(), name='trace'),
     
-    path('wcapi/utilities/field-access/', FieldAccessView.as_view(), name='field-access'),
+    # path('wcapi/utilities/field-access/', FieldAccessView.as_view(), name='field-access'),
 
+    path('wcapi/utilities/allowed-fields/', AllowedFieldsView.as_view(), name='allowed-fields'),
 ]
