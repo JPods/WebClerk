@@ -7,31 +7,31 @@
     "table_name": "contacts",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"],
-        "edit": ["id", "uuid", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"]
+        "view": ["id", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"],
+        "edit": ["id", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "email", "opt_out", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment"],
+        "view": ["id", "email", "opt_out", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment"],
         "edit": ["email", "opt_out", "role", "role_default", "is_email_verified", "is_active", "is_staff", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "email", "role", "role_default", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined"],
+        "view": ["id", "email", "role", "role_default", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined"],
         "edit": ["company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
       },
       "REP": {
-        "view": ["id", "uuid", "email", "role", "role_default", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank"],
+        "view": ["id", "email", "role", "role_default", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank"],
         "edit": ["company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
       },
       "VENDOR": {
-        "view": ["id", "uuid", "email", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"],
+        "view": ["id", "email", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"],
         "edit": ["company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "email", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"],
+        "view": ["id", "email", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"],
         "edit": ["name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
       },
       "USER": {
-        "view": ["id", "uuid", "email", "name_first", "name_last"],
+        "view": ["id", "email", "name_first", "name_last"],
         "edit": ["name_first", "name_last"]
       },
       "PUBLIC": {
@@ -49,31 +49,31 @@
     "table_name": "actions",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"],
-        "edit": ["id", "uuid", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"]
+        "view": ["id", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"],
+        "edit": ["id", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"],
+        "view": ["id", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"],
         "edit": ["action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "action", "action_by", "priority", "hours", "percent", "status", "description", "dt_action", "dt_due"],
+        "view": ["id", "action", "action_by", "priority", "hours", "percent", "status", "description", "dt_action", "dt_due"],
         "edit": ["action", "priority", "hours", "percent", "status", "description"]
       },
       "REP": {
-        "view": ["id", "uuid", "action", "action_by", "priority", "hours", "percent", "status", "description", "dt_action", "dt_due"],
+        "view": ["id", "action", "action_by", "priority", "hours", "percent", "status", "description", "dt_action", "dt_due"],
         "edit": ["action", "priority", "hours", "percent", "status", "description"]
       },
       "VENDOR": {
-        "view": ["id", "uuid", "action", "priority", "hours", "status", "description", "dt_due"],
+        "view": ["id", "action", "priority", "hours", "status", "description", "dt_due"],
         "edit": ["hours", "status", "description"]
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "action", "status", "description", "dt_due"],
+        "view": ["id", "action", "status", "description", "dt_due"],
         "edit": []
       },
       "USER": {
-        "view": ["id", "uuid", "action", "status", "description"],
+        "view": ["id", "action", "status", "description"],
         "edit": []
       },
       "PUBLIC": {
@@ -91,31 +91,31 @@
     "table_name": "settings",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "is_active", "name", "purpose", "role", "table_name", "comment"],
-        "edit": ["id", "uuid", "is_active", "name", "purpose", "role", "table_name", "comment"]
+        "view": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"],
+        "edit": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "is_active", "name", "purpose", "role", "table_name", "comment"],
+        "view": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"],
         "edit": ["is_active", "name", "purpose", "role", "table_name", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "table_name"],
         "edit": []
       },
       "REP": {
-        "view": ["id", "uuid", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "table_name"],
         "edit": []
       },
       "VENDOR": {
-        "view": ["id", "uuid", "name", "purpose"],
+        "view": ["id", "name", "purpose"],
         "edit": []
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "name"],
+        "view": ["id", "name"],
         "edit": []
       },
       "USER": {
-        "view": ["id", "uuid", "name"],
+        "view": ["id", "name"],
         "edit": []
       },
       "PUBLIC": {
@@ -133,31 +133,31 @@
     "table_name": "templates",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "name", "purpose", "table_name", "comment"],
-        "edit": ["id", "uuid", "name", "purpose", "table_name", "comment"]
+        "view": ["id", "name", "purpose", "table_name", "comment"],
+        "edit": ["id", "name", "purpose", "table_name", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "name", "purpose", "table_name", "comment"],
+        "view": ["id", "name", "purpose", "table_name", "comment"],
         "edit": ["name", "purpose", "table_name", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "table_name"],
         "edit": []
       },
       "REP": {
-        "view": ["id", "uuid", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "table_name"],
         "edit": []
       },
       "VENDOR": {
-        "view": ["id", "uuid", "name", "purpose"],
+        "view": ["id", "name", "purpose"],
         "edit": []
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "name"],
+        "view": ["id", "name"],
         "edit": []
       },
       "USER": {
-        "view": ["id", "uuid", "name"],
+        "view": ["id", "name"],
         "edit": []
       },
       "PUBLIC": {
@@ -175,31 +175,31 @@
     "table_name": "addresses",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
-        "edit": ["id", "uuid", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"]
+        "view": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
+        "edit": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
+        "view": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
         "edit": ["address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "address1", "address2", "address_type", "city", "country", "state", "zip", "full"],
+        "view": ["id", "address1", "address2", "address_type", "city", "country", "state", "zip", "full"],
         "edit": ["address1", "address2", "city", "country", "state", "zip"]
       },
       "REP": {
-        "view": ["id", "uuid", "address1", "address2", "address_type", "city", "country", "state", "zip", "full"],
+        "view": ["id", "address1", "address2", "address_type", "city", "country", "state", "zip", "full"],
         "edit": ["address1", "address2", "city", "country", "state", "zip"]
       },
       "VENDOR": {
-        "view": ["id", "uuid", "address1", "city", "country", "state", "zip"],
+        "view": ["id", "address1", "city", "country", "state", "zip"],
         "edit": ["address1", "city", "country", "state", "zip"]
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "address1", "city", "state", "zip"],
+        "view": ["id", "address1", "city", "state", "zip"],
         "edit": ["address1", "city", "state", "zip"]
       },
       "USER": {
-        "view": ["id", "uuid", "address1", "city", "state", "zip"],
+        "view": ["id", "address1", "city", "state", "zip"],
         "edit": ["address1", "city", "state", "zip"]
       },
       "PUBLIC": {
@@ -217,31 +217,31 @@
     "table_name": "domains",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "path", "type", "comment"],
-        "edit": ["id", "uuid", "path", "type", "comment"]
+        "view": ["id", "path", "type", "comment"],
+        "edit": ["id", "path", "type", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "path", "type", "comment"],
+        "view": ["id", "path", "type", "comment"],
         "edit": ["path", "type", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "path", "type"],
+        "view": ["id", "path", "type"],
         "edit": []
       },
       "REP": {
-        "view": ["id", "uuid", "path", "type"],
+        "view": ["id", "path", "type"],
         "edit": []
       },
       "VENDOR": {
-        "view": ["id", "uuid", "path"],
+        "view": ["id", "path"],
         "edit": []
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "path"],
+        "view": ["id", "path"],
         "edit": []
       },
       "USER": {
-        "view": ["id", "uuid", "path"],
+        "view": ["id", "path"],
         "edit": []
       },
       "PUBLIC": {
@@ -259,31 +259,31 @@
     "table_name": "emails",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "address", "attention", "name", "opt_out", "comment"],
-        "edit": ["id", "uuid", "address", "attention", "name", "opt_out", "comment"]
+        "view": ["id", "address", "attention", "name", "opt_out", "comment"],
+        "edit": ["id", "address", "attention", "name", "opt_out", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "address", "attention", "name", "opt_out", "comment"],
+        "view": ["id", "address", "attention", "name", "opt_out", "comment"],
         "edit": ["address", "attention", "name", "opt_out", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "address", "attention", "name"],
+        "view": ["id", "address", "attention", "name"],
         "edit": ["address", "attention", "name"]
       },
       "REP": {
-        "view": ["id", "uuid", "address", "attention", "name"],
+        "view": ["id", "address", "attention", "name"],
         "edit": ["address", "attention", "name"]
       },
       "VENDOR": {
-        "view": ["id", "uuid", "address", "name"],
+        "view": ["id", "address", "name"],
         "edit": ["address", "name"]
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "address"],
+        "view": ["id", "address"],
         "edit": ["address"]
       },
       "USER": {
-        "view": ["id", "uuid", "address"],
+        "view": ["id", "address"],
         "edit": ["address"]
       },
       "PUBLIC": {
@@ -301,31 +301,31 @@
     "table_name": "phones",
     "data": {
       "SUPER": {
-        "view": ["id", "uuid", "attention", "country_code", "format", "name", "number", "opt_out", "comment"],
-        "edit": ["id", "uuid", "attention", "country_code", "format", "name", "number", "opt_out", "comment"]
+        "view": ["id", "attention", "country_code", "format", "name", "number", "opt_out", "comment"],
+        "edit": ["id", "attention", "country_code", "format", "name", "number", "opt_out", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "uuid", "attention", "country_code", "format", "name", "number", "opt_out", "comment"],
+        "view": ["id", "attention", "country_code", "format", "name", "number", "opt_out", "comment"],
         "edit": ["attention", "country_code", "format", "name", "number", "opt_out", "comment"]
       },
       "SALE": {
-        "view": ["id", "uuid", "attention", "country_code", "name", "number"],
+        "view": ["id", "attention", "country_code", "name", "number"],
         "edit": ["attention", "country_code", "name", "number"]
       },
       "REP": {
-        "view": ["id", "uuid", "attention", "country_code", "name", "number"],
+        "view": ["id", "attention", "country_code", "name", "number"],
         "edit": ["attention", "country_code", "name", "number"]
       },
       "VENDOR": {
-        "view": ["id", "uuid", "country_code", "number"],
+        "view": ["id", "country_code", "number"],
         "edit": ["country_code", "number"]
       },
       "CUSTOMER": {
-        "view": ["id", "uuid", "number"],
+        "view": ["id", "number"],
         "edit": ["number"]
       },
       "USER": {
-        "view": ["id", "uuid", "number"],
+        "view": ["id", "number"],
         "edit": ["number"]
       },
       "PUBLIC": {

@@ -149,6 +149,21 @@
     </div>
 </div>
 
+<!-- Add this block where you want the controls to appear, e.g. above the contact list -->
+<div class="card mb-3">
+    <div class="card-header">
+        <strong>Check Allowed Fields</strong>
+    </div>
+    <div class="card-body d-flex gap-2 align-items-center">
+        <input type="text" id="allowed-fields-table" class="form-control form-control-sm" placeholder="Table name (e.g. emails)">
+        <input type="text" id="allowed-fields-role" class="form-control form-control-sm" placeholder="Role (e.g. ADMIN)">
+        <button class="btn btn-sm btn-info" onclick="runAllowedFieldsCheck()">Check</button>
+    </div>
+    <div class="card-body">
+        <pre id="allowed-fields-result" style="font-size: 0.9em; background: #f8f9fa; padding: 8px;"></pre>
+    </div>
+</div>
+
 <!-- Pass Django data to JavaScript -->
 <script>
 
@@ -165,7 +180,7 @@ async function loadContacts() {
     console.log("loadContacts called");
     try {
         const response = await fetch('/wcapi/get/?table_name=contacts');
-        
+        console.log("Response received:", response);
         const data = await response.json(); // <-- UNCOMMENT THIS LINE
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
             allContacts = data.data;
@@ -180,13 +195,12 @@ async function loadContacts() {
         } else {
             document.getElementById('contacts-list').innerHTML = '<div class="text-danger">No contacts found.</div>';
             renderContactDetails(null);
-            populateRelatedTables({});
         }
     } catch (e) {
         console.error("Error loading contacts:", e);
         document.getElementById('contacts-list').innerHTML = '<div class="text-danger">Failed to load contacts.</div>';
         renderContactDetails(null);
-        populateRelatedTables({});
+        //qqq populateRelatedTables({});
     }
 }
 
@@ -194,25 +208,13 @@ async function loadContacts() {
 async function loadAndRenderContact(user_id) {
     const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
     const data = await response.json();
-    if (data.success && data.contact) {
-        renderContactDetails(data.contact);
+    // If your backend returns a single object:
+    if (data.success && data.data) {
+        renderContactDetails(data.data);
         await fetchRelatedData('contacts', user_id);
     } else {
         renderContactDetails(null);
-        populateRelatedTables({});
     }
-}
-
-async function selectContact(id) {
-    if (String(selected_id) === String(id)) {
-        // Already selected, do nothing
-        return;
-    }
-    selected_id = id;
-    isEditingContact = false;
-    isCreatingContact = false;
-    await loadAndRenderContact(selected_id);
-    renderContactsList(allContacts); // Ensure highlight updates
 }
 
 function renderContactsList(contacts) {
@@ -236,13 +238,29 @@ function renderContactsList(contacts) {
     });
 }
 
-function renderContactDetails(contact) {
-    const details = document.getElementById('contact-details');
-    if (!contact && !isCreatingContact) {
-        details.innerHTML = '<div class="text-center text-muted"><i class="fas fa-user-circle fa-3x mb-3"></i><p>Select a contact from the list above</p></div>';
+
+async function selectContact(id) {
+    if (String(selected_id) === String(id)) {
+        // Already selected, do nothing
         return;
     }
-    const c = contact || {};
+    selected_id = id;
+    isEditingContact = false;
+    isCreatingContact = false;
+    await loadAndRenderContact(selected_id);
+    renderContactsList(allContacts); // Ensure highlight updates
+}
+
+
+function renderContactDetails(contact) {
+    const details = document.getElementById('contact-details');
+    // If no contact is selected or in create mode, clear related tables
+    if (!contact || !contact.id || contact.id === 0 || isCreatingContact) {
+        details.innerHTML = '<div class="text-center text-muted"><i class="fas fa-user-circle fa-3x mb-3"></i><p>Select a contact from the list above</p></div>';
+        populateRelatedTables({}); // Clear all related tables
+        return;
+    }
+    const c = contact;
     if (isEditingContact || isCreatingContact) {
         details.innerHTML = `
             <div class="mb-2">
@@ -279,24 +297,12 @@ function renderContactDetails(contact) {
             <p><strong>Role:</strong> ${c.role || ''}</p>
         `;
     }
+    // Only fetch related data if a valid contact is present and not in create mode
+    if (c.id && !isCreatingContact) {
+        fetchRelatedData('contacts', c.id);
+    }
 }
 
-// Helper to render related tables
-function populateRelatedTables(related) {
-    console.log("Related data:", related);
-    ['actions', 'emails', 'phones', 'addresses', 'domains'].forEach(table => {
-        const tableDiv = document.getElementById(`${table}-list`);
-        if (tableDiv) {
-            if (related && Array.isArray(related[table]) && related[table].length > 0) {
-                tableDiv.innerHTML = related[table].map(a =>
-                    `<div>${a.email || a.number || a.phone || a.address || a.domain || a.action || a.sample || 'Item'}</div>`
-                ).join('');
-            } else {
-                tableDiv.innerHTML = `<div class="text-muted"><small>No ${table} found.</small></div>`;
-            }
-        }
-    });
-}
 
 function toggleContactEdit() {
     if (isEditingContact) {
@@ -368,7 +374,7 @@ function saveContact() {
 //}
 async function fetchRelatedData(table_name, selected_id) {
     console.log("Calling fetchRelatedData", table_name, selected_id);
-    const response = await fetch(`/wcapi/get/?table_name=related&contact_id=${encodeURIComponent(selected_id)}`);
+    const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}&id=${encodeURIComponent(selected_id)}`);
     const data = await response.json();
     if (data.success) {
         populateRelatedTables(data.data); // Use .data, not .related
@@ -376,9 +382,64 @@ async function fetchRelatedData(table_name, selected_id) {
 }
 
 
+
+// Helper to render related tables
+function populateRelatedTables(related) {
+    ['actions', 'emails', 'phones', 'addresses', 'domains'].forEach(table => {
+        const tableDiv = document.getElementById(`${table}-list`);
+        if (tableDiv) {
+            if (related && Array.isArray(related[table]) && related[table].length > 0) {
+                tableDiv.innerHTML = related[table].map(a => {
+                    // Custom rendering per table
+                    if (table === 'emails') {
+                        return `<div>${a.email || '[no email]'}${a.name ? ' (' + a.name + ')' : ''}</div>`;
+                    }
+                    if (table === 'phones') {
+                        return `<div>${a.number || '[no number]'}${a.name ? ' (' + a.name + ')' : ''}</div>`;
+                    }
+                    if (table === 'addresses') {
+                        return `<div>${a.address1 || ''} ${a.address2 || ''} ${a.city || ''} ${a.state || ''} ${a.zip || ''}</div>`;
+                    }
+                    if (table === 'domains') {
+                        return `<div>${a.domain || a.path || '[no domain]'}</div>`;
+                    }
+                    if (table === 'actions') {
+                        return `<div>${a.action || '[no action]'}${a.status ? ' - ' + a.status : ''}</div>`;
+                    }
+                    // Fallback
+                    return `<div>${JSON.stringify(a)}</div>`;
+                }).join('');
+            } else {
+                tableDiv.innerHTML = `<div class="text-muted"><small>No ${table} found.</small></div>`;
+            }
+        }
+    });
+}
+
+
 function selectMyContact() {
     if (selected_id) {
         selectContact(selected_id);
+    }
+}
+
+function runAllowedFieldsCheck() {
+    const table = document.getElementById('allowed-fields-table').value.trim();
+    const role = document.getElementById('allowed-fields-role').value.trim();
+    if (!table || !role) {
+        alert('Please enter both table name and role.');
+        return;
+    }
+    fetchAllowedFields(table, role);
+}
+
+async function fetchAllowedFields(table_query, role, access_type="view") {
+    const response = await fetch(`/wcapi/utilities/allowed-fields/?table=${encodeURIComponent(table_query)}&role=${encodeURIComponent(role)}&access_type=${encodeURIComponent(access_type)}`);
+    const data = await response.json();
+    if (data.success) {
+        document.getElementById('allowed-fields-result').textContent = JSON.stringify(data.fields, null, 2);
+    } else {
+        document.getElementById('allowed-fields-result').textContent = "Error: " + (data.error || "Unknown error");
     }
 }
 

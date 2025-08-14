@@ -25,7 +25,7 @@ def find_model_for_table(table_name: str):
             continue
     return None
 
-class SaveView(View):
+class WcapiView(View):
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
