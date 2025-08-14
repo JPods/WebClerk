@@ -13,10 +13,10 @@ from core.services.wcapi import (
 
 # Define HomeView and AboutView directly in this file
 class HomeView(TemplateView):
-    template_name = 'core/home.html'
+    template_name = 'home.html'
 
 class AboutView(TemplateView):
-    template_name = 'core/about.html'
+    template_name = 'about.html'
 
 # # Universal API Views - Simple implementations for now
 # class WcapiView(TemplateView):
