@@ -1,4 +1,47 @@
 from django.views import View
+"""
+WcapiView provides a generic API interface for CRUD operations on several models via HTTP methods.
+Attributes:
+    MODEL_MAP (dict): Maps string table names to their corresponding Django model classes.
+Methods:
+    get(request):
+        Handles GET requests. Retrieves a single record by 'id' or all records for a given 'table_name'.
+        Returns JSON response with data or error message.
+    connect(request):
+        Handles custom CONNECT requests. Retrieves all records for a given 'table_name' from HTTP headers.
+        Returns JSON response with data or error message.
+    delete(request):
+        Handles DELETE requests. Deletes a record by 'id' for a given 'table_name'.
+        Returns JSON response with success or error message and deleted data.
+    head(request):
+        Handles HEAD requests. Retrieves all records for a given 'table_name' from HTTP headers.
+        Returns JSON response with data or error message.
+    help(request):
+        Provides a help message for the wcapi endpoint.
+        Returns JSON response with a help message.
+    manage(request):
+        Handles custom MANAGE requests. Retrieves all records for a given 'table_name' from GET or POST data.
+        Returns JSON response with data or error message.
+    options(request):
+        Handles OPTIONS requests. Retrieves all records for a given 'table_name' from HTTP headers.
+        Returns JSON response with data or error message.
+    patch(request):
+        Handles PATCH requests. Retrieves all records for a given 'table_name' from PATCH data.
+        Returns JSON response with data or error message.
+    post(request):
+        Handles POST requests. Retrieves all records for a given 'table_name' from POST data.
+        Returns JSON response with data or error message.
+    put(request):
+        Handles PUT requests. Retrieves all records for a given 'table_name' from PUT data.
+        Returns JSON response with data or error message.
+    trace(request):
+        Handles TRACE requests. Retrieves all records for a given 'table_name' from HTTP headers.
+        Returns JSON response with data or error message.
+Notes:
+    - The API currently uses __dict__ for serialization, which may expose internal fields.
+    - Role-based field filtering is planned for future implementation.
+    - Only models listed in MODEL_MAP are accessible via this API.
+"""
 from django.http import JsonResponse
 from core.models import Contact, Action  # Only core models here
 from communications.models import Phone, Domain, Email, Address  # Communications models here

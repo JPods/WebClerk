@@ -1,4 +1,27 @@
 # Used by celery to load view/edit fields from the Setting model
+# This module provides utilities for managing and enforcing view/edit access to model fields
+# based on user roles and table names, using configuration stored in the Setting model.
+
+# Functions:
+
+# - get_view_edit_fields(table_name: str, role: str, access_type: str = "view") -> list:
+#     Retrieves a list of allowed fields for a specified table, user role, and access type
+#     ('view' or 'edit'), based on the active Setting record.
+
+# - filter_json_response(table_name_getter, access_type="view"):
+#     Decorator for Django views that filters the JSON response data, ensuring only fields
+#     permitted for the user's role and access type are included in the response.
+
+# - get_allowed_fields(table_name: str, role: str, access_type: str = "view"):
+#     Alias for get_view_edit_fields, returns the list of allowed fields for the given parameters.
+
+# - filter_record_for_role(record: dict, table_name: str, role: str, access_type: str = "view"):
+#     Filters a dictionary record, returning only the fields allowed for the specified table,
+#     role, and access type.
+
+# Usage:
+# - Use these utilities to enforce field-level permissions in API responses or business logic,
+#   ensuring users only see or edit fields they are authorized for.
 
 from core.models import Setting
 import json
