@@ -26,6 +26,7 @@
 from core.models import Setting
 import json
 from functools import wraps
+from django.http import JsonResponse
 
 def get_view_edit_fields(table_name: str, role: str, access_type: str = "view") -> list:
     """
@@ -54,16 +55,30 @@ def filter_json_response(table_name_getter, access_type="view"):
         @wraps(view_func)
         def _wrapped_view(self, request, *args, **kwargs):
             response = view_func(self, request, *args, **kwargs)
-            # Only filter if response is a JsonResponse and has 'data'
             if isinstance(response, JsonResponse):
-                # Parse the response content
                 data = json.loads(response.content)
                 if "data" in data:
-                    user_role = getattr(request.user, "role", "PUBLIC")
-                    table_name = table_name_getter(request, *args, **kwargs)
-                    from core.services.view_edit_access import filter_record_for_role
-                    filtered = [filter_record_for_role(r, table_name, user_role, access_type) for r in data["data"]]
-                    data["data"] = filtered
+                    include_related = False
+                    if request.method == "GET":
+                        include_related = request.GET.get("include_related", "false").lower() == "true"
+                    elif request.method in ["POST", "PUT"]:
+                        try:
+                            body = json.loads(request.body)
+                            include_related = body.get("include_related", False)
+                        except Exception:
+                            pass
+                    if include_related and "related" in data:
+                        user_role = getattr(request.user, "role", "PUBLIC")
+                        table_name = table_name_getter(request, *args, **kwargs)
+                        from core.services.view_edit_access import filter_record_for_role
+                        # data["related"] should be a dict of lists keyed by table name
+                        filtered_related = {}
+                        for table, records in data["related"].items():
+                            filtered_related[table] = [
+                                filter_record_for_role(r, table, user_role, access_type)
+                                for r in records
+                            ]
+                        data["related"] = filtered_related
                     response.content = json.dumps(data)
             return response
         return _wrapped_view

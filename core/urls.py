@@ -75,7 +75,7 @@ urlpatterns = [
     path('wcapi/query/', WcapiView.as_view(), name='query'),
 
  # full update
-     path('wcapi/related/', RelatedDataView.as_view(), name='related'),
+    path('wcapi/related/', RelatedDataView.as_view(), name='related'),
     #path('wcapi/related/advanced/', RelatedDataAdvancedView.as_view(), name='related-data-advanced'),
   
     path('wcapi/put/', WcapiView.as_view(), name='put'),

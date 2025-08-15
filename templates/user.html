@@ -209,15 +209,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     const user_id = {{ user.id|default:'null' }};
     if (!user_id) return;
 
-    // Fetch the user's contact record
-    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
+    // Fetch the user's contact record with related data
+    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}&include_related=true`);
     const data = await response.json();
+
+    console.log('API response:', data); // <-- Add this line for debugging
 
     if (data.success && data.data) {
         renderContactDetails(data.data);
-        populateRelatedTables(data.data.data || {});
+        // Use data.related for related records
+        if (data.related) {
+            console.log('Related data:', data.related); // <-- Add this line for debugging
+            populateRelatedTables(data.related);
+        }
     } else {
-        // Optionally show an error or demo data
         console.log('No contact record found');
     }
 });

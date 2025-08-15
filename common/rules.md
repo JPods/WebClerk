@@ -8,12 +8,12 @@ Pushing to dev and main:
 Baseline rules that require a published exception:
 
 1. Django REST Framework for all endpoints
-2. Only json response to endpoints. 
-3. Standardize response with 
+2. Only json response to endpoints.
+3. Standardize response with:
 3.1. { "success": true, "data": ..., "errors": {} } QQQ should related data in a json be noted as data.data{} or as data.related{}?
 3.2. { "success": false, "data": null, "errors": { "message": "...", "help": "https://..." } }. Clear error messages with link to help.
 4. jsons for exchanging information, even inputs. Convert all CSV's etc into json outside of WebClerk.
-5. always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings.
+5. always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in e
 6. always use table_name for table_name of the primary table being worked and "id" is the id for the primary table record id. For non-primary table_name_id format.
 7. ways save paths to larger documents. Never save large documents in the database.
 8. limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py

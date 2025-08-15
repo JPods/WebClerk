@@ -64,11 +64,10 @@ class WcapiGetView(View):
             errors = related_result.get('errors', {})
 
             # NEST related_data under a 'data' key in filtered_record
-            filtered_record['data'] = related_data
-
             return JsonResponse({
                 'success': True,
-                'data': filtered_record,
+                'data': filtered_record,      # main record only
+                'related': related_data,      # top-level related data
                 'errors': errors
             })
         else:
