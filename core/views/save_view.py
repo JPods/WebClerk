@@ -1,7 +1,27 @@
 from django.http import JsonResponse
+# This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
+# Classes:
+#     WcapiView(View): Handles POST requests to save or update records for a specified table/model.
+# Functions:
+#     check_field_size(field_value, max_size, field_name):
+#         Checks if the serialized size of a field value exceeds the specified maximum size in bytes.
+#         Raises ValueError if the size is exceeded.
+#     find_model_for_table(table_name: str):
+#         Searches all installed Django apps to find and return the model class corresponding to the given table name.
+#         Returns None if no matching model is found.
+# Constants:
+#     ALLOWED_NESTED_KEYS: Dict specifying which nested keys are allowed for certain fields (e.g., 'refs', 'prefs', 'metadata').
+#     MAX_FIELD_SIZE: Maximum allowed size (in bytes) for any field value.
+# View Details:
+#     WcapiView.post(request):
+#         - Expects a JSON body with at least 'table_name' and optionally 'id' (for updates).
+#         - Finds the corresponding model for the given table name.
+#         - Handles both record creation and update.
+#         - Validates field sizes and allowed nested keys.
+#         - Calls pre-save and post-save asynchronous tasks.
+#         - Returns a JSON response indicating success or failure, including error messages for field size violations or integrity errors.
 from django.views import View
 from django.apps import apps
-from django.views.decorators.csrf import csrf_exempt
 from django.utils.text import capfirst
 import json
 from core import tasks
@@ -42,14 +62,14 @@ def find_model_for_table(table_name: str):
             continue
     return None
 
-class WcapiView(View):
+class SaveWcapiView(View):
     # apply exempt to CSRF for save view actions
     # already passed CSRF protection
     # QQQ frontends must pass CSRF token, so exemption is not needed
     #@csrf_exempt
     #def dispatch(self, *args, **kwargs):
         #return super().dispatch(*args, **kwargs)
-
+    
     def post(self, request):
         try:
             # extract JSON data from the request body

@@ -2,7 +2,7 @@ from django.urls import path
 
 from core.views import (
     HomeView, AboutView,
-    WebSignupView, WebLoginView, WebLogoutView,
+    SignupView, WebLoginView, WebLogoutView,
 )
 from core.services.wcapi import WcapiView
 
@@ -15,7 +15,8 @@ from rest_framework_simplejwt.views import (
 from core.views.related_view import RelatedDataView, RelatedDataAdvancedView
 # from core.views.utilities import FieldAccessView
 from core.views.utilities_view import AllowedFieldsView
-
+from core.views.save_view import SaveWcapiView
+from core.views.get_view import WcapiGetView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -26,14 +27,14 @@ urlpatterns = [
     path('about/', AboutView.as_view(), name='about'),
     
     # Authentication
-    path('signup/', WebSignupView.as_view(), name='signup'),
+    path('signup/', SignupView.as_view(), name='signup'),
     path('login/', WebLoginView.as_view(), name='login'),
     path('logout/', WebLogoutView.as_view(), name='logout'),
     
    
         # Dedicated Management Pages
     path('manage/actions/', TemplateView.as_view(template_name='manage_actions.html'), name='manage-actions'),
-    path('user/', TemplateView.as_view(template_name='user.html'), name='users'),
+    path('user/', TemplateView.as_view(template_name='user.html'), name='user'),
     path('manager/', TemplateView.as_view(template_name='manager.html'), name='manager'),
 
     #path('manager/related/', RelatedDataView.as_view(), name='manager-related'),
@@ -47,7 +48,7 @@ urlpatterns = [
     path('wcapi/delete/', WcapiView.as_view(), name='delete'),
     
     # list/read records
-    path('wcapi/get/', WcapiView.as_view(), name='get'),
+    path('wcapi/get/', WcapiGetView.as_view(), name='get'),
     
     # Headers only
     path('wcapi/head/', WcapiView.as_view(), name='head'),
@@ -79,7 +80,7 @@ urlpatterns = [
   
     path('wcapi/put/', WcapiView.as_view(), name='put'),
     # save was used in 4D, replace with post/put
-    path('wcapi/save/', WcapiView.as_view(), name='save'),
+    path('wcapi/save/', SaveWcapiView.as_view(), name='wcapi_save'),
     # pass table_name and id wcapi/save/?table_name=<table_name>&id=<id>
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing

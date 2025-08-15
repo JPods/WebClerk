@@ -6,7 +6,7 @@ from django.urls import reverse
 from core.serializers import RegisterSerializer
 from core.models import Contact
 
-class WebSignupView(View):
+class SignupView(View):
     template_name = 'auth/signup.html'  # Updated path
     
     def get(self, request):

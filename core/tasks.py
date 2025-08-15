@@ -1,9 +1,9 @@
 from celery import shared_task
-from core.services import access_fields
+from core.services import view_edit_access
 
 @shared_task
 def celery_startup_task():
-    access_fields.reload_access_data()
+    view_edit_access.reload_access_data()
     print("Access rules loaded in Celery worker.")
 
 @shared_task

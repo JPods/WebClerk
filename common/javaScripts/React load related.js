@@ -1,3 +1,6 @@
+// Load all related data for a contact
+// QQQ no idea what this is here
+
 async function loadAllRelated(contact_id) {
     const response = await fetch(`/wcapi/related/?contact_id=${contact_id}`);
     const data = await response.json();

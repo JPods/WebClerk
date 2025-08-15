@@ -3,10 +3,8 @@ from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
 from django.core.paginator import Paginator, EmptyPage
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 import json
-from core.services.access_fields import get_allowed_fields
+from core.services.view_edit_access import get_view_edit_fields
 
 RELATED_TABLES: Dict[str, List[str]] = {
     'contacts': ['phones', 'emails', 'addresses', 'actions', 'domains'],
@@ -164,7 +162,7 @@ def filter_safe_fields(record, allowed_fields):
 def filter_related_data(related_data, user_role):
     filtered_related = {}
     for related_table, records in related_data.items():
-        allowed = get_allowed_fields(related_table, user_role, "view")
+        allowed = get_view_edit_fields(related_table, user_role, "view")
         filtered_related[related_table] = [
             filter_safe_fields(r, allowed) for r in records
         ]

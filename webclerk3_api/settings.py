@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     'core',
     'communications',
     'django_celery_beat',
+    'django_celery_results',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -210,3 +212,8 @@ INTERNAL_IPS = [
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or use RabbitMQ if you prefer
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+GRAPH_MODELS = {
+    'all_applications': True,
+    'group_models': True,
+}
