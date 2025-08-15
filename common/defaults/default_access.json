@@ -259,32 +259,32 @@
     "table_name": "emails",
     "data": {
       "SUPER": {
-        "view": ["id", "address", "attention", "name", "opt_out", "comment"],
-        "edit": ["id", "address", "attention", "name", "opt_out", "comment"]
+        "view": ["id", "email", "attention", "name", "opt_out", "comment"],
+        "edit": ["id", "email", "attention", "name", "opt_out", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "address", "attention", "name", "opt_out", "comment"],
-        "edit": ["address", "attention", "name", "opt_out", "comment"]
+        "view": ["id", "email", "attention", "name", "opt_out", "comment"],
+        "edit": ["email", "attention", "name", "opt_out", "comment"]
       },
       "SALE": {
-        "view": ["id", "address", "attention", "name"],
-        "edit": ["address", "attention", "name"]
+        "view": ["id", "email", "attention", "name"],
+        "edit": ["email", "attention", "name"]
       },
       "REP": {
-        "view": ["id", "address", "attention", "name"],
-        "edit": ["address", "attention", "name"]
+        "view": ["id", "email", "attention", "name"],
+        "edit": ["email", "attention", "name"]
       },
       "VENDOR": {
-        "view": ["id", "address", "name"],
-        "edit": ["address", "name"]
+        "view": ["id", "email", "name"],
+        "edit": ["email", "name"]
       },
       "CUSTOMER": {
-        "view": ["id", "address"],
-        "edit": ["address"]
+        "view": ["id", "email"],
+        "edit": ["email"]
       },
       "USER": {
-        "view": ["id", "address"],
-        "edit": ["address"]
+        "view": ["id", "email"],
+        "edit": ["email"]
       },
       "PUBLIC": {
         "view": [],

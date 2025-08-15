@@ -22,18 +22,19 @@ class Command(BaseCommand):
     help = 'Load default_access.json into the settings table'
 
     def handle(self, *args, **kwargs):
-        path = 'common/default_access.json'
+        path = 'common/defaults/default_access.json'
         with open(path, 'r') as f:
             data = json.load(f)
         count = 0
         for entry in data:
+            table_name = entry.get('table_name')
             obj, created = Setting.objects.update_or_create(
-                name=entry.get('name'),
+                purpose="view_edit",
+                table_name=table_name,
                 defaults={
-                    'is_active': entry.get('is_active', True),
-                    'purpose': entry.get('purpose', ''),
-                    'role': entry.get('role', ''),
-                    'table_name': entry.get('table_name', ''),
+                    'name': table_name,
+                    'role': 'all',
+                    'is_active': True,
                     'data': entry.get('data', {}),
                     'comment': entry.get('comment', ''),
                 }

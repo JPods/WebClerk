@@ -2,7 +2,7 @@ from typing import Dict, List
 from django.http import JsonResponse
 from django.views import View
 from django.apps import apps
-from core.services.access_fields import get_allowed_fields
+from core.services.view_edit_access import get_view_edit_fields
 
 # Define which related tables to fetch for each parent table
 RELATED_TABLES: Dict[str, List[str]] = {
@@ -64,7 +64,7 @@ class RelatedDataView(View):
 
         filtered_related = {}
         for related_table, records in data.items():
-            allowed = get_allowed_fields(related_table, user_role, "view")
+            allowed = get_view_edit_fields(related_table, user_role, "view")
             filtered_related[related_table] = [
                 filter_fields(r, allowed) for r in records
             ]

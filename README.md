@@ -221,3 +221,11 @@ core/templates/
 🥳 **New Contact** → Quick create contact
 **Admin** → Django admin (superusers only)
 🤚 **Logout** → Clean session termination
+
+pip install pydot (in your virtual environment)
+
+https://graphviz.org/doc/build.html
+brew install graphviz (on your Mac, for image output)
+
+Draft model
+% manage.py graph_models --pydot -a -g -o webclerk3_visualized.png

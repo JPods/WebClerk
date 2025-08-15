@@ -165,11 +165,9 @@
 </div>
 
 <!-- Pass Django data to JavaScript -->
+<script src="{% static 'js/contact.js' %}"></script>
 <script>
-
-// Get signed-in contact id from Django
 const SIGNED_CONTACT_ID = {{ user.id|default:'null' }};
-
 let allContacts = [];
 let selected_id = null;
 let _contactsLoadedOnce = false;
@@ -177,11 +175,9 @@ let isEditingContact = false;
 let isCreatingContact = false;
 
 async function loadContacts() {
-    console.log("loadContacts called");
     try {
         const response = await fetch('/wcapi/get/?table_name=contacts');
-        console.log("Response received:", response);
-        const data = await response.json(); // <-- UNCOMMENT THIS LINE
+        const data = await response.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
             allContacts = data.data;
             if (!_contactsLoadedOnce) {
@@ -200,20 +196,18 @@ async function loadContacts() {
         console.error("Error loading contacts:", e);
         document.getElementById('contacts-list').innerHTML = '<div class="text-danger">Failed to load contacts.</div>';
         renderContactDetails(null);
-        //qqq populateRelatedTables({});
     }
 }
 
-// Fetch and render contact details and related tables
 async function loadAndRenderContact(user_id) {
     const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
     const data = await response.json();
-    // If your backend returns a single object:
     if (data.success && data.data) {
-        renderContactDetails(data.data);
-        await fetchRelatedData('contacts', user_id);
+        renderContactDetails(data.data); // from contact.js
+        populateRelatedTables(data.data.data || {}); // from contact.js
     } else {
         renderContactDetails(null);
+        populateRelatedTables({});
     }
 }
 

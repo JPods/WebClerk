@@ -1,12 +1,8 @@
 from django.views.generic import TemplateView
 from .contact_view import WebContactView
-from .edit_views import EditContactView
-from .web_auth_views import WebSignupView, WebLoginView, WebLogoutView
+# from .edit_views import EditContactView  # Disabled: edit_views.py not found
+from .auth_views import SignupView, WebLoginView, WebLogoutView
 from core.services.wcapi import (
-    WcapiView,
-    WcapiView,
-    WcapiView,
-    WcapiView,
     WcapiView,
 )
 
@@ -64,7 +60,7 @@ __all__ = [
     'AboutView',
     'WebContactView',
     'EditContactView', 
-    'WebSignupView',
+    'SignupView',
     'WebLoginView', 
     'WebLogoutView',
     'WcapiView',
