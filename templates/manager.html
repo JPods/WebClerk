@@ -179,6 +179,8 @@ async function loadContacts() {
         const response = await fetch('/wcapi/get/?table_name=contacts');
         const data = await response.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+             // Only use data.data for primary records
+             // Do not expect data.related see user.html for related
             allContacts = data.data;
             if (!_contactsLoadedOnce) {
                 selected_id = allContacts[0].id;
