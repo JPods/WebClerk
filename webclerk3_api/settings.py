@@ -98,6 +98,15 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '10000/day',   # Authenticated users: 1000 requests per day
+        'anon': '100/day',    # Unauthenticated users: 100 requests per day
+    },
 }
 
 from datetime import timedelta
@@ -150,19 +159,27 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/webclerk3.log'),
+            'formatter': 'verbose',
+        },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'DEBUG',
     },
     'loggers': {
         'core.views': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
         },
     },
 }
+
+
 
 DRF_SPECTACULAR_SETTINGS = {
     'TITLE': 'WEBCLERK 3.0 API',
@@ -217,3 +234,20 @@ GRAPH_MODELS = {
     'all_applications': True,
     'group_models': True,
 }
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from decouple import config
+
+SENTRY_DSN = config('SENTRY_DSN', default='')
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=1.0,
+        send_default_pii=True
+    )
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
