@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}WebClerk 3.0 - Universal API System{% endblock %}
 
@@ -113,6 +114,8 @@ document.getElementById('fetch-contact-btn').addEventListener('click', async fun
             </div>
         </div>
     </div>
+
+    <h1>{% trans "Contact Details" %}</h1>
 
     <!-- Rest of your dashboard content... -->
     <!-- (Include all the role-based quick access, feature cards, etc.) -->

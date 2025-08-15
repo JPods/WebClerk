@@ -1,1 +1,105 @@
 INFO 2025-08-15 18:14:53,277 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 18:28:37,845 command Visit me at http://0.0.0.0:5555
+INFO 2025-08-15 18:28:37,852 command Broker: redis://localhost:6379/0
+INFO 2025-08-15 18:28:37,857 command Registered tasks: 
+['celery.accumulate',
+ 'celery.backend_cleanup',
+ 'celery.chain',
+ 'celery.chord',
+ 'celery.chord_unlock',
+ 'celery.chunks',
+ 'celery.group',
+ 'celery.map',
+ 'celery.starmap',
+ 'communications.tasks.hello',
+ 'communications.tasks.save_post_contact',
+ 'communications.tasks.save_pre_contact',
+ 'core.tasks.celery_startup_task',
+ 'core.tasks.save_post',
+ 'core.tasks.save_pre']
+INFO 2025-08-15 18:28:37,899 mixins Connected to redis://localhost:6379/0
+WARNING 2025-08-15 18:28:38,932 inspector Inspect method revoked failed
+WARNING 2025-08-15 18:28:38,932 inspector Inspect method stats failed
+WARNING 2025-08-15 18:28:38,932 inspector Inspect method conf failed
+WARNING 2025-08-15 18:28:38,932 inspector Inspect method scheduled failed
+WARNING 2025-08-15 18:28:38,933 inspector Inspect method active failed
+WARNING 2025-08-15 18:28:38,934 inspector Inspect method active_queues failed
+WARNING 2025-08-15 18:28:38,934 inspector Inspect method reserved failed
+WARNING 2025-08-15 18:28:38,934 inspector Inspect method registered failed
+INFO 2025-08-15 18:30:26,974 command Visit me at http://0.0.0.0:5555
+INFO 2025-08-15 18:30:26,981 command Broker: redis://localhost:6379/0
+INFO 2025-08-15 18:30:26,984 command Registered tasks: 
+['celery.accumulate',
+ 'celery.backend_cleanup',
+ 'celery.chain',
+ 'celery.chord',
+ 'celery.chord_unlock',
+ 'celery.chunks',
+ 'celery.group',
+ 'celery.map',
+ 'celery.starmap',
+ 'communications.tasks.hello',
+ 'communications.tasks.save_post_contact',
+ 'communications.tasks.save_pre_contact',
+ 'core.tasks.celery_startup_task',
+ 'core.tasks.save_post',
+ 'core.tasks.save_pre']
+INFO 2025-08-15 18:30:26,988 mixins Connected to redis://localhost:6379/0
+WARNING 2025-08-15 18:30:28,016 inspector Inspect method stats failed
+WARNING 2025-08-15 18:30:28,017 inspector Inspect method conf failed
+WARNING 2025-08-15 18:30:28,017 inspector Inspect method active_queues failed
+WARNING 2025-08-15 18:30:28,017 inspector Inspect method revoked failed
+WARNING 2025-08-15 18:30:28,018 inspector Inspect method active failed
+WARNING 2025-08-15 18:30:28,018 inspector Inspect method scheduled failed
+WARNING 2025-08-15 18:30:28,018 inspector Inspect method reserved failed
+WARNING 2025-08-15 18:30:28,019 inspector Inspect method registered failed
+INFO 2025-08-15 18:30:44,416 command Visit me at http://0.0.0.0:5555
+INFO 2025-08-15 18:30:44,420 command Broker: redis://localhost:6379/0
+INFO 2025-08-15 18:30:44,423 command Registered tasks: 
+['celery.accumulate',
+ 'celery.backend_cleanup',
+ 'celery.chain',
+ 'celery.chord',
+ 'celery.chord_unlock',
+ 'celery.chunks',
+ 'celery.group',
+ 'celery.map',
+ 'celery.starmap',
+ 'communications.tasks.hello',
+ 'communications.tasks.save_post_contact',
+ 'communications.tasks.save_pre_contact',
+ 'core.tasks.celery_startup_task',
+ 'core.tasks.save_post',
+ 'core.tasks.save_pre']
+INFO 2025-08-15 18:30:44,428 mixins Connected to redis://localhost:6379/0
+WARNING 2025-08-15 18:30:45,446 inspector Inspect method active_queues failed
+WARNING 2025-08-15 18:30:45,447 inspector Inspect method stats failed
+WARNING 2025-08-15 18:30:45,448 inspector Inspect method reserved failed
+WARNING 2025-08-15 18:30:45,448 inspector Inspect method scheduled failed
+WARNING 2025-08-15 18:30:45,448 inspector Inspect method conf failed
+WARNING 2025-08-15 18:30:45,449 inspector Inspect method revoked failed
+WARNING 2025-08-15 18:30:45,449 inspector Inspect method registered failed
+WARNING 2025-08-15 18:30:45,449 inspector Inspect method active failed
+WARNING 2025-08-15 18:37:24,971 log Bad Request: /wcapi/save/
+INFO 2025-08-15 18:37:25,998 save_view Saved contacts record 9
+INFO 2025-08-15 18:37:26,976 save_view Saved emails record 1
+INFO 2025-08-15 18:37:27,952 save_view Saved phones record 1
+INFO 2025-08-15 19:49:21,196 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 19:59:59,283 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:00,113 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:00:04,322 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:04,978 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:00:06,168 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:06,567 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:00:11,757 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:12,350 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:00:24,879 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:25,367 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:00:26,580 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:27,070 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:00:28,288 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:00:28,791 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:01:52,167 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:01:52,883 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 20:01:54,109 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-15 20:01:55,020 autoreload Watching for file changes with StatReloader

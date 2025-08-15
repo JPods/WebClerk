@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}My Profile - WebClerk 3.0{% endblock %}
 
@@ -227,5 +228,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 </script>
+
+<h1>{% trans "Contact Details" %}</h1>
 
 {% endblock %}

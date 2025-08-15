@@ -1,35 +1,42 @@
-
 # webClerk3
 
 Project Docs Link: 
 [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
 
+CONTRIBUTING:
+- Antor Ahmed
+- Riju Karar
+- Samir Biswas
+- Sanjutka Patra
+- CoPilot
+- Bill James
+
+
+
 Path basics
-core/templates/
-├── base.html                 # Main layout with lesson1-style nav
-├── core/
-│   ├── home.html            # Landing page
-│   ├── about.html           # About page
-│   └── contact.html         # Contact detail (if still needed)
-└── auth/
-    ├── login.html           # Authentication
-    └── signup.html          # Registration
 
 webClerk3/
 ├── core/
 │   ├── models.py
 │   ├── views.py
 │   ├── tasks.py      # <--- Put tasks here for core app
-│   └── ...
+│   └── locale/
 ├── communications/
 │   ├── models.py
 │   ├── views.py
 │   ├── tasks.py      # <--- Put tasks here for communications app
-│   └── ...
+│   └── locale/
 ├── webclerk3_api/
 │   ├── settings.py
 │   ├── celery.py     # <--- Celery app config only
 │   └── ...
+├── templates/
+├── static/
+├── media/
+├── logs/
+├── .env
+├── manage.py
+└── README.md
 
 -----------------------------
 ### Install:
@@ -229,3 +236,69 @@ brew install graphviz (on your Mac, for image output)
 
 Draft model
 % manage.py graph_models --pydot -a -g -o webclerk3_visualized.png
+
+## Celery Monitoring
+
+Flower is a web-based tool for monitoring and administrating Celery clusters.
+
+**To install and run Flower:**
+```bash
+pip install flower
+celery -A webclerk3_api flower
+```
+
+Visit [http://localhost:5555](http://localhost:5555) in your browser to view the dashboard.
+
+If you see warnings like `Inspect method ... failed`, it usually means there are no active tasks or workers for those commands. Flower will still show task status, history, and queue info.
+
+## API Rate Limiting
+
+All API endpoints are rate limited using Django REST Framework:
+- Authenticated users: 1000 requests/day
+- Unauthenticated users: 100 requests/day
+
+## Logging
+
+All API requests and errors are logged to [webclerk3.log](http://_vscodecontentref_/0).  
+Check this file for debugging and monitoring.
+
+## Running Tests
+python manage.py test
+
+python [manage.py](http://_vscodecontentref_/1) test
+
+Production Deployment
+Add basic instructions for deploying to production (gunicorn, nginx, HTTPS, etc.).
+
+## Environment Variables
+
+Create a `.env` file in the project root with:
+
+```
+SECRET_KEY=your_secret_key
+DEBUG=True
+DATABASE_NAME=your_db_name
+DATABASE_USER=your_db_user
+DATABASE_PASS=your_db_password
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your_email@example.com
+EMAIL_HOST_PASSWORD=your_email_password
+SENTRY_DSN=
+```
+
+API Documentation Access
+Document how to access your OpenAPI/Swagger docs (e.g., /api/schema/, /api/docs/).
+
+## Internationalization (i18n)
+
+To add a new language:
+1. Add the language code to `LANGUAGES` in `settings.py`.
+2. Mark all user-facing strings with `{% trans %}` or `gettext_lazy`.
+3. Run `python manage.py makemessages -l <lang>`.
+4. Edit the `.po` files in `locale/<lang>/LC_MESSAGES/`.
+5. Run `python manage.py compilemessages`.
+
+
