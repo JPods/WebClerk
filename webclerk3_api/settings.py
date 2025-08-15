@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from decouple import config
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -235,10 +237,6 @@ GRAPH_MODELS = {
     'group_models': True,
 }
 
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from decouple import config
-
 SENTRY_DSN = config('SENTRY_DSN', default='')
 
 if SENTRY_DSN:
@@ -251,3 +249,17 @@ if SENTRY_DSN:
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+X_FRAME_OPTIONS = 'DENY'
+
+LANGUAGES = [
+    ('en', 'English'),
+    # ('es', 'Spanish'),
+    # Add more as needed
+]

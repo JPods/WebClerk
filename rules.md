@@ -19,10 +19,10 @@ Baseline rules that require a published exception:
 4. jsons for exchanging information, even inputs. Convert all CSV's etc into json outside of WebClerk.
 5. always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in e
 6. always use table_name for table_name of the primary table being worked and "id" is the id for the primary table record id. For non-primary table_name_id format.
-7. ways save paths to larger documents. Never save large documents in the database.
-8. limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py
-9. always put relationships into table_name.refs.links.related_table_name[id1,id4,...]]
-10. settings records for view_edit.  "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
+7. Save paths to larger documents. Never save large documents in the database.
+8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py
+9. always put relationships into table_name.refs.links{"related_table_name::[id1,id4,...],"related_table_name2":[]}
+10. Settings records for view_edit.  "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
 11. Break the common Django framework of put, post, add functions with generalized, universal wcapi/relate, wcapi/get, wcapi/save etc... see core/urls.py
 11. Use Celery to wrap generalized functions such as wcapi/save to pre and post save executables.
 12. ONLY use uuid for communicating between databases with syncs records. Examples, product catalog updates, security issues, default changes, etc... 

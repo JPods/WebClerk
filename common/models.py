@@ -64,9 +64,9 @@ def default_prefs():
     return {"userdefined": ""}
 
 
-MAX_METADATA_SIZE = 32000  # bytes
-MAX_REFS_SIZE = 15000      # bytes
-MAX_PREFS_SIZE = 32000     # bytes
+MAX_METADATA_SIZE = 320000  # bytes
+MAX_REFS_SIZE = 320000      # bytes
+MAX_PREFS_SIZE = 320000     # bytes
 
 class BaseModel(models.Model):
     """
