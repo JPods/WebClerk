@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/check_services.py
 from django.core.management.base import BaseCommand
 import subprocess
 import socket

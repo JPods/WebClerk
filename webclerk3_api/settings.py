@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py
 import os
 from pathlib import Path
 from decouple import config

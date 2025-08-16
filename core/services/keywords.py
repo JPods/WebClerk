@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/services/keywords.py
 from core.models.pending import Pending
 
 def build_keywords_for_contact(contact_id):

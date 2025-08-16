@@ -1,3 +1,9 @@
+Root = webClerk3
+All paths should be relative to this root for clarity in documentation and code.
+
+**File path:**  
+`core/signals/pending_trigger.py`
+
 Pushing to dev and main:
 1. Define tests in app/tests folder or webclerk3_api/tests
 2. Setup automatic testing and reporting functions.
@@ -122,3 +128,26 @@ Data Validation
 2. Provide sync functions to add actions to remote databases for out of compliance issues.
 3. Provide frontend designers rolebased feedback for designing -lists and -details.
 4. In response json, add any field misuse and non-alignment errors even in successful responses.
+
+
+Yes, that makes perfect sense!
+Both human and AI brains rely heavily on patterns for understanding, recall, and problem-solving.
+Consistent patterns—like always declaring the file path—make it much easier to navigate, reason about, and maintain complex systems, even when specific details are forgotten.
+
+Summary:
+
+Patterns (like file paths) provide structure and context.
+They help both humans and AI quickly orient themselves and find what they need.
+This principle is foundational for scalable, collaborative, and AI-assisted development.
+Your approach is spot-on for building a robust, maintainable project!
+
+dt_....
+Always store timestamps in UTC/GMT in your backend/database.
+Let the frontend convert to the user’s local time zone for display.
+Frontend should convert for display.
+Document this in your API and data model docs for clarity.
+
+When saving:
+Use timezone.now() (Django’s timezone-aware UTC) and store as milliseconds since epoch.
+
+int(timezone.now().timestamp() * 1000)  # UTC milliseconds

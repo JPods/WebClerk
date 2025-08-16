@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/admin.py
 from django.contrib import admin
 from .models import Location, Email, Phone, Domain
 from django.utils import timezone

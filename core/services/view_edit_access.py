@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/services/view_edit_access.py
 # Used by celery to load view/edit fields from the Setting model
 # This module provides utilities for managing and enforcing view/edit access to model fields
 # based on user roles and table names, using configuration stored in the Setting model.

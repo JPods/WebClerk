@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/utilities_view.py
 from django.http import JsonResponse
 """
 This module defines a Django view for retrieving allowed fields for a given table, role, and access type.

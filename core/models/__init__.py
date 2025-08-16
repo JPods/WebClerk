@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/__init__.py
 from .contact import Contact
 from .action import Action
 from .setting import Setting

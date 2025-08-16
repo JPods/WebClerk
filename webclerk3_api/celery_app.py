@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/celery_app.py
 import os
 from celery import Celery
 

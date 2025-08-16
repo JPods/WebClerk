@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/celery_app.py
 # Each Celery worker process will execute the code 
 # in celery_app.py when it starts, 
 # so the single import and call is sufficient for every worker.

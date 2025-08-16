@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/services/wcapi.py
 from django.views import View
 """
 WcapiView provides a generic API interface for CRUD operations on several models via HTTP methods.

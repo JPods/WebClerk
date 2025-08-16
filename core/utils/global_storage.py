@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/utils/global_storage.py
 import time
 import threading
 from typing import Any, Optional

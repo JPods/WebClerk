@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/permissions.py
 from rest_framework import permissions
 
 class IsAuthenticatedActive(permissions.BasePermission):

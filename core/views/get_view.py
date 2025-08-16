@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/get_view.py
 from django.views import View
 from django.http import JsonResponse
 from django.apps import apps

@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/local/address_make_one.py
 # You can run this in Django shell or create a management command
 # To open Django shell: python manage.py shell
 

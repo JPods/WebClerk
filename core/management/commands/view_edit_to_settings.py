@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/view_edit_to_settings.py
 import json
 """
 Django management command to load default access settings from a JSON file into the Setting model.
