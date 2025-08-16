@@ -12,16 +12,8 @@ class Domain(BaseModel):
     comment = models.TextField(blank=True, null=True)
     # Remove this line: dt_verified = models.DateTimeField(null=True, blank=True, help_text="When domain was verified")
 
-    @property
-    def dt_verified(self):
-        """Get verified timestamp from metadata.history.verified.dt."""
-        if not self.metadata:
-            return None
-        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
-        if verified_dt_ms:
-            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.get_current_timezone())
-        return None
-        
+    # all metadata changes inside common/models/BaseModel.py
+
     class Meta:
         db_table = 'domains'
         

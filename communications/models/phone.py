@@ -27,13 +27,3 @@ class Phone(BaseModel):
         if self.name:
             return f"{self.name} ({self.number})"
         return self.number
-
-    @property  # Add this property
-    def dt_verified(self):
-        """Get verified timestamp from metadata.history.verified.dt."""
-        if not self.metadata:
-            return None
-        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
-        if verified_dt_ms:
-            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.get_current_timezone())
-        return None

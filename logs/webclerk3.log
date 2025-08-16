@@ -216,3 +216,133 @@ WARNING 2025-08-16 16:18:32,294 log Not Found: /.well-known/appspecific/com.chro
 INFO 2025-08-16 16:42:25,107 autoreload Watching for file changes with StatReloader
 WARNING 2025-08-16 16:42:38,846 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
 INFO 2025-08-16 20:40:18,673 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:45:23,005 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:45:23,650 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:45:30,013 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:45:30,455 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:45:31,644 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:45:32,051 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:45:37,358 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:45:37,773 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:45:39,989 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:45:40,397 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:45:58,231 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:45:58,642 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:46:02,948 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:46:03,388 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:46:04,560 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:46:04,984 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:46:08,236 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:46:08,653 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:46:09,832 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:46:10,247 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 20:46:37,454 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 20:46:37,859 autoreload Watching for file changes with StatReloader
+ERROR 2025-08-16 20:49:37,026 log Internal Server Error: /admin/core/contact/2/change/
+Traceback (most recent call last):
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 841, in get_form
+    return modelform_factory(self.model, **defaults)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/models.py", line 655, in modelform_factory
+    return type(form)(class_name, (form,), form_class_attrs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/models.py", line 335, in __new__
+    raise FieldError(message)
+django.core.exceptions.FieldError: Unknown field(s) (prefs, refs) specified for Contact
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/core/handlers/exception.py", line 56, in inner
+    response = get_response(request)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 720, in wrapper
+    return self.admin_site.admin_view(view)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 193, in _view_wrapper
+    result = _process_exception(request, e)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 191, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/cache.py", line 81, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/sites.py", line 247, in inner
+    return view(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 1988, in change_view
+    return self.changeform_view(request, object_id, form_url, extra_context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 49, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 193, in _view_wrapper
+    result = _process_exception(request, e)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 191, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 1841, in changeform_view
+    return self._changeform_view(request, object_id, form_url, extra_context)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 1879, in _changeform_view
+    ModelForm = self.get_form(
+        request, obj, change=not add, fields=flatten_fieldsets(fieldsets)
+    )
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/auth/admin.py", line 99, in get_form
+    return super().get_form(request, obj, **defaults)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 843, in get_form
+    raise FieldError(
+    ...<2 lines>...
+    )
+django.core.exceptions.FieldError: Unknown field(s) (prefs, refs) specified for Contact. Check fields/fieldsets/exclude attributes of class ContactAdmin.
+ERROR 2025-08-16 20:49:48,843 log Internal Server Error: /admin/core/contact/5/change/
+Traceback (most recent call last):
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 841, in get_form
+    return modelform_factory(self.model, **defaults)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/models.py", line 655, in modelform_factory
+    return type(form)(class_name, (form,), form_class_attrs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/models.py", line 335, in __new__
+    raise FieldError(message)
+django.core.exceptions.FieldError: Unknown field(s) (prefs, refs) specified for Contact
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/core/handlers/exception.py", line 56, in inner
+    response = get_response(request)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 720, in wrapper
+    return self.admin_site.admin_view(view)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 193, in _view_wrapper
+    result = _process_exception(request, e)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 191, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/cache.py", line 81, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/sites.py", line 247, in inner
+    return view(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 1988, in change_view
+    return self.changeform_view(request, object_id, form_url, extra_context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 49, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 193, in _view_wrapper
+    result = _process_exception(request, e)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 191, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 1841, in changeform_view
+    return self._changeform_view(request, object_id, form_url, extra_context)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 1879, in _changeform_view
+    ModelForm = self.get_form(
+        request, obj, change=not add, fields=flatten_fieldsets(fieldsets)
+    )
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/auth/admin.py", line 99, in get_form
+    return super().get_form(request, obj, **defaults)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/options.py", line 843, in get_form
+    raise FieldError(
+    ...<2 lines>...
+    )
+django.core.exceptions.FieldError: Unknown field(s) (prefs, refs) specified for Contact. Check fields/fieldsets/exclude attributes of class ContactAdmin.
+INFO 2025-08-16 21:07:06,746 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models/domain.py changed, reloading.
+INFO 2025-08-16 21:07:07,231 autoreload Watching for file changes with StatReloader
