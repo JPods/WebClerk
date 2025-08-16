@@ -1,15 +1,16 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/address.py
 from rest_framework import serializers
-from ..models import Address
+from ..models import Location
 from core.utils import get_accessible_fields
 
-class AddressSerializer(serializers.ModelSerializer):
-    """Serializer for Address model with role-based field filtering."""
+class LocationSerializer(serializers.ModelSerializer):
+    """Serializer for Location model with role-based field filtering."""
     refs = serializers.JSONField(default=dict, help_text="References and links")
     prefs = serializers.JSONField(default=dict, help_text="Preferences")
     metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
 
     class Meta:
-        model = Address
+        model = Location
         fields = [
             'id', 'uuid', 'address1', 'address2', 'address_type', 'city', 'country',
             'instructions', 'latitude', 'longitude', 'state', 'zip', 'full', 'comment',

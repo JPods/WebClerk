@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py
 from django.urls import path
 
 from core.views import (
@@ -17,6 +18,7 @@ from core.views.related_view import RelatedDataView, RelatedDataAdvancedView
 from core.views.utilities_view import AllowedFieldsView
 from core.views.save_view import SaveWcapiView
 from core.views.get_view import WcapiGetView
+from core.views.keyword import KeywordSearchView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -89,4 +91,6 @@ urlpatterns = [
     # path('wcapi/utilities/field-access/', FieldAccessView.as_view(), name='field-access'),
 
     path('wcapi/utilities/allowed-fields/', AllowedFieldsView.as_view(), name='allowed-fields'),
+    
+    path('wcapi/keyword/', KeywordSearchView.as_view(), name='wcapi-keyword'),
 ]

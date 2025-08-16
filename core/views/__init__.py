@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/__init__.py
 from django.views.generic import TemplateView
 from .contact_view import WebContactView
 # from .edit_views import EditContactView  # Disabled: edit_views.py not found

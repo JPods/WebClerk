@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/tests/run_universal_tests.py
 #!/usr/bin/env python3
 """
 Universal API Test Runner
@@ -30,7 +31,7 @@ def run_universal_api_tests():
     # Run tests
     failures = test_runner.run_tests([
         'tests.test_universal_api.ContactAPITests',
-        'tests.test_universal_api.AddressAPITests', 
+        'tests.test_universal_api.LocationAPITests', 
         'tests.test_universal_api.PhoneAPITests',
         'tests.test_universal_api.EmailAPITests',
         'tests.test_universal_api.UniversalAPIRelationshipTests',

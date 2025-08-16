@@ -1,8 +1,9 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/serializers/contact_serializer.py
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..models import Contact
 from common.models import default_metadata
-from communications.models import Address, Email, Phone, Domain
+from communications.models import Location, Email, Phone, Domain
 import uuid
 from django.utils import timezone
 from datetime import timedelta

@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py
 # 
 # PURPOSE: Base model with Universal API metadata system for ALL models
 # UNIVERSAL API: Provides foundation metadata structure that makes Universal API work
@@ -16,10 +17,8 @@
 #   - JSON metadata storage
 # TABLES: Base class inherited by all models (contacts, addresses, phones, emails, etc.)
 
-import json
 from django.db import models
-from django.db.models import JSONField
-from django.utils import timezone
+import uuid
 
 
 def default_metadata():
@@ -64,6 +63,11 @@ def default_prefs():
     return {"userdefined": ""}
 
 
+def default_data():
+    """Return the default structure for the data field in Pending records."""
+    return {}
+
+
 MAX_METADATA_SIZE = 320000  # bytes
 MAX_REFS_SIZE = 320000      # bytes
 MAX_PREFS_SIZE = 320000     # bytes
@@ -75,12 +79,15 @@ class BaseModel(models.Model):
     Implements the 4D-style metadata system with modern Django features
     """
     
+    id = models.BigAutoField(primary_key=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    
     # Universal API Metadata - Core of the 4D-style system
-    metadata = JSONField(default=default_metadata, help_text="Universal API metadata structure")
+    metadata = models.JSONField(default=default_metadata, help_text="Universal API metadata structure")
     
     # Individual metadata fields for easier access and indexing
-    refs = JSONField(default=default_refs, help_text="References: keywords, tags, categories")
-    prefs = JSONField(default=default_prefs, help_text="User preferences and settings")
+    refs = models.JSONField(default=default_refs, help_text="References: keywords, tags, categories")
+    prefs = models.JSONField(default=default_prefs, help_text="User preferences and settings")
     
     # Timestamp fields for Universal API compatibility
     #dt_created = models.DateTimeField(auto_now_add=True, help_text="Record creation timestamp")

@@ -1,6 +1,7 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/local/demo_data.py
 from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password
-from core.models import Contact, Action, Phone, Address, Domain, Email
+from core.models import Contact, Action, Phone, Location, Domain, Email
 import json
 from datetime import datetime, timedelta
 
@@ -14,7 +15,7 @@ class Command(BaseCommand):
         Contact.objects.all().delete()
         Action.objects.all().delete()
         Phone.objects.all().delete()
-        Address.objects.all().delete()
+        Location.objects.all().delete()
         Domain.objects.all().delete()
         Email.objects.all().delete()
         
@@ -111,13 +112,13 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(f'✅ Created phone: {phone.phone_number} for {contact.email}')
         
-        # Create Addresses for each contact
+        # Create Locationes for each contact
         address_types = ['work', 'home', 'billing', 'shipping']
         cities = ['San Francisco', 'New York', 'Austin', 'Seattle']
         
         for i, contact in enumerate(contacts):
             for j, addr_type in enumerate(address_types):
-                address = Address.objects.create(
+                address = Location.objects.create(
                     contact=contact,
                     address_type=addr_type,
                     street=f'{(i+1)*100 + j*10} Main Street',
@@ -195,7 +196,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Contacts: {Contact.objects.count()}')
         self.stdout.write(f'Actions: {Action.objects.count()}')
         self.stdout.write(f'Phones: {Phone.objects.count()}')
-        self.stdout.write(f'Addresses: {Address.objects.count()}')
+        self.stdout.write(f'Locationes: {Location.objects.count()}')
         self.stdout.write(f'Domains: {Domain.objects.count()}')
         self.stdout.write(f'Emails: {Email.objects.count()}')
         
@@ -208,6 +209,6 @@ class Command(BaseCommand):
         self.stdout.write('Contacts: http://localhost:8000/wcapi/contacts/manage/')
         self.stdout.write('Actions: http://localhost:8000/wcapi/actions/manage/')
         self.stdout.write('Phones: http://localhost:8000/wcapi/phones/manage/')
-        self.stdout.write('Addresses: http://localhost:8000/wcapi/addresses/manage/')
+        self.stdout.write('Locationes: http://localhost:8000/wcapi/addresses/manage/')
         self.stdout.write('Domains: http://localhost:8000/wcapi/domains/manage/')
         self.stdout.write('Emails: http://localhost:8000/wcapi/emails/manage/')

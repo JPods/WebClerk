@@ -1,6 +1,7 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/urls.py
 from django.urls import path
 from .views import (
-    AddressView, AddressDetailView,
+    LocationView, LocationDetailView,
     EmailView, EmailDetailView,
     PhoneView, PhoneDetailView,
     DomainView, DomainDetailView,

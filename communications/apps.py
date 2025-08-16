@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/apps.py
 from django.apps import AppConfig
 
 

@@ -1,32 +1,33 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/views/address.py
 from rest_framework import generics, status
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
-from ..serializers import AddressSerializer
-from ..models import Address
+from ..serializers import LocationSerializer
+from ..models import Location
 from core.models import Contact
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from core.utils import get_accessible_fields
 from common.models import default_refs  # Add this import
 
-class AddressView(generics.ListCreateAPIView):
+class LocationView(generics.ListCreateAPIView):
     """Handles listing and creating addresses with role-based field access."""
-    queryset = Address.objects.all()
-    serializer_class = AddressSerializer
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filter queryset based on user roles and viewable fields."""
         accessible_fields = get_accessible_fields('addresses', 'view', self.request.user)
         if not accessible_fields:
-            return Address.objects.none()
-        return Address.objects.all()
+            return Location.objects.none()
+        return Location.objects.all()
 
     @extend_schema(
-        summary="List Addresses",
+        summary="List Locationes",
         description="Retrieve a list of addresses, filtered by user role permissions from settings.",
         responses={
-            200: AddressSerializer(many=True),
+            200: LocationSerializer(many=True),
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden"),
         }
@@ -35,11 +36,11 @@ class AddressView(generics.ListCreateAPIView):
         return super().get(request, *args, **kwargs)
 
     @extend_schema(
-        summary="Create Address",
+        summary="Create Location",
         description="Create a new address and link to a contact, restricted by role-based editable fields.",
-        request=AddressSerializer,
+        request=LocationSerializer,
         responses={
-            201: AddressSerializer,
+            201: LocationSerializer,
             400: OpenApiResponse(description="Invalid data"),
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden"),
@@ -78,26 +79,26 @@ class AddressView(generics.ListCreateAPIView):
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# ... existing AddressView code ...
+# ... existing LocationView code ...
 
-class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
+class LocationDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Handles retrieving, updating, and deleting an address with role-based field access."""
-    queryset = Address.objects.all()
-    serializer_class = AddressSerializer
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filter queryset based on user roles and viewable fields."""
         accessible_fields = get_accessible_fields('addresses', 'view', self.request.user)
         if not accessible_fields:
-            return Address.objects.none()
-        return Address.objects.all()
+            return Location.objects.none()
+        return Location.objects.all()
 
     @extend_schema(
-        summary="Get Address",
+        summary="Get Location",
         description="Retrieve a specific address by ID, filtered by user role permissions from settings.",
         responses={
-            200: AddressSerializer,
+            200: LocationSerializer,
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden"),
             404: OpenApiResponse(description="Not found"),
@@ -107,11 +108,11 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().get(request, *args, **kwargs)
 
     @extend_schema(
-        summary="Update Address",
+        summary="Update Location",
         description="Update an address (partial update), restricted by role-based editable fields.",
-        request=AddressSerializer,
+        request=LocationSerializer,
         responses={
-            200: AddressSerializer,
+            200: LocationSerializer,
             400: OpenApiResponse(description="Invalid data"),
             401: OpenApiResponse(description="Unauthorized"),
             403: OpenApiResponse(description="Forbidden"),
@@ -128,7 +129,7 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().patch(request, *args, **kwargs)
 
     @extend_schema(
-        summary="Delete Address",
+        summary="Delete Location",
         description="Delete an address and remove from contact refs, restricted by role-based permissions.",
         responses={
             204: OpenApiResponse(description="Successfully deleted"),

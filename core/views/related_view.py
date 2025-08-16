@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/related_view.py
 from typing import Dict, List, Optional, Any
 from django.http import JsonResponse
 from django.views import View
@@ -26,7 +27,7 @@ def get_related_data(
     related_models = {
         'phones': ('communications', 'Phone'),
         'emails': ('communications', 'Email'),
-        'addresses': ('communications', 'Address'),
+        'addresses': ('communications', 'Location'),
         'domains': ('communications', 'Domain'),
         'actions': ('core', 'Action'),
     }

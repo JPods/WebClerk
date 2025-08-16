@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/tasks.py
 from celery import shared_task
 from core.services import view_edit_access
 

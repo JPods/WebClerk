@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/phone.py
 from rest_framework import serializers
 from ..models import Phone
 from core.utils import get_accessible_fields

@@ -13,7 +13,7 @@ echo "🔧 Adding file path documentation headers to WebClerk3 project..."
 cat > temp_header.txt << 'EOF'
 <!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/templates/communications/manage_addresses.html -->
 <!-- 
-PURPOSE: Address management interface using Universal API for full CRUD operations
+PURPOSE: Location management interface using Universal API for full CRUD operations
 UNIVERSAL API: Uses /wcapi/get/, /wcapi/save/, /wcapi/delete/ endpoints
 REPLACES: Old hardcoded address management system with individual views
 TEAM NOTE: This template shows the complete pattern for building Universal API interfaces
@@ -47,7 +47,7 @@ TEAM NOTE: Shows how to convert traditional Django links to Universal API URLs
 ARCHITECTURE: Central hub that connects to all related data via Universal API
 URL PATTERN: href="/wcapi/{table_name}/manage/?contact_id={{ user.id }}"
 NAVIGATION:
-  - Addresses: /wcapi/addresses/manage/?contact_id=X
+  - Locationes: /wcapi/addresses/manage/?contact_id=X
   - Phones: /wcapi/phones/manage/?contact_id=X
   - Emails: /wcapi/emails/manage/?contact_id=X
   - Domains: /wcapi/domains/manage/?contact_id=X
@@ -164,13 +164,13 @@ rm temp_header.txt
 cat > temp_header.txt << 'EOF'
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models.py
 # 
-# PURPOSE: Address, Phone, Email, Domain models for Universal API communication data
+# PURPOSE: Location, Phone, Email, Domain models for Universal API communication data
 # UNIVERSAL API: Accessible via 'addresses', 'phones', 'emails', 'domains' table names
 # REPLACES: Old communication models without Universal API support
 # TEAM NOTE: These models show how related data connects to contacts in Universal API
 # ARCHITECTURE: All inherit BaseModel and reference Contact via foreign keys
 # RELATIONSHIPS: 
-#   - Address -> Contact (one contact, many addresses)
+#   - Location -> Contact (one contact, many addresses)
 #   - Phone -> Contact (one contact, many phones)
 #   - Email -> Contact (one contact, many emails)
 #   - Domain -> Contact (one contact, many domains)

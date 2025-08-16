@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/services/wcapi.py
 from django.views import View
 """
 WcapiView provides a generic API interface for CRUD operations on several models via HTTP methods.
@@ -44,7 +45,7 @@ Notes:
 """
 from django.http import JsonResponse
 from core.models import Contact, Action  # Only core models here
-from communications.models import Phone, Domain, Email, Address  # Communications models here
+from communications.models import Phone, Domain, Email, Location  # Communications models here
 
 
 MODEL_MAP = {
@@ -53,7 +54,7 @@ MODEL_MAP = {
     'phones': Phone,
     'domains': Domain,
     'emails': Email,
-    'addresses': Address,
+    'addresses': Location,
     # Add other allowed models
 }
 

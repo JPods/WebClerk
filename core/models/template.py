@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/template.py
 import uuid
 from django.db import models
 from common.models import BaseModel

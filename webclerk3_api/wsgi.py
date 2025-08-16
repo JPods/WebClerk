@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/wsgi.py
 """
 WSGI config for webclerk3_api project.
 

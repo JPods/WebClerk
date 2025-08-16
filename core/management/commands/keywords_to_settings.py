@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/keywords_to_settings.py
 from django.core.management.base import BaseCommand
 from core.models import Setting  # Use your actual model name
 import json
@@ -7,7 +8,7 @@ class Command(BaseCommand):
     help = 'Load default_access.json into the settings table'
 
     def handle(self, *args, **kwargs):
-        path = 'common/defaults/keywords.json'
+        path = 'core/management/commands/keywords.json'
         with open(path, 'r') as f:
             data = json.load(f)
         count = 0

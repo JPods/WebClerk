@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/serializers/action_serializer.py
 from rest_framework import serializers
 from ..models import Action
 from core.utils import get_accessible_fields

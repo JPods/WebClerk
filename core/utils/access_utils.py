@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/utils/access_utils.py
 from django.core.exceptions import ObjectDoesNotExist
 from core.models import Setting
 from .global_storage import GlobalStorage
@@ -43,11 +44,11 @@ def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool 
             role_data = setting.data.get(role, {})
             accessible_fields.update(role_data.get(mode, []))
         
-        # Cache the result with default expiration of 3600 seconds
+        # Pending the result with default expiration of 3600 seconds
         accessible_fields_list = list(accessible_fields)
         global_storage.set(cache_key, accessible_fields_list, expiry_seconds=3600)
         return accessible_fields_list
     except ObjectDoesNotExist:
-        # Cache empty result to avoid repeated queries
+        # Pending empty result to avoid repeated queries
         global_storage.set(cache_key, [], expiry_seconds=3600)
         return []

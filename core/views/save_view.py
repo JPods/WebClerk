@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/save_view.py
 from django.http import JsonResponse
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
 # Classes:

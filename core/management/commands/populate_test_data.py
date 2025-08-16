@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/populate_test_data.py
 from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password
 from core.models import Contact
@@ -7,7 +8,7 @@ from core.models.template import Template
 from communications.models.phone import Phone
 from communications.models.email import Email
 from communications.models.domain import Domain
-from communications.models.address import Address
+from communications.models.address import Location
 import json
 from datetime import datetime, timedelta
 import uuid
@@ -112,7 +113,7 @@ class Command(BaseCommand):
         Phone.objects.all().delete()
         Email.objects.all().delete()
         Domain.objects.all().delete()
-        Address.objects.all().delete()
+        Location.objects.all().delete()
     
     def _create_contacts(self, count):
         """Create specified number of contacts"""
@@ -357,7 +358,7 @@ class Command(BaseCommand):
                 zip_code = f'{90000 + idx*1000 + j*100}'
                 
                 try:
-                    Address.objects.create(
+                    Location.objects.create(
                         address1=street_address,
                         address2=f'Suite {j+1}' if j > 0 else '',
                         address_type=address_type,
@@ -515,7 +516,7 @@ class Command(BaseCommand):
         self.stdout.write(f'📱 Phones: {Phone.objects.count()}')
         self.stdout.write(f'📧 Emails: {Email.objects.count()}')
         self.stdout.write(f'🌐 Domains: {Domain.objects.count()}')
-        self.stdout.write(f'🏠 Addresses: {Address.objects.count()}')
+        self.stdout.write(f'🏠 Locationes: {Location.objects.count()}')
         
         self.stdout.write(self.style.SUCCESS('\n🚀 Your Beautiful Contact Page:'))
         self.stdout.write('📞 Contact View: http://localhost:8000/contact/')

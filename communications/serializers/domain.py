@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/domain.py
 from rest_framework import serializers
 from ..models import Domain
 from core.utils import get_accessible_fields

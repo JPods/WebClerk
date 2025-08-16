@@ -1,3 +1,4 @@
+# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/notused/relate_view.py
 from typing import Dict, List
 from django.http import JsonResponse
 from django.views import View
@@ -15,7 +16,7 @@ RELATED_MODELS: Dict[str, tuple] = {
     'actions': ('core', 'Action'),
     'emails': ('communications', 'Email'),
     'phones': ('communications', 'Phone'),
-    'addresses': ('communications', 'Address'),
+    'addresses': ('communications', 'Location'),
     'domains': ('communications', 'Domain'),
 }
 
