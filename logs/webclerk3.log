@@ -147,3 +147,29 @@ INFO 2025-08-16 04:54:31,694 autoreload /Users/williamjames/Documents/CommerceEx
 INFO 2025-08-16 04:54:32,285 autoreload Watching for file changes with StatReloader
 INFO 2025-08-16 04:54:33,474 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
 INFO 2025-08-16 04:54:33,891 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 04:58:57,884 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 04:58:58,362 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:05:40,137 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:05:40,727 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:05:41,919 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:05:42,358 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:05:47,660 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:05:48,076 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:06:57,002 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/model_info.py changed, reloading.
+INFO 2025-08-16 05:06:57,487 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:06:59,711 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/model_info.py changed, reloading.
+INFO 2025-08-16 05:07:00,148 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:12:14,031 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/model_info.py changed, reloading.
+INFO 2025-08-16 05:12:14,483 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:12:15,664 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/model_info.py changed, reloading.
+INFO 2025-08-16 05:12:16,071 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:14:04,119 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:14:04,546 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:14:05,747 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:14:06,194 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:14:12,444 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:14:12,860 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:14:17,057 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:14:17,477 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 05:14:20,739 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py changed, reloading.
+INFO 2025-08-16 05:14:21,193 autoreload Watching for file changes with StatReloader
