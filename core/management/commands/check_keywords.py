@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
-from contacts.models import Contact
-from actions.models import Action
-from communications.models import Communication
+from core.models import Action, Contact
+from communications.models import Email, Domain, Phone, Location
 
 def extract_keywords(obj):
     # Dummy implementation: replace with your actual keyword extraction logic
@@ -22,6 +21,12 @@ class Command(BaseCommand):
             check_and_save_keywords(contact)
         for action in Action.objects.all():
             check_and_save_keywords(action)
-        for comm in Communication.objects.all():
+        for comm in Phone.objects.all():
+            check_and_save_keywords(comm)
+        for comm in Email.objects.all():
+            check_and_save_keywords(comm)
+        for comm in Domain.objects.all():
+            check_and_save_keywords(comm)
+        for comm in Location.objects.all():
             check_and_save_keywords(comm)
         self.stdout.write(self.style.SUCCESS("Keywords checked and saved for all records."))

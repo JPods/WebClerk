@@ -60,32 +60,16 @@ class Email(BaseModel):
             except ValidationError:
                 raise ValidationError({'email': 'Enter a valid email address.'})
 
-    @property  # MOVED INSIDE THE CLASS - proper indentation
-    def dt_verified(self):
-        """Get verified timestamp from metadata.history.verified.dt."""
-        if not self.metadata:
-            return None
-        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
-        if verified_dt_ms:
-            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.get_current_timezone())
-        return None
 
-    @property  # MOVED INSIDE THE CLASS - proper indentation
-    def dt_bounced(self):
-        """Get bounced timestamp from metadata.history.bounced.dt."""
-        if not self.metadata:
-            return None
-        bounced_dt_ms = self.metadata.get('history', {}).get('bounced', {}).get('dt', 0)
-        if bounced_dt_ms:
-            return timezone.datetime.fromtimestamp(bounced_dt_ms / 1000, tz=timezone.get_current_timezone())
-        return None
 
-    @property  # MOVED INSIDE THE CLASS - proper indentation
-    def status_display(self):
-        """Human-readable status display."""
-        return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')
+    # pull from metadata.history
+    # @property  # MOVED INSIDE THE CLASS - proper indentation
+    # def status_display(self):
+    #     """Human-readable status display."""
+    #     return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')
 
-    @property  # MOVED INSIDE THE CLASS - proper indentation
-    def is_active(self):
-        """Check if email is active (not opted out, bounced, etc.)."""
-        return not self.opt_out
+    # pull from metadata.history
+    # @property  # MOVED INSIDE THE CLASS - proper indentation
+    # def is_active(self):
+    #     """Check if email is active (not opted out, bounced, etc.)."""
+    #     return not self.opt_out

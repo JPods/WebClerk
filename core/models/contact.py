@@ -20,36 +20,11 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.db import models
 from django.utils import timezone
 
-
-class ContactManager(BaseUserManager):
-    """Custom user manager for Contact model"""
-    
-    def create_user(self, email, password=None, **extra_fields):
-        """Create and return a regular user"""
-        if not email:
-            raise ValueError('The Email field must be set')
-        
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-    
-    def create_superuser(self, email, password=None, **extra_fields):
-        """Create and return a superuser"""
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
-        
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-        
-        return self.create_user(email, password, **extra_fields)
+from common.models import BaseModel
 
 
-class Contact(AbstractBaseUser, PermissionsMixin):
+# see ContactManager below that is used for authentication
+class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
     """
     Contact model with Universal API metadata support and Django authentication
     Uses JSON metadata field instead of inheriting BaseModel to avoid dt_created conflicts
@@ -92,18 +67,13 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False, help_text="User can access admin")
     date_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
     
-    # Universal API Metadata - JSON field instead of BaseModel inheritance
-    metadata = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Universal API metadata: history, workflows, references"
-    )
+ 
     
     # Use email as the username field
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name_first', 'name_last']
     
-    objects = ContactManager()
+    # objects = ContactManager()
     
     class Meta:
         db_table = 'contacts'
@@ -138,28 +108,7 @@ class Contact(AbstractBaseUser, PermissionsMixin):
             return self.name_first
         return self.email.split('@')[0]
     
-    def save(self, *args, **kwargs):
-        """Override save to handle metadata and superuser role assignment"""
-        # Initialize metadata structure if empty
-        if not self.metadata:
-            self.metadata = {
-                'history': {
-                    'created': {'dt': timezone.now().isoformat(), 'by': 'system'},
-                    'modified': {'dt': timezone.now().isoformat(), 'by': 'system'}
-                },
-                'workflow': {'status': 'active', 'stage': 'registered'},
-                'refs': {},
-                'prefs': {}
-            }
-        else:
-            # Update modified timestamp
-            if 'history' not in self.metadata:
-                self.metadata['history'] = {}
-            self.metadata['history']['modified'] = {
-                'dt': timezone.now().isoformat(), 
-                'by': 'system'
-            }
-        
+
         # Auto-assign admin role to superusers
         if self.is_superuser and self.role != 'admin':
             self.role = 'admin'
@@ -170,21 +119,9 @@ class Contact(AbstractBaseUser, PermissionsMixin):
     def display_name(self):
         """Property for template display"""
         return self.get_full_name()
-    
-    def get_created_date(self):
-        """Get creation date from metadata"""
-        try:
-            return self.metadata.get('history', {}).get('created', {}).get('dt')
-        except:
-            return self.date_joined.isoformat()
-    
-    def get_modified_date(self):
-        """Get modification date from metadata"""
-        try:
-            return self.metadata.get('history', {}).get('modified', {}).get('dt')
-        except:
-            return timezone.now().isoformat()
-    
+
+    # all metadata changes inside common/models/BaseModel.py
+
     def has_addresses(self):
         """Check if contact has any addresses"""
         return hasattr(self, 'addresses') and self.addresses.exists()
@@ -216,3 +153,34 @@ class Contact(AbstractBaseUser, PermissionsMixin):
         print("Post-save logic here")
         # return False  # Return False to abort save
         return True  # Return False to abort save
+    
+
+# Django requires a custom manager for custom user models.
+# ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
+# and provides create_user and create_superuser methods for authentication.
+class ContactManager(BaseUserManager):
+    """Custom user manager for Contact model (Django authentication)"""
+    
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and return a regular user"""
+        if not email:
+            raise ValueError('The Email field must be set')
+        
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+    
+    def create_superuser(self, email, password=None, **extra_fields):
+        """Create and return a superuser"""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        
+        return self.create_user(email, password, **extra_fields)

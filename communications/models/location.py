@@ -19,21 +19,12 @@ class Location(BaseModel):
     zip = models.CharField(max_length=255, blank=True)
     full = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True, null=True)
-    
-    # Remove this line: dt_verified = models.DateTimeField(null=True, blank=True, help_text="When address was verified")
 
-    @property
-    def dt_verified(self):
-        """Get verified timestamp from metadata.history.verified.dt."""
-        if not self.metadata:
-            return None
-        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
-        if verified_dt_ms:
-            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.get_current_timezone())
-        return None
+    # all metadata changes occur in common.models.BaseModel
+
 
     class Meta:
-        db_table = 'addresses'
+        db_table = 'locations'
         
     def __str__(self):
         return f"{self.address1}, {self.city}, {self.state}"
