@@ -1433,7 +1433,7 @@ https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b08
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1
-```
+))}}}}```
 
 
 ## License: BSD-3-Clause
@@ -1448,11 +1448,632 @@ https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b08
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1
+))}}}}```
+
+
+## License: unknown
+https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))}}}}
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))}}}}
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+                        }}}}
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break}}}}
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break}}}}
 ```
 
 
 ## License: unknown
 https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break}}}}
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break}}}}
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break}}}}
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+```
+
+
+## License: unknown
+https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            
+```
+
+
+## License: unknown
+https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cook}
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cook}
+```
+
+
+## License: unknown
+https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cook}
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cook}
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cook}
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        
+```
+
+
+## License: unknown
+https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        }
+    </script
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        }
+    </script
+```
+
+
+## License: unknown
+https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        }
+    </script
+```
+
+
+## License: unknown
+https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        }
+    </script
+```
+
+
+## License: unknown
+https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
+
+```
+(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;}
+        }
+    </script
+```
+
+
+## License: BSD-3-Clause
+https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
 
 ```
 (name) {
@@ -1463,633 +2084,7 @@ https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/f
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break
-```
-
-
-## License: unknown
-https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-```
-
-
-## License: unknown
-https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            
-```
-
-
-## License: unknown
-https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cook
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cook
-```
-
-
-## License: unknown
-https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cook
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cook
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cook
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        
-```
-
-
-## License: unknown
-https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_theme3/static/devilry_theme3/5.4.0/scripts/plain_es6/cookie.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script
-```
-
-
-## License: unknown
-https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/framework/nabla/static/nabla/framework.js
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script
-```
-
-
-## License: unknown
-https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/findlove/templates/candidate_list.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script
-```
-
-
-## License: unknown
-https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca67834dd08a9adcad4/profiles/templates/profiles/profile_form.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script
-```
-
-
-## License: BSD-3-Clause
-https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b085124310/devilry/devilry_group/templates/devilry_group/include/batch_download_archive_script.django.html
-
-```
-(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script>
+))}}}}
 </
 ```
 
@@ -2105,14 +2100,8 @@ https://github.com/devilry/devilry-django/blob/74a286f7561eb01e1738e12bf40442b08
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script>
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1
+))}}}}
 </
 ```
 
@@ -2128,14 +2117,8 @@ https://github.com/txemavs/nabla/blob/540b93ee146f558e35f98c2becd0187910325abd/f
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script>
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1
+))}}}}
 </
 ```
 
@@ -2151,14 +2134,8 @@ https://github.com/madarou/love/blob/b494d4ff43900eddaa402f19ff272910abfd727a/fi
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script>
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1
+))}}}}
 </
 ```
 
@@ -2174,14 +2151,8 @@ https://github.com/YannBerry/bourseauxcompagnons/blob/4a7fecb80fcfb58290fd5ca678
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    </script>
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1
+))}}}}
 </
 ```
 
