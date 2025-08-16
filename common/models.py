@@ -1,5 +1,4 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py
-# 
 # PURPOSE: Base model with Universal API metadata system for ALL models
 # UNIVERSAL API: Provides foundation metadata structure that makes Universal API work
 # REPLACES: Individual metadata handling scattered across different models
@@ -19,6 +18,8 @@
 
 from django.db import models
 import uuid
+from django.utils import timezone
+import json
 
 
 def default_metadata():
@@ -89,9 +90,6 @@ class BaseModel(models.Model):
     refs = models.JSONField(default=default_refs, help_text="References: keywords, tags, categories")
     prefs = models.JSONField(default=default_prefs, help_text="User preferences and settings")
     
-    # Timestamp fields for Universal API compatibility
-    #dt_created = models.DateTimeField(auto_now_add=True, help_text="Record creation timestamp")
-    #dt_modified = models.DateTimeField(auto_now=True, help_text="Record modification timestamp")
   
     # Health and quality metrics
     health_rating = models.IntegerField(default=0, help_text="Data quality rating (0-100)")
