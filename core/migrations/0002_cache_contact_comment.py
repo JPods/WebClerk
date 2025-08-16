@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Cache',
+            name='Pending',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('refs', models.JSONField(default=common.models.default_refs, help_text='References: keywords, tags, categories')),

@@ -3,7 +3,7 @@ from common.models import BaseModel
 from django.utils import timezone
 import uuid
 
-class Address(BaseModel):
+class Location(BaseModel):
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     address1 = models.CharField(max_length=255, blank=True)

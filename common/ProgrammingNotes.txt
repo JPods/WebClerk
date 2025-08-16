@@ -8,7 +8,7 @@ name is not a standard "s" ending
 
         app_label = TABLE_APP_MAP.get(table_name, 'core')
         if table_name == "addresses":
-            model_name = "Address"
+            model_name = "Location"
         else:
             model_name = table_name.rstrip('s').capitalize()
 

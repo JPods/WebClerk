@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from core.models import Contact
-from communications.models import Address, Phone, Email
+from communications.models import Location, Phone, Email
 
 User = get_user_model()
 
@@ -112,8 +112,8 @@ class ContactAPITests(UniversalAPITestCase):
             print(f"❌ Save failed: {response.json()}")
 
 
-class AddressAPITests(UniversalAPITestCase):
-    """Test Universal API with Addresses table"""
+class LocationAPITests(UniversalAPITestCase):
+    """Test Universal API with Locationes table"""
     
     def test_query_addresses(self):
         """Test querying addresses via Universal API"""
@@ -143,7 +143,7 @@ class AddressAPITests(UniversalAPITestCase):
             data = response.json()
             if data.get('status') == 'success':
                 self.assertIn('id', data)
-                print(f"✅ Address created with ID: {data.get('id')}")
+                print(f"✅ Location created with ID: {data.get('id')}")
         elif response.status_code == 501:
             print("⚠️ Save functionality not implemented yet (501)")
 

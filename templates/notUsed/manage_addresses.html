@@ -1,6 +1,6 @@
 <!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/templates/communications/manage_addresses.html -->
 <!-- 
-PURPOSE: Address management interface using Universal API for full CRUD operations
+PURPOSE: Location management interface using Universal API for full CRUD operations
 UNIVERSAL API: Uses /wcapi/get/, /wcapi/save/, /wcapi/delete/ endpoints
 REPLACES: Old hardcoded address management system with individual views
 TEAM NOTE: This template shows the complete pattern for building Universal API interfaces
@@ -18,7 +18,7 @@ SECURITY: Inherits authentication requirements from Universal API
 
 {% load static %}
 
-{% block title %}Manage Addresses{% if contact %} - {{ contact.name_first }} {{ contact.name_last }}{% endif %}{% endblock %}
+{% block title %}Manage Locationes{% if contact %} - {{ contact.name_first }} {{ contact.name_last }}{% endif %}{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/contact.css' %}">
@@ -26,22 +26,22 @@ SECURITY: Inherits authentication requirements from Universal API
 <div class="contact-container">
     <div class="contact-header">
         {% if contact %}
-            <h1>Manage Addresses - {{ contact.name_first }} {{ contact.name_last }}</h1>
+            <h1>Manage Locationes - {{ contact.name_first }} {{ contact.name_last }}</h1>
             <p class="contact-email">{{ contact.email }}</p>
         {% else %}
-            <h1>Manage Addresses</h1>
+            <h1>Manage Locationes</h1>
         {% endif %}
     </div>
 
     <div class="contact-content">
-        <!-- Address Management Section -->
+        <!-- Location Management Section -->
         <div class="section">
             <div class="section-header">
-                <h2>Addresses{% if addresses %} ({{ addresses|length }}){% endif %}</h2>
-                <button onclick="addNewAddress()" class="btn btn-primary btn-sm">➕ Add New Address</button>
+                <h2>Locationes{% if addresses %} ({{ addresses|length }}){% endif %}</h2>
+                <button onclick="addNewLocation()" class="btn btn-primary btn-sm">➕ Add New Location</button>
             </div>
 
-            <!-- Address List -->
+            <!-- Location List -->
             <div id="address-list">
                 {% if addresses %}
                     <div class="table-container">
@@ -49,7 +49,7 @@ SECURITY: Inherits authentication requirements from Universal API
                             <thead>
                                 <tr>
                                     <th>Type</th>
-                                    <th>Address</th>
+                                    <th>Location</th>
                                     <th>City</th>
                                     <th>State</th>
                                     <th>ZIP</th>
@@ -60,7 +60,7 @@ SECURITY: Inherits authentication requirements from Universal API
                             <tbody>
                                 {% for address in addresses %}
                                 <tr id="address-{{ address.id }}">
-                                    <td><span class="type-badge">{{ address.address_type|default:"Address" }}</span></td>
+                                    <td><span class="type-badge">{{ address.address_type|default:"Location" }}</span></td>
                                     <td>
                                         {% if address.address1 %}{{ address.address1 }}{% endif %}
                                         {% if address.address2 %}<br><small>{{ address.address2 }}</small>{% endif %}
@@ -70,8 +70,8 @@ SECURITY: Inherits authentication requirements from Universal API
                                     <td>{{ address.zip|default:"-" }}</td>
                                     <td>{{ address.country|default:"-" }}</td>
                                     <td>
-                                        <button onclick="editAddress({{ address.id }})" class="btn btn-sm btn-secondary">Edit</button>
-                                        <button onclick="deleteAddress({{ address.id }})" class="btn btn-sm btn-danger">Delete</button>
+                                        <button onclick="editLocation({{ address.id }})" class="btn btn-sm btn-secondary">Edit</button>
+                                        <button onclick="deleteLocation({{ address.id }})" class="btn btn-sm btn-danger">Delete</button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -81,14 +81,14 @@ SECURITY: Inherits authentication requirements from Universal API
                 {% else %}
                     <div class="empty-state">
                         <p>No addresses on file</p>
-                        <button onclick="addNewAddress()" class="btn btn-primary">Add First Address</button>
+                        <button onclick="addNewLocation()" class="btn btn-primary">Add First Location</button>
                     </div>
                 {% endif %}
             </div>
 
             <!-- Add/Edit Form -->
             <div id="address-form" style="display: none;" class="form-section">
-                <h3 id="form-title">Add New Address</h3>
+                <h3 id="form-title">Add New Location</h3>
                 <form id="addressForm">
                     <input type="hidden" id="address-id" name="id">
                     {% if contact %}
@@ -97,7 +97,7 @@ SECURITY: Inherits authentication requirements from Universal API
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="address_type">Address Type</label>
+                            <label for="address_type">Location Type</label>
                             <select id="address_type" name="address_type" class="form-control">
                                 <option value="home">Home</option>
                                 <option value="work">Work</option>
@@ -110,14 +110,14 @@ SECURITY: Inherits authentication requirements from Universal API
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="address1">Address Line 1</label>
+                            <label for="address1">Location Line 1</label>
                             <input type="text" id="address1" name="address1" class="form-control" required>
                         </div>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="address2">Address Line 2</label>
+                            <label for="address2">Location Line 2</label>
                             <input type="text" id="address2" name="address2" class="form-control">
                         </div>
                     </div>
@@ -152,7 +152,7 @@ SECURITY: Inherits authentication requirements from Universal API
                     </div>
                     
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Address</button>
+                        <button type="submit" class="btn btn-primary">Save Location</button>
                         <button type="button" onclick="cancelForm()" class="btn btn-secondary">Cancel</button>
                     </div>
                 </form>
@@ -170,16 +170,16 @@ SECURITY: Inherits authentication requirements from Universal API
 </div>
 
 <script>
-// Universal API JavaScript for Address Management
-async function addNewAddress() {
-    document.getElementById('form-title').textContent = 'Add New Address';
+// Universal API JavaScript for Location Management
+async function addNewLocation() {
+    document.getElementById('form-title').textContent = 'Add New Location';
     document.getElementById('address-id').value = '';
     document.getElementById('addressForm').reset();
     document.getElementById('address-form').style.display = 'block';
     document.getElementById('addressForm').scrollIntoView();
 }
 
-async function editAddress(addressId) {
+async function editLocation(addressId) {
     try {
         // Get address data via Universal API
         const response = await fetch('/wcapi/get/', {
@@ -196,7 +196,7 @@ async function editAddress(addressId) {
             const address = result.data;
             
             // Populate form
-            document.getElementById('form-title').textContent = 'Edit Address';
+            document.getElementById('form-title').textContent = 'Edit Location';
             document.getElementById('address-id').value = address.id;
             document.getElementById('address_type').value = address.address_type || 'home';
             document.getElementById('address1').value = address.address1 || '';
@@ -217,7 +217,7 @@ async function editAddress(addressId) {
     }
 }
 
-async function deleteAddress(addressId) {
+async function deleteLocation(addressId) {
     if (!confirm('Are you sure you want to delete this address?')) return;
     
     try {
@@ -234,7 +234,7 @@ async function deleteAddress(addressId) {
         if (result.status === 'success') {
             // Remove row from table
             document.getElementById('address-' + addressId).remove();
-            alert('Address deleted successfully');
+            alert('Location deleted successfully');
         } else {
             alert('Error deleting address: ' + result.message);
         }
@@ -264,7 +264,7 @@ document.getElementById('addressForm').addEventListener('submit', async function
         
         const result = await response.json();
         if (result.status === 'success') {
-            alert('Address saved successfully');
+            alert('Location saved successfully');
             window.location.reload(); // Refresh to show updated data
         } else {
             alert('Error saving address: ' + result.message);

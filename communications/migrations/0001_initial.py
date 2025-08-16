@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Address',
+            name='Location',
             fields=[
                 ('metadata', models.JSONField(default=common.models.default_metadata, help_text='Universal API metadata structure')),
                 ('refs', models.JSONField(default=common.models.default_refs, help_text='References: keywords, tags, categories')),

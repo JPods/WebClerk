@@ -103,3 +103,20 @@ INFO 2025-08-15 20:01:52,167 autoreload /Users/williamjames/Documents/CommerceEx
 INFO 2025-08-15 20:01:52,883 autoreload Watching for file changes with StatReloader
 INFO 2025-08-15 20:01:54,109 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
 INFO 2025-08-15 20:01:55,020 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 22:36:30,880 autoreload Watching for file changes with StatReloader
+INFO 2025-08-15 22:36:52,009 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-15 22:37:04,278 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2025-08-16 02:07:58,224 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 02:09:44,919 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/__init__.py changed, reloading.
+INFO 2025-08-16 02:09:45,265 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 02:10:15,846 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/__init__.py changed, reloading.
+INFO 2025-08-16 02:10:16,174 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 02:10:19,341 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/__init__.py changed, reloading.
+INFO 2025-08-16 02:10:19,664 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 02:10:26,886 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/__init__.py changed, reloading.
+INFO 2025-08-16 02:10:27,211 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 02:11:34,274 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models/__init__.py changed, reloading.
+INFO 2025-08-16 02:11:34,760 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 02:13:29,550 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
+INFO 2025-08-16 02:13:29,949 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-16 02:13:56,967 log Not Found: /favicon.ico

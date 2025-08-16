@@ -9,7 +9,7 @@ async function loadAllRelated(contact_id) {
         renderActions(data.actions);
         renderEmails(data.emails);
         renderPhones(data.phones);
-        renderAddresses(data.addresses);
+        renderLocationes(data.addresses);
         renderDomains(data.domains);
     } else {
         console.error('Failed to load related data:', data.error);

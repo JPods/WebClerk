@@ -26,7 +26,7 @@ def get_related_data(
     related_models = {
         'phones': ('communications', 'Phone'),
         'emails': ('communications', 'Email'),
-        'addresses': ('communications', 'Address'),
+        'addresses': ('communications', 'Location'),
         'domains': ('communications', 'Domain'),
         'actions': ('core', 'Action'),
     }

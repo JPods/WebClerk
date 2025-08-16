@@ -171,7 +171,7 @@ function manageDomains() {
     }
 }
 
-function manageAddresses() {
+function manageLocationes() {
     const contactId = getContactIdFromPage();
     if (contactId) {
         window.location.href = `/wcapi/addresses/manage/?contact_id=${contactId}`;
@@ -293,7 +293,7 @@ function manageDomains() {
     }
 }
 
-function manageAddresses() {
+function manageLocationes() {
     const idContact = getContactIdFromPage();
     if (idContact) {
         window.location.href = `/wcapi/addresses/manage/?contact_id=${idContact}`;
@@ -309,4 +309,4 @@ window.editContact = editContact;
 window.manageEmails = manageEmails;
 window.managePhones = managePhones;
 window.manageDomains = manageDomains;
-window.manageAddresses = manageAddresses;
+window.manageLocationes = manageLocationes;

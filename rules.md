@@ -8,6 +8,15 @@ Version Baseline:
 - All endpoints, data structures, and conventions described here are considered baseline v0.3.
 - Any breaking changes or new features must increment the version and be documented.
 
+## Table Naming Rule
+
+- **No table name should use 'es' for pluralization.**
+    - Use regular 's' for plural table names (e.g., `contacts`, `locations`, `domains`, `phones`, `emails`, `actions`).
+    - Avoid irregular plurals ending in 'es' (e.g., do not use `addresses`, `classes`, `processes` as table names).
+    - For words that would naturally pluralize with 'es', choose a synonym or rephrase (e.g., use `location` instead of `address`).
+
+**Field names and verbose names may use 'es' if needed for clarity, but table names must not.**
+
 Baseline rules that require a published exception:
 
 1. Django REST Framework for all endpoints

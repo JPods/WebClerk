@@ -30,7 +30,7 @@ def run_universal_api_tests():
     # Run tests
     failures = test_runner.run_tests([
         'tests.test_universal_api.ContactAPITests',
-        'tests.test_universal_api.AddressAPITests', 
+        'tests.test_universal_api.LocationAPITests', 
         'tests.test_universal_api.PhoneAPITests',
         'tests.test_universal_api.EmailAPITests',
         'tests.test_universal_api.UniversalAPIRelationshipTests',

@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Load default_access.json into the settings table'
 
     def handle(self, *args, **kwargs):
-        path = 'common/defaults/keywords.json'
+        path = 'core/management/commands/keywords.json'
         with open(path, 'r') as f:
             data = json.load(f)
         count = 0

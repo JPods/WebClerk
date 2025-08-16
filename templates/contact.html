@@ -178,12 +178,12 @@
                 </div>
             </div>
 
-            <!-- Addresses Table -->
+            <!-- Locationes Table -->
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Addresses</h5>
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Locationes</h5>
                     <a href="/wcapi/manage/?table_name=addresses&contact_id={{ contact.id }}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-cog"></i> Manage Addresses
+                        <i class="fas fa-cog"></i> Manage Locationes
                     </a>
                 </div>
                 <div class="card-body">
@@ -444,8 +444,8 @@ async function loadDomains() {
     }
 }
 
-// Load Addresses via Universal API
-async function loadAddresses() {
+// Load Locationes via Universal API
+async function loadLocationes() {
     try {
         const response = await fetch(`/wcapi/find/?table_name=addresses&refs.links.contacts=${contactId}`);
         const data = await response.json();
@@ -457,7 +457,7 @@ async function loadAddresses() {
                         <thead>
                             <tr>
                                 <th>Type</th>
-                                <th>Address</th>
+                                <th>Location</th>
                                 <th>City</th>
                                 <th>State</th>
                                 <th>Actions</th>
@@ -471,7 +471,7 @@ async function loadAddresses() {
                 
                 html += `
                     <tr>
-                        <td>${address.address_type || 'Address'}</td>
+                        <td>${address.address_type || 'Location'}</td>
                         <td>${address.address1}</td>
                         <td>${address.city}</td>
                         <td>${address.state}</td>
@@ -499,7 +499,7 @@ async function loadAddresses() {
     } catch (error) {
         console.error('Error loading addresses:', error);
         document.getElementById('addresses-table').innerHTML = `
-            <p class="text-danger">Error loading addresses. <a href="javascript:loadAddresses()">Try again</a></p>
+            <p class="text-danger">Error loading addresses. <a href="javascript:loadLocationes()">Try again</a></p>
         `;
     }
 }
@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadEmails();
     loadPhones();
     loadDomains();
-    loadAddresses();
+    loadLocationes();
 });
 
 // Load related data for contact

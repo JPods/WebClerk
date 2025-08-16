@@ -2,4 +2,4 @@
 # Example if models.py is in common:
 # from common.models import BaseModel
 
-from .models import BaseModel
+from common.models import BaseModel

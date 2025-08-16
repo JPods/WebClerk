@@ -15,7 +15,7 @@ RELATED_MODELS: Dict[str, tuple] = {
     'actions': ('core', 'Action'),
     'emails': ('communications', 'Email'),
     'phones': ('communications', 'Phone'),
-    'addresses': ('communications', 'Address'),
+    'addresses': ('communications', 'Location'),
     'domains': ('communications', 'Domain'),
 }
 

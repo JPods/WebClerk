@@ -1,11 +1,11 @@
 # You can run this in Django shell or create a management command
 # To open Django shell: python manage.py shell
 
-from communications.models.address import Address
+from communications.models.address import Location
 from django.utils import timezone
 
 # Create address record for Jane Doe
-jane_address = Address.objects.create(
+jane_address = Location.objects.create(
     address1="123 Main Street",
     address2="Apt 4B",
     address_type="residential",
@@ -39,4 +39,4 @@ jane_address = Address.objects.create(
 )
 
 print(f"Created address: {jane_address}")
-print(f"Address UUID: {jane_address.uuid}")
+print(f"Location UUID: {jane_address.uuid}")

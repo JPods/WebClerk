@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Contact, Setting, Cache, Action, Template
+from .models import Contact, Setting, Pending, Action, Template
 
 @admin.register(Contact)
 class ContactAdmin(UserAdmin):
@@ -52,6 +52,6 @@ class ContactAdmin(UserAdmin):
     get_role_display.short_description = 'Role'
 
 admin.site.register(Setting)
-admin.site.register(Cache)
+admin.site.register(Pending)
 admin.site.register(Action)
 admin.site.register(Template)

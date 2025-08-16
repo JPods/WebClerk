@@ -1,12 +1,12 @@
 from django.contrib import admin
-from .models import Address, Email, Phone, Domain
+from .models import Location, Email, Phone, Domain
 from django.utils import timezone
 from common.models import default_metadata 
 
 
-@admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
-    """Admin interface for Address model."""
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    """Admin interface for Location model."""
     list_display = ('id', 'address1', 'city', 'country', 'address_type', 'get_dt_verified', 'get_dt_created')
     list_filter = ('address_type', 'country', 'state')
     search_fields = ('address1', 'address2', 'city', 'zip', 'full')

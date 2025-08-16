@@ -45,7 +45,7 @@ class WcapiGetView(View):
             return JsonResponse({'success': False, 'error': 'Missing table_name'}, status=400)
 
         app_label = TABLE_APP_MAP.get(table_name, 'core')
-        model_name = "Address" if table_name == "addresses" else table_name.rstrip('s').capitalize()
+        model_name = "Location" if table_name == "addresses" else table_name.rstrip('s').capitalize()
         try:
             model = apps.get_model(app_label, model_name)
         except LookupError:
