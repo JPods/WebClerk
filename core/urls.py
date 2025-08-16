@@ -20,6 +20,7 @@ from core.views.save_view import SaveWcapiView
 from core.views.get_view import WcapiGetView
 from core.views.keyword import KeywordSearchView
 from core.views.query_any import QueryAnyView
+from core.views.model_info import ModelInfoView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -94,8 +95,11 @@ urlpatterns = [
     path('wcapi/utilities/allowed-fields/', AllowedFieldsView.as_view(), name='allowed-fields'),
     
     path('wcapi/keyword/', KeywordSearchView.as_view(), name='wcapi-keyword'),
-]
 
-urlpatterns += [
     path('wcapi/query-any/', QueryAnyView.as_view(), name='wcapi-query-any'),
+    
+    path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
+
+    # GET /wcapi/models/?table_name=contacts&related_tables=actions,phones
+    # Returns info for contacts, actions, and phones.
 ]
