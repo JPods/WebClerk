@@ -19,6 +19,7 @@ from core.views.utilities_view import AllowedFieldsView
 from core.views.save_view import SaveWcapiView
 from core.views.get_view import WcapiGetView
 from core.views.keyword import KeywordSearchView
+from core.views.query_any import QueryAnyView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -93,4 +94,8 @@ urlpatterns = [
     path('wcapi/utilities/allowed-fields/', AllowedFieldsView.as_view(), name='allowed-fields'),
     
     path('wcapi/keyword/', KeywordSearchView.as_view(), name='wcapi-keyword'),
+]
+
+urlpatterns += [
+    path('wcapi/query-any/', QueryAnyView.as_view(), name='wcapi-query-any'),
 ]
