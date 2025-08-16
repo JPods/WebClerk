@@ -16,4 +16,10 @@ Form versus table references to tables
   "tablename-table" suffix for all table references displayed in a table or list
   "table" only in forms or flat display
 
-
+CommandPromptExample for creating app folder structures
+# Example: Create Django app folders with standard structure
+for app in transactions orgs users products; do
+  mkdir -p $app/{migrations,templates/$app,static/$app}
+  touch $app/{__init__.py,admin.py,apps.py,models.py,tests.py,views.py,urls.py}
+  touch $app/migrations/__init__.py
+done

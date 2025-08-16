@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "Checking Docker..."
-docker info >/dev/null 2>&1 && echo "Docker: ✅ running" || echo "Docker: ❌ NOT running"
-
 echo "Checking Redis..."
 nc -z localhost 6379 && echo "Redis: ✅ running" || echo "Redis: ❌ NOT running"
 
