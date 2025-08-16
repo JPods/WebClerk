@@ -13,16 +13,9 @@ REQUIRED_PACKAGES = [
 ]
 
 class Command(BaseCommand):
-    help = "Check if Docker, Redis, Celery, and critical Python dependencies are running/installed"
+    help = "Check if Redis, Celery, and critical Python dependencies are running/installed"
 
     def handle(self, *args, **kwargs):
-        # Check Docker
-        try:
-            subprocess.check_output(['docker', 'info'])
-            docker_status = "Docker: ✅ running"
-        except Exception:
-            docker_status = "Docker: ❌ NOT running"
-
         # Check Redis
         redis_status = "Redis: ❌ NOT running"
         try:
@@ -55,5 +48,5 @@ class Command(BaseCommand):
             deps_status = "Python dependencies: ✅ all installed"
 
         self.stdout.write(self.style.SUCCESS("\n".join([
-            docker_status, redis_status, celery_status, deps_status
+            redis_status, celery_status, deps_status
         ])))

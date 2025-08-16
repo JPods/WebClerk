@@ -41,9 +41,7 @@ webClerk3/
 -----------------------------
 ### Install:
 -----------------------------
-  - Docker
-  -- [video](https://www.youtube.com/watch?v=DQdB7wFEygo)
-  -- https://www.docker.com/blog/build-ai-agents-with-docker-compose/?_gl=1*3bwjlh*_gcl_au*NDk1NjAzODMyLjE3NTQ4MzE1MjE.*_ga*MTQwODUzOTUxNS4xNzU0ODMxNTIx*_ga_XJWPQMJYHQ*czE3NTQ4MzE1MjAkbzEkZzEkdDE3NTQ4MzE1MzYkajQ0JGwwJGgw
+
   - Celery
   -- video
   - Redis

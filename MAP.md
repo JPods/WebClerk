@@ -2,7 +2,6 @@
 
 ## Directory Structure
 
-```
 webClerk3/
 ├── core/
 │   ├── models.py
@@ -82,17 +81,12 @@ graph TD
   - `core/services/view_edit_access.py` (loads access rules at import)
   - `core/tasks.py` (Celery tasks)
 
-### Docker
-
 - **Purpose:** Provides containerized, reproducible environments for development, testing, and deployment.
 - **Key Files:**
-  - `Dockerfile`: Defines the build instructions for the webClerk3 image.
-  - `docker-compose.yml`: Orchestrates multi-container setups (e.g., Django, Celery, Redis, Postgres).
+
 - **Usage:**
   - Build and run all services with:  
-    ```sh
-    docker-compose up --build
-    ```
+
   - Services typically include:  
     - `web`: Django app
     - `celery`: Celery worker
@@ -120,9 +114,3 @@ graph TD
 ---
 
 *Expand this map as your project evolves!*
-
-Videos to look at creating maps
-https://www.youtube.com/watch?v=yvf_J225iM8
-
-ER Entity Relationship Diagram 
-https://www.youtube.com/watch?v=yvf_J225iM8

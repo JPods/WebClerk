@@ -201,3 +201,17 @@ INFO 2025-08-16 06:04:30,854 autoreload /Users/williamjames/Documents/CommerceEx
 INFO 2025-08-16 06:04:31,286 autoreload Watching for file changes with StatReloader
 INFO 2025-08-16 06:05:30,184 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
 INFO 2025-08-16 06:05:30,639 autoreload Watching for file changes with StatReloader
+INFO 2025-08-16 13:37:48,392 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-16 13:38:04,836 log Not Found: /favicon.ico
+WARNING 2025-08-16 13:39:27,250 log Not Found: /favicon.ico
+WARNING 2025-08-16 13:39:27,264 log Not Found: /favicon.ico
+INFO 2025-08-16 15:15:35,099 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-16 15:15:43,188 log Not Found: /favicon.ico
+ERROR 2025-08-16 15:27:33,737 log Internal Server Error: /wcapi/save/
+WARNING 2025-08-16 15:28:19,120 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-08-16 15:29:51,280 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-08-16 15:29:53,551 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-08-16 15:35:17,546 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2025-08-16 16:18:32,294 log Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2025-08-16 16:42:25,107 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-16 16:42:38,846 log Not Found: /.well-known/appspecific/com.chrome.devtools.json

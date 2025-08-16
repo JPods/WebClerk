@@ -1,5 +1,5 @@
 #!/bin/zsh
-
+# runs the project. We 
 # Enable debug mode to trace execution
 set -x
 
@@ -15,6 +15,15 @@ execute_command() {
         echo "Error details: $!"
     fi
 }
+
+# Start supporting services (Redis, Celery, etc.)
+if [[ -f "./start.sh" ]]; then
+    echo "Executing: Starting supporting services via start.sh..."
+    ./start.sh
+else
+    echo "WARNING: start.sh not found, skipping service startup."
+fi
+
 
 # Special function for deactivate to handle shell function without exiting
 deactivate_safe() {
@@ -87,6 +96,8 @@ else
     echo "SUCCESS: psql command found"
 fi
 
+
+
 if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
     # Reset database and start over
     deactivate_safe
@@ -107,6 +118,8 @@ else
     execute_command "python manage.py migrate" "Applying migrations"
     execute_command "python manage.py runserver" "Starting Django server"
 fi
+
+
 
 # Disable debug mode
 set +x
