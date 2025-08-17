@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.urls import reverse
 from core.serializers import RegisterSerializer
 from core.models import Contact
+from django.apps import apps
 
 class SignupView(View):
     template_name = 'auth/signup.html'  # Updated path
@@ -89,3 +90,55 @@ class WebLogoutView(View):
         logout(request)
         messages.info(request, 'You have been logged out successfully.')
         return redirect('/')
+
+def admin_dashboard(request):
+    # Example context, adjust as needed
+    app_list = []
+    for app_config in apps.get_app_configs():
+        models = []
+        for model in app_config.get_models():
+            models.append({
+                "name": model._meta.verbose_name_plural.title(),
+                "object_name": model._meta.model_name,
+            })
+        if models:
+            app_list.append({
+                "name": app_config.verbose_name.title(),
+                "models": models,
+            })
+    selected_model = request.GET.get("model")
+    model_class = None
+    if selected_model:
+        try:
+            model_class = apps.get_model("core", selected_model)
+        except LookupError:
+            messages.error(request, "Selected model not found.")
+    
+    # Fetching the records for the selected model
+    model_list = []
+    selected_record = None
+    if model_class:
+        model_list = model_class.objects.all()
+        # If a specific record is selected, fetch it
+        record_id = request.GET.get("id")
+        if record_id:
+            try:
+                selected_record = model_list.get(id=record_id)
+            except model_class.DoesNotExist:
+                messages.error(request, "Selected record not found.")
+    
+    # Prepare fields for the selected record
+    fields = []
+    if selected_record and hasattr(selected_record, "metadata"):
+        fields = [
+            {"label": k, "value": v}
+            for k, v in selected_record.metadata.items()
+        ]
+    context = {
+        "app_list": app_list,
+        "model_list": model_list,
+        "selected_model": selected_model,
+        "selected_record": selected_record,
+        "fields": fields,
+    }
+    return render(request, "admin/admin3.html", context)
