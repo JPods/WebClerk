@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class OutsideConfig(AppConfig):
+class APISConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'outside'
+    name = 'apis'

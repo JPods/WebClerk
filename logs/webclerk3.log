@@ -346,3 +346,85 @@ Traceback (most recent call last):
 django.core.exceptions.FieldError: Unknown field(s) (prefs, refs) specified for Contact. Check fields/fieldsets/exclude attributes of class ContactAdmin.
 INFO 2025-08-16 21:07:06,746 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models/domain.py changed, reloading.
 INFO 2025-08-16 21:07:07,231 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:00:11,607 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:16:25,092 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:16:25,501 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:18:20,541 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:18:20,881 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:18:22,035 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:18:22,340 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:19:41,794 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:19:42,211 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:20:29,956 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:20:30,364 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:20:38,718 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:20:39,161 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:20:47,587 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:20:48,019 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:24:40,505 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:24:40,875 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:24:53,207 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py changed, reloading.
+INFO 2025-08-17 00:24:53,635 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:30:22,362 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/migrations/0001_initial.py changed, reloading.
+INFO 2025-08-17 00:30:22,756 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:39:44,010 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:39:44,408 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:39:49,709 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:39:50,051 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:40:05,447 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:40:05,848 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:40:08,058 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:40:08,395 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:40:14,629 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:40:14,997 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:40:17,177 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:40:17,469 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:40:21,673 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:40:21,951 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:24,221 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:24,520 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:26,683 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:26,980 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:30,168 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:30,464 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:34,684 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:34,972 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:37,147 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:37,466 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:40,651 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:40,958 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:46,140 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:46,441 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:48,608 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:48,918 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:52,097 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:52,397 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:55,572 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:55,863 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:41:57,022 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:41:57,328 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:42:01,530 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:42:01,822 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:42:06,012 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:42:06,304 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:42:08,469 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:42:08,765 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:42:48,658 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:42:48,950 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:42:53,137 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:42:53,463 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:43:15,010 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:43:15,307 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:43:18,480 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:43:18,795 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:43:21,992 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:43:22,322 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:43:24,493 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:43:24,817 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:43:26,993 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:43:27,354 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:44:28,507 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:44:28,842 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:44:54,446 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 00:44:54,745 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 00:45:14,202 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.

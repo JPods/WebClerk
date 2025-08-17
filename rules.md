@@ -129,6 +129,11 @@ Data Validation
 3. Provide frontend designers rolebased feedback for designing -lists and -details.
 4. In response json, add any field misuse and non-alignment errors even in successful responses.
 
+Languages:
+Use Django i18n only for backend warnings/errors.
+Keep all other content in English to reduce complexity.
+Manage UI translations in React if you ever need to expand.
+
 
 Yes, that makes perfect sense!
 Both human and AI brains rely heavily on patterns for understanding, recall, and problem-solving.
