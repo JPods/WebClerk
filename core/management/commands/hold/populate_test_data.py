@@ -1,10 +1,10 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/populate_test_data.py
+# 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password
 from core.models import Contact
 from core.models.action import Action
 from core.models.setting import Setting
-from core.models.pattern import Pattern
 from communications.models.phone import Phone
 from communications.models.email import Email
 from communications.models.domain import Domain

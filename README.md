@@ -11,7 +11,9 @@ CONTRIBUTING:
 - CoPilot
 - Bill James
 
-
+Data basics
+data:  all_tables_export.json
+import function: core/management/commands/import_all_tables.py
 
 Path basics
 

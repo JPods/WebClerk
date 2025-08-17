@@ -1,0 +1,124 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends "admin/change_form.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .three-column-container {
+        display: grid;
+        grid-template-columns: 20% 50% 30%;
+        gap: 20px;
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .sidebar {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    .main-content {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    .display-panel {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    .sidebar ul {
+        list-style: none;
+        padding: 0;
+    }
+    .sidebar ul li {
+        margin-bottom: 10px;
+    }
+    .sidebar ul li a {
+        text-decoration: none;
+        color: #007bff;
+    }
+    .sidebar ul li a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="three-column-container">
+    <!-- Left Column: Apps/Tables Sidebar -->
+    <div class="sidebar">
+        <h3>Apps & Tables</h3>
+        <ul>
+            {% for app in admin_site.each_context.request.admin_site.get_app_list %}
+                <li><strong>{{ app.name }}</strong></li>
+                <ul>
+                    {% for model in app.models %}
+                        <li><a href="{% url 'admin:%s_%s_changelist' app.app_label model.model %}">{{ model.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Middle Column: Default Change List -->
+    <div class="main-content">
+        {{ block.super }}
+    </div>
+
+    <!-- Right Column: Display Panel -->
+    <div class="display-panel">
+        <h3>Details</h3>
+        {% if original %}
+            <p><strong>Current Object:</strong> {{ original }}</p>
+            <p><strong>Model:</strong> {{ opts.verbose_name }}</p>
+            <p><strong>App:</strong> {{ opts.app_label }}</p>
+            <!-- Add more dynamic content or metadata as needed -->
+            <p>Additional details or context about the selected object can be displayed here.</p>
+        {% else %}
+            <p>No object selected. Select an item from the list to view details.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
