@@ -4,6 +4,7 @@ Project Docs Link:
 [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
 
 CONTRIBUTING:
+
 - Antor Ahmed
 - Riju Karar
 - Samir Biswas
@@ -293,6 +294,8 @@ API Documentation Access
 Document how to access your OpenAPI/Swagger docs (e.g., /api/schema/, /api/docs/).
 
 ## Internationalization (i18n)
+
+We will used multiple languages ONLY for warning messages where clarity and speed are both required. React will manage all other language issues.
 
 To add a new language:
 1. Add the language code to `LANGUAGES` in `settings.py`.
