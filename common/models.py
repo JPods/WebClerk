@@ -28,6 +28,48 @@ MAX_METADATA_SIZE = 320000  # bytes
 MAX_REFS_SIZE = 320000      # bytes
 MAX_PREFS_SIZE = 320000     # bytes
 
+# functions must be defined before they are used
+
+def default_metadata():
+    now_ms = int(timezone.now().timestamp() * 1000)
+    return {
+        "security": "",
+        "publish": "",
+        "priority": "",
+        "version": "1.0",
+        "access": {"view": [], "edit": []},
+        "history": {
+            "created": {"dt": now_ms, "contact_id": 0},
+            "modified": {"dt": now_ms, "contact_id": 0},
+            "accessed": {"dt": now_ms, "contact_id": 0},
+            "verified": {"dt": 0, "contact_id": 0},
+            "synced": {"dt": 0, "contact_id": 0}
+        },
+        "health": {
+            "rating": 0,
+            "completeness": 0,
+            "accuracy": 0,
+            "freshness": 0,
+            "consistency": 0
+        },
+        "undefined": {}
+    }
+
+def default_refs():
+    return {
+        "keywords": [],
+        "tags": [],
+        "links": {"contacts": []},
+        "categories": [],
+        "related_ids": []
+    }
+
+def default_prefs():
+    return {"userdefined": ""}
+
+def default_data():
+    return {}
+
 class BaseModel(models.Model):
     """
     Base model that provides Universal API metadata structure.
@@ -36,9 +78,9 @@ class BaseModel(models.Model):
     """
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    metadata = models.JSONField(default='default_metadata', help_text="Universal API metadata structure")
-    refs = models.JSONField(default='default_refs', help_text="References: keywords, tags, categories")
-    prefs = models.JSONField(default='default_prefs', help_text="User preferences and settings")
+    metadata = models.JSONField(default=default_metadata, help_text="Universal API metadata structure")
+    refs = models.JSONField(default=default_refs, help_text="References: keywords, tags, categories")
+    prefs = models.JSONField(default=default_prefs, help_text="User preferences and settings")
     health_rating = models.IntegerField(default=0, help_text="Data quality rating (0-100)")
 
     class Meta:

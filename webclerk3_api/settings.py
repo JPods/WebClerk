@@ -24,11 +24,19 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_spectacular',
     'corsheaders',
-    'core',
-    'communications',
     'django_celery_beat',
     'django_celery_results',
     'django_extensions',
+    'apis',
+    'common',
+    'core',
+    'communications',
+    'docs',
+    'orgs',
+    'plans',
+    'products',
+    'support',
+    'transactions',
 ]
 
 MIDDLEWARE = [
