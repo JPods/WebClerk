@@ -428,3 +428,91 @@ INFO 2025-08-17 00:44:28,842 autoreload Watching for file changes with StatReloa
 INFO 2025-08-17 00:44:54,446 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
 INFO 2025-08-17 00:44:54,745 autoreload Watching for file changes with StatReloader
 INFO 2025-08-17 00:45:14,202 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 07:38:14,709 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 13:51:48,163 autoreload Watching for file changes with StatReloader
+ERROR 2025-08-17 13:52:31,007 log Internal Server Error: /admin/login/
+Traceback (most recent call last):
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/cache.py", line 80, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/admin/sites.py", line 449, in login
+    return LoginView.as_view(**defaults)(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/debug.py", line 143, in sensitive_post_parameters_wrapper
+    return view(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 192, in _view_wrapper
+    result = _process_exception(request, e)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 190, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/utils/decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/cache.py", line 80, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/auth/views.py", line 89, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/generic/edit.py", line 150, in post
+    if form.is_valid():
+       ~~~~~~~~~~~~~^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+                                 ^^^^^^^^^^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/forms.py", line 201, in errors
+    self.full_clean()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/forms.py", line 338, in full_clean
+    self._clean_form()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/forms/forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/debug.py", line 75, in sensitive_variables_wrapper
+    return func(*func_args, **func_kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/auth/forms.py", line 366, in clean
+    self.user_cache = authenticate(
+                      ~~~~~~~~~~~~^
+        self.request, username=username, password=password
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/views/decorators/debug.py", line 75, in sensitive_variables_wrapper
+    return func(*func_args, **func_kwargs)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/auth/__init__.py", line 114, in authenticate
+    user = backend.authenticate(request, **credentials)
+  File "/Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/contrib/auth/backends.py", line 65, in authenticate
+    user = UserModel._default_manager.get_by_natural_key(username)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Manager' object has no attribute 'get_by_natural_key'
+INFO 2025-08-17 14:00:57,452 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py changed, reloading.
+INFO 2025-08-17 14:00:58,064 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 14:01:02,265 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py changed, reloading.
+INFO 2025-08-17 14:01:02,682 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 14:03:40,069 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py changed, reloading.
+INFO 2025-08-17 14:03:40,676 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 14:03:45,082 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py changed, reloading.
+INFO 2025-08-17 14:03:45,537 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 14:06:04,443 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py changed, reloading.
+INFO 2025-08-17 14:06:05,067 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 14:08:17,177 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 14:09:22,160 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py changed, reloading.
+INFO 2025-08-17 14:09:22,818 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 15:36:55,205 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 15:49:44,602 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/lib/python3.13/site-packages/django/apps/config.py changed, reloading.
+INFO 2025-08-17 16:13:58,684 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 16:31:05,808 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/migrations/0001_initial.py changed, reloading.
+INFO 2025-08-17 16:31:06,344 autoreload Watching for file changes with StatReloader

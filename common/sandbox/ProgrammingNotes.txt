@@ -23,3 +23,26 @@ for app in transactions orgs users products; do
   touch $app/{__init__.py,admin.py,apps.py,models.py,tests.py,views.py,urls.py}
   touch $app/migrations/__init__.py
 done
+
+common/sandbox/ProgrammingNotes.txt
+Must set up settings data to save and related
+common/management/commands/populate_related_data.py
+common/management/commands/fix_basemodel_fields.py
+common/management/commands/contacts_new_uuid.py
+
+core/management/commands/keywords_to_settings.py
+core/management/commands/keywords.json
+
+core/management/commands/load_settings.py
+
+core/management/commands/view_edit_to_settings.py
+common/management/commands/fix_basemodel_fields.py
+
+common/management/commands/contacts_new_uuid.py
+
+core/management/commands/keywords_to_settings.py
+core/management/commands/load_settings.py
+core/management/commands/keywords.json
+
+core/management/commands/view_edit_to_settings.py
+core/management/commands/view_edit.json

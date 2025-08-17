@@ -22,6 +22,39 @@ from django.utils import timezone
 
 from common.models import BaseModel
 
+# Django requires a custom manager for custom user models.
+# ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
+# and provides create_user and create_superuser methods for authentication.
+class ContactManager(BaseUserManager):
+    """Custom user manager for Contact model (Django authentication)"""
+    
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and return a regular user"""
+        if not email:
+            raise ValueError('The Email field must be set')
+        
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+    
+    def create_superuser(self, email, password=None, **extra_fields):
+        """Create and return a superuser"""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        
+        return self.create_user(email, password, **extra_fields)
+    
+    def get_by_natural_key(self, email):
+        return self.get(email=email)
+
 
 # see ContactManager below that is used for authentication
 class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
@@ -67,7 +100,7 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False, help_text="User can access admin")
     date_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
     
- 
+    objects = ContactManager()  # <-- Add this line
     
     # Use email as the username field
     USERNAME_FIELD = 'email'
@@ -155,32 +188,3 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
         return True  # Return False to abort save
     
 
-# Django requires a custom manager for custom user models.
-# ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
-# and provides create_user and create_superuser methods for authentication.
-class ContactManager(BaseUserManager):
-    """Custom user manager for Contact model (Django authentication)"""
-    
-    def create_user(self, email, password=None, **extra_fields):
-        """Create and return a regular user"""
-        if not email:
-            raise ValueError('The Email field must be set')
-        
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-    
-    def create_superuser(self, email, password=None, **extra_fields):
-        """Create and return a superuser"""
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
-        
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-        
-        return self.create_user(email, password, **extra_fields)

@@ -12,15 +12,10 @@ def deep_update(target, source):
     return target
 
 class Command(BaseCommand):
-    help = 'Load settings from a specified JSON file into the Setting table'
-
-    def add_arguments(self, parser):
-        parser.add_argument('json_path', type=str, help='Path to the settings JSON file')
+    help = 'Load settings from view_edit_to_settings.py JSON file into the Setting table'
 
     def handle(self, *args, **options):
-        path = options.get('json_path')
-        if not path:
-            path = input("Enter the path to the settings JSON file: ")
+        path = 'core/management/commands/setup_base_data.json'  # <-- Hardcoded path
         with open(path, 'r') as f:
             data = json.load(f)
         count = 0
@@ -44,3 +39,4 @@ class Command(BaseCommand):
             obj.save()
             count += 1
         self.stdout.write(self.style.SUCCESS(f'Successfully loaded {count} settings from {path}'))
+
