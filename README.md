@@ -16,6 +16,9 @@ Data basics
 data:  all_tables_export.json
 import function: core/management/commands/import_all_tables.py
 
+3column admin
+[3column admin Grok Link](https://grok.com/share/c2hhcmQtMg%3D%3D_427dc198-2378-41ef-b3c5-c77d1e4e1062)
+
 Path basics
 
 webClerk3/
