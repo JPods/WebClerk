@@ -115,7 +115,7 @@ webClerk3/
 
 **Universal API System** - One API pattern handles all data operations across all tables (contacts, actions, emails, phones, domains, addresses).
 
-### Template Structure for development use without front end
+### Pattern Structure for development use without front end
 ```
 core/templates/
 ├── base.html                 # Main base with lesson1-style nav
@@ -211,7 +211,7 @@ core/templates/
 ✅ **Lesson1-Style Navigation** - Clean, emoji-driven nav
 ✅ **Bootstrap 5 UI** - Modern, responsive design
 ✅ **Django Default 404** - Developer-friendly error pages
-✅ **Consolidated Templates** - All in core/templates/
+✅ **Consolidated Patterns** - All in core/templates/
 ✅ **Future-Proof** - Ready for React front-end migration
 
 -----------------------------

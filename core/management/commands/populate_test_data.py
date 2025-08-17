@@ -4,11 +4,11 @@ from django.contrib.auth.hashers import make_password
 from core.models import Contact
 from core.models.action import Action
 from core.models.setting import Setting
-from core.models.template import Template
+from core.models.pattern import Pattern
 from communications.models.phone import Phone
 from communications.models.email import Email
 from communications.models.domain import Domain
-from communications.models.address import Location
+from communications.models.location import Location
 import json
 from datetime import datetime, timedelta
 import uuid
@@ -86,7 +86,7 @@ class Command(BaseCommand):
         self._clear_communications_data()
         Action.objects.all().delete()
         Setting.objects.all().delete()
-        Template.objects.all().delete()
+        Pattern.objects.all().delete()
         
         self.stdout.write(f'✅ Working with {len(contacts)} contacts')
         
@@ -105,7 +105,7 @@ class Command(BaseCommand):
         """Clear all data"""
         Action.objects.all().delete()
         Setting.objects.all().delete()
-        Template.objects.all().delete()
+        Pattern.objects.all().delete()
         self._clear_communications_data()
     
     def _clear_communications_data(self):
@@ -443,31 +443,31 @@ class Command(BaseCommand):
         """Create templates"""
         template_data = [
             {
-                'name': 'Welcome Email Template',
+                'name': 'Welcome Email Pattern',
                 'purpose': 'welcome_email',
                 'table_name': 'email_templates',
                 'comment': 'Welcome email sent to new users'
             },
             {
-                'name': 'Password Reset Template',
+                'name': 'Password Reset Pattern',
                 'purpose': 'password_reset',
                 'table_name': 'email_templates',
                 'comment': 'Password reset email template'
             },
             {
-                'name': 'Meeting Reminder Template',
+                'name': 'Meeting Reminder Pattern',
                 'purpose': 'meeting_reminder',
                 'table_name': 'notification_templates',
                 'comment': 'Meeting reminder notification template'
             },
             {
-                'name': 'Follow-up Task Template',
+                'name': 'Follow-up Task Pattern',
                 'purpose': 'followup_task',
                 'table_name': 'task_templates',
-                'comment': 'Template for follow-up tasks'
+                'comment': 'Pattern for follow-up tasks'
             },
             {
-                'name': 'Invoice Template',
+                'name': 'Invoice Pattern',
                 'purpose': 'invoice_document',
                 'table_name': 'document_templates',
                 'comment': 'Standard invoice document template'
@@ -476,7 +476,7 @@ class Command(BaseCommand):
         
         for tmpl_data in template_data:
             try:
-                template = Template.objects.create(
+                template = Pattern.objects.create(
                     name=tmpl_data['name'],
                     purpose=tmpl_data['purpose'],
                     table_name=tmpl_data['table_name'],
@@ -512,7 +512,7 @@ class Command(BaseCommand):
         self.stdout.write(f'📞 Contacts: {Contact.objects.count()}')
         self.stdout.write(f'⚡ Actions: {Action.objects.count()}')
         self.stdout.write(f'⚙️  Settings: {Setting.objects.count()}')
-        self.stdout.write(f'📄 Templates: {Template.objects.count()}')
+        self.stdout.write(f'📄 Patterns: {Pattern.objects.count()}')
         self.stdout.write(f'📱 Phones: {Phone.objects.count()}')
         self.stdout.write(f'📧 Emails: {Email.objects.count()}')
         self.stdout.write(f'🌐 Domains: {Domain.objects.count()}')

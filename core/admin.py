@@ -1,4 +1,5 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py
+from string import Template
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import Contact, Setting, Pending, Action, Template

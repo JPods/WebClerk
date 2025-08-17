@@ -30,7 +30,7 @@ webClerk3/
 
 ## API Endpoints
 
-| Endpoint                                 | View/Class         | Template           | Purpose                        |
+| Endpoint                                 | View/Class         | Pattern           | Purpose                        |
 |-------------------------------------------|--------------------|--------------------|--------------------------------|
 | `/wcapi/manage/?table_name=contacts`      | ManageView         | manager.html       | List/manage contacts           |
 | `/wcapi/get/?table_name=contacts&id=123`  | GetView            | N/A (JSON)         | Get contact details (API)      |
@@ -50,7 +50,7 @@ webClerk3/
 ```mermaid
 graph TD
     User[User] -->|Login| DjangoView(Django View)
-    DjangoView -->|Renders| Template[Template]
+    DjangoView -->|Renders| Pattern[Pattern]
     DjangoView -->|API| FrontendJS[Frontend JS]
     FrontendJS -->|AJAX| APIEndpoint[API Endpoint]
     APIEndpoint -->|DB| Database[(Database)]

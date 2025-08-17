@@ -5,9 +5,9 @@ from core.views import (
     HomeView, AboutView,
     SignupView, WebLoginView, WebLogoutView,
 )
+from django.views.generic import TemplateView
 from core.services.wcapi import WcapiView
 
-from django.views.generic import TemplateView
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -21,6 +21,7 @@ from core.views.get_view import WcapiGetView
 from core.views.keyword import KeywordSearchView
 from core.views.query_any import QueryAnyView
 from core.views.model_info import ModelInfoView
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

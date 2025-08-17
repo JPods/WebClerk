@@ -1,7 +1,7 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/generic_views.py
 from django.http import JsonResponse
-from django.views.generic import TemplateView
 import json
+from django.views.generic import TemplateView
 from core.services.view_edit_access import filter_json_response
 
 
