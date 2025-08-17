@@ -657,3 +657,6 @@ INFO 2025-08-17 18:44:29,701 autoreload Watching for file changes with StatReloa
 INFO 2025-08-17 18:44:30,869 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/core/admin.py changed, reloading.
 INFO 2025-08-17 18:44:31,270 autoreload Watching for file changes with StatReloader
 INFO 2025-08-17 19:47:55,574 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 22:07:21,520 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-17 22:07:41,878 log Not Found: /favicon.ico
+WARNING 2025-08-17 22:07:41,895 log Not Found: /favicon.ico
