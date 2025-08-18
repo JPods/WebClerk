@@ -428,3 +428,73 @@ INFO 2025-08-17 00:44:28,842 autoreload Watching for file changes with StatReloa
 INFO 2025-08-17 00:44:54,446 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
 INFO 2025-08-17 00:44:54,745 autoreload Watching for file changes with StatReloader
 INFO 2025-08-17 00:45:14,202 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
+INFO 2025-08-17 16:57:20,704 autoreload Watching for file changes with StatReloader
+WARNING 2025-08-17 16:57:27,379 log Not Found: /favicon.ico
+ERROR 2025-08-17 16:57:31,927 log Internal Server Error: /login/
+Traceback (most recent call last):
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py", line 65, in get
+    return render(request, self.template_name)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/template/loader.py", line 19, in get_template
+    raise TemplateDoesNotExist(template_name, chain=chain)
+django.template.exceptions.TemplateDoesNotExist: auth/login.html
+ERROR 2025-08-17 16:57:39,772 log Internal Server Error: /login/
+Traceback (most recent call last):
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py", line 65, in get
+    return render(request, self.template_name)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/template/loader.py", line 19, in get_template
+    raise TemplateDoesNotExist(template_name, chain=chain)
+django.template.exceptions.TemplateDoesNotExist: auth/login.html
+ERROR 2025-08-17 16:57:41,799 log Internal Server Error: /signup/
+Traceback (most recent call last):
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py", line 14, in get
+    return render(request, self.template_name)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/Users/an7or/MyWork/BillJames/webClerk3/lib/python3.13/site-packages/django/template/loader.py", line 19, in get_template
+    raise TemplateDoesNotExist(template_name, chain=chain)
+django.template.exceptions.TemplateDoesNotExist: auth/signup.html
+INFO 2025-08-17 17:00:17,645 autoreload /Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py changed, reloading.
+INFO 2025-08-17 17:00:18,154 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 17:00:23,436 autoreload /Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py changed, reloading.
+INFO 2025-08-17 17:00:23,751 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 17:00:39,328 autoreload /Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py changed, reloading.
+INFO 2025-08-17 17:00:39,816 autoreload Watching for file changes with StatReloader
+INFO 2025-08-17 17:02:01,248 autoreload /Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py changed, reloading.
+INFO 2025-08-17 17:02:01,800 autoreload Watching for file changes with StatReloader

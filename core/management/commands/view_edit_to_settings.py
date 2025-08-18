@@ -1,5 +1,6 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/view_edit_to_settings.py
 import json
+import os
 """
 Django management command to load default access settings from a JSON file into the Setting model.
 
@@ -23,7 +24,7 @@ class Command(BaseCommand):
     help = 'Load default_access.json into the settings table'
 
     def handle(self, *args, **kwargs):
-        path = 'common/defaults/view_edit.json'
+        path = os.path.join(os.getcwd(), "core", "management", "commands", "view_edit.json")
         with open(path, 'r') as f:
             data = json.load(f)
         count = 0

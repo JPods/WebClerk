@@ -8,7 +8,7 @@ from core.serializers import RegisterSerializer
 from core.models import Contact
 
 class SignupView(View):
-    template_name = 'auth/signup.html'  # Updated path
+    template_name = 'signup.html'  # Updated path
     
     def get(self, request):
         return render(request, self.template_name)
@@ -56,7 +56,7 @@ class SignupView(View):
             return render(request, self.template_name)
 
 class WebLoginView(View):
-    template_name = 'auth/login.html'  # Updated path
+    template_name = 'login.html'  # Updated path
     
     def get(self, request):
         # If already logged in, redirect to profile
