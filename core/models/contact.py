@@ -53,7 +53,7 @@ class ContactManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
     
     def get_by_natural_key(self, email):
-        return self.get(email=email)
+        return self.get(**{self.model.USERNAME_FIELD: email})
 
 
 # see ContactManager below that is used for authentication
@@ -106,7 +106,7 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name_first', 'name_last']
     
-    # objects = ContactManager()
+    objects = ContactManager()
     
     class Meta:
         db_table = 'contacts'

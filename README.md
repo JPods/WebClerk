@@ -80,7 +80,7 @@ webClerk3/
   - python manage.py makemigrations
   - python manage.py migrate
   - python manage.py createsuperuser
-  - python manage.py load_default_access
+  - python manage.py view_edit_to_settings
   - python manage.py runserver
 
 #### if you face postgres issues, reset it:
@@ -95,7 +95,7 @@ webClerk3/
   - python manage.py makemigrations
   - python manage.py migrate
   - python manage.py createsuperuser
-  - python manage.py load_default_access
+  - python manage.py view_edit_to_settings
   - python manage.py runserver
 
 
@@ -166,7 +166,7 @@ core/templates/
   - `python manage.py makemigrations`
   - `python manage.py migrate`
   - `python manage.py createsuperuser`
-  - `python manage.py load_default_access`
+  - `python manage.py view_edit_to_settings`
   - `python manage.py runserver`
 
 #### scripts are in webclerk3/core/management/commands:
@@ -185,7 +185,7 @@ core/templates/
   - `python manage.py makemigrations`
   - `python manage.py migrate`
   - `python manage.py createsuperuser`
-  - `python manage.py load_default_access`
+  - `python manage.py view_edit_to_settings`
   - `python manage.py runserver`
 
 -----------------------------
