@@ -1,0 +1,21 @@
+VIEW_CONFIG = {
+    'admin': {
+        'Contact': {
+            'list': ['id', 'email', 'name_first', 'name_last', 'role'],
+            'detail': ['id', 'email', 'name_first', 'name_last', 'company', 'role', 'comment', 'is_active', 'date_joined'],
+        },
+        'Action': {
+            'list': ['id', 'type', 'created_at'],
+            'detail': ['id', 'type', 'description', 'created_at', 'user'],
+        },
+        # Add more models as needed
+    },
+    'user': {
+        'Contact': {
+            'list': ['id', 'email', 'name_first'],
+            'detail': ['id', 'email', 'name_first', 'name_last'],
+        },
+        # Add more models as needed
+    },
+    # Add more roles as needed
+}

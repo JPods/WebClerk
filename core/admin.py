@@ -28,13 +28,13 @@ class ContactAdmin(UserAdmin):
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Personal Info', {
-            'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix')
+            'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix','role')
         }),
         ('Business Info', {
             'fields': ('company', 'title', 'department')
         }),
         ('Permissions', {
-            'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
         }),
         ('Important dates', {
             'fields': ('last_login', 'date_joined', 'metadata', 'refs', 'prefs')
