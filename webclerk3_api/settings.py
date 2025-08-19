@@ -173,7 +173,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/webclerk3.log'),
+            'filename': os.path.join(BASE_DIR, '.local/logs/webclerk3.log'),
             'formatter': 'verbose',
         },
     },

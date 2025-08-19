@@ -498,3 +498,5 @@ INFO 2025-08-17 17:00:39,328 autoreload /Users/an7or/MyWork/BillJames/webClerk3/
 INFO 2025-08-17 17:00:39,816 autoreload Watching for file changes with StatReloader
 INFO 2025-08-17 17:02:01,248 autoreload /Users/an7or/MyWork/BillJames/webClerk3/core/views/auth_views.py changed, reloading.
 INFO 2025-08-17 17:02:01,800 autoreload Watching for file changes with StatReloader
+INFO 2025-08-19 14:45:03,387 autoreload Watching for file changes with StatReloader
+INFO 2025-08-19 14:48:31,645 autoreload /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py changed, reloading.
