@@ -7,6 +7,7 @@ export class PageRoutes {
   static readonly profile2: string = "/profile2";
   static readonly actionList: string = "/action-list";
   static readonly actionAdd: string = "/action-add";
+  static readonly contactAdd: string = "/contact-add";
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";

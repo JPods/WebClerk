@@ -51,6 +51,11 @@ const navItems: NavItem[] = [
       }
     ],
   },
+   {
+    icon:<GridIcon />,
+    name: "Contact",
+    path: "/contact-add",
+  },
   {
     icon: <UserCircleIcon />,
     name: "User Profile",

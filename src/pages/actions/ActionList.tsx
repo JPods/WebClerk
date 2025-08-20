@@ -3,7 +3,7 @@ import ComponentCard from "../../components/common/ComponentCard";
 
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { useEffect, useState } from "react";
-import { deleteAction, getAction } from "../../api/userProfile";
+import { Actions, Contacts, deleteAction, getAction } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash } from 'react-icons/fa'; 
 import { useNavigate } from "react-router";
@@ -45,7 +45,7 @@ useEffect(() => {
 },[])
  const getActionData = async() => {
       try {
-         const res = await getAction()       
+         const res = await Contacts()       
          if(res.status === 200)
          {            
             setData(res.data)

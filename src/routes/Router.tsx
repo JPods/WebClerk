@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
-import { ActionAdd, ActionList, BasicTables, Calendar, FormElements, Home, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, FormElements, Home, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
 import { Provider } from 'react-redux';
 import { store } from '../store';
 
@@ -28,6 +28,7 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.actionList} element={<ActionList />} />
               <Route path={PageRoutes.actionAdd} element={<ActionAdd />} />  
               <Route path={PageRoutes.actionAdd + '/:id'} element={<ActionAdd />} />  
+              <Route path={PageRoutes.contactAdd} element={<ContactAdd />} />  
           
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />

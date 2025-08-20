@@ -30,6 +30,9 @@ class PostLoginURL {
   static readonly addDomains: string = "/communications/domains/";
   static readonly addActions: string = "/actions/";
   static readonly updateProfile: string = "/profile/";   
+
+  static readonly allTypes: string = "get/?"; 
+    
 }
 
 export { NetworkInfo, AuthURL, PostLoginURL, HTTPMethod };

@@ -134,4 +134,24 @@ export const deleteAction = async (id:any) => {
   catch (error: any) { 
     return error.response?.data || error.message   
   }  
+};  
+
+export const Contacts = async () => {
+  try {
+    const res = await axiosInstance.get(PostLoginURL.allTypes + 'table_name=contacts' );
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+export const Actions = async () => {
+  try {
+    const res = await axiosInstance.get(PostLoginURL.allTypes + 'table_name=actions' );
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
 };
