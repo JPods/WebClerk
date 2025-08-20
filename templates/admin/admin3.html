@@ -50,10 +50,25 @@
         {% endfor %}
     </div>
     <!-- Center column: List -->
+
     <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;" id="center-table-panel">
-        <h3 class="module-title">List</h3>
+    <h3 class="module-title">List</h3>
+    <div id="center-table-content">
         <p>Select a table to view records.</p>
     </div>
+    <h4 style="margin-top:2rem;">Fields in Table</h4>
+    <div id="center-fields-table-wrapper">
+        <table class="fields-table" id="center-fields-table">
+            <tr>
+                <th>Field Name</th>
+                <th>Field Type</th>
+                <th>Action</th>
+            </tr>
+            <!-- JS will populate rows here -->
+        </table>
+    </div>
+</div>
+
     <!-- Right column: Detail/Display -->
     <div class="module scroll-column" style="flex: 2; padding-left: 1rem;">
         <h3 class="module-title">Details</h3>
@@ -91,35 +106,60 @@
                 {% endfor %}
             </table>
         </form>
+       <h4 style="margin-top:2rem;">Fields in Table</h4>
+            <table class="fields-table" id="detail-fields-table">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Field Type</th>
+                    <th>Action</th>
+                </tr>
+                <!-- JS will populate rows here -->
+            </table> 
     </div>
+
+
 </div>
 
 <script>
+let centerDisplayedFields = [];
+let centerAllFields = [];
+let currentTableName = '';
+let detailDisplayedFields = [];
+let detailAllFields = [];
+
 function loadTableData(tableName) {
+    currentTableName = tableName;
     fetch(`/wcapi/get/?table_name=${tableName}`)
         .then(response => response.json())
         .then(result => {
-            // Use result.data instead of result
             const data = result.data;
-            const panel = document.getElementById('center-table-panel');
+            const contentDiv = document.getElementById('center-table-content');
             if (!Array.isArray(data) || data.length === 0) {
-                panel.innerHTML = '<h3 class="module-title">List</h3><p>No records found.</p>';
+                contentDiv.innerHTML = '<p>No records found.</p>';
                 return;
             }
-            const headers = Object.keys(data[0]);
-            let html = '<h3 class="module-title">List</h3><table class="fields-table"><thead><tr>';
-            headers.forEach(h => html += `<th>${h}</th>`);
+            centerDisplayedFields = Object.keys(data[0]);
+            let html = '<table class="fields-table"><thead><tr>';
+            centerDisplayedFields.forEach(h => html += `<th>${h}</th>`);
             html += '</tr></thead><tbody>';
             data.forEach(row => {
                 html += `<tr onclick="loadDetail('${tableName}', '${row.id}')">`;
-                headers.forEach(h => html += `<td>${row[h]}</td>`);
+                centerDisplayedFields.forEach(h => html += `<td>${row[h]}</td>`);
                 html += '</tr>';
-});
+            });
             html += '</tbody></table>';
-            panel.innerHTML = html;
+            contentDiv.innerHTML = html;
+
+            // Fetch field info for center fields table
+            fetch(`/wcapi/models/?table_name=${tableName}`)
+                .then(resp => resp.json())
+                .then(fieldResult => {
+                    centerAllFields = fieldResult.fields; // [{name, type}]
+                    renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+                });
         })
         .catch(err => {
-            document.getElementById('center-table-panel').innerHTML = '<h3 class="module-title">List</h3><p>Error loading data.</p>';
+            document.getElementById('center-table-content').innerHTML = '<p>Error loading data.</p>';
         });
 }
 
@@ -138,10 +178,121 @@ function loadDetail(tableName, recordId) {
                 html += `<div class="form-row"><label class="field-label">${key}:</label> <span class="field-value">${data[key]}</span></div>`;
             });
             detailPanel.innerHTML = html;
+
+            // Update detailDisplayedFields
+            detailDisplayedFields = Object.keys(data);
+
+            // Fetch field info for detail fields table
+            fetch(`/wcapi/models/?table_name=${tableName}`)
+                .then(resp => resp.json())
+                .then(fieldResult => {
+                    detailAllFields = fieldResult.fields; // [{name, type}]
+                    renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+                });
         })
         .catch(err => {
             const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
             detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>Error loading details.</p>';
+        });
+}
+
+// Example: You need to fetch field info from your API or context
+function renderFieldsTable(fields, displayedFields, tableId, updateCallback) {
+    const table = document.getElementById(tableId);
+    let html = `<tr>
+        <th>Field Name</th>
+        <th>Field Type</th>
+        <th>Action</th>
+    </tr>`;
+    if (!fields || fields.length === 0) {
+        html += `<tr><td colspan="3">No fields found.</td></tr>`;
+    } else {
+        fields.forEach(field => {
+            const isDisplayed = displayedFields.includes(field.name);
+            html += `<tr class="${isDisplayed ? 'field-used' : ''}">
+                <td>${field.name}</td>
+                <td>${field.type}</td>
+                <td>
+                    <button onclick="${updateCallback}('${field.name}')" class="field-action-btn">
+                        ${isDisplayed ? 'Remove' : 'Add'}
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+    table.innerHTML = html;
+}
+
+function renderDetailFieldsTable(fields, displayedFields) {
+    const table = document.getElementById('detail-fields-table');
+    let html = `<tr>
+        <th>Field Name</th>
+        <th>Field Type</th>
+        <th>Action</th>
+    </tr>`;
+    if (!fields || fields.length === 0) {
+        html += `<tr><td colspan="3">No fields found.</td></tr>`;
+    } else {
+        fields.forEach(field => {
+            const isDisplayed = displayedFields.includes(field.name);
+            html += `<tr class="${isDisplayed ? 'field-used' : ''}">
+                <td>${field.name}</td>
+                <td>${field.type}</td>
+                <td>
+                    <button onclick="toggleDetailField('${field.name}')" class="field-action-btn">
+                        ${isDisplayed ? 'Remove' : 'Add'}
+                    </button>
+                </td>
+            </tr>`;
+        });
+    }
+    table.innerHTML = html;
+}
+
+// Add/remove logic (you need to implement how you track displayed fields)
+function toggleCenterField(fieldName) {
+    const idx = centerDisplayedFields.indexOf(fieldName);
+    if (idx > -1) {
+        centerDisplayedFields.splice(idx, 1); // Remove
+    } else {
+        centerDisplayedFields.push(fieldName); // Add
+    }
+    // Re-render the main table
+    renderCenterTable();
+    // Re-render the fields table
+    renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+}
+
+function toggleDetailField(fieldName) {
+    const idx = detailDisplayedFields.indexOf(fieldName);
+    if (idx > -1) {
+        detailDisplayedFields.splice(idx, 1);
+    } else {
+        detailDisplayedFields.push(fieldName);
+    }
+    renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+}
+
+function renderCenterTable() {
+    fetch(`/wcapi/get/?table_name=${currentTableName}`)
+        .then(response => response.json())
+        .then(result => {
+            const data = result.data;
+            const contentDiv = document.getElementById('center-table-content');
+            if (!Array.isArray(data) || data.length === 0) {
+                contentDiv.innerHTML = '<p>No records found.</p>';
+                return;
+            }
+            let html = '<table class="fields-table"><thead><tr>';
+            centerDisplayedFields.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead><tbody>';
+            data.forEach(row => {
+                html += `<tr onclick="loadDetail('${currentTableName}', '${row.id}')">`;
+                centerDisplayedFields.forEach(h => html += `<td>${row[h]}</td>`);
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            contentDiv.innerHTML = html;
         });
 }
 </script>
