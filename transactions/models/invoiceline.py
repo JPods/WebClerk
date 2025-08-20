@@ -1,5 +1,11 @@
+from decimal import Decimal
+from django.db import models
 from .BaseLineModel import BaseLineModel
 
 class InvoiceLine(BaseLineModel):
-    # Add any Invoice-specific fields or methods here
-    pass
+    # Add any Order-specific fields or methods here
+    BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
+
+    quantity_packed = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
+
+  

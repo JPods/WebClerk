@@ -1,5 +1,9 @@
+from decimal import Decimal
+from django.db import models
 from .BaseLineModel import BaseLineModel
 
 class OrderLine(BaseLineModel):
     # Add any Order-specific fields or methods here
-    pass
+    BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
+    
+    quantity_invoiced = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
