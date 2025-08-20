@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from django.apps import apps
+from core.view_config import VIEW_CONFIG
+from core.utils import get_list_display_fields
 
 def admin_dashboard(request):
     app_list = []
@@ -58,12 +60,10 @@ def admin3_view(request):
     record_id = request.GET.get('record_id')
     selected_record = None
     fields = []
+    all_fields = []
 
-    # Get the model class dynamically
-    # Use Django's apps.get_model to get the model class by name
     model = None
     if model_name:
-        # Search through all app configs to find the model
         for app_config in apps.get_app_configs():
             try:
                 model = apps.get_model(app_config.label, model_name)
@@ -72,16 +72,20 @@ def admin3_view(request):
             except LookupError:
                 continue
 
-    # Get the list of records for the selected model
     model_list = model.objects.all() if model else []
 
-    # If a record is selected, fetch it and its fields
+    all_fields = [field for field in model._meta.fields] if model else []
+
+    role = getattr(request.user, 'role', 'user')
+    list_fields = get_fields_for_role(role, model_name, 'list')
+    detail_fields = get_fields_for_role(role, model_name, 'detail')
+
     if model and record_id:
         try:
             selected_record = model.objects.get(id=record_id)
             fields = [
                 {'label': field.verbose_name, 'value': getattr(selected_record, field.name)}
-                for field in model._meta.fields
+                for field in model._meta.fields if field.name in detail_fields
             ]
         except model.DoesNotExist:
             selected_record = None
@@ -108,5 +112,11 @@ def admin3_view(request):
         'selected_model': model_name,
         'selected_record': selected_record,
         'fields': fields,
+        'list_fields': list_fields,
+        'detail_fields': detail_fields,
+        'all_fields': all_fields,
     }
     return render(request, 'admin/admin3.html', context)
+
+def get_fields_for_role(role, model_name, view_type):
+    return VIEW_CONFIG.get(role, {}).get(model_name, {}).get(view_type, [])

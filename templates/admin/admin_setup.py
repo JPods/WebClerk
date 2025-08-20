@@ -1,3 +1,5 @@
+from templates.admin.view_config import VIEW_CONFIG
+
 VIEW_CONFIG = {
     'admin': {
         'Contact': {

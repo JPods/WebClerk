@@ -1,5 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
+{% load record_extras %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
@@ -8,6 +9,25 @@
     .scroll-column {
         height: 70vh;
         overflow-y: auto;
+    }
+    .fields-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 2rem;
+    }
+    .fields-table th, .fields-table td {
+        border: 1px solid #ccc;
+        padding: 0.5rem;
+        text-align: left;
+    }
+    .field-used {
+        color: #aaa;
+        background: #f5f5f5;
+    }
+    .field-action-btn {
+        padding: 0.2rem 0.6rem;
+        margin-left: 0.5rem;
+        font-size: 0.9em;
     }
 </style>
 <div class="container" style="display: flex; gap: 2rem;">
@@ -29,19 +49,28 @@
             </div>
         {% endfor %}
     </div>
-    <!-- Middle column: List -->
+    <!-- Center column: List -->
     <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;">
         <h3 class="module-title">List</h3>
         {% if model_list %}
-            <ul class="object-list">
+            <table class="fields-table">
+                <tr>
+                    {% for field_name in list_fields %}
+                        <th>{{ field_name|capfirst }}</th>
+                    {% endfor %}
+                </tr>
                 {% for record in model_list %}
-                    <li>
-                        <a href="?model={{ selected_model }}&record_id={{ record.id }}" class="record-link{% if record.id == selected_record.id %} selected{% endif %}">
-                            {{ record }}
-                        </a>
-                    </li>
+                    <tr>
+                        {% for field_name in list_fields %}
+                            <td>
+                                <a href="?model={{ selected_model }}&record_id={{ record.id }}">
+                                    {{ record|get_field:field_name }}
+                            </a>
+                            </td>
+                        {% endfor %}
+                    </tr>
                 {% endfor %}
-            </ul>
+            </table>
         {% else %}
             <p>No records found.</p>
         {% endif %}
@@ -59,6 +88,30 @@
         {% else %}
             <p>Select a record to view details.</p>
         {% endif %}
+
+        <!-- Fields Table for Detail Column -->
+        <h4 style="margin-top:2rem;">Fields in Table</h4>
+        <form method="post" action="">
+            {% csrf_token %}
+            <table class="fields-table">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Action</th>
+                </tr>
+                {% for field in all_fields %}
+                    <tr class="{% if field.name in detail_fields %}field-used{% endif %}">
+                        <td>{{ field.verbose_name }}</td>
+                        <td>
+                            {% if field.name in detail_fields %}
+                                <button type="submit" name="remove_detail_field" value="{{ field.name }}" class="field-action-btn" {% if field.name in detail_fields %}disabled{% endif %}>Remove</button>
+                            {% else %}
+                                <button type="submit" name="add_detail_field" value="{{ field.name }}" class="field-action-btn">Add</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </form>
     </div>
 </div>
 {% endblock %}
