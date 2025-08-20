@@ -34,14 +34,14 @@
     <!-- Left column: Apps/Tables -->
     <div class="sidebar-module scroll-column" style="flex: 1; border-right: 1px solid #ccc; padding-right: 1rem;">
         <h3 class="module-title">Apps / Tables</h3>
+        <!-- {{ app_list }} -->
         {% for app in app_list %}
             <div class="app-block">
                 <strong>{{ app.name }}</strong>
                 <ul class="model-list">
                     {% for model in app.models %}
                         <li>
-                            <a href="?model={{ model.object_name }}" class="model-link{% if model.object_name == selected_model %} selected{% endif %}">
-                                {{ model.name }}
+                            <a href="#" onclick="loadTableData('{{ model.object_name }}s'); return false;" class="model-link{% if model.object_name == selected_model %} selected{% endif %}">{{ model.name }}
                             </a>
                         </li>
                     {% endfor %}
@@ -50,30 +50,9 @@
         {% endfor %}
     </div>
     <!-- Center column: List -->
-    <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;">
+    <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;" id="center-table-panel">
         <h3 class="module-title">List</h3>
-        {% if model_list %}
-            <table class="fields-table">
-                <tr>
-                    {% for field_name in list_fields %}
-                        <th>{{ field_name|capfirst }}</th>
-                    {% endfor %}
-                </tr>
-                {% for record in model_list %}
-                    <tr>
-                        {% for field_name in list_fields %}
-                            <td>
-                                <a href="?model={{ selected_model }}&record_id={{ record.id }}">
-                                    {{ record|get_field:field_name }}
-                            </a>
-                            </td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </table>
-        {% else %}
-            <p>No records found.</p>
-        {% endif %}
+        <p>Select a table to view records.</p>
     </div>
     <!-- Right column: Detail/Display -->
     <div class="module scroll-column" style="flex: 2; padding-left: 1rem;">
@@ -114,4 +93,56 @@
         </form>
     </div>
 </div>
+
+<script>
+function loadTableData(tableName) {
+    fetch(`/wcapi/get/?table_name=${tableName}`)
+        .then(response => response.json())
+        .then(result => {
+            // Use result.data instead of result
+            const data = result.data;
+            const panel = document.getElementById('center-table-panel');
+            if (!Array.isArray(data) || data.length === 0) {
+                panel.innerHTML = '<h3 class="module-title">List</h3><p>No records found.</p>';
+                return;
+            }
+            const headers = Object.keys(data[0]);
+            let html = '<h3 class="module-title">List</h3><table class="fields-table"><thead><tr>';
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead><tbody>';
+            data.forEach(row => {
+                html += `<tr onclick="loadDetail('${tableName}', '${row.id}')">`;
+                headers.forEach(h => html += `<td>${row[h]}</td>`);
+                html += '</tr>';
+});
+            html += '</tbody></table>';
+            panel.innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById('center-table-panel').innerHTML = '<h3 class="module-title">List</h3><p>Error loading data.</p>';
+        });
+}
+
+function loadDetail(tableName, recordId) {
+    fetch(`/wcapi/get/?table_name=${tableName}&id=${recordId}`)
+        .then(response => response.json())
+        .then(result => {
+            const data = result.data;
+            const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
+            if (!data || Object.keys(data).length === 0) {
+                detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>No details found.</p>';
+                return;
+            }
+            let html = '<h3 class="module-title">Details</h3>';
+            Object.keys(data).forEach(key => {
+                html += `<div class="form-row"><label class="field-label">${key}:</label> <span class="field-value">${data[key]}</span></div>`;
+            });
+            detailPanel.innerHTML = html;
+        })
+        .catch(err => {
+            const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
+            detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>Error loading details.</p>';
+        });
+}
+</script>
 {% endblock %}

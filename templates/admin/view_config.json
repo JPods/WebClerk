@@ -1,0 +1,1373 @@
+{
+  "user": {
+    "LogEntry": {
+      "list": [
+        "id",
+        "object_repr"
+      ],
+      "detail": [
+        "id",
+        "action_time",
+        "user",
+        "content_type",
+        "object_id",
+        "object_repr",
+        "action_flag",
+        "change_message"
+      ]
+    },
+    "Permission": {
+      "list": [
+        "id",
+        "name",
+        "codename"
+      ],
+      "detail": [
+        "id",
+        "name",
+        "content_type",
+        "codename"
+      ]
+    },
+    "Group": {
+      "list": [
+        "id",
+        "name"
+      ],
+      "detail": [
+        "id",
+        "name"
+      ]
+    },
+    "ContentType": {
+      "list": [
+        "id",
+        "app_label",
+        "model"
+      ],
+      "detail": [
+        "id",
+        "app_label",
+        "model"
+      ]
+    },
+    "Session": {
+      "list": [
+        "id",
+        "session_key"
+      ],
+      "detail": [
+        "session_key",
+        "session_data",
+        "expire_date"
+      ]
+    },
+    "SolarSchedule": {
+      "list": [
+        "id",
+        "event"
+      ],
+      "detail": [
+        "id",
+        "event",
+        "latitude",
+        "longitude"
+      ]
+    },
+    "IntervalSchedule": {
+      "list": [
+        "id",
+        "period"
+      ],
+      "detail": [
+        "id",
+        "every",
+        "period"
+      ]
+    },
+    "ClockedSchedule": {
+      "list": [
+        "id"
+      ],
+      "detail": [
+        "id",
+        "clocked_time"
+      ]
+    },
+    "CrontabSchedule": {
+      "list": [
+        "id",
+        "minute",
+        "hour",
+        "day_of_month",
+        "month_of_year",
+        "day_of_week"
+      ],
+      "detail": [
+        "id",
+        "minute",
+        "hour",
+        "day_of_month",
+        "month_of_year",
+        "day_of_week",
+        "timezone"
+      ]
+    },
+    "PeriodicTasks": {
+      "list": [
+        "id"
+      ],
+      "detail": [
+        "ident",
+        "last_update"
+      ]
+    },
+    "PeriodicTask": {
+      "list": [
+        "id",
+        "name",
+        "task",
+        "queue",
+        "exchange",
+        "routing_key"
+      ],
+      "detail": [
+        "id",
+        "name",
+        "task",
+        "interval",
+        "crontab",
+        "solar",
+        "clocked",
+        "args",
+        "kwargs",
+        "queue",
+        "exchange",
+        "routing_key",
+        "headers",
+        "priority",
+        "expires",
+        "expire_seconds",
+        "one_off",
+        "start_time",
+        "enabled",
+        "last_run_at",
+        "total_run_count",
+        "date_changed",
+        "description"
+      ]
+    },
+    "TaskResult": {
+      "list": [
+        "id",
+        "task_id",
+        "periodic_task_name",
+        "task_name",
+        "status",
+        "worker",
+        "content_type",
+        "content_encoding"
+      ],
+      "detail": [
+        "id",
+        "task_id",
+        "periodic_task_name",
+        "task_name",
+        "task_args",
+        "task_kwargs",
+        "status",
+        "worker",
+        "content_type",
+        "content_encoding",
+        "result",
+        "date_created",
+        "date_started",
+        "date_done",
+        "traceback",
+        "meta"
+      ]
+    },
+    "ChordCounter": {
+      "list": [
+        "id",
+        "group_id"
+      ],
+      "detail": [
+        "id",
+        "group_id",
+        "sub_tasks",
+        "count"
+      ]
+    },
+    "GroupResult": {
+      "list": [
+        "id",
+        "group_id",
+        "content_type",
+        "content_encoding"
+      ],
+      "detail": [
+        "id",
+        "group_id",
+        "date_created",
+        "date_done",
+        "content_type",
+        "content_encoding",
+        "result"
+      ]
+    },
+    "Location": {
+      "list": [
+        "id",
+        "address1",
+        "address2",
+        "address_type",
+        "city",
+        "country",
+        "state",
+        "zip",
+        "full"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "address1",
+        "address2",
+        "address_type",
+        "city",
+        "country",
+        "instructions",
+        "latitude",
+        "longitude",
+        "state",
+        "zip",
+        "full",
+        "comment"
+      ]
+    },
+    "Email": {
+      "list": [
+        "id",
+        "email",
+        "name",
+        "attention",
+        "type",
+        "opt_out"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "email",
+        "name",
+        "attention",
+        "type",
+        "opt_out",
+        "comment",
+        "is_primary",
+        "is_verified"
+      ]
+    },
+    "Phone": {
+      "list": [
+        "id",
+        "number",
+        "country_code",
+        "format",
+        "name",
+        "attention"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "number",
+        "country_code",
+        "format",
+        "name",
+        "attention",
+        "opt_out",
+        "comment"
+      ]
+    },
+    "Domain": {
+      "list": [
+        "id",
+        "path",
+        "type"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "path",
+        "type",
+        "comment"
+      ]
+    },
+    "Contact": {
+      "list": [
+        "id",
+        "password",
+        "email",
+        "name_first",
+        "name_last",
+        "name_middle",
+        "name_prefix",
+        "name_suffix",
+        "company",
+        "title",
+        "department",
+        "role"
+      ],
+      "detail": [
+        "password",
+        "last_login",
+        "is_superuser",
+        "id",
+        "uuid",
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "email",
+        "name_first",
+        "name_last",
+        "name_middle",
+        "name_prefix",
+        "name_suffix",
+        "company",
+        "title",
+        "department",
+        "comment",
+        "role",
+        "is_active",
+        "is_staff",
+        "date_joined"
+      ]
+    },
+    "Action": {
+      "list": [
+        "id",
+        "action",
+        "action_by",
+        "priority",
+        "difficulty",
+        "status",
+        "quality",
+        "description"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "action",
+        "action_by",
+        "priority",
+        "difficulty",
+        "hours",
+        "percent",
+        "status",
+        "quality",
+        "description",
+        "dt_action",
+        "dt_completed",
+        "dt_due",
+        "dt_updated",
+        "comment"
+      ]
+    },
+    "Setting": {
+      "list": [
+        "id",
+        "name",
+        "purpose",
+        "role",
+        "table_name"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "is_active",
+        "name",
+        "purpose",
+        "role",
+        "table_name",
+        "data",
+        "comment"
+      ]
+    },
+    "Template": {
+      "list": [
+        "id",
+        "name",
+        "purpose",
+        "table_name"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "name",
+        "purpose",
+        "table_name",
+        "comment"
+      ]
+    },
+    "Pending": {
+      "list": [
+        "id",
+        "table_name",
+        "record_id"
+      ],
+      "detail": [
+        "id",
+        "uuid",
+        "table_name",
+        "record_id",
+        "data",
+        "metadata",
+        "prefs",
+        "refs",
+        "dt_processed"
+      ]
+    }
+  },
+  "admin": {
+    "LogEntry": {
+      "list": [
+        "id",
+        "object_repr"
+      ],
+      "detail": [
+        "id",
+        "action_time",
+        "user",
+        "content_type",
+        "object_id",
+        "object_repr",
+        "action_flag",
+        "change_message"
+      ]
+    },
+    "Permission": {
+      "list": [
+        "id",
+        "name",
+        "codename"
+      ],
+      "detail": [
+        "id",
+        "name",
+        "content_type",
+        "codename"
+      ]
+    },
+    "Group": {
+      "list": [
+        "id",
+        "name"
+      ],
+      "detail": [
+        "id",
+        "name"
+      ]
+    },
+    "ContentType": {
+      "list": [
+        "id",
+        "app_label",
+        "model"
+      ],
+      "detail": [
+        "id",
+        "app_label",
+        "model"
+      ]
+    },
+    "Session": {
+      "list": [
+        "id",
+        "session_key"
+      ],
+      "detail": [
+        "session_key",
+        "session_data",
+        "expire_date"
+      ]
+    },
+    "SolarSchedule": {
+      "list": [
+        "id",
+        "event"
+      ],
+      "detail": [
+        "id",
+        "event",
+        "latitude",
+        "longitude"
+      ]
+    },
+    "IntervalSchedule": {
+      "list": [
+        "id",
+        "period"
+      ],
+      "detail": [
+        "id",
+        "every",
+        "period"
+      ]
+    },
+    "ClockedSchedule": {
+      "list": [
+        "id"
+      ],
+      "detail": [
+        "id",
+        "clocked_time"
+      ]
+    },
+    "CrontabSchedule": {
+      "list": [
+        "id",
+        "minute",
+        "hour",
+        "day_of_month",
+        "month_of_year",
+        "day_of_week"
+      ],
+      "detail": [
+        "id",
+        "minute",
+        "hour",
+        "day_of_month",
+        "month_of_year",
+        "day_of_week",
+        "timezone"
+      ]
+    },
+    "PeriodicTasks": {
+      "list": [
+        "id"
+      ],
+      "detail": [
+        "ident",
+        "last_update"
+      ]
+    },
+    "PeriodicTask": {
+      "list": [
+        "id",
+        "name",
+        "task",
+        "queue",
+        "exchange",
+        "routing_key"
+      ],
+      "detail": [
+        "id",
+        "name",
+        "task",
+        "interval",
+        "crontab",
+        "solar",
+        "clocked",
+        "args",
+        "kwargs",
+        "queue",
+        "exchange",
+        "routing_key",
+        "headers",
+        "priority",
+        "expires",
+        "expire_seconds",
+        "one_off",
+        "start_time",
+        "enabled",
+        "last_run_at",
+        "total_run_count",
+        "date_changed",
+        "description"
+      ]
+    },
+    "TaskResult": {
+      "list": [
+        "id",
+        "task_id",
+        "periodic_task_name",
+        "task_name",
+        "status",
+        "worker",
+        "content_type",
+        "content_encoding"
+      ],
+      "detail": [
+        "id",
+        "task_id",
+        "periodic_task_name",
+        "task_name",
+        "task_args",
+        "task_kwargs",
+        "status",
+        "worker",
+        "content_type",
+        "content_encoding",
+        "result",
+        "date_created",
+        "date_started",
+        "date_done",
+        "traceback",
+        "meta"
+      ]
+    },
+    "ChordCounter": {
+      "list": [
+        "id",
+        "group_id"
+      ],
+      "detail": [
+        "id",
+        "group_id",
+        "sub_tasks",
+        "count"
+      ]
+    },
+    "GroupResult": {
+      "list": [
+        "id",
+        "group_id",
+        "content_type",
+        "content_encoding"
+      ],
+      "detail": [
+        "id",
+        "group_id",
+        "date_created",
+        "date_done",
+        "content_type",
+        "content_encoding",
+        "result"
+      ]
+    },
+    "Location": {
+      "list": [
+        "id",
+        "address1",
+        "address2",
+        "address_type",
+        "city",
+        "country",
+        "state",
+        "zip",
+        "full"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "address1",
+        "address2",
+        "address_type",
+        "city",
+        "country",
+        "instructions",
+        "latitude",
+        "longitude",
+        "state",
+        "zip",
+        "full",
+        "comment"
+      ]
+    },
+    "Email": {
+      "list": [
+        "id",
+        "email",
+        "name",
+        "attention",
+        "type",
+        "opt_out"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "email",
+        "name",
+        "attention",
+        "type",
+        "opt_out",
+        "comment",
+        "is_primary",
+        "is_verified"
+      ]
+    },
+    "Phone": {
+      "list": [
+        "id",
+        "number",
+        "country_code",
+        "format",
+        "name",
+        "attention"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "number",
+        "country_code",
+        "format",
+        "name",
+        "attention",
+        "opt_out",
+        "comment"
+      ]
+    },
+    "Domain": {
+      "list": [
+        "id",
+        "path",
+        "type"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "path",
+        "type",
+        "comment"
+      ]
+    },
+    "Contact": {
+      "list": [
+        "id",
+        "password",
+        "email",
+        "name_first",
+        "name_last",
+        "name_middle",
+        "name_prefix",
+        "name_suffix",
+        "company",
+        "title",
+        "department",
+        "role"
+      ],
+      "detail": [
+        "password",
+        "last_login",
+        "is_superuser",
+        "id",
+        "uuid",
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "email",
+        "name_first",
+        "name_last",
+        "name_middle",
+        "name_prefix",
+        "name_suffix",
+        "company",
+        "title",
+        "department",
+        "comment",
+        "role",
+        "is_active",
+        "is_staff",
+        "date_joined"
+      ]
+    },
+    "Action": {
+      "list": [
+        "id",
+        "action",
+        "action_by",
+        "priority",
+        "difficulty",
+        "status",
+        "quality",
+        "description"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "action",
+        "action_by",
+        "priority",
+        "difficulty",
+        "hours",
+        "percent",
+        "status",
+        "quality",
+        "description",
+        "dt_action",
+        "dt_completed",
+        "dt_due",
+        "dt_updated",
+        "comment"
+      ]
+    },
+    "Setting": {
+      "list": [
+        "id",
+        "name",
+        "purpose",
+        "role",
+        "table_name"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "is_active",
+        "name",
+        "purpose",
+        "role",
+        "table_name",
+        "data",
+        "comment"
+      ]
+    },
+    "Template": {
+      "list": [
+        "id",
+        "name",
+        "purpose",
+        "table_name"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "name",
+        "purpose",
+        "table_name",
+        "comment"
+      ]
+    },
+    "Pending": {
+      "list": [
+        "id",
+        "table_name",
+        "record_id"
+      ],
+      "detail": [
+        "id",
+        "uuid",
+        "table_name",
+        "record_id",
+        "data",
+        "metadata",
+        "prefs",
+        "refs",
+        "dt_processed"
+      ]
+    }
+  },
+  "superadmin": {
+    "LogEntry": {
+      "list": [
+        "id",
+        "object_repr"
+      ],
+      "detail": [
+        "id",
+        "action_time",
+        "user",
+        "content_type",
+        "object_id",
+        "object_repr",
+        "action_flag",
+        "change_message"
+      ]
+    },
+    "Permission": {
+      "list": [
+        "id",
+        "name",
+        "codename"
+      ],
+      "detail": [
+        "id",
+        "name",
+        "content_type",
+        "codename"
+      ]
+    },
+    "Group": {
+      "list": [
+        "id",
+        "name"
+      ],
+      "detail": [
+        "id",
+        "name"
+      ]
+    },
+    "ContentType": {
+      "list": [
+        "id",
+        "app_label",
+        "model"
+      ],
+      "detail": [
+        "id",
+        "app_label",
+        "model"
+      ]
+    },
+    "Session": {
+      "list": [
+        "id",
+        "session_key"
+      ],
+      "detail": [
+        "session_key",
+        "session_data",
+        "expire_date"
+      ]
+    },
+    "SolarSchedule": {
+      "list": [
+        "id",
+        "event"
+      ],
+      "detail": [
+        "id",
+        "event",
+        "latitude",
+        "longitude"
+      ]
+    },
+    "IntervalSchedule": {
+      "list": [
+        "id",
+        "period"
+      ],
+      "detail": [
+        "id",
+        "every",
+        "period"
+      ]
+    },
+    "ClockedSchedule": {
+      "list": [
+        "id"
+      ],
+      "detail": [
+        "id",
+        "clocked_time"
+      ]
+    },
+    "CrontabSchedule": {
+      "list": [
+        "id",
+        "minute",
+        "hour",
+        "day_of_month",
+        "month_of_year",
+        "day_of_week"
+      ],
+      "detail": [
+        "id",
+        "minute",
+        "hour",
+        "day_of_month",
+        "month_of_year",
+        "day_of_week",
+        "timezone"
+      ]
+    },
+    "PeriodicTasks": {
+      "list": [
+        "id"
+      ],
+      "detail": [
+        "ident",
+        "last_update"
+      ]
+    },
+    "PeriodicTask": {
+      "list": [
+        "id",
+        "name",
+        "task",
+        "queue",
+        "exchange",
+        "routing_key"
+      ],
+      "detail": [
+        "id",
+        "name",
+        "task",
+        "interval",
+        "crontab",
+        "solar",
+        "clocked",
+        "args",
+        "kwargs",
+        "queue",
+        "exchange",
+        "routing_key",
+        "headers",
+        "priority",
+        "expires",
+        "expire_seconds",
+        "one_off",
+        "start_time",
+        "enabled",
+        "last_run_at",
+        "total_run_count",
+        "date_changed",
+        "description"
+      ]
+    },
+    "TaskResult": {
+      "list": [
+        "id",
+        "task_id",
+        "periodic_task_name",
+        "task_name",
+        "status",
+        "worker",
+        "content_type",
+        "content_encoding"
+      ],
+      "detail": [
+        "id",
+        "task_id",
+        "periodic_task_name",
+        "task_name",
+        "task_args",
+        "task_kwargs",
+        "status",
+        "worker",
+        "content_type",
+        "content_encoding",
+        "result",
+        "date_created",
+        "date_started",
+        "date_done",
+        "traceback",
+        "meta"
+      ]
+    },
+    "ChordCounter": {
+      "list": [
+        "id",
+        "group_id"
+      ],
+      "detail": [
+        "id",
+        "group_id",
+        "sub_tasks",
+        "count"
+      ]
+    },
+    "GroupResult": {
+      "list": [
+        "id",
+        "group_id",
+        "content_type",
+        "content_encoding"
+      ],
+      "detail": [
+        "id",
+        "group_id",
+        "date_created",
+        "date_done",
+        "content_type",
+        "content_encoding",
+        "result"
+      ]
+    },
+    "Location": {
+      "list": [
+        "id",
+        "address1",
+        "address2",
+        "address_type",
+        "city",
+        "country",
+        "state",
+        "zip",
+        "full"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "address1",
+        "address2",
+        "address_type",
+        "city",
+        "country",
+        "instructions",
+        "latitude",
+        "longitude",
+        "state",
+        "zip",
+        "full",
+        "comment"
+      ]
+    },
+    "Email": {
+      "list": [
+        "id",
+        "email",
+        "name",
+        "attention",
+        "type",
+        "opt_out"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "email",
+        "name",
+        "attention",
+        "type",
+        "opt_out",
+        "comment",
+        "is_primary",
+        "is_verified"
+      ]
+    },
+    "Phone": {
+      "list": [
+        "id",
+        "number",
+        "country_code",
+        "format",
+        "name",
+        "attention"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "number",
+        "country_code",
+        "format",
+        "name",
+        "attention",
+        "opt_out",
+        "comment"
+      ]
+    },
+    "Domain": {
+      "list": [
+        "id",
+        "path",
+        "type"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "path",
+        "type",
+        "comment"
+      ]
+    },
+    "Contact": {
+      "list": [
+        "id",
+        "password",
+        "email",
+        "name_first",
+        "name_last",
+        "name_middle",
+        "name_prefix",
+        "name_suffix",
+        "company",
+        "title",
+        "department",
+        "role"
+      ],
+      "detail": [
+        "password",
+        "last_login",
+        "is_superuser",
+        "id",
+        "uuid",
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "email",
+        "name_first",
+        "name_last",
+        "name_middle",
+        "name_prefix",
+        "name_suffix",
+        "company",
+        "title",
+        "department",
+        "comment",
+        "role",
+        "is_active",
+        "is_staff",
+        "date_joined"
+      ]
+    },
+    "Action": {
+      "list": [
+        "id",
+        "action",
+        "action_by",
+        "priority",
+        "difficulty",
+        "status",
+        "quality",
+        "description"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "action",
+        "action_by",
+        "priority",
+        "difficulty",
+        "hours",
+        "percent",
+        "status",
+        "quality",
+        "description",
+        "dt_action",
+        "dt_completed",
+        "dt_due",
+        "dt_updated",
+        "comment"
+      ]
+    },
+    "Setting": {
+      "list": [
+        "id",
+        "name",
+        "purpose",
+        "role",
+        "table_name"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "is_active",
+        "name",
+        "purpose",
+        "role",
+        "table_name",
+        "data",
+        "comment"
+      ]
+    },
+    "Template": {
+      "list": [
+        "id",
+        "name",
+        "purpose",
+        "table_name"
+      ],
+      "detail": [
+        "metadata",
+        "refs",
+        "prefs",
+        "health_rating",
+        "id",
+        "uuid",
+        "name",
+        "purpose",
+        "table_name",
+        "comment"
+      ]
+    },
+    "Pending": {
+      "list": [
+        "id",
+        "table_name",
+        "record_id"
+      ],
+      "detail": [
+        "id",
+        "uuid",
+        "table_name",
+        "record_id",
+        "data",
+        "metadata",
+        "prefs",
+        "refs",
+        "dt_processed"
+      ]
+    }
+  }
+}

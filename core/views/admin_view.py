@@ -60,6 +60,7 @@ def admin3_view(request):
     record_id = request.GET.get('record_id')
     selected_record = None
     fields = []
+    list_fields = []
     all_fields = []
 
     model = None
@@ -74,10 +75,11 @@ def admin3_view(request):
 
     model_list = model.objects.all() if model else []
 
-    all_fields = [field for field in model._meta.fields] if model else []
+    if model:
+        list_fields = get_list_display_fields(model)
+        all_fields = [field for field in model._meta.fields]
 
     role = getattr(request.user, 'role', 'user')
-    list_fields = get_fields_for_role(role, model_name, 'list')
     detail_fields = get_fields_for_role(role, model_name, 'detail')
 
     if model and record_id:
