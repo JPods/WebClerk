@@ -140,77 +140,72 @@ const defaultTableFields = {
     "reports": ["id", "title", "created_by", "created_at", "status"],
     "templates": ["id", "name", "type", "content", "created_at"],
     "domains": ["id", "domain_name", "owner", "created_at", "status"],
-    "emails": ["id", "address", "user", "verified", "created_at"],
+    "emails": ["id", "email", "user", "verified", "created_at"],
     "locations": ["id", "address", "city", "state", "country"],
     "phones": ["id", "number", "type", "user", "verified"]
 };
 
+let fieldMode = 'list'; // 'list' or 'detail'
+let leftFields = []; // [{name, type}]
+let listFields = []; // names
+let detailFields = []; // names
+let selectedFieldNames = [];
+
+
 function loadTableData(tableName) {
     currentTableName = tableName;
-    fetch(`/wcapi/get/?table_name=${tableName}`)
-        .then(response => response.json())
-        .then(result => {
-            const data = result.data;
-            const contentDiv = document.getElementById('center-table-content');
-            if (!Array.isArray(data) || data.length === 0) {
-                contentDiv.innerHTML = '<p>No records found.</p>';
-                return;
+    fetch(`/wcapi/models/?table_name=${tableName}`)
+        .then(resp => resp.json())
+        .then(fieldResult => {
+            console.log('fieldResult:', fieldResult); // <-- Add this line
+            
+                        // Get the field names for the selected table
+            const modelFields = fieldResult.models && fieldResult.models[tableName];
+            centerAllFields = Array.isArray(modelFields)
+                ? modelFields.map(f => ({ name: f, type: 'unknown' })) // type is unknown unless you provide it
+                : [];
+            leftFields = centerAllFields;
+            
+            if (defaultTableFields.hasOwnProperty(tableName)) {
+                centerDisplayedFields = defaultTableFields[tableName].filter(f =>
+                    centerAllFields.some(fieldObj => fieldObj.name === f)
+                );
+                listFields = centerDisplayedFields.slice();
+            } else {
+                centerDisplayedFields = centerAllFields.slice(0, 5).map(f => f.name);
+                listFields = centerDisplayedFields.slice();
             }
-            centerDisplayedFields = Object.keys(data[0]);
-            let html = '<table class="fields-table"><thead><tr>';
-            centerDisplayedFields.forEach(h => html += `<th>${h}</th>`);
-            html += '</tr></thead><tbody>';
-            data.forEach(row => {
-                html += `<tr onclick="loadDetail('${tableName}', '${row.id}')">`;
-                centerDisplayedFields.forEach(h => html += `<td>${row[h]}</td>`);
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-            contentDiv.innerHTML = html;
+            detailFields = [];
+            fieldMode = 'list';
+            selectedFieldNames = [];
+            renderLeftFieldsTable();
 
-            // Fetch field info for center fields table
-            fetch(`/wcapi/models/?table_name=${tableName}`)
-                .then(resp => resp.json())
-                .then(fieldResult => {
-                    centerAllFields = fieldResult.fields; // [{name, type}]
+            fetch(`/wcapi/get/?table_name=${tableName}`)
+                .then(response => response.json())
+                .then(result => {
+                    const data = result.data;
+                    const contentDiv = document.getElementById('center-table-content');
+                    if (!Array.isArray(data) || data.length === 0) {
+                        contentDiv.innerHTML = '<p>No records found.</p>';
+                        renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+                        return;
+                    }
+                    let html = '<table class="fields-table"><thead><tr>';
+                    centerDisplayedFields.forEach(h => html += `<th>${h}</th>`);
+                    html += '</tr></thead><tbody>';
+                    data.forEach(row => {
+                        html += `<tr onclick="loadDetail('${tableName}', '${row.id}')">`;
+                        centerDisplayedFields.forEach(h => html += `<td>${row[h] !== undefined ? row[h] : ''}</td>`);
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                    contentDiv.innerHTML = html;
+
                     renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+                })
+                .catch(err => {
+                    document.getElementById('center-table-content').innerHTML = '<p>Error loading data.</p>';
                 });
-        })
-        .catch(err => {
-            document.getElementById('center-table-content').innerHTML = '<p>Error loading data.</p>';
-        });
-}
-
-function loadDetail(tableName, recordId) {
-    fetch(`/wcapi/get/?table_name=${tableName}&id=${recordId}`)
-        .then(response => response.json())
-        .then(result => {
-            const data = result.data;
-            const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
-            if (!data || Object.keys(data).length === 0) {
-                detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>No details found.</p>';
-                return;
-            }
-            let html = '<h3 class="module-title">Details</h3>';
-            Object.keys(data).forEach(key => {
-                html += `<div class="form-row"><label class="field-label">${key}:</label> <span class="field-value">${data[key]}</span></div>`;
-            });
-            detailPanel.innerHTML = html;
-
-            // Update detailDisplayedFields
-            detailDisplayedFields = Object.keys(data);
-
-            // Fetch field info for detail fields table
-            fetch(`/wcapi/models/?table_name=${tableName}`)
-                .then(resp => resp.json())
-                .then(fieldResult => {
-                    detailAllFields = fieldResult.fields; // [{name, type}]
-                    renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
-                });
-        })
-        .catch(err => {
-            const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
-            detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>Error loading details.</p>';
         });
 }
 
@@ -314,7 +309,56 @@ function renderCenterTable() {
         });
 }
 
+function switchFieldMode(mode) {
+    fieldMode = mode;
+    renderLeftFieldsTable();
+}
 
+function renderLeftFieldsTable() {
+    const table = document.getElementById('fields-table-left');
+    let usedFields = fieldMode === 'list' ? listFields : detailFields;
+    let html = `<tr>
+        <th>Field Name</th>
+        <th>Type</th>
+        <th>Use</th>
+    </tr>`;
+    leftFields.forEach(field => {
+        const isUsed = usedFields.includes(field.name);
+        html += `<tr class="${isUsed ? 'field-used' : ''}">
+            <td>${field.name}</td>
+            <td>${field.type}</td>
+            <td>
+                <input type="checkbox" value="${field.name}" ${selectedFieldNames.includes(field.name) ? 'checked' : ''} onchange="selectField('${field.name}', this.checked)">
+            </td>
+        </tr>`;
+    });
+    table.innerHTML = html;
+    document.getElementById('toggle-fields-btn').disabled = selectedFieldNames.length === 0;
+}
+
+function selectField(fieldName, checked) {
+    if (checked) {
+        if (!selectedFieldNames.includes(fieldName)) selectedFieldNames.push(fieldName);
+    } else {
+        selectedFieldNames = selectedFieldNames.filter(f => f !== fieldName);
+    }
+    document.getElementById('toggle-fields-btn').disabled = selectedFieldNames.length === 0;
+}
+
+function toggleSelectedFields() {
+    let usedFields = fieldMode === 'list' ? listFields : detailFields;
+    selectedFieldNames.forEach(fieldName => {
+        const idx = usedFields.indexOf(fieldName);
+        if (idx > -1) {
+            usedFields.splice(idx, 1); // Remove
+        } else {
+            usedFields.push(fieldName); // Add
+        }
+    });
+    selectedFieldNames = [];
+    renderLeftFieldsTable();
+    // Optionally, update the backend via AJAX here
+}
 
 </script>
 {% endblock %}
