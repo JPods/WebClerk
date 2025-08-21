@@ -48,9 +48,33 @@
                 </ul>
             </div>
         {% endfor %}
+
+                <!-- Replace your left column field table with this -->
+        <h4 style="margin-top:2rem;">Fields in Table</h4>
+        <div>
+            <label>
+                <input type="radio" name="fieldMode" value="list" checked onchange="switchFieldMode('list')"> List
+            </label>
+            <label style="margin-left:1em;">
+                <input type="radio" name="fieldMode" value="detail" onchange="switchFieldMode('detail')"> Detail
+            </label>
+        </div>
+        <form id="list-fields-table" onsubmit="return false;">
+            <table class="fields-table" id="fields-table-left">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Type</th>
+                    <th>Use</th>
+                </tr>
+                <!-- JS will populate rows here -->
+            </table>
+            <button type="button" id="toggle-fields-btn" disabled onclick="toggleSelectedFields()">Toggle Selected</button>
+        </form>
+
+
+
     </div>
     <!-- Center column: List -->
-
     <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;" id="center-table-panel">
     <h3 class="module-title">List</h3>
     <div id="center-table-content">
@@ -84,28 +108,7 @@
         {% endif %}
 
         <!-- Fields Table for Detail Column -->
-        <h4 style="margin-top:2rem;">Fields in Table</h4>
-        <form method="post" action="">
-            {% csrf_token %}
-            <table class="fields-table">
-                <tr>
-                    <th>Field Name</th>
-                    <th>Action</th>
-                </tr>
-                {% for field in all_fields %}
-                    <tr class="{% if field.name in detail_fields %}field-used{% endif %}">
-                        <td>{{ field.verbose_name }}</td>
-                        <td>
-                            {% if field.name in detail_fields %}
-                                <button type="submit" name="remove_detail_field" value="{{ field.name }}" class="field-action-btn" {% if field.name in detail_fields %}disabled{% endif %}>Remove</button>
-                            {% else %}
-                                <button type="submit" name="add_detail_field" value="{{ field.name }}" class="field-action-btn">Add</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-        </form>
+
        <h4 style="margin-top:2rem;">Fields in Table</h4>
             <table class="fields-table" id="detail-fields-table">
                 <tr>
@@ -127,14 +130,55 @@ let currentTableName = '';
 let detailDisplayedFields = [];
 let detailAllFields = [];
 
+// Default fields for tables (can be edited later)
+const defaultTableFields = {
+    "contacts": ["id", "email", "name_first", "name_last", "company"],
+    "actions": ["actions", "action_by", "priority", "status"],
+    "settings": ["id", "key", "value", "description", "updated_at"],
+    "notifications": ["id", "user", "message", "created_at", "read"],
+    "pendings": ["id", "item", "requested_by", "status", "created_at"],
+    "reports": ["id", "title", "created_by", "created_at", "status"],
+    "templates": ["id", "name", "type", "content", "created_at"],
+    "domains": ["id", "domain_name", "owner", "created_at", "status"],
+    "emails": ["id", "email", "user", "verified", "created_at"],
+    "locations": ["id", "address", "city", "state", "country"],
+    "phones": ["id", "number", "type", "user", "verified"]
+};
+
+let fieldMode = 'list'; // 'list' or 'detail'
+let leftFields = []; // [{name, type}]
+let listFields = []; // names
+let detailFields = []; // names
+let selectedFieldNames = [];
+
+
 function loadTableData(tableName) {
     currentTableName = tableName;
     fetch(`/wcapi/models/?table_name=${tableName}`)
         .then(resp => resp.json())
         .then(fieldResult => {
-            centerAllFields = fieldResult.fields; // [{name, type}]
-            // Limit to first 5 fields
-            centerDisplayedFields = centerAllFields.slice(0, 5).map(f => f.name);
+            console.log('fieldResult:', fieldResult); // <-- Add this line
+            
+                        // Get the field names for the selected table
+            const modelFields = fieldResult.models && fieldResult.models[tableName];
+            centerAllFields = Array.isArray(modelFields)
+                ? modelFields.map(f => ({ name: f, type: 'unknown' })) // type is unknown unless you provide it
+                : [];
+            leftFields = centerAllFields;
+            
+            if (defaultTableFields.hasOwnProperty(tableName)) {
+                centerDisplayedFields = defaultTableFields[tableName].filter(f =>
+                    centerAllFields.some(fieldObj => fieldObj.name === f)
+                );
+                listFields = centerDisplayedFields.slice();
+            } else {
+                centerDisplayedFields = centerAllFields.slice(0, 5).map(f => f.name);
+                listFields = centerDisplayedFields.slice();
+            }
+            detailFields = [];
+            fieldMode = 'list';
+            selectedFieldNames = [];
+            renderLeftFieldsTable();
 
             fetch(`/wcapi/get/?table_name=${tableName}`)
                 .then(response => response.json())
@@ -165,6 +209,8 @@ function loadTableData(tableName) {
         });
 }
 
+// ...existing code...
+
 function loadDetail(tableName, recordId) {
     fetch(`/wcapi/get/?table_name=${tableName}&id=${recordId}`)
         .then(response => response.json())
@@ -188,7 +234,10 @@ function loadDetail(tableName, recordId) {
             fetch(`/wcapi/models/?table_name=${tableName}`)
                 .then(resp => resp.json())
                 .then(fieldResult => {
-                    detailAllFields = fieldResult.fields; // [{name, type}]
+                    const modelFields = fieldResult.models && fieldResult.models[tableName];
+                    detailAllFields = Array.isArray(modelFields)
+                        ? modelFields.map(f => ({ name: f, type: 'unknown' }))
+                        : [];
                     renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
                 });
         })
@@ -197,6 +246,12 @@ function loadDetail(tableName, recordId) {
             detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>Error loading details.</p>';
         });
 }
+
+// Make sure loadDetail is global
+window.loadDetail = loadDetail;
+
+// ...existing code...
+
 
 // Example: You need to fetch field info from your API or context
 function renderFieldsTable(fields, displayedFields, tableId, updateCallback) {
@@ -227,6 +282,10 @@ function renderFieldsTable(fields, displayedFields, tableId, updateCallback) {
 
 function renderDetailFieldsTable(fields, displayedFields) {
     const table = document.getElementById('detail-fields-table');
+    if (!table) {
+        console.warn('detail-fields-table not found in DOM');
+        return;
+    }
     let html = `<tr>
         <th>Field Name</th>
         <th>Field Type</th>
@@ -257,14 +316,11 @@ function toggleCenterField(fieldName) {
     if (idx > -1) {
         centerDisplayedFields.splice(idx, 1); // Remove
     } else {
-        if (centerDisplayedFields.length < 5) {
-            centerDisplayedFields.push(fieldName); // Add
-        } else {
-            alert('You can only display up to 5 fields.');
-            return;
-        }
+        centerDisplayedFields.push(fieldName); // Add
     }
+    // Re-render the main table
     renderCenterTable();
+    // Re-render the fields table
     renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
 }
 
@@ -282,16 +338,10 @@ function renderCenterTable() {
     fetch(`/wcapi/get/?table_name=${currentTableName}`)
         .then(response => response.json())
         .then(result => {
-            console.log('API result:', result);
             const data = result.data;
-            console.log('Data:', data);
             const contentDiv = document.getElementById('center-table-content');
             if (!Array.isArray(data) || data.length === 0) {
                 contentDiv.innerHTML = '<p>No records found.</p>';
-                return;
-            }
-            if (!centerDisplayedFields || centerDisplayedFields.length === 0) {
-                contentDiv.innerHTML = '<p>No fields selected for display.</p>';
                 return;
             }
             let html = '<table class="fields-table"><thead><tr>';
@@ -299,7 +349,7 @@ function renderCenterTable() {
             html += '</tr></thead><tbody>';
             data.forEach(row => {
                 html += `<tr onclick="loadDetail('${currentTableName}', '${row.id}')">`;
-                centerDisplayedFields.forEach(h => html += `<td>${row[h] !== undefined ? row[h] : ''}</td>`);
+                centerDisplayedFields.forEach(h => html += `<td>${row[h]}</td>`);
                 html += '</tr>';
             });
             html += '</tbody></table>';
@@ -307,7 +357,69 @@ function renderCenterTable() {
         });
 }
 
-console.log('centerAllFields:', centerAllFields);
-console.log('centerDisplayedFields:', centerDisplayedFields);
+function switchFieldMode(mode) {
+    fieldMode = mode;
+    renderLeftFieldsTable();
+}
+
+function renderLeftFieldsTable() {
+    const table = document.getElementById('fields-table-left');
+    let usedFields = fieldMode === 'list' ? listFields : detailFields;
+    let html = `<tr>
+        <th>Field Name</th>
+        <th>Type</th>
+        <th>Use</th>
+    </tr>`;
+    leftFields.forEach(field => {
+        const isUsed = usedFields.includes(field.name);
+        html += `<tr class="${isUsed ? 'field-used' : ''}">
+            <td>${field.name}</td>
+            <td>${field.type}</td>
+            <td>
+                <input type="checkbox" value="${field.name}" ${selectedFieldNames.includes(field.name) ? 'checked' : ''} onchange="selectField('${field.name}', this.checked)">
+            </td>
+        </tr>`;
+    });
+    table.innerHTML = html;
+    document.getElementById('toggle-fields-btn').disabled = selectedFieldNames.length === 0;
+}
+
+function selectField(fieldName, checked) {
+    if (checked) {
+        if (!selectedFieldNames.includes(fieldName)) selectedFieldNames.push(fieldName);
+    } else {
+        selectedFieldNames = selectedFieldNames.filter(f => f !== fieldName);
+    }
+    document.getElementById('toggle-fields-btn').disabled = selectedFieldNames.length === 0;
+}
+
+function toggleSelectedFields() {
+    let usedFields = fieldMode === 'list' ? listFields : detailFields;
+    selectedFieldNames.forEach(fieldName => {
+        const idx = usedFields.indexOf(fieldName);
+        if (idx > -1) {
+            usedFields.splice(idx, 1); // Remove
+        } else {
+            usedFields.push(fieldName); // Add
+        }
+    });
+    selectedFieldNames = [];
+    renderLeftFieldsTable();
+
+    if (fieldMode === 'list') {
+        centerDisplayedFields = listFields.slice();
+        renderCenterTable();
+        renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+    } else {
+        detailDisplayedFields = detailFields.slice();
+        const detailTable = document.getElementById('detail-fields-table');
+        if (detailTable) {
+            renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+        } else {
+            // Optionally show a message or disable the button
+            console.warn('detail-fields-table not found in DOM');
+        }
+    }
+}
 </script>
 {% endblock %}
