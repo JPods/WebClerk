@@ -209,6 +209,50 @@ function loadTableData(tableName) {
         });
 }
 
+// ...existing code...
+
+function loadDetail(tableName, recordId) {
+    fetch(`/wcapi/get/?table_name=${tableName}&id=${recordId}`)
+        .then(response => response.json())
+        .then(result => {
+            const data = result.data;
+            const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
+            if (!data || Object.keys(data).length === 0) {
+                detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>No details found.</p>';
+                return;
+            }
+            let html = '<h3 class="module-title">Details</h3>';
+            Object.keys(data).forEach(key => {
+                html += `<div class="form-row"><label class="field-label">${key}:</label> <span class="field-value">${data[key]}</span></div>`;
+            });
+            detailPanel.innerHTML = html;
+
+            // Update detailDisplayedFields
+            detailDisplayedFields = Object.keys(data);
+
+            // Fetch field info for detail fields table
+            fetch(`/wcapi/models/?table_name=${tableName}`)
+                .then(resp => resp.json())
+                .then(fieldResult => {
+                    const modelFields = fieldResult.models && fieldResult.models[tableName];
+                    detailAllFields = Array.isArray(modelFields)
+                        ? modelFields.map(f => ({ name: f, type: 'unknown' }))
+                        : [];
+                    renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+                });
+        })
+        .catch(err => {
+            const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
+            detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>Error loading details.</p>';
+        });
+}
+
+// Make sure loadDetail is global
+window.loadDetail = loadDetail;
+
+// ...existing code...
+
+
 // Example: You need to fetch field info from your API or context
 function renderFieldsTable(fields, displayedFields, tableId, updateCallback) {
     const table = document.getElementById(tableId);
