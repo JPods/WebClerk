@@ -282,6 +282,10 @@ function renderFieldsTable(fields, displayedFields, tableId, updateCallback) {
 
 function renderDetailFieldsTable(fields, displayedFields) {
     const table = document.getElementById('detail-fields-table');
+    if (!table) {
+        console.warn('detail-fields-table not found in DOM');
+        return;
+    }
     let html = `<tr>
         <th>Field Name</th>
         <th>Field Type</th>
@@ -401,8 +405,21 @@ function toggleSelectedFields() {
     });
     selectedFieldNames = [];
     renderLeftFieldsTable();
-    // Optionally, update the backend via AJAX here
-}
 
+    if (fieldMode === 'list') {
+        centerDisplayedFields = listFields.slice();
+        renderCenterTable();
+        renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+    } else {
+        detailDisplayedFields = detailFields.slice();
+        const detailTable = document.getElementById('detail-fields-table');
+        if (detailTable) {
+            renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+        } else {
+            // Optionally show a message or disable the button
+            console.warn('detail-fields-table not found in DOM');
+        }
+    }
+}
 </script>
 {% endblock %}
