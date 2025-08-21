@@ -1,0 +1,48 @@
+       <h4 style="margin-top:2rem;">Fields in Table</h4>
+            <table class="fields-table" id="detail-fields-table">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Field Type</th>
+                    <th>Action</th>
+                </tr>
+                <!-- JS will populate rows here -->
+            </table> 
+
+ <!-- Fields Table for List Column -->
+   <h4 style="margin-top:2rem;">Fields in Table</h4>
+    <div id="center-fields-table-wrapper">
+        <table class="fields-table" id="center-fields-table">
+            <tr>
+                <th>Field Name</th>
+                <th>Field Type</th>
+                <th>Action</th>
+            </tr>
+            <!-- JS will populate rows here -->
+        </table>
+    </div>
+
+
+
+      <!-- Fields Table for Detail Column -->
+        <h4 style="margin-top:2rem;">Fields in Table</h4>
+        <form method="post" action="">
+            {% csrf_token %}
+            <table class="fields-table">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Action</th>
+                </tr>
+                {% for field in all_fields %}
+                    <tr class="{% if field.name in detail_fields %}field-used{% endif %}">
+                        <td>{{ field.verbose_name }}</td>
+                        <td>
+                            {% if field.name in detail_fields %}
+                                <button type="submit" name="remove_detail_field" value="{{ field.name }}" class="field-action-btn" {% if field.name in detail_fields %}disabled{% endif %}>Remove</button>
+                            {% else %}
+                                <button type="submit" name="add_detail_field" value="{{ field.name }}" class="field-action-btn">Add</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </form>

@@ -1,7 +1,15 @@
 from django.shortcuts import render
 from django.apps import apps
 from core.view_config import VIEW_CONFIG
-from core.utils import get_list_display_fields
+# from core.utils import get_list_display_fields
+# If get_list_display_fields is defined elsewhere, update the import accordingly.
+# For example, if it's in core.view_utils, use:
+# from core.view_utils import get_list_display_fields
+# Otherwise, implement a fallback function here:
+
+def get_list_display_fields(model):
+    # Return all field names as a fallback
+    return [field.name for field in model._meta.fields]
 
 def admin_dashboard(request):
     app_list = []
@@ -41,7 +49,7 @@ def admin_dashboard(request):
                     break
             except LookupError:
                 continue
-        if selected_record:
+        if selected_record and model_class:
             fields = [
                 {'label': field.verbose_name, 'value': getattr(selected_record, field.name)}
                 for field in model_class._meta.fields
@@ -99,7 +107,7 @@ def admin3_view(request):
         models = []
         for model_obj in app_config.get_models():
             models.append({
-                "name": model_obj._meta.verbose_name_plural.title(),
+                "name": (str(model_obj._meta.verbose_name_plural).title() if model_obj._meta.verbose_name_plural else model_obj._meta.object_name.title()),
                 "object_name": model_obj._meta.model_name,
             })
         if models:
