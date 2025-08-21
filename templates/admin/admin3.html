@@ -48,10 +48,33 @@
                 </ul>
             </div>
         {% endfor %}
+
+                <!-- Replace your left column field table with this -->
+        <h4 style="margin-top:2rem;">Fields in Table</h4>
+        <div>
+            <label>
+                <input type="radio" name="fieldMode" value="list" checked onchange="switchFieldMode('list')"> List
+            </label>
+            <label style="margin-left:1em;">
+                <input type="radio" name="fieldMode" value="detail" onchange="switchFieldMode('detail')"> Detail
+            </label>
+        </div>
+        <form id="list-fields-table" onsubmit="return false;">
+            <table class="fields-table" id="fields-table-left">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Type</th>
+                    <th>Use</th>
+                </tr>
+                <!-- JS will populate rows here -->
+            </table>
+            <button type="button" id="toggle-fields-btn" disabled onclick="toggleSelectedFields()">Toggle Selected</button>
+        </form>
+
+
+
     </div>
     <!-- Center column: List -->
-     
-
     <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;" id="center-table-panel">
     <h3 class="module-title">List</h3>
     <div id="center-table-content">
@@ -85,28 +108,7 @@
         {% endif %}
 
         <!-- Fields Table for Detail Column -->
-        <h4 style="margin-top:2rem;">Fields in Table</h4>
-        <form method="post" action="">
-            {% csrf_token %}
-            <table class="fields-table">
-                <tr>
-                    <th>Field Name</th>
-                    <th>Action</th>
-                </tr>
-                {% for field in all_fields %}
-                    <tr class="{% if field.name in detail_fields %}field-used{% endif %}">
-                        <td>{{ field.verbose_name }}</td>
-                        <td>
-                            {% if field.name in detail_fields %}
-                                <button type="submit" name="remove_detail_field" value="{{ field.name }}" class="field-action-btn" {% if field.name in detail_fields %}disabled{% endif %}>Remove</button>
-                            {% else %}
-                                <button type="submit" name="add_detail_field" value="{{ field.name }}" class="field-action-btn">Add</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-        </form>
+
        <h4 style="margin-top:2rem;">Fields in Table</h4>
             <table class="fields-table" id="detail-fields-table">
                 <tr>
@@ -311,5 +313,8 @@ function renderCenterTable() {
             contentDiv.innerHTML = html;
         });
 }
+
+
+
 </script>
 {% endblock %}
