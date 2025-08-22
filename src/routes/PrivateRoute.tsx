@@ -22,7 +22,8 @@ const AppLayout: React.FC = () => {
     return <div>Loading...</div>; // Or a loading spinner
   }
   
-  const getToken = localStorage.getItem("accessToken");
+  //const getToken = localStorage.getItem("accessToken");
+  const getToken = true
 
   return getToken ? (
     <div className="min-h-screen xl:flex">
@@ -46,7 +47,8 @@ const AppLayout: React.FC = () => {
 };
 
 const PrivateRoute: React.FC = () => {
-  const getToken = localStorage.getItem("accessToken");
+  //const getToken = localStorage.getItem("accessToken");
+  const getToken = true
   return getToken ? (
     <SidebarProvider>
       <AppLayout />

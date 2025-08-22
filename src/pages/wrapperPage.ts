@@ -6,6 +6,7 @@ import UserProfiles from "./UserProfile";
 import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
 import ContactAdd from "./contact/ContactAdd";
+import ContactList from "./contact/ContactList";
 
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
@@ -20,6 +21,7 @@ export {
   ActionList,
   ActionAdd,
   ContactAdd,
+  ContactList,
   
   Calendar,
   FormElements,
