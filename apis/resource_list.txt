@@ -1,2 +1,54 @@
 https://www.onlinegantt.com/#/gantt
 $4/month/user
+
+
+WCapiTask_GetGanttVue
+4D version complicated by multiple tables instead of just
+actions table in WC3. Point to related tables and ids
+$vtFieldList:="id,company_a,action,actionBy,actionDate,\
+qqactionTime,address1_a,qqaddress2,city_a,state,zip,\
+email,phone,lat,lng,obGeneral.action"
+// let ganttData = [
+
+
+]
+
+
+// Method: WCapiTask_GetKanban
+// Description
+// REF: https://bitbucket.org/TheDiligentDev/vue-kanban-board/src/master/
+// REF: Example coding:  https://www.youtube.com/watch?v=E8f5JR-K5DI
+// REF: https://ej2.syncfusion.com/vue/documentation/kanban/cards/
+//let kanbanData = [
+//     {
+//         'Id': 1,
+//         'Status': 'Open',
+//         'Summary': 'Analyze the new requirements gathered from the customer.',
+//         'Type': 'Story',
+//         'Priority': 'Low',
+//         'Tags': 'Analyze,Customer',
+//         'Estimate': 3.5,
+//         'PerCent': 20,
+//         'Assignee': 'Nancy Davloio',
+//         'RankId': 1,
+//         'Link':""
+//     },
+//     {
+//         'Id': 2,
+//         'Status': 'InProgress',
+//         'Summary': 'Improve application performance',
+//         'Type': 'Improvement',
+//         'Priority': 'Normal',
+//         'Tags': 'Improvement',
+//         'Estimate': 6,
+//         'PerCent': 40,
+//         'Assignee': 'Andrew Fuller',
+//         'RankId': 1,
+//         'Link':""
+//     }]
+// Parameters
+// ----------------------------------------------------
+
+
+Calendar
+pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
