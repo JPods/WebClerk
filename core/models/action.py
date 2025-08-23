@@ -5,8 +5,6 @@ from django.utils import timezone
 from common.models import BaseModel
 
 class Action(BaseModel):
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     action = models.CharField(max_length=255, blank=True, null=True)
     action_by = models.CharField(max_length=255, blank=True, null=True)
     priority = models.CharField(max_length=255, blank=True, null=True)

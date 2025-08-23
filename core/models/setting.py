@@ -4,8 +4,6 @@ from django.db import models
 from common.models import BaseModel
 
 class Setting(BaseModel):
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     is_active = models.BooleanField(default=False)
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)

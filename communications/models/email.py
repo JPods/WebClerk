@@ -5,8 +5,6 @@ from django.utils import timezone  # Add this import
 import uuid
 
 class Email(BaseModel):
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     email = models.EmailField(max_length=254, blank=False, help_text="Email address")
     name = models.CharField(max_length=100, blank=True, help_text="Display name for this email")
     attention = models.CharField(max_length=100, blank=True, help_text="Person or department attention line")

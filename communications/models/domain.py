@@ -5,8 +5,6 @@ from django.utils import timezone
 import uuid
 
 class Domain(BaseModel):
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     path = models.CharField(max_length=255, blank=True)
     type = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True, null=True)

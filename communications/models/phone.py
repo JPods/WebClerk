@@ -5,8 +5,6 @@ from django.utils import timezone  # Add this import
 import uuid
 
 class Phone(BaseModel):
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     number = models.CharField(max_length=20, blank=True, help_text="Phone number")
     country_code = models.CharField(max_length=5, blank=True, help_text="Country code (e.g., +1)")
     format = models.CharField(max_length=50, blank=True, help_text="Formatted phone number")
