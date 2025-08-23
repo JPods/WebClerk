@@ -77,7 +77,7 @@ class BaseModel(models.Model):
     Implements the 4D-style metadata system with modern Django features.
     """
     id = models.BigAutoField(primary_key=True)
-    #uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     metadata = models.JSONField(default=default_metadata, help_text="Universal API metadata structure")
     refs = models.JSONField(default=default_refs, help_text="References: keywords, tags, categories")
     prefs = models.JSONField(default=default_prefs, help_text="User preferences and settings")
