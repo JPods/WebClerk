@@ -83,15 +83,19 @@ class Command(BaseCommand):
                             except rel_model.DoesNotExist:
                                 obj_data[field.name] = None
                 # Get the primary key field name and value
-                pk_name = model._meta.pk.name
-                pk_value = obj_data.get(pk_name)
-                if pk_value is not None:
-                    # If PK exists, update or create the record
-                    model.objects.update_or_create(
-                        defaults=obj_data,
-                        **{pk_name: pk_value}
-                    )
+                if model._meta.pk is not None:
+                    pk_name = model._meta.pk.name
+                    pk_value = obj_data.get(pk_name)
+                    if pk_value is not None:
+                        # If PK exists, update or create the record
+                        model.objects.update_or_create(
+                            defaults=obj_data,
+                            **{pk_name: pk_value}
+                        )
+                    else:
+                        # Otherwise, just create a new record
+                        model.objects.create(**obj_data)
                 else:
-                    # Otherwise, just create a new record
+                    # If no primary key, just create a new record
                     model.objects.create(**obj_data)
         self.stdout.write(f"Import completed: {filename}")  # Print completion message
