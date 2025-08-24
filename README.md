@@ -52,6 +52,7 @@ webClerk3/
   -- video
   - Redis
   -- video
+  - pip install pydantic typing of jsonb   https://www.youtube.com/watch?v=XIdQ6gO3Anc
   
 -----------------------------
 ### How to run this project:

@@ -1,3 +1,4 @@
+# fix_basemodel_fields
 from django.core.management.base import BaseCommand
 from django.apps import apps
 import uuid
@@ -24,6 +25,10 @@ class Command(BaseCommand):
                         changed = True
                     if not getattr(obj, 'prefs', None):
                         obj.prefs = default_prefs()
+                        changed = True
+                    # Add ida field if missing or empty
+                    if hasattr(obj, 'ida') and not getattr(obj, 'ida', None):
+                        obj.ida = str(obj.id)
                         changed = True
                     if changed:
                         obj.save()

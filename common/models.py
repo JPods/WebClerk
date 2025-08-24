@@ -78,16 +78,17 @@ class BaseModel(models.Model):
     """
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    ida = models.CharField(max_length=40, blank=True, help_text="Alternate ID for external systems")
     metadata = models.JSONField(default=default_metadata, help_text="Universal API metadata structure")
     refs = models.JSONField(default=default_refs, help_text="References: keywords, tags, categories")
     prefs = models.JSONField(default=default_prefs, help_text="User preferences and settings")
+    comments = models.JSONField(default=default_prefs, help_text="User comments and notes")
     health_rating = models.IntegerField(default=0, help_text="Data quality rating (0-100)")
 
     class Meta:
         abstract = True
         indexes = [
             GinIndex(fields=['refs'], name='refs_gin_idx'),
-            GinIndex(fields=['metadata'], name='metadata_gin_idx'),
             GinIndex(fields=['prefs'], name='prefs_gin_idx'),
         ]
 
@@ -164,6 +165,20 @@ class BaseModel(models.Model):
         if verified_dt_ms:
             return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.utc)
         return None
+
+    def set_comments(self, partner=None, process=None, public=None):
+        """
+        Populate the comments JSONB with .partner, .process, .public keys.
+        """
+        if not isinstance(self.comments, dict):
+            self.comments = {}
+        if partner is not None:
+            self.comments['partner'] = partner
+        if process is not None:
+            self.comments['process'] = process
+        if public is not None:
+            self.comments['public'] = public
+        self.save()
 
     def __str__(self):
         if hasattr(self, 'name'):
