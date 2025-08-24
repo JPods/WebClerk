@@ -55,6 +55,17 @@ webClerk3/
   - pip install pydantic typing of jsonb   https://www.youtube.com/watch?v=XIdQ6gO3Anc
   
 -----------------------------
+### Data consistency:
+-----------------------------
+ - in common/management/commands
+ -- data file
+  --  all_tables_export.json
+ -- to export
+  -- python manage.py demo_data_import_export export
+ -- to import
+  -- python manage.py demo_data_import_export import
+
+-----------------------------
 ### How to run this project:
 -----------------------------
 #### a. if everything OK, just run:
