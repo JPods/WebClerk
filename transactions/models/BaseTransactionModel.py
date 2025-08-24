@@ -1,6 +1,9 @@
 from django.db import models
-from common.models import BaseModel
+from common.models import BaseModel  # Your Django base model
+from typing import Any, Dict, Optional
+from pydantic import BaseModel
 from decimal import Decimal
+
 '''
  Google Doc for BaseLineModel schema and design:
  https://docs.google.com/document/d/12C8LHt8x1Bl6spM_iHFC6DK01eIxQzD5_4-3cK9ybow/edit?tab=t.0
@@ -11,9 +14,45 @@ BASE_DECIMAL_DEFAULT = Decimal("0.00")
 BASE_INT_DEFAULT = Decimal("0")
 
 
-from typing import Any, Dict, Optional
-from pydantic import BaseModel
-import time  # For timestamps, assuming Unix timestamps as in your example
+
+def default_transaction_flow():
+    return {
+        "source": [{"type": "", "id": 0}],
+        "destination": [{"type": "", "id": 0}]
+    }
+
+def default_source():
+    return {
+        "campaign_id": 0,
+        "catalog_id": None,
+        "vendor_id": 0,
+        "manufacturer_id": 0
+    }
+
+def default_comments():
+    return {
+        "public": "",
+        "process": "",
+        "foreign": ""
+    }
+
+def default_physical():
+    return {
+        "unit": 0,
+        "extended": 0,
+        "volume":{},
+        "hazardous": {}
+    }
+
+# tracks the how we got this transaction and where it was resolved
+# mostly at the transaction level unless split across multiple entities
+def default_transaction_flow():
+    return {
+        "source": [{"type": "", "id": 0}],
+        "destination": [{"type": "", "id": 0}]
+    }
+
+
 
 class TransactionBaseModel(BaseModel):
     

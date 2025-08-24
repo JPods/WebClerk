@@ -112,7 +112,7 @@ def default_transaction_flow():
 def default_source():
     return {
         "campaign_id": 0,
-        "offered_price": None,
+        "catalog_id": None,
         "vendor_id": 0,
         "manufacturer_id": 0
     }
