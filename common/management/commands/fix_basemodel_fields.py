@@ -1,4 +1,4 @@
-# fix_basemodel_fields
+# python manage.py fix_basemodel_fields
 from django.core.management.base import BaseCommand
 from django.apps import apps
 import uuid

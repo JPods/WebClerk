@@ -16,6 +16,8 @@ from pydantic import BaseModel
 import time  # For timestamps, assuming Unix timestamps as in your example
 
 class TransactionBaseModel(BaseModel):
+    
+    
     """
     Base Pydantic model for transactions (proposals, orders, etc.).
     This includes JSONB fields: metadata, refs, prefs, comments.
@@ -73,11 +75,43 @@ class TransactionBaseModel(BaseModel):
         """
         refs = existing.copy()
         
+        # Pre-structured bill_to
+        # e.g., {'company_bill_to': '', 'company_billto_id': [], 'contact_billto_id': [], ...}
+        refs.setdefault('bill_to', {
+            'company': '',
+            'company_id': [],
+            'contact_id': [],
+            'location_id': [],
+            'phone_id': [],
+            'email_id': [],
+            'attention': ''
+        })
+        
+
+        # Pre-structured ship_to
+        refs.setdefault('ship_to', {
+            'company': '',
+            'company_id': [],
+            'contact_id': [],
+            'location_id': [],
+            'phone_id': [],
+            'email_id': [],
+            'attention': ''
+        })
+
+        # Expanded parties structure
+        refs.setdefault('parties', {
+            'created':   {'id': None, 'attention': ''},
+            'updated':   {'id': None, 'attention': ''},
+            'action':    {'id': None, 'attention': ''},
+            'requested': {'id': None, 'attention': ''},
+            'approved':  {'id': None, 'attention': ''},
+            'packed':    {'id': None, 'attention': ''}
+        })
+
+        
         # Ensure structured sub-keys if not present
-        refs.setdefault('bill_to', {})  # e.g., {'company_id': None, 'contact_id': None, ...}
-        refs.setdefault('ship_to', {})
-        refs.setdefault('parties', {})  # e.g., {'attention_id': None, 'requested_by_id': None}
-        refs.setdefault('marketing', {'id': None})
+        refs.setdefault('campaign', {'id': None})
         # Add more defaults as per your fields, e.g., refs['boilerplate_id'] = None
         
         return refs
@@ -92,8 +126,8 @@ class TransactionBaseModel(BaseModel):
         prefs = existing.copy()
         
         # Set defaults if keys are missing
-        prefs.setdefault('currency_code', 'USD')
-        prefs.setdefault('payment_terms', 'Net 30')
+        prefs.setdefault('currency', {'code': 'USD', 'rate': 1.0})
+        prefs.setdefault('payment_terms', {'name':'Net 30','id': None})
         prefs.setdefault('ship_via', 'UPS')  # Or embed in ship_to if preferred
         prefs.setdefault('tax', {'rate': 0.0, 'jurisdiction': 'Default'})
         # Add more like 'priority': 'Medium', 'overruns_allowed': False

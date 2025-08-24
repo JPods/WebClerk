@@ -87,7 +87,7 @@ def default_comments():
 
 def default_action():
     return {
-        "next":{"who":"","when":0,"what":""},
+        "action_next":{"who":"","when":0,"what":""},
         "created": {"who":"","when":0},
         "requested": {"who":"","when":0},
         "updated": {"who":"","when":0}

@@ -1,5 +1,4 @@
-#2025-08-17 
-#did not work
+# python manage.py populate_related_data
 from django.core.management.base import BaseCommand
 import random
 import uuid
