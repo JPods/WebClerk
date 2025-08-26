@@ -2,7 +2,7 @@
 # You can run this in Django shell or create a management command
 # To open Django shell: python manage.py shell
 
-from communications.models.address import Location
+from apps.communications.models.address import Location
 from django.utils import timezone
 
 # Create address record for Jane Doe

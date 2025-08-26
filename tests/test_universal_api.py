@@ -3,8 +3,8 @@ import json
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from core.models import Contact
-from communications.models import Location, Phone, Email
+from apps.core.models import Contact
+from apps.communications.models import Location, Phone, Email
 
 User = get_user_model()
 

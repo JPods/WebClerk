@@ -1,7 +1,7 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from core.views.auth_views import admin_dashboard
+from apps.core.views.auth_views import admin_dashboard
 
 urlpatterns = [
     # Admin

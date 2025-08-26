@@ -13,6 +13,18 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     #'debug_toolbar',
+
+    'apps.apis',
+    'apps.communications',
+    'apps.core',
+    'apps.docs',
+    'apps.orgs',
+    'apps.plans',
+    'apps.products',
+    'apps.support',
+    'apps.transactions',
+    'common',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -23,20 +35,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
-    'corsheaders',
     'django_celery_beat',
     'django_celery_results',
     'django_extensions',
-    'apis',
-    'common',
-    'communications',
-    'core',
-    'docs',
-    'orgs',
-    'plans',
-    'products',
-    'support',
-    'transactions',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +108,8 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
+        #QQQDevelopment ONLY
+        #'rest_framework.permissions.AllowAny',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 

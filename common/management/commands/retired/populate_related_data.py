@@ -2,8 +2,8 @@
 from django.core.management.base import BaseCommand
 import random
 import uuid
-from core.models import Contact
-from communications.models import Email, Phone, Location, Domain
+from apps.core.models import Contact
+from apps.communications.models import Email, Phone, Location, Domain
 
 def set_contact_ref(metadata, contact_id):
     # Ensure the structure exists

@@ -12,7 +12,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 # Ensure access rules are loaded for Celery workers
-from core.services import view_edit_access
+from apps.core.services import view_edit_access
 view_edit_access.reload_access_data()
 
 

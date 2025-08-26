@@ -1,7 +1,7 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/local/demo_data.py
 from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password
-from core.models import Contact, Action, Phone, Location, Domain, Email
+from apps.core.models import Contact, Action, Phone, Location, Domain, Email
 import json
 from datetime import datetime, timedelta
 
