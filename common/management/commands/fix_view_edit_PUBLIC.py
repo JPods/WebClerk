@@ -1,4 +1,6 @@
 #could not get it to recognize the model from the table name
+#clear
+#python manage.py fix_view_edit_PUBLIC
 from django.core.management.base import BaseCommand
 from apps.core.models import Setting
 from django.apps import apps
@@ -10,7 +12,7 @@ table_model = {
     "domains": "apps.core.Domain",
     "emails": "apps.communications.Email",
     "phones": "apps.communications.Phone",
-    "address": "apps.communications.Location",
+    "locations": "apps.communications.Location",
     "contacts": "apps.communications.Contact",
 }
 
