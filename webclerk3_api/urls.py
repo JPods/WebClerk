@@ -12,5 +12,5 @@ urlpatterns = [
     # With this:
     path('admin/', admin_dashboard, name='admin_dashboard'),         # Your custom 3-column admin
     path('admin-django/', admin.site.urls),                          # Original Django admin
-    path('', include('core.urls')),  # This handles everything including the home page
+    path('', include('apps.core.urls')),  # This handles everything including the home page
 ]
