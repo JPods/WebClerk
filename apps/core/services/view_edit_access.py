@@ -40,12 +40,20 @@ def get_view_edit_fields(table_name: str, role: str, access_type: str = "view") 
             purpose="view_edit",
             table_name=table_name
         )
-        role_data = setting.data.get(role.upper())
+        data = getattr(setting, "data", None)
+        #print(f"get_view_edit_fields: table={table_name}, role={role}, access_type={access_type}, data={data}") 
+        if not isinstance(data, dict):
+            return []
+        role_data = data.get(role.upper())
         if not role_data:
-            role_data = setting.data.get("PUBLIC", {})
+            role_data = data.get("PUBLIC", {})
+            print (f"1get_view_edit_fields result: role_data={role_data}")
         return role_data.get(access_type, [])
+        print (f"2get_view_edit_fields result: role_data={role_data}")
     except Setting.DoesNotExist:
+        print(f"3get_view_edit_fields error: table={table_name}, role={role}, access_type={access_type}, data=Setting.DoesNotExist")
         return []
+        
 
 def filter_json_response(table_name_getter, access_type="view"):
     """
@@ -80,7 +88,7 @@ def filter_json_response(table_name_getter, access_type="view"):
                                 for r in records
                             ]
                         data["related"] = filtered_related
-                    response.content = json.dumps(data)
+                    response = JsonResponse(data)
             return response
         return _wrapped_view
     return decorator

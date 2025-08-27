@@ -60,6 +60,7 @@ class WcapiGetView(View):
             except model.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'Record not found'}, status=404)
             record = model_to_dict(obj)
+            #QQQ removed filter by role for development
             filtered_record = filter_record_for_role(record, table_name, user_role, "view")
             related_result = get_related_data(table_name, int(record_id))
             related_data = related_result.get('related', {})
