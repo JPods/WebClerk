@@ -40,6 +40,7 @@ class WcapiGetView(View):
         """
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
+        #QQQ need to add roles  
         user_role = getattr(request.user, "role", "PUBLIC")
 
         if not table_name:

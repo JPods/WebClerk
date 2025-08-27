@@ -1,0 +1,89 @@
+
+class ContactManager(BaseUserManager):
+    """Custom user manager for Contact model"""
+    
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and return a regular user"""
+        if not email:
+            raise ValueError('The Email field must be set')
+        
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+    
+    def create_superuser(self, email, password=None, **extra_fields):
+        """Create and return a superuser"""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        
+        return self.create_user(email, password, **extra_fields)
+
+
+Django’s JSONField does not support direct indexing on nested keys like refs.keywords, refs.links, etc.
+However, you can add database indexes on top-level fields and use PostgreSQL’s GIN indexes for efficient querying inside JSON fields.
+
+Here’s how to add GIN indexes for your refs field and improve search performance for nested keys:
+
+How this helps:
+
+GIN indexes allow fast lookups for queries like:
+You can use Django’s __contains or __icontains lookups for JSONField queries.
+Note:
+
+This requires PostgreSQL as your database.
+For even more advanced search (partial matches, stemming), consider integrating PostgreSQL full-text search or Django Haystack.
+Summary:
+
+Add GIN indexes to your JSON fields in BaseModel.Meta.indexes.
+Use Django’s JSONField lookups for efficient querying.
+
+
+# Querying JSONField Data with GIN Indexes in Django (PostgreSQL)
+# ---------------------------------------------------------------
+# This document explains how to efficiently query nested JSON data in our Universal API models
+# using Django's JSONField lookups and PostgreSQL GIN indexes.
+
+## Why GIN Indexes?
+- GIN (Generalized Inverted Index) indexes allow fast lookups inside JSON fields.
+- We add GIN indexes to fields like `refs` in BaseModel for efficient querying.
+- This is supported only on PostgreSQL.
+
+## Example Queries
+
+### 1. Find records with a specific keyword
+# Returns all contacts with 'bill' in refs.keywords
+Contact.objects.filter(refs__keywords__contains=['bill'])
+
+### 2. Find records with a specific category
+# Returns all contacts with 'finance' in refs.categories
+Contact.objects.filter(refs__categories__contains=['finance'])
+
+### 3. Find records with a specific related_id
+# Returns all contacts with a related_id of 12345
+Contact.objects.filter(refs__related_ids__contains=[12345])
+
+### 4. Find records with a specific link
+# Returns all contacts with a specific contact in refs.links.contacts
+Contact.objects.filter(refs__links__contacts__contains=[67890])
+
+### 5. Case-insensitive partial match (not indexed, but possible)
+# Returns all contacts where any keyword contains 'tul' (case-insensitive)
+Contact.objects.filter(refs__keywords__icontains='tul')
+
+## Notes
+- These queries are efficient if you have a GIN index on `refs`.
+- For partial matches, performance may be lower; consider full-text search for advanced needs.
+- For even more advanced search (partial matches, stemming), consider integrating PostgreSQL full-text search or Django Haystack.
+
+## Summary
+- Add GIN indexes to your JSON fields in BaseModel.Meta.indexes.
+- Use Django’s JSONField lookups for efficient querying.
+- This approach keeps our Universal API flexible and performant for keyword, category, and relationship queries.
