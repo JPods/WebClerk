@@ -2,7 +2,9 @@
 import uuid
 from django.db import models
 from common.models import BaseModel
-
+# company, defaults, view_edit, user-levels,
+# poppups, question, constants, integrations, notifications,
+# 
 class Setting(BaseModel):
     is_active = models.BooleanField(default=False)
     name = models.CharField(max_length=255, blank=True, null=True)
@@ -16,4 +18,4 @@ class Setting(BaseModel):
         db_table = 'settings'
 
     def __str__(self):
-        return f"{self.name or 'Setting'} ({self.uuid})"
+        return f"{self.name or 'Setting'} ({self.id})"

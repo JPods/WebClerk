@@ -2,16 +2,22 @@
 
 ## Directory Structure
 
+
 webClerk3/
-├── core/
-│   ├── models.py
-│   ├── views/
-│   ├── services/
-│   ├── templates/
-│   └── ...
-├── communications/
-│   ├── models.py
-│   └── ...
+├── apps/
+│   ├── core/
+│   │   ├── models/
+│   │   ├── views/
+│   │   ├── services/
+│   │   ├── templates/
+│   │   └── ...
+│   ├── communications/
+│   │   ├── models/
+│   │   ├── views/
+│   │   └── ...
+│   └── docs/
+│       ├── models/
+│       └── ...
 ├── templates/
 │   ├── base.html
 │   ├── signin.html
@@ -20,9 +26,13 @@ webClerk3/
 │   └── ...
 ├── common/
 │   ├── default_access.json
+│   ├── management/
+│   │   └── commands/
+│   │       └── ...
 │   └── ...
 └── webclerk3_api/
     ├── settings.py
+    ├── celery_app.py
     └── ...
 ```
 

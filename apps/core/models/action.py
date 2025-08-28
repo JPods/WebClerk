@@ -24,4 +24,4 @@ class Action(BaseModel):
         db_table = 'actions'
 
     def __str__(self):
-        return f"{self.action or 'Action'} ({self.uuid})"
+        return f"{self.action or 'Action'} ({self.id})"

@@ -15,4 +15,4 @@ class Template(BaseModel):
         db_table = 'templates'
 
     def __str__(self):
-        return f"{self.name or 'Template'} ({self.uuid})"
+        return f"{self.name or 'Template'} ({self.id})"

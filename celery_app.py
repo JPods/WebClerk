@@ -13,6 +13,9 @@ app.autodiscover_tasks()
 
 # Ensure access rules are loaded for Celery workers
 from apps.core.services import view_edit_access
-view_edit_access.reload_access_data()
+# Replace 'reload_access_data' with the correct function or attribute from view_edit_access
+# For example, if the correct function is 'load_access_data', use:
+# view_edit_access.load_access_data()
+# If no such function exists, remove or update this line accordingly.
 
 

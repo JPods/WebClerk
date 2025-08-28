@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class APISConfig(AppConfig):
+class ConnectionsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.apis'
+    name = 'apps.connections'
