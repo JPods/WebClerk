@@ -91,32 +91,32 @@
     "table_name": "pendings",
     "data": {
       "SUPER": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       },
       "ADMIN": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       },
       "SALE": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       },
       "REP": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       },
       "VENDOR": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       },
       "CUSTOMER": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       },
       "USER": {
-        "view": ["id", "ida", "table_name"],
-        "edit": ["id", "ida", "table_name"]
+        "view": ["id", "ida", "table_name","dt_processed"],
+        "edit": ["id", "ida", "table_name", "dt_processed"]
       }
     }
   },
