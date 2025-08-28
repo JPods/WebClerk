@@ -182,12 +182,14 @@ class BaseModel(models.Model):
         self.save()
 
     def __str__(self):
-        if hasattr(self, 'name'):
-            return str(self.name)
-        elif hasattr(self, 'title'):
-            return str(self.title)
-        elif hasattr(self, 'email'):
-            return str(self.email)
-        else:
-            return f"{self.__class__.__name__} #{self.pk}"
+        name = getattr(self, 'name', None)
+        if name:
+            return str(name)
+        title = getattr(self, 'title', None)
+        if title:
+            return str(title)
+        email = getattr(self, 'email', None)
+        if email:
+            return str(email)
+        return f"{self.__class__.__name__} #{self.pk}"
 
