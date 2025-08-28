@@ -119,8 +119,8 @@
         "edit": []
       },
       "PUBLIC": {
-        "view": [],
-        "edit": []
+        "view": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"],
+        "edit": ["is_active", "name", "purpose", "role", "table_name", "comment"]
       }
     },
     "comment": ""
@@ -161,18 +161,18 @@
         "edit": []
       },
       "PUBLIC": {
-        "view": [],
-        "edit": []
+        "view": ["id", "name", "purpose", "table_name", "comment"],
+        "edit": ["name", "purpose", "table_name", "comment"]
       }
     },
     "comment": ""
   },
   {
     "is_active": true,
-    "name": "addresses",
+    "name": "locations",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "addresses",
+    "table_name": "locations",
     "data": {
       "SUPER": {
         "view": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
@@ -203,8 +203,8 @@
         "edit": ["address1", "city", "state", "zip"]
       },
       "PUBLIC": {
-        "view": [],
-        "edit": []
+        "view": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
+        "edit": ["address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"]
       }
     },
     "comment": ""
@@ -245,8 +245,8 @@
         "edit": []
       },
       "PUBLIC": {
-        "view": [],
-        "edit": []
+        "view": ["id", "path", "type", "comment"],
+        "edit": ["id", "path", "type", "comment"]
       }
     },
     "comment": ""
@@ -287,8 +287,8 @@
         "edit": ["email"]
       },
       "PUBLIC": {
-        "view": [],
-        "edit": []
+        "view": ["id", "email", "attention", "name", "opt_out", "comment"],
+        "edit": ["email", "attention", "name", "opt_out", "comment"]
       }
     },
     "comment": ""
@@ -329,8 +329,8 @@
         "edit": ["number"]
       },
       "PUBLIC": {
-        "view": [],
-        "edit": []
+        "view": ["id", "attention", "country_code", "name", "number"],
+        "edit": ["attention", "country_code", "name", "number"]
       }
     },
     "comment": ""

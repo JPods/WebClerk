@@ -1,4 +1,5 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/view_edit_to_settings.py
+#python manage.py view_edit_to_settings
 import json
 import os
 """
@@ -18,13 +19,12 @@ Methods:
 """
 from django.core.management.base import BaseCommand
 from apps.core.models import Setting  # Use your actual model name
-
 # Load default access settings
 class Command(BaseCommand):
     help = 'Load default_access.json into the settings table'
 
     def handle(self, *args, **kwargs):
-        path = os.path.join(os.getcwd(), "core", "management", "commands", "view_edit.json")
+        path = os.path.join(os.getcwd(), "apps","core", "management", "commands", "view_edit.json")
         with open(path, 'r') as f:
             data = json.load(f)
         count = 0
