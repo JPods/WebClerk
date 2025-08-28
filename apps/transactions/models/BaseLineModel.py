@@ -14,13 +14,17 @@ def default_item():
     return {
         "id_num": None,
         "ida_item": "",
+        "uuid_item": "",
         "description": "",
         "description_text": "",
         "time_lead": None,
-        "location": "",
+        "locations": [],
         "unit_measure": "",
         "sequence": 0,
         "line_number": 0,
+        "is_deleted": False,
+        "is_active": True,
+        "is_archived": False
     }
 
 def default_quantity(transaction_type=None):

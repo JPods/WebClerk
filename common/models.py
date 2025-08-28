@@ -59,6 +59,7 @@ def default_refs():
     return {
         "keywords": [],
         "tags": [],
+        #QQQ add linkages
         "links": {"contacts": []},
         "categories": [],
         "related_ids": []
