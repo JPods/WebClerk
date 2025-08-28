@@ -12,9 +12,11 @@ CONTRIBUTING:
 - CoPilot
 - Bill James
 
-Data basics
+Data basics in commom/management/commands
 data:  all_tables_export.json
-import function: core/management/commands/import_all_tables.py
+import function: common/management/commands/
+# python manage.py demo_data_import_export export
+# python manage.py demo_data_import_export import
 
 3column admin
 [3column admin Grok Link](https://grok.com/share/c2hhcmQtMg%3D%3D_427dc198-2378-41ef-b3c5-c77d1e4e1062)
@@ -64,6 +66,7 @@ webClerk3/
   -- python manage.py demo_data_import_export export
  -- to import
   -- python manage.py demo_data_import_export import
+  -- dbprompt: DROP TABLE IF EXISTS pending CASCADE;
 
 -----------------------------
 ### How to run this project:
@@ -96,19 +99,19 @@ webClerk3/
   - python manage.py runserver
 
 #### if you face postgres issues, reset it:
-  - source ./bin/activate
-  - psql -U an7or -d postgres | psql -U williamjames -d postgres
-  - SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
+source ./bin/activate
+psql -U an7or -d postgres | psql -U williamjames -d postgres
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
     WHERE datname = 'commerce_expert' AND pid <> pg_backend_pid();
-  - DROP DATABASE IF EXISTS commerce_expert;
-  - CREATE DATABASE commerce_expert;
-  - CTRL+Z
-  - rm */migrations/0*.py
-  - python manage.py makemigrations
-  - python manage.py migrate
-  - python manage.py createsuperuser
-  - python manage.py view_edit_to_settings
-  - python manage.py runserver
+DROP DATABASE IF EXISTS commerce_expert;
+CREATE DATABASE commerce_expert;
+CTRL+Z
+rm -rf **/migrations/0*.py
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py view_edit_to_settings
+python manage.py runserver
 
 
 #### working with github:

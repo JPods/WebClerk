@@ -30,9 +30,23 @@ class Command(BaseCommand):
 
     def export_all_data(self, filename):
         """Export all fields from all tables to a JSON file."""
+        # List of models to skip during export (system tables, celery tables, etc.)
+        skip_models = [
+            'core.Pending',
+            'auth.Permission',
+            'contenttypes.ContentType',
+            'admin.LogEntry',
+            'django_celery_beat.PeriodicTask',
+            'django_celery_beat.CrontabSchedule',
+            'django_celery_beat.IntervalSchedule',
+            'django_celery_beat.ClockedSchedule',
+            'django_celery_beat.SolarSchedule',
+        ]
         all_data = {}  # Dictionary to hold all exported data
         for model in apps.get_models():  # Loop through all Django models
             model_name = f"{model._meta.app_label}.{model.__name__}"  # e.g., 'core.Contact'
+            if model_name in skip_models:
+                continue  # Skip models in the skip list
             self.stdout.write(f"Exporting table: {model_name}")  # Print which table is being exported
             # For each object in the model, create a dict of field values
             all_data[model_name] = [
@@ -46,13 +60,29 @@ class Command(BaseCommand):
 
     def delete_all_data(self):
         """Delete all data from all tables."""
+        # List of models to skip during deletion (system tables, celery tables, etc.)
+        skip_models = [
+            'core.Pending',
+            'auth.Permission',
+            'contenttypes.ContentType',
+            'admin.LogEntry',
+            'django_celery_beat.PeriodicTask',
+            'django_celery_beat.CrontabSchedule',
+            'django_celery_beat.IntervalSchedule',
+            'django_celery_beat.ClockedSchedule',
+            'django_celery_beat.SolarSchedule',
+        ]
         for model in apps.get_models():  # Loop through all models
+            model_name = f"{model._meta.app_label}.{model.__name__}"
+            if model_name in skip_models:
+                continue  # Skip models in the skip list
             model.objects.all().delete()  # Delete all records in each model
 
     def import_all_data(self, filename):
         """Import all fields into all tables from a JSON file."""
         # List of models to skip during import (system tables, celery tables, etc.)
         skip_models = [
+            'core.Pending',
             'auth.Permission',
             'contenttypes.ContentType',
             'admin.LogEntry',
@@ -68,7 +98,7 @@ class Command(BaseCommand):
         for model in apps.get_models():  # Loop through all models
             model_name = f"{model._meta.app_label}.{model.__name__}"
             if model_name in skip_models:
-                continue  # Skip system tables
+                continue  # Skip models in the skip list
             self.stdout.write(f"Importing table: {model_name}")  # Print which table is being imported
             objects = all_data.get(model_name, [])  # Get list of objects for this model
             for obj_data in objects:  # Loop through each object to import
@@ -82,20 +112,14 @@ class Command(BaseCommand):
                                 obj_data[field.name] = rel_model.objects.get(pk=rel_value)
                             except rel_model.DoesNotExist:
                                 obj_data[field.name] = None
-                # Get the primary key field name and value
-                if model._meta.pk is not None:
-                    pk_name = model._meta.pk.name
-                    pk_value = obj_data.get(pk_name)
-                    if pk_value is not None:
-                        # If PK exists, update or create the record
-                        model.objects.update_or_create(
-                            defaults=obj_data,
-                            **{pk_name: pk_value}
-                        )
-                    else:
-                        # Otherwise, just create a new record
-                        model.objects.create(**obj_data)
+                # Always use update_or_create if PK is present
+                pk_name = model._meta.pk.name if model._meta.pk else None
+                pk_value = obj_data.get(pk_name) if pk_name else None
+                if pk_name and pk_value is not None:
+                    model.objects.update_or_create(
+                        defaults=obj_data,
+                        **{pk_name: pk_value}
+                    )
                 else:
-                    # If no primary key, just create a new record
                     model.objects.create(**obj_data)
         self.stdout.write(f"Import completed: {filename}")  # Print completion message
