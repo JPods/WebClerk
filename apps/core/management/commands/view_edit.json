@@ -85,6 +85,43 @@
   },
   {
     "is_active": true,
+    "name": "pendings",
+    "purpose": "view_edit",
+    "role": "all",
+    "table_name": "pendings",
+    "data": {
+      "SUPER": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      },
+      "ADMIN": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      },
+      "SALE": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      },
+      "REP": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      },
+      "VENDOR": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      },
+      "CUSTOMER": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      },
+      "USER": {
+        "view": ["id", "ida", "table_name"],
+        "edit": ["id", "ida", "table_name"]
+      }
+    }
+  },
+  {
+    "is_active": true,
     "name": "settings",
     "purpose": "view_edit",
     "role": "all",

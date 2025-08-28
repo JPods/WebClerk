@@ -11,7 +11,7 @@ TABLE_APP_MAP = {
     'actions': 'core',
     'emails': 'communications',
     'phones': 'communications',
-    'addresses': 'communications',
+    'locations': 'communications',
     'domains': 'communications',
     # Add more as needed
 }
