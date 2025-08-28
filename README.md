@@ -18,6 +18,8 @@ import function: common/management/commands/
 # python manage.py demo_data_import_export export
 # python manage.py demo_data_import_export import
 
+DO NOT export or import pending records.
+
 3column admin
 [3column admin Grok Link](https://grok.com/share/c2hhcmQtMg%3D%3D_427dc198-2378-41ef-b3c5-c77d1e4e1062)
 

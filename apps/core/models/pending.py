@@ -4,7 +4,9 @@ import uuid
 from django.utils import timezone
 from common.models import default_metadata, default_refs, default_prefs, default_data
 
+# not coming from common.models.BaseModel
 class Pending(models.Model):
+    id = models.BigAutoField(primary_key=True)  # Ensure auto-incrementing PK
     table_name = models.CharField(max_length=255, blank=True, null=True)
     record_id = models.CharField(max_length=255, blank=True, null=True)
     data = models.JSONField(default=default_data)  # <-- always initialized
