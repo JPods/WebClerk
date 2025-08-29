@@ -13,12 +13,12 @@ class Exchange(BaseModel):
     status = models.CharField(max_length=255, blank=True, null=True)
     alert = models.CharField(max_length=255, blank=True, null=True)
     response = models.JSONField(blank=True, null=True)
-    duration = models.BigIntegerField(default=0)  # in milliseconds
+    duration = models.BigIntegerField(default=0)
     payload = models.JSONField(blank=True, null=True)
-    size = models.BigIntegerField(default=0)  # in bytes
+    size = models.BigIntegerField(default=0)
 
     class Meta:
         db_table = 'exchanges'
 
     def __str__(self):
-        return f"Exchange {self.id} for API {self.connection_id.id}"
+        return f"Exchange {self.id} for connection {self.connection_id.id}"
