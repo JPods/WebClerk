@@ -47,7 +47,8 @@ useEffect(() => {
       try {
          const res = await Contacts()       
          if(res.status === 200)
-         {            
+         {   
+           console.log("Action data:",res.data)         
             setData(res.data)
          }
          
