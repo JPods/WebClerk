@@ -1,8 +1,28 @@
 from rest_framework import generics, permissions, pagination, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchHeadline
-from django.db.models import F, Q
+from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.contrib.postgres import search as pg_search
+try:
+    # Django 5+ provides SearchHeadline; type ignore for older stubs
+    SearchHeadline = pg_search.SearchHeadline  # type: ignore[attr-defined]
+except AttributeError:  # Fallback for older Django versions without SearchHeadline
+    from django.db import models
+    from django.db.models import Func, Value, F as _F
+    from typing import ClassVar
+
+    class SearchHeadline(Func):
+        function = 'ts_headline'
+        # Define output_field at the class level to satisfy both Django and type checkers
+        output_field: ClassVar[models.TextField] = models.TextField()
+
+        def __init__(self, expression, query, start_sel='<mark>', stop_sel='</mark>', **extra):
+            # Allow passing field name as string
+            expr = _F(expression) if isinstance(expression, str) else expression
+            options = f"StartSel={start_sel}, StopSel={stop_sel}"
+            # Pass output_field explicitly for clarity with type checkers
+            super().__init__(Value('english'), expr, query, Value(options), output_field=self.output_field, **extra)
+from django.db.models import F, Q, Func, Value
 from apps.docs.models.document import Document
 from apps.docs.serializers.document_serializers import DocumentSerializer, DocumentSearchSerializer
 
