@@ -18,6 +18,9 @@
 # All timestamps are saved as GMT/UTC (Universal API standard)
 
 from django.db import models
+from django.db import transaction
+from django.db.models import F, Value
+from django.db.models.expressions import Func
 import uuid
 from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
@@ -60,6 +63,25 @@ from django.contrib.postgres.indexes import GinIndex
 MAX_METADATA_SIZE = 320000  # bytes
 MAX_REFS_SIZE = 320000      # bytes
 MAX_PREFS_SIZE = 320000     # bytes
+
+# --- Optimistic concurrency / atomic JSON support (NEW) ----------------------
+
+class VersionConflictError(Exception):
+    """Raised when an optimistic concurrency (version) check fails."""
+    pass
+
+
+class JSONBSet(Func):
+    """Django Func wrapper for PostgreSQL jsonb_set(target, path, new_value, create_missing).
+
+    NOTE: path is provided as a PostgreSQL text array literal string e.g. '{flags,keywords_pending}'.
+    """
+    function = 'jsonb_set'
+    template = "%(function)s(%(expressions)s)"
+    arity = 4  # target, path, new_value, create_missing
+    def __init__(self, target, path, new_value, create_missing=True, **extra):
+        expressions = [target, path, new_value, Value(create_missing)]
+        super().__init__(*expressions, output_field=models.JSONField(), **extra)
 
 # functions must be defined before they are used
 
@@ -216,6 +238,95 @@ class BaseModel(models.Model):
         # CHANGE: invalidate pydantic cache after persistence
         self._pydantic_cache = None
 
+    # ---------------- Optimistic Concurrency Helpers (NEW) ------------------
+    def assert_version(self, expected_version: int | None):
+        """Ensure current instance version matches expected_version.
+
+        expected_version can be None to skip (caller decided no check).
+        Raises VersionConflictError if mismatch.
+        """
+        if expected_version is None:
+            return
+        # refresh current version from DB to ensure accuracy
+        current = type(self).objects.filter(pk=self.pk).values_list('version', flat=True).first() if self.pk else None
+        if current is None:
+            return  # object not yet persisted; treat as fine
+        if current != expected_version:
+            raise VersionConflictError(f"Version conflict: expected {expected_version} got {current}")
+
+    # ---------------- Atomic JSON field updates (NEW) ----------------------
+    @classmethod
+    def atomic_json_set(cls, pk: int, field: str, path: list[str], value, create_missing: bool = True, expected_version: int | None = None):
+        """Atomically set a JSON path inside metadata/refs/prefs/comments.
+
+        Args:
+            pk: primary key of row.
+            field: one of 'metadata','refs','prefs','comments'.
+            path: list of nested keys to set e.g. ['flags','keywords_pending'].
+            value: JSON-serializable value to write.
+            create_missing: pass-through to jsonb_set create_missing flag.
+            expected_version: if provided, enforce optimistic concurrency.
+
+        Returns updated row count (0 or 1) and new version (if updated) else None.
+        """
+        if field not in {'metadata','refs','prefs','comments'}:
+            raise ValueError('field must be one of metadata, refs, prefs, comments')
+        path_literal = '{' + ','.join(path) + '}'
+        with transaction.atomic():
+            base_qs = cls.objects.select_for_update().filter(pk=pk)
+            if expected_version is not None:
+                base_qs = base_qs.filter(version=expected_version)
+            # Use jsonb_set; wrap new value as JSON via Value(json.dumps(...)) is not needed; Django will adapt.
+            updated = base_qs.update(**{
+                field: JSONBSet(F(field), Value(path_literal), Value(json.dumps(value)), True),
+                'version': F('version') + 1,
+                'modified_dt': int(timezone.now().timestamp() * 1000),
+            })
+            if expected_version is not None and updated == 0:
+                # determine current version to report
+                current = cls.objects.filter(pk=pk).values_list('version', flat=True).first()
+                raise VersionConflictError(f"Version conflict on atomic_json_set: expected {expected_version} got {current}")
+            if updated:
+                new_version = cls.objects.filter(pk=pk).values_list('version', flat=True).first()
+                return updated, new_version
+            return updated, None
+
+    @classmethod
+    def atomic_list_append(cls, pk: int, field: str, path: list[str], element, max_length: int | None = None, expected_version: int | None = None):
+        """Atomically append an element to a JSON array at given path.
+
+        Implementation performs a SELECT FOR UPDATE, mutates in Python, and saves minimal fields,
+        still giving row-level atomicity. For extremely high contention consider a pure-SQL approach.
+        """
+        if field not in {'metadata','refs','prefs','comments'}:
+            raise ValueError('field must be one of metadata, refs, prefs, comments')
+        with transaction.atomic():
+            obj = cls.objects.select_for_update().only('id', field, 'version', 'modified_dt').get(pk=pk)
+            if expected_version is not None and obj.version != expected_version:
+                raise VersionConflictError(f"Version conflict on atomic_list_append: expected {expected_version} got {obj.version}")
+            target = getattr(obj, field)
+            cur = target
+            for key in path[:-1]:
+                cur = cur.setdefault(key, {})
+            arr_key = path[-1]
+            arr = cur.setdefault(arr_key, [])
+            if not isinstance(arr, list):
+                raise ValueError('Target JSON path is not a list')
+            arr.append(element)
+            if max_length is not None and len(arr) > max_length:
+                # trim oldest
+                del arr[0:len(arr)-max_length]
+            # Save will bump version; ensure fields persisted
+            obj.save(update_fields=[field, 'version', 'modified_dt'])
+            return obj.version
+
+    # Convenience wrappers for common operations
+    def optimistic_save(self, expected_version: int | None = None, *args, **kwargs):
+        """Perform a save with an expected_version check (application-level optimistic lock)."""
+        if self.pk and expected_version is not None and self.version != expected_version:
+            raise VersionConflictError(f"Version conflict on optimistic_save: expected {expected_version} got {self.version}")
+        return self.save(*args, **kwargs)
+
     def update_keywords(self):
         """Compute and store keyword list; clear pending flag.
 
@@ -327,21 +438,87 @@ class BaseModel(models.Model):
         verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
         if verified_dt_ms:
             return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.utc)
+
+    # --- Universal dict / Pydantic helpers (shared with Slim) -------------
+    def to_universal_dict(self) -> Dict[str, Any]:
+        meta = self.metadata or {}
+        history = meta.get('history', {}) if isinstance(meta, dict) else {}
+        return {
+            'id': self.pk,
+            'uuid': str(self.uuid) if getattr(self, 'uuid', None) else None,
+            'ida': self.ida,
+            'metadata': meta,
+            'refs': self.refs or {},
+            'prefs': self.prefs or {},
+            'comments': self.comments or {},
+            'health_rating': self.health_rating,
+            'dt_created': history.get('created', {}).get('dt'),
+            'dt_modified': history.get('modified', {}).get('dt'),
+            'version': self.version,
+        }
+
+    def as_pydantic(self, refresh: bool = False):
+        if not PydanticBaseModel:
+            return self.to_universal_dict()
+        if refresh or self._pydantic_cache is None:
+            data = self.to_universal_dict()
+            self._pydantic_cache = UniversalAPISchema(**data)  # type: ignore[arg-type]
+        return self._pydantic_cache
+
+    def pydantic_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        obj = self.as_pydantic()
+        if hasattr(obj, 'model_dump'):
+            return obj.model_dump(*args, **kwargs)  # type: ignore[attr-defined]
+        return obj  # already dict
+
+
+class SlimBaseModel(models.Model):
+    """Lightweight alternative to BaseModel for ephemeral / high-churn tables.
+
+    Includes only:
+      - id (BigAuto)
+      - uuid (unique tracking)
+      - ida (external alt id)
+      - created_dt / modified_dt (ms epoch)
+      - version (optimistic concurrency integer)
+
+    Excludes heavy JSON envelopes (metadata, refs, prefs, comments, health_rating) and GIN indexes.
+    Provides a minimal save() implementing timestamp + version bump semantics.
+    """
+    id = models.BigAutoField(primary_key=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    ida = models.CharField(max_length=40, blank=True, db_index=True)
+    created_dt = models.BigIntegerField(default=0, db_index=True)
+    modified_dt = models.BigIntegerField(default=0, db_index=True)
+    version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        now_ms = int(timezone.now().timestamp() * 1000)
+        if not self.pk:
+            self.created_dt = now_ms
+        else:
+            # bump version only on updates
+            self.version = (self.version or 0) + 1
+        self.modified_dt = now_ms
+        super().save(*args, **kwargs)
+
+    def assert_version(self, expected_version: int | None):
+        if expected_version is None or not self.pk:
+            return
+        current = type(self).objects.filter(pk=self.pk).values_list('version', flat=True).first()
+        if current is not None and current != expected_version:
+            raise VersionConflictError(f"Version conflict: expected {expected_version} got {current}")
+
+    def optimistic_save(self, expected_version: int | None = None, *args, **kwargs):
+        if expected_version is not None and self.pk and self.version != expected_version:
+            raise VersionConflictError(f"Version conflict: expected {expected_version} got {self.version}")
+        return self.save(*args, **kwargs)
         return None
 
-    def set_comments(self, partner=None, process=None, public=None):
-        """
-        Populate the comments JSONB with .partner, .process, .public keys.
-        """
-        if not isinstance(self.comments, dict):
-            self.comments = {}
-        if partner is not None:
-            self.comments['partner'] = partner
-        if process is not None:
-            self.comments['process'] = process
-        if public is not None:
-            self.comments['public'] = public
-        self.save()
+    # Slim model intentionally omits comments/metadata/refs; helpers skipped.
 
     def __str__(self):
         name = getattr(self, 'name', None)
@@ -356,25 +533,32 @@ class BaseModel(models.Model):
 
     # --- Pydantic helper methods (small, additive) --------------------------
     def to_universal_dict(self) -> Dict[str, Any]:
-        """Return a normalized dict of universal fields (no ORM objects).
+        """Return normalized dict; adapts to presence/absence of heavy fields.
 
-        Small step: provides consistent structure whether or not Pydantic
-        is installed; can feed API responses or schema generation.
+        Works for both BaseModel (full envelope) and SlimBaseModel (minimal).
         """
-        meta = self.metadata or {}
-        history = meta.get('history', {}) if isinstance(meta, dict) else {}
-        return {
+        base = {
             'id': self.pk,
-            'uuid': str(self.uuid) if getattr(self, 'uuid', None) else None,
-            'ida': self.ida,
-            'metadata': meta,
-            'refs': self.refs or {},
-            'prefs': self.prefs or {},
-            'comments': self.comments or {},
-            'health_rating': self.health_rating,
-            'dt_created': history.get('created', {}).get('dt'),
-            'dt_modified': history.get('modified', {}).get('dt'),
+            'uuid': str(getattr(self, 'uuid', '')) or None,
+            'ida': getattr(self, 'ida', ''),
+            'dt_created': getattr(self, 'created_dt', None),
+            'dt_modified': getattr(self, 'modified_dt', None),
+            'version': getattr(self, 'version', None),
         }
+        # Only attach enriched fields if they physically exist
+        if hasattr(self, 'metadata'):
+            meta = getattr(self, 'metadata') or {}
+            history = meta.get('history', {}) if isinstance(meta, dict) else {}
+            base.update({
+                'metadata': meta,
+                'refs': getattr(self, 'refs', {}) or {},
+                'prefs': getattr(self, 'prefs', {}) or {},
+                'comments': getattr(self, 'comments', {}) or {},
+                'health_rating': getattr(self, 'health_rating', 0),
+                'dt_created': history.get('created', {}).get('dt') or base['dt_created'],
+                'dt_modified': history.get('modified', {}).get('dt') or base['dt_modified'],
+            })
+        return base
 
     def as_pydantic(self, refresh: bool = False):
         """Return a UniversalAPISchema instance if Pydantic is available.
@@ -402,3 +586,89 @@ class BaseModel(models.Model):
         return obj  # type: ignore[return-value]
         return f"{self.__class__.__name__} #{self.pk}"
 
+# Yes, it’s coherent: a light “universal envelope” giving every table consistent extensibility (refs for relationships, prefs for per‑record settings, metadata for lifecycle/state, comments for discussion). That yields flexibility without exploding the relational schema.
+
+# Key strengths
+
+# Uniform contract across models simplifies generic endpoints (list/search/get/patch).
+# JSONB lets you evolve structure without migrations for every tweak.
+# Keyword + history + flags in metadata centralize lifecycle logic.
+# Refs.links provides a hub for soft relationships before (or instead of) dedicated join tables.
+# Targeted improvement suggestions
+
+# Validation & Contracts
+
+# Add lightweight Pydantic (already scaffolded) or Django validator hooks to enforce allowed keys / shapes inside refs.prefs.metadata to prevent drift.
+# Maintain a version field inside metadata.flags.schema_rev and include a migration task that can auto-upgrade old shapes.
+# Indexing & Query Performance
+
+# Consider selective GIN JSONB path indexes on the most queried nested keys (e.g., (metadata->'history'->'modified'->>'dt')::bigint) if you start filtering heavily there.
+# Add a B-tree index on (is_deleted, is_archived, modified_dt) for common active/ordering scans.
+# Atomic JSON Updates
+
+# Introduce helper methods using database-level JSONB set / concat operations (F expressions / Func) to avoid race conditions and rewriting the entire JSON on frequent small updates (e.g., increment access or add a single link).
+# Access & Security
+
+# If sensitive data ever goes into metadata/comments, consider field‑level encryption or a separate secure JSON field.
+# Enforce max lengths or sanitize incoming comments.notes to mitigate unbounded growth.
+# Size & Growth Controls
+
+# You already enforce max serialized size; also log (warn) when a record crosses a threshold (e.g., 50% of limit) to detect pathological growth early.
+# Periodic cleanup task to trim comments.notes beyond N most recent (configurable).
+# Relationships Strategy
+
+# For high‑cardinality relations (thousands of related IDs) consider promoting them from refs.links to a proper associative table before performance degrades.
+# Provide bulk sync endpoints that translate refs.links entries into normalized tables when matured.
+# Keyword Refresh
+
+# Offload update_keywords to async (Celery) and track next_refresh_due in metadata.health or versioning for scheduling.
+# Add simple trigram or GIN index on an aggregated searchable text column if keyword matching becomes slow.
+# Concurrency / Versioning
+
+# Expose version in API and require clients to send it back for optimistic concurrency (409 if mismatched).
+# Optionally store a small diff log (changed_fields) in metadata.versioning or a separate audit table for investigative trails.
+# Comments Structure
+
+# Add a durable id per note (UUID) for targeted updates/deletes without rewriting the whole notes list.
+# Limit note size and sanitize HTML/markdown if rendering.
+# Observability
+
+# Emit structured events (model, pk, action, changed_fields) from emit_change_log to a message bus for analytics and search indexing pipelines.
+# Testing Aids
+# Provide factory utilities that generate default metadata/refs with overrides, ensuring tests don’t duplicate structure logic.
+# Future Evolution
+# If certain prefs become widely used and stable, consider promoting to first-class columns for query speed (hybrid approach).
+# Maintain a registry describing which JSON paths are “supported” vs experimental to guide client usage.
+# Minimal quick wins
+
+# Add JSON path index on refs->'keywords'.
+# Implement a domain-level helper for atomic link add/remove using database operations (JSONB set).
+# Introduce optimistic concurrency check in save (compare version if passed in context).
+# Overall verdict Design is sound for flexibility + rapid iteration; just add a thin validation and indexing layer plus atomic update helpers to keep it healthy as data volume grows. 
+
+# Added atomic JSON update utilities and version conflict handling:
+
+# Highlights
+
+# Introduced VersionConflictError and JSONBSet wrapper.
+# Added BaseModel.assert_version, atomic_json_set (pure SQL jsonb_set with optimistic lock), atomic_list_append (row-level lock, single version bump), and optimistic_save helper.
+# Adjusted atomic_list_append to avoid double version increment.
+# Created tests (test_atomic_json_updates.py) covering set, list append, and conflict; all pass (3 passed).
+# Minor pydantic deprecation warning unchanged (informational).
+# How to use
+
+# Atomic field set: updated, new_version = Domain.atomic_json_set(pk, 'metadata', ['flags','schema_rev'], 2, expected_version=client_version)
+# Append to notes: new_version = Domain.atomic_list_append(pk, 'comments', ['notes'], {'text':'hi'}, expected_version=client_version)
+# Guarded save: obj.optimistic_save(expected_version=client_version)
+# All new code builds and tests green. Let me know if you want an API endpoint layer (PATCH with version) next.
+
+# Added generalized optimistic concurrency & atomic JSON PATCH support:
+
+# Updates
+
+# Extracted reusable OptimisticPatchMixin to common/mixins.py.
+# Refactored DomainDetailView to import the mixin.
+# Added comprehensive README section documenting payload contract, examples, error handling, extension steps, and rationale.
+# Fixed markdown formatting and lint issues.
+# All domain tests still pass (3 tests). Atomic JSON tests remain green.
+# You can now apply the mixin to other BaseModel-derived views for consistent versioned PATCH behavior. Let me know if you want a generic base detail view or header (If-Match) support next.

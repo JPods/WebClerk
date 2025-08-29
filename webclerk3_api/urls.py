@@ -15,4 +15,5 @@ urlpatterns = [
     path('docs/', include('apps.docs.urls')),
         # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
         path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
+    path('sync/', include(('apps.sync.urls', 'sync'), namespace='sync')),
 ]

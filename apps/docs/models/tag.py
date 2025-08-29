@@ -132,3 +132,48 @@ class Tag(BaseModel):
 # differs; generate manually if deploying to fresh DB).
 
 # NOTE uniqueness is managed by id.
+
+
+
+# CREATE TABLE IF NOT EXISTS "load_tags" (
+#     "id" BIGSERIAL PRIMARY KEY,
+#     "uuid" UUID UNIQUE NOT NULL,
+#     "call_tag" VARCHAR(255),
+#     "comment" TEXT,
+#     "container_type" VARCHAR(255),
+#     "cost_customs" DOUBLE PRECISION,
+#     "cost_declared_value" DOUBLE PRECISION,
+#     "cost_estimate" DOUBLE PRECISION,
+#     "cost_fuel_charge" DOUBLE PRECISION,
+#     "cost_hazard" DOUBLE PRECISION,
+#     "cost_insurance" DOUBLE PRECISION,
+#     "cost_other" DOUBLE PRECISION,
+#     "cost_ship" DOUBLE PRECISION,
+#     "cost_size_charge" DOUBLE PRECISION,
+#     "cost_total" DOUBLE PRECISION,
+#     "customer_po" VARCHAR(255),
+#     "hazard_class" VARCHAR(255),
+#     "height" DOUBLE PRECISION,
+#     "instructions" TEXT,
+#     "insurance_name" VARCHAR(255),
+#     "is_complete" INTEGER,
+#     "is_insured_ship" BOOLEAN DEFAULT FALSE,
+#     "length" DOUBLE PRECISION,
+#     "lines" JSONB,
+#     "lines_index" INTEGER,
+#     "list_invoices" TEXT,
+#     "list_pos" TEXT,
+ 
+#     "references" JSONB,
+#     "status" VARCHAR(255),
+#     "table_name" INTEGER,
+#     "tag_options" TEXT,
+#     "transaction_type" VARCHAR(255),
+#     "value" DOUBLE PRECISION,
+#     "vendor_invoice" VARCHAR(255),
+#     "weight_extended" DOUBLE PRECISION,
+#     "weight_pallet_container" DOUBLE PRECISION,
+#     "weight_product" DOUBLE PRECISION,
+#     "weight_tare" DOUBLE PRECISION,
+#     "width" DOUBLE PRECISION
+# );

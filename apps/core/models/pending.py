@@ -1,35 +1,37 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/pending.py
 from django.db import models
-import uuid
 from django.utils import timezone
-from common.models import default_metadata, default_refs, default_prefs, default_data
+from common.models import SlimBaseModel, default_data
 
-# not coming from common.models.BaseModel
-class Pending(models.Model):
-    id = models.BigAutoField(primary_key=True)  # Ensure auto-incrementing PK
+
+class Pending(SlimBaseModel):
+    """Ephemeral queue / staging record (SlimBaseModel).
+
+    Lightweight by design: no metadata/refs/prefs/comments overhead.
+    Use for decoupling write spikes & deferred processing.
+    """
     table_name = models.CharField(max_length=255, blank=True, null=True)
-    record_id = models.CharField(max_length=255, blank=True, null=True)
-    data = models.JSONField(default=default_data)  # <-- always initialized
-    metadata = models.JSONField(default=default_metadata)  # <-- always initialized
-    prefs = models.JSONField(default=default_prefs)  # <-- always initialized
-    refs = models.JSONField(default=default_refs)  # <-- always initialized
-    dt_processed = models.BigIntegerField(default=0)  # 0 means not processed
+    record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    data = models.JSONField(default=default_data)
+    dt_processed = models.BigIntegerField(default=0, db_index=True)
 
     class Meta:
         db_table = 'pending'
+        indexes = [
+            models.Index(fields=['table_name']),
+            models.Index(fields=['record_id']),
+            models.Index(fields=['dt_processed']),
+        ]
 
-    def save(self, *args, **kwargs):
-        now_timestamp = int(timezone.now().timestamp() * 1000)
-        user_id = getattr(self, 'created_by_id', 0)
-
-        super().save(*args, **kwargs)
-
-     # all metadata actions inside common/models/BaseModel.py
+    def mark_processed(self, save: bool = True):
+        if self.dt_processed == 0:
+            self.dt_processed = int(timezone.now().timestamp() * 1000)
+            if save:
+                self.save(update_fields=['dt_processed', 'modified_dt', 'version'])
+        return self.dt_processed
 
     def is_processed(self):
-        """Return True if processed, False otherwise"""
         return self.dt_processed > 0
 
-
     def __str__(self):
-        return f"{self.table_name}:{self.record_id}"
+        return f"{self.table_name}:{self.record_id} (processed={self.is_processed()})"

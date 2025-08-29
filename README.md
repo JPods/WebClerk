@@ -548,4 +548,244 @@ python manage.py test
 
 
 
+## Optimistic Concurrency & Atomic JSON PATCH (Universal API)
+
+We provide a consistent, versioned PATCH mechanism for all `BaseModel` descendants using:
+
+- Optimistic concurrency (integer `version` field)
+- Atomic JSON path mutation (`jsonb_set` / list append) without rewriting entire JSON blobs
+
+### Why
+
+Avoid lost updates and reduce write amplification when only a small nested JSON value changes (e.g., toggling a flag, adding a note) while multiple clients may edit the same record.
+
+### Core Pieces
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `version` | `BaseModel.version` | Incremented on each successful save / atomic op |
+| Atomic helpers | `BaseModel.atomic_json_set`, `BaseModel.atomic_list_append` | SQL-level jsonb mutation & row locking |
+| Mixin | `common/mixins.py::OptimisticPatchMixin` | Reusable PATCH handler (set/append + version check) |
+| Exception | `common.models.VersionConflictError` | Signals version mismatch (HTTP 409) |
+
+### PATCH Payload Contract (Atomic)
+
+```jsonc
+{
+  "version": 7,                // required current version
+  "set": {                     // optional map of dot paths -> value
+    "metadata.flags.schema_rev": 3,
+    "prefs.ui.theme": "dark"
+  },
+  "append": {                  // optional map of list paths -> element
+    "comments.notes": {"text": "hello", "type": "info"}
+  }
+}
+```
+
+Rules:
+
+- At least one of `set` or `append` must be present for atomic mode.
+- Dot paths: first segment must be one of `metadata`, `refs`, `prefs`, `comments`.
+- Each successful operation bumps `version` by 1 (append returns the new version).
+- Stale `version` ⇒ 409 response: `{ "detail": "Version conflict: expected X got Y", "code": "version_conflict" }`.
+
+### Fallback (Non-atomic) Partial Update
+
+If the PATCH body lacks `set`/`append`, the request falls back to normal DRF partial update. If a `version` key is provided it is still checked before updating, returning 409 on mismatch.
+
+### Example Flow
+
+1. Client GET `/comm/domains/42/` → `{ ..., "version": 7 }`.
+1. Client wants to bump schema rev:
+
+```http
+PATCH /comm/domains/42/
+Content-Type: application/json
+
+{"version":7, "set":{"metadata.flags.schema_rev":5}}
+```
+
+1. Server applies atomic jsonb_set → returns `version:8`.
+1. Client appends a note:
+
+```http
+PATCH /comm/domains/42/
+{"version":8, "append":{"comments.notes":{"text":"investigated","type":"log"}}}
+```
+
+1. Server returns `version:9`.
+1. A stale client still holding `version:7` sends a patch → receives 409 conflict and must re-fetch.
+
+### Error Responses
+
+| Status | When | Shape |
+|--------|------|-------|
+| 400 | Missing version / invalid root path / no ops | `{ "version": ["This field is required for atomic patch."] }` or path-specific message |
+| 409 | Version mismatch | `{ "detail": "Version conflict: expected 7 got 9", "code": "version_conflict" }` |
+
+### Extending To Another Model
+
+1. Ensure model inherits `BaseModel` (already has `version`).
+1. Use `OptimisticPatchMixin` in the detail view:
+
+```python
+class WidgetDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIView):
+  queryset = Widget.objects.all()
+  serializer_class = WidgetSerializer
+  def patch(self, request, *args, **kwargs):
+    obj = self.get_object()
+    data = request.data
+    if any(k in data for k in ("set","append")):
+      try:
+        updated = self.apply_atomic_ops(obj, data)
+      except VersionConflictError as e:
+        return Response({"detail": str(e), "code": "version_conflict"}, status=409)
+      return Response(self.get_serializer(updated).data)
+    if 'version' in data and data['version'] != obj.version:
+      return Response({"detail": f"Version conflict: expected {data['version']} got {obj.version}", "code": "version_conflict"}, status=409)
+    return super().patch(request, *args, **kwargs)
+```
+
+1. Add tests mirroring `test_domain_atomic_patch_and_version_conflict`.
+
+### Design Rationale
+
+- Uses PostgreSQL row-level locks + jsonb functions → safe under concurrency.
+- Keeps payloads small and avoids overwriting sibling keys.
+- Allows gradual introduction of more operations (future: `remove`, `increment`, `merge`).
+
+### Future Enhancements
+
+- Header-based version (support `If-Match` / `ETag`).
+- Batch multi-row atomic operations.
+- Conflict auto-merge strategies (server-side field diffing).
+- Audit log entries per atomic operation.
+
+## SlimBaseModel (Lightweight Ephemeral Records)
+
+Some tables (e.g. queues, staging buffers) have very short‑lived rows and don’t benefit from the full Universal JSON envelope (`metadata`, `refs`, `prefs`, `comments`, `health_rating`). For these we provide `SlimBaseModel`.
+
+| Feature | BaseModel | SlimBaseModel | Rationale |
+|---------|-----------|---------------|-----------|
+| id / uuid / ida | Yes | Yes | Core identification |
+| created_dt / modified_dt | Yes | Yes | Ordering & basic auditing |
+| version (optimistic int) | Yes | Yes | Lightweight conflict protection |
+| metadata / refs / prefs / comments | Yes | No | Avoid JSON bloat & GIN index overhead |
+| health_rating | Yes | No | Not needed for ephemeral rows |
+| Keyword dirty flag / async rebuild | Yes | No | Skip indexing pipeline |
+| atomic_json_set / atomic_list_append | Yes | No* | Operate only on heavy JSON fields |
+| GIN indexes (refs/prefs) | Yes | No | Reduced write amplification |
+
+(*) Slim records still support optimistic concurrency on whole‑row updates (`version`), but granular JSON patch operations are intentionally disabled (no heavy JSON fields to mutate).
+
+### When to Use SlimBaseModel
+
+Use it when ALL apply:
+
+- Row lifetime is short (minutes/hours, not months)
+- No need to search inside refs/prefs or metadata flags
+- No requirement for per-field audit detail beyond timestamps
+- High insert/delete throughput (queue or staging pattern)
+
+### When NOT to Use SlimBaseModel
+
+- You need atomic nested JSON mutations
+- You rely on keyword extraction / search across textual fields
+- You need refs-based relationship fan-out stored on the record
+- You want consistent envelope shape for external API consumers
+
+### Migrating a Model to SlimBaseModel
+
+1. Refactor model class to inherit `SlimBaseModel`.
+2. Remove envelope JSON fields & related indexes from the model.
+3. Generate migrations: `python manage.py makemigrations <app>`.
+4. Apply migrations: `python manage.py migrate`.
+5. Update serializer to list only slim fields (`id, uuid, ida, created_dt, modified_dt, version, plus domain fields`).
+6. Remove atomic PATCH operations (set/append) from the detail view (set `atomic_keys = ()`).
+7. Adjust / document API contract (clients should not expect metadata/refs/prefs/comments).
+8. Run full test suite.
+
+### Example (Pending Queue)
+
+`apps/core/models/pending.py` uses `SlimBaseModel` to minimize overhead for transient processing rows. Endpoints expose only the minimal schema, and versioning still protects against stale updates.
+
+### Design Principle
+
+Prefer explicit base choice (`BaseModel` vs `SlimBaseModel`) over ad‑hoc per‑model exceptions. This keeps the codebase intent clear and evolution predictable.
+
+## Consistency Standards (All Apps / Models)
+
+Every model inheriting `BaseModel` should expose a uniform API surface:
+
+1. Serializer: subclass `RoleAwareModelSerializer` (in `common/base_serializers.py`) and set `table_name` if DB table differs.
+2. List/Create: subclass `BaseListCreateView` (in `common/base_views.py`) and set `queryset`, `serializer_class`, optional `ALLOWED_ROLES`, and `pagination_class`.
+3. Detail (Retrieve/Update/Destroy): subclass `BaseOptimisticDetailView` for versioned PATCH + atomic ops.
+4. Search: subclass `PrefixAndSearchView` (in `common/search_mixins.py`) setting `model`, `serializer_class`, `search_fields`, optional `role_set`.
+5. URLs: expose three patterns per resource under its app namespace:
+   - `resource/` (list & create)
+   - `resource/<id>/` (detail + PATCH)
+   - `resource/search/` (multi-term prefix search)
+6. Field visibility & edit rules: driven by settings `view_edit` matrix; serializers automatically enforce.
+7. Pagination: page size default 25 with `?page_size=` override up to 500.
+8. Ordering: list views support `?ordering=` parameter (defaults to `-modified_dt`).
+9. Versioning: clients must supply `version` in atomic PATCH payload; conflict => 409.
+10. Minimal fallback exposure for non-privileged roles when no matrix configured.
+
+Template Example (New Resource)
+
+```python
+# serializers/myresource.py
+from common.base_serializers import RoleAwareModelSerializer
+from .models import MyResource
+
+class MyResourceSerializer(RoleAwareModelSerializer):
+  table_name = 'my_resource'
+  class Meta:
+    model = MyResource
+    fields = ['id','uuid','name','status','refs','prefs','metadata','created_dt','modified_dt','version']
+    read_only_fields = ['id','uuid','created_dt','modified_dt','version']
+
+# views/myresource.py
+from common.base_views import BaseListCreateView, BaseOptimisticDetailView
+from common.search_mixins import PrefixAndSearchView
+from .models import MyResource
+from .serializers.myresource import MyResourceSerializer
+
+class MyResourceListView(BaseListCreateView):
+  queryset = MyResource.objects.all()
+  serializer_class = MyResourceSerializer
+  ALLOWED_ROLES = {'staff','admin'}
+
+class MyResourceDetailView(BaseOptimisticDetailView):
+  queryset = MyResource.objects.all()
+  serializer_class = MyResourceSerializer
+  ALLOWED_ROLES = {'staff','admin'}
+
+class MyResourceSearchView(PrefixAndSearchView):
+  model = MyResource
+  serializer_class = MyResourceSerializer
+  search_fields = ['name','status']
+  role_set = {'staff','admin'}
+```
+
+Benefits
+
+- Single evolution point for auth, field filtering, concurrency.
+- Predictable client behavior across all resources.
+- Easier onboarding and automated documentation generation.
+
+Deviation Policy
+
+- Only deviate for performance-critical endpoints (bulk ingest, streaming) and document rationale adjacent to code.
+
+
+
+
+
+
+
+
+
+
 

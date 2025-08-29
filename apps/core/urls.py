@@ -22,6 +22,7 @@ from apps.core.views.keyword import KeywordSearchView
 from apps.core.views.query_any import QueryAnyView
 from apps.core.views.model_info import ModelInfoView
 from django.views.generic import TemplateView
+from apps.core.views.pending import PendingListView, PendingDetailView, PendingSearchView
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -101,6 +102,11 @@ urlpatterns = [
     path('wcapi/query-any/', QueryAnyView.as_view(), name='wcapi-query-any'),
     
     path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
+
+    # Standardized Pending endpoints (List/Create, Detail with optimistic PATCH, Search)
+    path('pending/', PendingListView.as_view(), name='pending-list'),
+    path('pending/<int:pk>/', PendingDetailView.as_view(), name='pending-detail'),
+    path('pending/search/', PendingSearchView.as_view(), name='pending-search'),
 
     # GET /wcapi/models/?table_name=contacts&related_tables=actions,phones
     # Returns info for contacts, actions, and phones.
