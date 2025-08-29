@@ -16,6 +16,11 @@ class Exchange(BaseModel):
     duration = models.BigIntegerField(default=0)
     payload = models.JSONField(blank=True, null=True)
     size = models.BigIntegerField(default=0)
+    #at the time of the exchange
+    maps = models.JSONField(blank=True, null=True)
+    encryption = models.JSONField(blank=True, null=True)
+    rules = models.JSONField(blank=True, null=True)
+    conflicts = models.JSONField(blank=True, null=True)
 
     class Meta:
         db_table = 'exchanges'
