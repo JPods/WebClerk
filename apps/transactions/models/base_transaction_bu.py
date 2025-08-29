@@ -1,3 +1,5 @@
+from importlib.metadata import metadata
+from django.db import models
 from common.models import BaseModel  # Your Django base model
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
