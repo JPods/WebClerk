@@ -12,5 +12,6 @@ urlpatterns = [
     path('admin/', admin_dashboard, name='admin_dashboard'),         # Your custom 3-column admin
     path('', include('apps.core.urls')),  # Core pages
     path('tx/', include('apps.transactions.urls')),  # Transaction endpoints
+    path('docs/', include('apps.docs.urls')),  # Document endpoints
     path('', include('apps.core.urls')),  # This handles everything including the home page
 ]

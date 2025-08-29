@@ -1,5 +1,5 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/views/address.py
-from rest_framework import generics, status
+from rest_framework import generics, status, pagination
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ..serializers import LocationSerializer
@@ -10,11 +10,17 @@ from django.db import models
 from apps.core.utils import get_accessible_fields
 from common.models import default_refs  # Add this import
 
+class CommPagination(pagination.PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+
 class LocationView(generics.ListCreateAPIView):
     """Handles listing and creating addresses with role-based field access."""
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CommPagination
 
     def get_queryset(self):
         """Filter queryset based on user roles and viewable fields."""

@@ -1,6 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F
-from rest_framework import generics, permissions, response, views, status
+from rest_framework import generics, permissions, response, views, status, pagination
 from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from apps.transactions.models.line_variants import (
@@ -28,10 +28,16 @@ class BasePermission(ViewEditPermission):
     pass
 
 # Parent (header) endpoints -------------------------------------------------
+class DefaultPagination(pagination.PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+
 class ProposalListCreate(generics.ListCreateAPIView):
     queryset = Proposal.objects.all().order_by('-id')
     serializer_class = ProposalSerializer
     permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
 
 class ProposalRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Proposal.objects.all()
@@ -50,6 +56,7 @@ class ProposalLineListCreate(generics.ListCreateAPIView):
     filterset_fields = ['parent_ref_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
     ordering_fields = ['id', 'parent_ref_id', 'status']
+    pagination_class = DefaultPagination
 
 class ProposalLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = ProposalLine.objects.all()
@@ -61,6 +68,7 @@ class OrderListCreate(generics.ListCreateAPIView):
     queryset = Order.objects.all().order_by('-id')
     serializer_class = OrderSerializer
     permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
 
 class OrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
@@ -76,6 +84,7 @@ class OrderLineListCreate(generics.ListCreateAPIView):
     filterset_fields = ['parent_ref_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
     ordering_fields = ['id', 'parent_ref_id', 'status']
+    pagination_class = DefaultPagination
 
 class OrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = OrderLine.objects.all()
@@ -87,6 +96,7 @@ class InvoiceListCreate(generics.ListCreateAPIView):
     queryset = Invoice.objects.all().order_by('-id')
     serializer_class = InvoiceSerializer
     permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
 
 class InvoiceRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Invoice.objects.all()
@@ -102,6 +112,7 @@ class InvoiceLineListCreate(generics.ListCreateAPIView):
     filterset_fields = ['parent_ref_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
     ordering_fields = ['id', 'parent_ref_id', 'status']
+    pagination_class = DefaultPagination
 
 class InvoiceLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = InvoiceLine.objects.all()
@@ -113,6 +124,7 @@ class PurchaseListCreate(generics.ListCreateAPIView):
     queryset = Purchase.objects.all().order_by('-id')
     serializer_class = PurchaseSerializer
     permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
 
 class PurchaseRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Purchase.objects.all()
@@ -128,6 +140,7 @@ class PurchaseLineListCreate(generics.ListCreateAPIView):
     filterset_fields = ['parent_ref_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
     ordering_fields = ['id', 'parent_ref_id', 'status']
+    pagination_class = DefaultPagination
 
 class PurchaseLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseLine.objects.all()
@@ -139,6 +152,7 @@ class WorkorderListCreate(generics.ListCreateAPIView):
     queryset = Workorder.objects.all().order_by('-id')
     serializer_class = WorkorderSerializer
     permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
 
 class WorkorderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Workorder.objects.all()
@@ -154,6 +168,7 @@ class WorkorderLineListCreate(generics.ListCreateAPIView):
     filterset_fields = ['parent_ref_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
     ordering_fields = ['id', 'parent_ref_id', 'status']
+    pagination_class = DefaultPagination
 
 class WorkorderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = WorkorderLine.objects.all()
@@ -165,6 +180,7 @@ class RequisitionListCreate(generics.ListCreateAPIView):
     queryset = Requisition.objects.all().order_by('-id')
     serializer_class = RequisitionSerializer
     permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
 
 class RequisitionRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Requisition.objects.all()
@@ -180,6 +196,7 @@ class RequisitionLineListCreate(generics.ListCreateAPIView):
     filterset_fields = ['parent_ref_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
     ordering_fields = ['id', 'parent_ref_id', 'status']
+    pagination_class = DefaultPagination
 
 
 @extend_schema(

@@ -1,5 +1,5 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/views/email.py
-from rest_framework import generics, status
+from rest_framework import generics, status, pagination
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ..serializers import EmailSerializer
@@ -10,11 +10,17 @@ from django.db import models
 from apps.core.utils import get_accessible_fields
 from common.models import default_refs  # ✅ ADD THIS IMPORT
 
+class CommPagination(pagination.PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+
 class EmailView(generics.ListCreateAPIView):
     """Handles listing and creating emails with role-based field access."""
     queryset = Email.objects.all()
     serializer_class = EmailSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CommPagination
 
     def get_queryset(self):
         """Filter queryset based on user roles and viewable fields."""
