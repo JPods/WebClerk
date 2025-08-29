@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/settings.py
 import os
 from pathlib import Path
 from decouple import config
@@ -34,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.postgres',
     'rest_framework',
     'rest_framework_simplejwt',
+    'django_filters',
     'drf_spectacular',
     'django_celery_beat',
     'django_celery_results',
@@ -112,15 +112,23 @@ REST_FRAMEWORK = {
         #'rest_framework.permissions.AllowAny',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-
     'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '10000/day',   # Authenticated users: 1000 requests per day
-        'anon': '100/day',    # Unauthenticated users: 100 requests per day
+        'user': '10000/day',
+        'anon': '100/day',
+        'tx_parent': '2000/day',
+        'tx_line': '5000/day',
+        'tx_aggregate': '1000/day',
     },
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ],
 }
 
 from datetime import timedelta

@@ -291,13 +291,211 @@ All API endpoints are rate limited using Django REST Framework:
 
 API requests and errors are logged to `webclerk3.log`.
 
+## Transaction Line & Aggregation Endpoints
+
+All transaction parent and line resources share a consistent CRUD pattern under `tx/`:
+
+Parents (headers):
+
+```text
+GET/POST   /tx/proposals/
+GET/PUT    /tx/proposals/{id}/
+GET/POST   /tx/orders/
+GET/PUT    /tx/orders/{id}/
+... (invoices, purchases, workorders, requisitions)
+```
+
+Lines:
+
+```text
+GET/POST   /tx/proposal-lines/?parent_ref_id={id}
+GET/PUT    /tx/proposal-lines/{id}/
+... (order-lines, invoice-lines, purchase-lines, workorder-lines, requisition-lines)
+```
+
+Filtering / Searching / Ordering (lines):
+
+- Filter: `?parent_ref_id=123&status=open`
+- Search: `?search=widget`
+- Order: `?ordering=parent_ref_id` (prefix with `-` for descending)
+
+Aggregation:
+
+```text
+GET /tx/lines/aggregate/?parent_ref_id={id}[&model=proposal-line][&ttl=120][&include_breakdown=1]
+```
+Parameters:
+
+- parent_ref_id (required): Parent transaction id.
+- model (optional): Scope to single line model code (proposal-line, order-line, invoice-line, purchase-line, workorder-line, requisition-line).
+- ttl (optional int >=5): Override cache TTL seconds (default 60 or project setting).
+- include_breakdown (optional 0/1/true/false): When scoping to a single model include per-model breakdown (normally only returned when unscoped).
+
+Unscoped example (no model param) response:
+
+```json
+{
+  "parent_ref_id": 42,
+  "total_lines": 7,
+  "total_price_extended": "123.45",
+  "total_cost_extended": "97.10",
+  "breakdown": {
+    "proposal-line": {"lines": 3, "price_extended": "80.00", "cost_extended": "60.00"},
+    "order-line": {"lines": 4, "price_extended": "43.45", "cost_extended": "37.10"}
+  },
+  "ttl_seconds": 60,
+  "cache_window": 29123456
+}
+```
+
+Scoped example with breakdown forced:
+
+```json
+{
+  "parent_ref_id": 42,
+  "model": "proposal-line",
+  "total_lines": 3,
+  "total_price_extended": "80.00",
+  "total_cost_extended": "60.00",
+  "breakdown": {
+    "proposal-line": {"lines": 3, "price_extended": "80.00", "cost_extended": "60.00"}
+  },
+  "ttl_seconds": 30,
+  "cache_window": 29123457
+}
+```
+
+Notes:
+
+- Decimal totals are stringified for precision.
+- `ttl_seconds` reflects actual TTL used (min 5). `cache_window` aids debugging (floor(now / ttl)).
+- Cache invalidates automatically on any line create/update/delete.
+- Set a project-wide default TTL via Django settings (if provided) or rely on built-in default (60s).
+- Configure default aggregation TTL globally by adding `TX_AGGREGATE_TTL_SECONDS = 120` (example) to `settings.py`.
+
+Authentication:
+
+- JWT or session auth required (HTTP 401/403 if missing).
+
+Throttle Scopes:
+
+- Parents: `tx_parent`
+- Lines: `tx_line`
+- Aggregate: `tx_aggregate`
+
+OpenAPI generation (drf-spectacular) will include summaries for these endpoints.
+
+### Field-Level Authorization (view_edit)
+
+Field visibility & editability are driven by rows in `settings` with `purpose="view_edit"` and `table_name` matching the model DB table (e.g. `transactions_proposalline`). The JSON structure:
+
+```json
+{
+  "USER": {"view": ["id", "status"], "edit": ["status"]},
+  "ADMIN": {"view": ["id", "status", "probability"], "edit": ["status", "probability"]},
+  "PUBLIC": {"view": ["id"], "edit": []}
+}
+```
+
+API layer effects:
+
+- Responses filter out fields not in the role's `view` list.
+- Writes (POST/PATCH/PUT) are rejected if attempting to change fields not in `edit` list.
+- Authorization matrix endpoint: `GET /tx/auth/fields/?model=proposal-line` returns `{ role, rules:{view,edit} }` for the authenticated user.
+
+Add new permissions simply by editing the JSON in the Setting record; caching auto-invalidation occurs on modification timestamp change.
+
+Frontend consumption (React example):
+
+1. Fetch rules on component mount:
+
+```js
+const res = await fetch('/tx/auth/fields/?model=proposal-line', { headers: { Authorization: `Bearer ${token}` }});
+const { rules } = await res.json();
+```
+
+1. Helpers:
+
+```js
+const canView = f => rules.view.includes(f);
+const canEdit = f => rules.edit.includes(f);
+```
+
+1. Conditional render:
+
+```jsx
+{canView('status') && <span>{line.status}</span>}
+{canEdit('status') && <input value={status} onChange={e=>setStatus(e.target.value)} />}
+```
+
+1. Submit only editable fields; backend returns 400 with per-field errors if unauthorized fields included.
+
+Authorization matrix (single model):
+
+```text
+GET /tx/auth/fields/?model=proposal-line
+```
+
+Batch authorization matrix:
+
+Two options (choose based on URL length / convenience):
+
+1. GET (comma separated model list)
+
+```text
+GET /tx/auth/fields/batch/?models=proposal-line,order-line,invoice-line
+```
+
+1. POST (JSON body – preferred for many models)
+
+```http
+POST /tx/auth/fields/batch/
+Content-Type: application/json
+
+{"models": ["proposal-line", "order-line", "invoice-line"]}
+```
+
+Response shape:
+
+```json
+{
+  "role": "USER",
+  "models": {
+    "proposal-line": {"view": ["id", "status"], "edit": ["status"]},
+    "order-line": {"view": ["id"], "edit": []},
+    "bad-line": {"error": "invalid-model"}
+  }
+}
+```
+
+CLI inspection of active matrices:
+
+```bash
+python manage.py list_view_edit_matrices --pretty
+python manage.py list_view_edit_matrices --table proposal_line --role user --pretty
+```
+
+Example output:
+
+```json
+{
+  "proposal_line": {
+    "id": 42,
+    "modified_dt": "2025-08-29T06:50:00.123456Z",
+    "data": {
+      "USER": {"view": ["id", "status"], "edit": ["status"]}
+    }
+  }
+}
+```
+
 ## Running Tests
 
 ```bash
 python manage.py test
 ```
 
-## Production Deployment (Placeholder)
+## Deployment (Placeholder)
 
 Add instructions for gunicorn, nginx, HTTPS (Let's Encrypt), environment hardening.
 
@@ -339,6 +537,7 @@ To add a new language:
 ```bash
 python manage.py test
 ```
+
 ## Production Deployment (Placeholder)
 
 

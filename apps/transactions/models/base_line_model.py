@@ -1,16 +1,26 @@
-from django.db import models
-from common.models import BaseModel
+"""Abstract base line model for transaction line items.
+
+The goal is to keep a compact set of JSON fields that capture the rich
+state of a line (pricing, cost, quantities, taxes, metadata, workflow, etc.)
+without exploding the relational schema. Each JSON field has a structured
+default producer for clarity and forward compatibility.
+
+Google Doc (design):
+https://docs.google.com/document/d/12C8LHt8x1Bl6spM_iHFC6DK01eIxQzD5_4-3cK9ybow/edit?tab=t.0
+"""
+
 from decimal import Decimal
-'''
- Google Doc for BaseLineModel schema and design:
- https://docs.google.com/document/d/12C8LHt8x1Bl6spM_iHFC6DK01eIxQzD5_4-3cK9ybow/edit?tab=t.0
- 
-'''
+from typing import Callable, Dict, Any
+
+from django.core.exceptions import ValidationError
+from django.db import models
+
+from common.models import BaseModel
 
 BASE_DECIMAL_DEFAULT = Decimal("0.00")
 BASE_INT_DEFAULT = Decimal("0")
 
-def default_item():
+def default_item() -> Dict[str, Any]:
     return {
         "id_num": None,
         "ida_item": "",
@@ -27,7 +37,7 @@ def default_item():
         "is_archived": False
     }
 
-def default_quantity(transaction_type=None):
+def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     if transaction_type == "proposal":
         return {
             "is_blanket": False,
@@ -51,7 +61,7 @@ def default_quantity(transaction_type=None):
             "precision": 2
         }
 
-def default_cost():
+def default_cost() -> Dict[str, Any]:
     return {
         "freight": None,
         "unit": None,
@@ -60,7 +70,7 @@ def default_cost():
         "precision": 2
     }
 
-def default_price():
+def default_price() -> Dict[str, Any]:
     return {
         "unit": None,
         "discount_percent": None,
@@ -72,7 +82,7 @@ def default_price():
         "manufacturer_suggested_retail": None
     }
 
-def default_tax():
+def default_tax() -> Dict[str, Any]:
     return {
         "sales_rate": None,
         "sales": None,
@@ -82,14 +92,14 @@ def default_tax():
     }
 
 
-def default_comments():
+def default_comments() -> Dict[str, Any]:
     return {
         "public": "",
         "process": "",
         "foreign": ""
     }
 
-def default_action():
+def default_action() -> Dict[str, Any]:
     return {
         "action_next":{"who":"","when":0,"what":""},
         "created": {"who":"","when":0},
@@ -97,7 +107,7 @@ def default_action():
         "updated": {"who":"","when":0}
     }
 
-def default_physical():
+def default_physical() -> Dict[str, Any]:
     return {
         "unit": 0,
         "extended": 0,
@@ -107,13 +117,13 @@ def default_physical():
 
 # tracks the how we got this transaction and where it was resolved
 # mostly at the transaction level unless split across multiple entities
-def default_transaction_flow():
+def default_transaction_flow() -> Dict[str, Any]:
     return {
         "source": [{"type": "", "id": 0}],
         "destination": [{"type": "", "id": 0}]
     }
 
-def default_source():
+def default_source() -> Dict[str, Any]:
     return {
         "campaign_id": 0,
         "catalog_id": None,
@@ -122,13 +132,22 @@ def default_source():
     }
 
 class BaseLineModel(BaseModel):
-    parent_id = models.BigIntegerField()  # ForeignKey to parent table (use ForeignKey in concrete models)
-    probability = models.IntegerField(blank=True, null=True)  # Only for proposals/requisitions
+    """Abstract transactional line base.
+
+    Concrete subclasses (e.g., ProposalLine, OrderLine, InvoiceLine) can add
+    relational FKs or specialized fields. JSON structures are initialized lazily
+    (or on first save) to ensure shape consistency without forcing migrations
+    for additive keys.
+    """
+
+    parent_ref_id = models.BigIntegerField(help_text="Parent transaction primary key (redundant copy of FK for fast filters)", db_index=True)
+    probability = models.IntegerField(blank=True, null=True, help_text="For proposals: 0-100 probability percent")
     type_sale = models.CharField(max_length=50, blank=True, null=True)
     status = models.CharField(max_length=50, blank=True, null=True)
+
+    # JSON field shells (populated via ensure_json_defaults)
     comments = models.JSONField(default=dict, blank=True, null=True)
     item = models.JSONField(default=dict, blank=True, null=True)
-    # documents, not lines counts = models.JSONField(default=dict, blank=True, null=True)
     quantity = models.JSONField(default=dict, blank=True, null=True)
     cost = models.JSONField(default=dict, blank=True, null=True)
     price = models.JSONField(default=dict, blank=True, null=True)
@@ -138,76 +157,79 @@ class BaseLineModel(BaseModel):
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
 
-
     class Meta:
         abstract = True
+        indexes = [
+            models.Index(fields=("parent_ref_id",), name="baseline_parent_ref_idx"),
+        ]
 
-    def populate_json_fields(self):
-        """Populate all JSONB fields with their default structures if empty."""
-        if not self.item:
-            self.item = default_item()
+    # Mapping of attribute name -> default factory (callable)
+    JSON_DEFAULT_FACTORIES: Dict[str, Callable[[], Dict[str, Any]]] = {
+        "comments": default_comments,
+        "item": default_item,
+        # quantity handled separately due to transaction type nuance
+        "cost": default_cost,
+        "price": default_price,
+        "tax": default_tax,
+        "action": default_action,
+        "physical": default_physical,
+        "flow": default_transaction_flow,
+        "source": default_source,
+    }
+
+    def ensure_json_defaults(self) -> None:
+        """Ensure each JSON field has a structured object instead of empty dict/None.
+
+        Quantity is derived based on model name (heuristic) to allow variant defaults.
+        We don't persist (save) here; caller decides when to save – used inside save().
+        """
+        # Standard fields
+        for field_name, factory in self.JSON_DEFAULT_FACTORIES.items():
+            val = getattr(self, field_name)
+            if not val:  # covers None / empty dict / empty string
+                setattr(self, field_name, factory())
+
+        # Quantity (dependent on model variant)
         if not self.quantity:
-            self.quantity = default_quantity(transaction_type=self._meta.model_name)
-        if not self.cost:
-            self.cost = default_cost()
-        if not self.price:
-            self.price = default_price()
-        if not self.tax:
-            self.tax = default_tax()
-        if not self.action:
-            self.action = default_action()
-        if not self.physical:
-            self.physical = default_physical()
-        if not self.flow:
-            self.flow = default_transaction_flow()
-        if not self.source:
-            self.source = default_source()
-        self.save()
+            setattr(self, "quantity", default_quantity(transaction_type=self._meta.model_name))
 
-            #id_transaction = models.BigIntegerField()
-    # transaction_type = models.CharField(max_length=20)
-    # item_id = models.BigIntegerField()
-    # uuid_item = models.CharField(max_length=255, blank=True, null=True)
-    # ida_item = models.CharField(max_length=50, blank=True, null=True)
-    # description = models.TextField(blank=True, null=True)
-    # description_text = models.TextField(blank=True, null=True)
-    # sequence = models.BigIntegerField(blank=True, null=True)
-    # time_lead = models.IntegerField(blank=True, null=True)
-    # location = models.CharField(max_length=255, blank=True, null=True)
-    # #quantity_ordered = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    # #quantity_actioned = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    # quantity = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    # quantity_remaining = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    # #quantity_packed = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    # quantity_canceled = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    # quantity_is_fixed = models.BooleanField(default=False)
-    # cost_unit = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # cost_extended = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # cost_is_fixed = models.BooleanField(default=False)
-    # price_unit = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # price_discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # price_discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # price_extended = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # price_is_fixed = models.BooleanField(default=False)
-    # price_precision = models.IntegerField(default=2)
-    # price_manufacturer_suggested_retail = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # tax_sales_rate = models.DecimalField(max_digits=5, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # tax_sales_amount = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # tax_cost_rate = models.DecimalField(max_digits=5, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # tax_cost_amount = models.DecimalField(max_digits=12, decimal_places=2, default=BASE_DECIMAL_DEFAULT)
-    # tax_jurisdiction = models.BigIntegerField(blank=True, null=True)
-    # tax_code = models.CharField(max_length=40, blank=True, null=True)
-    # by_created = models.CharField(max_length=50, blank=True, null=True)
-    # by_updated = models.CharField(max_length=50, blank=True, null=True)
-    # by_action = models.CharField(max_length=50, blank=True, null=True)
-    # by_requested = models.CharField(max_length=50, blank=True, null=True)
-    # transaction_flow_source_type = models.CharField(max_length=50, blank=True, null=True)
-    # transaction_flow_source_id = models.BigIntegerField(blank=True, null=True)
-    # transaction_flow_destination_type = models.CharField(max_length=50, blank=True, null=True)
-    # transaction_flow_destination_id = models.BigIntegerField(blank=True, null=True)
-    # dt_created, dt_updated, dt_expected, dt_completed go in metadata['history']
+    # Backwards compatibility shim
+    def populate_json_fields(self):  # pragma: no cover - retained for legacy calls
+        self.ensure_json_defaults()
+        self.save(update_fields=[
+            "comments", "item", "quantity", "cost", "price", "tax",
+            "action", "physical", "flow", "source"
+        ])
 
-# The SQL CREATE TABLE statement below should be removed from this Python file.
-# Use Django models and migrations to manage your database schema.
+    def clean(self):  # Validation hook
+        if self.probability is not None and not (0 <= self.probability <= 100):
+            raise ValidationError({"probability": "Must be between 0 and 100."})
+        super().clean()
 
+    def save(self, *args, **kwargs):  # noqa: D401
+        """Primary save override (JSON initialization + parent FK mirror)."""
+        self.ensure_json_defaults()
+        parent_obj = getattr(self, "parent", None)
+        if parent_obj is not None and getattr(parent_obj, "pk", None):
+            # Always mirror (avoid stale copy) rather than only when empty
+            self.parent_ref_id = parent_obj.pk
+        return super().save(*args, **kwargs)
+
+    def to_compact_dict(self) -> Dict[str, Any]:
+        """Lightweight serialization for logs or keyword extraction."""
+        return {
+            "id": getattr(self, "id", None),
+            "parent_ref_id": self.parent_ref_id,
+            "status": self.status,
+            "type_sale": self.type_sale,
+            "probability": self.probability,
+            "item": self.item,
+            "quantity": self.quantity,
+            "price": self.price,
+            "cost": self.cost,
+        }
+
+    # Legacy commented field list intentionally removed for clarity.
+
+    # NOTE: Avoid embedding raw SQL DDL here. Django migrations own schema evolution.
 

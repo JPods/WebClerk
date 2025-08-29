@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.db import models
-from .BaseLineModel import BaseLineModel
+from .base_line_model import BaseLineModel
 
 class OrderLine(BaseLineModel):
     # Add any Order-specific fields or methods here
