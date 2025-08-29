@@ -1,7 +1,7 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/setting.py
 from django.db import models
 from common.models import BaseModel
-from .connections import Connection  # Relative import
+from .connection import Connection  # Relative import
 # company, defaults, view_edit, user-levels,
 # poppups, question, constants, integrations, notifications,
 #

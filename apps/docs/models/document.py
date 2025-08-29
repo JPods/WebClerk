@@ -5,11 +5,6 @@ from django.utils import timezone
 # this table provides a path to documents
 # example use is to link line items in orders, proposals, etc.
 # with one document that passes on specs, paths, comments, and other details
-class Document(BaseModel):
-    path = models.CharField(max_length=255, blank=True, null=True)
-    name = models.CharField(max_length=255, blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
-    purpose = models.CharField(max_length=255, blank=True, null=True)
 
 # If you need a model for the "paths" table, define it as a Django model below.
 # Remove raw SQL statements from Python files; use Django ORM and migrations instead.
