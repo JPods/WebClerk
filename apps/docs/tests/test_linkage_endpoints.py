@@ -13,7 +13,7 @@ def api_client():
 @pytest.fixture
 def user(api_client):
     User = get_user_model()
-    u = User.objects.create_user(email='linktester@example.com', password='pw12345', name_first='Link', name_last='Tester')
+    u = User.objects.create_user(username='linktester', email='linktester@example.com', password='pw12345', name_first='Link', name_last='Tester')
     api_client.force_authenticate(user=u)
     return u
 

@@ -5,6 +5,15 @@ from django.utils import timezone
 # bulk of this table is in the .refs to relate other tables
 # example use is to link line items in orders, proposals, etc. 
 # with one document that passes on specs, paths, comments, and other details
+
+#linkage model primarily uses its 
+# .refs.links:{"table_name1":[], "table_name2":[]}
+# purpose of these records is to link records 
+# that can be linked to many other models. 
+# For instance, a linkage record can be 
+# shared by records in items, proposal_lines, 
+# order_lines, etc... 
+
 class Linkage(BaseModel):
     """Lightweight cross-record linkage hub.
 

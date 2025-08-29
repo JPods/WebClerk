@@ -3,15 +3,14 @@ from django.urls import path, include
 from apps.core.views.auth_views import admin_dashboard
 
 urlpatterns = [
-    # Admin
-    #path('admin/', admin.site.urls),
-    # Replace this:
-    # path('admin/', admin.site.urls),
+    # Custom admin dashboard (3-column UI)
+    path('admin/', admin_dashboard, name='admin_dashboard'),
+    # Stock Django admin (needed for namespace 'admin' so templates using {% url 'admin:index' %} work)
+    # Mount under alternate path to avoid clobbering custom dashboard while restoring reverse('admin:index').
+    path('admin-django/', admin.site.urls),
 
-    # With this:
-    path('admin/', admin_dashboard, name='admin_dashboard'),         # Your custom 3-column admin
-    path('', include('apps.core.urls')),  # Core pages
-    path('tx/', include('apps.transactions.urls')),  # Transaction endpoints
-    path('docs/', include('apps.docs.urls')),  # Document endpoints
-    path('', include('apps.core.urls')),  # This handles everything including the home page
+    # Application routes
+    path('', include('apps.core.urls')),
+    path('tx/', include('apps.transactions.urls')),
+    path('docs/', include('apps.docs.urls')),
 ]

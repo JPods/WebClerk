@@ -5,6 +5,14 @@ from django.utils import timezone
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
 
+# The purpose of qa record is to store a question 
+# and the user's answer for inspections, checklists, 
+# howto, etc... The question are stored in setting 
+# records where purpose = questions and name = the name 
+# for the inspection
+# Its health is stored in .metadata.health, 
+# its history is in .metadata.history
+
 
 class Qa(BaseModel):
     """Question/Answer instance captured for inspections, checklists, how-to flows.

@@ -14,6 +14,12 @@ from apps.docs.views.qa_views import (
     QARetrieveUpdateView,
     QASearchView,
 )
+from apps.docs.views.tag_views import (
+    TagListCreateView,
+    TagRetrieveUpdateView,
+    TagHierarchyView,
+    TagSearchView,
+)
 
 urlpatterns = [
     path('documents/', DocumentListCreateView.as_view(), name='document-list'),
@@ -27,4 +33,9 @@ urlpatterns = [
     path('qas/', QAListCreateView.as_view(), name='qa-list'),
     path('qas/<int:pk>/', QARetrieveUpdateView.as_view(), name='qa-detail'),
     path('qas/search/', QASearchView.as_view(), name='qa-search'),
+    # Tags
+    path('tags/', TagListCreateView.as_view(), name='tag-list'),
+    path('tags/<int:pk>/', TagRetrieveUpdateView.as_view(), name='tag-detail'),
+    path('tags/<int:pk>/hierarchy/', TagHierarchyView.as_view(), name='tag-hierarchy'),
+    path('tags/search/', TagSearchView.as_view(), name='tag-search'),
 ]

@@ -26,31 +26,32 @@ from common.models import BaseModel
 # ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
 # and provides create_user and create_superuser methods for authentication.
 class ContactManager(BaseUserManager):
-    """Custom user manager for Contact model (Django authentication)"""
-    
-    def create_user(self, email, password=None, **extra_fields):
-        """Create and return a regular user"""
+    """Custom user manager for Contact model (Django authentication).
+    Accepts legacy 'username' argument for compatibility but ignores it (email is the unique identifier)."""
+
+    def create_user(self, email, password=None, username=None, **extra_fields):  # username kept for backward compatibility
+        """Create and return a regular user (email is primary ID)."""
         if not email:
             raise ValueError('The Email field must be set')
-        
+        # Ignore provided username; could optionally store in comment or metadata later.
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
-    
-    def create_superuser(self, email, password=None, **extra_fields):
-        """Create and return a superuser"""
+
+    def create_superuser(self, email, password=None, username=None, **extra_fields):  # username for compatibility
+        """Create and return a superuser."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('role', 'admin')
-        
+
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        
-        return self.create_user(email, password, **extra_fields)
+
+        return self.create_user(email, password, username=username, **extra_fields)
     
     def get_by_natural_key(self, email):
         return self.get(**{self.model.USERNAME_FIELD: email})
@@ -157,19 +158,23 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
 
     def has_addresses(self):
         """Check if contact has any addresses"""
-        return hasattr(self, 'addresses') and self.addresses.exists()
+        addresses = getattr(self, 'addresses', None)
+        return bool(addresses and addresses.exists())
     
     def has_phones(self):
         """Check if contact has any phone numbers"""
-        return hasattr(self, 'phones') and self.phones.exists()
+        phones = getattr(self, 'phones', None)
+        return bool(phones and phones.exists())
     
     def has_emails(self):
         """Check if contact has any additional emails"""
-        return hasattr(self, 'emails') and self.emails.exists()
+        emails = getattr(self, 'emails', None)
+        return bool(emails and emails.exists())
     
     def has_domains(self):
         """Check if contact has any domains"""
-        return hasattr(self, 'domains') and self.domains.exists()
+        domains = getattr(self, 'domains', None)
+        return bool(domains and domains.exists())
     
     def get_role_display_name(self):
         """Get human-readable role name"""
