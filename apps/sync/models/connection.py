@@ -56,8 +56,8 @@ class Connection(BaseModel):
     changes = models.JSONField(blank=True, null=True)
 
     class Meta:
-        db_table = 'apis'
+        db_table = 'connections'
 
     def __str__(self):
-        return f"{self.name or 'API'} ({self.id})"
+        return f"{self.name or 'Connection'} ({self.id})"
     

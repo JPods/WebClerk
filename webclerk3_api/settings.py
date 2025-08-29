@@ -14,7 +14,6 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 INSTALLED_APPS = [
     #'debug_toolbar',
 
-    'apps.connections',
     'apps.communications',
     'apps.core',
     'apps.docs',
@@ -22,6 +21,7 @@ INSTALLED_APPS = [
     'apps.plans',
     'apps.products',
     'apps.support',
+    'apps.sync',
     'apps.transactions',
     'common',
     'corsheaders',

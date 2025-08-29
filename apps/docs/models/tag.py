@@ -22,3 +22,4 @@ class Tag(BaseModel):
 
     def __str__(self):
         return f"{self.name or 'Tag'} ({self.id})"
+    
