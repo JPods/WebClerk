@@ -41,7 +41,9 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
   const data = dataProp || routeState.data || null;
 
    useEffect(() => {
-    if (data) {
+    if (mode === 'add') {
+      reset();
+    } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
@@ -50,7 +52,7 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
     } else {
       reset({});
     }
-  }, [data, reset, setValue]);
+  }, [data, reset, setValue, mode]);
  
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
     try {
