@@ -1,15 +1,11 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/urls.py
 from django.urls import path
-from .views import (
-    LocationView, LocationDetailView,
-    EmailView, EmailDetailView,
-    PhoneView, PhoneDetailView,
-    DomainView, DomainDetailView,
-)
+from .views.domain import DomainView, DomainDetailView, DomainSearchView
 
 app_name = 'communications'
 
 urlpatterns = [
-    # All communications management handled by Universal API
-# managed in core/urls.py
-   ] 
+    path('domains/', DomainView.as_view(), name='domain-list'),
+    path('domains/<int:pk>/', DomainDetailView.as_view(), name='domain-detail'),
+    path('domains/search/', DomainSearchView.as_view(), name='domain-search'),
+] 

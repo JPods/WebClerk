@@ -13,4 +13,6 @@ urlpatterns = [
     path('', include('apps.core.urls')),
     path('tx/', include('apps.transactions.urls')),
     path('docs/', include('apps.docs.urls')),
+        # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
+        path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
 ]

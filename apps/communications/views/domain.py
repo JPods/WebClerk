@@ -1,11 +1,12 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/views/domain.py
-from rest_framework import generics, status, pagination
+from rest_framework import generics, status, pagination, permissions
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from ..serializers import DomainSerializer
 from ..models import Domain
 from apps.core.models import Contact
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from django.db import models
 from apps.core.utils import get_accessible_fields
 from common.models import default_refs  # ✅ ADD THIS IMPORT
@@ -15,17 +16,20 @@ class CommPagination(pagination.PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 500
 
+
 class DomainView(generics.ListCreateAPIView):
-    """Handles listing and creating domains with role-based field access."""
+    """Handles listing and creating domains restricted to staff/admin/superuser; field-level filtering optional."""
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = CommPagination
+    ALLOWED_ROLES = {'staff','admin'}
+
+    def _role_allowed(self, user):
+        return getattr(user, 'role', '') in self.ALLOWED_ROLES or getattr(user, 'is_superuser', False)
 
     def get_queryset(self):
-        """Filter queryset based on user roles and viewable fields."""
-        accessible_fields = get_accessible_fields('domains', 'view', self.request.user)
-        if not accessible_fields:
+        if not self._role_allowed(self.request.user):
             return Domain.objects.none()
         return Domain.objects.all()
 
@@ -53,12 +57,8 @@ class DomainView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
-        accessible_fields = get_accessible_fields('domains', 'edit', request.user)
-        if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not self._role_allowed(request.user):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -87,15 +87,17 @@ class DomainView(generics.ListCreateAPIView):
 
 
 class DomainDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Handles retrieving, updating, and deleting a domain with role-based field access."""
+    """Retrieve/update/delete domain restricted to staff/admin/superuser."""
     queryset = Domain.objects.all()
     serializer_class = DomainSerializer
     permission_classes = [IsAuthenticated]
+    ALLOWED_ROLES = {'staff','admin'}
+
+    def _role_allowed(self, user):
+        return getattr(user, 'role', '') in self.ALLOWED_ROLES or getattr(user, 'is_superuser', False)
 
     def get_queryset(self):
-        """Filter queryset based on user roles and viewable fields."""
-        accessible_fields = get_accessible_fields('domains', 'view', self.request.user)
-        if not accessible_fields:
+        if not self._role_allowed(self.request.user):
             return Domain.objects.none()
         return Domain.objects.all()
 
@@ -125,12 +127,8 @@ class DomainDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def patch(self, request, *args, **kwargs):
-        accessible_fields = get_accessible_fields('domains', 'edit', request.user)
-        if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not self._role_allowed(request.user):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         return super().patch(request, *args, **kwargs)
 
     @extend_schema(
@@ -144,15 +142,47 @@ class DomainDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def delete(self, request, *args, **kwargs):
-        accessible_fields = get_accessible_fields('domains', 'edit', request.user)
-        if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not self._role_allowed(request.user):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
         domain = self.get_object()
         Contact.objects.filter(refs__domains__contains=[str(domain.id)]).update(
             **{'refs__domains': models.F('refs__domains').exclude(str(domain.id))}
         )
         return super().delete(request, *args, **kwargs)
+    
+
+class DomainSearchView(APIView):
+    """Multi-term AND prefix search restricted to staff/admin/superuser."""
+    permission_classes = [permissions.IsAuthenticated]
+    ALLOWED_ROLES = {'staff', 'admin'}
+
+    def get(self, request):
+        user = request.user
+        if not (getattr(user, 'role', '') in self.ALLOWED_ROLES or user.is_superuser):
+            return Response({'detail': 'Forbidden'}, status=403)
+        raw_q = (request.GET.get('q') or '').strip()
+        if not raw_q:
+            return Response({'results': [], 'count': 0, 'q': raw_q})
+        terms = [t for t in raw_q.split() if t]
+        qs = Domain.objects.filter(is_active=True)
+        status_val = request.GET.get('status')
+        if status_val:
+            qs = qs.filter(status=status_val)
+        level = request.GET.get('security_level') or request.GET.get('level')
+        if level is not None:
+            try:
+                qs = qs.filter(security_level=int(level))
+            except ValueError:
+                pass
+        for term in terms:
+            qs = qs.filter(
+                models.Q(path__istartswith=term) | models.Q(type__istartswith=term) | models.Q(comment__istartswith=term)
+            )
+        qs = qs.order_by('-modified_dt')[:100]
+        data = DomainSerializer(qs, many=True, context={'request': request}).data
+        for d in qs:
+            d.increment_access(by=1, save=True)
+        return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})
+    
+

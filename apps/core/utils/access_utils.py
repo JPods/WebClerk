@@ -23,6 +23,9 @@ def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool 
         return []
 
     user_roles = user.role if hasattr(user, 'role') and user.role else ['PUBLIC']
+    # Normalize to list (if single role string provided)
+    if isinstance(user_roles, str):
+        user_roles = [user_roles]
     
     # Generate cache key based on table_name, mode, and user roles
     cache_key = f"accessible_fields_{table_name}_{mode}_{'_'.join(sorted(user_roles))}"
@@ -40,9 +43,11 @@ def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool 
             is_active=True
         )
         accessible_fields = set()
+        setting_data = setting.data or {}
         for role in user_roles:
-            role_data = setting.data.get(role, {})
-            accessible_fields.update(role_data.get(mode, []))
+            role_data = setting_data.get(role, {}) if isinstance(setting_data, dict) else {}
+            if isinstance(role_data, dict):
+                accessible_fields.update(role_data.get(mode, []))
         
         # Pending the result with default expiration of 3600 seconds
         accessible_fields_list = list(accessible_fields)
