@@ -6,7 +6,7 @@ from apps.core.views import (
     SignupView, WebLoginView, WebLogoutView,
 )
 from django.views.generic import TemplateView
-from apps.core.services.wcapi import WcapiView
+from apps.core.services.wcapi import WcapiView, wcapi_metrics_response
 
 
 from rest_framework_simplejwt.views import (
@@ -81,6 +81,7 @@ urlpatterns = [
     path('wcapi/post/', WcapiView.as_view(), name='post'),
     
     path('wcapi/query/', WcapiView.as_view(), name='query'),
+    path('wcapi/metrics/', wcapi_metrics_response, name='wcapi-metrics'),
 
  # full update
     path('wcapi/related/', RelatedDataView.as_view(), name='related'),

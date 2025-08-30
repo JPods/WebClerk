@@ -1,10 +1,14 @@
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.mixins import LoginRequiredMixin
 import json
+import time
 from .wcapi_registry import get_model, ALLOWED_TABLE_NAMES
+from django.db import models
+from typing import Sequence
+from collections import defaultdict
 
 """WcapiView: read/query endpoint over whitelisted models.
 
@@ -16,6 +20,36 @@ small allow-list to reduce risk of accidental heavy queries or probing internal 
 """
 
 SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status"}
+PROJECTION_PARAM = 'fields'
+
+# In-memory metrics (lightweight; replace with prometheus_client if desired)
+_metrics_counters = defaultdict(int)  # key -> count
+_metrics_hist_sum = defaultdict(float)  # key -> sum of durations
+_metrics_hist_count = defaultdict(int)
+
+def _metric_inc(name: str, labels: dict[str,str]|None=None):
+    key = name + ("{"+",".join(f"{k}={v}" for k,v in sorted(labels.items()))+"}" if labels else "")
+    _metrics_counters[key] += 1
+
+def _metric_observe(name: str, value: float, labels: dict[str,str]|None=None):
+    keybase = name + ("{"+",".join(f"{k}={v}" for k,v in sorted(labels.items()))+"}" if labels else "")
+    _metrics_hist_sum[keybase] += value
+    _metrics_hist_count[keybase] += 1
+
+def wcapi_metrics_response(_: HttpRequest) -> HttpResponse:
+    lines = ["# HELP wcapi_requests_total Total WCAPI requests", "# TYPE wcapi_requests_total counter"]
+    for k,v in sorted(_metrics_counters.items()):
+        if k.startswith('wcapi_requests_total'):
+            lines.append(f"{k} {v}")
+    lines.append("# HELP wcapi_request_duration_seconds Request duration seconds")
+    lines.append("# TYPE wcapi_request_duration_seconds summary")
+    for k,sumv in sorted(_metrics_hist_sum.items()):
+        if k.startswith('wcapi_request_duration_seconds'):
+            cnt = _metrics_hist_count[k]
+            lines.append(f"{k}_sum {sumv:.6f}")
+            lines.append(f"{k}_count {cnt}")
+    body = "\n".join(lines) + "\n"
+    return HttpResponse(body, content_type='text/plain')
 MAX_RESULTS = 50  # hard upper bound per page
 DEFAULT_LIMIT = 25
 
@@ -39,6 +73,9 @@ class WcapiView(LoginRequiredMixin, View):
 
     def _serialize_queryset(self, qs, limit, offset):
         sliced = qs[offset: offset + limit]
+        fields = getattr(self, '_requested_fields', None)
+        if fields:
+            return list(sliced.values(*fields))
         return list(sliced.values())
 
     def _model_or_400(self, table_name):
@@ -49,28 +86,42 @@ class WcapiView(LoginRequiredMixin, View):
 
     # GET: optional id for single record, else list
     def get(self, request):
+        start = time.perf_counter()
         table_name = request.GET.get('table_name')
         if not table_name:
             return JsonResponse({'status':'error','message':'Missing table_name'}, status=400)
         model, err = self._model_or_400(table_name)
         if err:
             return err
+        # Field projection
+        self._requested_fields = self._parse_projection(request, model)
+        if isinstance(self._requested_fields, JsonResponse):
+            return self._requested_fields  # error response
         record_id = request.GET.get('id')
         if record_id:
             try:
-                obj = model.objects.get(id=record_id)
-            except model.DoesNotExist:
+                obj = model.objects.get(id=record_id)  # type: ignore[attr-defined]
+            except Exception:
                 return JsonResponse({'status':'error','message':'Not found'}, status=404)
-            data = obj.__dict__.copy(); data.pop('_state', None)
-            return JsonResponse({'status':'success','table_name':table_name,'data':[data]})
-        qs = model.objects.all()
+            data_obj = obj.__dict__.copy(); data_obj.pop('_state', None)
+            if getattr(self, '_requested_fields', None):
+                data = [{k: v for k, v in data_obj.items() if k in self._requested_fields}]
+            else:
+                data = [data_obj]
+            _metric_inc('wcapi_requests_total', {'method':'GET'})
+            _metric_observe('wcapi_request_duration_seconds', time.perf_counter()-start, {'method':'GET'})
+            return JsonResponse({'status':'success','table_name':table_name,'data':data})
+        qs = model.objects.all()  # type: ignore[attr-defined]
         total = qs.count()
         limit, offset = _pagination_params(request)
         data = self._serialize_queryset(qs, limit, offset)
+        _metric_inc('wcapi_requests_total', {'method':'GET'})
+        _metric_observe('wcapi_request_duration_seconds', time.perf_counter()-start, {'method':'GET'})
         return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
 
     # POST: filtered list (exact match on allow-listed fields)
     def post(self, request):
+        start = time.perf_counter()
         try:
             payload = json.loads(request.body or '{}')
         except json.JSONDecodeError:
@@ -81,7 +132,10 @@ class WcapiView(LoginRequiredMixin, View):
         model, err = self._model_or_400(table_name)
         if err:
             return err
-        qs = model.objects.all()
+        self._requested_fields = self._parse_projection(payload, model)
+        if isinstance(self._requested_fields, JsonResponse):
+            return self._requested_fields  # error response
+        qs = model.objects.all()  # type: ignore[attr-defined]
         for k, v in payload.items():
             if k in SAFE_FILTER_FIELDS and hasattr(model, k):
                 try:
@@ -91,6 +145,8 @@ class WcapiView(LoginRequiredMixin, View):
         total = qs.count()
         limit, offset = _pagination_params(request)
         data = self._serialize_queryset(qs, limit, offset)
+        _metric_inc('wcapi_requests_total', {'method':'POST'})
+        _metric_observe('wcapi_request_duration_seconds', time.perf_counter()-start, {'method':'POST'})
         return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
 
     # Unimplemented verbs -> explicit 405 or minimal info
@@ -110,6 +166,38 @@ class WcapiView(LoginRequiredMixin, View):
         return JsonResponse({'status':'error','message':'CONNECT not supported'}, status=405)
     def manage(self, request):
         return JsonResponse({'status':'error','message':'MANAGE not supported'}, status=405)
+
+    # --- helpers ---
+    def _parse_projection(self, source, model):
+        """Parse requested field projection. Returns list[str] or JsonResponse on error or None if none requested."""
+        if isinstance(source, HttpRequest):
+            raw = source.GET.get(PROJECTION_PARAM)
+        else:
+            raw = source.get(PROJECTION_PARAM)
+        if not raw:
+            return None
+        if isinstance(raw, str):
+            try:
+                # allow comma separated OR JSON list encoded as string
+                if raw.strip().startswith('['):
+                    fields = json.loads(raw)
+                else:
+                    fields = [p.strip() for p in raw.split(',') if p.strip()]
+            except Exception:
+                return JsonResponse({'status':'error','message':'Invalid fields format'}, status=400)
+        elif isinstance(raw, (list, tuple)):
+            fields = list(raw)
+        else:
+            return JsonResponse({'status':'error','message':'Invalid fields type'}, status=400)
+        # Validate
+        model_fields = {f.name for f in model._meta.get_fields() if isinstance(f, models.Field)}
+        invalid = [f for f in fields if f not in model_fields]
+        if invalid:
+            return JsonResponse({'status':'error','message':f'Invalid field(s): {", ".join(invalid)}'}, status=400)
+        # prevent empty
+        if not fields:
+            return JsonResponse({'status':'error','message':'No fields specified'}, status=400)
+        return fields
 
 
 

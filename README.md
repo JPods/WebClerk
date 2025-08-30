@@ -240,6 +240,88 @@ Error:
 
 Additional fields (e.g. `id`, `record`, `messages`) may appear for save operations. Legacy boolean `success: true/false` has been deprecated in favor of the explicit `status` string.
 
+### Pagination (Universal Query)
+
+All list responses now include:
+
+```json
+{
+  "status": "success",
+  "table_name": "contacts",
+  "data": [ ... ],
+  "total": 123,      // total rows matching filters (before limit/offset)
+  "limit": 25,       // page size actually applied (capped at 50)
+  "offset": 0        // starting row
+}
+```
+
+Client supplies `?limit=` and `?offset=` (GET) or includes them in JSON body (POST). Server enforces `MAX_RESULTS = 50` hard cap.
+
+### Field Projection (Selective Columns)
+
+Reduce payload size by requesting only specific fields:
+
+```http
+GET /wcapi/query/?table_name=contacts&fields=id,email,name_first
+```
+
+or JSON list (URL encoded):
+
+```http
+GET /wcapi/query/?table_name=contacts&fields=["id","email"]
+```
+
+POST body variant:
+
+```json
+{
+  "table_name": "contacts",
+  "fields": "id,email,name_first",
+  "company": "Acme"  // normal filters still allowed
+}
+```
+
+Invalid / unknown fields → `400` with `{"status":"error","message":"Invalid field(s): ..."}`. At least one field must remain; empty list is rejected.
+
+### Optimistic Concurrency (Universal Save)
+
+Updates can include `expected_version` to avoid lost writes:
+
+```http
+POST /wcapi/save/
+{"table_name":"contacts","id":7,"expected_version":3,"name_first":"Ada"}
+```
+
+If the current row version differs → `409`:
+
+```json
+{"status":"error","message":"Version conflict: expected 3 got 5"}
+```
+
+Successful update returns bumped `version` in the envelope. New rows omit (or set initial) version.
+
+### Metrics Endpoint
+
+Lightweight in‑memory counters (temporary / dev) exposed at:
+
+```text
+GET /wcapi/metrics/
+```
+
+Prometheus text format (sample):
+
+```text
+# HELP wcapi_requests_total Total WCAPI requests
+# TYPE wcapi_requests_total counter
+wcapi_requests_total{method=GET} 42
+# HELP wcapi_request_duration_seconds Request duration seconds
+# TYPE wcapi_request_duration_seconds summary
+wcapi_request_duration_seconds{method=GET}_sum 0.123400
+wcapi_request_duration_seconds{method=GET}_count 42
+```
+
+Swap to `prometheus_client` later for process-safe metrics & histograms.
+
 ### Model Registry & Security Hardening
 
 Dynamic model resolution has been replaced with an explicit allow‑list in `apps/core/services/wcapi_registry.py`:
@@ -399,6 +481,7 @@ Aggregation:
 ```text
 GET /tx/lines/aggregate/?parent_ref_id={id}[&model=proposal-line][&ttl=120][&include_breakdown=1]
 ```
+
 Parameters:
 
 - parent_ref_id (required): Parent transaction id.
