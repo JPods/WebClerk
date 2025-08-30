@@ -16,14 +16,30 @@ small allow-list to reduce risk of accidental heavy queries or probing internal 
 """
 
 SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status"}
-MAX_RESULTS = 50
+MAX_RESULTS = 50  # hard upper bound per page
+DEFAULT_LIMIT = 25
+
+def _pagination_params(request):
+    try:
+        limit = int(request.GET.get('limit') or request.POST.get('limit') or DEFAULT_LIMIT)
+    except Exception:
+        limit = DEFAULT_LIMIT
+    try:
+        offset = int(request.GET.get('offset') or request.POST.get('offset') or 0)
+    except Exception:
+        offset = 0
+    if limit < 1: limit = DEFAULT_LIMIT
+    if limit > MAX_RESULTS: limit = MAX_RESULTS
+    if offset < 0: offset = 0
+    return limit, offset
 
 @method_decorator(csrf_exempt, name='dispatch')
 class WcapiView(LoginRequiredMixin, View):
     """Supports GET (single/list) and POST (filtered list). Other verbs 405."""
 
-    def _serialize_queryset(self, qs):
-        return list(qs.values()[:MAX_RESULTS])
+    def _serialize_queryset(self, qs, limit, offset):
+        sliced = qs[offset: offset + limit]
+        return list(sliced.values())
 
     def _model_or_400(self, table_name):
         model = get_model(table_name)
@@ -48,7 +64,10 @@ class WcapiView(LoginRequiredMixin, View):
             data = obj.__dict__.copy(); data.pop('_state', None)
             return JsonResponse({'status':'success','table_name':table_name,'data':[data]})
         qs = model.objects.all()
-        return JsonResponse({'status':'success','table_name':table_name,'data':self._serialize_queryset(qs)})
+        total = qs.count()
+        limit, offset = _pagination_params(request)
+        data = self._serialize_queryset(qs, limit, offset)
+        return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
 
     # POST: filtered list (exact match on allow-listed fields)
     def post(self, request):
@@ -69,7 +88,10 @@ class WcapiView(LoginRequiredMixin, View):
                     qs = qs.filter(**{k: v})
                 except Exception:
                     pass  # ignore bad filter values
-        return JsonResponse({'status':'success','table_name':table_name,'data':self._serialize_queryset(qs)})
+        total = qs.count()
+        limit, offset = _pagination_params(request)
+        data = self._serialize_queryset(qs, limit, offset)
+        return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
 
     # Unimplemented verbs -> explicit 405 or minimal info
     def delete(self, request):

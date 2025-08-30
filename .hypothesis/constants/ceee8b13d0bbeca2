@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/services/wcapi.py
+# hypothesis_version: 6.138.7
+
+[400, 404, 405, 'DELETE not supported', 'Invalid JSON', 'MANAGE not supported', 'Missing table_name', 'Not found', 'PATCH not supported', 'PUT not supported', 'TRACE not supported', 'Unknown table', '_state', 'action', 'company', 'data', 'dispatch', 'email', 'error', 'id', 'limit', 'message', 'name_first', 'name_last', 'offset', 'status', 'success', 'table_name', 'total', '{}']

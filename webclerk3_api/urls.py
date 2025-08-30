@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from apps.core.views.auth_views import admin_dashboard
 
 urlpatterns = [
@@ -16,4 +17,8 @@ urlpatterns = [
         # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
         path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
     path('sync/', include(('apps.sync.urls', 'sync'), namespace='sync')),
+    # OpenAPI schema & interactive docs
+    path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
+    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-swagger'),
+    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
 ]
