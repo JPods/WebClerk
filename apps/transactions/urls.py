@@ -1,5 +1,8 @@
 from django.urls import path
 from apps.transactions.views import line_views as views
+from apps.transactions.views.requisition import (
+    RequisitionListView, RequisitionDetailView, RequisitionSearchView
+)
 
 urlpatterns = [
     # Proposal
@@ -37,6 +40,11 @@ urlpatterns = [
     path('requisitions/<int:pk>/', views.RequisitionRetrieveUpdate.as_view(), name='requisition-detail'),
     path('requisition-lines/', views.RequisitionLineListCreate.as_view(), name='requisition-line-list'),
     path('requisition-lines/<int:pk>/', views.RequisitionLineRetrieveUpdate.as_view(), name='requisition-line-detail'),
+
+    # Requisition (standardized BaseModel pattern v2)
+    path('requisitions/std/', RequisitionListView.as_view(), name='requisition2-list'),
+    path('requisitions/std/<int:pk>/', RequisitionDetailView.as_view(), name='requisition2-detail'),
+    path('requisitions/std/search/', RequisitionSearchView.as_view(), name='requisition2-search'),
 
     # Aggregation
     path('lines/aggregate/', views.LineAggregateView.as_view(), name='line-aggregate'),

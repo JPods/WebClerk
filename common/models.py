@@ -24,7 +24,7 @@ from django.db.models.expressions import Func
 import uuid
 from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 import json  # ensure available for size checks
 
 # --- Optional Pydantic support (small step) ---------------------------------
@@ -469,7 +469,7 @@ class BaseModel(models.Model):
         obj = self.as_pydantic()
         if hasattr(obj, 'model_dump'):
             return obj.model_dump(*args, **kwargs)  # type: ignore[attr-defined]
-        return obj  # already dict
+        return cast(Dict[str, Any], obj)  # already dict when Pydantic not installed
 
 
 class SlimBaseModel(models.Model):
@@ -583,7 +583,7 @@ class SlimBaseModel(models.Model):
         if hasattr(obj, 'model_dump'):
             return obj.model_dump(*args, **kwargs)  # type: ignore[attr-defined]
         # Fallback already dict
-        return obj  # type: ignore[return-value]
+        return cast(Dict[str, Any], obj)  # type: ignore[return-value]
         return f"{self.__class__.__name__} #{self.pk}"
 
 # Yes, it’s coherent: a light “universal envelope” giving every table consistent extensibility (refs for relationships, prefs for per‑record settings, metadata for lifecycle/state, comments for discussion). That yields flexibility without exploding the relational schema.

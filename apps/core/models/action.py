@@ -25,3 +25,38 @@ class Action(BaseModel):
 
     def __str__(self):
         return f"{self.action or 'Action'} ({self.id})"
+    
+
+
+
+#     Take care of this in Actions
+# CREATE TABLE IF NOT EXISTS "services" (
+#     "action" VARCHAR(255),
+#     "action_by" VARCHAR(255),
+#     "attention" VARCHAR(255),
+#     "attribute" VARCHAR(255),
+#     "cause" VARCHAR(255),
+#     "comment" TEXT,
+#     "comment_public" TEXT,
+#     "company" VARCHAR(255),
+#     "cost_to_customer" INTEGER,
+#     "cost_to_rep" INTEGER,
+#     "cost_to_us" INTEGER,
+#     "created_by" VARCHAR(255),
+#     "description" VARCHAR(255),
+#     "display" TEXT,
+#     "duration_planned" INTEGER,
+#     "expense_explain" TEXT,
+#     "expenses" DOUBLE PRECISION,
+#     "field_56" VARCHAR(255),
+#     "is_tracked_sales" BOOLEAN DEFAULT FALSE,
+#     "miles" INTEGER,
+#     "price_service" DOUBLE PRECISION,
+#     "price_travel" DOUBLE PRECISION,
+#     "process" VARCHAR(255),
+#     "publish" INTEGER,
+#     "purpose" VARCHAR(255),
+#     "references" JSONB,
+#     "timer" INTEGER,
+#     "travel_time" INTEGER
+# );
