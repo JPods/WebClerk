@@ -138,7 +138,7 @@ class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
             try:
                 updated = self.apply_atomic_ops(obj, payload)
             except VersionConflictError as e:
-                return Response({'detail': str(e), 'code': 'version_conflict'}, status=409)
+                return Response({'detail': str(e), 'code': 'version_conflict'}, status=412)
             except ValidationError as ve:
                 return Response(ve.detail, status=400)
             ser = self.get_serializer(updated)
@@ -146,7 +146,7 @@ class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
         # Else fallback to normal partial serializer update with optional version check
         expected_version = payload.get('version')
         if expected_version is not None and expected_version != obj.version:
-            return Response({'detail': f'Version conflict: expected {expected_version} got {obj.version}', 'code': 'version_conflict'}, status=409)
+            return Response({'detail': f'Version conflict: expected {expected_version} got {obj.version}', 'code': 'version_conflict'}, status=412)
         return super().patch(request, *args, **kwargs)
 
     @extend_schema(

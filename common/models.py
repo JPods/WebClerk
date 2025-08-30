@@ -563,7 +563,7 @@ def model_capabilities(model_or_instance) -> list[str]:
 # Add simple trigram or GIN index on an aggregated searchable text column if keyword matching becomes slow.
 # Concurrency / Versioning
 
-# Expose version in API and require clients to send it back for optimistic concurrency (409 if mismatched).
+# Expose version in API and require clients to send it back for optimistic concurrency (412 if mismatched – Precondition Failed).
 # Optionally store a small diff log (changed_fields) in metadata.versioning or a separate audit table for investigative trails.
 # Comments Structure
 

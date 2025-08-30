@@ -67,10 +67,10 @@ class BaseOptimisticDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDest
             try:
                 updated = self.apply_atomic_ops(obj, data)
             except VersionConflictError as e:
-                return Response({'detail': str(e), 'code': 'version_conflict'}, status=409)
+                return Response({'detail': str(e), 'code': 'version_conflict'}, status=412)
             from rest_framework import status as drf_status
             return Response(self.get_serializer(updated).data, status=drf_status.HTTP_200_OK)
         expected_version = data.get('version')
         if expected_version is not None and expected_version != obj.version:
-            return Response({'detail': f'Version conflict: expected {expected_version} got {obj.version}', 'code': 'version_conflict'}, status=409)
+            return Response({'detail': f'Version conflict: expected {expected_version} got {obj.version}', 'code': 'version_conflict'}, status=412)
         return super().patch(request, *args, **kwargs)

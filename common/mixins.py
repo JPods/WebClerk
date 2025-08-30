@@ -18,7 +18,7 @@ class OptimisticPatchMixin:
 
     Behavior:
       - Each successful op bumps version by 1 (atomic at row level).
-      - Stale version -> VersionConflictError -> HTTP 409 handled by view.
+    - Stale version -> VersionConflictError -> HTTP 412 handled by view (Precondition Failed).
       - If neither 'set' nor 'append' present, view should fall back to normal partial update.
     """
     version_field = 'version'

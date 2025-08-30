@@ -9,6 +9,20 @@ from .wcapi_registry import get_model, ALLOWED_TABLE_NAMES
 from django.db import models
 from typing import Sequence
 from collections import defaultdict
+import os
+try:
+    PROM_ENABLED = os.getenv('WCAPI_METRICS_BACKEND', 'inmemory') == 'prom'
+    if PROM_ENABLED:
+        from prometheus_client import Counter, Summary, generate_latest, CONTENT_TYPE_LATEST  # type: ignore
+        _PROM_REQS = Counter('wcapi_requests_total', 'Total WCAPI requests', ['method'])
+        _PROM_DUR = Summary('wcapi_request_duration_seconds', 'Request duration seconds', ['method'])
+    else:
+        _PROM_REQS = None  # type: ignore
+        _PROM_DUR = None  # type: ignore
+except Exception:
+    PROM_ENABLED = False
+    _PROM_REQS = None  # type: ignore
+    _PROM_DUR = None  # type: ignore
 
 """WcapiView: read/query endpoint over whitelisted models.
 
@@ -19,7 +33,7 @@ Only models registered in wcapi_registry.py are accessible. Filtering is restric
 small allow-list to reduce risk of accidental heavy queries or probing internal structure.
 """
 
-SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status"}
+SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status", "contact_id"}
 PROJECTION_PARAM = 'fields'
 
 # In-memory metrics (lightweight; replace with prometheus_client if desired)
@@ -37,6 +51,11 @@ def _metric_observe(name: str, value: float, labels: dict[str,str]|None=None):
     _metrics_hist_count[keybase] += 1
 
 def wcapi_metrics_response(_: HttpRequest) -> HttpResponse:
+    if PROM_ENABLED and _PROM_REQS is not None:
+        try:
+            return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)  # type: ignore[arg-type]
+        except Exception:
+            pass
     lines = ["# HELP wcapi_requests_total Total WCAPI requests", "# TYPE wcapi_requests_total counter"]
     for k,v in sorted(_metrics_counters.items()):
         if k.startswith('wcapi_requests_total'):
@@ -70,6 +89,8 @@ def _pagination_params(request):
 @method_decorator(csrf_exempt, name='dispatch')
 class WcapiView(LoginRequiredMixin, View):
     """Supports GET (single/list) and POST (filtered list). Other verbs 405."""
+
+    _model_field_cache: dict[type, set[str]] = {}
 
     def _serialize_queryset(self, qs, limit, offset):
         sliced = qs[offset: offset + limit]
@@ -110,6 +131,9 @@ class WcapiView(LoginRequiredMixin, View):
                 data = [data_obj]
             _metric_inc('wcapi_requests_total', {'method':'GET'})
             _metric_observe('wcapi_request_duration_seconds', time.perf_counter()-start, {'method':'GET'})
+            if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
+                _PROM_REQS.labels(method='GET').inc()
+                _PROM_DUR.labels(method='GET').observe(time.perf_counter()-start)
             return JsonResponse({'status':'success','table_name':table_name,'data':data})
         qs = model.objects.all()  # type: ignore[attr-defined]
         total = qs.count()
@@ -117,6 +141,9 @@ class WcapiView(LoginRequiredMixin, View):
         data = self._serialize_queryset(qs, limit, offset)
         _metric_inc('wcapi_requests_total', {'method':'GET'})
         _metric_observe('wcapi_request_duration_seconds', time.perf_counter()-start, {'method':'GET'})
+        if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
+            _PROM_REQS.labels(method='GET').inc()
+            _PROM_DUR.labels(method='GET').observe(time.perf_counter()-start)
         return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
 
     # POST: filtered list (exact match on allow-listed fields)
@@ -136,17 +163,27 @@ class WcapiView(LoginRequiredMixin, View):
         if isinstance(self._requested_fields, JsonResponse):
             return self._requested_fields  # error response
         qs = model.objects.all()  # type: ignore[attr-defined]
+        strict = self._strict_mode(request, payload)
         for k, v in payload.items():
+            if k in (PROJECTION_PARAM, 'table_name', 'limit', 'offset'):
+                continue
             if k in SAFE_FILTER_FIELDS and hasattr(model, k):
                 try:
                     qs = qs.filter(**{k: v})
                 except Exception:
-                    pass  # ignore bad filter values
+                    pass  # ignore bad values
+            else:
+                if strict:
+                    return JsonResponse({'status':'error','message':f'Unknown filter field: {k}'}, status=400)
+                # silently ignore unknown filter keys to preserve backward compatibility
         total = qs.count()
         limit, offset = _pagination_params(request)
         data = self._serialize_queryset(qs, limit, offset)
         _metric_inc('wcapi_requests_total', {'method':'POST'})
         _metric_observe('wcapi_request_duration_seconds', time.perf_counter()-start, {'method':'POST'})
+        if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
+            _PROM_REQS.labels(method='POST').inc()
+            _PROM_DUR.labels(method='POST').observe(time.perf_counter()-start)
         return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
 
     # Unimplemented verbs -> explicit 405 or minimal info
@@ -190,7 +227,11 @@ class WcapiView(LoginRequiredMixin, View):
         else:
             return JsonResponse({'status':'error','message':'Invalid fields type'}, status=400)
         # Validate
-        model_fields = {f.name for f in model._meta.get_fields() if isinstance(f, models.Field)}
+        cached = self._model_field_cache.get(model)
+        if cached is None:
+            cached = {f.name for f in model._meta.get_fields() if isinstance(f, models.Field)}
+            self._model_field_cache[model] = cached
+        model_fields = cached
         invalid = [f for f in fields if f not in model_fields]
         if invalid:
             return JsonResponse({'status':'error','message':f'Invalid field(s): {", ".join(invalid)}'}, status=400)
@@ -198,6 +239,15 @@ class WcapiView(LoginRequiredMixin, View):
         if not fields:
             return JsonResponse({'status':'error','message':'No fields specified'}, status=400)
         return fields
+
+    def _strict_mode(self, request, payload):
+        if request.method == 'GET':
+            q = request.GET.get('strict')
+            header = request.META.get('HTTP_WCAPI_STRICT')
+            return str(q).lower() in {'1','true','yes'} or str(header).lower() in {'1','true','yes'}
+        header = request.META.get('HTTP_WCAPI_STRICT')
+        body_flag = payload.get('strict') if isinstance(payload, dict) else None
+        return str(body_flag).lower() in {'1','true','yes'} or str(header).lower() in {'1','true','yes'}
 
 
 

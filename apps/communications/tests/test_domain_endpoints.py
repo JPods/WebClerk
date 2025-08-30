@@ -74,7 +74,7 @@ def test_domain_atomic_patch_and_version_conflict(api_client, staff_user):
     assert new_version == version + 1
     # Use stale version for conflict
     conflict = api_client.patch(detail_url, {'version': version, 'set': {'metadata.flags.schema_rev': 6}}, format='json')
-    assert conflict.status_code == 409
+    assert conflict.status_code == 412
     # Append note with current version
     p2 = api_client.patch(detail_url, {'version': new_version, 'append': {'comments.notes': {'text':'hello','type':'info'}}}, format='json')
     assert p2.status_code == 200

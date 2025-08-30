@@ -57,7 +57,7 @@ def test_pending_detail_and_optimistic_patch(auth_client):
     assert patch_resp.data['version'] == version + 1
     # conflict test
     conflict_resp = auth_client.patch(detail_url, patch_body, format='json')
-    assert conflict_resp.status_code == 409
+    assert conflict_resp.status_code == 412
 
 @pytest.mark.django_db
 def test_pending_search(auth_client):

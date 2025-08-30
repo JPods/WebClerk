@@ -44,7 +44,7 @@ def test_requisition_detail_and_atomic_patch(auth_client):
     assert patch_resp.data['version'] == version + 1
     # conflict
     conflict = auth_client.patch(detail, {"version":version, "set":{"metadata.flags.schema_rev":3}}, format='json')
-    assert conflict.status_code == 409
+    assert conflict.status_code == 412
 
 @pytest.mark.django_db
 def test_requisition_search(auth_client):

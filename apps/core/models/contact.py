@@ -101,13 +101,11 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False, help_text="User can access admin")
     date_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
     
-    objects = ContactManager()  # <-- Add this line
-    
+    objects = ContactManager()
+
     # Use email as the username field
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name_first', 'name_last']
-    
-    objects = ContactManager()
     
     class Meta:
         db_table = 'contacts'

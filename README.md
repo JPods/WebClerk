@@ -285,20 +285,30 @@ Invalid / unknown fields → `400` with `{"status":"error","message":"Invalid fi
 
 ### Optimistic Concurrency (Universal Save)
 
-Updates can include `expected_version` to avoid lost writes:
+Updates can include a `version` field (preferred) or an `If-Match` header to avoid lost writes. (Legacy `expected_version` is still accepted for now but will be removed.)
 
 ```http
 POST /wcapi/save/
-{"table_name":"contacts","id":7,"expected_version":3,"name_first":"Ada"}
+{"table_name":"contacts","id":7,"version":3,"name_first":"Ada"}
 ```
 
-If the current row version differs → `409`:
+If the current row version differs → `412 Precondition Failed`:
 
 ```json
 {"status":"error","message":"Version conflict: expected 3 got 5"}
 ```
 
+You may also send an HTTP header:
+
+```http
+If-Match: 3
+```
+
+Stub behavior today: a plain integer is treated as the expected version; `*` skips the check. Future work: full ETag semantics / 412 Precondition Failed responses.
+
 Successful update returns bumped `version` in the envelope. New rows omit (or set initial) version.
+
+All version conflicts across updated endpoints now return `412 Precondition Failed` (older `409` responses have been retired for consistency).
 
 ### Metrics Endpoint
 
@@ -724,7 +734,7 @@ Avoid lost updates and reduce write amplification when only a small nested JSON 
 | `version` | `BaseModel.version` | Incremented on each successful save / atomic op |
 | Atomic helpers | `BaseModel.atomic_json_set`, `BaseModel.atomic_list_append` | SQL-level jsonb mutation & row locking |
 | Mixin | `common/mixins.py::OptimisticPatchMixin` | Reusable PATCH handler (set/append + version check) |
-| Exception | `common.models.VersionConflictError` | Signals version mismatch (HTTP 409) |
+| Exception | `common.models.VersionConflictError` | Signals version mismatch (HTTP 412) |
 
 ### PATCH Payload Contract (Atomic)
 
@@ -746,11 +756,11 @@ Rules:
 - At least one of `set` or `append` must be present for atomic mode.
 - Dot paths: first segment must be one of `metadata`, `refs`, `prefs`, `comments`.
 - Each successful operation bumps `version` by 1 (append returns the new version).
-- Stale `version` ⇒ 409 response: `{ "detail": "Version conflict: expected X got Y", "code": "version_conflict" }`.
+- Stale `version` ⇒ 412 response: `{ "detail": "Version conflict: expected X got Y", "code": "version_conflict" }`.
 
 ### Fallback (Non-atomic) Partial Update
 
-If the PATCH body lacks `set`/`append`, the request falls back to normal DRF partial update. If a `version` key is provided it is still checked before updating, returning 409 on mismatch.
+If the PATCH body lacks `set`/`append`, the request falls back to normal DRF partial update. If a `version` key is provided it is still checked before updating, returning 412 on mismatch.
 
 ### Example Flow
 
@@ -773,14 +783,14 @@ PATCH /comm/domains/42/
 ```
 
 1. Server returns `version:9`.
-1. A stale client still holding `version:7` sends a patch → receives 409 conflict and must re-fetch.
+1. A stale client still holding `version:7` sends a patch → receives 412 conflict and must re-fetch.
 
 ### Error Responses
 
 | Status | When | Shape |
 |--------|------|-------|
 | 400 | Missing version / invalid root path / no ops | `{ "version": ["This field is required for atomic patch."] }` or path-specific message |
-| 409 | Version mismatch | `{ "detail": "Version conflict: expected 7 got 9", "code": "version_conflict" }` |
+| 412 | Version mismatch | `{ "detail": "Version conflict: expected 7 got 9", "code": "version_conflict" }` |
 
 ### Extending To Another Model
 
@@ -798,10 +808,10 @@ class WidgetDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
       try:
         updated = self.apply_atomic_ops(obj, data)
       except VersionConflictError as e:
-        return Response({"detail": str(e), "code": "version_conflict"}, status=409)
+  return Response({"detail": str(e), "code": "version_conflict"}, status=412)
       return Response(self.get_serializer(updated).data)
     if 'version' in data and data['version'] != obj.version:
-      return Response({"detail": f"Version conflict: expected {data['version']} got {obj.version}", "code": "version_conflict"}, status=409)
+  return Response({"detail": f"Version conflict: expected {data['version']} got {obj.version}", "code": "version_conflict"}, status=412)
     return super().patch(request, *args, **kwargs)
 ```
 
@@ -932,7 +942,7 @@ Every model inheriting `BaseModel` should expose a uniform API surface:
 6. Field visibility & edit rules: driven by settings `view_edit` matrix; serializers automatically enforce.
 7. Pagination: page size default 25 with `?page_size=` override up to 500.
 8. Ordering: list views support `?ordering=` parameter (defaults to `-modified_dt`).
-9. Versioning: clients must supply `version` in atomic PATCH payload; conflict => 409.
+9. Versioning: clients must supply `version` in atomic PATCH payload; conflict => 412.
 10. Minimal fallback exposure for non-privileged roles when no matrix configured.
 
 Template Example (New Resource)

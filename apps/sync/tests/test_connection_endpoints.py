@@ -61,6 +61,6 @@ def test_connection_atomic_patch(api_client, staff_user):
     new_version = p1.json()['version']
     # stale conflict
     conflict = api_client.patch(detail, {'version': version, 'set': {'metadata.flags.schema_rev': 3}}, format='json')
-    assert conflict.status_code == 409
+    assert conflict.status_code == 412
     p2 = api_client.patch(detail, {'version': new_version, 'append': {'comments.notes': {'text':'sync note'}}}, format='json')
     assert p2.status_code == 200

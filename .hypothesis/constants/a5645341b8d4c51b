@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/views/domain.py
+# hypothesis_version: 6.138.7
+
+[100, 200, 201, 204, 400, 401, 403, 404, 412, 500, '-modified_dt', 'Create Domain', 'Delete Domain', 'Forbidden', 'Get Domain', 'Invalid data', 'List Domains', 'Not found', 'Successfully deleted', 'Unauthorized', 'Update Domain', 'admin', 'append', 'code', 'contacts', 'count', 'detail', 'is_superuser', 'level', 'links', 'page_size', 'q', 'refs__domains', 'request', 'results', 'role', 'security_level', 'set', 'staff', 'status', 'terms', 'version', 'version_conflict']
