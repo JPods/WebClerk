@@ -64,6 +64,19 @@ class WcapiIfMatchTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(second.json()['record']['name_first'], 'Two')
 
+    def test_if_match_wildcard_bypasses_stale(self):
+        v = self.contact.version
+        # bump version using exact match
+        ok = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage1'}, HTTP_IF_MATCH=str(v))
+        self.assertEqual(ok.status_code, 200)
+        # stale numeric should conflict
+        conflict = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage2'}, HTTP_IF_MATCH=str(v))
+        self.assertEqual(conflict.status_code, 412)
+        # wildcard bypasses
+        wildcard = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage3'}, HTTP_IF_MATCH='*')
+        self.assertEqual(wildcard.status_code, 200)
+        self.assertEqual(wildcard.json()['record']['name_last'], 'Stage3')
+
     def test_legacy_expected_version_deprecation_message(self):
         v = self.contact.version
         resp = self.post({'table_name': 'contacts', 'id': self.contact.id, 'expected_version': v, 'name_first': 'Legacy'})

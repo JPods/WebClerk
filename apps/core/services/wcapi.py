@@ -11,7 +11,8 @@ from typing import Sequence
 from collections import defaultdict
 import os
 try:
-    PROM_ENABLED = os.getenv('WCAPI_METRICS_BACKEND', 'inmemory') == 'prom'
+    # Enable Prometheus if env WCAPI_PROMETHEUS=1 (backward compat: WCAPI_METRICS_BACKEND=prom)
+    PROM_ENABLED = os.getenv('WCAPI_PROMETHEUS', '0') == '1' or os.getenv('WCAPI_METRICS_BACKEND') == 'prom'
     if PROM_ENABLED:
         from prometheus_client import Counter, Summary, generate_latest, CONTENT_TYPE_LATEST  # type: ignore
         _PROM_REQS = Counter('wcapi_requests_total', 'Total WCAPI requests', ['method'])
@@ -19,7 +20,7 @@ try:
     else:
         _PROM_REQS = None  # type: ignore
         _PROM_DUR = None  # type: ignore
-except Exception:
+except Exception:  # pragma: no cover
     PROM_ENABLED = False
     _PROM_REQS = None  # type: ignore
     _PROM_DUR = None  # type: ignore
@@ -34,6 +35,8 @@ small allow-list to reduce risk of accidental heavy queries or probing internal 
 """
 
 SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status", "contact_id"}
+STRICT_PARAM = 'strict'
+STRICT_HEADER = 'HTTP_WCAPI_STRICT'
 PROJECTION_PARAM = 'fields'
 
 # In-memory metrics (lightweight; replace with prometheus_client if desired)
@@ -164,8 +167,9 @@ class WcapiView(LoginRequiredMixin, View):
             return self._requested_fields  # error response
         qs = model.objects.all()  # type: ignore[attr-defined]
         strict = self._strict_mode(request, payload)
+        invalid_filters: list[str] = []
         for k, v in payload.items():
-            if k in (PROJECTION_PARAM, 'table_name', 'limit', 'offset'):
+            if k in (PROJECTION_PARAM, 'table_name', 'limit', 'offset', STRICT_PARAM):
                 continue
             if k in SAFE_FILTER_FIELDS and hasattr(model, k):
                 try:
@@ -173,9 +177,10 @@ class WcapiView(LoginRequiredMixin, View):
                 except Exception:
                     pass  # ignore bad values
             else:
-                if strict:
-                    return JsonResponse({'status':'error','message':f'Unknown filter field: {k}'}, status=400)
-                # silently ignore unknown filter keys to preserve backward compatibility
+                if strict and k not in invalid_filters:
+                    invalid_filters.append(k)
+        if strict and invalid_filters:
+            return JsonResponse({'status':'error','message':f"Invalid filter field(s): {', '.join(sorted(invalid_filters))}"}, status=400)
         total = qs.count()
         limit, offset = _pagination_params(request)
         data = self._serialize_queryset(qs, limit, offset)
@@ -241,13 +246,16 @@ class WcapiView(LoginRequiredMixin, View):
         return fields
 
     def _strict_mode(self, request, payload):
+        header = request.META.get(STRICT_HEADER)
+        if header and str(header).lower() in {'1','true','yes'}:
+            return True
+        flag = None
         if request.method == 'GET':
-            q = request.GET.get('strict')
-            header = request.META.get('HTTP_WCAPI_STRICT')
-            return str(q).lower() in {'1','true','yes'} or str(header).lower() in {'1','true','yes'}
-        header = request.META.get('HTTP_WCAPI_STRICT')
-        body_flag = payload.get('strict') if isinstance(payload, dict) else None
-        return str(body_flag).lower() in {'1','true','yes'} or str(header).lower() in {'1','true','yes'}
+            flag = request.GET.get(STRICT_PARAM)
+        else:
+            if isinstance(payload, dict):
+                flag = payload.get(STRICT_PARAM)
+        return str(flag).lower() in {'1','true','yes'}
 
 
 

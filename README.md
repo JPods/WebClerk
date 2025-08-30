@@ -310,6 +310,59 @@ Successful update returns bumped `version` in the envelope. New rows omit (or se
 
 All version conflicts across updated endpoints now return `412 Precondition Failed` (older `409` responses have been retired for consistency).
 
+### Strict Filter Mode (Opt-In)
+
+Default behavior: unknown filter keys on `/wcapi/query/` are ignored (backward compatible).
+
+Enable strict validation (reject any unknown filter key with HTTP 400) via body param or header:
+
+```json
+{"table_name":"contacts","status":"active","strict":1}
+```
+
+Header equivalent:
+
+```http
+X-WCAPI-Strict: 1
+```
+
+Error example:
+
+```json
+{"status":"error","message":"Invalid filter field(s): bad_key"}
+```
+
+### Filtering Infrastructure (django-filter)
+
+The project includes `django-filter` (added to `INSTALLED_APPS` and DRF `DEFAULT_FILTER_BACKENDS`) to enable declarative filtering on traditional DRF viewsets / endpoints. The lightweight `/wcapi/query/` endpoint intentionally implements its own explicit allow‑list (`SAFE_FILTER_FIELDS`) instead of relying on automatic generation to:
+
+- Prevent accidental exposure of internal / heavy columns
+- Keep the payload contract stable and predictable
+- Allow an opt‑in strict mode separate from global DRF filter behavior
+
+If you create new DRF viewsets, you can define `filterset_fields` or custom `FilterSet` classes and they will be powered by `django-filter`. For the universal wcapi endpoint, extend `SAFE_FILTER_FIELDS` (and underlying model fields) rather than adding broad automatic filter backends.
+
+Version: pinned in `requirements.txt` (`django-filter==25.1`).
+
+Troubleshooting:
+
+- If you see `ModuleNotFoundError: No module named 'django_filters'`, ensure your virtualenv has been updated: `pip install -r requirements.txt`.
+- Clear any stale venv if mismatched (`rm -rf bin lib include` then recreate) when upgrading major Django versions.
+
+
+### Metrics Backend Options
+
+Fallback in-memory counters are used by default. To enable Prometheus metrics:
+
+1. Install `prometheus_client`.
+2. Set `WCAPI_PROMETHEUS=1` (env var) or legacy `WCAPI_METRICS_BACKEND=prom`.
+
+Then `/wcapi/metrics/` returns the standard Prometheus exposition via `prometheus_client`.
+
+### Projection Field Cache
+
+Projection field validation now caches model field name sets per process to reduce metadata lookups.
+
 ### Metrics Endpoint
 
 Lightweight in‑memory counters (temporary / dev) exposed at:
