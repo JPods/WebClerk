@@ -142,11 +142,23 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
             return self.name_first
         return self.email.split('@')[0]
     
+    # Backward compatibility for code/tests referencing first_name / last_name
+    @property
+    def first_name(self):  # pragma: no cover - alias
+        return self.name_first
+    @first_name.setter
+    def first_name(self, value):  # pragma: no cover - alias
+        self.name_first = value
+    @property
+    def last_name(self):  # pragma: no cover - alias
+        return self.name_last
+    @last_name.setter
+    def last_name(self, value):  # pragma: no cover - alias
+        self.name_last = value
 
-        # Auto-assign admin role to superusers
+    def save(self, *args, **kwargs):  # ensure role sync
         if self.is_superuser and self.role != 'admin':
             self.role = 'admin'
-        
         super().save(*args, **kwargs)
     
     @property

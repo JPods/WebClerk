@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/line_variants.py
+# hypothesis_version: 6.138.7
+
+[120, 'Invoice', 'InvoiceLine', 'Order', 'OrderLine', 'Proposal', 'Proposal:new', 'ProposalLine', 'Purchase', 'PurchaseLine', 'Requisition', 'RequisitionLine', 'Workorder', 'WorkorderLine', 'invoice_line', 'lines', 'order_line', 'proposal_line', 'purchase_line', 'requisition_line', 'workorder_line']

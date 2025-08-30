@@ -215,6 +215,81 @@ Source: `webclerk3/core/urls.py`
 ✅ **Consolidated Patterns** – All in core/templates/  
 ✅ **Future-Proof** – Ready for React front-end migration
 
+### New Unified Response Schema (2025-08)
+
+All universal endpoints (`/wcapi/query/`, `/wcapi/get/`, `/wcapi/save/`, etc.) now return a consistent envelope:
+
+Success (list style):
+
+```json
+{
+  "status": "success",
+  "table_name": "contacts",
+  "data": [ {"id": 1, "email": "x@example.com", "name_first": "Ada" } ]
+}
+```
+
+Error:
+
+```json
+{
+  "status": "error",
+  "message": "Unknown table"
+}
+```
+
+Additional fields (e.g. `id`, `record`, `messages`) may appear for save operations. Legacy boolean `success: true/false` has been deprecated in favor of the explicit `status` string.
+
+### Model Registry & Security Hardening
+
+Dynamic model resolution has been replaced with an explicit allow‑list in `apps/core/services/wcapi_registry.py`:
+
+```python
+MODEL_MAP = {
+  'contacts': Contact,
+  'actions': Action,
+  'emails': Email,
+  # ...
+}
+```
+
+Only keys in `MODEL_MAP` (exported as `ALLOWED_TABLE_NAMES`) can be queried. The universal query view (`WcapiView`) rejects unknown tables with HTTP 400.
+
+Filtering is intentionally constrained to a small safe subset (`SAFE_FILTER_FIELDS`) to avoid heavy uncontrolled queries or probing internal structure. Current allow‑list:
+
+```text
+email, name_first, name_last, company, action, status
+```
+
+Requests providing other keys are ignored for filtering (not errors). Result sets are capped (`MAX_RESULTS = 50`).
+
+### Error Path Guarantees
+
+| Scenario | Status | HTTP | Message |
+|----------|--------|------|---------|
+| Missing `table_name` (GET/POST) | error | 400 | Missing table_name / Missing required field: table_name |
+| Unknown table | error | 400 | Unknown table |
+| Invalid JSON body | error | 400 | Invalid JSON ... |
+| Record id not found (GET with id) | error | 404 | Not found |
+| Unsupported verb (e.g. DELETE /wcapi/query/) | error | 405 | VERB not supported |
+
+Automated tests covering these behaviors: `tests/test_wcapi_errors.py`.
+
+### Extending the Universal API
+
+1. Add model to `MODEL_MAP` in `wcapi_registry.py` (prefer plural key).
+2. (Optional) Add new filterable field to `SAFE_FILTER_FIELDS` if low cardinality and indexed.
+3. Add/adjust tests to lock behavior (copy patterns from `test_wcapi_errors.py`).
+4. Update docs here if response structure evolves.
+
+Future enhancements being considered:
+
+- Role-based dynamic field whitelisting (replace raw `values()` usage)
+- Pagination token instead of fixed `MAX_RESULTS` limit
+- Per-user/table throttling tiers
+- Async export job for large result sets
+
+
 ### Navigation Structure
 
 🏠 **Home** – Landing page with system overview  
@@ -662,57 +737,102 @@ class WidgetDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
 - Conflict auto-merge strategies (server-side field diffing).
 - Audit log entries per atomic operation.
 
-## SlimBaseModel (Lightweight Ephemeral Records)
+## Modular BaseModel & CoreModel (Capability Composition)
 
-Some tables (e.g. queues, staging buffers) have very short‑lived rows and don’t benefit from the full Universal JSON envelope (`metadata`, `refs`, `prefs`, `comments`, `health_rating`). For these we provide `SlimBaseModel`.
+We decomposed the former monolithic `BaseModel` into a small `CoreModel` plus optional mixins. Compose only what each table needs while keeping a universal contract (id, uuid, ida, created_dt, modified_dt, version).
 
-| Feature | BaseModel | SlimBaseModel | Rationale |
-|---------|-----------|---------------|-----------|
-| id / uuid / ida | Yes | Yes | Core identification |
-| created_dt / modified_dt | Yes | Yes | Ordering & basic auditing |
-| version (optimistic int) | Yes | Yes | Lightweight conflict protection |
-| metadata / refs / prefs / comments | Yes | No | Avoid JSON bloat & GIN index overhead |
-| health_rating | Yes | No | Not needed for ephemeral rows |
-| Keyword dirty flag / async rebuild | Yes | No | Skip indexing pipeline |
-| atomic_json_set / atomic_list_append | Yes | No* | Operate only on heavy JSON fields |
-| GIN indexes (refs/prefs) | Yes | No | Reduced write amplification |
+### Mixins & Capabilities
 
-(*) Slim records still support optimistic concurrency on whole‑row updates (`version`), but granular JSON patch operations are intentionally disabled (no heavy JSON fields to mutate).
+| Mixin / Core | Adds Fields | Key Helpers | feature_flags | Typical Use |
+|--------------|-------------|-------------|---------------|-------------|
+| CoreModel | id, uuid, ida, created_dt, modified_dt, version | optimistic_save/assert_version | core | Minimal high‑churn tables, queues |
+| MetadataMixin | metadata | history access, set/get metadata value | metadata | Lifecycle, audit, versioned schemas |
+| RefsMixin | refs | add_keyword/add_tag | refs | Keyword/tag search, soft links |
+| PrefsMixin | prefs | (none yet) | prefs | Per-record user configuration |
+| CommentsMixin | comments | add_note | comments | Collaboration, notes, discussions |
+| HealthMixin | health_rating | (none yet) | health | Data quality scoring |
+| KeywordsMixin | (relies on refs+metadata) | mark_keywords_dirty, update_keywords | keywords | Async keyword extraction pipeline |
+| LifecycleMixin | is_deleted, is_archived | soft_delete/restore/archive | lifecycle | Soft delete & archival controls |
+| AtomicJSONMixin | (no fields) | atomic_json_set / atomic_list_append | atomic_json | JSONB atomic patch operations |
+| UniversalDictMixin | (no fields) | to_universal_dict / as_pydantic | universal_dict | Uniform API serialization |
 
-### When to Use SlimBaseModel
+`BaseModel` = full composition of all the above (in MRO order):
 
-Use it when ALL apply:
 
-- Row lifetime is short (minutes/hours, not months)
-- No need to search inside refs/prefs or metadata flags
-- No requirement for per-field audit detail beyond timestamps
-- High insert/delete throughput (queue or staging pattern)
+```python
+class BaseModel(MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
+        HealthMixin, KeywordsMixin, LifecycleMixin,
+        CoreModel, UniversalDictMixin, AtomicJSONMixin):
+  pass
+```
 
-### When NOT to Use SlimBaseModel
 
-- You need atomic nested JSON mutations
-- You rely on keyword extraction / search across textual fields
-- You need refs-based relationship fan-out stored on the record
-- You want consistent envelope shape for external API consumers
+`CoreModel` (a.k.a previously slim) = minimal identity + version only.
 
-### Migrating a Model to SlimBaseModel
+### Choosing a Composition
 
-1. Refactor model class to inherit `SlimBaseModel`.
-2. Remove envelope JSON fields & related indexes from the model.
-3. Generate migrations: `python manage.py makemigrations <app>`.
-4. Apply migrations: `python manage.py migrate`.
-5. Update serializer to list only slim fields (`id, uuid, ida, created_dt, modified_dt, version, plus domain fields`).
-6. Remove atomic PATCH operations (set/append) from the detail view (set `atomic_keys = ()`).
-7. Adjust / document API contract (clients should not expect metadata/refs/prefs/comments).
-8. Run full test suite.
+Decision checklist (add mixins until all requirements satisfied):
 
-### Example (Pending Queue)
+| Requirement | Add This |
+|-------------|----------|
+| Need only identity + optimistic concurrency | CoreModel |
+| Track lifecycle history + timestamps in metadata | MetadataMixin |
+| Store tags / keywords / lightweight links | RefsMixin (+ KeywordsMixin for auto keyword pipeline) |
+| Allow user-level display or behavior settings | PrefsMixin |
+| Attach threaded notes / comments | CommentsMixin |
+| Score or surface health/quality metrics | HealthMixin |
+| Soft delete / archive states | LifecycleMixin |
+| Atomic JSON path set / list append | AtomicJSONMixin (requires relevant JSON field) |
+| Uniform serialization (generic endpoints) | UniversalDictMixin |
 
-`apps/core/models/pending.py` uses `SlimBaseModel` to minimize overhead for transient processing rows. Endpoints expose only the minimal schema, and versioning still protects against stale updates.
+If you need keywords auto-generation you typically include: MetadataMixin + RefsMixin + KeywordsMixin.
 
-### Design Principle
+### Example Compositions
 
-Prefer explicit base choice (`BaseModel` vs `SlimBaseModel`) over ad‑hoc per‑model exceptions. This keeps the codebase intent clear and evolution predictable.
+1. Full domain entity (most models): BaseModel
+2. Queue / staging (Pending): CoreModel only
+3. Audited but no comments/prefs: class AuditOnly(MetadataMixin, RefsMixin, CoreModel, UniversalDictMixin, AtomicJSONMixin)
+
+### Pending (Queue) Example
+
+`apps/core/models/pending.py` inherits `CoreModel` only. It keeps writes fast and payloads small while still benefiting from version for optimistic concurrency.
+
+### Migrating an Existing Full Model to a Leaner Composition
+
+1. Create new class inheriting the reduced set of mixins + CoreModel.
+2. Remove unused JSON fields from the model class.
+3. makemigrations / migrate.
+4. Update serializers to reflect removed fields.
+5. Remove atomic PATCH operations if AtomicJSONMixin is no longer included.
+6. Adjust docs / client expectations.
+7. Run test suite.
+
+### Capability Introspection
+
+Use `model_capabilities(MyModel)` to enumerate enabled feature flags. Generic views can branch on capabilities (e.g., deny atomic JSON ops if `atomic_json` absent).
+
+### Design Principles
+
+- Keep `BaseModel` as the default for rich entities.
+- Start with `CoreModel` for any ephemeral/high‑churn table; add only what’s justified.
+- One mixin = one responsibility; no hidden cross‑dependencies beyond documented expectations (e.g., KeywordsMixin assumes Refs + optionally Metadata).
+- Avoid premature inclusion of atomic JSON mixin—only when partial updates are required.
+
+### Why Not Just Two Bases?
+
+Granular mixins prevent midpoint compromises (e.g., wanting metadata + refs but not comments). This keeps schema surface proportional to real functional need and reduces JSON serialization overhead and index bloat.
+
+### Pydantic Integration
+
+`UniversalDictMixin` supplies `to_universal_dict()` and Pydantic conversion via an optional cached `UniversalAPISchema`. All compositions sharing this mixin automatically serialize consistently.
+
+### Future Extensions
+
+- Add MetricsMixin (aggregated counters) when needed.
+- Add EncryptionMixin for sensitive JSON subtrees.
+- Provide a factory to auto‑generate Pydantic models from any composition for stricter contracts.
+
+---
 
 ## Consistency Standards (All Apps / Models)
 

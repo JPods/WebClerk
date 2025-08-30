@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/migrations/0002_requisitionstd.py
+# hypothesis_version: 6.138.7
+
+[255, '0001_initial', 'RequisitionStd', 'comments', 'cost', 'cost_extended', 'created_dt', 'db_table', 'description', 'draft', 'health_rating', 'id', 'ida', 'indexes', 'is_archived', 'is_deleted', 'lead_days', 'metadata', 'modified_dt', 'name', 'prefs', 'purpose', 'quantity', 'quantity_extended', 'refs', 'requisitions', 'status', 'transactions', 'uuid', 'version']

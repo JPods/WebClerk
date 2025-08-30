@@ -1,0 +1,20 @@
+# Central registry for Universal API accessible models.
+# Limits exposure surface and provides a single whitelist for query/save endpoints.
+from apps.core.models import Contact, Action
+from apps.communications.models import Phone, Domain, Email, Location
+
+MODEL_MAP = {
+    'contacts': Contact,
+    'actions': Action,
+    'phones': Phone,
+    'domains': Domain,
+    'emails': Email,
+    'addresses': Location,
+}
+
+ALLOWED_TABLE_NAMES = set(MODEL_MAP.keys())
+
+def get_model(table_name: str):
+    if not table_name:
+        return None
+    return MODEL_MAP.get(table_name.lower())

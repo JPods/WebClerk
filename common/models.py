@@ -24,41 +24,55 @@ from django.db.models.expressions import Func
 import uuid
 from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, Optional, cast, Iterable
+import inspect
 import json  # ensure available for size checks
 
-# --- Optional Pydantic support (small step) ---------------------------------
-try:  # Do not hard-depend; keeps migration surface minimal
+"""
+Modular model capability system.
+
+Goal: allow per-table composition of only the JSON envelopes / helpers needed
+while preserving a consistent universal contract (core identity + timestamps + version).
+
+Composition diagram (left -> right MRO precedence):
+    class BaseModel(MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
+                    HealthMixin, KeywordsMixin, LifecycleMixin,
+                    CoreModel, UniversalDictMixin, AtomicJSONMixin)
+
+Concrete app models inherit BaseModel for the full envelope. Lighter tables
+inherit CoreModel or selectively add mixins (feature mixins first, then
+CoreModel, then UniversalDictMixin. Include AtomicJSONMixin only if at least
+one JSON envelope field is present.
+
+Capability discovery: model_capabilities(Model) returns sorted list of feature flags.
+Each mixin sets feature_flags = {'metadata'} etc.
+"""
+
+# --- Optional Pydantic support (still optional) -----------------------------
+try:
     from pydantic import BaseModel as PydanticBaseModel
-except ImportError:  # Pydantic not installed yet
+except ImportError:  # pragma: no cover - optional
     PydanticBaseModel = None  # type: ignore
 
-if PydanticBaseModel:
+if PydanticBaseModel:  # pragma: no cover - structure definition
     class UniversalAPISchema(PydanticBaseModel):  # type: ignore[misc]
-        """Lightweight Pydantic representation of BaseModel core fields.
-
-        CHANGE: Introduced for serialization / validation without altering
-        existing Django inheritance tree. Only core universal fields are
-        included; domain models can extend this later.
-        """
         id: Optional[int] = None
         uuid: Optional[str] = None
-        ida: str | None = None
-        metadata: Dict[str, Any]
-        refs: Dict[str, Any]
-        prefs: Dict[str, Any]
-        comments: Dict[str, Any]
-        health_rating: int = 0
+        ida: Optional[str] = None
+        metadata: Dict[str, Any] | None = None
+        refs: Dict[str, Any] | None = None
+        prefs: Dict[str, Any] | None = None
+        comments: Dict[str, Any] | None = None
+        health_rating: Optional[int] = 0
         dt_created: Optional[int] = None
         dt_modified: Optional[int] = None
+        version: Optional[int] = None
 
         class Config:
             arbitrary_types_allowed = True
-else:
-    # Fallback stub so type checkers know the name; runtime methods guard usage
+else:  # pragma: no cover - fallback stub
     class UniversalAPISchema:  # type: ignore
         pass
-from django.contrib.postgres.indexes import GinIndex
 
 MAX_METADATA_SIZE = 320000  # bytes
 MAX_REFS_SIZE = 320000      # bytes
@@ -135,356 +149,11 @@ def default_comments():
         'notes': []  # threaded note list pattern
     }
 
-class BaseModel(models.Model):
-    """
-    Base model that provides Universal API metadata structure.
-    All models in the system inherit from this to get Universal API compatibility.
-    Implements the 4D-style metadata system with modern Django features.
-    """
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    ida = models.CharField(max_length=40, blank=True, db_index=True, help_text="Alternate ID for external systems (indexed)")  # CHANGE: add index for lookups
-    # CHANGE: denormalized timestamps (UTC ms) for fast ordering / indexing
-    created_dt = models.BigIntegerField(default=0, db_index=True, help_text="Denormalized created timestamp (ms UTC)")
-    modified_dt = models.BigIntegerField(default=0, db_index=True, help_text="Denormalized modified timestamp (ms UTC)")
-    # CHANGE: lifecycle flags
-    is_deleted = models.BooleanField(default=False, db_index=True)
-    is_archived = models.BooleanField(default=False, db_index=True)
-    # CHANGE: optimistic concurrency token
-    version = models.PositiveIntegerField(default=1, help_text="Incremented on each successful save")
-    metadata = models.JSONField(default=default_metadata, help_text="Universal API metadata structure")
-    refs = models.JSONField(default=default_refs, help_text="References: keywords, tags, categories")
-    prefs = models.JSONField(default=default_prefs, help_text="User preferences and settings")
-    comments = models.JSONField(default=default_comments, help_text="User comments and notes")  # CHANGE: proper structured default
-    health_rating = models.IntegerField(default=0, help_text="Data quality rating (0-100)")
+### -------------------- MIXIN & CORE DEFINITIONS ------------------------- ###
 
-    # --- custom queryset / manager for lifecycle filtering -----------------
-    class BaseModelQuerySet(models.QuerySet):
-        def active(self):
-            return self.filter(is_deleted=False, is_archived=False)
-        def deleted(self):
-            return self.filter(is_deleted=True)
-        def archived(self):
-            return self.filter(is_archived=True)
-        def keyword_pending(self):
-            return self.filter(models.Q(metadata__flags__keywords_pending=True))
-
-    class BaseModelManager(models.Manager):
-        def get_queryset(self):
-            return BaseModel.BaseModelQuerySet(self.model, using=self._db)
-        def active(self):
-            return self.get_queryset().active()
-        def deleted(self):
-            return self.get_queryset().deleted()
-        def archived(self):
-            return self.get_queryset().archived()
-        def keyword_pending(self):
-            return self.get_queryset().keyword_pending()
-
-    objects = BaseModelManager()
-
-    class Meta:
-        abstract = True
-        indexes = [
-            GinIndex(fields=['refs'], name='refs_gin_idx'),
-            GinIndex(fields=['prefs'], name='prefs_gin_idx'),
-        ]
-
-    # Pydantic cache (instance-level). Not stored in DB. (CHANGE)
-    _pydantic_cache: Optional[UniversalAPISchema] = None  # type: ignore
-
-    def save(self, *args, **kwargs):
-        now_timestamp = int(timezone.now().timestamp() * 1000)  # UTC milliseconds
-        # CHANGE: defensive guard for metadata/history integrity
-        if not isinstance(self.metadata, dict):
-            self.metadata = default_metadata()
-        self.metadata.setdefault('history', default_metadata()['history'])
-        self.metadata.setdefault('flags', {})
-        self.metadata.setdefault('versioning', {})
-        # CHANGE: schema revision flag support
-        self.metadata['flags'].setdefault('schema_rev', 1)
-
-        self.metadata['history']['modified'] = {
-            'dt': now_timestamp,
-            'contact_id': getattr(self, 'modified_by_id', 0)
-        }
-        if not self.pk:
-            self.metadata['history']['created'] = {
-                'dt': now_timestamp,
-                'contact_id': getattr(self, 'created_by_id', 0)
-            }
-            # initialize denormalized created timestamp
-            self.created_dt = now_timestamp
-        # always update modified denormalized
-        self.modified_dt = now_timestamp
-        # bump version (optimistic concurrency) - if existing row
-        if self.pk:
-            self.version = (self.version or 0) + 1
-
-        # CHANGE: mark keywords for async refresh instead of computing every save
-        self.mark_keywords_dirty()
-        # CHANGE: auto rebuild keywords if missing list to maintain consistency
-        if 'keywords' not in (self.refs or {}):
-            self.refs['keywords'] = []
-
-        def check_size(field_value, max_size, field_name):
-            size = len(json.dumps(field_value).encode('utf-8'))
-            if size > max_size:
-                raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
-        check_size(self.metadata, MAX_METADATA_SIZE, "metadata")
-        check_size(self.refs, MAX_REFS_SIZE, "refs")
-        check_size(self.prefs, MAX_PREFS_SIZE, "prefs")
-        super().save(*args, **kwargs)
-        # CHANGE: invalidate pydantic cache after persistence
-        self._pydantic_cache = None
-
-    # ---------------- Optimistic Concurrency Helpers (NEW) ------------------
-    def assert_version(self, expected_version: int | None):
-        """Ensure current instance version matches expected_version.
-
-        expected_version can be None to skip (caller decided no check).
-        Raises VersionConflictError if mismatch.
-        """
-        if expected_version is None:
-            return
-        # refresh current version from DB to ensure accuracy
-        current = type(self).objects.filter(pk=self.pk).values_list('version', flat=True).first() if self.pk else None
-        if current is None:
-            return  # object not yet persisted; treat as fine
-        if current != expected_version:
-            raise VersionConflictError(f"Version conflict: expected {expected_version} got {current}")
-
-    # ---------------- Atomic JSON field updates (NEW) ----------------------
-    @classmethod
-    def atomic_json_set(cls, pk: int, field: str, path: list[str], value, create_missing: bool = True, expected_version: int | None = None):
-        """Atomically set a JSON path inside metadata/refs/prefs/comments.
-
-        Args:
-            pk: primary key of row.
-            field: one of 'metadata','refs','prefs','comments'.
-            path: list of nested keys to set e.g. ['flags','keywords_pending'].
-            value: JSON-serializable value to write.
-            create_missing: pass-through to jsonb_set create_missing flag.
-            expected_version: if provided, enforce optimistic concurrency.
-
-        Returns updated row count (0 or 1) and new version (if updated) else None.
-        """
-        if field not in {'metadata','refs','prefs','comments'}:
-            raise ValueError('field must be one of metadata, refs, prefs, comments')
-        path_literal = '{' + ','.join(path) + '}'
-        with transaction.atomic():
-            base_qs = cls.objects.select_for_update().filter(pk=pk)
-            if expected_version is not None:
-                base_qs = base_qs.filter(version=expected_version)
-            # Use jsonb_set; wrap new value as JSON via Value(json.dumps(...)) is not needed; Django will adapt.
-            updated = base_qs.update(**{
-                field: JSONBSet(F(field), Value(path_literal), Value(json.dumps(value)), True),
-                'version': F('version') + 1,
-                'modified_dt': int(timezone.now().timestamp() * 1000),
-            })
-            if expected_version is not None and updated == 0:
-                # determine current version to report
-                current = cls.objects.filter(pk=pk).values_list('version', flat=True).first()
-                raise VersionConflictError(f"Version conflict on atomic_json_set: expected {expected_version} got {current}")
-            if updated:
-                new_version = cls.objects.filter(pk=pk).values_list('version', flat=True).first()
-                return updated, new_version
-            return updated, None
-
-    @classmethod
-    def atomic_list_append(cls, pk: int, field: str, path: list[str], element, max_length: int | None = None, expected_version: int | None = None):
-        """Atomically append an element to a JSON array at given path.
-
-        Implementation performs a SELECT FOR UPDATE, mutates in Python, and saves minimal fields,
-        still giving row-level atomicity. For extremely high contention consider a pure-SQL approach.
-        """
-        if field not in {'metadata','refs','prefs','comments'}:
-            raise ValueError('field must be one of metadata, refs, prefs, comments')
-        with transaction.atomic():
-            obj = cls.objects.select_for_update().only('id', field, 'version', 'modified_dt').get(pk=pk)
-            if expected_version is not None and obj.version != expected_version:
-                raise VersionConflictError(f"Version conflict on atomic_list_append: expected {expected_version} got {obj.version}")
-            target = getattr(obj, field)
-            cur = target
-            for key in path[:-1]:
-                cur = cur.setdefault(key, {})
-            arr_key = path[-1]
-            arr = cur.setdefault(arr_key, [])
-            if not isinstance(arr, list):
-                raise ValueError('Target JSON path is not a list')
-            arr.append(element)
-            if max_length is not None and len(arr) > max_length:
-                # trim oldest
-                del arr[0:len(arr)-max_length]
-            # Save will bump version; ensure fields persisted
-            obj.save(update_fields=[field, 'version', 'modified_dt'])
-            return obj.version
-
-    # Convenience wrappers for common operations
-    def optimistic_save(self, expected_version: int | None = None, *args, **kwargs):
-        """Perform a save with an expected_version check (application-level optimistic lock)."""
-        if self.pk and expected_version is not None and self.version != expected_version:
-            raise VersionConflictError(f"Version conflict on optimistic_save: expected {expected_version} got {self.version}")
-        return self.save(*args, **kwargs)
-
-    def update_keywords(self):
-        """Compute and store keyword list; clear pending flag.
-
-        Intended to be called by an async maintenance task / cron when
-        metadata.flags.keywords_pending is True. (CHANGE)
-        """
-        keywords_set = set()
-        for field in self._meta.fields:
-            if isinstance(field, (models.CharField, models.TextField)):
-                val = getattr(self, field.name, '')
-                if val:
-                    for raw in str(val).lower().split():
-                        token = raw.strip('.,!?;:"()[]{}')
-                        if len(token) > 2:
-                            keywords_set.add(token)
-        self.refs['keywords'] = list(keywords_set)[:50]
-        # Clear flag
-        self.metadata.setdefault('flags', {})['keywords_pending'] = False
-        # Record versioning info of keyword refresh (CHANGE)
-        self.metadata.setdefault('versioning', {})['keywords_refreshed_dt'] = int(timezone.now().timestamp() * 1000)
-
-    # --- keyword pending helpers (CHANGE) ---------------------------------
-    def mark_keywords_dirty(self):
-        self.metadata.setdefault('flags', {})['keywords_pending'] = True
-
-    @property
-    def keywords_pending(self) -> bool:
-        return bool(self.metadata.get('flags', {}).get('keywords_pending'))
-
-    # --- typed accessors (CHANGE) -----------------------------------------
-    def get_history(self) -> dict:
-        return self.metadata.get('history', {}) if isinstance(self.metadata, dict) else {}
-
-    def add_note(self, note_type: str, text: str, by: int | str = 'system'):
-        if not isinstance(self.comments, dict):
-            self.comments = default_comments()
-        notes = self.comments.setdefault('notes', [])
-        notes.append({'type': note_type, 'text': text, 'by': by, 'dt': int(timezone.now().timestamp() * 1000)})
-        self.comments[note_type] = text
-        # don't save automatically to allow batching
-
-    # --- soft delete / archive helpers (CHANGE) ---------------------------
-    def soft_delete(self):
-        self.is_deleted = True
-        self.save()
-
-    def restore(self):
-        self.is_deleted = False
-        self.save()
-
-    def archive(self):
-        self.is_archived = True
-        self.save()
-
-    def unarchive(self):
-        self.is_archived = False
-        self.save()
-
-    # --- change log emission stub (CHANGE) --------------------------------
-    def emit_change_log(self, changed_fields: list[str] | None = None):
-        """Placeholder: route to Celery / signal for auditing."""
-        # Integration point: send to message bus
-        return {
-            'model': self.__class__.__name__,
-            'pk': self.pk,
-            'version': self.version,
-            'changed': changed_fields or [],
-            'dt': int(timezone.now().timestamp() * 1000)
-        }
-
-    def get_metadata_value(self, key_path):
-        keys = key_path.split('.')
-        value = self.metadata
-        try:
-            for key in keys:
-                value = value[key]
-            return value
-        except (KeyError, TypeError):
-            return None
-
-    def set_metadata_value(self, key_path, value):
-        keys = key_path.split('.')
-        target = self.metadata
-        for key in keys[:-1]:
-            if key not in target:
-                target[key] = {}
-            target = target[key]
-        target[keys[-1]] = value
-
-    def add_keyword(self, keyword):
-        if keyword.lower() not in [k.lower() for k in self.refs['keywords']]:
-            self.refs['keywords'].append(keyword.lower())
-
-    def add_tag(self, tag):
-        if tag not in self.refs['tags']:
-            self.refs['tags'].append(tag)
-
-    def get_created_timestamp(self):
-        return self.get_metadata_value('history.created.dt') or 0
-
-    def get_modified_timestamp(self):
-        return self.get_metadata_value('history.modified.dt') or 0
-
-    @property
-    def dt_verified(self):
-        """Get verified timestamp from metadata.history.verified.dt (as GMT/UTC)."""
-        if not self.metadata:
-            return None
-        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
-        if verified_dt_ms:
-            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.utc)
-
-    # --- Universal dict / Pydantic helpers (shared with Slim) -------------
-    def to_universal_dict(self) -> Dict[str, Any]:
-        meta = self.metadata or {}
-        history = meta.get('history', {}) if isinstance(meta, dict) else {}
-        return {
-            'id': self.pk,
-            'uuid': str(self.uuid) if getattr(self, 'uuid', None) else None,
-            'ida': self.ida,
-            'metadata': meta,
-            'refs': self.refs or {},
-            'prefs': self.prefs or {},
-            'comments': self.comments or {},
-            'health_rating': self.health_rating,
-            'dt_created': history.get('created', {}).get('dt'),
-            'dt_modified': history.get('modified', {}).get('dt'),
-            'version': self.version,
-        }
-
-    def as_pydantic(self, refresh: bool = False):
-        if not PydanticBaseModel:
-            return self.to_universal_dict()
-        if refresh or self._pydantic_cache is None:
-            data = self.to_universal_dict()
-            self._pydantic_cache = UniversalAPISchema(**data)  # type: ignore[arg-type]
-        return self._pydantic_cache
-
-    def pydantic_dump(self, *args, **kwargs) -> Dict[str, Any]:
-        obj = self.as_pydantic()
-        if hasattr(obj, 'model_dump'):
-            return obj.model_dump(*args, **kwargs)  # type: ignore[attr-defined]
-        return cast(Dict[str, Any], obj)  # already dict when Pydantic not installed
-
-
-class SlimBaseModel(models.Model):
-    """Lightweight alternative to BaseModel for ephemeral / high-churn tables.
-
-    Includes only:
-      - id (BigAuto)
-      - uuid (unique tracking)
-      - ida (external alt id)
-      - created_dt / modified_dt (ms epoch)
-      - version (optimistic concurrency integer)
-
-    Excludes heavy JSON envelopes (metadata, refs, prefs, comments, health_rating) and GIN indexes.
-    Provides a minimal save() implementing timestamp + version bump semantics.
-    """
+class CoreModel(models.Model):
+    """Minimal universal core (identity + timestamps + optimistic version)."""
+    feature_flags = {'core'}
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     ida = models.CharField(max_length=40, blank=True, db_index=True)
@@ -495,16 +164,19 @@ class SlimBaseModel(models.Model):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
+    _pydantic_cache: Optional[UniversalAPISchema] = None  # cache for any composition
+
+    def save(self, *args, **kwargs):  # core timestamp + version bump
         now_ms = int(timezone.now().timestamp() * 1000)
         if not self.pk:
             self.created_dt = now_ms
         else:
-            # bump version only on updates
             self.version = (self.version or 0) + 1
         self.modified_dt = now_ms
         super().save(*args, **kwargs)
+        self._pydantic_cache = None
 
+    # optimistic helpers
     def assert_version(self, expected_version: int | None):
         if expected_version is None or not self.pk:
             return
@@ -516,27 +188,234 @@ class SlimBaseModel(models.Model):
         if expected_version is not None and self.pk and self.version != expected_version:
             raise VersionConflictError(f"Version conflict: expected {expected_version} got {self.version}")
         return self.save(*args, **kwargs)
-        return None
 
-    # Slim model intentionally omits comments/metadata/refs; helpers skipped.
+    def __str__(self):  # convenience for admin/debug
+        for attr in ('name', 'title', 'email', 'ida', 'uuid'):
+            v = getattr(self, attr, None)
+            if v:
+                return str(v)
+        return f"{self.__class__.__name__}#{self.pk or 'unsaved'}"
 
-    def __str__(self):
-        name = getattr(self, 'name', None)
-        if name:
-            return str(name)
-        title = getattr(self, 'title', None)
-        if title:
-            return str(title)
-        email = getattr(self, 'email', None)
-        if email:
-            return str(email)
 
-    # --- Pydantic helper methods (small, additive) --------------------------
+class LifecycleMixin(models.Model):
+    feature_flags = {'lifecycle'}
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    is_archived = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        abstract = True
+
+    def soft_delete(self):
+        self.is_deleted = True
+        self.save()
+    def restore(self):
+        self.is_deleted = False
+        self.save()
+    def archive(self):
+        self.is_archived = True
+        self.save()
+    def unarchive(self):
+        self.is_archived = False
+        self.save()
+
+
+class MetadataMixin(models.Model):
+    feature_flags = {'metadata'}
+    metadata = models.JSONField(default=default_metadata, help_text="Universal metadata envelope")
+
+    class Meta:
+        abstract = True
+
+    def _init_metadata_if_needed(self):
+        if not isinstance(self.metadata, dict):
+            self.metadata = default_metadata()
+        self.metadata.setdefault('history', default_metadata()['history'])
+        self.metadata.setdefault('flags', {})
+        self.metadata.setdefault('versioning', {})
+        self.metadata['flags'].setdefault('schema_rev', 1)
+
+    def save(self, *args, **kwargs):  # inject history handling
+        creating = not self.pk
+        now_ms = int(timezone.now().timestamp() * 1000)
+        self._init_metadata_if_needed()
+        hist = self.metadata['history']
+        hist['modified'] = {'dt': now_ms, 'contact_id': getattr(self, 'modified_by_id', 0)}
+        if creating:
+            hist['created'] = {'dt': now_ms, 'contact_id': getattr(self, 'created_by_id', 0)}
+        super().save(*args, **kwargs)
+
+    def get_history(self) -> dict:
+        return self.metadata.get('history', {}) if isinstance(self.metadata, dict) else {}
+
+    def get_metadata_value(self, key_path: str):
+        keys = key_path.split('.')
+        cur = self.metadata
+        try:
+            for k in keys:
+                cur = cur[k]
+            return cur
+        except Exception:
+            return None
+
+    def set_metadata_value(self, key_path: str, value):
+        keys = key_path.split('.')
+        target = self.metadata
+        for k in keys[:-1]:
+            target = target.setdefault(k, {})
+        target[keys[-1]] = value
+
+    def get_created_timestamp(self):
+        return self.get_metadata_value('history.created.dt') or 0
+    def get_modified_timestamp(self):
+        return self.get_metadata_value('history.modified.dt') or 0
+    @property
+    def dt_verified(self):
+        if not self.metadata:
+            return None
+        verified_dt_ms = self.metadata.get('history', {}).get('verified', {}).get('dt', 0)
+        if verified_dt_ms:
+            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.utc)
+
+
+class RefsMixin(models.Model):
+    feature_flags = {'refs'}
+    refs = models.JSONField(default=default_refs, help_text="Keywords / tags / lightweight links")
+
+    class Meta:
+        abstract = True
+
+    def add_keyword(self, keyword: str):
+        kw_lower = keyword.lower()
+        existing = [k.lower() for k in self.refs.get('keywords', [])]
+        if kw_lower not in existing:
+            self.refs.setdefault('keywords', []).append(kw_lower)
+
+    def add_tag(self, tag: str):
+        if tag not in self.refs.get('tags', []):
+            self.refs.setdefault('tags', []).append(tag)
+
+
+class PrefsMixin(models.Model):
+    feature_flags = {'prefs'}
+    prefs = models.JSONField(default=default_prefs, help_text="User preferences / settings")
+    class Meta:
+        abstract = True
+
+
+class CommentsMixin(models.Model):
+    feature_flags = {'comments'}
+    comments = models.JSONField(default=default_comments, help_text="Threaded notes / comment fields")
+    class Meta:
+        abstract = True
+
+    def add_note(self, note_type: str, text: str, by: int | str = 'system'):
+        if not isinstance(self.comments, dict):
+            self.comments = default_comments()
+        notes = self.comments.setdefault('notes', [])
+        notes.append({'type': note_type, 'text': text, 'by': by, 'dt': int(timezone.now().timestamp() * 1000)})
+        self.comments[note_type] = text
+
+
+class HealthMixin(models.Model):
+    feature_flags = {'health'}
+    health_rating = models.IntegerField(default=0, help_text="Data quality rating (0-100)")
+    class Meta:
+        abstract = True
+
+
+class KeywordsMixin(models.Model):
+    feature_flags = {'keywords'}
+    class Meta:
+        abstract = True
+
+    def mark_keywords_dirty(self):
+        if hasattr(self, 'metadata'):
+            # type: ignore[attr-defined]
+            self.metadata.setdefault('flags', {})['keywords_pending'] = True  # type: ignore[index]
+
+    @property
+    def keywords_pending(self) -> bool:
+        return bool(getattr(self, 'metadata', {}).get('flags', {}).get('keywords_pending')) if hasattr(self, 'metadata') else False
+
+    def update_keywords(self):  # requires refs + metadata if present
+        if not hasattr(self, 'refs'):
+            return  # type: ignore[attr-defined]
+        keywords_set = set()
+        for field in self._meta.fields:
+            if isinstance(field, (models.CharField, models.TextField)):
+                val = getattr(self, field.name, '')
+                if val:
+                    for raw in str(val).lower().split():
+                        token = raw.strip('.,!?;:"()[]{}')
+                        if len(token) > 2:
+                            keywords_set.add(token)
+        self.refs.setdefault('keywords', [])  # type: ignore[attr-defined]
+        self.refs['keywords'] = list(keywords_set)[:50]  # type: ignore[attr-defined]
+        if hasattr(self, 'metadata'):
+            self.metadata.setdefault('flags', {})['keywords_pending'] = False  # type: ignore[attr-defined]
+            self.metadata.setdefault('versioning', {})['keywords_refreshed_dt'] = int(timezone.now().timestamp() * 1000)  # type: ignore[attr-defined]
+
+
+class AtomicJSONMixin(models.Model):
+    feature_flags = {'atomic_json'}
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def atomic_json_set(cls, pk: int, field: str, path: list[str], value, create_missing: bool = True, expected_version: int | None = None):
+        if field not in {'metadata','refs','prefs','comments'}:
+            raise ValueError('field must be one of metadata, refs, prefs, comments')
+        if not hasattr(cls, field):
+            raise ValueError(f"Model {cls.__name__} has no field '{field}' for atomic update")
+        path_literal = '{' + ','.join(path) + '}'
+        with transaction.atomic():
+            qs = cls.objects.select_for_update().filter(pk=pk)
+            if expected_version is not None:
+                qs = qs.filter(version=expected_version)
+            updated = qs.update(**{
+                field: JSONBSet(F(field), Value(path_literal), Value(json.dumps(value)), True),
+                'version': F('version') + 1,
+                'modified_dt': int(timezone.now().timestamp() * 1000),
+            })
+            if expected_version is not None and updated == 0:
+                current = cls.objects.filter(pk=pk).values_list('version', flat=True).first()
+                raise VersionConflictError(f"Version conflict on atomic_json_set: expected {expected_version} got {current}")
+            if updated:
+                new_version = cls.objects.filter(pk=pk).values_list('version', flat=True).first()
+                return updated, new_version
+            return updated, None
+
+    @classmethod
+    def atomic_list_append(cls, pk: int, field: str, path: list[str], element, max_length: int | None = None, expected_version: int | None = None):
+        if field not in {'metadata','refs','prefs','comments'}:
+            raise ValueError('field must be one of metadata, refs, prefs, comments')
+        if not hasattr(cls, field):
+            raise ValueError(f"Model {cls.__name__} has no field '{field}' for atomic update")
+        with transaction.atomic():
+            obj = cls.objects.select_for_update().only('id', field, 'version', 'modified_dt').get(pk=pk)
+            if expected_version is not None and obj.version != expected_version:  # type: ignore[attr-defined]
+                raise VersionConflictError(f"Version conflict on atomic_list_append: expected {expected_version} got {obj.version}")  # type: ignore[attr-defined]
+            target = getattr(obj, field)
+            cur = target
+            for key in path[:-1]:
+                cur = cur.setdefault(key, {})
+            arr_key = path[-1]
+            arr = cur.setdefault(arr_key, [])
+            if not isinstance(arr, list):
+                raise ValueError('Target JSON path is not a list')
+            arr.append(element)
+            if max_length is not None and len(arr) > max_length:
+                del arr[0:len(arr)-max_length]
+            obj.save(update_fields=[field, 'version', 'modified_dt'])
+            return obj.version  # type: ignore[attr-defined]
+
+
+class UniversalDictMixin(models.Model):
+    feature_flags = {'universal_dict'}
+    class Meta:
+        abstract = True
+
     def to_universal_dict(self) -> Dict[str, Any]:
-        """Return normalized dict; adapts to presence/absence of heavy fields.
-
-        Works for both BaseModel (full envelope) and SlimBaseModel (minimal).
-        """
         base = {
             'id': self.pk,
             'uuid': str(getattr(self, 'uuid', '')) or None,
@@ -545,46 +424,105 @@ class SlimBaseModel(models.Model):
             'dt_modified': getattr(self, 'modified_dt', None),
             'version': getattr(self, 'version', None),
         }
-        # Only attach enriched fields if they physically exist
         if hasattr(self, 'metadata'):
             meta = getattr(self, 'metadata') or {}
             history = meta.get('history', {}) if isinstance(meta, dict) else {}
             base.update({
                 'metadata': meta,
-                'refs': getattr(self, 'refs', {}) or {},
-                'prefs': getattr(self, 'prefs', {}) or {},
-                'comments': getattr(self, 'comments', {}) or {},
-                'health_rating': getattr(self, 'health_rating', 0),
                 'dt_created': history.get('created', {}).get('dt') or base['dt_created'],
                 'dt_modified': history.get('modified', {}).get('dt') or base['dt_modified'],
             })
+        for opt in ('refs', 'prefs', 'comments', 'health_rating'):
+            if hasattr(self, opt):
+                base[opt] = getattr(self, opt)
         return base
 
     def as_pydantic(self, refresh: bool = False):
-        """Return a UniversalAPISchema instance if Pydantic is available.
-
-        If Pydantic isn't installed, returns the plain universal dict.
-        Use refresh=True to rebuild cache after in-memory modifications.
-        """
         if not PydanticBaseModel:
             return self.to_universal_dict()
-        if refresh or self._pydantic_cache is None:
-            data = self.to_universal_dict()
-            # Build schema (ignore extra keys handled by Pydantic if extended later)
-            self._pydantic_cache = UniversalAPISchema(**data)  # type: ignore[arg-type]
+        if refresh or getattr(self, '_pydantic_cache', None) is None:
+            self._pydantic_cache = UniversalAPISchema(**self.to_universal_dict())  # type: ignore[arg-type]
         return self._pydantic_cache
 
     def pydantic_dump(self, *args, **kwargs) -> Dict[str, Any]:
-        """Convenience: dict export using Pydantic if present else universal dict.
-
-        Mirrors Pydantic's .model_dump() signature loosely for future parity.
-        """
         obj = self.as_pydantic()
         if hasattr(obj, 'model_dump'):
             return obj.model_dump(*args, **kwargs)  # type: ignore[attr-defined]
-        # Fallback already dict
-        return cast(Dict[str, Any], obj)  # type: ignore[return-value]
-        return f"{self.__class__.__name__} #{self.pk}"
+        return cast(Dict[str, Any], obj)
+
+
+### -------------------- FULL COMPOSITION CLASS --------------------------- ###
+
+class BaseModel(MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
+                HealthMixin, KeywordsMixin, LifecycleMixin,
+                CoreModel, UniversalDictMixin, AtomicJSONMixin):
+    """Full capability base model (replaces previous monolithic design)."""
+    class Meta:
+        abstract = True
+        indexes = [
+            GinIndex(fields=['refs'], name='refs_gin_idx'),
+            GinIndex(fields=['prefs'], name='prefs_gin_idx'),
+        ]
+
+    # Custom queryset / manager (only for full model using lifecycle + metadata)
+    class FullQuerySet(models.QuerySet):
+        def active(self):
+            return self.filter(is_deleted=False, is_archived=False)
+        def deleted(self):
+            return self.filter(is_deleted=True)
+        def archived(self):
+            return self.filter(is_archived=True)
+        def keyword_pending(self):
+            return self.filter(models.Q(metadata__flags__keywords_pending=True))
+
+    class FullManager(models.Manager):
+        def get_queryset(self):
+            return BaseModel.FullQuerySet(self.model, using=self._db)
+        def active(self):
+            return self.get_queryset().active()
+        def deleted(self):
+            return self.get_queryset().deleted()
+        def archived(self):
+            return self.get_queryset().archived()
+        def keyword_pending(self):
+            return self.get_queryset().keyword_pending()
+
+    objects = FullManager()
+
+    def save(self, *args, **kwargs):  # orchestrate save chain
+        # MetadataMixin.save handles metadata history first, then CoreModel.save updates version/timestamps
+        super().save(*args, **kwargs)
+        # enforce size limits after save adjustments but before returning
+        if hasattr(self, 'metadata'):
+            def check_size(field_value, max_size, field_name):
+                size = len(json.dumps(field_value).encode('utf-8'))
+                if size > max_size:
+                    raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
+            check_size(self.metadata, MAX_METADATA_SIZE, 'metadata')
+        if hasattr(self, 'refs'):
+            check_size(self.refs, MAX_REFS_SIZE, 'refs')
+        if hasattr(self, 'prefs'):
+            check_size(self.prefs, MAX_PREFS_SIZE, 'prefs')
+        # mark keywords dirty (KeywordsMixin) if available
+        if isinstance(self, KeywordsMixin):
+            self.mark_keywords_dirty()
+
+
+# Slim (minimal) base export for clarity when creating lightweight models
+SlimBaseModel = CoreModel  # kept for readability, points to CoreModel
+
+
+### -------------------- CAPABILITY REGISTRY HELPERS --------------------- ###
+
+def model_capabilities(model_or_instance) -> list[str]:
+    cls = model_or_instance if inspect.isclass(model_or_instance) else model_or_instance.__class__
+    caps: set[str] = set()
+    for base in cls.mro():
+        if hasattr(base, 'feature_flags'):
+            flags = getattr(base, 'feature_flags')
+            if isinstance(flags, Iterable):
+                caps.update(flags)
+    return sorted(caps)
 
 # Yes, it’s coherent: a light “universal envelope” giving every table consistent extensibility (refs for relationships, prefs for per‑record settings, metadata for lifecycle/state, comments for discussion). That yields flexibility without exploding the relational schema.
 

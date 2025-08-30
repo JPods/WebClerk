@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/utils/global_storage.py
+# hypothesis_version: 6.138.7
+
+[3600, 'expiry_seconds', 'timestamp', 'value']

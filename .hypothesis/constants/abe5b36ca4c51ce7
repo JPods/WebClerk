@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/admin.py
+# hypothesis_version: 6.138.7
+
+['Business Info', 'CharField', 'Important dates', 'Permissions', 'Personal Info', 'Role', 'classes', 'comment', 'company', 'date_joined', 'department', 'email', 'fields', 'groups', 'id', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'metadata', 'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix', 'password', 'password1', 'password2', 'prefs', 'refs', 'role', 'title', 'user_permissions', 'wide']

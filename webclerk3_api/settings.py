@@ -283,3 +283,12 @@ LANGUAGES = [
     # ('es', 'Spanish'),
     # Add more as needed
 ]
+
+# --- Test Environment Overrides (Celery eager, in‑memory broker) ---
+import os as _os  # local alias to avoid shadowing
+if _os.environ.get('PYTEST_CURRENT_TEST'):
+    # Execute Celery tasks synchronously to prevent broker dependency in tests
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CELERY_BROKER_URL = 'memory://'
+    CELERY_RESULT_BACKEND = 'cache+memory://'

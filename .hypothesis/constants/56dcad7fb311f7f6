@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/migrations/0001_initial.py
+# hypothesis_version: 6.138.7
+
+[120, 'ID', 'Invoice', 'InvoiceLine', 'Order', 'OrderLine', 'Proposal', 'ProposalLine', 'Purchase', 'PurchaseLine', 'Requisition', 'RequisitionLine', 'Workorder', 'WorkorderLine', 'action', 'comments', 'cost', 'created_dt', 'db_table', 'flow', 'health_rating', 'id', 'ida', 'invoice_line', 'invoice_no', 'is_archived', 'is_deleted', 'item', 'lines', 'metadata', 'modified_dt', 'name', 'order_line', 'order_no', 'parent', 'parent_ref_id', 'physical', 'po_no', 'prefs', 'price', 'probability', 'proposal_line', 'purchase_line', 'quantity', 'refs', 'req_no', 'requisition_line', 'source', 'status', 'tax', 'transactions.invoice', 'transactions.order', 'type_sale', 'uuid', 'version', 'work_no', 'workorder_line']

@@ -1,183 +1,93 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/services/wcapi.py
 from django.views import View
-"""
-WcapiView provides a generic API interface for CRUD operations on several models via HTTP methods.
-Attributes:
-    MODEL_MAP (dict): Maps string table names to their corresponding Django model classes.
-Methods:
-    get(request):
-        Handles GET requests. Retrieves a single record by 'id' or all records for a given 'table_name'.
-        Returns JSON response with data or error message.
-    connect(request):
-        Handles custom CONNECT requests. Retrieves all records for a given 'table_name' from HTTP headers.
-        Returns JSON response with data or error message.
-    delete(request):
-        Handles DELETE requests. Deletes a record by 'id' for a given 'table_name'.
-        Returns JSON response with success or error message and deleted data.
-    head(request):
-        Handles HEAD requests. Retrieves all records for a given 'table_name' from HTTP headers.
-        Returns JSON response with data or error message.
-    help(request):
-        Provides a help message for the wcapi endpoint.
-        Returns JSON response with a help message.
-    manage(request):
-        Handles custom MANAGE requests. Retrieves all records for a given 'table_name' from GET or POST data.
-        Returns JSON response with data or error message.
-    options(request):
-        Handles OPTIONS requests. Retrieves all records for a given 'table_name' from HTTP headers.
-        Returns JSON response with data or error message.
-    patch(request):
-        Handles PATCH requests. Retrieves all records for a given 'table_name' from PATCH data.
-        Returns JSON response with data or error message.
-    post(request):
-        Handles POST requests. Retrieves all records for a given 'table_name' from POST data.
-        Returns JSON response with data or error message.
-    put(request):
-        Handles PUT requests. Retrieves all records for a given 'table_name' from PUT data.
-        Returns JSON response with data or error message.
-    trace(request):
-        Handles TRACE requests. Retrieves all records for a given 'table_name' from HTTP headers.
-        Returns JSON response with data or error message.
-Notes:
-    - The API currently uses __dict__ for serialization, which may expose internal fields.
-    - Role-based field filtering is planned for future implementation.
-    - Only models listed in MODEL_MAP are accessible via this API.
-"""
 from django.http import JsonResponse
-from apps.core.models import Contact, Action  # Only core models here
-from apps.communications.models import Phone, Domain, Email, Location  # Communications models here
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.mixins import LoginRequiredMixin
+import json
+from .wcapi_registry import get_model, ALLOWED_TABLE_NAMES
 
+"""WcapiView: read/query endpoint over whitelisted models.
 
-MODEL_MAP = {
-    'contacts': Contact,
-    'actions': Action,
-    'phones': Phone,
-    'domains': Domain,
-    'emails': Email,
-    'addresses': Location,
-    # Add other allowed models
-}
+Success: {"status":"success","table_name": <str>, "data": [ {...}, ... ]}
+Error:   {"status":"error","message": <str>}
 
-# We need to replace "__dict__" with our role based field filtering in the future.QQQ
+Only models registered in wcapi_registry.py are accessible. Filtering is restricted to a
+small allow-list to reduce risk of accidental heavy queries or probing internal structure.
+"""
 
+SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status"}
+MAX_RESULTS = 50
 
-class WcapiView(View):
+@method_decorator(csrf_exempt, name='dispatch')
+class WcapiView(LoginRequiredMixin, View):
+    """Supports GET (single/list) and POST (filtered list). Other verbs 405."""
 
-    def get(self, request):
-        print("=== WcapiView CALLED ===")  # <--- Add this line
-        table_name = request.GET.get('table_name')
-        record_id = request.GET.get('id')
-        template_name = request.GET.get('template_name')
-        model = MODEL_MAP.get(table_name)
+    def _serialize_queryset(self, qs):
+        return list(qs.values()[:MAX_RESULTS])
+
+    def _model_or_400(self, table_name):
+        model = get_model(table_name)
         if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
+            return None, JsonResponse({'status': 'error', 'message': 'Unknown table'}, status=400)
+        return model, None
 
+    # GET: optional id for single record, else list
+    def get(self, request):
+        table_name = request.GET.get('table_name')
+        if not table_name:
+            return JsonResponse({'status':'error','message':'Missing table_name'}, status=400)
+        model, err = self._model_or_400(table_name)
+        if err:
+            return err
+        record_id = request.GET.get('id')
         if record_id:
             try:
-                record = model.objects.get(id=record_id)
-                data = record.__dict__.copy()
-                data.pop('_state', None)
-                return JsonResponse({'success': True, 'data': data})
+                obj = model.objects.get(id=record_id)
             except model.DoesNotExist:
-                return JsonResponse({'success': False, 'message': f'{table_name} record not found'})
-            except Exception as e:
-                return JsonResponse({'success': False, 'message': str(e)})
+                return JsonResponse({'status':'error','message':'Not found'}, status=404)
+            data = obj.__dict__.copy(); data.pop('_state', None)
+            return JsonResponse({'status':'success','table_name':table_name,'data':[data]})
+        qs = model.objects.all()
+        return JsonResponse({'status':'success','table_name':table_name,'data':self._serialize_queryset(qs)})
 
-        records = model.objects.all().values()
-        data = list(records)
-        return JsonResponse({'success': True, 'data': data})
-    
-    
-    
-    def connect(self, request):
-        table_name = request.META.get('HTTP_TABLE_NAME')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})
-
-    def delete(self, request):
-        table_name = request.GET.get('table_name')
-        record_id = request.GET.get('id')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-
-        if not record_id:
-            return JsonResponse({'success': False, 'message': 'No id provided'})
-
-        try:
-            record = model.objects.get(id=record_id)
-            data = record.__dict__.copy()
-            data.pop('_state', None)
-            record.delete()
-            return JsonResponse({'success': True, 'message': f'{table_name} record deleted', 'data': data})
-        except model.DoesNotExist:
-            return JsonResponse({'success': False, 'message': f'{table_name} record not found'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    
-
-    def head(self, request):
-        table_name = request.META.get('HTTP_TABLE_NAME')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})    
-
-    # Help page for wcapi - could be a static page, duplicate of options and root? QQQ
-    def help(self, request):
-        return JsonResponse({'success': True, 'message': 'Help page for wcapi'})
-
-    def manage(self, request):
-        table_name = request.GET.get('table_name') or request.POST.get('table_name')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})
-
-    def options(self, request):
-        table_name = request.META.get('HTTP_TABLE_NAME')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})        
-
-    def patch(self, request):
-        table_name = request.PATCH.get('table_name')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})    
-    
+    # POST: filtered list (exact match on allow-listed fields)
     def post(self, request):
-        table_name = request.POST.get('table_name')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})
-    
-    def put(self, request):
-        table_name = request.PUT.get('table_name')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})
+        try:
+            payload = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'status':'error','message':'Invalid JSON'}, status=400)
+        table_name = payload.get('table_name')
+        if not table_name:
+            return JsonResponse({'status':'error','message':'Missing table_name'}, status=400)
+        model, err = self._model_or_400(table_name)
+        if err:
+            return err
+        qs = model.objects.all()
+        for k, v in payload.items():
+            if k in SAFE_FILTER_FIELDS and hasattr(model, k):
+                try:
+                    qs = qs.filter(**{k: v})
+                except Exception:
+                    pass  # ignore bad filter values
+        return JsonResponse({'status':'success','table_name':table_name,'data':self._serialize_queryset(qs)})
 
+    # Unimplemented verbs -> explicit 405 or minimal info
+    def delete(self, request):
+        return JsonResponse({'status':'error','message':'DELETE not supported'}, status=405)
+    def put(self, request):
+        return JsonResponse({'status':'error','message':'PUT not supported'}, status=405)
+    def patch(self, request):
+        return JsonResponse({'status':'error','message':'PATCH not supported'}, status=405)
+    def head(self, request):
+        return self.get(request)
+    def options(self, request):
+        return JsonResponse({'status':'success','data':sorted(ALLOWED_TABLE_NAMES)})
     def trace(self, request):
-        table_name = request.META.get('HTTP_TABLE_NAME')
-        model = MODEL_MAP.get(table_name)
-        if not model:
-            return JsonResponse({'success': False, 'message': 'Invalid table_name'})
-        data = list(model.objects.all().values())
-        return JsonResponse({'success': True, 'data': data})
+        return JsonResponse({'status':'error','message':'TRACE not supported'}, status=405)
+    def connect(self, request):
+        return JsonResponse({'status':'error','message':'CONNECT not supported'}, status=405)
+    def manage(self, request):
+        return JsonResponse({'status':'error','message':'MANAGE not supported'}, status=405)
 
 
 

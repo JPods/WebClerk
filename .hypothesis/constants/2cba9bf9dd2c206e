@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/sync/serializers/connection.py
+# hypothesis_version: 6.138.7
+
+['action', 'changes', 'comment', 'config', 'conflicts', 'connections', 'created_dt', 'encryption', 'id', 'is_active', 'maps', 'metadata', 'modified_dt', 'name', 'prefs', 'purpose', 'refs', 'relationships', 'rules', 'scripts', 'status', 'type', 'uuid', 'version']

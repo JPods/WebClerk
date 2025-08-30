@@ -1,11 +1,11 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/pending.py
 from django.db import models
 from django.utils import timezone
-from common.models import SlimBaseModel, default_data
+from common.models import CoreModel, default_data
 
 
-class Pending(SlimBaseModel):
-    """Ephemeral queue / staging record (SlimBaseModel).
+class Pending(CoreModel):
+    """Ephemeral queue / staging record (CoreModel only).
 
     Lightweight by design: no metadata/refs/prefs/comments overhead.
     Use for decoupling write spikes & deferred processing.
