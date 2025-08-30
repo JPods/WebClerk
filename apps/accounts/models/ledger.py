@@ -7,7 +7,7 @@ from common.models import BaseModel
 # move tables into .refs values and changes into metadata
 
 class Ledger(BaseModel):
-    comment = models.TextField(blank=True, null=True)
+    
     discount_potential = models.FloatField(blank=True, null=True)
     source = models.CharField(max_length=255, blank=True, null=True)
     table_name = models.CharField(max_length=255, blank=True, null=True)

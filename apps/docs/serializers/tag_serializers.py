@@ -5,7 +5,7 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = [
-            'id','uuid','name','purpose','status','security_level','comment','table_name','record_id',
+            'id','uuid','name','purpose','status','security_level','table_name','record_id',
             'data','count_accessed','sequence','is_active','created_dt','modified_dt','version'
         ]
         read_only_fields = ['id','uuid','created_dt','modified_dt','version','count_accessed']

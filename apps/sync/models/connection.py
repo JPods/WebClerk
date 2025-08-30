@@ -33,6 +33,7 @@ class Connection(BaseModel):
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=255)
     config = models.JSONField()
+    comment = models.TextField(blank=True, default="", help_text="General notes")
         #endpoints = models.JSONField(blank=True, null=True)
         #schedule = models.JSONField(blank=True, null=True)
         #path = models.JSONField(blank=True, null=True)
@@ -46,7 +47,6 @@ class Connection(BaseModel):
     scripts = models.JSONField(blank=True, null=True)
     relationships = models.JSONField(blank=True, null=True)
     action = models.CharField(max_length=255, blank=True)
-    comment = models.TextField(blank=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)
     #rules and paths for converting between datasets
     maps = models.JSONField(blank=True, null=True)

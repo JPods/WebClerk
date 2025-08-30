@@ -21,6 +21,7 @@ from django.db import models
 from django.db import transaction
 from django.db.models import F, Value
 from django.db.models.expressions import Func
+import logging
 import uuid
 from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
@@ -77,6 +78,8 @@ else:  # pragma: no cover - fallback stub
 MAX_METADATA_SIZE = 320000  # bytes
 MAX_REFS_SIZE = 320000      # bytes
 MAX_PREFS_SIZE = 320000     # bytes
+SIZE_WARN_FRACTION = 0.75   # warn when JSON size exceeds 75% of limit
+logger = logging.getLogger(__name__)
 
 # --- Optimistic concurrency / atomic JSON support (NEW) ----------------------
 
@@ -195,6 +198,17 @@ class CoreModel(models.Model):
             if v:
                 return str(v)
         return f"{self.__class__.__name__}#{self.pk or 'unsaved'}"
+
+    # --- standardized dt_ prefix aliases (non-breaking) ------------------
+    @property
+    def dt_created(self):
+        """Alias for created_dt (standardize dt_ prefix without schema migration)."""
+        return self.created_dt
+
+    @property
+    def dt_modified(self):
+        """Alias for modified_dt (standardize dt_ prefix without schema migration)."""
+        return self.modified_dt
 
 
 class LifecycleMixin(models.Model):
@@ -409,6 +423,33 @@ class AtomicJSONMixin(models.Model):
             obj.save(update_fields=[field, 'version', 'modified_dt'])
             return obj.version  # type: ignore[attr-defined]
 
+    # ---------------- Instance convenience wrappers -----------------
+    def atomic_set(self, field: str, path: list[str], value, create_missing: bool = True, expected_version: int | None = None):
+        """Instance wrapper around atomic_json_set that refreshes this object and clears pydantic cache.
+
+        Returns new_version.
+        """
+        updated, new_version = type(self).atomic_json_set(self.pk, field, path, value, create_missing, expected_version=expected_version)  # type: ignore[arg-type]
+        if updated:
+            # refresh minimal fields
+            type(self).objects.filter(pk=self.pk).values_list('id', flat=True)  # lightweight existence check
+            self.refresh_from_db(fields=[field, 'version', 'modified_dt'])
+            if hasattr(self, '_pydantic_cache'):
+                self._pydantic_cache = None  # type: ignore[attr-defined]
+        return new_version
+
+    def atomic_append(self, field: str, path: list[str], element, max_length: int | None = None, expected_version: int | None = None):
+        """Instance wrapper around atomic_list_append with cache invalidation.
+
+        Returns new version.
+        """
+        new_version = type(self).atomic_list_append(self.pk, field, path, element, max_length=max_length, expected_version=expected_version)  # type: ignore[arg-type]
+        # refresh changed json + version
+        self.refresh_from_db(fields=[field, 'version', 'modified_dt'])
+        if hasattr(self, '_pydantic_cache'):
+            self._pydantic_cache = None  # type: ignore[attr-defined]
+        return new_version
+
 
 class UniversalDictMixin(models.Model):
     feature_flags = {'universal_dict'}
@@ -432,6 +473,10 @@ class UniversalDictMixin(models.Model):
                 'dt_created': history.get('created', {}).get('dt') or base['dt_created'],
                 'dt_modified': history.get('modified', {}).get('dt') or base['dt_modified'],
             })
+            # surface changed_fields if recorded
+            changed = meta.get('versioning', {}).get('changed_fields') if isinstance(meta, dict) else None
+            if changed:
+                base['changed_fields'] = changed
         for opt in ('refs', 'prefs', 'comments', 'health_rating'):
             if hasattr(self, opt):
                 base[opt] = getattr(self, opt)
@@ -489,13 +534,61 @@ class BaseModel(CoreModel, MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
 
     objects = FullManager()
 
-    def save(self, *args, **kwargs):  # orchestrate save chain
-        # MetadataMixin.save handles metadata history first, then CoreModel.save updates version/timestamps
+    # --- original state capture for diff tracking -------------------------
+    def __init__(self, *args, **kwargs):  # capture original field state for changed_fields
+        super().__init__(*args, **kwargs)
+        self._capture_original_state()
+
+    def _capture_original_state(self):  # lightweight snapshot
+        self._original_state: dict[str, Any] = {}
+        for f in self._meta.fields:
+            try:
+                self._original_state[f.name] = getattr(self, f.name)
+            except Exception:  # pragma: no cover - defensive
+                pass
+        self._original_created_dt = self._original_state.get('created_dt')
+
+    def _compute_changed_fields(self) -> list[str]:
+        changed: list[str] = []
+        if not getattr(self, '_original_state', None):
+            return changed
+        auto_exclude = {'modified_dt', 'version'}
+        for f in self._meta.fields:
+            name = f.name
+            if name in auto_exclude:
+                continue
+            old = self._original_state.get(name)
+            new = getattr(self, name)
+            if old != new:
+                changed.append(name)
+        return changed
+
+    def save(self, *args, **kwargs):  # orchestrate save chain with change tracking + optimistic lock
+        expected_version = kwargs.pop('expected_version', None)
+        # optimistic pre-check (query DB for current version to avoid stale self.version)
+        if expected_version is not None and self.pk:
+            current = type(self).objects.filter(pk=self.pk).values_list('version', flat=True).first()
+            if current is not None and current != expected_version:
+                raise VersionConflictError(f"Version conflict: expected {expected_version} got {current}")
+        # created_dt immutability guard
+        if self.pk and hasattr(self, '_original_created_dt') and self.created_dt != self._original_created_dt:
+            self.created_dt = self._original_created_dt
+        # attach changed_fields into metadata before save so persisted in same version bump
+        if self.pk:  # only track for updates
+            changed_fields = self._compute_changed_fields()
+            if changed_fields and isinstance(getattr(self, 'metadata', None), dict):
+                md = self.metadata  # type: ignore[attr-defined]
+                ver = md.setdefault('versioning', {})
+                ver['changed_fields'] = changed_fields
         super().save(*args, **kwargs)
+        # refresh snapshot after successful save
+        self._capture_original_state()
         # enforce size limits after save adjustments but before returning
         if hasattr(self, 'metadata'):
             def check_size(field_value, max_size, field_name):
                 size = len(json.dumps(field_value).encode('utf-8'))
+                if size > max_size * SIZE_WARN_FRACTION and size <= max_size:
+                    logger.warning("%s at %d bytes (%.1f%% of limit %d) for %s id=%s", field_name, size, (size/max_size)*100, max_size, self.__class__.__name__, self.pk)
                 if size > max_size:
                     raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
             check_size(self.metadata, MAX_METADATA_SIZE, 'metadata')
@@ -506,6 +599,22 @@ class BaseModel(CoreModel, MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
         # mark keywords dirty (KeywordsMixin) if available
         if isinstance(self, KeywordsMixin):
             self.mark_keywords_dirty()
+
+    # lightweight modified_dt update without version bump
+    def touch(self, update_fields: list[str] | None = None):
+        if not self.pk:
+            return
+        now_ms = int(timezone.now().timestamp() * 1000)
+        update_map = {'modified_dt': now_ms}
+        if update_fields:
+            for field in update_fields:
+                if field in {'version', 'created_dt'}:
+                    continue
+                update_map[field] = getattr(self, field)
+        type(self).objects.filter(pk=self.pk).update(**update_map)
+        self.modified_dt = now_ms
+        # do NOT bump version; refresh original snapshot for excluded fields
+        self._capture_original_state()
 
 
 # Slim (minimal) base export for clarity when creating lightweight models

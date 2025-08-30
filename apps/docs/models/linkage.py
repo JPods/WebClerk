@@ -24,9 +24,10 @@ class Linkage(BaseModel):
     Health & history inherited from BaseModel (metadata.history, metadata.flags etc.).
     """
 
-    comment = models.TextField(blank=True, null=True)
+    
     purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    comment = models.TextField(blank=True, default="", help_text="General notes")
 
     class Meta:
         db_table = 'linkages'

@@ -18,7 +18,7 @@ class Action(BaseModel):
     dt_completed = models.DateTimeField(null=True, blank=True)
     dt_due = models.DateTimeField(null=True, blank=True)
     dt_updated = models.DateTimeField(null=True, blank=True)
-    comment = models.TextField(blank=True, null=True)
+    
 
     class Meta:
         db_table = 'actions'

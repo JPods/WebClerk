@@ -13,7 +13,7 @@ from decimal import Decimal
 
 
 class Exchange(BaseModel):
-    comment = models.TextField(blank=True, null=True)
+    
     name = models.CharField(max_length=255, blank=True, null=True)
     # when is this valid for and must be active
     is_active = models.BooleanField(default=True)

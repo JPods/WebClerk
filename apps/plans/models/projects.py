@@ -8,7 +8,7 @@ import uuid
 
 class Project(BaseModel):
     attention = models.CharField(max_length=255, blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
+    
     company = models.CharField(max_length=255, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     publish = models.IntegerField(blank=True, null=True)

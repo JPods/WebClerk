@@ -29,3 +29,16 @@ class AtomicJSONTests(TestCase):
         assert new_version == old_version + 1
         refetched = Domain.objects.get(pk=self.obj.pk)
         assert len(refetched.comments.get('notes', [])) == 1
+
+    def test_instance_atomic_set_and_append(self):
+        obj = Domain.objects.create(path='https://example.com', type='website')
+        v = obj.version
+        # atomic_set via instance
+        new_version = obj.atomic_set('metadata', ['flags', 'schema_rev'], 2, expected_version=v)
+        assert new_version == v + 1
+        assert obj.metadata['flags']['schema_rev'] == 2
+        # atomic_append via instance
+        v2 = obj.version
+        new_version2 = obj.atomic_append('comments', ['notes'], {'text': 'hi', 'type': 'info'}, expected_version=v2)
+        assert new_version2 == v2 + 1
+        assert any(n.get('text') == 'hi' for n in obj.comments['notes'])

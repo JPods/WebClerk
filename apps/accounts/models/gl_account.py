@@ -6,7 +6,7 @@ class Gl_account(BaseModel):
     account_credit = models.CharField(max_length=255, blank=True, null=True)
     account_debit = models.CharField(max_length=255, blank=True, null=True)
     category = models.CharField(max_length=255, blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
+    
     name = models.CharField(max_length=255, blank=True, null=True)
     type = models.CharField(max_length=255, blank=True, null=True)
     used_for = models.CharField(max_length=255, blank=True, null=True)

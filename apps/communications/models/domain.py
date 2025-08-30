@@ -14,7 +14,8 @@ DOMAIN_TYPE_CHOICES = [
 class Domain(BaseModel):
     path = models.CharField(max_length=255, blank=True, db_index=True, help_text="URL or handle (indexed)")
     type = models.CharField(max_length=50, blank=True, choices=DOMAIN_TYPE_CHOICES, db_index=True)
-    comment = models.TextField(blank=True, null=True)
+    comment = models.TextField(blank=True, default="", help_text="General notes")
+    
     status = models.CharField(max_length=30, blank=True, default='active', db_index=True)
     security_level = models.PositiveSmallIntegerField(default=0, db_index=True)
     sequence = models.PositiveIntegerField(default=0, db_index=True, help_text="Custom ordering value")

@@ -11,7 +11,6 @@ class Phone(BaseModel):
     name = models.CharField(max_length=100, blank=True, help_text="Display name for this phone")
     attention = models.CharField(max_length=100, blank=True, help_text="Person or department attention line")
     opt_out = models.BooleanField(default=False, help_text="Opted out of communications")
-    comment = models.TextField(blank=True, null=True, help_text="Additional notes about this phone")
     
     # Remove this database field - now using metadata
     # dt_verified = models.DateTimeField(null=True, blank=True, help_text="When phone was verified")

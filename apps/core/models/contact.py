@@ -89,7 +89,8 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
     company = models.CharField(max_length=200, blank=True, help_text="Company name")
     title = models.CharField(max_length=100, blank=True, help_text="Job title")
     department = models.CharField(max_length=100, blank=True, help_text="Department")
-    comment = models.TextField(blank=True, help_text="Additional comments")
+    # General notes / legacy compatibility (column exists with NOT NULL constraint in current schema)
+    comment = models.TextField(blank=True, default="", help_text="General notes about this contact")
     # System Fields
     role = models.CharField(
         max_length=50, 

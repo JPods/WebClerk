@@ -9,7 +9,7 @@ import uuid
 
 class Result(BaseModel):
     objective = models.ForeignKey('Objective', on_delete=models.CASCADE, related_name='results')
-    comment = models.TextField(blank=True, null=True)
+    
     name = models.CharField(max_length=255, blank=True, null=True)
     publish = models.IntegerField(blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)

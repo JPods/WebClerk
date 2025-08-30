@@ -6,7 +6,7 @@ from common.models import BaseModel
 
 class Gl_journal(BaseModel):
     account = models.CharField(max_length=255, blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
+    
     credit = models.FloatField(blank=True, null=True)
     debit = models.FloatField(blank=True, null=True)
     source = models.CharField(max_length=255, blank=True, null=True)

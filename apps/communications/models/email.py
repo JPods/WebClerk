@@ -21,8 +21,6 @@ class Email(BaseModel):
     ]
     opt_out = models.CharField(max_length=20, choices=OPT_OUT_CHOICES, blank=True, default='')
     
-    # Better field for comments
-    comment = models.TextField(blank=True, null=True, help_text="Additional notes about this email")
     
     # Add useful tracking fields
     is_primary = models.BooleanField(default=False, help_text="Mark as primary email address")

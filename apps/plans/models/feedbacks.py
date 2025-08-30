@@ -9,7 +9,6 @@ class Feedback(BaseModel):
     user_id = models.UUIDField()
     name = models.CharField(max_length=255)
     purpose = models.CharField(max_length=255)
-    comment = models.TextField()
     status = models.CharField(max_length=255, default='new')
 
     class Meta:

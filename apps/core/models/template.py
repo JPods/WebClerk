@@ -9,7 +9,7 @@ class Template(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)
     table_name = models.CharField(max_length=255, blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
+    
 
     class Meta:
         db_table = 'templates'

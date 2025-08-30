@@ -6,7 +6,7 @@ from django.utils import timezone
 # example use is to link line items in orders, proposals, etc. 
 # with one document that passes on specs, paths, comments, and other details
 class Audit(BaseModel):
-    comment = models.TextField(blank=True, null=True)
+    
     purpose = models.CharField(max_length=255, blank=True, null=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     # heavily uses .refs and .metadata
