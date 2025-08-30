@@ -21,7 +21,6 @@ class Tag(BaseModel):
     purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     security_level = models.IntegerField(blank=True, null=True, db_index=True)
-    comment = models.TextField(blank=True, null=True)
     table_name = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Source table this tag decorates")
     record_id = models.IntegerField(blank=True, null=True, db_index=True, help_text="ID in source table")
     data = models.JSONField(blank=True, null=True, help_text="Arbitrary structured tag payload")

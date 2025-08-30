@@ -453,9 +453,9 @@ class UniversalDictMixin(models.Model):
 
 ### -------------------- FULL COMPOSITION CLASS --------------------------- ###
 
-class BaseModel(MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
+class BaseModel(CoreModel, MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
                 HealthMixin, KeywordsMixin, LifecycleMixin,
-                CoreModel, UniversalDictMixin, AtomicJSONMixin):
+                UniversalDictMixin, AtomicJSONMixin):
     """Full capability base model (replaces previous monolithic design)."""
     class Meta:
         abstract = True
