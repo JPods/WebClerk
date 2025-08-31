@@ -147,7 +147,12 @@ class SaveWcapiView(LoginRequiredMixin, View):
         # QQQ can this be accomplished with python threading
 
         field_size_errors = []
+        raw_password = None
         for field, value in data.items():
+            # Special handling: never assign raw password directly; defer to set_password
+            if field == 'password':
+                raw_password = value
+                continue
             if field in nested_fields and hasattr(obj, field):
                 allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())
                 current = getattr(obj, field) or {}
@@ -176,6 +181,12 @@ class SaveWcapiView(LoginRequiredMixin, View):
                     setattr(obj, field, value)
                 except ValueError as e:
                     field_size_errors.append(str(e))
+        # Apply password hashing if required
+        if raw_password is not None and hasattr(obj, 'set_password'):
+            try:
+                obj.set_password(raw_password)  # type: ignore[attr-defined]
+            except Exception as e:  # pragma: no cover - defensive
+                return JsonResponse({'status': 'error', 'message': f'Failed to hash password: {e}'}, status=400)
 
         # Generic model payload validation hook across all tables.
         # Flags:
