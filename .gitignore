@@ -10,3 +10,13 @@ __pycache__/
 **/.DS_Store
 .env
 .local/
+
+# Test artifacts
+.hypothesis/
+
+# Local database dumps / backups
+*.dump
+*.sql
+
+# Export snapshots (keep if you want to version them: comment out to track)
+common/management/commands/all_tables_export.json
