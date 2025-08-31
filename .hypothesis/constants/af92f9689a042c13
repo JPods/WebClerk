@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/serializers/contact_serializer.py
+# hypothesis_version: 6.138.7
+
+['PATCH', 'POST', 'PUT', 'References and links', 'USER', 'User preferences', 'attention', 'code', 'comment', 'comment_alert', 'company', 'contacts', 'date_joined', 'edit', 'email', 'error', 'id', 'is_active', 'is_email_verified', 'is_staff', 'last_login', 'metadata', 'name', 'name_first', 'name_last', 'name_middle', 'opt_out', 'password', 'prefix', 'prefs', 'publish', 'rank', 'refs', 'request', 'role', 'role_default', 'salutation', 'suffix', 'undefined', 'user', 'uuid', 'verification_code', 'view']

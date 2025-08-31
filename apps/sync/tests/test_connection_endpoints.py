@@ -13,14 +13,14 @@ def api_client():
 @pytest.fixture
 def staff_user(api_client):
     User = get_user_model()
-    u = User.objects.create_user(email='syncstaff@example.com', password='pw12345', name_first='Sync', name_last='Staff', role='staff')
+    u = User.objects.create_user(username='syncstaff', email='syncstaff@example.com', password='pw12345', name_first='Sync', name_last='Staff', role='staff')
     api_client.force_authenticate(user=u)
     return u
 
 @pytest.fixture
 def normal_user(api_client):
     User = get_user_model()
-    u = User.objects.create_user(email='syncuser@example.com', password='pw12345', name_first='Sync', name_last='User', role='user')
+    u = User.objects.create_user(username='syncuser', email='syncuser@example.com', password='pw12345', name_first='Sync', name_last='User', role='user')
     return u
 
 

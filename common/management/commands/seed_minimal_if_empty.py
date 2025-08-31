@@ -246,7 +246,7 @@ class Command(BaseCommand):
                     key = (header_model, header_id)
                     bucket = line_map.setdefault(key, {})
                     lt = line_model._meta.db_table
-                    bucket.setdefault(lt, []).append(line_obj.id)
+                    bucket.setdefault(lt, []).append(line_obj.pk)
             except Exception as e:
                 if verbose_errors:
                     self.stderr.write(f"Line scan error {line_model}: {e}")
@@ -277,7 +277,7 @@ class Command(BaseCommand):
                     if domains_ids:
                         links.setdefault('domains', domains_ids)
                     if is_header:
-                        header_bucket = line_map.get((model, obj.id))
+                        header_bucket = line_map.get((model, obj.pk))
                         if header_bucket:
                             for lt, id_list in header_bucket.items():
                                 links.setdefault(lt, id_list)
@@ -288,7 +288,7 @@ class Command(BaseCommand):
                         updated += 1
                     except Exception as e:
                         if verbose_errors:
-                            self.stderr.write(f"Failed saving refs for {model.__name__}#{obj.id}: {e}")
+                            self.stderr.write(f"Failed saving refs for {model.__name__}#{obj.pk}: {e}")
             except Exception as e:
                 if verbose_errors:
                     self.stderr.write(f"Header iteration error {model}: {e}")

@@ -110,6 +110,14 @@ class WcapiView(LoginRequiredMixin, View):
 
     # GET: optional id for single record, else list
     def get(self, request):
+        # Auth: allow either session or JWT; optional strict mode via WCAPI_JWT_ONLY
+        from django.conf import settings
+        require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
+        is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
+        if require_jwt and not is_jwt:
+            return JsonResponse({'status': 'error', 'message': 'JWT Bearer token required'}, status=401)
         start = time.perf_counter()
         table_name = request.GET.get('table_name')
         if not table_name:
@@ -151,6 +159,13 @@ class WcapiView(LoginRequiredMixin, View):
 
     # POST: filtered list (exact match on allow-listed fields)
     def post(self, request):
+        from django.conf import settings
+        require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
+        is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
+        if require_jwt and not is_jwt:
+            return JsonResponse({'status': 'error', 'message': 'JWT Bearer token required'}, status=401)
         start = time.perf_counter()
         try:
             payload = json.loads(request.body or '{}')

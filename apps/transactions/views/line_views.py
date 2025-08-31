@@ -343,7 +343,8 @@ class RequisitionLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
 class ProjectListCreate(generics.ListCreateAPIView):
     queryset = Project.objects.all().order_by('-id')
     serializer_class = ProjectSerializer
-    permission_classes = [BasePermission]
+    # Use plain IsAuthenticated to avoid needing dynamic view/edit settings for base project CRUD
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = DefaultPagination
     filterset_fields = ['status', 'priority', 'attention', 'category', 'contact_id']
     search_fields = ['situation', 'intent', 'objective']
@@ -353,4 +354,4 @@ class ProjectListCreate(generics.ListCreateAPIView):
 class ProjectRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
-    permission_classes = [BasePermission]
+    permission_classes = [permissions.IsAuthenticated]

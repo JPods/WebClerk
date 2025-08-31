@@ -10,9 +10,10 @@ from apps.core.services.wcapi import WcapiView, wcapi_metrics_response
 
 
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
 )
+from apps.core.views.auth_token import LoginTokenObtainPairView
+from apps.core.views.api_auth import ApiLoginView, ApiSignupView
 from apps.core.views.related_view import RelatedDataView, RelatedDataAdvancedView
 # from apps.core.views.utilities import FieldAccessView
 from apps.core.views.utilities_view import AllowedFieldsView
@@ -27,7 +28,10 @@ from apps.core.views.pending import PendingListView, PendingDetailView, PendingS
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
 
 urlpatterns = [
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', LoginTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # New API auth endpoints (JSON) - do not interfere with existing HTML /login/ & /signup/
+    path('api/auth/login/', ApiLoginView.as_view(), name='api_auth_login'),
+    path('api/auth/signup/', ApiSignupView.as_view(), name='api_auth_signup'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # Home and About pages

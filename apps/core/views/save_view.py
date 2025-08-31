@@ -65,6 +65,14 @@ class SaveWcapiView(LoginRequiredMixin, View):
         #return super().dispatch(*args, **kwargs)
     
     def post(self, request):
+        # Auth: allow session or JWT; env flag WCAPI_JWT_ONLY can enforce JWT-only.
+        from django.conf import settings
+        require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
+        is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
+        if not request.user.is_authenticated:
+            return JsonResponse({'status':'error','message':'Authentication required'}, status=401)
+        if require_jwt and not is_jwt:
+            return JsonResponse({'status':'error','message':'JWT Bearer token required'}, status=401)
         try:
             # extract JSON data from the request body
             data = json.loads(request.body)

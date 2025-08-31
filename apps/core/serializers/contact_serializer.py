@@ -10,27 +10,38 @@ from datetime import timedelta
 from apps.core.utils import get_accessible_fields
 
 class LoginSerializer(TokenObtainPairSerializer):
-    """Serializer for user login, validating email, password, and role."""
+    """Obtain JWT pair with basic role validation and enriched custom claims.
+
+    NOTE: Model uses a single string field `role` (not a list). Earlier code used
+    membership (role in user.role) which incorrectly treated the role string as
+    an iterable of characters. We now enforce simple equality.
+    """
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
-    role = serializers.ChoiceField(choices=Contact.ROLE_CHOICES, required=True, help_text="Single role value (e.g., 'USER')")
+    role = serializers.ChoiceField(choices=Contact.ROLE_CHOICES, required=True, help_text="Single role value (e.g., 'admin')")
+
+    @classmethod
+    def get_token(cls, user):  # add custom claims into JWT access token
+        token = super().get_token(user)
+        token['role'] = user.role
+        token['email'] = user.email
+        # lightweight display name
+        token['name'] = user.get_full_name() or user.email
+        return token
 
     def validate(self, attrs):
-        email = attrs.get('email').lower()
-        role = attrs.get('role')
-
-        # Validate credentials
+        # Standard username/password validation (calls authenticate)
         data = super().validate(attrs)
-
-        # Check if user exists and role is in their role array
-        try:
-            user = Contact.objects.get(email=email)
-        except Contact.DoesNotExist:
-            raise serializers.ValidationError({"error": "User with this email does not exist."})
-
-        if role not in user.role:
-            raise serializers.ValidationError({"error": f"Role '{role}' is not assigned to this user."})
-
+        user = getattr(self, 'user', None)
+        if user is None:
+            raise serializers.ValidationError({"error": "Invalid credentials."})
+        requested_role = attrs.get('role')
+        if requested_role and requested_role != user.role:
+            raise serializers.ValidationError({"error": f"Role '{requested_role}' mismatch for this user."})
+        # Add mirrored custom claims into response body for client bootstrapping
+        data['role'] = user.role
+        data['email'] = user.email
+        data['name'] = user.get_full_name() or user.email
         return data
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -127,13 +138,16 @@ class VerifyEmailSerializer(serializers.Serializer):
         except Contact.DoesNotExist:
             raise serializers.ValidationError({"error": "User with this email does not exist."})
         
-        if user.is_email_verified:
+        # Safely check optional attribute to avoid attribute errors if absent
+        if getattr(user, 'is_email_verified', False):
             raise serializers.ValidationError({"error": "Email is already verified."})
         
-        if user.verification_code != code:
+        stored_code = getattr(user, 'verification_code', None)
+        if stored_code != code:
             raise serializers.ValidationError({"error": "Invalid verification code."})
         
-        if user.verification_code_expiry < timezone.now():
+        expiry = getattr(user, 'verification_code_expiry', None)
+        if not expiry or expiry < timezone.now():
             raise serializers.ValidationError({"error": "Verification code has expired."})
         
         return attrs

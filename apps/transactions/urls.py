@@ -1,5 +1,6 @@
 from django.urls import path
 from apps.transactions.views import line_views as views
+from apps.transactions.views import unified as unified_views
 from apps.transactions.views.requisition import (
     RequisitionListView, RequisitionDetailView, RequisitionSearchView
 )
@@ -54,4 +55,10 @@ urlpatterns = [
     # Projects
     path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
     path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
+
+    # Unified endpoints (experimental consolidated schema)
+    path('tx/<str:kind>/', unified_views.TransactionHeaderListCreate.as_view(), name='tx-header-list-create'),
+    path('tx/<str:kind>/<int:pk>/', unified_views.TransactionHeaderDetail.as_view(), name='tx-header-detail'),
+    path('tx/<str:kind>/<int:pk>/lines/', unified_views.TransactionLineListCreate.as_view(), name='tx-line-list-create'),
+    path('tx/<str:kind>/<int:pk>/lines/<int:line_pk>/', unified_views.TransactionLineDetail.as_view(), name='tx-line-detail'),
 ]
