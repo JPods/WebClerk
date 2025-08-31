@@ -101,3 +101,19 @@ If any series approaches unbounded growth, move historical points to a separate 
 ---
 
 This design keeps core models lean while offering a consistent place to surface lightweight metrics for UI and quick filtering.
+
+## Scheduled Execution (Celery Beat)
+
+The following periodic tasks are configured in `settings.py` (using `CELERY_BEAT_SCHEDULE`):
+
+- `recompute-basic-stats-hourly` – hourly normalization of `stats` blobs.
+- `recompute-relationship-counts-2h` – every 2 hours, refresh denormalized relationship counts.
+- `refresh-keywords-30m` – keyword refresh sweep every 30 minutes (task self-limits work each run).
+
+Adjust cadences as operational load clarifies (e.g., move to 15m for keywords if UI freshness demands it).
+
+## Backwards Compatibility Note
+
+Legacy code (and older tests) referenced an instance method `atomic_append`. The canonical name is now
+`atomic_list_append` (classmethod) with an instance convenience alias `atomic_append` retained for compatibility.
+New code should prefer `atomic_list_append` / `atomic_set` patterns; the alias may be removed in a future major revision.

@@ -26,14 +26,27 @@
 
 from apps.core.models import Setting
 import json
+import os
+import logging
 from functools import wraps
 from django.http import JsonResponse
+from django.apps import apps as _apps
+
+def dev_bypass_enabled() -> bool:
+    """Evaluate bypass flag dynamically each call (avoid import‑time caching)."""
+    return os.getenv('VIEW_EDIT_DEV_BYPASS', '0') == '1'
+
+_reported_missing: set[tuple[str,str,str]] = set()
+logger = logging.getLogger(__name__)
 
 def get_view_edit_fields(table_name: str, role: str, access_type: str = "view") -> list:
     """
     Returns a list of allowed fields for a given table, role, and access_type ('view' or 'edit'),
     using Setting records from the database.
     """
+    if dev_bypass_enabled():
+        # Wide open: simply signal '*' (all fields) – no model resolution needed.
+        return ['*']
     try:
         setting = Setting.objects.get(
             is_active=True,
@@ -41,17 +54,20 @@ def get_view_edit_fields(table_name: str, role: str, access_type: str = "view") 
             table_name=table_name
         )
         data = getattr(setting, "data", None)
-        #print(f"get_view_edit_fields: table={table_name}, role={role}, access_type={access_type}, data={data}") 
+    # Intentionally silent unless debugging; uncomment for deep trace.
         if not isinstance(data, dict):
             return []
         role_data = data.get(role.upper())
         if not role_data:
             role_data = data.get("PUBLIC", {})
-            print (f"1get_view_edit_fields result: role_data={role_data}")
+            # fallback to PUBLIC already handled; avoid noisy prints
         return role_data.get(access_type, [])
-        print (f"2get_view_edit_fields result: role_data={role_data}")
+    # unreachable after return
     except Setting.DoesNotExist:
-        print(f"3get_view_edit_fields error: table={table_name}, role={role}, access_type={access_type}, data=Setting.DoesNotExist")
+        key = (table_name, role.upper(), access_type)
+        if key not in _reported_missing:
+            _reported_missing.add(key)
+            logger.debug("view_edit_access: no Setting found (table=%s role=%s access=%s) - returning empty list (may be widened by bypass/fail-open)", *key)
         return []
         
 
@@ -98,5 +114,31 @@ def get_allowed_fields(table_name: str, role: str, access_type: str = "view"):
 
 def filter_record_for_role(record: dict, table_name: str, role: str, access_type: str = "view"):
     allowed_fields = get_allowed_fields(table_name, role, access_type)
+    # If wildcard or bypass -> expand to model concrete fields to ensure full dict
+    if '*' in allowed_fields or dev_bypass_enabled() or not allowed_fields:
+        # Attempt to resolve model name heuristically (plural to singular) similar to WcapiGetView
+        model_name = 'Location' if table_name == 'addresses' else table_name.rstrip('s').capitalize()
+        app_guess = table_name.split('.')[0] if '.' in table_name else None
+        model = None
+        if app_guess:
+            try:
+                model = _apps.get_model(app_guess, model_name)
+            except Exception:
+                model = None
+        if model is None:
+            # brute force search among installed models for matching name
+            for m in _apps.get_models():
+                if m.__name__.lower() == model_name.lower():
+                    model = m
+                    break
+        if model is not None:
+            field_names = [f.name for f in model._meta.get_fields() if getattr(f, 'concrete', False) and not getattr(f, 'many_to_many', False)]  # type: ignore[attr-defined]
+            # Include any existing keys (JSON / dynamic) to avoid dropping data
+            for k in record.keys():
+                if k not in field_names:
+                    field_names.append(k)
+            return {k: record.get(k) for k in field_names}
+        # fallback just return record untouched
+        return record
     return {k: v for k, v in record.items() if k in allowed_fields}
 

@@ -256,6 +256,26 @@ INTERNAL_IPS = [
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or use RabbitMQ if you prefer
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_BEAT_SCHEDULE = {
+    # Lightweight periodic normalization of stats structures
+    'recompute-basic-stats-hourly': {
+        'task': 'common.tasks.recompute_basic_stats',
+        'schedule': 60 * 60,  # hourly
+        'options': {'expires': 55 * 60},
+    },
+    # Relationship counts (org link heuristics) - run less frequently
+    'recompute-relationship-counts-2h': {
+        'task': 'common.tasks.recompute_relationship_counts',
+        'schedule': 2 * 60 * 60,  # every 2 hours
+        'options': {'expires': 115 * 60},
+    },
+    # Keyword refresh (kept modest cadence; task self-limits work)
+    'refresh-keywords-30m': {
+        'task': 'common.tasks.refresh_keywords_task',
+        'schedule': 30 * 60,  # every 30 minutes
+        'options': {'expires': 25 * 60},
+    },
+}
 
 GRAPH_MODELS = {
     'all_applications': True,
@@ -293,6 +313,7 @@ LANGUAGES = [
 # If WCAPI_OPEN_READ=1 and WCAPI_JWT_ONLY is False, unauthenticated GET/POST (query) requests to
 # wcapi read endpoints are permitted and treated as role PUBLIC. Writes still require auth.
 WCAPI_OPEN_READ = os.getenv('WCAPI_OPEN_READ', '0') == '1'
+WCAPI_JWT_ONLY = os.getenv('WCAPI_JWT_ONLY', '0') == '1'
 
 # --- Test Environment Overrides (Celery eager, in‑memory broker) ---
 import os as _os  # local alias to avoid shadowing

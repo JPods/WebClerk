@@ -32,6 +32,9 @@ urlpatterns = [
     # New API auth endpoints (JSON) - do not interfere with existing HTML /login/ & /signup/
     path('api/auth/login/', ApiLoginView.as_view(), name='api_auth_login'),
     path('api/auth/signup/', ApiSignupView.as_view(), name='api_auth_signup'),
+    # Backwards-compatible wcapi auth aliases (some clients expect /wcapi/login/)
+    path('wcapi/login/', ApiLoginView.as_view(), name='wcapi_login_alias'),
+    path('wcapi/signup/', ApiSignupView.as_view(), name='wcapi_signup_alias'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # Home and About pages

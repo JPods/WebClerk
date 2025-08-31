@@ -1,7 +1,7 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/get_view.py
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import permissions
 from django.apps import apps
 from django.forms.models import model_to_dict
 from apps.core.views.related_view import get_related_data
@@ -17,9 +17,45 @@ TABLE_APP_MAP = {
     # Add more as needed
 }
 
+class OpenReadOrAuthenticated(permissions.BasePermission):
+    """Allow unauthenticated read/query when WCAPI_OPEN_READ enabled and JWT not forced."""
+    def has_permission(self, request, view):  # pragma: no cover (simple gate)
+        from django.conf import settings
+        if request.method == 'GET':
+            if getattr(settings, 'WCAPI_OPEN_READ', False) and not getattr(settings, 'WCAPI_JWT_ONLY', False):
+                return True
+        return bool(request.user and request.user.is_authenticated)
+
+
 class WcapiGetView(APIView):
-    """JWT-protected GET access to single/list records with basic role filtering."""
-    permission_classes = [IsAuthenticated]
+    """GET access with optional open-read dev mode (set WCAPI_OPEN_READ=1)."""
+    permission_classes = [OpenReadOrAuthenticated]
+
+    def _sanitize(self, value):  # pragma: no cover - straightforward
+        """Recursively coerce non-JSON-serializable objects to primitives/strings.
+
+        - Allowed primitives: None, bool, int, float, str
+        - dict/list traversed
+        - datetime/date converted to isoformat
+        - other objects -> str(o)
+        """
+        import datetime, decimal
+        from django.db import models as dj_models
+        if value is None or isinstance(value, (bool, int, float, str)):
+            return value
+        if isinstance(value, (datetime.date, datetime.datetime)):
+            return value.isoformat()
+        if isinstance(value, decimal.Decimal):
+            return float(value)
+        if isinstance(value, dict):
+            return {k: self._sanitize(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [self._sanitize(v) for v in value]
+        if isinstance(value, dj_models.Model):  # collapse model ref to pk or string
+            # prefer primary key if available
+            pk = getattr(value, 'pk', None)
+            return pk if pk is not None else str(value)
+        return str(value)
 
     def get(self, request):  # noqa: C901 (simple flow)
         from django.conf import settings
@@ -50,11 +86,17 @@ class WcapiGetView(APIView):
             record = model_to_dict(obj)
             filtered_record = filter_record_for_role(record, table_name, user_role, 'view')
             related_result = get_related_data(table_name, int(record_id))
-            return JsonResponse({'success': True, 'data': filtered_record, 'related': related_result.get('related', {}), 'errors': related_result.get('errors', {})})
+            safe_record = {k: self._sanitize(v) for k, v in filtered_record.items()}
+            safe_related = {rk: [ {sk: self._sanitize(sv) for sk, sv in r.items()} for r in rv ] for rk, rv in related_result.get('related', {}).items()} if related_result.get('related') else {}
+            return JsonResponse({'success': True, 'data': safe_record, 'related': safe_related, 'errors': related_result.get('errors', {})})
         # list
         queryset = model.objects.all()  # type: ignore[attr-defined]
-        data = [
+        raw_records = [
             filter_record_for_role(model_to_dict(obj), table_name, user_role, 'view')
             for obj in queryset
         ]
-        return JsonResponse({'success': True, 'data': data})
+        safe_records = [
+            {k: self._sanitize(v) for k, v in rec.items()}
+            for rec in raw_records
+        ]
+        return JsonResponse({'success': True, 'data': safe_records})
