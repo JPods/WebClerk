@@ -17,7 +17,6 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.docs',
     'apps.orgs',
-    'apps.plans',
     'apps.products',
     'apps.support',
     'apps.sync',

@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 for i in range(line_total):
                     line = OrderLine.objects.create(
                         parent=order,
-                        parent_ref_id=order.id,
+                        parent_ref_id=order.pk,  # use pk to avoid accessing a non-existent 'id' attribute
                         status='open',
                         type_sale='standard',
                         probability=None,
