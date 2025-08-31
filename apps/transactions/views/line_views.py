@@ -18,10 +18,12 @@ from apps.transactions.serializers.line_serializers import (
     PurchaseSerializer, PurchaseLineSerializer,
     WorkorderSerializer, WorkorderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
+    ProjectSerializer,
 )
 from rest_framework.views import APIView
 from apps.core.permissions import get_role_field_rules
 from apps.transactions.aggregation import compute_line_aggregate, DEFAULT_CACHE_TTL_SECONDS
+from apps.transactions.models.projects import Project
 
 class BasePermission(ViewEditPermission):
     """Combines auth + view_edit rule enforcement (ViewEditPermission already checks auth)."""
@@ -334,4 +336,21 @@ class FieldAuthMatrixBatchView(APIView):
 class RequisitionLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = RequisitionLine.objects.all()
     serializer_class = RequisitionLineSerializer
+    permission_classes = [BasePermission]
+
+
+# ---------------- Projects -------------------------------------------------
+class ProjectListCreate(generics.ListCreateAPIView):
+    queryset = Project.objects.all().order_by('-id')
+    serializer_class = ProjectSerializer
+    permission_classes = [BasePermission]
+    pagination_class = DefaultPagination
+    filterset_fields = ['status', 'priority', 'attention', 'category', 'contact_id']
+    search_fields = ['situation', 'intent', 'objective']
+    ordering_fields = ['id', 'priority', 'status', 'attention', 'burndown', 'profit', 'modified_dt']
+
+
+class ProjectRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
     permission_classes = [BasePermission]

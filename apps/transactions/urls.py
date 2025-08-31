@@ -50,4 +50,8 @@ urlpatterns = [
     path('lines/aggregate/', views.LineAggregateView.as_view(), name='line-aggregate'),
     path('auth/fields/', views.FieldAuthMatrixView.as_view(), name='line-field-auth'),
     path('auth/fields/batch/', views.FieldAuthMatrixBatchView.as_view(), name='line-field-auth-batch'),
+
+    # Projects
+    path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
+    path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
 ]
