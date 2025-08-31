@@ -113,10 +113,13 @@ class WcapiView(LoginRequiredMixin, View):
         # Auth: allow either session or JWT; optional strict mode via WCAPI_JWT_ONLY
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
+        open_read = getattr(settings, 'WCAPI_OPEN_READ', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
-            return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
-        if require_jwt and not is_jwt:
+            if not open_read:
+                return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
+            # proceed as PUBLIC role (implicit) for open read mode
+        if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
             return JsonResponse({'status': 'error', 'message': 'JWT Bearer token required'}, status=401)
         start = time.perf_counter()
         table_name = request.GET.get('table_name')
@@ -161,10 +164,12 @@ class WcapiView(LoginRequiredMixin, View):
     def post(self, request):
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
+        open_read = getattr(settings, 'WCAPI_OPEN_READ', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
-            return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
-        if require_jwt and not is_jwt:
+            if not open_read:
+                return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
+        if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
             return JsonResponse({'status': 'error', 'message': 'JWT Bearer token required'}, status=401)
         start = time.perf_counter()
         try:

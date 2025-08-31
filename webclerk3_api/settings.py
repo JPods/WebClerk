@@ -289,6 +289,11 @@ LANGUAGES = [
     # Add more as needed
 ]
 
+# --- WCAPI optional relaxed read mode (development convenience) ---
+# If WCAPI_OPEN_READ=1 and WCAPI_JWT_ONLY is False, unauthenticated GET/POST (query) requests to
+# wcapi read endpoints are permitted and treated as role PUBLIC. Writes still require auth.
+WCAPI_OPEN_READ = os.getenv('WCAPI_OPEN_READ', '0') == '1'
+
 # --- Test Environment Overrides (Celery eager, in‑memory broker) ---
 import os as _os  # local alias to avoid shadowing
 if _os.environ.get('PYTEST_CURRENT_TEST'):

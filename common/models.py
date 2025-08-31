@@ -163,6 +163,7 @@ if PydanticBaseModel:  # pragma: no cover
         dt_created: Optional[int] = None
         dt_modified: Optional[int] = None
         version: Optional[int] = None
+        is_active: Optional[bool] = None
 
         class Config:
             arbitrary_types_allowed = True
@@ -275,6 +276,10 @@ class CoreModel(models.Model):
     created_dt = models.BigIntegerField(default=0, db_index=True)
     modified_dt = models.BigIntegerField(default=0, db_index=True)
     version = models.PositiveIntegerField(default=1)
+    # Unified active flag (subclasses can override default or help_text). Not all models currently
+    # declare this; adding here allows a consistent queryset helper. If a concrete model already
+    # defines is_active, its field overrides this definition (no duplicate schema field in migration).
+    is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
 
     class Meta:
         abstract = True
@@ -613,13 +618,107 @@ class AtomicJSONMixin(models.Model):
         max_length: int | None = None,
         expected_version: int | None = None,
     ):
+        """Append an element to a JSON array path atomically.
+
+        Convenience instance wrapper around classmethod atomic_list_append
+        retaining backwards compatibility with older method name expected by tests.
+        """
         new_version = type(self).atomic_list_append(
             self.pk, field, path, element, max_length=max_length, expected_version=expected_version  # type: ignore[arg-type]
         )
+        # Refresh only the mutated json + version for local consistency
         self.refresh_from_db(fields=[field, "version", "modified_dt"])
         if hasattr(self, "_pydantic_cache"):
             self._pydantic_cache = None  # type: ignore[attr-defined]
         return new_version
+
+
+class AuthorizedAccessMixin(models.Model):
+    """Pluggable authorization scope helper (stub).
+
+    Purpose:
+    - Provide a uniform, overridable entry point for per-record access scoping
+      beyond coarse IsAuthenticated checks.
+    - Avoid scattering ad-hoc filters across viewsets; centralize logic near
+      the data model but keep defaults permissive.
+
+    Key design points:
+    - No database fields here (pure behavior) -> safe to add retroactively.
+    - Subclasses can override classmethod `authorized_qs` OR define a lightweight
+      `authz_scope` method for fine‑grained filtering.
+    - Supports patterns like:
+        * Sales rep only sees Orgs where they are assigned rep.
+        * Vendor user only sees Items for which they are designated supplier.
+        * Contact limited to inventory in their site (site_code matching user.profile.site_code).
+    - Uses heuristics to look for common field names unless overridden.
+
+    Extension hooks:
+    - Define class attribute AUTHZ_FIELD_CANDIDATES = ["assigned_contact_id", "owner_id", ...]
+      to have the default filter attempt equality with user.contact.id.
+    - Implement @classmethod authz_scope(cls, qs, user, action: str, context: dict | None) -> QuerySet
+      to supply custom filtering (return qs unmodified for full access).
+    - Instance method `is_authorized(user, action)` can be overridden for per-object checks.
+
+    Usage in views (pseudo):
+        qs = Model.authorized_qs(request.user, action='read')
+
+    NOTE: This is a *stub*; by default it returns the base queryset (no restriction)
+    except for unauthenticated users (empty). Enable stricter defaults later by
+    toggling a project setting and tightening the fallback behavior.
+    """
+
+    # Optional toggle: if future setting wants implicit deny unless explicit scope.
+    AUTHZ_DEFAULT_DENY_UNAUTHENTICATED = True
+    AUTHZ_FIELD_CANDIDATES: list[str] = []  # subclasses extend as needed
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def _base_authz_queryset(cls, base_qs=None):  # tiny helper to allow injection in tests
+        return base_qs if base_qs is not None else cls.objects.all()  # type: ignore[attr-defined]
+
+    @classmethod
+    def authorized_qs(
+        cls,
+        user,
+        action: str = "read",
+        base_qs=None,
+        context: dict | None = None,
+    ):
+        qs = cls._base_authz_queryset(base_qs)
+        # Anonymous handling
+        if not getattr(user, "is_authenticated", False):
+            if cls.AUTHZ_DEFAULT_DENY_UNAUTHENTICATED:
+                return qs.none()
+            return qs
+        # Superusers (or staff toggle) -> full access
+        if getattr(user, "is_superuser", False):
+            return qs
+        # Custom override hook
+        if hasattr(cls, "authz_scope"):
+            try:
+                return cls.authz_scope(qs, user, action, context)  # type: ignore[misc]
+            except Exception:  # pragma: no cover - defensive
+                return qs
+        # Heuristic candidate filtering (only if we have a contact id available)
+        contact_id = getattr(getattr(user, "contact", None), "id", None)
+        if contact_id and cls.AUTHZ_FIELD_CANDIDATES:
+            from django.db.models import Q  # local import to avoid early import cycles
+            cond = Q()
+            for field_name in cls.AUTHZ_FIELD_CANDIDATES:
+                if field_name in {f.name for f in cls._meta.fields}:  # type: ignore[attr-defined]
+                    cond |= Q(**{field_name: contact_id})
+            if cond:  # only apply if at least one field exists
+                return qs.filter(cond)
+        return qs  # default pass‑through
+
+    def is_authorized(self, user, action: str = "read") -> bool:  # instance level hook
+        if not getattr(user, "is_authenticated", False):
+            return False
+        if getattr(user, "is_superuser", False):
+            return True
+        return True  # default allow; override for object-level denial
 
 
 class UniversalDictMixin(models.Model):
@@ -734,7 +833,14 @@ class BaseModel(
     # QuerySet / Manager providing convenience filters for lifecycle + keyword flag
     class FullQuerySet(models.QuerySet):
         def active(self):
-            return self.filter(is_deleted=False, is_archived=False)
+            # Unified active filter: combines soft‑lifecycle flags with the global is_active toggle.
+            # All CoreModel descendants now have is_active (default True). If a legacy model subclasses
+            # CoreModel but overrides/omits the field (rare), the filter still works because Django
+            # would raise at migration time; thus we assume presence here.
+            return self.filter(is_active=True, is_deleted=False, is_archived=False)
+
+        def inactive(self):
+            return self.filter(models.Q(is_active=False) | models.Q(is_deleted=True) | models.Q(is_archived=True))
 
         def deleted(self):
             return self.filter(is_deleted=True)
@@ -752,6 +858,9 @@ class BaseModel(
         def active(self):
             return self.get_queryset().active()
 
+        def inactive(self):
+            return self.get_queryset().inactive()
+
         def deleted(self):
             return self.get_queryset().deleted()
 
@@ -762,6 +871,12 @@ class BaseModel(
             return self.get_queryset().keyword_pending()
 
     objects = FullManager()
+
+    # Lightweight active() pass-through leveraging CoreModel.is_active plus lifecycle flags.
+    # For legacy models that previously implemented only is_deleted/is_archived, active() now also
+    # ensures is_active=True which enables uniform filtering across the codebase.
+    def is_effectively_active(self) -> bool:
+        return getattr(self, 'is_active', True) and not getattr(self, 'is_deleted', False) and not getattr(self, 'is_archived', False)
 
     # --- change tracking --------------------------------------------------
     def __init__(self, *args, **kwargs):

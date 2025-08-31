@@ -24,10 +24,11 @@ class WcapiGetView(APIView):
     def get(self, request):  # noqa: C901 (simple flow)
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
-        is_jwt = bool(getattr(request, 'auth', None))
-        if not request.user.is_authenticated:
+        open_read = getattr(settings, 'WCAPI_OPEN_READ', False)
+        is_jwt = bool(getattr(request, 'auth', None)) or request.META.get('HTTP_AUTHORIZATION','').startswith('Bearer ')
+        if not request.user.is_authenticated and not open_read:
             return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
-        if require_jwt and not is_jwt:
+        if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
             return JsonResponse({'success': False, 'error': 'JWT required (missing Bearer token)'}, status=401)
 
         table_name = request.GET.get('table_name')

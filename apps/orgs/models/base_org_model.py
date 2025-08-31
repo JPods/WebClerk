@@ -41,6 +41,8 @@ from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
 
 from common.models import BaseModel
+from common.stats_mixin import StatsMixin
+from common.relationship_stats_mixin import RelationshipStatsMixin
 
 
 # ---------------- Enumerations -----------------
@@ -103,14 +105,14 @@ def default_gl_accounts():  # {sales:"4000", expense:"5000", ...}
 
 
 # ---------------- Unified model -----------------
-class OrgBase(BaseModel):
+class OrgBase(RelationshipStatsMixin, StatsMixin, BaseModel):
 	"""Unified organization entity with flexible aspect JSON envelopes.
 
 	Key columns kept minimal for performance & indexing; JSON aspects capture
 	heterogeneous data per org_type. Proxies provide ergonomic type scoping.
 	"""
 
-	feature_flags = BaseModel.feature_flags | {"org"}
+	feature_flags = BaseModel.feature_flags | {"org", "stats", "relationship_stats"}
 
 	# Per-aspect item count soft limits (govern snapshot size). Tune as needed.
 	ASPECT_LIMITS: dict[str, int] = {
