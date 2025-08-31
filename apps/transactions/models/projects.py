@@ -73,7 +73,8 @@ class Project(BaseModel):
     profit = models.DecimalField(default=Decimal('0.00'), max_digits=14, decimal_places=2, help_text="Projected or realized profit (base currency with cents)")
     profit_velocity = models.IntegerField(default=0, help_text="Profit per time unit (arbitrary) for trend")
     security_level = models.PositiveSmallIntegerField(default=0, help_text="0 (open) – 5 (restricted)")
-    data = models.JSONField(default=default_data, help_text="Arbitrary project-specific data payload")
+    # Allow NULL so callers can intentionally distinguish "no payload yet" vs empty structure
+    data = models.JSONField(default=default_data, blank=True, null=True, help_text="Arbitrary project-specific data payload (nullable)")
 
     class Meta:
         db_table = "projects"

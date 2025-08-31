@@ -11,115 +11,232 @@ class Command(BaseCommand):
     help = "Export or import all data from all tables as JSON. Usage: python manage.py demo_data_import_export [import|export]"
 
     def add_arguments(self, parser):
-        # Adds a required argument 'action' (either 'export' or 'import') to the command
-        parser.add_argument('action', choices=['export', 'import'], help="Choose 'export' or 'import'.")
+        """Register CLI arguments for the management command."""
+        parser.add_argument(
+            'action', choices=['export', 'import'], help="Choose 'export' or 'import'."
+        )
+        parser.add_argument(
+            '--path', default=None,
+            help='Optional export/import file path (defaults to sibling all_tables_export.json).'
+        )
+        parser.add_argument(
+            '--exclude', default='',
+            help='Comma list of extra model labels (app_label.ModelName) to exclude.'
+        )
+        parser.add_argument(
+            '--exclude-lines', action='store_true',
+            help='Exclude all models whose class name ends with "Line" (pragmatic skip of line-item tables).'
+        )
+        parser.add_argument(
+            '--settings-path', default=None,
+            help='Optional path to a secondary JSON (e.g., settings_data.json) merged ONLY on import after primary import.'
+        )
+        parser.add_argument(
+            '--force-settings', action='store_true',
+            help='Force re-import of settings/contacts JSON even if .imported marker exists.'
+        )
 
     def handle(self, *args, **kwargs):
         # Main entry point for the command
-        action = kwargs['action']  # Get the action argument ('export' or 'import')
-        # Build the path to the JSON file in the same folder as this script
-        filename = os.path.join(os.path.dirname(__file__), 'all_tables_export.json')
+        action = kwargs['action']  # 'export' or 'import'
+        base_dir = os.path.dirname(__file__)
+        filename = kwargs.get('path') or os.path.join(base_dir, 'all_tables_export.json')
+        extra_exclude = {m.strip() for m in (kwargs.get('exclude') or '').split(',') if m.strip()}
+        exclude_lines = bool(kwargs.get('exclude_lines'))
+        settings_path = kwargs.get('settings_path') or os.path.join(base_dir, 'settings_data.json')
+        force_settings = bool(kwargs.get('force_settings'))
 
         if action == 'export':
-            # If action is 'export', call the export function
-            self.export_all_data(filename)
+            self.export_all_data(filename, extra_exclude, exclude_lines)
         elif action == 'import':
-            # If action is 'import', first delete all data, then import from JSON
-            self.delete_all_data()
-            self.import_all_data(filename)
+            self.delete_all_data(extra_exclude, exclude_lines)
+            self.import_all_data(filename, extra_exclude, exclude_lines)
+            # Optional auto/explicit second-phase import (settings & contacts etc.)
+            if settings_path and os.path.isfile(settings_path):
+                marker_path = settings_path + '.imported'
+                if os.path.isfile(marker_path) and not force_settings:
+                    self.stdout.write("Settings data already imported earlier (marker present). Skipping (use --force-settings to override).")
+                else:
+                    if force_settings and os.path.isfile(marker_path):
+                        self.stdout.write(self.style.WARNING("Forcing re-import of settings data (marker ignored)."))
+                    self.stdout.write(getattr(self.style, 'NOTICE', lambda x: x)(f"Merging secondary data from: {settings_path}"))
+                    # merge=True for upsert semantics on contacts/settings
+                    self.import_all_data(settings_path, extra_exclude, exclude_lines, delete_first=False, merge=True)
+                    try:
+                        with open(marker_path, 'w') as mf:
+                            mf.write('imported')
+                    except Exception as e:
+                        self.stdout.write(self.style.WARNING(f"Could not write marker file {marker_path}: {e}"))
+            else:
+                self.stdout.write("No settings_data.json found to merge.")
 
-    def export_all_data(self, filename):
-        """Export all fields from all tables to a JSON file."""
-        # List of models to skip during export (system tables, celery tables, etc.)
-        skip_models = [
+    def _base_skip_models(self):  # central list for consistency
+        return [
             'core.Pending',
             'auth.Permission',
             'contenttypes.ContentType',
             'admin.LogEntry',
+            'sessions.Session',  # ephemeral session data not needed in snapshots
+            # celery beat scheduling tables
             'django_celery_beat.PeriodicTask',
             'django_celery_beat.CrontabSchedule',
             'django_celery_beat.IntervalSchedule',
             'django_celery_beat.ClockedSchedule',
             'django_celery_beat.SolarSchedule',
+            'django_celery_beat.PeriodicTasks',
+            # celery results tables
+            'django_celery_results.TaskResult',
+            'django_celery_results.ChordCounter',
+            'django_celery_results.GroupResult',
         ]
+
+    def _augment_with_line_models(self, skip_models, include_line_skip):
+        """If include_line_skip is True, add all models whose class name ends with 'Line' plus certain association tables to skip list."""
+        if not include_line_skip:
+            return skip_models
+        added = []
+        for model in apps.get_models():
+            if model.__name__.endswith('Line'):
+                label = f"{model._meta.app_label}.{model.__name__}"
+                if label not in skip_models:
+                    skip_models.add(label)
+                    added.append(label)
+        # Also skip ProjectAssociation because regenerated Project PKs break references; can be reseeded later
+        for model in apps.get_models():
+            if model.__name__ == 'ProjectAssociation':
+                label = f"{model._meta.app_label}.{model.__name__}"
+                if label not in skip_models:
+                    skip_models.add(label)
+                    added.append(label)
+        if added:
+            self.stdout.write(self.style.WARNING(f"Skipping line models (--exclude-lines): {', '.join(sorted(added))}"))
+        return skip_models
+
+    def export_all_data(self, filename, extra_exclude, exclude_lines=False):
+        """Export all fields from all tables to a JSON file."""
+        skip_models = set(self._base_skip_models()) | set(extra_exclude)
+        skip_models = self._augment_with_line_models(skip_models, exclude_lines)
         all_data = {}  # Dictionary to hold all exported data
         for model in apps.get_models():  # Loop through all Django models
-            model_name = f"{model._meta.app_label}.{model.__name__}"  # e.g., 'core.Contact'
+            model_name = f"{model._meta.app_label}.{model.__name__}"
             if model_name in skip_models:
-                continue  # Skip models in the skip list
-            self.stdout.write(f"Exporting table: {model_name}")  # Print which table is being exported
-            # For each object in the model, create a dict of field values
-            all_data[model_name] = [
-                {field.name: getattr(obj, field.name) for field in model._meta.fields}
-                for obj in model.objects.all()
-            ]
+                continue
+            self.stdout.write(f"Exporting table: {model_name}")
+            rows = []
+            rel_fields = []
+            for f in model._meta.fields:
+                if f.is_relation and f.many_to_one:
+                    rel_fields.append(f)
+            for obj in model.objects.all():
+                row = {}
+                for f in model._meta.fields:
+                    if f.is_relation and f.many_to_one:
+                        # Use underlying *_id (attname) raw value to ensure import consistency
+                        row[f.name] = getattr(obj, f.attname)
+                    else:
+                        row[f.name] = getattr(obj, f.name)
+                rows.append(row)
+            all_data[model_name] = rows
         # Write the all_data dictionary to the JSON file
         with open(filename, 'w') as f:
             json.dump(all_data, f, default=str, indent=4)
         self.stdout.write(f"Export completed: {filename}")  # Print completion message
 
-    def delete_all_data(self):
-        """Delete all data from all tables."""
-        # List of models to skip during deletion (system tables, celery tables, etc.)
-        skip_models = [
-            'core.Pending',
-            'auth.Permission',
-            'contenttypes.ContentType',
-            'admin.LogEntry',
-            'django_celery_beat.PeriodicTask',
-            'django_celery_beat.CrontabSchedule',
-            'django_celery_beat.IntervalSchedule',
-            'django_celery_beat.ClockedSchedule',
-            'django_celery_beat.SolarSchedule',
-        ]
-        for model in apps.get_models():  # Loop through all models
+    def delete_all_data(self, extra_exclude, exclude_lines=False):
+        """Delete all data from all tables (except skip list)."""
+        skip_models = set(self._base_skip_models()) | set(extra_exclude)
+        skip_models = self._augment_with_line_models(skip_models, exclude_lines)
+        for model in apps.get_models():
             model_name = f"{model._meta.app_label}.{model.__name__}"
             if model_name in skip_models:
-                continue  # Skip models in the skip list
-            model.objects.all().delete()  # Delete all records in each model
+                continue
+            model.objects.all().delete()
 
-    def import_all_data(self, filename):
-        """Import all fields into all tables from a JSON file."""
-        # List of models to skip during import (system tables, celery tables, etc.)
-        skip_models = [
-            'core.Pending',
-            'auth.Permission',
-            'contenttypes.ContentType',
-            'admin.LogEntry',
-            'django_celery_beat.PeriodicTask',
-            'django_celery_beat.CrontabSchedule',
-            'django_celery_beat.IntervalSchedule',
-            'django_celery_beat.ClockedSchedule',
-            'django_celery_beat.SolarSchedule',
-        ]
-        # Open and load the JSON file
+    def import_all_data(self, filename, extra_exclude, exclude_lines=False, delete_first=True, merge=False):
+        """Import all fields into all tables from a JSON file.
+
+        Pragmatic mode: primary keys and uuids in the source snapshot are ignored; new ones are generated.
+        This avoids complexities around ordering and related object availability. Line-item models can be
+        excluded with --exclude-lines to sidestep parent dependency save logic.
+        """
+        skip_models = set(self._base_skip_models()) | set(extra_exclude)
+        skip_models = self._augment_with_line_models(skip_models, exclude_lines)
         with open(filename, 'r') as f:
             all_data = json.load(f)
-        for model in apps.get_models():  # Loop through all models
+        # If this phase requested a pre-delete, perform targeted deletes (not full) for models included in file
+        if delete_first:
+            for model in apps.get_models():
+                model_name = f"{model._meta.app_label}.{model.__name__}"
+                if model_name in skip_models:
+                    continue
+                if model_name in all_data:
+                    model.objects.all().delete()
+        merge_config = {
+            'core.Contact': ['email'],
+            'core.Setting': ['name', 'purpose', 'table_name'],  # logical composite key
+        }
+        for model in apps.get_models():
             model_name = f"{model._meta.app_label}.{model.__name__}"
             if model_name in skip_models:
-                continue  # Skip models in the skip list
-            self.stdout.write(f"Importing table: {model_name}")  # Print which table is being imported
-            objects = all_data.get(model_name, [])  # Get list of objects for this model
-            for obj_data in objects:  # Loop through each object to import
-                # Resolve ForeignKey fields to actual model instances
+                continue
+            self.stdout.write(f"Importing table: {model_name}")
+            objects = all_data.get(model_name, [])
+            for obj_data in objects:
+                # Resolve FK relations (best effort). If target not yet imported, leave as None.
                 for field in model._meta.fields:
                     if field.is_relation and field.many_to_one and field.name in obj_data:
                         rel_model = field.related_model
                         rel_value = obj_data[field.name]
                         if rel_value is not None:
+                            resolved = None
                             try:
-                                obj_data[field.name] = rel_model.objects.get(pk=rel_value)
-                            except rel_model.DoesNotExist:
-                                obj_data[field.name] = None
-                # Always use update_or_create if PK is present
-                pk_name = model._meta.pk.name if model._meta.pk else None
-                pk_value = obj_data.get(pk_name) if pk_name else None
-                if pk_name and pk_value is not None:
-                    model.objects.update_or_create(
-                        defaults=obj_data,
-                        **{pk_name: pk_value}
-                    )
-                else:
+                                resolved = rel_model.objects.get(pk=rel_value)
+                            except Exception:
+                                if isinstance(rel_value, str) and hasattr(rel_model, 'uuid'):
+                                    try:
+                                        resolved = rel_model.objects.get(uuid=rel_value)
+                                    except Exception:
+                                        resolved = None
+                            obj_data[field.name] = resolved
+                # Drop original PK so a new one is assigned
+                pk_field = model._meta.pk
+                if pk_field is not None:
+                    obj_data.pop(pk_field.name, None)
+                # Remove common uuid field if present (will regenerate if auto or default)
+                if 'uuid' in obj_data:
+                    obj_data.pop('uuid')
+                # Prune any keys not actual model fields (secondary snapshots may carry extra convenience fields)
+                allowed_fields = {f.name for f in model._meta.fields}
+                drop_keys = [k for k in list(obj_data.keys()) if k not in allowed_fields]
+                if drop_keys:
+                    for k in drop_keys:
+                        obj_data.pop(k, None)
+                if merge and model_name in merge_config:
+                    key_fields = merge_config[model_name]
+                    lookup = {k: obj_data.get(k) for k in key_fields if obj_data.get(k) is not None}
+                    instance = None
+                    if lookup and len(lookup) == len(key_fields):
+                        try:
+                            instance = model.objects.get(**lookup)
+                        except model.DoesNotExist:
+                            instance = None
+                        except Exception as e:
+                            self.stdout.write(self.style.WARNING(f"Lookup error for {model_name}: {e}"))
+                    if instance:
+                        for k, v in obj_data.items():
+                            if k in key_fields:
+                                continue
+                            try:
+                                setattr(instance, k, v)
+                            except Exception:
+                                pass
+                        try:
+                            instance.save()
+                        except Exception as e:
+                            self.stdout.write(self.style.ERROR(f"Failed updating {model_name}: {e}"))
+                        continue
+                try:
                     model.objects.create(**obj_data)
-        self.stdout.write(f"Import completed: {filename}")  # Print completion message
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Failed creating {model_name}: {e}"))
+        self.stdout.write(f"Import completed (PKs regenerated): {filename}")
