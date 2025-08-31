@@ -14,7 +14,12 @@ TABLE_APP_MAP = {
     'phones': 'communications',
     'locations': 'communications',
     'domains': 'communications',
-    # Add more as needed
+    # products
+    'items': 'products',  # apps.products.models.item.Item
+    # transactions
+    'orders': 'transactions',        # Order model
+    'orderlines': 'transactions',    # OrderLine model (special-case name below)
+    # Add more as needed; prefer adding here to avoid broad app scan cost
 }
 
 class OpenReadOrAuthenticated(permissions.BasePermission):
@@ -73,7 +78,13 @@ class WcapiGetView(APIView):
         if not table_name:
             return JsonResponse({'success': False, 'error': 'Missing table_name'}, status=400)
         app_label = TABLE_APP_MAP.get(table_name, 'core')
-        model_name = 'Location' if table_name == 'addresses' else table_name.rstrip('s').capitalize()
+        # Basic plural -> ModelName heuristic with explicit special cases.
+        if table_name == 'addresses':
+            model_name = 'Location'  # legacy alias
+        elif table_name == 'orderlines':
+            model_name = 'OrderLine'
+        else:
+            model_name = table_name.rstrip('s').capitalize()
         try:
             model = apps.get_model(app_label, model_name)
         except LookupError:
