@@ -76,7 +76,8 @@ class DocMini(BaseModel):
     sha256: Optional[str] = None
 
 
-class AccessSnapshot(BaseModel):
+class ConnectionSnapshot(BaseModel):
+    """External connection pointers / integration handles (service credentials, etc.)."""
     email_svc: Optional[str] = Field(None, description="Vault pointer or secret reference id")
 
 
@@ -98,7 +99,7 @@ class OrgSnapshot(BaseModel):
     relations: RelationsSnapshot = Field(default_factory=RelationsSnapshot)
     financial: FinancialSnapshot = Field(default_factory=FinancialSnapshot)
     docs: List[DocMini] = Field(default_factory=list)
-    access: AccessSnapshot = Field(default_factory=AccessSnapshot)
+    connections: ConnectionSnapshot = Field(default_factory=ConnectionSnapshot)  # type: ignore[arg-type]
     data: Dict[str, Any] = Field(default_factory=dict)
     metrics: MetricsSnapshot = Field(default_factory=MetricsSnapshot)
     gl_accounts: Dict[str, str] = Field(default_factory=dict)
@@ -124,14 +125,20 @@ class OrgSnapshotPatch(BaseModel):  # all optional, for partial updates
     relations: Optional[RelationsSnapshot] = None
     financial: Optional[FinancialSnapshot] = None
     docs: Optional[List[DocMini]] = None
-    access: Optional[AccessSnapshot] = None
+    connections: Optional[ConnectionSnapshot] = None
     data: Optional[Dict[str, Any]] = None
     metrics: Optional[MetricsSnapshot] = None
     gl_accounts: Optional[Dict[str, str]] = None
 
 
 def build_org_snapshot(org) -> OrgSnapshot:
-    """Construct OrgSnapshot from OrgBase instance (no additional DB hits)."""
+    """Construct OrgSnapshot from OrgBase instance (no additional DB hits).
+
+    Supports legacy 'access' field during transition (for older rows / migrations).
+    """
+    access_payload = getattr(org, 'connections', None)
+    if access_payload is None:  # legacy
+        access_payload = getattr(org, 'access', {})
     return OrgSnapshot(
         org_type=org.org_type,
         display_name=org.display_name,
@@ -145,7 +152,7 @@ def build_org_snapshot(org) -> OrgSnapshot:
         relations=org.relations or RelationsSnapshot(),
         financial=org.financial or FinancialSnapshot(),
         docs=org.docs or [],
-    access=AccessSnapshot(**(org.access or {})),
+    connections=ConnectionSnapshot(**(access_payload or {})),
         data=org.data or {},
         metrics=org.metrics or MetricsSnapshot(),
         gl_accounts=org.gl_accounts or {},

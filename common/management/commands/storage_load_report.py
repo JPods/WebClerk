@@ -15,7 +15,7 @@ class Command(BaseCommand):
         parser.add_argument('--order', default='desc', choices=['asc','desc'], help='Order by utilization (desc default)')
         parser.add_argument('--field', default='metadata', choices=[
             'metadata','refs','prefs','comments',
-            'contacts','locations','domains','phones','emails','relations','financial','docs','access','data','metrics','gl_accounts'
+            'contacts','locations','domains','phones','emails','relations','financial','docs','connections','data','metrics','gl_accounts'
         ], help='Field to analyze (default metadata)')
         parser.add_argument('--json', action='store_true', help='Output JSON for machine aggregation')
 
@@ -100,7 +100,7 @@ def _max_size_for_field(field: str) -> int:
         'relations': 32768,
         'financial': 65536,
         'docs': 32768,
-        'access': 8192,
+        'connections': 8192,
         'data': 32768,
         'metrics': 65536,
         'gl_accounts': 16384,

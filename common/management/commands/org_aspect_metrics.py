@@ -5,7 +5,7 @@ from statistics import mean
 import json
 
 ASPECT_FIELDS = [
-    'contacts','locations','domains','phones','emails','relations','financial','docs','access','data','metrics','gl_accounts'
+    'contacts','locations','domains','phones','emails','relations','financial','docs','connections','data','metrics','gl_accounts'
 ]
 
 class Command(BaseCommand):

@@ -9,7 +9,7 @@ class WcapiStrictFilterTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
-            email='strict@test.com', password='pass123', username='strict@test.com', name_first='S', name_last='Mode'
+            email='strict@test.com', password='pass123', name_first='S', name_last='Mode', username=''
         )
         self.client.login(email='strict@test.com', password='pass123')
 

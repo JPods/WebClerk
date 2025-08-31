@@ -12,9 +12,9 @@ class WcapiIfMatchTests(TestCase):
         self.user = User.objects.create_user(
             email='ifm@test.com',
             password='pass123',
-            username='ifm@test.com',
             name_first='If',
-            name_last='Match'
+            name_last='Match',
+            username=''
         )
         self.client.login(email='ifm@test.com', password='pass123')
         self.contact = Contact.objects.create(

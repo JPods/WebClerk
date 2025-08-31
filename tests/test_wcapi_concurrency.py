@@ -12,9 +12,9 @@ class WcapiConcurrencyTests(TestCase):
         self.user = User.objects.create_user(
             email='cc@test.com',
             password='pass123',
-            username='cc@test.com',
-            name_first='C',
-            name_last='User'
+            name_first='CC',
+            name_last='User',
+            username=''
         )
         self.client.login(email='cc@test.com', password='pass123')
         self.contact = Contact.objects.create(

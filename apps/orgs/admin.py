@@ -10,7 +10,7 @@ class OrgBaseAdmin(admin.ModelAdmin):
 	readonly_fields = ("version", "created_dt", "modified_dt")
 	fieldsets = (
 		(None, {"fields": ("display_name", "org_type", "status", "is_active")}),
-		("Aspects", {"fields": ("contacts", "locations", "domains", "phones", "emails", "relations", "financial", "docs", "access", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
+		("Aspects", {"fields": ("contacts", "locations", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
 		("Versioning", {"fields": ("version", "created_dt", "modified_dt")}),
 	)
 

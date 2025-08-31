@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/ignore_keywords.py
 # our_comments: words to ignore in creating keywords
 IGNORE_KEYWORDS = [
     "is",
@@ -205,7 +204,7 @@ IGNORE_KEYWORDS = [
     "class",
     "group",
     "role",
-    "permission",
+    "access",
     "access",
     "level",
     "priority",

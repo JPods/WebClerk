@@ -11,8 +11,8 @@ Design goals:
    rep, employee, manufacturer, other) => simpler generic APIs.
 2. Promote only universally hot query fields to columns (org_type,
    display_name, status, is_active). Everything sparse / volatile lives in
-   aspect JSONBs (contacts, locations, phones, emails, domains, relations,
-   financial, docs, access, data, metrics, gl_accounts) to minimize schema churn.
+	aspect JSONBs (contacts, locations, phones, emails, domains, relations,
+	financial, docs, connections, data, metrics, gl_accounts) to minimize schema churn.
 3. Permit optional lightweight proxy subclasses (CustomerOrg, VendorOrg, ...)
    for ergonomic filtered querysets WITHOUT creating separate physical tables.
 4. Reuse existing size telemetry & potential future offload mechanism; each
@@ -22,7 +22,7 @@ Design goals:
    that automatically mark keywords dirty where relevant.
 
 Security & PII notes:
-- Do not store raw secrets in `access`; instead store pointers (e.g., vault IDs).
+- Do not store raw secrets in `connections`; instead store pointers (e.g., vault IDs).
 - Sensitive identifiers (e.g., full SSN) should be relocated to an encrypted
   model; store only last4 or a hashed reference here if absolutely required.
 
@@ -31,6 +31,8 @@ Future evolution hooks:
 - Offload large historical financial arrays (aging buckets, time‑series metrics)
   via existing offload telemetry path when thresholds show benefit.
 """
+# https://docs.google.com/document/d/e/2PACX-1vRIoXVaerJitp9nux7GqUnj6qeKACMQRPj06DDi_QgC8bugpIQqJFO9fNT-wA6wRJHmef4GuxzaQo9j/pub
+
 
 from __future__ import annotations
 
@@ -84,7 +86,7 @@ def default_docs():  # list[{id, kind, name, size, sha256}]
 	return []
 
 
-def default_access():  # pointers only, e.g. {"email_svc": "vault:cred:123"}
+def default_connections():  # pointers only, e.g. {"email_svc": "vault:cred:123"}
 	return {}
 
 
@@ -120,7 +122,7 @@ class OrgBase(BaseModel):
 		"relations": 50,  # relation lists are IDs mostly
 		"financial": 1,    # treated as singleton object; limit means placeholder only
 		"docs": 25,
-		"access": 1,       # small dict pointer
+		"connections": 1,  # small dict pointer
 		"data": 1,         # misc small dict (not a list, limit semantic only docs)
 		"metrics": 1,
 		"gl_accounts": 1,
@@ -132,15 +134,17 @@ class OrgBase(BaseModel):
 	is_active = models.BooleanField(default=True, db_index=True)
 
 	# Aspect JSONB fields -------------------------------------------------
+	# denormalized hybrid of table data into a flatter structure
 	contacts = models.JSONField(default=default_contacts)
 	locations = models.JSONField(default=default_locations)
 	domains = models.JSONField(default=default_domains)
 	phones = models.JSONField(default=default_phones)
 	emails = models.JSONField(default=default_emails)
+	docs = models.JSONField(default=default_docs)
+	connections = models.JSONField(default=default_connections)
+	
 	relations = models.JSONField(default=default_relations)
 	financial = models.JSONField(default=default_financial)
-	docs = models.JSONField(default=default_docs)
-	access = models.JSONField(default=default_access)
 	data = models.JSONField(default=default_data)
 	metrics = models.JSONField(default=default_metrics)
 	gl_accounts = models.JSONField(default=default_gl_accounts)
@@ -222,7 +226,7 @@ class OrgBase(BaseModel):
 					"relations": {},
 					"financial": {},
 					"docs": [],
-					"access": {},
+					"connections": {},
 					"data": {},
 					"metrics": {},
 					"gl_accounts": {},
@@ -324,7 +328,7 @@ class OrgBase(BaseModel):
 		from normalized child tables when they exist.
 		"""
 		target_aspects = aspects or [
-			"contacts","locations","domains","phones","emails","relations","financial","docs","access","data","metrics","gl_accounts"
+			"contacts","locations","domains","phones","emails","relations","financial","docs","connections","data","metrics","gl_accounts"
 		]
 		for a in target_aspects:
 			if prune:

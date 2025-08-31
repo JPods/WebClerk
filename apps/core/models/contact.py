@@ -26,32 +26,46 @@ from common.models import BaseModel
 # ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
 # and provides create_user and create_superuser methods for authentication.
 class ContactManager(BaseUserManager):
-    """Custom user manager for Contact model (Django authentication).
-    Accepts legacy 'username' argument for compatibility but ignores it (email is the unique identifier)."""
+    """Custom user manager enforcing explicit name_first/name_last.
 
-    def create_user(self, email, password=None, username=None, **extra_fields):  # username kept for backward compatibility
-        """Create and return a regular user (email is primary ID)."""
+    create_user: requires callers to supply name_first/name_last directly (no legacy mapping).
+    create_superuser: still accepts optional legacy first_name/last_name for external tooling, maps them, and ignores username.
+    """
+
+    def create_user(self, email=None, password=None, username=None, **extra_fields):  # username accepted then ignored (compat)
+        """Create a regular user.
+
+        Enforces explicit name_first/name_last; rejects legacy first_name/last_name.
+        Accepts an optional username param (ignored) so existing code paths that still
+        supply username= don't break or trigger static analysis warnings.
+        """
         if not email:
             raise ValueError('The Email field must be set')
-        # Ignore provided username; could optionally store in comment or metadata later.
         email = self.normalize_email(email)
+        if 'first_name' in extra_fields or 'last_name' in extra_fields:
+            raise TypeError('Use name_first / name_last fields (legacy first_name/last_name no longer accepted)')
+        # Drop any provided username silently (no legacy username field in model)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, username=None, **extra_fields):  # username for compatibility
-        """Create and return a superuser."""
+    def create_superuser(self, email, password=None, username=None, **extra_fields):  # username ignored; kept for Django CLI compat
+        # Map legacy names only here to stay compatible with manage.py createsuperuser flows
+        legacy_first = extra_fields.pop('first_name', None)
+        legacy_last = extra_fields.pop('last_name', None)
+        if legacy_first and not extra_fields.get('name_first'):
+            extra_fields['name_first'] = legacy_first
+        if legacy_last and not extra_fields.get('name_last'):
+            extra_fields['name_last'] = legacy_last
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('role', 'admin')
-
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-
-        return self.create_user(email, password, username=username, **extra_fields)
+        return self.create_user(email=email, password=password, username=username, **extra_fields)
     
     def get_by_natural_key(self, email):
         return self.get(**{self.model.USERNAME_FIELD: email})
@@ -140,20 +154,20 @@ class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
         if self.name_first:
             return self.name_first
         return self.email.split('@')[0]
-    
-    # Backward compatibility for code/tests referencing first_name / last_name
+    # Backward compatibility properties for legacy code/tests referencing first_name/last_name
     @property
-    def first_name(self):  # pragma: no cover - alias
+    def first_name(self):  # pragma: no cover - simple alias
         return self.name_first
     @first_name.setter
-    def first_name(self, value):  # pragma: no cover - alias
+    def first_name(self, value):  # pragma: no cover
         self.name_first = value
     @property
-    def last_name(self):  # pragma: no cover - alias
+    def last_name(self):  # pragma: no cover
         return self.name_last
     @last_name.setter
-    def last_name(self, value):  # pragma: no cover - alias
+    def last_name(self, value):  # pragma: no cover
         self.name_last = value
+    
 
     def save(self, *args, **kwargs):  # ensure role sync
         if self.is_superuser and self.role != 'admin':

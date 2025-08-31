@@ -4,12 +4,12 @@ import pytest
 
 @pytest.fixture
 def user1(django_user_model):
-    return django_user_model.objects.create_user(username='u1', email='u1@example.com', password='pw')
+    return django_user_model.objects.create_user(email='u1@example.com', password='pw', name_first='U', name_last='One')
 
 
 @pytest.fixture
 def user2(django_user_model):
-    return django_user_model.objects.create_user(username='u2', email='u2@example.com', password='pw')
+    return django_user_model.objects.create_user(email='u2@example.com', password='pw', name_first='U', name_last='Two')
 
 
 @pytest.mark.django_db
