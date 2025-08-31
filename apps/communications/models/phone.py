@@ -24,3 +24,20 @@ class Phone(BaseModel):
         if self.name:
             return f"{self.name} ({self.number})"
         return self.number
+
+    # --- Hooks (example overrides) ------------------------------------
+    def pre_save_hook(self, data):  # type: ignore[override]
+        # Reject obviously bad phone numbers when provided
+        if 'number' in data and data['number'] and len(str(data['number'])) < 4:
+            return 'number: too short'
+        return None
+
+    def api_validate_payload(self, data, is_update):  # type: ignore[override]
+        errors: list[str] = []
+        if 'country_code' in data and data['country_code'] and not str(data['country_code']).startswith('+'):
+            errors.append('country_code: must start with +')
+        return (not errors, errors)
+
+    def post_save_hook(self, data):  # type: ignore[override]
+        # Return informational message (useful for tests / client log)
+        return 'phone saved'

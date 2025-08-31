@@ -4,6 +4,33 @@ Purpose: Shared, prioritized enhancement backlog for Core/BaseModel, Universal A
 
 ---
 
+## Changelog Consideration (Deferred)
+
+During rapid iteration we defer a formal `CHANGELOG.md` to avoid high-noise, low-signal entries. Revisit once:
+
+1. External clients rely on stable APIs (SDKs, integrations)
+2. We enforce deprecation windows for breaking changes
+3. We cut tagged releases (≥ weekly cadence)
+
+Future format (Keep a Changelog compatible):
+
+```markdown
+## [0.4.0] - 2025-09-15
+### Added
+- Org aspect validation command
+### Changed
+- Optimistic concurrency returns 412 instead of 409
+### Fixed
+- JSON size telemetry off-by-one threshold
+```
+
+Comparison link style:
+`[0.4.0]: https://github.com/JPods/webClerk3/compare/v0.3.2...v0.4.0`
+
+Until adoption: this roadmap + commit history = authoritative change trace. Seed initial changelog from "Recently Completed" + phase completion notes when activated.
+
+---
+
 ## 0. Legend
 
 - Priority: P1 (next / high impact), P2 (important), P3 (nice-to-have)

@@ -1,6 +1,9 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/tasks.py
 from celery import shared_task
 from apps.core.services import view_edit_access
+import logging
+
+logger = logging.getLogger(__name__)
 
 @shared_task
 def celery_startup_task():
@@ -25,6 +28,29 @@ def save_post(table_name, data):
         return globals()[func_name](data)
     # Default: do nothing
     return {'success': True}
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
+def save_post_async(self, table_name, record_id, version):  # type: ignore[override]
+    """Generic async fan-out hook after a record is saved.
+
+    Retries up to 3 times with exponential backoff (unless disabled by setting SAVE_POST_ASYNC_RETRY_ENABLED=False).
+    Downstream consumers can extend this task or listen on the broker queue.
+    Emits lightweight metadata only (table, id, version). Extend as needed.
+    """
+    from django.conf import settings  # local import
+    retry_enabled = getattr(settings, 'SAVE_POST_ASYNC_RETRY_ENABLED', True)
+    if not retry_enabled and self.request.retries > 0:
+        # If retries disabled mid-flight, stop further attempts.
+        return {'dispatched': False, 'attempt': self.request.retries, 'retry_disabled': True}
+    logger.info(
+        "save_post_async dispatch table=%s id=%s version=%s attempt=%s retry_enabled=%s",
+        table_name,
+        record_id,
+        version,
+        self.request.retries,
+        retry_enabled,
+    )
+    return {'dispatched': True, 'attempt': self.request.retries, 'retry_enabled': retry_enabled}
 
 # Example table-specific pre/post tasks
 def contact_save_pre(data):

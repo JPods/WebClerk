@@ -36,6 +36,7 @@ prometheus_client==0.22.1
 prompt_toolkit==3.0.51
 psycopg2-binary==2.9.10
 pydot==4.0.1
+pydantic==2.9.2
 PyJWT==2.9.0
 pyparsing==3.2.3
 python-crontab==3.3.0

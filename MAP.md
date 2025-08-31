@@ -74,6 +74,7 @@ graph TD
 - `core/services/view_edit_access.py`: Manages role-based field access logic.
 - `templates/manager.html`: Main management UI for contacts and related data.
 - `common/default_access.json`: Stores access control rules for roles and tables.
+- Aspect vs flat field strategy: we favor nested JSON ("dotted") structures inside aspect envelopes for flexibility, and selectively denormalize high‑query fields into columns or separate tables when performance or reporting warrants it. (Former standalone note consolidated here.)
 
 ---
 

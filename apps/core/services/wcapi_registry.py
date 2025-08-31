@@ -2,6 +2,7 @@
 # Limits exposure surface and provides a single whitelist for query/save endpoints.
 from apps.core.models import Contact, Action
 from apps.communications.models import Phone, Domain, Email, Location
+from apps.orgs.models import OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg
 
 MODEL_MAP = {
     'contacts': Contact,
@@ -10,6 +11,13 @@ MODEL_MAP = {
     'domains': Domain,
     'emails': Email,
     'addresses': Location,
+    # Unified organization entity + proxy filtered types
+    'orgs': OrgBase,
+    'customers': CustomerOrg,
+    'vendors': VendorOrg,
+    'reps': RepOrg,
+    'employees': EmployeeOrg,
+    'manufacturers': ManufacturerOrg,
 }
 
 ALLOWED_TABLE_NAMES = set(MODEL_MAP.keys())

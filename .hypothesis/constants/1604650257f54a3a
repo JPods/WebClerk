@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/migrations/0005_pending_purpose.py
+# hypothesis_version: 6.138.7
+
+[255, 'core', 'pending', 'purpose']

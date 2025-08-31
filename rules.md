@@ -1,27 +1,26 @@
-Root = webClerk3
-All paths should be relative to this root for clarity in documentation and code.
+# Project Rules & Conventions
 
-**File path:**  
-`core/signals/pending_trigger.py`
+Root = webClerk3 (paths in docs/code are relative to this root)
 
-Pushing to dev and main:
-1. Define tests in app/tests folder or webclerk3_api/tests
-2. Setup automatic testing and reporting functions.
-3. All code must pass automated tests and linting before pushing to dev.
-4. Only push to main after reviewing team checklist.
+## Git & Versioning
 
-Version Baseline:
-- All endpoints, data structures, and conventions described here are considered baseline v0.3.
-- Any breaking changes or new features must increment the version and be documented.
+Pushing to dev/main:
 
-## Table Naming Rule
+1. Add/adjust tests alongside code (tests/ or app/tests/)
+2. Ensure automated test + lint pass
+3. PR review before merge to main
 
-- **No table name should use 'es' for pluralization.**
-    - Use regular 's' for plural table names (e.g., `contacts`, `locations`, `domains`, `phones`, `emails`, `actions`).
-    - Avoid irregular plurals ending in 'es' (e.g., do not use `addresses`, `classes`, `processes` as table names).
-    - For words that would naturally pluralize with 'es', choose a synonym or rephrase (e.g., use `location` instead of `address`).
+Baseline contracts = v0.3; breaking changes require version bump + docs.
 
-**Field names and verbose names may use 'es' if needed for clarity, but table names must not.**
+## Table Naming
+
+No table name should use 'es' pluralization.
+
+- Use 's' plurals: `contacts`, `locations`, `domains`, `phones`, `emails`, `actions`.
+- Avoid irregular 'es' forms: not `addresses`, `classes`, `processes`.
+- Prefer synonyms to dodge awkward plurals (`location` over `address`).
+
+Field / verbose names may use 'es' if needed; restriction applies to actual table names only.
 
 Baseline rules that require a published exception:
 
@@ -39,95 +38,100 @@ Baseline rules that require a published exception:
 9. always put relationships into table_name.refs.links{"related_table_name::[id1,id4,...],"related_table_name2":[]}
 10. Settings records for view_edit.  "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
 11. Break the common Django framework of put, post, add functions with generalized, universal wcapi/relate, wcapi/get, wcapi/save etc... see core/urls.py
-11. Use Celery to wrap generalized functions such as wcapi/save to pre and post save executables.
-12. ONLY use uuid for communicating between databases with syncs records. Examples, product catalog updates, security issues, default changes, etc... 
+11. Use Celery to wrap generalized functions such as wcapi/save for pre/post hooks.
+12. ONLY use uuid for communicating between databases with sync records (catalog updates, security issues, defaults, etc.).
 
-Rate Limiting:
-- Implement DRF throttling classes for all endpoints to prevent abuse.
-- Document rate limits for each endpoint in API docs.
+## Rate Limiting
 
-Logging and Monitoring:
-- All API requests and errors must be logged.
-- Integrate with monitoring tools for proactive alerts (e.g., Sentry, Prometheus, or similar).
-- Regularly review logs and alerts for suspicious activity or performance issues.
+- Implement DRF throttling classes for all endpoints.
+- Document limits per endpoint.
 
-Related Data in jsons
-1. Related data must always be sent as data.related for consistency.
+## Logging & Monitoring
 
-Performance:
-1. Optimize queries (use select_related, prefetch_related).
-2. Implement pagination, filtering, and ordering for list endpoints.
-3. Store all non-critical save actions in table_name temps records. Celery will run a background loop to apply the temp.data. Example, saving an invoice creates temps records for changes in inventory on-hand. A background loop will apply these changes to the products quantity_on_hand. Note that inventory critical or serialized items may require temps query to assure there is not unapplied changes in the queue.
+- Log all API requests and errors.
+- Integrate Sentry/Prometheus (or equivalents) for alerts.
+- Review logs routinely for anomalies.
 
-Deployment
-1. Prepare for deployment as an API-only backend (e.g., use gunicorn, nginx, etc.).
-2. Set up environment variables for secrets and settings.
-3. Implement pagination, filtering, and ordering for list endpoints.
-4. Provide syncs records with suggested javascript and html information.
+## Related Data JSON Shape
 
-Table structure
-1. always put relationships into table_name.refs.links.related_table[]
-2. always save paths to larger documents. Never save large documents in the database.
+1. Related data always under `data.related`.
 
-Business Logic
-1. In 'services' folder in each app folder for app specific endpoints
-2. In 'common' folder for common things.
-3. 'sandbox' folder in each app for hacks with a date to review/delete in comments
-4. default setups in common/defaults  both the json data and .py to load them.
-5. executables in Celery
+## Performance
 
-Version Control
-1. Automate version mismatches by comparing expected schema with incoming data. See and add to current settings purpose view_edit for example.
-2. Use Serializers and endpoint json objects to manage issues with version control. The endpoint remains the same.
-3. Push syncs records into remote databases for version issues. Users have to unpack these. When they do they assign actions records with dt_actions assigned to the appropriate person in the user's settings records.
-4. Endpoint calls violating version issues should receive a response such as:
-    {
-    "success": false,
-    "data": null,
-    "errors": {
-        "message": "Version mismatch detected",
-        "help": "https://help.webclerk.com/versioning/...",
-        "sync_id": "uuid"
-    }
-    }
-5. Log and sync any mismatches to remote databases for resolution.
-6. Except for emergency or security issues, grant a minimum of 90 days to make changes before breaking the endpoint. Send syncs records each week with countdown.
+1. Optimize queries (select_related / prefetch_related).
+2. Always paginate/filter/order list endpoints.
+3. Non-critical side-effects go to temp records processed by Celery (e.g., inventory adjustments).
 
-Frontend
-1. always use -list for lists, tables,
-2. always use -details for forms, data displays, etc...
+## Deployment
 
-Consistent Date/Time Handling
-1. Always use ISO 8601 format for dates/times in JSON.
-2. Store all times in UTC in the backend.
-3. No date or time fields or variables. Name fields and variable dt_...
+1. API-only backend (gunicorn/nginx etc.).
+2. Secrets via environment variables.
+3. Ensure pagination/filtering on lists (see Performance).
+4. Provide sync records for suggested JS/HTML integration.
 
-Internationalization (i18n)
-1. Structure of multiple languages and localization.
+## Table Structure
 
-API Documentation, Help, and Deprecation Policy
-1. Add endpoint/help/ to link to data on the endpoint
-2. Maintain an actions record documenting how and when endpoints or table_names.fields will be deprecated.
-3. Document the process for deprecating endpoints/fields and provide migration guides with clickable urls, videos, syncs support.
-4. Use sync endpoints using uuid to publish to database administrators advance notice and migration guides for breaking changes.
-5. All endpoints must be documented in and kept up to date OpenAPI/Swagger. Use tools like drf-yasg or drf-spectacular to auto-generate Swagger/OpenAPI docs. Use syncs records to distribute updates to all users.
-6. Use Celery to regularly scan for dependency updates from each database independent of WebClerk.com. If they find an update not covered by a syncs record, automatically post a syncs record to webclerk.com
+1. Relationships into `table.refs.links.related_table[]`.
+2. Store only paths for large documents (no large blobs in DB).
 
-Security:
-1. Enforce HTTPS in production.
-2. Provide sync functions for databases to automatically report attacks that present some risk so the programmers can adapt responses.
-3. Provide sync functions to notify and/or automatically update dependencies.
-4. Provide sync functions for users to install automated scans for vulnerabilities.
-5. Use Django’s security middleware (SECURE_* settings).
-6. Sync functions are the only used of uuid.
-7. All secrets and sensitive settings must be stored in environment variables, never in code.
-8. Use syncs records to regularly update dependencies and scan for vulnerabilities. Think of these as commandline actions users can cut and paste into terminals.
+## Business Logic Placement
 
-Data Validation
-1. Provide endpoints for approved database schema.
-2. Provide sync functions to add actions to remote databases for out of compliance issues.
-3. Provide frontend designers rolebased feedback for designing -lists and -details.
-4. In response json, add any field misuse and non-alignment errors even in successful responses.
+1. App-specific: app `services/`.
+2. Shared: `common/`.
+3. Experiments: `sandbox/` (add dated cleanup note).
+4. Defaults: `common/defaults/` (data + loader).
+5. Background tasks: Celery.
+
+## Version Control Strategy
+
+1. Detect version mismatches (optimistic concurrency) and surface structured error.
+2. Serializers / endpoint JSON maintain stable contract.
+3. Sync records propagate version issues to remote systems.
+4. Error payload example includes `code` and help URL (see API docs).
+5. Log + sync mismatches for audit.
+6. Provide ≥90 day deprecation window (except security). Weekly sync reminders.
+
+## Frontend Naming
+
+1. Use `*-list` for list/table views.
+2. Use `*-details` for detail/edit views.
+
+## Date / Time Handling
+
+1. ISO 8601 in JSON responses.
+2. Store all times in UTC.
+3. Field/variable names prefixed `dt_`.
+
+## Internationalization
+
+1. Backend strings minimal; additional UI i18n handled client-side.
+
+## API Docs & Deprecation
+
+1. `/endpoint/help/` links to help metadata.
+2. Actions record documents deprecations.
+3. Provide migration guides (URLs, videos, sync records).
+4. Sync endpoints broadcast advance notices.
+5. Maintain OpenAPI docs (drf-spectacular).
+6. Scheduled dependency scan posts sync record if mismatch.
+
+## Security
+
+1. Enforce HTTPS (prod).
+2. Sync functions for attack reports.
+3. Sync functions for dependency notifications & updates.
+4. Optional automated vulnerability scan distribution.
+5. Use Django security middleware.
+6. UUID usage limited to sync records.
+7. Secrets via env vars only.
+8. Sync records broadcast dependency upgrade scripts.
+
+## Data Validation
+
+1. Endpoints supply canonical schema.
+2. Sync actions for out-of-compliance remediation.
+3. Role-based feedback for UI design.
+4. Include field misuse notices even in success responses.
 
 Languages:
 Use Django i18n only for backend warnings/errors.
@@ -135,24 +139,6 @@ Keep all other content in English to reduce complexity.
 Manage UI translations in React if you ever need to expand.
 
 
-Yes, that makes perfect sense!
-Both human and AI brains rely heavily on patterns for understanding, recall, and problem-solving.
-Consistent patterns—like always declaring the file path—make it much easier to navigate, reason about, and maintain complex systems, even when specific details are forgotten.
+## Timestamp Summary
 
-Summary:
-
-Patterns (like file paths) provide structure and context.
-They help both humans and AI quickly orient themselves and find what they need.
-This principle is foundational for scalable, collaborative, and AI-assisted development.
-Your approach is spot-on for building a robust, maintainable project!
-
-dt_....
-Always store timestamps in UTC/GMT in your backend/database.
-Let the frontend convert to the user’s local time zone for display.
-Frontend should convert for display.
-Document this in your API and data model docs for clarity.
-
-When saving:
-Use timezone.now() (Django’s timezone-aware UTC) and store as milliseconds since epoch.
-
-int(timezone.now().timestamp() * 1000)  # UTC milliseconds
+Always UTC (`timezone.now()`), names prefixed `dt_`; use DateTimeField or ms epoch for JSON.

@@ -31,6 +31,7 @@ from apps.core import tasks
 from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
+from django.conf import settings
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -138,7 +139,7 @@ class SaveWcapiView(LoginRequiredMixin, View):
                 pass
 
         
-        # Before saving:
+    # Before saving:
         if hasattr(obj, 'pre_save_hook'):
             result = obj.pre_save_hook(data)  # type: ignore[attr-defined]
             if result is not None:
@@ -176,12 +177,43 @@ class SaveWcapiView(LoginRequiredMixin, View):
                 except ValueError as e:
                     field_size_errors.append(str(e))
 
+        # Generic model payload validation hook across all tables.
+        # Flags:
+        #   UNIVERSAL_API_VALIDATE -> apply to any model exposing api_validate_payload(data,is_update)
+        #   ORGS_VALIDATE_API -> legacy, orgs-only (preserved for backward compat)
+        try:
+            universal_flag = getattr(settings, 'UNIVERSAL_API_VALIDATE', False)
+        except Exception:
+            universal_flag = False
+        apply_validation = universal_flag or (table_name == 'orgs' and getattr(settings, 'ORGS_VALIDATE_API', False))
+        if apply_validation and hasattr(obj, 'api_validate_payload'):
+            try:
+                ok, errors = obj.api_validate_payload(data, is_update)  # type: ignore[attr-defined]
+            except Exception as e:  # safety net: treat unexpected exceptions as validation failure
+                logging.getLogger(__name__).warning(
+                    "validation_exception table=%s model=%s error=%s", table_name, model.__name__, e
+                )
+                return JsonResponse({'status':'error','message':'Validation failed','errors':[str(e)]}, status=400)
+            if not ok:
+                logging.getLogger(__name__).info(
+                    "validation_failed table=%s model=%s errors=%s", table_name, model.__name__, errors
+                )
+                return JsonResponse({'status': 'error', 'message': 'Validation failed', 'errors': errors}, status=400)
+
         try:
             obj.save()
         except IntegrityError as e:
             return JsonResponse({'status': 'error', 'message': f'Integrity error: {e}'}, status=400)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': f'Failed to save: {e}'}, status=500)
+
+        # Optional synchronous post-save hook
+        post_hook_note = None
+        if hasattr(obj, 'post_save_hook'):
+            try:
+                post_hook_note = obj.post_save_hook(data)  # type: ignore[attr-defined]
+            except Exception as e:  # pragma: no cover - defensive
+                post_hook_note = f'post_save_hook error: {e}'
 
         # Invoke post-save task synchronously (avoid broker requirement in tests)
         try:
@@ -191,6 +223,12 @@ class SaveWcapiView(LoginRequiredMixin, View):
                 tasks.save_post(table_name, data)
             except Exception:
                 pass
+        # Queue lightweight async fan-out (best effort, ignore failures silently in test/local)
+        try:
+            if hasattr(tasks, 'save_post_async'):
+                tasks.save_post_async.delay(table_name, obj.id, getattr(obj, 'version', None))  # type: ignore[attr-defined]
+        except Exception:
+            pass
         logger = logging.getLogger(__name__)
         logger.info(f"Saved {table_name} record {obj.id}")  # type: ignore[attr-defined]
 
@@ -204,6 +242,8 @@ class SaveWcapiView(LoginRequiredMixin, View):
         messages = []
         if field_size_errors:
             messages.extend(field_size_errors)
+        if post_hook_note:
+            messages.append(post_hook_note)
         if deprecation_flag:
             messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
             logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", table_name)

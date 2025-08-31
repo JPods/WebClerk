@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/migrations/0004_alter_invoiceline_created_dt_alter_invoiceline_ida_and_more.py
+# hypothesis_version: 6.138.7
+
+['comments', 'created_dt', 'ida', 'invoiceline', 'metadata', 'modified_dt', 'orderline', 'prefs', 'proposalline', 'purchaseline', 'refs', 'requisitionline', 'requisitionstd', 'transactions', 'version', 'workorderline']

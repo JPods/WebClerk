@@ -13,6 +13,18 @@
 - CoPilot
 - Bill James
 
+## Documentation Map
+
+Authoritative guides are split by concern (single source each, no duplication):
+
+- Core onboarding & architecture: this README
+- Operations / management commands: [README_MANAGE.md](README_MANAGE.md)
+- Test & verification workflow: [README_TESTS.md](README_TESTS.md)
+- Data / model structure map: [MAP.md](MAP.md)
+- Upgrade / migration notes: [README_UPGRADE.md](README_UPGRADE.md)
+
+If you add >~15 lines of procedural or reference material, place it in the appropriate focused README and add (or update) a single-line link here instead of duplicating.
+
 ## Data Basics
 
 Location: `common/management/commands/`  
