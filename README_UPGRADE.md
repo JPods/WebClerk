@@ -394,6 +394,7 @@ Risk & Mitigation:
 - Instance atomic_set / atomic_append helpers.
 - Layered CI pipeline: smoke gate (marker=smoke), multi-Python matrix (fast subset then full), Postgres integration stage with Newman/Postman minimal contract test, coverage & JUnit XML artifacts per stage.
 - Expanded Postman contract suite: signup/login, create via wcapi/save, get, query, version conflict attempt, allowed-fields, models metadata, metrics, negative auth (missing token), pagination & filtered query, schema baseline field presence, response time guard.
+- Database configuration hardening: default dev/runtime now uses Postgres; in‑memory SQLite restricted to pytest (or explicit `USE_SQLITE_TEST=1` override) with safety warning to prevent accidental data loss / missing table errors.
 
 ---
  

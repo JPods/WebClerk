@@ -94,6 +94,7 @@ if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg)
             'PASSWORD': config('DATABASE_PASS', default=''),
             'HOST': config('DATABASE_HOST', default='localhost'),
             'PORT': config('DATABASE_PORT', default='5432'),
+            'ATOMIC_REQUESTS': False,
         }
     }
 else:
@@ -102,6 +103,7 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': ':memory:',
+            'ATOMIC_REQUESTS': False,
         }
     }
 

@@ -37,9 +37,30 @@ coverage run -m pytest && coverage report -m
 ## 2. Environment Assumptions
 
 - Local virtualenv already activated via `source bin/activate` (repo ships a venv layout).
-- By default test runs auto-switch to an in‑memory SQLite database for speed/isolation. This requires **no** local Postgres for unit tests.
-- To force Postgres for integration testing set `PYTEST_FORCE_DB=1` or `USE_SQLITE_TEST=0` in the environment before invoking pytest.
+- Test runs (when `PYTEST_CURRENT_TEST` is present) auto-switch to an in‑memory SQLite database for speed/isolation. This requires **no** local Postgres for unit tests.
+- Normal development runtime (`runserver`, management commands outside pytest) now defaults to **Postgres** to prevent data loss (previous default in‑memory DB caused 500s like `no such table: contacts`).
+- You can still opt into ephemeral SQLite for ad‑hoc experimentation by exporting `USE_SQLITE_TEST=1` before `runserver` (a console warning will remind you data is non‑persistent).
+- To force Postgres inside pytest set `PYTEST_FORCE_DB=1` (or equivalently ensure `USE_SQLITE_TEST` is unset/`0`).
 - Redis / Celery only required if you explicitly run tasks tests (none are mandatory for core model suite right now).
+
+Environment variable summary:
+
+| Var | Values | Effect |
+|-----|--------|--------|
+| `PYTEST_CURRENT_TEST` | (auto set by pytest) | Triggers in‑memory SQLite unless overridden |
+| `USE_SQLITE_TEST` | `1` / `0` | Force in‑memory SQLite (`1`) even outside pytest (warning printed) |
+| `PYTEST_FORCE_DB` | `1` | Force Postgres inside pytest run |
+
+Common scenarios:
+
+| Goal | Command |
+|------|---------|
+| Fast default unit tests (SQLite) | `./bin/pytest -q` |
+| Run tests against Postgres | `PYTEST_FORCE_DB=1 ./bin/pytest -q` |
+| Start dev server (Postgres) | `python manage.py runserver` |
+| Start dev server ephemeral (temporary data) | `USE_SQLITE_TEST=1 python manage.py runserver` |
+
+If you see `OperationalError: no such table: contacts` during login or auth flows outside pytest, you likely started `runserver` with an in‑memory DB (or before running migrations). Stop the server, ensure `USE_SQLITE_TEST` is unset, run `python manage.py migrate`, then restart.
 
 Example forcing Postgres:
 
