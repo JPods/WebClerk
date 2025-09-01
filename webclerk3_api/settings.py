@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from decouple import config
 import sentry_sdk
@@ -76,9 +77,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'webclerk3_api.wsgi.application'
 
-# Default to lightweight SQLite for test runs unless explicitly forced.
-# Override by setting USE_SQLITE_TEST=0 or PYTEST_FORCE_DB=1 to use Postgres.
-if os.environ.get('PYTEST_FORCE_DB') == '1' or os.environ.get('USE_SQLITE_TEST', '1') == '0':
+# Database selection
+# Previous logic defaulted to in-memory SQLite which caused missing tables in dev.
+# New logic: default to Postgres; only use in-memory SQLite during pytest (PYTEST_CURRENT_TEST) or when USE_SQLITE_TEST=1 explicitly.
+_force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
+_explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
+_running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
+
+if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg):
+    # Postgres path (default)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -90,12 +97,17 @@ if os.environ.get('PYTEST_FORCE_DB') == '1' or os.environ.get('USE_SQLITE_TEST',
         }
     }
 else:
+    # Fast in-memory database for tests
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': ':memory:',
         }
     }
+
+# Warn if running development server with in-memory DB (data will vanish per process)
+if DATABASES['default']['ENGINE'].endswith('sqlite3') and DATABASES['default']['NAME'] == ':memory:' and 'runserver' in ' '.join(sys.argv):
+    print('[WARNING] runserver using in-memory SQLite (:memory:). Data will not persist. Set USE_SQLITE_TEST=0 or PYTEST_FORCE_DB=1 for Postgres.')
 
 AUTH_PASSWORD_VALIDATORS = [
     {
