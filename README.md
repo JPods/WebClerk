@@ -1,5 +1,11 @@
 # webClerk3
 
+<!-- CI Badges (add actual URLs once Codecov token configured in repo secrets) -->
+![CI](https://github.com/JPods/webClerk3/actions/workflows/ci.yml/badge.svg)
+<!-- Replace OWNER/REPO in next line once Codecov enabled; token not needed for public repos -->
+![Coverage](https://codecov.io/gh/JPods/webClerk3/branch/main/graph/badge.svg)
+
+
 ## Project Docs
 
 [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
@@ -73,6 +79,25 @@ Prerequisites:
 - Celery
 - Redis
 - Pydantic (optional – JSON typing) – video: [YouTube](https://www.youtube.com/watch?v=XIdQ6gO3Anc)
+- (Optional) Codecov account for coverage reporting (add CODECOV_TOKEN secret if repository private).
+
+### Enable Coverage Badge (Codecov)
+
+1. Sign in to Codecov with GitHub and add the repository.
+2. If the repo is private, create a `CODECOV_TOKEN` in Codecov settings.
+3. In GitHub repo settings add repository secret `CODECOV_TOKEN`.
+4. Update workflow to upload combined coverage (see commented snippet in `ci.yml`).
+5. Replace placeholder badge above with:
+
+```markdown
+![Coverage](https://codecov.io/gh/JPods/webClerk3/branch/main/graph/badge.svg)
+```
+
+For a branch badge (e.g. bill_dev):
+
+```markdown
+![Coverage bill_dev](https://codecov.io/gh/JPods/webClerk3/branch/bill_dev/graph/badge.svg)
+```
 
 ## Data Consistency
 

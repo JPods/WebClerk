@@ -63,6 +63,68 @@ class Command(BaseCommand):
             call_command('flush', interactive=False)
 
         # Collect candidate models
+        # Pass 6: Seed 3-level BOM hierarchy (parent -> mid -> leaf components) -----------------
+        if not dry_run:
+            try:
+                from apps.products.models import Item
+                from apps.products.models.bom import BillOfMaterial
+                all_item_ids = list(Item.objects.values_list('id', flat=True).order_by('id'))  # type: ignore
+            except Exception:
+                all_item_ids = []
+            if not all_item_ids:
+                try:
+                    from apps.products.models import Item  # fallback (without order_by)
+                    all_item_ids = list(Item.objects.values_list('id', flat=True))
+                except Exception:
+                    all_item_ids = []
+            if len(all_item_ids) >= 3:  # need at least 3 distinct items to form 3 levels
+                # Partition items roughly into 3 tiers
+                n = len(all_item_ids)
+                tier_size = max(1, n // 3)
+                tier1 = all_item_ids[:tier_size]              # top-level parents
+                tier2 = all_item_ids[tier_size: tier_size*2]   # mid components
+                tier3 = all_item_ids[tier_size*2:]             # leaf components
+                if not tier2:
+                    tier2 = tier1[1:]  # fallback reuse
+                if not tier3:
+                    tier3 = tier2  # fallback reuse
+                created_bom = 0
+                touched_parents = set()
+                for parent_id in tier1:
+                    # choose 1-2 mid components
+                    mids = random.sample(tier2, min(len(tier2), random.randint(1, 2)))
+                    for mid_id in mids:
+                        if mid_id == parent_id:
+                            continue
+                        try:
+                            BillOfMaterial.objects.get_or_create(parent_id=parent_id, component_id=mid_id, defaults={'sequence': 10})
+                            created_bom += 1
+                            touched_parents.add(parent_id)
+                        except Exception:
+                            pass
+                        # For each mid component, pick 1-2 leaf components
+                        leaves = random.sample(tier3, min(len(tier3), random.randint(1, 2)))
+                        for leaf_id in leaves:
+                            if leaf_id in (parent_id, mid_id):
+                                continue
+                            # attach leaf to mid component (mid becomes parent in this relation)
+                            try:
+                                BillOfMaterial.objects.get_or_create(parent_id=mid_id, component_id=leaf_id, defaults={'sequence': 20})
+                                created_bom += 1
+                                touched_parents.add(mid_id)
+                            except Exception:
+                                pass
+                # Optionally roll-up costs bottom-up (mid-level first, then top-level)
+                try:
+                    # mid-level parents (those that received leaves)
+                    for mid in sorted([p for p in touched_parents if p in tier2]):
+                        BillOfMaterial.recalc_parent_cost(mid)
+                    # top-level parents
+                    for top in sorted([p for p in touched_parents if p in tier1]):
+                        BillOfMaterial.recalc_parent_cost(top)
+                except Exception:
+                    pass
+                self.stdout.write(self.style.NOTICE(f"BOM hierarchy seeded: {created_bom} lines (3-level structure)."))
         all_models = [m for m in apps.get_models() if m._meta.managed and not m._meta.proxy]
         if restrict_apps:
             all_models = [m for m in all_models if m._meta.app_label in restrict_apps]

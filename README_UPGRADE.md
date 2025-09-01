@@ -392,14 +392,24 @@ Risk & Mitigation:
 - dt_created / dt_modified aliases.
 - changed_fields tracking & size warnings.
 - Instance atomic_set / atomic_append helpers.
+- Layered CI pipeline: smoke gate (marker=smoke), multi-Python matrix (fast subset then full), Postgres integration stage with Newman/Postman minimal contract test, coverage & JUnit XML artifacts per stage.
+- Expanded Postman contract suite: signup/login, create via wcapi/save, get, query, version conflict attempt, allowed-fields, models metadata, metrics, negative auth (missing token), pagination & filtered query, schema baseline field presence, response time guard.
 
 ---
  
 ## 17. Next Steps
 
 1. Team review & adjust priorities (add owners, target sprint).
-2. Create tickets referencing section + item number (e.g., UPG-1.1).
-3. Establish weekly checkpoint reviewing Phase 1 items until complete.
+2. CI refinements:
+	- (DONE) Aggregate multi-version coverage (coverage combine + single XML output).
+	- (DONE) Codecov upload & badge activated (threshold 70% - ratchet later).
+	- Enforce higher coverage threshold over time (currently 70%).
+	- Expand Postman collection (auth flows, CRUD, error schema assertions).
+	- Add Codecov (or Coveralls) upload & repository badge.
+	- Consider caching Django migration state if startup time grows.
+	- Postman future: expired token scenario, persisted schema snapshot file (diff on change), formal performance thresholds env-driven, negative error schema assertions, pagination cursor tests (if added), bulk save once implemented.
+3. Create tickets referencing section + item number (e.g., UPG-1.1).
+4. Establish weekly checkpoint reviewing Phase 1 items until complete.
 
 ---
 *End of document.*

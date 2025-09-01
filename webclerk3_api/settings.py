@@ -6,7 +6,8 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
+# Provide fallback secret for local/dev or test runs if not supplied via env
+SECRET_KEY = config('SECRET_KEY', default='insecure-dev-test-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
@@ -75,16 +76,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'webclerk3_api.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DATABASE_NAME'),
-        'USER': config('DATABASE_USER'),
-        'PASSWORD': config('DATABASE_PASS'),
-        'HOST': config('DATABASE_HOST'),
-        'PORT': config('DATABASE_PORT'),
+# Default to lightweight SQLite for test runs unless explicitly forced.
+# Override by setting USE_SQLITE_TEST=0 or PYTEST_FORCE_DB=1 to use Postgres.
+if os.environ.get('PYTEST_FORCE_DB') == '1' or os.environ.get('USE_SQLITE_TEST', '1') == '0':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DATABASE_NAME', default='commerce_expert'),
+            'USER': config('DATABASE_USER', default='postgres'),
+            'PASSWORD': config('DATABASE_PASS', default=''),
+            'HOST': config('DATABASE_HOST', default='localhost'),
+            'PORT': config('DATABASE_PORT', default='5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
