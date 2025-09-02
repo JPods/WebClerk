@@ -47,7 +47,6 @@ class EmailView(generics.ListCreateAPIView):
             return response
         # DRF pagination attaches .data already containing list + pagination keys.
         data = response.data
-        meta = None
         if isinstance(data, dict) and {'results', 'count'}.issubset(data.keys()):
             meta = {
                 'total': data.get('count'),
@@ -55,8 +54,11 @@ class EmailView(generics.ListCreateAPIView):
                 'next': data.get('next'),
                 'previous': data.get('previous'),
             }
-            data = data.get('results')
-        return api_response(data=data, meta=meta, raw=raw_flag)
+            results = data.get('results')
+            payload = {'results': results}
+            payload.update({k: v for k, v in meta.items() if v is not None})
+            return api_response(data=payload, raw=raw_flag)
+        return api_response(data=data, raw=raw_flag)
 
     @extend_schema(
         summary="Create Email",

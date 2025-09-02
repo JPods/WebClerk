@@ -1,5 +1,6 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/utilities_view.py
-from django.http import JsonResponse
+from django.http import JsonResponse  # legacy
+from common.api_responses import api_response
 """
 This module defines a Django view for retrieving allowed fields for a given table, role, and access type.
 
@@ -20,6 +21,6 @@ class AllowedFieldsView(View):
         role = request.GET.get("role")
         access_type = request.GET.get("access_type", "view")
         if not table or not role:
-            return JsonResponse({"success": False, "error": "table and role required"}, status=400)
+            return api_response(success=False, status_code=400, message='table and role required', error={'code':'missing_params','details':'table and role required'})
         fields = get_view_edit_fields(table, role, access_type)
-        return JsonResponse({"success": True, "fields": fields})
+        return api_response(data={'table': table, 'role': role, 'access_type': access_type, 'fields': fields})

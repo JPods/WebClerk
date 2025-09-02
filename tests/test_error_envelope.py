@@ -9,7 +9,7 @@ def test_not_found_enveloped(client):
     r = client.get('/this/path/does/not/exist/')
     assert r.status_code == 404
     body = r.json()
-    assert body.get('status') == 'error'
+    assert body.get('status') == 'fail'
     assert body.get('error', {}).get('code') == 'not_found'
 
 
@@ -22,7 +22,7 @@ def test_validation_error_enveloped(client, django_user_model):
     r = client.post(create_url, {'type': 'website'})
     assert r.status_code in (400, 403)  # if permission denies, still enveloped
     body = r.json()
-    assert 'status' in body and body['status'] == 'error'
+    assert 'status' in body and body['status'] in ('fail','error')  # 4xx -> fail
     assert 'error' in body and 'code' in body['error']
     # Accept either forbidden or validation_error
     assert body['error']['code'] in {'validation_error', 'forbidden'}

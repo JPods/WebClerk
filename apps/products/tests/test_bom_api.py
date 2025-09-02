@@ -22,7 +22,8 @@ def test_bom_list_create(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body['status'] == 'success'
-    assert body['data'] == []
+    assert isinstance(body['data'], dict)
+    assert body['data'].get('results') == []
     # create
     payload = {
         'component_id': component.id,
@@ -39,8 +40,10 @@ def test_bom_list_create(client):
     resp = client.get(url)
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body['data']) == 1
+    assert len(body['data'].get('results', [])) == 1
     # Raw mode deprecated: ?raw=1 still returns enveloped structure
     raw_resp = client.get(url + '?raw=1')
     raw_body = raw_resp.json()
-    assert raw_body.get('status') == 'success' and isinstance(raw_body.get('data'), list)
+    assert raw_body.get('status') == 'success'
+    # raw=1 returns list payload inside data for BOM endpoint
+    assert isinstance(raw_body.get('data'), list)

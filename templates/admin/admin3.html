@@ -183,7 +183,7 @@ function loadTableData(tableName) {
             fetch(`/wcapi/get/?table_name=${tableName}`)
                 .then(response => response.json())
                 .then(result => {
-                    const data = result.data;
+                    const data = (result.data && result.data.results) ? result.data.results : [];
                     const contentDiv = document.getElementById('center-table-content');
                     if (!Array.isArray(data) || data.length === 0) {
                         contentDiv.innerHTML = '<p>No records found.</p>';
@@ -215,7 +215,7 @@ function loadDetail(tableName, recordId) {
     fetch(`/wcapi/get/?table_name=${tableName}&id=${recordId}`)
         .then(response => response.json())
         .then(result => {
-            const data = result.data;
+            const data = (result.data && result.data.record) ? result.data.record : null;
             const detailPanel = document.querySelector('.container .module.scroll-column:nth-child(3)');
             if (!data || Object.keys(data).length === 0) {
                 detailPanel.innerHTML = '<h3 class="module-title">Details</h3><p>No details found.</p>';

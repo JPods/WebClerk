@@ -4,9 +4,9 @@ Maps common DRF + Django exceptions to stable error.code values while preserving
 HTTP status codes. All API errors (4xx/5xx) should return:
 
 {
-  "status": "error",
-  "message": <short human message>,
-  "error": { "code": <machine_code>, "detail": <original detail>, ... }
+    "status": "fail" | "error",  # fail for 4xx, error for 5xx
+    "message": <short human message>,
+    "error": { "code": <machine_code>, "details": <original detail> }
 }
 """
 from __future__ import annotations
@@ -47,7 +47,7 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]):
     """
     response = drf_default_handler(exc, context)
     if response is None:  # non-DRF error -> generic 500
-        return api_response(success=False, status_code=500, message='Server error', error={'code': 'server_error', 'detail': str(exc)})
+        return api_response(success=False, status_code=500, message='Server error', error={'code': 'server_error', 'details': str(exc)})
     # Use DRF's generated status + data for detail
     detail = response.data
     # DRF detail may be a string or dict (field errors). Canonicalize to:

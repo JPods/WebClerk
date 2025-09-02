@@ -16,7 +16,7 @@ def test_envelope_skip_registry_exposed(client, settings):
     api_path = reverse('communications:email-list')
     r = client.get(api_path + '?raw=1')  # raw bypass now disabled by default
     body = r.json()
-    assert body.get('status') in ('success','error')  # still enveloped
+    assert body.get('status') in ('success','fail','error')  # still enveloped; 401 now 'fail'
     # Import registry from middleware
     from common.middleware import ENVELOPE_SKIPS
     assert any(s['reason'] == 'exempt_path' for s in ENVELOPE_SKIPS)

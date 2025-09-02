@@ -1,8 +1,9 @@
 from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework.response import Response  # legacy
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 import importlib
+from common.api_responses import api_response
 
 # Map table names to model classes
 TABLE_MODEL_MAP = {
@@ -33,13 +34,13 @@ class QueryAnyView(APIView):
 
         model_cls = get_model_class(table_name)
         if not model_cls:
-            return Response({"success": False, "data": None, "errors": {"message": "Model not found"}})
+            return api_response(success=False, status_code=400, message='Model not found', error={'code':'model_not_found','details':table_name})
 
         # Build filter kwargs
         lookup = f"{field}__{query_type}"
         try:
             results = model_cls.objects.filter(**{lookup: value})
             data = [{f: getattr(obj, f, None) for f in [field, 'id']} for obj in results]
-            return Response({"success": True, "data": data, "errors": {}})
+            return api_response(data={'table_name': table_name, 'field': field, 'query_type': query_type, 'value': value, 'results': data})
         except Exception as e:
-            return Response({"success": False, "data": None, "errors": {"message": str(e)}})
+            return api_response(success=False, status_code=400, message='Query failed', error={'code':'query_failed','details': str(e)})

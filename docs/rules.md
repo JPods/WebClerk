@@ -27,18 +27,34 @@ Field / verbose names may use 'es' if needed; restriction applies to actual tabl
 Baseline rules that require a published exception:
 
 1. Django REST Framework for all endpoints
-2. Only json response to endpoints.
-3. Standardize response with:
-   1. { "success": true, "data": ..., "errors": {} }  
-      Related data in a json must be noted as data.related{} for consistency.
-   2. { "success": false, "data": null, "errors": { "message": "...", "help": "https://..." } }. Clear error messages with link to help.
-4. jsons for exchanging information, even inputs. Convert all CSV's etc into json outside of WebClerk.
-5. always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in e
-6. always use table_name for table_name of the primary table being worked and "id" is the id for the primary table record id. For non-primary table_name_id format.
+2. Only JSON responses to endpoints (no HTML except explicitly whitelisted templates/pages).
+3. Universal API Response Envelope (MANDATORY):
+    All API JSON responses MUST conform to:
+    {
+       "status": "success" | "fail" | "error",
+      "code": HTTP_STATUS_CODE_INTEGER,
+       "message": "",                    // Optional human-friendly summary (empty string if none)
+       "error": null | {                  // Present only when status != "success"
+          "code": "machine_readable_code", // kebab / snake case identifier
+          "message": "Primary error message",
+          "details": [...] | {...} | null  // Field errors or structured diagnostics (optional)
+       },
+       "data": { ... } | null             // Successful payload (never at top-level outside envelope)
+    }
+    Semantics:
+    - HTTP 2xx => status="success" and error=null.
+    - HTTP 4xx => status="fail" for client / validation issues (never "error").
+    - HTTP 5xx => status="error" (internal / unexpected). Provide error.code whenever feasible.
+    Related / nested domain data MUST live under data.related (e.g., data.related.phones[]). No other top-level keys allowed.
+    Version / concurrency conflicts MUST use HTTP 412 with status="fail" and error.code="version_conflict".
+    Validation failures: HTTP 400, status="fail", error.code a specific domain/validation code, error.details list/dict of field issues.
+4. JSONs for exchanging information, even inputs. Convert all CSV, etc. into JSON outside of WebClerk.
+5. Always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in plain trailing 'e'.
+6. Always use table_name for the primary table name; primary id field is "id". For non-primary FKs use table_name_id format.
 7. Save paths to larger documents. Never save large documents in the database.
-8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py
-9. always put relationships into table_name.refs.links{"related_table_name::[id1,id4,...]","related_table_name2":[]}
-10. Settings records for view_edit.  "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
+8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py).
+9. Always put relationships into table_name.refs.links{"related_table_name":[id1,id4,...],"related_table_name2":[]} (legacy shape migrations should move toward the unified related envelope where exposed externally).
+10. Settings records for view_edit. "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
 11. Break the common Django framework of put, post, add functions with generalized, universal wcapi/relate, wcapi/get, wcapi/save etc... see core/urls.py
 12. Use Celery to wrap generalized functions such as wcapi/save for pre/post hooks.
 13. ONLY use uuid for communicating between databases with sync records (catalog updates, security issues, defaults, etc.).

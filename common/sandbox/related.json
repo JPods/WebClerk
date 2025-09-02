@@ -1,7 +1,11 @@
 {
-    "success": true,
+    "status": "success",
+    "code": 200,
+    "message": "",
+    "error": null,
     "data": {
-        "phones": [
+        "related": {
+            "phones": [
             {
                 "id": 69,
                 "number": "+1-555-0100",
@@ -32,8 +36,8 @@
                 "opt_out": false,
                 "comment": "Home phone for admin@webclerk.com"
             }
-        ],
-        "emails": [
+            ],
+            "emails": [
             {
                 "id": 41,
                 "email": "admin@webclerk.com",
@@ -50,8 +54,8 @@
                 "opt_out": "",
                 "comment": "Personal email for admin@webclerk.com"
             }
-        ],
-        "addresses": [
+            ],
+            "addresses": [
             {
                 "id": 18,
                 "address1": "1100 Home Street",
@@ -67,8 +71,8 @@
                 "full": "1100 Home Street, San Francisco, CA 90100",
                 "comment": "Home address for admin@webclerk.com"
             }
-        ],
-        "actions": [
+            ],
+            "actions": [
             {
                 "id": 37,
                 "action": "Call client - WebClerk",
@@ -108,8 +112,8 @@
                 "description": "Action to schedule meeting regarding project discussion",
                 "comment": "Action 3 for admin@webclerk.com - Schedule meeting"
             }
-        ],
-        "domains": [
+            ],
+            "domains": [
             {
                 "id": 17,
                 "path": "webclerk.com",
@@ -122,7 +126,7 @@
                 "type": "email",
                 "comment": "Email domain for WebClerk Inc"
             }
-        ]
-    },
-    "errors": {}
+            ]
+        }
+    }
 }

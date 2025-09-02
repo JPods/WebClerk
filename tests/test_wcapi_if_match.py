@@ -36,8 +36,8 @@ class WcapiIfMatchTests(TestCase):
         resp = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_first': 'Alpha'}, HTTP_IF_MATCH=str(v))
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
-        self.assertEqual(body['record']['name_first'], 'Alpha')
-        self.assertEqual(body['version'], v + 1)
+        self.assertEqual(body['data']['record']['name_first'], 'Alpha')
+        self.assertEqual(body['data']['version'], v + 1)
 
     def test_if_match_conflict_412(self):
         v = self.contact.version
@@ -62,7 +62,7 @@ class WcapiIfMatchTests(TestCase):
         self.assertEqual(first.status_code, 200)
         second = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_first': 'Two'}, HTTP_IF_MATCH='*')
         self.assertEqual(second.status_code, 200)
-        self.assertEqual(second.json()['record']['name_first'], 'Two')
+        self.assertEqual(second.json()['data']['record']['name_first'], 'Two')
 
     def test_if_match_wildcard_bypasses_stale(self):
         v = self.contact.version
@@ -75,14 +75,14 @@ class WcapiIfMatchTests(TestCase):
         # wildcard bypasses
         wildcard = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage3'}, HTTP_IF_MATCH='*')
         self.assertEqual(wildcard.status_code, 200)
-        self.assertEqual(wildcard.json()['record']['name_last'], 'Stage3')
+        self.assertEqual(wildcard.json()['data']['record']['name_last'], 'Stage3')
 
     def test_legacy_expected_version_deprecation_message(self):
         v = self.contact.version
         resp = self.post({'table_name': 'contacts', 'id': self.contact.id, 'expected_version': v, 'name_first': 'Legacy'})
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
-        self.assertIn('messages', body)
-        self.assertTrue(any('deprecated' in m for m in body['messages']))
-        self.assertEqual(body['record']['name_first'], 'Legacy')
-        self.assertEqual(body['version'], v + 1)
+        self.assertIn('messages', body['data'])
+        self.assertTrue(any('deprecated' in m for m in body['data']['messages']))
+        self.assertEqual(body['data']['record']['name_first'], 'Legacy')
+        self.assertEqual(body['data']['version'], v + 1)

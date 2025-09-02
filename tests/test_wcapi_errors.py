@@ -18,7 +18,7 @@ def test_wcapi_missing_table_name_get(client, user1):
     resp = client.get('/wcapi/query/')
     assert resp.status_code == 400
     data = resp.json()
-    assert data['status'] == 'error'
+    assert data['status'] == 'fail'
     assert 'Missing table_name' in data['message']
 
 
@@ -28,7 +28,7 @@ def test_wcapi_unknown_table_post(client, user1):
     resp = client.post('/wcapi/query/', data=json.dumps({'table_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
     data = resp.json()
-    assert data['status'] == 'error'
+    assert data['status'] == 'fail'
     assert data['message'] == 'Unknown table'
 
 
@@ -38,7 +38,7 @@ def test_wcapi_invalid_json_post(client, user1):
     resp = client.post('/wcapi/query/', data='{"bad"', content_type='application/json')
     assert resp.status_code == 400
     data = resp.json()
-    assert data['status'] == 'error'
+    assert data['status'] == 'fail'
     assert 'Invalid JSON' in data['message']
 
 
@@ -48,7 +48,7 @@ def test_save_missing_table(client, user2):
     resp = client.post('/wcapi/save/', data=json.dumps({'name_first': 'A'}), content_type='application/json')
     assert resp.status_code == 400
     data = resp.json()
-    assert data['status'] == 'error'
+    assert data['status'] == 'fail'
     assert 'Missing required field' in data['message']
 
 
@@ -58,7 +58,7 @@ def test_save_unknown_table(client, user2):
     resp = client.post('/wcapi/save/', data=json.dumps({'table_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
     data = resp.json()
-    assert data['status'] == 'error'
+    assert data['status'] == 'fail'
     assert 'Unknown table' in data['message']
 
 
@@ -68,5 +68,5 @@ def test_save_invalid_json(client, user2):
     resp = client.post('/wcapi/save/', data='{"oops"', content_type='application/json')
     assert resp.status_code == 400
     data = resp.json()
-    assert data['status'] == 'error'
+    assert data['status'] == 'fail'
     assert 'Invalid JSON' in data['message']

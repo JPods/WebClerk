@@ -92,17 +92,29 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
             else:
                 _record_skip(path, 'non_json_response', getattr(response, 'status_code', 0))
                 return response
-            if isinstance(data, dict) and data.get('status') in ('success', 'error'):
-                # Already enveloped – no legacy key bubbling (removed 2025-09-02). Return untouched.
+            if isinstance(data, dict) and data.get('status') in ('success', 'fail', 'error') and 'code' in data:
+                # Already enveloped – leave untouched.
                 return response
             status_code = getattr(response, 'status_code', 200)
-            envelope: Dict[str, Any] = {'status': 'success' if status_code < 400 else 'error'}
-            if isinstance(data, list):
-                envelope['data'] = data
-            elif isinstance(data, dict):
-                envelope['data'] = {k: _force(v) for k, v in data.items()}
+            if status_code >= 500:
+                status_val = 'error'
+            elif status_code >= 400:
+                status_val = 'fail'
             else:
-                envelope['data'] = data
+                status_val = 'success'
+            if isinstance(data, list):
+                payload_data = data
+            elif isinstance(data, dict):
+                payload_data = {k: _force(v) for k, v in data.items()}
+            else:
+                payload_data = data
+            envelope: Dict[str, Any] = {
+                'status': status_val,
+                'error': None,
+                'code': status_code,
+                'message': '',
+                'data': payload_data if payload_data is not None else None,
+            }
             if hasattr(response, 'data'):
                 try:  # type: ignore[attr-defined]
                     response.data = envelope  # type: ignore[attr-defined]

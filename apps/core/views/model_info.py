@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework.response import Response  # legacy direct
 from django.apps import apps
+from common.api_responses import api_response
 
 class ModelInfoView(APIView):
     def get(self, request):
@@ -31,5 +32,4 @@ class ModelInfoView(APIView):
                     if model._meta.db_table == tbl:
                         models_info[tbl] = get_fields(model)
                         break
-
-        return Response({"success": True, "models": models_info})
+        return api_response(data={'models': models_info})

@@ -141,7 +141,7 @@ def test_negative_edit_error_detail(django_user_model):
     # Expect 400 with per-field errors for probability only
     assert resp.status_code == 400  # type: ignore[attr-defined]
     payload = resp.data  # type: ignore[attr-defined]
-    assert payload.get('status') == 'error'
+    assert payload.get('status') == 'fail'
     assert 'error' in payload and payload['error'].get('code') == 'validation_error'
     # DRF serializer errors exposed under error.details
     details = payload['error'].get('details') or {}

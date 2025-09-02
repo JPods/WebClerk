@@ -2,10 +2,13 @@ from django.views import View
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.views import APIView  # type: ignore
 from django.contrib.auth.mixins import LoginRequiredMixin
 import json
 import time
 from .wcapi_registry import get_model, ALLOWED_TABLE_NAMES
+from common.api_responses import api_response
+from rest_framework.response import Response  # type: ignore
 from django.db import models
 from typing import Sequence
 from collections import defaultdict
@@ -90,7 +93,7 @@ def _pagination_params(request):
     return limit, offset
 
 @method_decorator(csrf_exempt, name='dispatch')
-class WcapiView(LoginRequiredMixin, View):
+class WcapiView(LoginRequiredMixin, APIView):
     """Supports GET (single/list) and POST (filtered list). Other verbs 405."""
 
     _model_field_cache: dict[type, set[str]] = {}
@@ -105,7 +108,7 @@ class WcapiView(LoginRequiredMixin, View):
     def _model_or_400(self, table_name):
         model = get_model(table_name)
         if not model:
-            return None, JsonResponse({'status': 'error', 'message': 'Unknown table'}, status=400)
+            return None, api_response(success=False, status_code=400, message='Unknown table', error={'code':'unknown_table','details':'Unknown table'})
         return model, None
 
     # GET: optional id for single record, else list
@@ -117,27 +120,27 @@ class WcapiView(LoginRequiredMixin, View):
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
             if not open_read:
-                return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
+                return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
             # proceed as PUBLIC role (implicit) for open read mode
         if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
-            return JsonResponse({'status': 'error', 'message': 'JWT Bearer token required'}, status=401)
+            return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
         start = time.perf_counter()
         table_name = request.GET.get('table_name')
         if not table_name:
-            return JsonResponse({'status':'error','message':'Missing table_name'}, status=400)
+            return api_response(success=False, status_code=400, message='Missing table_name', error={'code':'missing_table_name','details':'Missing table_name'})
         model, err = self._model_or_400(table_name)
         if err:
             return err
         # Field projection
         self._requested_fields = self._parse_projection(request, model)
-        if isinstance(self._requested_fields, JsonResponse):
-            return self._requested_fields  # error response
+        if isinstance(self._requested_fields, (JsonResponse, Response)):
+            return self._requested_fields  # error response envelope already
         record_id = request.GET.get('id')
         if record_id:
             try:
                 obj = model.objects.get(id=record_id)  # type: ignore[attr-defined]
             except Exception:
-                return JsonResponse({'status':'error','message':'Not found'}, status=404)
+                return api_response(success=False, status_code=404, message='Not found', error={'code':'not_found','details':'Not found'})
             data_obj = obj.__dict__.copy(); data_obj.pop('_state', None)
             if getattr(self, '_requested_fields', None):
                 data = [{k: v for k, v in data_obj.items() if k in self._requested_fields}]
@@ -148,7 +151,7 @@ class WcapiView(LoginRequiredMixin, View):
             if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
                 _PROM_REQS.labels(method='GET').inc()
                 _PROM_DUR.labels(method='GET').observe(time.perf_counter()-start)
-            return JsonResponse({'status':'success','table_name':table_name,'data':data})
+            return api_response(data={'table_name': table_name, 'results': data})
         qs = model.objects.all()  # type: ignore[attr-defined]
         total = qs.count()
         limit, offset = _pagination_params(request)
@@ -158,7 +161,7 @@ class WcapiView(LoginRequiredMixin, View):
         if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
             _PROM_REQS.labels(method='GET').inc()
             _PROM_DUR.labels(method='GET').observe(time.perf_counter()-start)
-        return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
+        return api_response(data={'table_name': table_name, 'results': data, 'total': total, 'limit': limit, 'offset': offset})
 
     # POST: filtered list (exact match on allow-listed fields)
     def post(self, request):
@@ -168,23 +171,23 @@ class WcapiView(LoginRequiredMixin, View):
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
             if not open_read:
-                return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
+                return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
         if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
-            return JsonResponse({'status': 'error', 'message': 'JWT Bearer token required'}, status=401)
+            return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
         start = time.perf_counter()
         try:
             payload = json.loads(request.body or '{}')
         except json.JSONDecodeError:
-            return JsonResponse({'status':'error','message':'Invalid JSON'}, status=400)
+            return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details':'Invalid JSON'})
         table_name = payload.get('table_name')
         if not table_name:
-            return JsonResponse({'status':'error','message':'Missing table_name'}, status=400)
+            return api_response(success=False, status_code=400, message='Missing table_name', error={'code':'missing_table_name','details':'Missing table_name'})
         model, err = self._model_or_400(table_name)
         if err:
             return err
         self._requested_fields = self._parse_projection(payload, model)
-        if isinstance(self._requested_fields, JsonResponse):
-            return self._requested_fields  # error response
+        if isinstance(self._requested_fields, (JsonResponse, Response)):
+            return self._requested_fields  # error response envelope already
         qs = model.objects.all()  # type: ignore[attr-defined]
         strict = self._strict_mode(request, payload)
         invalid_filters: list[str] = []
@@ -200,7 +203,7 @@ class WcapiView(LoginRequiredMixin, View):
                 if strict and k not in invalid_filters:
                     invalid_filters.append(k)
         if strict and invalid_filters:
-            return JsonResponse({'status':'error','message':f"Invalid filter field(s): {', '.join(sorted(invalid_filters))}"}, status=400)
+            return api_response(success=False, status_code=400, message='Invalid filter field(s)', error={'code':'invalid_filters','details':sorted(invalid_filters)})
         total = qs.count()
         limit, offset = _pagination_params(request)
         data = self._serialize_queryset(qs, limit, offset)
@@ -209,25 +212,32 @@ class WcapiView(LoginRequiredMixin, View):
         if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
             _PROM_REQS.labels(method='POST').inc()
             _PROM_DUR.labels(method='POST').observe(time.perf_counter()-start)
-        return JsonResponse({'status':'success','table_name':table_name,'data':data,'total':total,'limit':limit,'offset':offset})
+        return api_response(data={'table_name': table_name, 'results': data, 'total': total, 'limit': limit, 'offset': offset})
 
     # Unimplemented verbs -> explicit 405 or minimal info
     def delete(self, request):
-        return JsonResponse({'status':'error','message':'DELETE not supported'}, status=405)
+        return api_response(success=False, status_code=405, message='DELETE not supported', error={'code': 'method_not_allowed', 'details': 'DELETE not supported'})
+
     def put(self, request):
-        return JsonResponse({'status':'error','message':'PUT not supported'}, status=405)
+        return api_response(success=False, status_code=405, message='PUT not supported', error={'code': 'method_not_allowed', 'details': 'PUT not supported'})
+
     def patch(self, request):
-        return JsonResponse({'status':'error','message':'PATCH not supported'}, status=405)
+        return api_response(success=False, status_code=405, message='PATCH not supported', error={'code': 'method_not_allowed', 'details': 'PATCH not supported'})
+
     def head(self, request):
         return self.get(request)
+
     def options(self, request):
-        return JsonResponse({'status':'success','data':sorted(ALLOWED_TABLE_NAMES)})
+        return api_response(data={'table_names': sorted(ALLOWED_TABLE_NAMES)})
+
     def trace(self, request):
-        return JsonResponse({'status':'error','message':'TRACE not supported'}, status=405)
+        return api_response(success=False, status_code=405, message='TRACE not supported', error={'code': 'method_not_allowed', 'details': 'TRACE not supported'})
+
     def connect(self, request):
-        return JsonResponse({'status':'error','message':'CONNECT not supported'}, status=405)
+        return api_response(success=False, status_code=405, message='CONNECT not supported', error={'code': 'method_not_allowed', 'details': 'CONNECT not supported'})
+
     def manage(self, request):
-        return JsonResponse({'status':'error','message':'MANAGE not supported'}, status=405)
+        return api_response(success=False, status_code=405, message='MANAGE not supported', error={'code': 'method_not_allowed', 'details': 'MANAGE not supported'})
 
     # --- helpers ---
     def _parse_projection(self, source, model):
@@ -246,11 +256,11 @@ class WcapiView(LoginRequiredMixin, View):
                 else:
                     fields = [p.strip() for p in raw.split(',') if p.strip()]
             except Exception:
-                return JsonResponse({'status':'error','message':'Invalid fields format'}, status=400)
+                return api_response(success=False, status_code=400, message='Invalid fields format', error={'code':'invalid_fields','details':'Invalid fields format'})
         elif isinstance(raw, (list, tuple)):
             fields = list(raw)
         else:
-            return JsonResponse({'status':'error','message':'Invalid fields type'}, status=400)
+            return api_response(success=False, status_code=400, message='Invalid fields type', error={'code':'invalid_fields','details':'Invalid fields type'})
         # Validate
         cached = self._model_field_cache.get(model)
         if cached is None:
@@ -259,10 +269,10 @@ class WcapiView(LoginRequiredMixin, View):
         model_fields = cached
         invalid = [f for f in fields if f not in model_fields]
         if invalid:
-            return JsonResponse({'status':'error','message':f'Invalid field(s): {", ".join(invalid)}'}, status=400)
+            return api_response(success=False, status_code=400, message='Invalid field(s)', error={'code':'invalid_fields','details':invalid})
         # prevent empty
         if not fields:
-            return JsonResponse({'status':'error','message':'No fields specified'}, status=400)
+            return api_response(success=False, status_code=400, message='No fields specified', error={'code':'invalid_fields','details':'No fields specified'})
         return fields
 
     def _strict_mode(self, request, payload):

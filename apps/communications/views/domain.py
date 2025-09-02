@@ -51,7 +51,7 @@ class DomainView(generics.ListCreateAPIView):
         if raw_flag:
             return response
         data = response.data
-        meta = None
+        meta = {}
         if isinstance(data, dict) and {'results','count'}.issubset(data.keys()):
             meta = {
                 'total': data.get('count'),
@@ -59,8 +59,12 @@ class DomainView(generics.ListCreateAPIView):
                 'next': data.get('next'),
                 'previous': data.get('previous')
             }
-            data = data.get('results')
-        return api_response(data=data, meta=meta, raw=raw_flag)
+            results = data.get('results')
+        else:
+            results = data
+        payload = {'results': results}
+        payload.update({k: v for k, v in meta.items() if v is not None})
+        return api_response(data=payload, raw=raw_flag)
 
     @extend_schema(
         summary="Create Domain",

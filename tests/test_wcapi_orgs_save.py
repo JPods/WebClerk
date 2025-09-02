@@ -19,7 +19,7 @@ def test_wcapi_save_create_org():
     resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
     body = resp.json(); assert body['status'] == 'success'
-    org = OrgBase.objects.get(id=body['id'])
+    org = OrgBase.objects.get(id=body['data']['id'])
     assert org.display_name == 'Save Created Co'
 
 @pytest.mark.django_db

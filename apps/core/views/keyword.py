@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework.response import Response  # legacy direct usage (will wrap)
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from common.api_responses import api_response
 
 # Map table names to model classes
 TABLE_MODEL_MAP = {
@@ -32,7 +33,7 @@ class KeywordSearchView(APIView):
 
         keywords = [kw.strip() for kw in keywords_raw.split(',') if kw.strip()]
         if not keywords:
-            return Response({"success": False, "data": None, "errors": {"message": "No keywords provided"}})
+            return api_response(success=False, status_code=400, message='No keywords provided', error={'code':'no_keywords','details':'No keywords provided'})
 
         q_obj = Q()
         if query_type == 'OR':
@@ -67,4 +68,12 @@ class KeywordSearchView(APIView):
             else:
                 errors[table_name] = "Model not found"
 
-        return Response({"success": True, "data": results, "errors": errors})
+        payload = {
+            'table_name': table_name,
+            'query_type': query_type,
+            'keywords': keywords,
+            'results': results,
+        }
+        if errors:
+            payload['errors'] = errors  # non-fatal per-table errors
+        return api_response(data=payload)

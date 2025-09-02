@@ -6,7 +6,8 @@ from apps.core.models.action import Action
 
 @pytest.fixture
 def user(db):
-    return Contact.objects.create_user(email='actiontester@example.com', password='pass', name_first='A', name_last='Tester', role='admin', is_staff=True)
+    # Using create directly because Contact manager lacks create_user
+    return Contact.objects.create(email='actiontester@example.com', password='pass', name_first='A', name_last='Tester', role='admin', is_staff=True)
 
 @pytest.fixture
 def auth_client(user):

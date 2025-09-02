@@ -245,6 +245,100 @@ Details listed below with examples.
 
 Source: `webclerk3/core/urls.py`
 
+### Standard API Response Envelope (Unified Across Endpoints)
+
+All modernized endpoints (`/wcapi/query/`, `/wcapi/get/`, `/wcapi/save/`, keyword search, model info, allowed fields, BOM API, etc.) return a strict envelope:
+
+```json
+{
+  "status": "success" | "fail" | "error",   // success: 2xx, fail: 4xx, error: 5xx
+  "error": null | { "code": "string", "details": any },
+  "code": 200,                                  // mirrors HTTP status
+  "message": "",                               // always present (empty string if not set)
+  "data": { ... } | [ ... ] | null             // application payload (object, list, or null)
+}
+```
+
+Semantics:
+
+- `status` derives only from HTTP code (no custom mixing):
+  - 2xx => `success`
+  - 4xx => `fail` (client / validation issues)
+  - 5xx => `error` (server/unexpected)
+- `error` is null for successes; for failures it provides a short machine `code` plus structured `details` (string, list, dict, etc.).
+- `message` is a concise human-readable summary (debug-safe). Always a string (never omitted / null).
+- Pagination, related data, counts, etc. live inside `data` (e.g. `{ "table_name": "contacts", "results": [...], "total": 42 }`).
+- Hook / validation / deprecation informational notes appear in `data.messages` (array of strings) when present.
+
+Examples:
+
+Successful list query:
+
+```json
+{
+  "status": "success",
+  "error": null,
+  "code": 200,
+  "message": "",
+  "data": {
+    "table_name": "contacts",
+    "results": [{ "id": 1, "email": "a@example.com" }],
+    "total": 1,
+    "limit": null,
+    "offset": 0
+  }
+}
+```
+
+Validation failure (missing field):
+
+```json
+{
+  "status": "fail",
+  "error": { "code": "missing_table_name", "details": "Missing table_name" },
+  "code": 400,
+  "message": "Missing table_name",
+  "data": null
+}
+```
+
+Optimistic concurrency conflict (version mismatch):
+
+```json
+{
+  "status": "fail",
+  "error": { "code": "version_conflict", "details": { "expected": 3, "current": 5 } },
+  "code": 412,
+  "message": "Version conflict",
+  "data": null
+}
+```
+
+Server error example:
+
+```json
+{
+  "status": "error",
+  "error": { "code": "save_failed", "details": "Unexpected integrity violation" },
+  "code": 500,
+  "message": "Failed to save",
+  "data": null
+}
+```
+
+Legacy Escape Hatch:
+
+Some endpoints may temporarily honor `?raw=1` to return only the inner payload during phased migrations; this will be removed once all consumers are migrated.
+
+Client Guidance:
+
+- Always key off `status` + HTTP code for control flow.
+- Inspect `error.code` for programmatic branching (e.g., `version_conflict`, `validation_failed`).
+- Treat absence of `data` (null) as “no payload” not an error by itself—use `status` to decide.
+- Avoid relying on ordering of object keys; JSON object order is not part of the contract.
+
+---
+
 ### View All Contacts
 
 `http://localhost:8000/wcapi/manage/?table_name=contacts`

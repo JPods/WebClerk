@@ -3,21 +3,20 @@
 This module defines a single public helper `api_response` which wraps
 payloads in a consistent envelope used by modernized DRF endpoints.
 
-Envelope Shape:
+Envelope Shape (2025-09-02):
 
 {
-  "status": "success" | "error",
-  "message": "optional human readable string",
-  "data": object | list | null,
-  "error": { "code": str, "details": any } | null,
-  "meta": { arbitrary metadata such as pagination } | null
+    "status": "success" | "fail" | "error",   # success for 2xx, fail for 4xx, error for 5xx
+    "error": null | { "code": str, "details": any },
+    "code": int,                                # HTTP status code mirrored
+    "message": str,                             # always present ("" if not set)
+    "data": object | list | null                # application payload
 }
 
-Rules:
-* Omit keys (message, data, error, meta) when they are None/empty to keep responses lean.
-* `status` is always present.
-* HTTP success codes (2xx) should use status="success"; 4xx/5xx should prefer status="error".
-* Pagination meta keys (if present): total, page, page_size, pages, next, previous.
+Notes:
+* Pagination or other metadata should be embedded inside data (e.g. {"results": [...], "page":1, ...}).
+* Keys are always present except error (null on success/fail when no error block needed) and data (set to null if omitted).
+* This supersedes prior envelope that used meta and omitted null fields.
 
 Transitional Opt-Out:
 Endpoints may honor a `?raw=1` query parameter to bypass the envelope for
@@ -38,24 +37,27 @@ def api_response(
     success: bool = True,
     status_code: int = 200,
     error: Optional[Dict[str, Any]] = None,
-    meta: Optional[Dict[str, Any]] = None,
     raw: bool = False,
 ) -> Response:
-    """Return a DRF Response with the unified envelope.
+    """Return a DRF Response with the new strict envelope.
 
-    Set `raw=True` to bypass wrapping (used when a view detects `?raw=1`).
+    raw=True returns the underlying data only (escape hatch for rare cases).
     """
     if raw:
-        # Caller explicitly wants unwrapped data (transitional).
         return Response(data, status=status_code)
 
-    payload: Dict[str, Any] = {"status": "success" if success else "error"}
-    if message:
-        payload["message"] = message
-    if data is not None:
-        payload["data"] = data
-    if error is not None:
-        payload["error"] = error
-    if meta:
-        payload["meta"] = meta
+    if status_code >= 500:
+        status_str = 'error'
+    elif status_code >= 400:
+        status_str = 'fail'
+    else:
+        status_str = 'success'
+
+    payload: Dict[str, Any] = {
+        'status': status_str,
+        'error': error if error is not None else None,
+        'code': status_code,
+        'message': message or '',
+        'data': data if data is not None else None,
+    }
     return Response(payload, status=status_code)

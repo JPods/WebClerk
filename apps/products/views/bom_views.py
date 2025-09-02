@@ -30,7 +30,11 @@ class BOMListCreateView(APIView):
         serializer = BillOfMaterialSerializer(lines, many=True)
         if raw_flag:
             return Response(serializer.data)
-        return api_response(data=serializer.data, meta={'count': len(serializer.data)}, raw=raw_flag)
+        payload = {
+            'results': serializer.data,
+            'total': len(serializer.data)
+        }
+        return api_response(data=payload, raw=raw_flag)
 
     def post(self, request, parent_id: int):
         raw_flag = request.query_params.get('raw') == '1'

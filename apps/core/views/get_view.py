@@ -1,11 +1,12 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/get_view.py
-from django.http import JsonResponse
+from django.http import JsonResponse  # legacy (remove after full migration)
 from rest_framework.views import APIView
 from rest_framework import permissions
 from django.apps import apps
 from django.forms.models import model_to_dict
 from apps.core.views.related_view import get_related_data
 from apps.core.services.view_edit_access import filter_record_for_role
+from common.api_responses import api_response
 
 TABLE_APP_MAP = {
     'contacts': 'core',
@@ -68,15 +69,15 @@ class WcapiGetView(APIView):
         open_read = getattr(settings, 'WCAPI_OPEN_READ', False)
         is_jwt = bool(getattr(request, 'auth', None)) or request.META.get('HTTP_AUTHORIZATION','').startswith('Bearer ')
         if not request.user.is_authenticated and not open_read:
-            return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+            return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
         if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
-            return JsonResponse({'success': False, 'error': 'JWT required (missing Bearer token)'}, status=401)
+            return api_response(success=False, status_code=401, message='JWT required (missing Bearer token)', error={'code':'jwt_required','details':'JWT required (missing Bearer token)'})
 
         table_name = request.GET.get('table_name')
         record_id = request.GET.get('id')
         user_role = getattr(request.user, 'role', 'PUBLIC')
         if not table_name:
-            return JsonResponse({'success': False, 'error': 'Missing table_name'}, status=400)
+            return api_response(success=False, status_code=400, message='Missing table_name', error={'code':'missing_table_name','details':'Missing table_name'})
         app_label = TABLE_APP_MAP.get(table_name, 'core')
         # Basic plural -> ModelName heuristic with explicit special cases.
         if table_name == 'addresses':
@@ -88,18 +89,26 @@ class WcapiGetView(APIView):
         try:
             model = apps.get_model(app_label, model_name)
         except LookupError:
-            return JsonResponse({'success': False, 'error': f'Model not found for {table_name}'}, status=400)
+            return api_response(success=False, status_code=400, message='Model not found', error={'code':'unknown_table','details':f'Model not found for {table_name}'})
         if record_id:
             try:
                 obj = model.objects.get(id=record_id)
             except model.DoesNotExist:  # type: ignore[attr-defined]
-                return JsonResponse({'success': False, 'error': 'Record not found'}, status=404)
+                return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
             record = model_to_dict(obj)
             filtered_record = filter_record_for_role(record, table_name, user_role, 'view')
             related_result = get_related_data(table_name, int(record_id))
             safe_record = {k: self._sanitize(v) for k, v in filtered_record.items()}
             safe_related = {rk: [ {sk: self._sanitize(sv) for sk, sv in r.items()} for r in rv ] for rk, rv in related_result.get('related', {}).items()} if related_result.get('related') else {}
-            return JsonResponse({'success': True, 'data': safe_record, 'related': safe_related, 'errors': related_result.get('errors', {})})
+            payload = {
+                'table_name': table_name,
+                'record': safe_record,
+            }
+            if safe_related:
+                payload['related'] = safe_related
+            if related_result.get('errors'):
+                payload['related_errors'] = related_result.get('errors')
+            return api_response(data=payload)
         # list
         queryset = model.objects.all()  # type: ignore[attr-defined]
         raw_records = [
@@ -110,4 +119,11 @@ class WcapiGetView(APIView):
             {k: self._sanitize(v) for k, v in rec.items()}
             for rec in raw_records
         ]
-        return JsonResponse({'success': True, 'data': safe_records})
+        payload = {
+            'table_name': table_name,
+            'results': safe_records,
+            'total': len(safe_records),
+            'limit': None,
+            'offset': 0,
+        }
+        return api_response(data=payload)

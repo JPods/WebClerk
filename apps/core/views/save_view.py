@@ -1,5 +1,6 @@
 # filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/save_view.py
 from django.http import JsonResponse
+from common.api_responses import api_response
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
 # Classes:
 #     WcapiView(View): Handles POST requests to save or update records for a specified table/model.
@@ -22,6 +23,7 @@ from django.http import JsonResponse
 #         - Calls pre-save and post-save asynchronous tasks.
 #         - Returns a JSON response indicating success or failure, including error messages for field size violations or integrity errors.
 from django.views import View
+from rest_framework.views import APIView  # type: ignore
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.core.services.wcapi_registry import get_model  # explicit registry lookup (replaces dynamic app scan)
 from django.apps import apps  # QQQ legacy import retained temporarily (confirm safe to remove)
@@ -56,7 +58,7 @@ def check_field_size(field_value, max_size, field_name):
 #     QQQ confirm no remaining callers, then fully remove
 #     ...
 
-class SaveWcapiView(LoginRequiredMixin, View):
+class SaveWcapiView(LoginRequiredMixin, APIView):
     # apply exempt to CSRF for save view actions
     # already passed CSRF protection
     # QQQ frontends must pass CSRF token, so exemption is not needed
@@ -70,14 +72,14 @@ class SaveWcapiView(LoginRequiredMixin, View):
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
-            return JsonResponse({'status':'error','message':'Authentication required'}, status=401)
+            return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
         if require_jwt and not is_jwt:
-            return JsonResponse({'status':'error','message':'JWT Bearer token required'}, status=401)
+            return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
         try:
             # extract JSON data from the request body
             data = json.loads(request.body)
         except json.JSONDecodeError as e:
-            return JsonResponse({'status': 'error', 'message': f'Invalid JSON: {e}'}, status=400)
+            return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
 
         # get table name and record ID from data
         # QQQ we should add table_name to every json requested by front end
@@ -98,7 +100,7 @@ class SaveWcapiView(LoginRequiredMixin, View):
                 if header_raw.isdigit():
                     expected_version = int(header_raw)
                 else:
-                    return JsonResponse({'status': 'error', 'message': f'Malformed If-Match header: {header_raw}'}, status=400)
+                    return api_response(success=False, status_code=400, message='Malformed If-Match header', error={'code':'if_match_malformed','details': header_raw})
         elif body_version is not None:
             expected_version = body_version
         elif legacy_expected is not None:
@@ -106,12 +108,12 @@ class SaveWcapiView(LoginRequiredMixin, View):
             deprecation_flag = True
 
         if not table_name:
-            return JsonResponse({'status': 'error', 'message': 'Missing required field: table_name'}, status=400)
+            return api_response(success=False, status_code=400, message='Missing required field: table_name', error={'code':'missing_table_name','details':'Missing required field: table_name'})
 
         # Registry-based resolution (whitelist enforced). QQQ confirm table_name already validated earlier layers
         model = get_model(table_name)
         if not model:
-            return JsonResponse({'status': 'error', 'message': f'Unknown table: {table_name}'}, status=400)
+            return api_response(success=False, status_code=400, message=f'Unknown table: {table_name}', error={'code':'unknown_table','details':f'Unknown table: {table_name}'})
 
         # Check for special cases
         #if table_name in SPECIAL_CASES:
@@ -127,12 +129,12 @@ class SaveWcapiView(LoginRequiredMixin, View):
                 # get the current record
                 obj = model.objects.get(id=record_id)
             except model.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': 'Record not found'}, status=404)
+                return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
             # optimistic concurrency
             if expected_version is not None:
                 current_version = getattr(obj, 'version', None)
                 if current_version != expected_version:
-                    return JsonResponse({'status':'error','message':f'Version conflict: expected {expected_version} got {current_version}'}, status=412)  # 412 Precondition Failed
+                    return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})  # 412 Precondition Failed
         else:
             # create an empty record
             obj = model()  # ID will be auto-generated by the database
@@ -151,7 +153,7 @@ class SaveWcapiView(LoginRequiredMixin, View):
         if hasattr(obj, 'pre_save_hook'):
             result = obj.pre_save_hook(data)  # type: ignore[attr-defined]
             if result is not None:
-                return JsonResponse({'status': 'error', 'message': result}, status=400)
+                return api_response(success=False, status_code=400, message=result, error={'code':'validation','details':result})
         # QQQ can this be accomplished with python threading
 
         field_size_errors = []
@@ -194,7 +196,7 @@ class SaveWcapiView(LoginRequiredMixin, View):
             try:
                 obj.set_password(raw_password)  # type: ignore[attr-defined]
             except Exception as e:  # pragma: no cover - defensive
-                return JsonResponse({'status': 'error', 'message': f'Failed to hash password: {e}'}, status=400)
+                return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
 
         # Generic model payload validation hook across all tables.
         # Flags:
@@ -212,19 +214,19 @@ class SaveWcapiView(LoginRequiredMixin, View):
                 logging.getLogger(__name__).warning(
                     "validation_exception table=%s model=%s error=%s", table_name, model.__name__, e
                 )
-                return JsonResponse({'status':'error','message':'Validation failed','errors':[str(e)]}, status=400)
+                return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_exception','details': [str(e)]})
             if not ok:
                 logging.getLogger(__name__).info(
                     "validation_failed table=%s model=%s errors=%s", table_name, model.__name__, errors
                 )
-                return JsonResponse({'status': 'error', 'message': 'Validation failed', 'errors': errors}, status=400)
+                return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_failed','details': errors})
 
         try:
             obj.save()
         except IntegrityError as e:
-            return JsonResponse({'status': 'error', 'message': f'Integrity error: {e}'}, status=400)
+            return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': f'Failed to save: {e}'}, status=500)
+            return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
         # Optional synchronous post-save hook
         post_hook_note = None
@@ -251,8 +253,7 @@ class SaveWcapiView(LoginRequiredMixin, View):
         logger = logging.getLogger(__name__)
         logger.info(f"Saved {table_name} record {obj.id}")  # type: ignore[attr-defined]
 
-        response = {
-            'status': 'success',
+        payload = {
             'id': obj.id,  # type: ignore[attr-defined]
             'record': model_to_dict(obj),
             'table_name': table_name,
@@ -267,5 +268,5 @@ class SaveWcapiView(LoginRequiredMixin, View):
             messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
             logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", table_name)
         if messages:
-            response['messages'] = messages
-        return JsonResponse(response)
+            payload['messages'] = messages
+        return api_response(data=payload)

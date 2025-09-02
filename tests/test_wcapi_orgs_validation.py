@@ -36,9 +36,10 @@ def test_wcapi_org_create_validation_enabled_failure():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
-    body = resp.json(); assert body['status'] == 'error'
+    body = resp.json(); assert body['status'] == 'fail'
     assert 'Validation failed' in body.get('message','')
-    assert any('org_type' in e for e in body.get('errors', []))
+    details = (body.get('error') or {}).get('details', [])
+    assert any('org_type' in e for e in details)
 
 @pytest.mark.django_db
 def test_wcapi_org_partial_update_validation_failure():
@@ -55,8 +56,9 @@ def test_wcapi_org_partial_update_validation_failure():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
-    body = resp.json(); assert body['status'] == 'error'
-    assert any('domains' in e for e in body.get('errors', []))
+    body = resp.json(); assert body['status'] == 'fail'
+    details = (body.get('error') or {}).get('details', [])
+    assert any('domains' in e for e in details)
 
 @pytest.mark.django_db
 def test_wcapi_org_partial_update_validation_success():

@@ -28,21 +28,36 @@ class WcapiConcurrencyTests(TestCase):
 
     def test_update_with_matching_version_succeeds_and_bumps(self):
         v = self.contact.version
-        resp = self.save({'table_name': 'contacts', 'id': self.contact.id, 'version': v, 'name_first': 'Updated'})
+        resp = self.save({
+            'table_name': 'contacts',
+            'id': self.contact.id,
+            'version': v,
+            'name_first': 'Updated'
+        })
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(body['status'], 'success')
-        self.assertEqual(body['version'], v + 1)
-        self.assertEqual(body['record']['name_first'], 'Updated')
+        self.assertEqual(body['data']['version'], v + 1)
+        self.assertEqual(body['data']['record']['name_first'], 'Updated')
 
     def test_update_with_stale_version_conflicts(self):
         v = self.contact.version
-        ok = self.save({'table_name': 'contacts', 'id': self.contact.id, 'version': v, 'name_last': 'One'})
+        ok = self.save({
+            'table_name': 'contacts',
+            'id': self.contact.id,
+            'version': v,
+            'name_last': 'One'
+        })
         self.assertEqual(ok.status_code, 200)
-        new_v = ok.json()['version']
+        new_v = ok.json()['data']['version']
         self.assertEqual(new_v, v + 1)
-        conflict = self.save({'table_name': 'contacts', 'id': self.contact.id, 'version': v, 'name_last': 'Two'})
+        conflict = self.save({
+            'table_name': 'contacts',
+            'id': self.contact.id,
+            'version': v,
+            'name_last': 'Two'
+        })
         self.assertEqual(conflict.status_code, 412)
         body = conflict.json()
-        self.assertEqual(body['status'], 'error')
+        self.assertEqual(body['status'], 'fail')  # 4xx -> fail
         self.assertIn('Version conflict', body['message'])

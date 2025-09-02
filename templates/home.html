@@ -91,8 +91,8 @@
 <script>
 document.getElementById('fetch-contact-btn').addEventListener('click', async function() {
     const response = await fetch('/wcapi/get/?table_name=contacts&id=3');
-    const data = await response.json();
-    document.getElementById('contact-result').textContent = JSON.stringify(data, null, 2);
+    const envelope = await response.json();
+    document.getElementById('contact-result').textContent = JSON.stringify(envelope, null, 2);
 });
 </script>
                     <!-- View Descriptions -->

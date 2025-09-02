@@ -15,8 +15,8 @@ def test_wcapi_query_orgs_basic():
 
     resp = c.post('/wcapi/query/', data=json.dumps({'table_name': 'orgs'}), content_type='application/json')
     assert resp.status_code == 200
-    data = resp.json(); assert data['status'] == 'success' and data['table_name'] == 'orgs'
-    names = {r['display_name'] for r in data['data']}
+    body = resp.json(); assert body['status'] == 'success' and body['data']['table_name'] == 'orgs'
+    names = {r['display_name'] for r in body['data']['results']}
     assert 'Acme Customer' in names and 'Vendor LLC' in names
 
 @pytest.mark.django_db
@@ -29,6 +29,6 @@ def test_wcapi_query_customers_proxy_filters():
 
     resp = c.post('/wcapi/query/', data=json.dumps({'table_name': 'customers'}), content_type='application/json')
     assert resp.status_code == 200
-    data = resp.json(); assert data['status'] == 'success'
-    names = {r['display_name'] for r in data['data']}
+    body = resp.json(); assert body['status'] == 'success'
+    names = {r['display_name'] for r in body['data']['results']}
     assert 'Cust One' in names and 'Vend Two' not in names

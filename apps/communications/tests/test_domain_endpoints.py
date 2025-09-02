@@ -66,18 +66,27 @@ def test_domain_atomic_patch_and_version_conflict(api_client, staff_user):
     r = api_client.post(list_url, {'path': 'https://atomic.com', 'type': 'website'}, format='json')
     assert r.status_code in (200,201)
     body = r.json()
-    domain_id = body.get('id') or (body.get('data') or {}).get('id')
-    assert domain_id, f"Could not extract id from payload {body}"
+    domain_id = body.get('id')
+    if domain_id is None and isinstance(body.get('data'), dict):
+        domain_id = body['data'].get('id')
+    assert domain_id is not None, f"Could not extract id from payload {body}"
     detail_url = reverse('communications:domain-detail', args=[domain_id])
     # Fetch to get version
     g = api_client.get(detail_url)
     assert g.status_code == 200
     g_body = g.json()
-    version = g_body.get('version') or (g_body.get('data') or {}).get('version')
+    version = g_body.get('version')
+    if version is None and isinstance(g_body.get('data'), dict):
+        version = g_body['data'].get('version')
+    assert version is not None, f"Version missing in response {g_body}"
     # Atomic set
     p1 = api_client.patch(detail_url, {'version': version, 'set': {'metadata.flags.schema_rev': 5}}, format='json')
     assert p1.status_code == 200, p1.json()
-    p1_body = p1.json(); new_version = p1_body.get('version') or (p1_body.get('data') or {}).get('version')
+    p1_body = p1.json()
+    new_version = p1_body.get('version')
+    if new_version is None and isinstance(p1_body.get('data'), dict):
+        new_version = p1_body['data'].get('version')
+    assert new_version is not None, f"New version missing in response {p1_body}"
     assert new_version == version + 1
     # Use stale version for conflict
     conflict = api_client.patch(detail_url, {'version': version, 'set': {'metadata.flags.schema_rev': 6}}, format='json')
@@ -86,5 +95,9 @@ def test_domain_atomic_patch_and_version_conflict(api_client, staff_user):
     p2 = api_client.patch(detail_url, {'version': new_version, 'append': {'comments.notes': {'text':'hello','type':'info'}}}, format='json')
     assert p2.status_code == 200
     # append should bump version by 1 relative to new_version
-    p2_body = p2.json(); v2 = p2_body.get('version') or (p2_body.get('data') or {}).get('version')
+    p2_body = p2.json()
+    v2 = p2_body.get('version')
+    if v2 is None and isinstance(p2_body.get('data'), dict):
+        v2 = p2_body['data'].get('version')
+    assert v2 is not None, f"Version after append missing in response {p2_body}"
     assert v2 == new_version + 1

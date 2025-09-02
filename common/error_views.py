@@ -9,10 +9,22 @@ from django.http import JsonResponse
 
 
 def error_404(request: HttpRequest, exception):  # pragma: no cover (framework hook)
-    payload = {'status': 'error', 'message': 'Not found', 'error': {'code': 'not_found'}}
+    payload = {
+        'status': 'fail',
+        'error': {'code': 'not_found', 'details': 'Not found'},
+        'code': 404,
+        'message': 'Not found',
+        'data': None,
+    }
     return JsonResponse(payload, status=404)
 
 
 def error_500(request: HttpRequest):  # pragma: no cover
-    payload = {'status': 'error', 'message': 'Server error', 'error': {'code': 'server_error'}}
+    payload = {
+        'status': 'error',
+        'error': {'code': 'server_error', 'details': 'Server error'},
+        'code': 500,
+        'message': 'Server error',
+        'data': None,
+    }
     return JsonResponse(payload, status=500)
