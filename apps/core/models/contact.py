@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact.py
 # 
 # PURPOSE: Main Contact model with Universal API support and Django authentication
 # UNIVERSAL API: Accessible via 'contacts' table name in Universal API

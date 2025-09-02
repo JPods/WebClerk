@@ -1,5 +1,6 @@
 import json
 import pytest
+from tests.utils import assert_envelope
 
 
 @pytest.fixture
@@ -17,9 +18,9 @@ def test_wcapi_missing_table_name_get(client, user1):
     client.force_login(user1)
     resp = client.get('/wcapi/query/')
     assert resp.status_code == 400
-    data = resp.json()
-    assert data['status'] == 'fail'
-    assert 'Missing table_name' in data['message']
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
+    assert 'Missing table_name' in body['message']
 
 
 @pytest.mark.django_db
@@ -27,9 +28,9 @@ def test_wcapi_unknown_table_post(client, user1):
     client.force_login(user1)
     resp = client.post('/wcapi/query/', data=json.dumps({'table_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
-    data = resp.json()
-    assert data['status'] == 'fail'
-    assert data['message'] == 'Unknown table'
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
+    assert body['message'] == 'Unknown table'
 
 
 @pytest.mark.django_db
@@ -37,9 +38,9 @@ def test_wcapi_invalid_json_post(client, user1):
     client.force_login(user1)
     resp = client.post('/wcapi/query/', data='{"bad"', content_type='application/json')
     assert resp.status_code == 400
-    data = resp.json()
-    assert data['status'] == 'fail'
-    assert 'Invalid JSON' in data['message']
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
+    assert 'Invalid JSON' in body['message']
 
 
 @pytest.mark.django_db
@@ -47,9 +48,9 @@ def test_save_missing_table(client, user2):
     client.force_login(user2)
     resp = client.post('/wcapi/save/', data=json.dumps({'name_first': 'A'}), content_type='application/json')
     assert resp.status_code == 400
-    data = resp.json()
-    assert data['status'] == 'fail'
-    assert 'Missing required field' in data['message']
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
+    assert 'Missing required field' in body['message']
 
 
 @pytest.mark.django_db
@@ -57,9 +58,9 @@ def test_save_unknown_table(client, user2):
     client.force_login(user2)
     resp = client.post('/wcapi/save/', data=json.dumps({'table_name': 'nope'}), content_type='application/json')
     assert resp.status_code == 400
-    data = resp.json()
-    assert data['status'] == 'fail'
-    assert 'Unknown table' in data['message']
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
+    assert 'Unknown table' in body['message']
 
 
 @pytest.mark.django_db
@@ -67,6 +68,6 @@ def test_save_invalid_json(client, user2):
     client.force_login(user2)
     resp = client.post('/wcapi/save/', data='{"oops"', content_type='application/json')
     assert resp.status_code == 400
-    data = resp.json()
-    assert data['status'] == 'fail'
-    assert 'Invalid JSON' in data['message']
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
+    assert 'Invalid JSON' in body['message']

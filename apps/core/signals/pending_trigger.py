@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/signals/pending_trigger.py
 import sys
 from django.db.models.signals import post_save
 from django.dispatch import receiver

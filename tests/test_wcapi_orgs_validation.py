@@ -3,6 +3,7 @@ import pytest
 from django.test import Client, override_settings
 from django.contrib.auth import get_user_model
 from apps.orgs.models import OrgBase, OrgType
+from tests.utils import assert_envelope
 
 User = get_user_model()
 
@@ -19,7 +20,7 @@ def test_wcapi_org_create_validation_enabled_success():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200, resp.content
-    body = resp.json(); assert body['status'] == 'success'
+    data = assert_envelope(resp.json(), expect_status='success')
     assert OrgBase.objects.filter(display_name='Valid Co').exists()
 
 @pytest.mark.django_db
@@ -36,7 +37,8 @@ def test_wcapi_org_create_validation_enabled_failure():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
-    body = resp.json(); assert body['status'] == 'fail'
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
     assert 'Validation failed' in body.get('message','')
     details = (body.get('error') or {}).get('details', [])
     assert any('org_type' in e for e in details)
@@ -56,7 +58,8 @@ def test_wcapi_org_partial_update_validation_failure():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
-    body = resp.json(); assert body['status'] == 'fail'
+    body = resp.json()
+    assert_envelope(body, expect_status='fail')
     details = (body.get('error') or {}).get('details', [])
     assert any('domains' in e for e in details)
 

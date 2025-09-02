@@ -1,6 +1,6 @@
 # Central registry for Universal API accessible models.
 # Limits exposure surface and provides a single whitelist for query/save endpoints.
-from apps.core.models import Contact, Action
+from apps.core.models import Contact, Action, Setting, Template, Pending
 from apps.communications.models import Phone, Domain, Email, Location
 from apps.orgs.models import (
     OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg,
@@ -11,6 +11,9 @@ from apps.transactions.models.line_variants import Order, OrderLine
 MODEL_MAP = {
     'contacts': Contact,
     'actions': Action,
+    'settings': Setting,
+    'templates': Template,
+    'pending': Pending,
     'phones': Phone,
     'domains': Domain,
     'emails': Email,

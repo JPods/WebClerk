@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/utils/access_utils.py
 from django.core.exceptions import ObjectDoesNotExist
 from apps.core.models import Setting
 from .global_storage import GlobalStorage

@@ -1,5 +1,4 @@
 #!/bin/bash
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/start.sh
 # Start Redis server
 redis-server &
 

@@ -1,10 +1,14 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/phone.py
+# path: apps/communications/serializers/phone.py
 from rest_framework import serializers
 from ..models import Phone
 from apps.core.utils import get_accessible_fields
 
 class PhoneSerializer(serializers.ModelSerializer):
-    """Serializer for Phone model with role-based field filtering."""
+    """Serializer for Phone model with role-based field filtering.
+
+    Removed legacy/non-existent fields: 'comment', 'dt_verified'. Added 'is_active',
+    audit timestamps and version for consistency.
+    """
     refs = serializers.JSONField(default=dict, help_text="References and links")
     prefs = serializers.JSONField(default=dict, help_text="Preferences")
     metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
@@ -13,9 +17,10 @@ class PhoneSerializer(serializers.ModelSerializer):
         model = Phone
         fields = [
             'id', 'uuid', 'attention', 'country_code', 'format', 'name', 'number',
-            'opt_out', 'comment', 'dt_verified', 'refs', 'prefs', 'metadata'
+            'opt_out', 'is_active', 'created_dt', 'modified_dt', 'version',
+            'refs', 'prefs', 'metadata'
         ]
-        read_only_fields = ['id', 'uuid']
+        read_only_fields = ['id', 'uuid', 'is_active', 'created_dt', 'modified_dt', 'version']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

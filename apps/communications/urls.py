@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/urls.py
+# path: apps/communications/urls.py
 from django.urls import path
 from .views.domain import DomainView, DomainDetailView, DomainSearchView
 from .views.email import EmailView, EmailDetailView

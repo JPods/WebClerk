@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models/domain.py
+# path: apps/communications/models/domain.py
 from django.db import models
 from common.models import BaseModel
 

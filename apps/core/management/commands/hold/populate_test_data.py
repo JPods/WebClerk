@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/populate_test_data.py
 # 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.hashers import make_password

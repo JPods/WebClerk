@@ -1,4 +1,3 @@
-# filepath: /webClerk3/docs/models/documents.py
 from django.db import models
 from django.db.models import F
 from common.models import BaseModel

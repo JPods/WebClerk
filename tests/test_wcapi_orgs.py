@@ -3,6 +3,7 @@ import pytest
 from django.test import Client
 from apps.orgs.models import OrgBase, OrgType
 from django.contrib.auth import get_user_model
+from tests.utils import assert_envelope
 User = get_user_model()
 
 @pytest.mark.django_db
@@ -15,8 +16,9 @@ def test_wcapi_query_orgs_basic():
 
     resp = c.post('/wcapi/query/', data=json.dumps({'table_name': 'orgs'}), content_type='application/json')
     assert resp.status_code == 200
-    body = resp.json(); assert body['status'] == 'success' and body['data']['table_name'] == 'orgs'
-    names = {r['display_name'] for r in body['data']['results']}
+    data = assert_envelope(resp.json(), expect_status='success')
+    assert data['table_name'] == 'orgs'
+    names = {r['display_name'] for r in data['results']}
     assert 'Acme Customer' in names and 'Vendor LLC' in names
 
 @pytest.mark.django_db
@@ -29,6 +31,6 @@ def test_wcapi_query_customers_proxy_filters():
 
     resp = c.post('/wcapi/query/', data=json.dumps({'table_name': 'customers'}), content_type='application/json')
     assert resp.status_code == 200
-    body = resp.json(); assert body['status'] == 'success'
-    names = {r['display_name'] for r in body['data']['results']}
+    data = assert_envelope(resp.json(), expect_status='success')
+    names = {r['display_name'] for r in data['results']}
     assert 'Cust One' in names and 'Vend Two' not in names

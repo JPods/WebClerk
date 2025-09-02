@@ -1,9 +1,7 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/serializers/contact_serializer.py
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..models import Contact
 from common.models import default_metadata
-from apps.communications.models import Location, Email, Phone, Domain
 import uuid
 from django.utils import timezone
 from datetime import timedelta
@@ -45,25 +43,29 @@ class LoginSerializer(TokenObtainPairSerializer):
         return data
 
 class ContactSerializer(serializers.ModelSerializer):
-    """Serializer for Contact model with role-based field filtering."""
-    role = serializers.ListField(
-        child=serializers.ChoiceField(choices=Contact.ROLE_CHOICES),
-        help_text="List of user roles (e.g., ['ADMIN', 'SALE'])"
-    )
-    opt_out = serializers.JSONField(default=dict, help_text="Optional opt-out preferences")
-    prefs = serializers.JSONField(default=dict, help_text="User preferences")
-    refs = serializers.JSONField(default=dict, help_text="References and links")
-    metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
+    """Serializer for Contact model with role-based field filtering.
+
+    Trimmed to only include fields that actually exist on Contact. Legacy / planned
+    fields (role_default, attention, publish, rank, verification_code, etc.) were
+    removed to avoid exposing non-existent attributes that caused drift and potential
+    runtime KeyErrors.
+    """
+    role = serializers.ChoiceField(choices=Contact.ROLE_CHOICES)
+    # JSON envelope fields supplied by BaseModel
+    refs = serializers.JSONField(required=False)
+    prefs = serializers.JSONField(required=False)
+    metadata = serializers.JSONField(required=False)
+    comments = serializers.JSONField(required=False)
 
     class Meta:
         model = Contact
         fields = [
-            'id', 'uuid', 'email', 'opt_out', 'role', 'role_default', 'is_email_verified', 'is_active', 'is_staff',
-            'last_login', 'attention', 'comment_alert', 'company', 'name_first', 'name_last', 'name_middle',
-            'prefix', 'suffix', 'salutation', 'publish', 'rank', 'date_joined', 'comment',
-            'verification_code', 'verification_code_expiry', 'refs', 'prefs', 'metadata'
+            'id', 'uuid', 'email', 'role', 'is_active', 'is_staff', 'last_login',
+            'company', 'title', 'department', 'name_first', 'name_last', 'name_middle',
+            'name_prefix', 'name_suffix', 'comment', 'date_joined',
+            'refs', 'prefs', 'metadata', 'comments'
         ]
-        read_only_fields = ['id', 'uuid', 'verification_code', 'verification_code_expiry', 'is_email_verified', 'date_joined', 'last_login']
+        read_only_fields = ['id', 'uuid', 'date_joined', 'last_login']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -71,53 +73,42 @@ class ContactSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             mode = 'edit' if request.method in ['POST', 'PATCH', 'PUT'] else 'view'
             allowed_fields = get_accessible_fields('contacts', mode, request.user)
-            for field_name in set(self.fields) - set(allowed_fields):
-                self.fields.pop(field_name, None)
+            # Only keep intersection to avoid silently dropping required base fields unexpectedly
+            for field_name in list(self.fields.keys()):
+                if field_name not in allowed_fields:
+                    self.fields.pop(field_name, None)
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """Serializer for user registration."""
+    """Serializer for user registration (single role string)."""
     password = serializers.CharField(write_only=True, help_text="User password (minimum 8 characters)")
-    role = serializers.MultipleChoiceField(
-        choices=Contact.ROLE_CHOICES,
-        required=False,
-        allow_blank=True,
-        default=['USER'],
-        help_text="List of roles to assign (e.g., ['ADMIN', 'SALE'])"
-    )
-    opt_out = serializers.JSONField(default=dict, help_text="Optional opt-out preferences")
-    prefs = serializers.JSONField(default=dict, help_text="User preferences")
-    refs = serializers.JSONField(default=dict, help_text="References and links")
-    metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
+    role = serializers.ChoiceField(choices=Contact.ROLE_CHOICES, required=False, default='user')
+    refs = serializers.JSONField(required=False)
+    prefs = serializers.JSONField(required=False)
+    metadata = serializers.JSONField(required=False)
+    comments = serializers.JSONField(required=False)
 
     class Meta:
         model = Contact
         fields = [
-            'email', 'opt_out', 'role', 'role_default', 'password', 'is_staff', 'attention', 'comment_alert',
-            'company', 'name_first', 'name_last', 'name_middle', 'prefix', 'suffix', 'salutation',
-            'publish', 'rank', 'comment', 'refs', 'prefs', 'metadata'
+            'email', 'password', 'role', 'company', 'title', 'department',
+            'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
+            'comment', 'refs', 'prefs', 'metadata', 'comments'
         ]
 
     def to_internal_value(self, data):
-        # Move undefined fields to metadata.undefined
+        # Capture undefined fields into metadata.undefined for forward compatibility
         defined_fields = set(self.fields.keys())
-        undefined_fields = {key: value for key, value in data.items() if key not in defined_fields}
-        
-        data = data.copy()
-        metadata = data.get('metadata', default_metadata()).copy()
-        if undefined_fields:
-            metadata['undefined'].update(undefined_fields)
-            for key in undefined_fields:
-                data.pop(key, None)
-            data['metadata'] = metadata
-
-        return super().to_internal_value(data)
+        incoming = data.copy()
+        metadata = incoming.get('metadata', default_metadata()).copy()
+        undefined = {k: v for k, v in incoming.items() if k not in defined_fields}
+        if undefined:
+            metadata.setdefault('undefined', {}).update(undefined)
+            for k in undefined:
+                incoming.pop(k, None)
+            incoming['metadata'] = metadata
+        return super().to_internal_value(incoming)
 
     def create(self, validated_data):
-        if 'role' in validated_data:
-            validated_data['role'] = list(validated_data['role'])
-        validated_data['verification_code'] = str(uuid.uuid4())[:8]
-        validated_data['verification_code_expiry'] = timezone.now() + timedelta(hours=24)
-        validated_data['is_active'] = True
         password = validated_data.pop('password')
         validated_data['email'] = validated_data['email'].lower()
         user = Contact(**validated_data)
@@ -125,29 +116,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-class VerifyEmailSerializer(serializers.Serializer):
-    """Serializer for email verification."""
+class VerifyEmailSerializer(serializers.Serializer):  # kept for compatibility; now a no-op placeholder
     email = serializers.EmailField(required=True)
     code = serializers.CharField(required=True, max_length=8)
 
-    def validate(self, attrs):
-        email = attrs.get('email').lower()
-        code = attrs.get('code')
-        try:
-            user = Contact.objects.get(email=email)
-        except Contact.DoesNotExist:
-            raise serializers.ValidationError({"error": "User with this email does not exist."})
-        
-        # Safely check optional attribute to avoid attribute errors if absent
-        if getattr(user, 'is_email_verified', False):
-            raise serializers.ValidationError({"error": "Email is already verified."})
-        
-        stored_code = getattr(user, 'verification_code', None)
-        if stored_code != code:
-            raise serializers.ValidationError({"error": "Invalid verification code."})
-        
-        expiry = getattr(user, 'verification_code_expiry', None)
-        if not expiry or expiry < timezone.now():
-            raise serializers.ValidationError({"error": "Verification code has expired."})
-        
-        return attrs
+    def validate(self, attrs):  # simplified: Contact no longer tracks verification codes
+        # Always fail to make clients migrate off legacy verification flow, but in a controlled way.
+        raise serializers.ValidationError({"error": "Email verification flow deprecated."})

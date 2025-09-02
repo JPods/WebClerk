@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/__init__.py
 from .contact_view import WebContactView
 # from .edit_views import EditContactView  # Disabled: edit_views.py not found
 from .auth_views import SignupView, WebLoginView, WebLogoutView

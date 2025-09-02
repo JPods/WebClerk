@@ -3,6 +3,7 @@ import pytest
 from django.test import Client
 from django.contrib.auth import get_user_model
 from apps.orgs.models import OrgBase, OrgType
+from tests.utils import assert_envelope
 
 User = get_user_model()
 
@@ -18,8 +19,8 @@ def test_wcapi_save_create_org():
     }
     resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
-    body = resp.json(); assert body['status'] == 'success'
-    org = OrgBase.objects.get(id=body['data']['id'])
+    data = assert_envelope(resp.json(), expect_status='success')
+    org = OrgBase.objects.get(id=data['id'])
     assert org.display_name == 'Save Created Co'
 
 @pytest.mark.django_db
@@ -36,5 +37,6 @@ def test_wcapi_save_update_org_with_version():
     }
     resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200
+    assert_envelope(resp.json(), expect_status='success')
     org.refresh_from_db()
     assert org.display_name == 'Update Co Renamed'

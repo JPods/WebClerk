@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/utilities_view.py
+# path: apps/core/views/utilities_view.py
 from django.http import JsonResponse  # legacy
 from common.api_responses import api_response
 """

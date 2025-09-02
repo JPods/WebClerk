@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/domain.py
+# path: apps/communications/serializers/domain.py
 from rest_framework import serializers
 from ..models import Domain
 from common.base_serializers import RoleAwareModelSerializer

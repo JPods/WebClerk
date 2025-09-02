@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/notused/relate_view.py
 from typing import Dict, List
 from django.http import JsonResponse
 from django.views import View

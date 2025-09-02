@@ -1,4 +1,3 @@
-# filepath: /webClerk3/accounts/models/tax_jurisdiction.py
 from django.db import models
 from common.models import BaseModel
 

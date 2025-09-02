@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/transactions/models/projects.py
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify

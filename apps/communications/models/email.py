@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models/email.py
+# path: apps/communications/models/email.py
 from django.db import models
 from common.models import BaseModel
 from django.utils import timezone  # Add this import

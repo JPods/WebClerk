@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/management/commands/view_edit_to_settings.py
 #python manage.py view_edit_to_settings
 import json
 import os

@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/pending.py
 from django.db import models
 from django.utils import timezone
 from common.models import CoreModel, default_data

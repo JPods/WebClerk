@@ -1,10 +1,14 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/address.py
+# path: apps/communications/serializers/address.py
 from rest_framework import serializers
 from ..models import Location
 from apps.core.utils import get_accessible_fields
 
 class LocationSerializer(serializers.ModelSerializer):
-    """Serializer for Location model with role-based field filtering."""
+    """Serializer for Location model with role-based field filtering.
+
+    Removed legacy/non-existent fields: 'comment', 'dt_verified'. Added standard
+    audit + active/version fields for parity with other serializers.
+    """
     refs = serializers.JSONField(default=dict, help_text="References and links")
     prefs = serializers.JSONField(default=dict, help_text="Preferences")
     metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
@@ -13,10 +17,11 @@ class LocationSerializer(serializers.ModelSerializer):
         model = Location
         fields = [
             'id', 'uuid', 'address1', 'address2', 'address_type', 'city', 'country',
-            'instructions', 'latitude', 'longitude', 'state', 'zip', 'full', 'comment',
-            'dt_verified', 'refs', 'prefs', 'metadata'
+            'instructions', 'latitude', 'longitude', 'state', 'zip', 'full',
+            'is_active', 'created_dt', 'modified_dt', 'version',
+            'refs', 'prefs', 'metadata'
         ]
-        read_only_fields = ['id', 'uuid']
+        read_only_fields = ['id', 'uuid', 'is_active', 'created_dt', 'modified_dt', 'version']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

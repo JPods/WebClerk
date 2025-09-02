@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/ignore_fields.py
 # fields to ignore in getting keywords
 IGNORE_FIELDS = [
     "id",

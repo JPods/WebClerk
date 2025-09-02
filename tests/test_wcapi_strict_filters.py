@@ -1,6 +1,7 @@
 import json
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
+from tests.utils import assert_envelope
 
 User = get_user_model()
 
@@ -19,15 +20,16 @@ class WcapiStrictFilterTests(TestCase):
     def test_default_ignores_unknown(self):
         resp = self.post({'table_name': 'contacts', 'unknown_field': 'x'})
         self.assertEqual(resp.status_code, 200)
-        body = resp.json()
-        self.assertEqual(body['status'], 'success')
+        assert_envelope(resp.json(), expect_status='success')
 
     def test_strict_param_rejects_unknown(self):
         resp = self.post({'table_name': 'contacts', 'unknown_field': 'x', 'strict': 1})
         self.assertEqual(resp.status_code, 400)
-        self.assertIn('Invalid filter field', resp.json().get('message', ''))
+        body = resp.json(); assert_envelope(body, expect_status='fail')
+        self.assertIn('Invalid filter field', body.get('message', ''))
 
     def test_strict_header_rejects_unknown(self):
         resp = self.post({'table_name': 'contacts', 'unknown_field': 'x'}, HTTP_WCAPI_STRICT='1')
         self.assertEqual(resp.status_code, 400)
-        self.assertIn('Invalid filter field', resp.json().get('message', ''))
+        body = resp.json(); assert_envelope(body, expect_status='fail')
+        self.assertIn('Invalid filter field', body.get('message', ''))

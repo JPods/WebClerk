@@ -4,15 +4,14 @@
 
 #!/bin/bash
 
-# Navigate to project root
-cd /Users/williamjames/Documents/CommerceExpert/webClerk3
+# Navigate to project root (relative)
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 echo "🔧 Adding file path documentation headers to WebClerk3 project..."
 
 # 1. Update manage_addresses.html
 cat > temp_header.txt << 'EOF'
-<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/templates/communications/manage_addresses.html -->
-<!-- 
+<!--
 PURPOSE: Location management interface using Universal API for full CRUD operations
 UNIVERSAL API: Uses /wcapi/get/, /wcapi/save/, /wcapi/delete/ endpoints
 REPLACES: Old hardcoded address management system with individual views
@@ -38,8 +37,7 @@ rm temp_header.txt temp_file.txt
 
 # 2. Update contact.html
 cat > temp_header.txt << 'EOF'
-<!-- filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/templates/core/contact.html -->
-<!-- 
+<!--
 PURPOSE: Main contact detail page with Universal API navigation links
 UNIVERSAL API: Links to /wcapi/{table}/manage/ endpoints for related data
 REPLACES: Old hardcoded URLs like /manage-addresses/, /manage-phones/
@@ -71,7 +69,6 @@ rm temp_header.txt
 
 # 3. Update generic_views.py (already has header, but ensure it's complete)
 cat > temp_header.txt << 'EOF'
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/generic_views.py
 # 
 # PURPOSE: Universal CRUD views that handle ANY table across ALL apps
 # UNIVERSAL API: Core implementation of query, save, get, delete, clone operations
@@ -102,7 +99,6 @@ rm temp_header.txt
 
 # 4. Update common/models.py
 cat > temp_header.txt << 'EOF'
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/models.py
 # 
 # PURPOSE: Base model with Universal API metadata system for ALL models
 # UNIVERSAL API: Provides foundation metadata structure that makes Universal API work
@@ -134,7 +130,6 @@ rm temp_header.txt
 
 # 5. Update core/models/contact_model.py
 cat > temp_header.txt << 'EOF'
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/models/contact_model.py
 # 
 # PURPOSE: Main Contact model with Universal API support and Django authentication
 # UNIVERSAL API: Accessible via 'contacts' table name in Universal API
@@ -162,7 +157,6 @@ rm temp_header.txt
 
 # 6. Update communications/models.py
 cat > temp_header.txt << 'EOF'
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/models.py
 # 
 # PURPOSE: Location, Phone, Email, Domain models for Universal API communication data
 # UNIVERSAL API: Accessible via 'addresses', 'phones', 'emails', 'domains' table names
@@ -193,7 +187,6 @@ rm temp_header.txt
 
 # 7. Update core/urls.py
 cat > temp_header.txt << 'EOF'
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py
 # 
 # PURPOSE: URL routing for Universal API endpoints and standard Django views
 # UNIVERSAL API: Routes /wcapi/ URLs to universal views that handle any table
@@ -222,7 +215,6 @@ rm temp_header.txt
 
 # 8. Update tests/test_universal_api_simple.py
 cat > temp_header.txt << 'EOF'
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/tests/test_universal_api_simple.py
 # 
 # PURPOSE: Comprehensive test suite for Universal API functionality
 # UNIVERSAL API: Tests all endpoints (query, save, get, delete, clone) with multiple tables

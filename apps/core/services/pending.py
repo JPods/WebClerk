@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/services/pending.py
 from apps.core.models.pending import Pending
 
 def process_pending_keywords():

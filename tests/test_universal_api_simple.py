@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/tests/test_universal_api_simple.py
+# path: tests/test_universal_api_simple.py
 # 
 # PURPOSE: Comprehensive test suite for Universal API functionality
 # UNIVERSAL API: Tests all endpoints (query, save, get, delete, clone) with multiple tables

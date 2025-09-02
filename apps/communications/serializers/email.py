@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/serializers/email.py
+# path: apps/communications/serializers/email.py
 from rest_framework import serializers
 from ..models import Email
 from apps.core.utils import get_accessible_fields

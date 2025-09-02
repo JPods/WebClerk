@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/get_view.py
+# path: apps/core/views/get_view.py
 from django.http import JsonResponse  # legacy (remove after full migration)
 from rest_framework.views import APIView
 from rest_framework import permissions

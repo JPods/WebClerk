@@ -1,4 +1,3 @@
-# filepath: /webClerk3/docs/models/linkages.py
 from django.db import models
 from common.models import BaseModel
 from django.utils import timezone

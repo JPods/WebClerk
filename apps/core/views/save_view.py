@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/save_view.py
+# path: apps/core/views/save_view.py
 from django.http import JsonResponse
 from common.api_responses import api_response
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
@@ -162,6 +162,9 @@ class SaveWcapiView(LoginRequiredMixin, APIView):
             # Special handling: never assign raw password directly; defer to set_password
             if field == 'password':
                 raw_password = value
+                continue
+            # Concurrency control fields are NOT persisted directly; they are used only for optimistic checks
+            if field in ('version', 'expected_version'):
                 continue
             if field in nested_fields and hasattr(obj, field):
                 allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())

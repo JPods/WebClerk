@@ -1,4 +1,3 @@
-# filepath: /webClerk3/accounts/models/audit.py
 from django.db import models
 from common.models import BaseModel
 from django.utils import timezone

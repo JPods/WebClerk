@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/views/phone.py
+# path: apps/communications/views/phone.py
 from rest_framework import generics, status, pagination
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse

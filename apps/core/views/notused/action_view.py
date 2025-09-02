@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/notused/action_view.py
 from rest_framework import generics, status
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse

@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/urls.py
+# path: apps/core/urls.py
 from django.urls import path
 
 from apps.core.views import (
@@ -26,6 +26,8 @@ from apps.core.views.model_info import ModelInfoView
 from django.views.generic import TemplateView
 from apps.core.views.pending import PendingListView, PendingDetailView, PendingSearchView
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
+from apps.core.views.setting import SettingListView, SettingDetailView, SettingSearchView
+from apps.core.views.template import TemplateListView, TemplateDetailView, TemplateSearchView
 
 urlpatterns = [
     path('api/token/', LoginTokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -122,6 +124,16 @@ urlpatterns = [
     path('actions/std/', ActionListView.as_view(), name='action2-list'),
     path('actions/std/<int:pk>/', ActionDetailView.as_view(), name='action2-detail'),
     path('actions/std/search/', ActionSearchView.as_view(), name='action2-search'),
+
+    # Settings endpoints
+    path('settings/', SettingListView.as_view(), name='setting-list'),
+    path('settings/<int:pk>/', SettingDetailView.as_view(), name='setting-detail'),
+    path('settings/search/', SettingSearchView.as_view(), name='setting-search'),
+
+    # Templates endpoints
+    path('templates/', TemplateListView.as_view(), name='template-list'),
+    path('templates/<int:pk>/', TemplateDetailView.as_view(), name='template-detail'),
+    path('templates/search/', TemplateSearchView.as_view(), name='template-search'),
 
     # GET /wcapi/models/?table_name=contacts&related_tables=actions,phones
     # Returns info for contacts, actions, and phones.

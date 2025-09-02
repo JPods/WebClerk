@@ -1,4 +1,3 @@
-# filepath: /webClerk3/accounts/models/gl_account.py
 from django.db import models
 from common.models import BaseModel
 

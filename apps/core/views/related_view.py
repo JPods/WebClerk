@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/core/views/related_view.py
+# path: apps/core/views/related_view.py
 from typing import Dict, List, Optional, Any
 from django.http import JsonResponse
 from django.views import View

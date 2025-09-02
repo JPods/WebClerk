@@ -17,6 +17,7 @@ Moved detailed guides into `docs/` (2025-09-01). Quick index:
 - Upgrade Roadmap: `docs/upgrade.md`
 - Data / Model Map: `docs/data-map.md`
 - Rules & Guidelines: `docs/rules.md`
+- Active Roadmap / In-Process Tracker: `docs/roadmap.md`
 
 ## Contributors
 
@@ -37,7 +38,7 @@ Authoritative guides are split by concern (single source each, no duplication):
 - Data / model structure map: `docs/data-map.md`
 - Upgrade / migration notes: `docs/upgrade.md`
 
-If you add >~15 lines of procedural or reference material, place it in the appropriate doc file under `docs/` and add (or update) a single-line link here instead of duplicating.
+If you add >~15 lines of procedural or reference material, place it in the appropriate doc file under `docs/` and add (or update) a single-line link here instead of duplicating. Documentation has been consolidated under `docs/`; the former `README_s/` placeholders are being deprecated.
 
 ## Data Basics
 
@@ -208,7 +209,7 @@ Environment variables:
 
 If you unexpectedly see auth errors like `no such table: contacts` outside pytest, ensure you did not export `USE_SQLITE_TEST=1` and that migrations have been applied (`python manage.py migrate`).
 
-Deeper details & scenarios: see `README_TESTS.md` (Environment Assumptions section).
+Deeper details & scenarios: see `docs/testing.md` (Environment Assumptions section). Legacy placeholder kept at `README_s/README_TESTS.md`.
 
 ```
 

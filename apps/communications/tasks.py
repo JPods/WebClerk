@@ -1,4 +1,4 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/communications/tasks.py
+# path: apps/communications/tasks.py
 from celery import shared_task
 
 @shared_task

@@ -1,4 +1,3 @@
-# filepath: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/sandbox/tcelery.py
 import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')  # Adjust to your settings module

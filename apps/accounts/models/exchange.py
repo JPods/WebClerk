@@ -1,4 +1,3 @@
-# filepath: /webClerk3/accounts/models/exchange.py
 from django.db import models
 from common.models import BaseModel
 from decimal import Decimal

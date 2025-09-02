@@ -3,6 +3,7 @@ import pytest
 from django.test import Client, override_settings
 from django.contrib.auth import get_user_model
 from apps.communications.models import Phone
+from tests.utils import assert_envelope
 
 User = get_user_model()
 
@@ -21,9 +22,8 @@ def test_phone_pre_and_post_hooks_success(monkeypatch):
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 200, resp.content
-    body = resp.json()
-    assert body['status'] == 'success'
-    assert any('phone saved' in m for m in body['data'].get('messages', []))
+    data = assert_envelope(resp.json(), expect_status='success')
+    assert any('phone saved' in m for m in data.get('messages', []))
     assert Phone.objects.filter(number='5551234').exists()
 
 @pytest.mark.django_db
@@ -39,7 +39,7 @@ def test_phone_pre_save_rejects_short_number():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
-    body = resp.json(); assert body['status'] == 'fail'
+    body = resp.json(); assert_envelope(body, expect_status='fail')
     assert 'number: too short' in body.get('message','')
 
 @pytest.mark.django_db
@@ -55,6 +55,6 @@ def test_phone_api_validate_country_code_error():
     with override_settings(UNIVERSAL_API_VALIDATE=True):
         resp = c.post('/wcapi/save/', data=json.dumps(payload), content_type='application/json')
     assert resp.status_code == 400
-    body = resp.json(); assert body['status'] == 'fail'
+    body = resp.json(); assert_envelope(body, expect_status='fail')
     details = (body.get('error') or {}).get('details', [])
     assert any('country_code' in e for e in details)

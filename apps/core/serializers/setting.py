@@ -1,0 +1,36 @@
+from rest_framework import serializers
+from apps.core.models.setting import Setting
+from apps.core.utils import get_accessible_fields
+
+class SettingSerializer(serializers.ModelSerializer):
+    """Serializer for Setting model with role-based allowed field filtering.
+
+    Only exposes real model fields plus BaseModel envelopes. Allows dynamic
+    field filtering using `get_accessible_fields('settings', mode, user)` to
+    keep external contract consistent with other core serializers.
+    """
+    metadata = serializers.JSONField(required=False)
+    refs = serializers.JSONField(required=False)
+    prefs = serializers.JSONField(required=False)
+    comments = serializers.JSONField(required=False)
+
+    class Meta:
+        model = Setting
+        fields = [
+            'id','uuid','name','purpose','role','table_name','is_active','data',
+            'metadata','refs','prefs','comments','version','created_dt','modified_dt'
+        ]
+        read_only_fields = ['id','uuid','version','created_dt','modified_dt']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request,'user') and request.user.is_authenticated:
+            mode = 'edit' if request.method in ['POST','PUT','PATCH'] else 'view'
+            allowed = set(get_accessible_fields('settings', mode, request.user))
+            # Always keep identity + version fields
+            core_fields = {'id','uuid','version','created_dt','modified_dt','name','purpose','table_name','data'}
+            if allowed:
+                for fname in list(self.fields.keys()):
+                    if fname not in allowed and fname not in core_fields:
+                        self.fields.pop(fname, None)
