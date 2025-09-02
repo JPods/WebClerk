@@ -32,8 +32,8 @@ def test_connection_list_create_and_pagination(api_client, staff_user):
         api_client.post(list_url, {'name': f'C{i}', 'type': 'erp', 'config': {'i': i}}, format='json')
     page1 = api_client.get(list_url)
     assert page1.status_code == 200
-    data = page1.json()
-    assert 'results' in data and len(data['results']) <= 25
+    data = page1.json()['data']
+    assert len(data['results']) <= 25
 
 
 def test_connection_search_permission_and_results(api_client, staff_user, normal_user):
@@ -42,7 +42,7 @@ def test_connection_search_permission_and_results(api_client, staff_user, normal
     search_url = reverse('sync:connection-search') + '?q=hub'
     resp = api_client.get(search_url)
     assert resp.status_code == 200
-    paths = [c['name'] for c in resp.json()['results']]
+    paths = [c['name'] for c in resp.json()['data']['results']]
     assert any('HubSpot' in p for p in paths)
     api_client.force_authenticate(user=normal_user)
     forbidden = api_client.get(search_url)
@@ -52,13 +52,13 @@ def test_connection_search_permission_and_results(api_client, staff_user, normal
 def test_connection_atomic_patch(api_client, staff_user):
     list_url = reverse('sync:connection-list')
     r = api_client.post(list_url, {'name': 'PatchTarget', 'type': 'erp', 'config': {}}, format='json')
-    cid = r.json()['id']
+    cid = r.json()['data']['id']
     detail = reverse('sync:connection-detail', args=[cid])
     g = api_client.get(detail)
-    version = g.json()['version']
+    version = g.json()['data']['version']
     p1 = api_client.patch(detail, {'version': version, 'set': {'metadata.flags.schema_rev': 2}}, format='json')
     assert p1.status_code == 200
-    new_version = p1.json()['version']
+    new_version = p1.json()['data']['version']
     # stale conflict
     conflict = api_client.patch(detail, {'version': version, 'set': {'metadata.flags.schema_rev': 3}}, format='json')
     assert conflict.status_code == 412

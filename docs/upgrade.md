@@ -1,5 +1,7 @@
 # Upgrade Roadmap (webClerk3)
 
+(Moved from `README_UPGRADE.md` at project root on 2025-09-01.)
+
 Purpose: Shared, prioritized enhancement backlog for Core/BaseModel, Universal API, and related infrastructure. Focus on maintainability, performance, correctness, and developer velocity. Each item lists: Goal, Benefit, Acceptance Criteria, Effort (S/M/L), Priority (P1–P3).
 
 ---
@@ -283,7 +285,7 @@ Acceptance: Concurrency test proves version unchanged, response 204.
 
 ### 9.3 Unified Error Codes (P2 / S) [DX]
 
-Goal: Standardize wcapi error `code` (e.g., VERSION_CONFLICT, INVALID_FILTER).
+Goal: Standardize wcapi error `code`.
 
 Acceptance: All error responses include `code` field; tests updated.
 
@@ -297,7 +299,7 @@ Acceptance: `tests/factories.py` with `make_contact(**overrides)` etc.
 
 Goal: Guard against shape regressions of to_universal_dict.
 
-Acceptance: Failing diff when unexpected keys disappear/appear.
+Acceptance: Failing diff on unexpected key changes.
 
 ---
  
@@ -392,25 +394,49 @@ Risk & Mitigation:
 - dt_created / dt_modified aliases.
 - changed_fields tracking & size warnings.
 - Instance atomic_set / atomic_append helpers.
-- Layered CI pipeline: smoke gate (marker=smoke), multi-Python matrix (fast subset then full), Postgres integration stage with Newman/Postman minimal contract test, coverage & JUnit XML artifacts per stage.
-- Expanded Postman contract suite: signup/login, create via wcapi/save, get, query, version conflict attempt, allowed-fields, models metadata, metrics, negative auth (missing token), pagination & filtered query, schema baseline field presence, response time guard.
-- Database configuration hardening: default dev/runtime now uses Postgres; in‑memory SQLite restricted to pytest (or explicit `USE_SQLITE_TEST=1` override) with safety warning to prevent accidental data loss / missing table errors.
+- Layered CI pipeline: smoke gate, multi-Python matrix, integration stage.
+- Expanded Postman contract suite.
+- Database configuration hardening (Postgres default; SQLite only in pytest or explicit override).
 
 ---
- 
-## 17. Next Steps
 
-1. Team review & adjust priorities (add owners, target sprint).
-2. CI refinements:
-	- (DONE) Aggregate multi-version coverage (coverage combine + single XML output).
-	- (DONE) Codecov upload & badge activated (threshold 70% - ratchet later).
-	- Enforce higher coverage threshold over time (currently 70%).
-	- Expand Postman collection (auth flows, CRUD, error schema assertions).
-	- Add Codecov (or Coveralls) upload & repository badge.
-	- Consider caching Django migration state if startup time grows.
-	- Postman future: expired token scenario, persisted schema snapshot file (diff on change), formal performance thresholds env-driven, negative error schema assertions, pagination cursor tests (if added), bulk save once implemented.
-3. Create tickets referencing section + item number (e.g., UPG-1.1).
-4. Establish weekly checkpoint reviewing Phase 1 items until complete.
+## 17. Unified Response Envelope Adoption (Historical Timeline)
+
+| Date | Milestone | Notes |
+|------|-----------|-------|
+| 2025-08 | Initial envelope helper adopted in Universal API | Legacy `success: true/false` deprecated |
+| 2025-08 (late) | Middleware prototype auto-wrapped DRF responses | `?raw=1` transitional flag introduced |
+| 2025-09-01 | Global enforcement (middleware + exception handlers) | All endpoints standardized |
+| 2025-09-01 | Raw mode default disabled | `API_ENVELOPE_ALLOW_RAW=1` required locally |
+| 2025-09-02 | Legacy key bubbling removed | Tests must use payload['data'][...] (no top-level mirrors) |
+| TBD | Raw mode fully removed | Env flag ignored; code deleted |
+
+### Deprecation Plan (Raw Mode)
+
+1. Current (env-gated). 2. Optional warning phase. 3. Removal & minor version bump.
+
+### Client Migration Guidance
+
+- Treat every payload as enveloped.
+- Use `error.code` not message text.
+- Ignore unknown `meta` keys.
+
+### Adding New Error Codes
+
+1. Map exception → code. 2. Add contract test. 3. Document here + README. 4. If renaming, support alias for one release.
+
+### Backward Compatibility Window
+
+Target ≤ 2 weeks from enforcement unless integrators object.
 
 ---
-*End of document.*
+
+## 18. Next Steps
+
+1. Team review & adjust priorities.
+2. CI refinements: coverage ratchet, Postman expansion, migration state cache.
+3. Ticket creation referencing section numbers.
+4. Weekly checkpoint on Phase 1 items.
+
+---
+*End of roadmap.*

@@ -23,18 +23,19 @@ def test_action_list_create_and_pagination(auth_client):
         Action.objects.create(action=f"Task {i}")
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    assert 'results' in resp.data
-    assert resp.data['count'] >= 4
+    payload = resp.data
+    assert 'data' in payload and 'results' in payload['data']
+    assert payload['data']['count'] >= 4
 
 @pytest.mark.django_db
 def test_action_detail_atomic_patch(auth_client):
     obj = Action.objects.create(action='Follow Up', status='open')
     detail = reverse('action2-detail', args=[obj.id])
     get_resp = auth_client.get(detail)
-    version = get_resp.data['version']
+    version = get_resp.data['data']['version']
     patch_resp = auth_client.patch(detail, {"version":version, "set":{"metadata.flags.schema_rev":2}}, format='json')
     assert patch_resp.status_code == 200
-    assert patch_resp.data['version'] == version + 1
+    assert patch_resp.data['data']['version'] == version + 1
     conflict = auth_client.patch(detail, {"version":version, "set":{"metadata.flags.schema_rev":3}}, format='json')
     assert conflict.status_code == 412
 
@@ -45,5 +46,5 @@ def test_action_search(auth_client):
     url = reverse('action2-search') + '?q=Al'
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    names = [r['action'] for r in resp.data['results']]
+    names = [r['action'] for r in resp.data['data']['results']]
     assert any('Alpha' in n for n in names)

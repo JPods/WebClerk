@@ -1,4 +1,6 @@
-# Project Rules & Conventions
+# Project Rules & Guidelines
+
+(Moved from `rules.md` at project root on 2025-09-01.)
 
 Root = webClerk3 (paths in docs/code are relative to this root)
 
@@ -27,19 +29,19 @@ Baseline rules that require a published exception:
 1. Django REST Framework for all endpoints
 2. Only json response to endpoints.
 3. Standardize response with:
-   3.1. { "success": true, "data": ..., "errors": {} }  
-        Related data in a json must be noted as data.related{} for consistency.
-   3.2. { "success": false, "data": null, "errors": { "message": "...", "help": "https://..." } }. Clear error messages with link to help.
+   1. { "success": true, "data": ..., "errors": {} }  
+      Related data in a json must be noted as data.related{} for consistency.
+   2. { "success": false, "data": null, "errors": { "message": "...", "help": "https://..." } }. Clear error messages with link to help.
 4. jsons for exchanging information, even inputs. Convert all CSV's etc into json outside of WebClerk.
 5. always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in e
 6. always use table_name for table_name of the primary table being worked and "id" is the id for the primary table record id. For non-primary table_name_id format.
 7. Save paths to larger documents. Never save large documents in the database.
 8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py
-9. always put relationships into table_name.refs.links{"related_table_name::[id1,id4,...],"related_table_name2":[]}
+9. always put relationships into table_name.refs.links{"related_table_name::[id1,id4,...]","related_table_name2":[]}
 10. Settings records for view_edit.  "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
 11. Break the common Django framework of put, post, add functions with generalized, universal wcapi/relate, wcapi/get, wcapi/save etc... see core/urls.py
-11. Use Celery to wrap generalized functions such as wcapi/save for pre/post hooks.
-12. ONLY use uuid for communicating between databases with sync records (catalog updates, security issues, defaults, etc.).
+12. Use Celery to wrap generalized functions such as wcapi/save for pre/post hooks.
+13. ONLY use uuid for communicating between databases with sync records (catalog updates, security issues, defaults, etc.).
 
 ## Rate Limiting
 
@@ -137,7 +139,6 @@ Languages:
 Use Django i18n only for backend warnings/errors.
 Keep all other content in English to reduce complexity.
 Manage UI translations in React if you ever need to expand.
-
 
 ## Timestamp Summary
 

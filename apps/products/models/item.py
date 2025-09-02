@@ -7,60 +7,69 @@ from common.stats_mixin import StatsMixin
 
 # ---- Default JSON factories (document expected schema) -----------------
 def default_price():
-        """Price dictionary structure.
+    """Price dictionary structure.
 
-        Keys:
-            base: primary sell price
-            msrp: manufacturer suggested retail price
-            tiers: list of {level, price} for customer segments
-            currency: ISO currency code
-            history: optional recent adjustments (not authoritative ledger)
-        """
-        return {"base": None, "msrp": None, "tiers": [], "currency": "USD", "history": []}
+    Keys:
+        base: primary sell price
+        msrp: manufacturer suggested retail price
+        tiers: list of {level, price} for customer segments
+        currency: ISO currency code
+        history: optional recent adjustments (not authoritative ledger)
+    """
+    return {"base": None, "msrp": None, "tiers": [], "currency": "USD", "history": []}
 
 
 def default_cost():
-        """Cost dictionary structure.
+    """Cost dictionary structure.
 
-        Keys:
-            standard: standard costing (may align with GL)
-            last: last receipt unit cost
-            avg: moving average cost
-            landed: landed cost (including freight/duties)
-            currency: ISO currency
-            components: optional breakdown (freight, duty, overhead)
-        """
-        return {
-                "standard": None,
-                "last": None,
-                "avg": None,
-                "landed": None,
-                "currency": "USD",
-                "components": {},
-        }
+    Keys:
+        standard: standard costing (may align with GL)
+        last: last receipt unit cost
+        avg: moving average cost
+        landed: landed cost (including freight/duties)
+        currency: ISO currency
+        components: optional breakdown (freight, duty, overhead)
+    """
+    return {
+        "standard": None,
+        "last": None,
+        "avg": None,
+        "landed": None,
+        "currency": "USD",
+        "components": {},
+    }
 
 
 def default_catalog():
-        """Catalog placement data.
+    """Catalog placement data.
 
-        Keys:
-            categories: ordered list of category slugs/ids
-            attributes: free-form spec key/value pairs
-            web: {slug, title, short, seo:{...}}
-            flags: lightweight booleans (featured, seasonal, restricted)
-        """
-        return {"categories": [], "attributes": {}, "web": {}, "flags": {}}
+    Keys:
+        categories: ordered list of category slugs/ids
+        attributes: free-form spec key/value pairs
+        web: {slug, title, short, seo:{...}}
+        flags: lightweight booleans (featured, seasonal, restricted)
+    """
+    return {"categories": [], "attributes": {}, "web": {}, "flags": {}}
 
 
 def ensure_item_prefs(prefs: dict | None) -> dict:
-        """Ensure prefs has minimal item-specific sections without overwriting user data."""
-        if not isinstance(prefs, dict):
-                prefs = {}
-        prefs.setdefault("display", {})            # presentation (columns, default_uom)
-        prefs.setdefault("restrictions", {})       # channel / region restrictions
-        prefs.setdefault("shipping", {})           # weight, dims cache
-        prefs.setdefault("userdefined", "")       # preserve original base key
-        return prefs
+    """Ensure prefs has minimal item-specific sections without overwriting user data."""
+    if not isinstance(prefs, dict):
+        prefs = {}
+    prefs.setdefault("display", {})            # presentation (columns, default_uom)
+    prefs.setdefault("restrictions", {})       # channel / region restrictions
+    prefs.setdefault("shipping", {})           # weight, dims cache
+    prefs.setdefault("userdefined", "")       # preserve original base key
+    return prefs
+
+# Explicit wrapper factories (some Django system checks were not recognizing
+# the prior function objects as callables for JSONField defaults in certain
+# import orders). Using simple un-nested factories guarantees compliance.
+def price_default_factory():
+    return default_price()
+
+def cost_default_factory():
+    return default_cost()
 
 
 class Item(StatsMixin, BaseModel):
@@ -94,11 +103,11 @@ class Item(StatsMixin, BaseModel):
     is_print_not = models.BooleanField(default=False)
     is_serialized = models.BooleanField(default=False)
     is_tally_by_type = models.BooleanField(default=False)
-    price = models.JSONField(default=default_price, blank=True, help_text="Pricing information dict; see default_price() schema")
+    price = models.JSONField(default=price_default_factory, blank=True, help_text="Pricing information dict; see default_price() schema")
     #"price_average_sale" DOUBLE PRECISION,
     #"price_manufacturer_suggested" DOUBLE PRECISION
     # retail, wholesale, education, distributor, etc...,
-    cost = models.JSONField(default=default_cost, blank=True, help_text="Cost information dict; see default_cost() schema")
+    cost = models.JSONField(default=cost_default_factory, blank=True, help_text="Cost information dict; see default_cost() schema")
     #average, last_inship, landed, etc...
     security_level = models.IntegerField(default=0, db_index=True)  
     tax_code = models.CharField(max_length=120, blank=True)

@@ -12,6 +12,7 @@ from apps.core.utils import get_accessible_fields
 from common.models import default_refs, VersionConflictError  # ✅ ADD THIS IMPORT
 from rest_framework.exceptions import ValidationError
 from common.mixins import OptimisticPatchMixin
+from common.api_responses import api_response
 
 class CommPagination(pagination.PageNumberPagination):
     page_size = 25
@@ -45,7 +46,21 @@ class DomainView(generics.ListCreateAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        raw_flag = request.query_params.get('raw') == '1'
+        response = super().get(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        data = response.data
+        meta = None
+        if isinstance(data, dict) and {'results','count'}.issubset(data.keys()):
+            meta = {
+                'total': data.get('count'),
+                'page_size': request.query_params.get('page_size') or CommPagination.page_size,
+                'next': data.get('next'),
+                'previous': data.get('previous')
+            }
+            data = data.get('results')
+        return api_response(data=data, meta=meta, raw=raw_flag)
 
     @extend_schema(
         summary="Create Domain",
@@ -59,33 +74,21 @@ class DomainView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         if not self._role_allowed(request.user):
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="Forbidden", error={'code':'forbidden'}, raw=raw_flag)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # ✅ STEP 1: Create domain FIRST
         domain = serializer.save()
-        
-        # ✅ STEP 2: Setup refs structure properly
         if not domain.refs:
             domain.refs = default_refs()
-        
-        if 'links' not in domain.refs:
-            domain.refs['links'] = {}
-            
-        if 'contacts' not in domain.refs['links']:
-            domain.refs['links']['contacts'] = []
-        
-        # ✅ STEP 3: Add contact ID to proper location
+        domain.refs.setdefault('links', {}).setdefault('contacts', [])
         if request.user.id not in domain.refs['links']['contacts']:
             domain.refs['links']['contacts'].append(request.user.id)
-        
-        # ✅ STEP 4: Save the updated refs
         domain.save()
-        
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if raw_flag:
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED, raw=raw_flag)
 
 
 class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIView):
@@ -114,7 +117,11 @@ class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        raw_flag = request.query_params.get('raw') == '1'
+        response = super().get(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(data=response.data, raw=raw_flag)
 
     @extend_schema(
         summary="Update Domain",
@@ -129,25 +136,31 @@ class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
         }
     )
     def patch(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         if not self._role_allowed(request.user):
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+            return api_response(success=False, status_code=403, message="Forbidden", error={'code':'forbidden'}, raw=raw_flag)
         obj = self.get_object()
         payload = request.data or {}
-        # If atomic keys present, attempt atomic operations
         if any(k in payload for k in ('set','append')):
             try:
                 updated = self.apply_atomic_ops(obj, payload)
             except VersionConflictError as e:
-                return Response({'detail': str(e), 'code': 'version_conflict'}, status=412)
+                return api_response(success=False, status_code=412, message='Version conflict', error={'detail': str(e), 'code':'version_conflict'}, raw=raw_flag)
             except ValidationError as ve:
-                return Response(ve.detail, status=400)
+                if raw_flag:
+                    return Response(ve.detail, status=400)
+                return api_response(success=False, status_code=400, message='Validation error', error={'fields': ve.detail}, raw=raw_flag)
             ser = self.get_serializer(updated)
-            return Response(ser.data, status=200)
-        # Else fallback to normal partial serializer update with optional version check
+            if raw_flag:
+                return Response(ser.data, status=200)
+            return api_response(data=ser.data, raw=raw_flag)
         expected_version = payload.get('version')
         if expected_version is not None and expected_version != obj.version:
-            return Response({'detail': f'Version conflict: expected {expected_version} got {obj.version}', 'code': 'version_conflict'}, status=412)
-        return super().patch(request, *args, **kwargs)
+            return api_response(success=False, status_code=412, message='Version conflict', error={'expected': expected_version, 'current': obj.version, 'code': 'version_conflict'}, raw=raw_flag)
+        response = super().patch(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(data=response.data, raw=raw_flag)
 
     @extend_schema(
         summary="Delete Domain",
@@ -160,14 +173,26 @@ class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
         }
     )
     def delete(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         if not self._role_allowed(request.user):
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-
+            return api_response(success=False, status_code=403, message="Forbidden", error={'code':'forbidden'}, raw=raw_flag)
+        # Relationship cleanup: remove domain id from any contact refs.links.domains lists if present.
         domain = self.get_object()
-        Contact.objects.filter(refs__domains__contains=[str(domain.id)]).update(
-            **{'refs__domains': models.F('refs__domains').exclude(str(domain.id))}
-        )
-        return super().delete(request, *args, **kwargs)
+        # Fetch contacts referencing this domain id (stored as string) in refs.links.domains
+        contacts = Contact.objects.filter(refs__links__domains__contains=[domain.id])
+        for c in contacts:
+            try:
+                domains_list = c.refs.get('links', {}).get('domains', [])
+                new_list = [d for d in domains_list if str(d) != str(domain.id)]
+                if new_list != domains_list:
+                    c.refs.setdefault('links', {})['domains'] = new_list
+                    c.save(update_fields=['refs', 'modified_dt'])
+            except Exception:  # defensive; do not block delete on malformed refs
+                pass
+        response = super().delete(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(message='Deleted', data=None, status_code=200, raw=raw_flag)
     
 
 class DomainSearchView(APIView):
@@ -176,12 +201,16 @@ class DomainSearchView(APIView):
     ALLOWED_ROLES = {'staff', 'admin'}
 
     def get(self, request):
+        raw_flag = request.query_params.get('raw') == '1'
         user = request.user
         if not (getattr(user, 'role', '') in self.ALLOWED_ROLES or user.is_superuser):
-            return Response({'detail': 'Forbidden'}, status=403)
+            return api_response(success=False, status_code=403, message='Forbidden', error={'code':'forbidden'}, raw=raw_flag)
         raw_q = (request.GET.get('q') or '').strip()
         if not raw_q:
-            return Response({'results': [], 'count': 0, 'q': raw_q})
+            empty_payload = {'results': [], 'count': 0, 'q': raw_q, 'terms': []}
+            if raw_flag:
+                return Response(empty_payload)
+            return api_response(data=empty_payload, raw=raw_flag)
         terms = [t for t in raw_q.split() if t]
         qs = Domain.objects.filter(is_active=True)
         status_val = request.GET.get('status')
@@ -201,6 +230,9 @@ class DomainSearchView(APIView):
         data = DomainSerializer(qs, many=True, context={'request': request}).data
         for d in qs:
             d.increment_access(by=1, save=True)
-        return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})
+        payload = {'results': data, 'count': len(data), 'q': raw_q, 'terms': terms}
+        if raw_flag:
+            return Response(payload)
+        return api_response(data=payload, raw=raw_flag)
     
 

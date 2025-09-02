@@ -18,12 +18,12 @@ def test_project_create_and_list(admin_user):
         'category': 'ops'
     }, format='json')
     assert resp.status_code == 201, getattr(resp, 'data', None)  # type: ignore[attr-defined]
-    pid = resp.data['id']  # type: ignore[attr-defined]
+    pid = resp.data['data']['id']  # type: ignore[attr-defined]
 
     # list + pagination basics
     list_resp = client.get(reverse('project-list'))
     assert list_resp.status_code == 200  # type: ignore[attr-defined]
-    assert any(p['id'] == pid for p in list_resp.data['results'])  # type: ignore[attr-defined]
+    assert any(p['id'] == pid for p in list_resp.data['data']['results'])  # type: ignore[attr-defined]
 
 @pytest.mark.django_db
 def test_project_validation_priority(admin_user):
@@ -31,7 +31,8 @@ def test_project_validation_priority(admin_user):
     client.force_authenticate(user=admin_user)
     bad = client.post(reverse('project-list'), {'priority': 99}, format='json')
     assert bad.status_code == 400  # type: ignore[attr-defined]
-    assert 'priority' in bad.data  # type: ignore[attr-defined]
+    # Validation errors now under error.details
+    assert 'priority' in (bad.data.get('error', {}).get('details') or {})  # type: ignore[attr-defined]
 
 @pytest.mark.django_db
 def test_project_task_burndown_derivation(admin_user):
@@ -45,6 +46,6 @@ def test_project_task_burndown_derivation(admin_user):
         ]}
     }, format='json')
     assert resp.status_code == 201, getattr(resp, 'data', None)  # type: ignore[attr-defined]
-    proj = Project.objects.get(id=resp.data['id'])  # type: ignore[attr-defined]
+    proj = Project.objects.get(id=resp.data['data']['id'])  # type: ignore[attr-defined]
     # 1 of 3 done => ~33 => stored burndown rounded int
     assert 30 <= proj.burndown <= 35

@@ -1,0 +1,19 @@
+repos:
+  - repo: local
+    hooks:
+      - id: forbid-root-readme-underscore
+        name: Forbid new root-level README_*.md (docs must live in docs/)
+        entry: >-
+          bash -c 'if git diff --cached --name-only | grep -E "^README_.*\.md$" >/dev/null; then echo "ERROR: Root-level README_*.md not allowed. Move documentation into docs/."; exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+      - id: md-trailing-whitespace-trim
+        name: Trim trailing whitespace in Markdown
+        entry: >-
+          bash -c 'for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E "\.md$"); do sed -i '' -e "s/[[:space:]]*$//" "$f"; git add "$f"; done'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+
+# Install locally with:  pip install pre-commit && pre-commit install

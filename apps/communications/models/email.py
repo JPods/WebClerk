@@ -58,14 +58,7 @@ class Email(BaseModel):
 
 
 
-    # pull from metadata.history
-    # @property  # MOVED INSIDE THE CLASS - proper indentation
-    # def status_display(self):
-    #     """Human-readable status display."""
-    #     return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')
-
-    # pull from metadata.history
-    # @property  # MOVED INSIDE THE CLASS - proper indentation
-    # def is_active(self):
-    #     """Check if email is active (not opted out, bounced, etc.)."""
-    #     return not self.opt_out
+    @property
+    def status_display(self):
+        """Human-readable status derived from opt_out state."""
+        return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')

@@ -30,8 +30,10 @@ def test_document_search_basic(api_client, user):
     resp = api_client.get(url, {'q': 'architecture'})
     assert resp.status_code == 200
     data = resp.json()
-    assert data['count'] == 1
-    assert data['results'][0]['name'] == 'System Architecture'
+    assert 'data' in data
+    dblock = data['data']
+    assert dblock['count'] == 1
+    assert dblock['results'][0]['name'] == 'System Architecture'
 
 
 def test_document_list_create(api_client, user):
@@ -41,10 +43,7 @@ def test_document_list_create(api_client, user):
     list_resp = api_client.get(url)
     assert list_resp.status_code == 200
     payload = list_resp.json()
-    if isinstance(payload, dict) and 'results' in payload:
-        results = payload['results']
-    else:
-        results = payload
+    results = payload['data']['results']
     assert any(r.get('name') == 'Spec Alpha' for r in results)
 
 
@@ -61,14 +60,14 @@ def test_document_search_highlight_and_filters(api_client, user):
     assert resp.status_code == 200
     payload = resp.json()
     # Only d1 should match architecture AND published AND level 1
-    assert payload['count'] == 1
-    first = payload['results'][0]
+    assert payload['data']['count'] == 1
+    first = payload['data']['results'][0]
     assert first['name'] == 'Alpha Guide'
     assert '<mark>' in first['highlight_snippet']
     # ordering test: list endpoint ordering by name asc
     list_url = reverse('document-list')
     list_resp = api_client.get(list_url + '?ordering=name')
     assert list_resp.status_code == 200
-    list_payload = list_resp.json()['results'] if isinstance(list_resp.json(), dict) and 'results' in list_resp.json() else list_resp.json()
+    list_payload = list_resp.json()['data']['results']
     names = [r['name'] for r in list_payload]
     assert names == sorted(names)

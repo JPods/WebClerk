@@ -34,8 +34,9 @@ def test_pending_list_create_and_pagination(auth_client):
     url = reverse('pending-list')
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    assert 'results' in resp.data
-    assert resp.data['count'] >= 3
+    payload = resp.data
+    assert 'data' in payload and 'results' in payload['data']
+    assert payload['data']['count'] >= 3
 
 @pytest.mark.django_db
 def test_pending_detail_and_optimistic_patch(auth_client):
@@ -44,7 +45,7 @@ def test_pending_detail_and_optimistic_patch(auth_client):
     # fetch
     resp = auth_client.get(detail_url)
     assert resp.status_code == 200
-    version = resp.data['version']
+    version = resp.data['data']['version']
     # optimistic patch metadata.flags.processed_pending
     patch_body = {
         'version': version,
@@ -54,7 +55,7 @@ def test_pending_detail_and_optimistic_patch(auth_client):
     }
     patch_resp = auth_client.patch(detail_url, patch_body, format='json')
     assert patch_resp.status_code == 200
-    assert patch_resp.data['version'] == version + 1
+    assert patch_resp.data['data']['version'] == version + 1
     # conflict test
     conflict_resp = auth_client.patch(detail_url, patch_body, format='json')
     assert conflict_resp.status_code == 412
@@ -66,4 +67,4 @@ def test_pending_search(auth_client):
     url = reverse('pending-search') + '?q=alp'
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    assert any(r['table_name']=='alpha' for r in resp.data['results'])
+    assert any(r['table_name']=='alpha' for r in resp.data['data']['results'])

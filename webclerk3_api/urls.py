@@ -17,8 +17,13 @@ urlpatterns = [
         # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
         path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
     path('sync/', include(('apps.sync.urls', 'sync'), namespace='sync')),
+    path('products/', include(('apps.products.urls', 'products'), namespace='products')),
     # OpenAPI schema & interactive docs
     path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
     path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-swagger'),
     path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
 ]
+
+# Framework-level error handlers (must be module level names)
+handler404 = 'common.error_views.error_404'
+handler500 = 'common.error_views.error_500'

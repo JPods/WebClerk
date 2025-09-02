@@ -52,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'common.middleware.RequestLogMiddleware',
+    'common.middleware.AutoEnvelopeMiddleware',
 ]
 
 ROOT_URLCONF = 'webclerk3_api.urls'
@@ -154,6 +155,7 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
         'rest_framework.filters.SearchFilter',
     ],
+    'EXCEPTION_HANDLER': 'common.exception_handlers.api_exception_handler',
 }
 
 from datetime import timedelta

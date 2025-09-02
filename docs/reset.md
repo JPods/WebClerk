@@ -1,11 +1,13 @@
+<!-- Migrated from README_RESET.md (deleted at root). -->
+
 # Full Reset & Migration Baseline
 
-This project now supports a **full destructive local reset** to simplify development when migrations drift or demo data needs refreshing.
+This project supports a **full destructive local reset** to simplify development when migrations drift or demo data needs refreshing.
 
 ## When To Use
 
 - Local schema churn made historical migrations noisy.
-- You intentionally reset the migration history (never do this on a shared/staging/prod DB).
+- You intentionally reset migration history (never do this on a shared/staging/prod DB).
 - You want a clean dataset identical to `rebuild_demo_data` export snapshot.
 
 ## What It Does
@@ -38,14 +40,14 @@ FORCE_FULL_RESET=1 DEBUG=0 ./scripts/full_reset_and_rebuild.sh -y  # explicit ou
 
 ## Post-Reset
 
-- Run tests: `./bin/python -m pytest -q` (currently 111 passing).
+- Run tests: `./bin/python -m pytest -q`.
 - Optionally create a superuser: `./bin/python manage.py createsuperuser`.
 
 ## Version Control Strategy
 
 - We committed the new `0001_initial.py` per app as the fresh baseline.
 - Old multi-step migrations were removed; consumers must drop & recreate local DBs after pulling.
-- Coordinate with teammates before force-pushing or merging this baseline.
+- Coordinate with teammates before merging this baseline.
 
 ## Export Snapshot
 
@@ -59,4 +61,4 @@ FORCE_FULL_RESET=1 DEBUG=0 ./scripts/full_reset_and_rebuild.sh -y  # explicit ou
 
 ---
 
-_This document was added as part of the migration reset chore commit._
+_This document was migrated into `docs/` on 2025‑09‑02._

@@ -1,23 +1,16 @@
-<!-- Temporary compatibility shim: legacy tests expect this file and Hook Reference table. Real content lives in docs/manage.md -->
+# Management & Operations Guide
 
-# Management & Operations (Shim)
+(Moved from `README_MANAGE.md` at project root on 2025-09-01.)
 
-Deprecated. See `docs/manage.md`.
+Central reference for Django management commands and operational scripts shipped in this repository. Commands are invoked with:
 
-## Hook Reference
+```bash
+python manage.py <command> [options]
+```
 
-| Hook / Task | Scope | Invocation Point | Return / Contract | Failure Handling | Notes |
-|-------------|-------|------------------|-------------------|------------------|-------|
-| `pre_save_hook(self, data)` | Every `BaseModel` subclass | Before field validation & save | `None` or `str` (abort) | 400 if string returned | Light |
-| `api_validate_payload(self, data, is_update)` | Every `BaseModel` subclass | After pre-save, before save | `(ok, errors)` | 400 if not ok | Business validation |
-| `post_save_hook(self, data)` | Every subclass | After save | `None` or message str | Exceptions captured | Fast only |
+For virtualenv convenience you can also use `./bin/python manage.py ...` if the provided venv is active.
 
-Full details: `docs/manage.md`.
-# Management & Operations Guide (Moved)
-
-This document moved to `docs/manage.md` on 2025-09-01.
-
-Stub retained temporarily; update bookmarks. Will be removed after deprecation window.
+See main documentation map in `README.md` for links to testing and upgrade guides.
 
 ## 1. Data / JSON Envelope Telemetry
 
@@ -128,18 +121,13 @@ All `BaseModel` descendants expose generalized hook points used by the universal
 
 Hook sequence (create or update):
 
-1. `pre_save_hook(self, data)`  (synchronous, before `obj.save()`)  
-	- Return a non-None string to abort with HTTP 400 `{status:error, message:<string>}`.  
-	- Use for lightweight normalization / guard checks (avoid heavy I/O).  
-2. Field assignment & size checks.  
-3. `api_validate_payload(self, data, is_update)` if validation flags enabled (see above).  
-	- Return `(ok, errors)`; failures -> HTTP 400 with `errors` list.  
-4. `obj.save()` (BaseModel version increment, changed_fields tracking, telemetry).  
-5. `post_save_hook(self, data)` (synchronous)  
-	- Return a string to append into response `messages` (informational).  
-	- Heavy work should be queued asynchronously.  
-6. `tasks.save_post(table_name, data)` (dynamic table-specific synchronous task; best effort).  
-7. `tasks.save_post_async.delay(table_name, id, version)` (generic async fan-out; ignore failures silently in local/tests).
+1. `pre_save_hook(self, data)` (synchronous, before `obj.save()`). Return a non-None string to abort with HTTP 400 `{status:error, message:<string>}`.
+2. Field assignment & size checks.
+3. `api_validate_payload(self, data, is_update)` if validation flags enabled.
+4. `obj.save()` (BaseModel version increment, changed_fields tracking, telemetry).
+5. `post_save_hook(self, data)` (synchronous). Return a string to append into response `messages`.
+6. `tasks.save_post(table_name, data)` (dynamic table-specific synchronous task; best effort).
+7. `tasks.save_post_async.delay(table_name, id, version)` (generic async fan-out).
 
 Async fan-out:
 
@@ -149,13 +137,13 @@ Scaffolding validation overrides:
 
 - Run `python manage.py scaffold_api_validation --dry-run` to preview additions of `api_validate_payload` stubs to models inheriting `BaseModel` that still use the default implementation.
 - Omit `--dry-run` to apply changes in-place.
- - Include `--include-hooks` to also scaffold `pre_save_hook` and `post_save_hook` stubs when a model still inherits the BaseModel defaults (useful when standardizing all hook points simultaneously).
+- Include `--include-hooks` to also scaffold `pre_save_hook` and `post_save_hook` stubs when a model still inherits the BaseModel defaults.
 
 Introspection:
 
 - Run `python manage.py list_model_hooks` to see which models still use default hooks.
 - Add `--json` for machine-readable output or `--app <label>` to filter.
-- Run `python manage.py profile_api_validation --iterations 100 --json` to profile validation hook latency across models.
+- Run `python manage.py profile_api_validation --iterations 100 --json` to profile validation hook latency.
 
 Customizing a model:
 
@@ -183,40 +171,36 @@ Enable universal validation to enforce custom `api_validate_payload` across all 
 
 | Hook / Task | Scope | Invocation Point | Return / Contract | Failure Handling | Notes |
 |-------------|-------|------------------|-------------------|------------------|-------|
-| `pre_save_hook(self, data)` | Every `BaseModel` subclass (default no-op) | Before field validation & `obj.save()` | `None` (continue) or `str` (abort with 400) | Abort save with JSON `{status:error,message:<str>}` | Light, synchronous normalization / guard checks |
-| `api_validate_payload(self, data, is_update)` | Every `BaseModel` subclass (default always OK) | After pre-save, before `obj.save()` when validation flags enabled | `(ok: bool, errors: list[str])` | If `ok` false -> 400 `{errors:[...]}` | Override for model-level schema / business rules |
-| `validate_aspects(partial, data)` | `OrgBase` only | Called indirectly by `api_validate_payload` | `(ok, errors)` | Caller decides (API returns 400) | Pydantic-driven aspect schema validation |
-| `obj.save()` | Django ORM | After validation | Raises on DB errors | 400/500 surfaced | Includes versioning & telemetry logic |
-| `post_save_hook(self, data)` | Every `BaseModel` subclass (default no-op) | Immediately after successful `obj.save()` | `None` or `str` message appended to response | Exceptions captured; message with error text appended | Keep fast; enqueue heavy work |
-| `tasks.save_pre(table_name, data)` | Celery task (dynamic) | Before pre_save_hook (best-effort) | dict / ignored | Exceptions swallowed (fallback direct call) | Name-based dispatch `<singular>_save_pre` |
-| `tasks.save_post(table_name, data)` | Celery task (dynamic) | After post_save_hook | dict / ignored | Exceptions swallowed | Name-based dispatch `<singular>_save_post` |
-| `tasks.save_post_async(table_name, id, version)` | Celery async (retriable) | Queued after synchronous post | dict / ignored | Celery autoretry (3 attempts, backoff); scheduling failures ignored in view | Generic fan-out event for downstream consumers |
+| `pre_save_hook(self, data)` | Every `BaseModel` subclass | Before field validation & save | `None` or `str` (abort) | Abort with 400 if string returned | Light, synchronous |
+| `api_validate_payload(self, data, is_update)` | Every `BaseModel` subclass | After pre-save, before save | `(ok, errors)` | 400 if not ok | Business validation |
+| `validate_aspects(partial, data)` | `OrgBase` only | Indirect via api_validate | `(ok, errors)` | Caller decides | Pydantic schemas |
+| `obj.save()` | Django ORM | After validation | Persist / raise | Exception -> 400/500 | Version bump & telemetry |
+| `post_save_hook(self, data)` | Every subclass | After save | `None` or message str | Exceptions captured | Keep fast |
+| `tasks.save_pre` / `tasks.save_post` | Dynamic Celery | Around save | Best-effort | Exceptions swallowed | Name-based dispatch |
+| `tasks.save_post_async` | Celery async | After synchronous post | None | Autoretry (configurable) | Fan-out event |
 
 Settings (related):
 
-- `SAVE_POST_ASYNC_RETRY_ENABLED` (default True): set False (e.g. in tests) to disable retry loop behavior in `save_post_async` (it will still execute once).
-	- `profile_api_validation` helps decide acceptable iteration budgets before enabling UNIVERSAL_API_VALIDATE in production.
+- `SAVE_POST_ASYNC_RETRY_ENABLED` (default True): set False (e.g. in tests) to disable retry loop behavior in `save_post_async`.
 
 | Flags: `UNIVERSAL_API_VALIDATE`, `ORGS_VALIDATE_API` | Scope | When Evaluated | Type | Failure Handling | Description |
 |------------------------------------------------------|-------|----------------|------|------------------|-------------|
-| Settings flags (see above) | Global | Each save request | bool | N/A | Control validation activation scope |
-
+| Settings flags | Global | Each save request | bool | N/A | Control validation activation scope |
 
 Contract Enforcement:
-- A test (`tests/test_hooks_contract.py`) validates hook signatures across all `BaseModel` descendants (see test file for details). Add new models with differing hooks intentionally by keeping same parameter list to avoid CI failures.
+- Test `tests/test_hooks_contract.py` validates hook signatures across all `BaseModel` descendants.
 
-Remediation flow: run command, inspect invalid rows, correct offending aspect JSON (or adjust schemas if legitimate new structure), re-run until clean.
+Remediation flow: run command, inspect invalid rows, correct offending aspect JSON (or adjust schemas), re-run until clean.
 
 ## 2. Keyword / Search Maintenance
 
 ### refresh_keywords
 
-Re-computes `refs.keywords` for models with `metadata.flags.keywords_pending = True` (exact model logic defined inside command). Run from cron or a scheduled Celery beat.
+Re-computes `refs.keywords` for models with `metadata.flags.keywords_pending = True`.
 
 ```bash
 python manage.py refresh_keywords --batch 500
 ```
-(Options depend on command implementation; inspect source for advanced flags.)
 
 ## 3. Demo / Fixture Utilities
 
@@ -239,7 +223,7 @@ python manage.py demo_data_fix_dup_key --dry-run
 
 ### audit_base_models
 
-Performs integrity / consistency checks across BaseModel descendants (e.g., missing history, version mismatches, oversized fields).
+Integrity / consistency checks across BaseModel descendants.
 
 ```bash
 python manage.py audit_base_models --verbose
@@ -249,7 +233,7 @@ python manage.py audit_base_models --verbose
 
 ### fix_view_edit_PUBLIC
 
-Utility to normalize or repair view/edit access lists embedded in `metadata.access`.
+Normalize or repair view/edit access lists embedded in `metadata.access`.
 
 ```bash
 python manage.py fix_view_edit_PUBLIC --apply
@@ -258,7 +242,7 @@ Add `--dry-run` first to preview.
 
 ## 5. Development Reset / Local Ops
 
-Although not a Django command, `reset_dev.sh` (in `common/management/commands/`) provides a convenience script to purge and re-seed a dev environment. Review before running:
+`reset_dev.sh` provides a convenience script to purge and re-seed a dev environment.
 
 ```bash
 bash common/management/commands/reset_dev.sh
@@ -266,20 +250,18 @@ bash common/management/commands/reset_dev.sh
 
 ## 6. Postman / API Contract Assets
 
-`postman_url_import.json` contains raw Postman definitions (or seed endpoints) that can be imported into Postman to accelerate manual / contract test creation.
-
-Import via Postman UI: File -> Import -> Choose the JSON file.
+`postman_url_import.json` contains raw Postman definitions (or seed endpoints) for manual / contract test creation.
 
 ## 7. Retired / Legacy Commands
 
-The `retired/` subfolder stores deprecated scripts retained for reference. Do not rely on them; migrate logic to maintained commands if still needed.
+The `retired/` subfolder stores deprecated scripts retained for reference.
 
 ## 8. Operational Best Practices
 
-- Prefer read-only telemetry commands (like `storage_load_report`) in CI to track growth trends.
-- Schedule keyword refresh off-peak; it may scan many rows.
-- Always run `audit_base_models` after schema or size threshold changes.
-- Take a DB snapshot before bulk import / export operations.
+- Use telemetry commands (like `storage_load_report`) in CI to track growth trends.
+- Schedule keyword refresh off-peak.
+- Run `audit_base_models` after schema or size threshold changes.
+- Snapshot DB before bulk import / export operations.
 
 ## 9. Adding a New Command
 
@@ -292,7 +274,7 @@ The `retired/` subfolder stores deprecated scripts retained for reference. Do no
 
 | Command | Purpose | Typical Schedule |
 |---------|---------|------------------|
-| storage_load_report | JSON envelope size telemetry | On-demand / weekly |
+| storage_load_report | JSON size telemetry | On-demand / weekly |
 | refresh_keywords | Rebuild search keywords | Hourly / daily |
 | audit_base_models | Integrity & size audits | After deployments / weekly |
 | demo_data_import_export | Import/export demo dataset | Ad hoc |
@@ -300,4 +282,5 @@ The `retired/` subfolder stores deprecated scripts retained for reference. Do no
 | fix_view_edit_PUBLIC | Normalize access metadata | Ad hoc |
 
 ---
-For clarifications open an issue referencing this file and the command.
+Questions or clarifications: open an issue referencing this file and the command.
+

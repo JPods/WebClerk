@@ -29,19 +29,19 @@ def test_requisition_list_create_and_pagination(auth_client):
         RequisitionStd.objects.create(name=f"Req {i}", purpose='ops', status='draft')
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    assert 'results' in resp.data
-    assert resp.data['count'] >= 4
+    assert 'data' in resp.data and 'results' in resp.data['data']
+    assert resp.data['data']['count'] >= 4
 
 @pytest.mark.django_db
 def test_requisition_detail_and_atomic_patch(auth_client):
     r = RequisitionStd.objects.create(name='PatchMe', purpose='ops', status='draft')
     detail = reverse('requisition2-detail', args=[r.id])
     get_resp = auth_client.get(detail)
-    version = get_resp.data['version']
+    version = get_resp.data['data']['version']
     # atomic set metadata flag
     patch_resp = auth_client.patch(detail, {"version":version, "set":{"metadata.flags.schema_rev":2}}, format='json')
     assert patch_resp.status_code == 200
-    assert patch_resp.data['version'] == version + 1
+    assert patch_resp.data['data']['version'] == version + 1
     # conflict
     conflict = auth_client.patch(detail, {"version":version, "set":{"metadata.flags.schema_rev":3}}, format='json')
     assert conflict.status_code == 412
@@ -53,5 +53,5 @@ def test_requisition_search(auth_client):
     url = reverse('requisition2-search') + '?q=Al'
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    names = [r['name'] for r in resp.data['results']]
+    names = [r['name'] for r in resp.data['data']['results']]
     assert 'Alpha' in names

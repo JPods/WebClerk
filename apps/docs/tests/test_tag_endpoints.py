@@ -25,11 +25,10 @@ def test_tag_list_create_and_pagination(api_client, user):
         api_client.post(list_url, {'name':f'T{i}','purpose':'batch','table_name':'equip','record_id':i}, format='json')
     page1 = api_client.get(list_url)
     assert page1.status_code == 200
-    data = page1.json()
-    if isinstance(data, dict) and 'results' in data:
-        assert len(data['results']) <= 25
-        page2 = api_client.get(list_url + '?page=2')
-        assert page2.status_code == 200
+    data = page1.json()['data']
+    assert len(data['results']) <= 25
+    page2 = api_client.get(list_url + '?page=2')
+    assert page2.status_code == 200
 
 
 def test_tag_hierarchy_and_filters(api_client, user):
@@ -68,7 +67,7 @@ def test_tag_search_and_bulk_hierarchy(api_client, user):
     search_url = reverse('tag-search') + '?q=Pallet Lo'
     resp = api_client.get(search_url)
     assert resp.status_code == 200
-    data = resp.json()
+    data = resp.json()['data']
     names = {r['name'] for r in data['results']}
     assert 'Pallet Loader' in names
     assert 'Pallet Location A' in names
@@ -79,19 +78,18 @@ def test_tag_search_and_bulk_hierarchy(api_client, user):
     hier_url = reverse('tag-hierarchy', args=[t_parent.id])
     add_bulk = api_client.post(hier_url, {'child_ids': [t_child_a.id, t_child_b.id]}, format='json')
     assert add_bulk.status_code == 200
-    children_after_add = set(add_bulk.json().get('children', []))
+    children_after_add = set(add_bulk.json()['data'].get('children', []))
     assert t_child_a.id in children_after_add and t_child_b.id in children_after_add
 
     # bulk remove children
     rem_bulk = api_client.delete(hier_url, {'child_ids': [t_child_a.id, t_child_b.id]}, format='json')
     assert rem_bulk.status_code == 200
-    children_after_remove = set(rem_bulk.json().get('children', []))
+    children_after_remove = set(rem_bulk.json()['data'].get('children', []))
     assert t_child_a.id not in children_after_remove and t_child_b.id not in children_after_remove
 
     # confirm include_inactive brings back the inactive one in list
     list_with_inactive = api_client.get(reverse('tag-list') + '?include_inactive=1')
     assert list_with_inactive.status_code == 200
-    list_data = list_with_inactive.json()
-    # handle pagination structure
-    result_list = list_data['results'] if isinstance(list_data, dict) and 'results' in list_data else list_data
+    list_data = list_with_inactive.json()['data']
+    result_list = list_data['results']
     assert any(r['name'] == 'Pallet Old' for r in result_list)

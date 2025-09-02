@@ -9,15 +9,17 @@ class EmailSerializer(serializers.ModelSerializer):
     refs = serializers.JSONField(default=dict, help_text="References and links")
     prefs = serializers.JSONField(default=dict, help_text="Preferences")
     metadata = serializers.JSONField(default=dict, help_text="Metadata including health and history")
-    status_display = serializers.CharField(read_only=True, help_text="Human-readable status")
-    is_active = serializers.BooleanField(read_only=True, help_text="Whether email is active")
+    status_display = serializers.CharField(read_only=True, help_text="Human-readable status derived from opt_out state")
+    is_active = serializers.BooleanField(read_only=True, help_text="Active flag (from CoreModel)")
 
     class Meta:
         model = Email
+        # Removed legacy/non-existent fields: 'comment', 'dt_verified', 'dt_bounced'.
+        # 'comments' JSON envelope (from BaseModel) can be added later if needed.
         fields = [
-            'id', 'uuid', 'email', 'attention', 'name', 'opt_out', 'comment',
-            'is_primary', 'is_verified', 'dt_verified', 'dt_bounced',
-            'status_display', 'is_active', 'refs', 'prefs', 'metadata'
+            'id', 'uuid', 'email', 'attention', 'name', 'opt_out',
+            'is_primary', 'is_verified', 'status_display', 'is_active',
+            'refs', 'prefs', 'metadata'
         ]
         read_only_fields = ['id', 'uuid', 'status_display', 'is_active']
 

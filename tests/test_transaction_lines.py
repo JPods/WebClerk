@@ -40,7 +40,11 @@ def test_line_aggregation_simple(django_user_model):
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}')
     # Aggregator sums across all line models sharing the same parent_ref_id value (cross-document id collision allowed).
     assert resp.status_code == 200  # type: ignore[attr-defined]
-    data = resp.data  # type: ignore[attr-defined]
+    payload = resp.data  # type: ignore[attr-defined]
+    # Envelope shape assertions
+    assert payload.get('status') == 'success'
+    assert 'data' in payload and isinstance(payload['data'], dict)
+    data = payload['data']
     assert data['total_lines'] == 2
     assert Decimal(data['total_price_extended']) == Decimal('12.50')
     assert Decimal(data['total_cost_extended']) == Decimal('6.25')
@@ -57,7 +61,7 @@ def test_multi_model_permission_order_line(django_user_model):
     resp = client.get(f'/tx/order-lines/?parent_ref_id={parent.pk}')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     payload = resp.data  # type: ignore[attr-defined]
-    item = payload['results'][0] if isinstance(payload, dict) else payload[0]
+    item = payload['data']['results'][0]
     assert 'status' in item
 
 
@@ -73,7 +77,7 @@ def test_public_fallback(django_user_model):
     resp = client.get(f'/tx/proposal-lines/?parent_ref_id={parent.pk}')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     payload = resp.data  # type: ignore[attr-defined]
-    item = payload['results'][0] if isinstance(payload, dict) else payload[0]
+    item = payload['data']['results'][0]
     assert 'status' in item
 
 @pytest.mark.django_db
@@ -91,8 +95,11 @@ def test_scoped_aggregation(django_user_model):
     # Unscoped will sum both if parent_ref_ids collide; ensure different IDs first
     resp_scoped = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}&model=proposal-line')
     assert resp_scoped.status_code == 200  # type: ignore[attr-defined]
-    data = resp_scoped.data  # type: ignore[attr-defined]
-    assert data['total_lines'] == 1 and data['total_price_extended'] == '3'
+    scoped_payload = resp_scoped.data  # type: ignore[attr-defined]
+    assert scoped_payload.get('status') == 'success'
+    assert 'data' in scoped_payload
+    scoped = scoped_payload['data']
+    assert scoped['total_lines'] == 1 and scoped['total_price_extended'] == '3'
 
 
 @pytest.mark.django_db
@@ -117,7 +124,7 @@ def test_permissions_remaining_line_models(django_user_model):
         resp = client.get(f'/tx/{endpoint}/?parent_ref_id={pid}')
         assert resp.status_code == 200  # type: ignore[attr-defined]
         payload = resp.data  # type: ignore[attr-defined]
-        item = payload['results'][0] if isinstance(payload, dict) else payload[0]
+        item = payload['data']['results'][0]
         assert 'status' in item
 
 
@@ -133,9 +140,15 @@ def test_negative_edit_error_detail(django_user_model):
     resp = client.patch(f'/tx/proposal-lines/{line.pk}/', {"status": "CLOSED", "probability": 10}, format='json')
     # Expect 400 with per-field errors for probability only
     assert resp.status_code == 400  # type: ignore[attr-defined]
-    data = resp.data  # type: ignore[attr-defined]
-    assert 'probability' in data and data['probability'] == ['Not editable for role']
-    assert 'detail' in data
+    payload = resp.data  # type: ignore[attr-defined]
+    assert payload.get('status') == 'error'
+    assert 'error' in payload and payload['error'].get('code') == 'validation_error'
+    # DRF serializer errors exposed under error.details
+    details = payload['error'].get('details') or {}
+    # Expect probability field message list
+    assert 'probability' in details
+    prob_msgs = details['probability']
+    assert isinstance(prob_msgs, list) and any('Not editable for role' in m for m in prob_msgs)
 
 
 @pytest.mark.django_db
@@ -148,7 +161,7 @@ def test_aggregation_invalid_model(django_user_model):
     client = _auth(user)
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}&model=not-a-model')
     assert resp.status_code == 400  # type: ignore[attr-defined]
-    assert 'detail' in resp.data  # type: ignore[attr-defined]
+    assert 'data' in resp.data and 'detail' in resp.data['data']  # type: ignore[attr-defined]
 
 
 @pytest.mark.django_db
@@ -166,9 +179,9 @@ def test_unscoped_aggregation_breakdown(django_user_model):
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={proposal.pk}')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
-    assert 'breakdown' in data
-    assert 'proposal-line' in data['breakdown']
-    assert data['breakdown']['proposal-line']['price_extended'] == '2'
+    assert 'breakdown' in data['data']
+    assert 'proposal-line' in data['data']['breakdown']
+    assert data['data']['breakdown']['proposal-line']['price_extended'] == '2'
 
 
 @pytest.mark.django_db
@@ -182,9 +195,9 @@ def test_scoped_aggregation_with_breakdown_and_ttl_override(django_user_model):
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={proposal.pk}&model=proposal-line&include_breakdown=1&ttl=15')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
-    assert data['model'] == 'proposal-line'
-    assert 'breakdown' in data and 'proposal-line' in data['breakdown']
-    assert data['ttl_seconds'] == 15
+    assert data['data']['model'] == 'proposal-line'
+    assert 'breakdown' in data['data'] and 'proposal-line' in data['data']['breakdown']
+    assert data['data']['ttl_seconds'] == 15
 
 
 
@@ -199,8 +212,9 @@ def test_field_auth_matrix_batch(django_user_model):
     resp = client.get('/tx/auth/fields/batch/?models=proposal-line,order-line,missing-line')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
-    assert 'models' in data and 'proposal-line' in data['models'] and 'order-line' in data['models']
-    assert data['models']['missing-line']['error'] == 'invalid-model'
+    models_block = data['data']['models']
+    assert 'proposal-line' in models_block and 'order-line' in models_block
+    assert models_block['missing-line']['error'] == 'invalid-model'
 
 @pytest.mark.django_db
 def test_field_auth_matrix_batch_post(django_user_model):
@@ -211,4 +225,5 @@ def test_field_auth_matrix_batch_post(django_user_model):
     resp = client.post('/tx/auth/fields/batch/', {"models": ["proposal-line", "missing-line"]}, format='json')
     assert resp.status_code == 200  # type: ignore[attr-defined]
     data = resp.data  # type: ignore[attr-defined]
-    assert 'proposal-line' in data['models'] and data['models']['missing-line']['error'] == 'invalid-model'
+    models_block = data['data']['models']
+    assert 'proposal-line' in models_block and models_block['missing-line']['error'] == 'invalid-model'

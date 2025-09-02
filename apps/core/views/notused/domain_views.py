@@ -4,6 +4,7 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.http import JsonResponse
+from django.apps import apps
 
 # --- RECOMMENDED: Import your role-based access utility ---
 # from common.role_access import get_role_settings, can_user_edit, can_user_view
@@ -23,11 +24,11 @@ class ManageDomainsView(LoginRequiredMixin, View):
         
         # Existing: Get user domains (customize as needed)
         user = request.user
-        domains = []
         try:
-            from apps.core.models.domain import Domain
+            Domain = apps.get_model('core', 'Domain')
             domains = Domain.objects.all()
-        except (ImportError, AttributeError):
+        except (LookupError, AttributeError):
+            domains = []
             domains = []
         
         # ADD: Optionally, filter fields in each domain based on role's allowed "view" fields from settings.
@@ -50,15 +51,20 @@ class AddDomainView(LoginRequiredMixin, View):
     def post(self, request):
         if not request.user.is_authenticated:
             return redirect('/login/')
-        
         try:
-            from apps.core.models.domain import Domain
+            Domain = apps.get_model('core', 'Domain')
             
             # Existing: Create new domain
             domain = Domain()
-            domain.path = request.POST.get('path', '').strip()
-            domain.type = request.POST.get('type', '').strip()
-            domain.comment = request.POST.get('comment', '').strip()
+            # Removed invalid assignment to non-existent field 'path'
+            # Safely set optional fields only if they exist on the model
+            # Collect concrete model field names for safe assignment
+            model_fields = {f.name for f in Domain._meta.get_fields() if getattr(f, 'concrete', False) and not getattr(f, 'auto_created', False)}
+            for field in ('type', 'comment'):
+                if field in model_fields:
+                    value = request.POST.get(field, '').strip()
+                    if value != '':
+                        setattr(domain, field, value)
             
             # ADD: Only set fields allowed by role's "edit" array in settings for "domains" table.
 
@@ -82,11 +88,11 @@ class EditDomainView(LoginRequiredMixin, View):
     def get(self, request, domain_id):
         if not request.user.is_authenticated:
             return redirect('/login/')
-        
         try:
-            from apps.core.models.domain import Domain
+            Domain = apps.get_model('core', 'Domain')
             domain = get_object_or_404(Domain, id=domain_id)
             
+            # ADD: Optionally, filter fields in domain based on role's allowed "view" fields.
             # ADD: Optionally, filter fields in domain based on role's allowed "view" fields.
 
             context = {
@@ -94,7 +100,6 @@ class EditDomainView(LoginRequiredMixin, View):
                 'user': request.user,
             }
             return render(request, 'edit_domain.html', context)
-            
         except Exception as e:
             messages.error(request, f'Error loading domain: {str(e)}')
             return redirect('/manage-domains/')
@@ -102,21 +107,22 @@ class EditDomainView(LoginRequiredMixin, View):
     def post(self, request, domain_id):
         if not request.user.is_authenticated:
             return redirect('/login/')
-        
         try:
-            from apps.core.models.domain import Domain
+            Domain = apps.get_model('core', 'Domain')
             domain = get_object_or_404(Domain, id=domain_id)
             
-            # Existing: Update domain
-            domain.path = request.POST.get('path', '').strip()
-            domain.type = request.POST.get('type', '').strip()
-            domain.comment = request.POST.get('comment', '').strip()
+            # Existing: Update domain safely only for existing fields
+            model_fields = {f.name for f in Domain._meta.get_fields() if getattr(f, 'concrete', False) and not getattr(f, 'auto_created', False)}
+            for field in ('type', 'comment'):
+                if field in model_fields:
+                    value = request.POST.get(field, '').strip()
+                    if value != '':
+                        setattr(domain, field, value)
             
             # ADD: Only update fields allowed by role's "edit" array in settings for "domains" table.
 
             domain.save()
             messages.success(request, 'Domain updated successfully!')
-            
         except Exception as e:
             messages.error(request, f'Error updating domain: {str(e)}')
         
@@ -136,7 +142,7 @@ class DeleteDomainView(LoginRequiredMixin, View):
             return redirect('/login/')
         
         try:
-            from apps.core.models.domain import Domain
+            Domain = apps.get_model('core', 'Domain')
             domain = get_object_or_404(Domain, id=domain_id)
             
             # ADD: Check if user has delete permission for domains table.

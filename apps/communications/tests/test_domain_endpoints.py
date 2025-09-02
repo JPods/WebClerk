@@ -48,7 +48,11 @@ def test_domain_search_permission_and_results(api_client, staff_user, normal_use
     resp = api_client.get(search_url)
     assert resp.status_code == 200
     payload = resp.json()
-    names = [d['path'] for d in payload['results']]
+    # Support new envelope (status/data) or legacy raw (?raw=1)
+    results_block = payload.get('results') if 'results' in payload else payload.get('data', {}).get('results') if isinstance(payload.get('data'), dict) else None
+    if results_block is None:
+        raise AssertionError(f"Unexpected payload shape: {payload}")
+    names = [d['path'] for d in results_block]
     assert any('github' in p for p in names)
     # Now auth as normal user (no staff/admin role)
     api_client.force_authenticate(user=normal_user)
@@ -61,16 +65,19 @@ def test_domain_atomic_patch_and_version_conflict(api_client, staff_user):
     list_url = reverse('communications:domain-list')
     r = api_client.post(list_url, {'path': 'https://atomic.com', 'type': 'website'}, format='json')
     assert r.status_code in (200,201)
-    domain_id = r.json()['id']
+    body = r.json()
+    domain_id = body.get('id') or (body.get('data') or {}).get('id')
+    assert domain_id, f"Could not extract id from payload {body}"
     detail_url = reverse('communications:domain-detail', args=[domain_id])
     # Fetch to get version
     g = api_client.get(detail_url)
     assert g.status_code == 200
-    version = g.json()['version']
+    g_body = g.json()
+    version = g_body.get('version') or (g_body.get('data') or {}).get('version')
     # Atomic set
     p1 = api_client.patch(detail_url, {'version': version, 'set': {'metadata.flags.schema_rev': 5}}, format='json')
     assert p1.status_code == 200, p1.json()
-    new_version = p1.json()['version']
+    p1_body = p1.json(); new_version = p1_body.get('version') or (p1_body.get('data') or {}).get('version')
     assert new_version == version + 1
     # Use stale version for conflict
     conflict = api_client.patch(detail_url, {'version': version, 'set': {'metadata.flags.schema_rev': 6}}, format='json')
@@ -79,4 +86,5 @@ def test_domain_atomic_patch_and_version_conflict(api_client, staff_user):
     p2 = api_client.patch(detail_url, {'version': new_version, 'append': {'comments.notes': {'text':'hello','type':'info'}}}, format='json')
     assert p2.status_code == 200
     # append should bump version by 1 relative to new_version
-    assert p2.json()['version'] == new_version + 1
+    p2_body = p2.json(); v2 = p2_body.get('version') or (p2_body.get('data') or {}).get('version')
+    assert v2 == new_version + 1

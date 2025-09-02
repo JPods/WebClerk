@@ -27,13 +27,10 @@ def test_qa_list_create_and_pagination(api_client, user):
         api_client.post(list_url, {'question': f'Q{i}', 'answer': f'A{i}', 'status':'open'}, format='json')
     page1 = api_client.get(list_url)
     assert page1.status_code == 200
-    data = page1.json()
-    if isinstance(data, dict) and 'results' in data:
-        assert len(data['results']) <= 25
-        page2 = api_client.get(list_url + '?page=2')
-        assert page2.status_code == 200
-    else:
-        assert isinstance(data, list)
+    data = page1.json()['data']
+    assert len(data['results']) <= 25
+    page2 = api_client.get(list_url + '?page=2')
+    assert page2.status_code == 200
 
 def test_qa_search_and_highlight(api_client, user):
     q1 = Qa.objects.create(question='Safety checklist item 1', answer='Ensure architecture review complete', status='published', security_level=1)
@@ -44,7 +41,7 @@ def test_qa_search_and_highlight(api_client, user):
     search_url = reverse('qa-search')
     resp = api_client.get(search_url, {'q':'architecture', 'status':'published', 'level':1})
     assert resp.status_code == 200
-    payload = resp.json()
+    payload = resp.json()['data']
     assert payload['count'] == 1
     first = payload['results'][0]
     assert '<mark>' in first['highlight_snippet']
