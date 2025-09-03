@@ -132,13 +132,8 @@ class OrgSnapshotPatch(BaseModel):  # all optional, for partial updates
 
 
 def build_org_snapshot(org) -> OrgSnapshot:
-    """Construct OrgSnapshot from OrgBase instance (no additional DB hits).
-
-    Supports legacy 'access' field during transition (for older rows / migrations).
-    """
-    access_payload = getattr(org, 'connections', None)
-    if access_payload is None:  # legacy
-        access_payload = getattr(org, 'access', {})
+    """Construct OrgSnapshot from OrgBase instance (no additional DB hits)."""
+    access_payload = getattr(org, 'connections', {})
     return OrgSnapshot(
         org_type=org.org_type,
         display_name=org.display_name,

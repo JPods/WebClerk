@@ -8,16 +8,16 @@ from .warehouse import Warehouse
 
 class Serial(ItemLinkedBase):
     """One serialized unit of an item."""
-
-    serial_number = models.CharField(max_length=120, unique=True)
+    serial_ida = models.CharField(max_length=120, unique=True)
+    model_ida = models.CharField(max_length=120, blank=True, db_index=True)
+    warranty = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=40, blank=True, db_index=True)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
     inventory_stack = models.ForeignKey('products.InventoryStack', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
-
-    class Meta:
-        indexes = [
-            models.Index(fields=("item",), name="serial_item_idx"),
-        ]
+    data = models.JSONField(default=dict, blank=True)
+    qr_code = models.CharField(max_length=255, blank=True, db_index=True)
+    # Access the parent item's primary key via `serial.item_id` (Django auto FK _id attribute).
+    # ItemLinkedBase already defines an index on `item`; no need to duplicate here.
 
 
 class SerialLog(BaseModel):
@@ -32,3 +32,27 @@ class SerialLog(BaseModel):
         indexes = [
             models.Index(fields=("serial", "dt"), name="seriallog_serial_dt_idx"),
         ]
+
+
+# CREATE TABLE IF NOT EXISTS "serials" (
+#     “item_id” BIGSERIAL PRIMARY KEY,
+#     “item_uuid” UUID UNIQUE NOT NULL,
+#     "claim_count" INTEGER,
+#     "claim_price" DOUBLE PRECISION,
+#     "comments" TEXT,
+#     "cost" DOUBLE PRECISION,
+#     "cost_claims" DOUBLE PRECISION,
+#     "days_on_plan" INTEGER,
+#     "description" VARCHAR(255),
+#     "discount" DOUBLE PRECISION,
+#     "is_floor_plan" BOOLEAN DEFAULT FALSE,
+#     "model" VARCHAR(255),
+#     "plan_line" INTEGER,
+#     "price" DOUBLE PRECISION,
+#     "reciept_retail" VARCHAR(255),
+#     "references" JSONB,
+#     "serial" VARCHAR(255),
+#     "status" VARCHAR(255),
+#     "value" DOUBLE PRECISION,
+#     "warranty_days" INTEGER
+# );

@@ -12,11 +12,15 @@ def default_price():
     Keys:
         base: primary sell price
         msrp: manufacturer suggested retail price
-        tiers: list of {level, price} for customer segments
+        tiers: list of {level, price} for customer segment based overrides (not quantity)
+        qty_breaks: list of quantity-based breaks sorted by min_qty ascending.
+            Each element either:
+              {min_qty:int, unit_price:Decimal}  -- inline quantity break
+              OR {min_qty:int, variant_item_id:int} -- delegate to variant item pricing
         currency: ISO currency code
         history: optional recent adjustments (not authoritative ledger)
     """
-    return {"base": None, "msrp": None, "tiers": [], "currency": "USD", "history": []}
+    return {"base": None, "msrp": None, "tiers": [], "qty_breaks": [], "currency": "USD", "history": []}
 
 
 def default_cost():
@@ -29,6 +33,7 @@ def default_cost():
         landed: landed cost (including freight/duties)
         currency: ISO currency
         components: optional breakdown (freight, duty, overhead)
+        breaks: list of quantity-based cost breaks (same pattern as pricing qty_breaks)
     """
     return {
         "standard": None,
@@ -37,6 +42,7 @@ def default_cost():
         "landed": None,
         "currency": "USD",
         "components": {},
+        "breaks": [],
     }
 
 
@@ -86,8 +92,10 @@ class Item(StatsMixin, BaseModel):
 
     name = models.CharField(max_length=160, db_index=True)
     sku = models.CharField(max_length=80, blank=True, null=True, unique=True)
+    qr_code = models.CharField(max_length=255, blank=True, null=True, unique=True)
     kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=KIND_PHYSICAL, db_index=True)
     uom = models.CharField(max_length=20, blank=True, help_text="Unit of measure (EA, HR, KG, etc)")
+    base_uom = models.CharField(max_length=20, blank=True, help_text="Canonical base unit for conversions when uom varies")
     description = models.TextField(blank=True)
     default_cost = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     default_price = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
@@ -149,6 +157,45 @@ class Item(StatsMixin, BaseModel):
         # prefs from BaseModel (PrefsMixin)
         if hasattr(self, 'prefs'):
             self.prefs = ensure_item_prefs(getattr(self, 'prefs'))  # type: ignore[attr-defined]
+
+        # --- Validation / normalization for quantity breaks -----------------
+        def _normalize_breaks(seq, price_key: str):
+            """Normalize and validate a list of break dicts.
+
+            Rules:
+              - Must be a list of dicts
+              - Each requires integer min_qty >= 0
+              - Either unit_{price_key} present (Decimal/number) OR variant_item_id (int) but not both missing
+              - No duplicate min_qty values
+              - Sorted ascending by min_qty
+            Returns cleaned list (sorted).
+            """
+            if not isinstance(seq, list):
+                return []
+            cleaned = []
+            seen_qty = set()
+            value_field = f"unit_{price_key}"
+            for row in seq:
+                if not isinstance(row, dict):
+                    continue
+                mq = row.get("min_qty")
+                if not isinstance(mq, int) or mq < 0:
+                    raise ValueError("min_qty must be non-negative int")
+                if mq in seen_qty:
+                    raise ValueError("Duplicate min_qty in breaks")
+                variant_id = row.get("variant_item_id")
+                val = row.get(value_field)
+                if variant_id is None and val is None:
+                    raise ValueError(f"Each break needs {value_field} or variant_item_id")
+                cleaned.append({"min_qty": mq, **({"variant_item_id": variant_id} if variant_id is not None else {}), **({value_field: val} if val is not None else {})})
+                seen_qty.add(mq)
+            cleaned.sort(key=lambda r: r["min_qty"])  # stable
+            return cleaned
+
+        # Normalize pricing quantity breaks
+        self.price["qty_breaks"] = _normalize_breaks(self.price.get("qty_breaks", []), "price")
+        # Normalize cost breaks
+        self.cost["breaks"] = _normalize_breaks(self.cost.get("breaks", []), "cost")
         super().save(*args, **kwargs)
 
 

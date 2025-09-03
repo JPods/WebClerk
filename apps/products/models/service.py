@@ -13,6 +13,7 @@ class Service(ItemLinkedBase):
     travel = models.JSONField(default=dict, blank=True, help_text="Travel details or requirements for this service")
     timer = models.PositiveIntegerField(default=0, help_text="Timer duration in minutes")
     default_minutes = models.PositiveIntegerField(default=0)
+    # .refs have related action
 
     class Meta:
         indexes = []  # inherited item index already present on base
