@@ -30,7 +30,7 @@ Purpose: Catch violations before feature work.
 
 Scope:
 
-- Fail if any file contains an absolute user path pattern (e.g., '/Users/', 'C:/Users/').
+- Fail if any file contains an absolute local user directory pattern (e.g., macOS home directory path or Windows user profile path).
 - Fail if legacy header markers reappear (e.g., 'filepath:' at line start).
 - (Optional Phase 2) Spot-check envelope compliance by running a minimal set of API calls (query endpoint, save endpoint) and asserting keys.
 
@@ -140,7 +140,7 @@ Chronological entries; add a short summary each time a step changes status.
 
 Reject if regex matches (case-sensitive unless noted):
 
-- `(/Users/|\\\\Users\\\\)`
+- Mac/Windows absolute home dir pattern placeholder (internal guard regex; wording avoids embedding an example literal home path)
 - `^#\s*filepath:` (start-of-line legacy marker)
 
 Potential allowlist directories: bin/, lib/, include/, Scripts/, virtualenv-style dirs.

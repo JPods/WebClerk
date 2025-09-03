@@ -34,9 +34,9 @@ def test_api_validate_payload_return_contract():
     assert not violations, "Return contract violations:\n" + "\n".join(violations)
 
 
-def test_readme_manage_hook_table_present():
+def test_readmes_manage_hook_table_present():
+    """Ensure the consolidated manage doc retains the hook reference table."""
     import pathlib
-    readme = pathlib.Path('README_MANAGE.md').read_text(encoding='utf-8')
-    assert '### Hook Reference' in readme, 'Hook Reference section missing in README_MANAGE.md'
-    # Basic sanity: ensure table header columns present
+    readme = pathlib.Path('readmes/manage.md').read_text(encoding='utf-8')
+    assert '### Hook Reference' in readme, 'Hook Reference section missing in readmes/manage.md'
     assert '| Hook / Task | Scope | Invocation Point |' in readme, 'Hook table header missing columns'
