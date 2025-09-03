@@ -10,13 +10,6 @@
 
 [Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
 
-Moved detailed guides into `docs/` (2025-09-01). Quick index:
-
-- Management & Operations: `docs/manage.md`
-- Testing & Verification: `docs/testing.md`
-- Upgrade Roadmap: `docs/upgrade.md`
-- Data / Model Map: `docs/data-map.md`
-- Rules & Guidelines: `docs/rules.md`
 
 ## Contributors
 
@@ -32,14 +25,30 @@ Moved detailed guides into `docs/` (2025-09-01). Quick index:
 Authoritative guides are split by concern (single source each, no duplication):
 
 - Core onboarding & architecture: this README
-- Operations / management commands: `docs/manage.md`
-- Test & verification workflow: `docs/testing.md`
-- Data / model structure map: `docs/data-map.md`
-- Upgrade / migration notes: `docs/upgrade.md`
+- Data / model structure map: `readmes/data-map.md`
+- Management & Operations: `readmes/manage.md`
+- Testing & Verification: `readmes/testing.md`
+- Upgrade Roadmap: `readmes/upgrade.md`
+- Data / Model Map: `readmes/data-map.md`
+- Rules & Guidelines: `readmes/rules.md`
 
-If you add >~15 lines of procedural or reference material, place it in the appropriate doc file under `docs/` and add (or update) a single-line link here instead of duplicating.
+If you add >~15 lines of procedural or reference material, place it in the appropriate doc file under `readmes/` and add (or update) a single-line link here instead of duplicating.
 
 ## Data Basics
+
+
+Commands (in `common/management/commands`):
+
+```bash
+python manage.py demo_data_import_export export
+python manage.py demo_data_import_export import
+```
+
+If needed (example):
+
+```sql
+DROP TABLE IF EXISTS pending CASCADE;
+```
 
 Location: `common/management/commands/`  
 Data file: `all_tables_export.json`
@@ -49,6 +58,17 @@ Export/import data (avoid exporting or importing rows still marked pending):
 ```bash
 python manage.py demo_data_import_export export
 python manage.py demo_data_import_export import
+```
+Seed data:
+python manage.py seed_minimal_if_empty.py
+
+```bash
+python -m venv .
+source ./bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
 ```
 
 3-column admin reference: [Grok Link](https://grok.com/share/c2hhcmQtMg%3D%3D_427dc198-2378-41ef-b3c5-c77d1e4e1062)
@@ -107,22 +127,6 @@ For a branch badge (e.g. bill_dev):
 ![Coverage bill_dev](https://codecov.io/gh/JPods/webClerk3/branch/bill_dev/graph/badge.svg)
 ```
 
-## Data Consistency
-
-Commands (in `common/management/commands`):
-
-```bash
-python manage.py demo_data_import_export export
-python manage.py demo_data_import_export import
-```
-
-If needed (example):
-
-```sql
-DROP TABLE IF EXISTS pending CASCADE;
-```
-
-## Runbook
 
 ### Normal run
 
