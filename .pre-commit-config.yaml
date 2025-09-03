@@ -1,10 +1,20 @@
 repos:
   - repo: local
     hooks:
-      - id: forbid-root-readme-underscore
-        name: Forbid new root-level README_*.md (docs must live in docs/)
+      - id: forbid-root-docs
+        name: Forbid root-level doc files (use readmes/)
         entry: >-
-          bash -c 'if git diff --cached --name-only | grep -E "^README_.*\.md$" >/dev/null; then echo "ERROR: Root-level README_*.md not allowed. Move documentation into docs/."; exit 1; fi'
+          bash -c '
+          BLOCK_PATTERNS="^(README(|_[A-Z0-9-]+)?\.md|MAP\.md|MIGRATIONS_SQUASH\.md|UpGrade\.md|upgrade\.md|rules\.md)$"; \
+          for f in $(git diff --cached --name-only --diff-filter=ACM); do \
+            case "$f" in \
+              readmes/*) ;; \
+              *) if echo "$f" | grep -Eq "$BLOCK_PATTERNS"; then \
+                   echo "ERROR: $f must reside under readmes/ (centralized documentation policy)."; \
+                   exit 1; \
+                 fi ;; \
+            esac; \
+          done'
         language: system
         pass_filenames: false
         stages: [commit]

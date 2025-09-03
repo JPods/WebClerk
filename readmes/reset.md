@@ -4,6 +4,10 @@
 
 This guide documents the **single supported way** to perform a destructive local reset of the development database and re-seed domain data. Use it sparingly and never on shared / staging / production environments.
 
+Creates 3 SuperUsers:
+1@1.com, 1111pass
+2@2.com, 1111pass
+3@3.com, 1111pass
 ---
 
 ## 1. When To Use
