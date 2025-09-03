@@ -1,3 +1,5 @@
+<!-- Replaced placeholder with authoritative content from README_s/data-map.md -->
+
 # Data / Model Structure Map
 
 Central reference for high-level architecture diagrams, model inventory, and key cross-cutting data flows. Generated sections are delimited by markers so the `generate_data_map` management command can refresh them safely.
@@ -26,7 +28,7 @@ flowchart LR
 
 ## Universal API Concept
 
-Single pattern (`/wcapi/get|save|query|manage`) abstracts CRUD-ish operations across multiple tables using a normalized request schema and unified response envelope (see `docs/envelope.md`). Specialized endpoints (e.g. BOM API) follow DRF viewset / APIView conventions but still emit the envelope.
+Single pattern (`/wcapi/get|save|query|manage`) abstracts CRUD-ish operations across multiple tables using a normalized request schema and unified response envelope (see `envelope.md`). Specialized endpoints (e.g. BOM API) follow DRF viewset / APIView conventions but still emit the envelope.
 
 ## Key Data Flows
 

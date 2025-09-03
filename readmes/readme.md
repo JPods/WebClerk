@@ -306,7 +306,7 @@ Notes / Roadmap:
 
 Concise summary: All API endpoints emit a normalized JSON envelope (`status`, optional `message`, optional `data`, optional `error{code,details}`, optional `meta{...}`). The legacy boolean `success` flag is removed. Error codes are stable machine identifiers (e.g. `validation_error`, `not_found`). Middleware + exception handlers guarantee shape; deliberate bypasses are logged in tests.
 
-Full canonical spec, error code table, pagination meta rules, test guidance, and versioning policy: see `docs/envelope.md`.
+Full canonical spec, error code table, pagination meta rules, test guidance, and versioning policy: see `webclerk/readmes/envelope.md`.
 
 ### Operational Headers
 

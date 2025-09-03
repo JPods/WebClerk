@@ -1,6 +1,6 @@
-# Test & Verification Guide
+<!-- Replaced placeholder with authoritative content from README_s/testing.md -->
 
-(Moved from `README_TESTS.md` at project root on 2025-09-01.)
+# Test & Verification Guide
 
 This document explains how to run and extend the automated + manual (API/Postman) test suites for the Universal API / BaseModel platform.
 
@@ -94,7 +94,7 @@ PY
 
 ## 5. Org Aspect Metrics & Validation
 
-See `docs/manage.md` for `org_aspect_metrics` and validation command details. Typical test usage examples:
+See `manage.md` for `org_aspect_metrics` and validation command details. Typical test usage examples:
 
 ```python
 ok, errs = org.validate_aspects()

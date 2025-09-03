@@ -1,4 +1,4 @@
-<!-- Migrated from README_DEBUG.md (deleted at root). -->
+<!-- MOVED from docs/debug.md on rename. Original left with stub notice. -->
 
 # Development & Debug Configuration Overview
 
@@ -36,7 +36,7 @@ See `apps/core/services/view_edit_access.py` – dev bypass returns `['*']` wild
 
 ## 5. Data Seeding Strategy
 
-Single canonical command: `reseed_all_models` (see `docs/manage.md` for options). Legacy multi-command chain removed.
+Single canonical command: `reseed_all_models` (see `manage.md` for options). Legacy multi-command chain removed.
 
 ## 6. Stats & Periodic Tasks
 
@@ -46,7 +46,7 @@ Configured in `settings.py` (`CELERY_BEAT_SCHEDULE`): `recompute-basic-stats-hou
 
 | Concept | Status | Notes |
 |---------|--------|-------|
-| Verb-style wcapi endpoints | Removed | Consolidated into `/wcapi/get|save|query` |
+| Verb-style wcapi endpoints | Removed | Consolidated into `/wcapi/get\|save\|query` |
 | Multi-command demo rebuild chain | Removed | One reseed command |
 | Mutable JSONField default warnings | Addressed | Use callable factories |
 

@@ -1,3 +1,5 @@
+<!-- Canonical envelope spec (migrated from README_s/envelope.md on consolidation). -->
+
 # Unified API Response Envelope
 
 Canonical specification for the JSON envelope emitted by **all** API endpoints (Universal `wcapi/*` + dedicated DRF views + future async job status endpoints). Middleware + exception handlers enforce this contract so new code cannot silently diverge.
@@ -8,20 +10,20 @@ Keys are optional unless marked REQUIRED. Order is not semantically significant 
 
 ```jsonc
 {
-  "status": "success",          // REQUIRED: "success" | "error"
-  "message": "Human summary",    // Optional: short human-readable explanation (success OR error)
-  "data": { /* or [] */ },        // Present on success when returning resource(s)
-  "error": {                      // Present when status=="error"
-    "code": "validation_error",  // REQUIRED when error object present (stable machine code)
-    "details": { /* OPTIONAL structured info (e.g. field errors) */ }
-  },
-  "meta": {                       // OPTIONAL diagnostics / pagination / tracing
-    "total": 123,
-    "page_size": 50,
-    "next": "?page=3",
-    "previous": null,
-    "request_id": "9f3c..."     // Mirrors X-Request-ID header (if configured)
-  }
+	"status": "success",          // REQUIRED: "success" | "error"
+	"message": "Human summary",    // Optional: short human-readable explanation (success OR error)
+	"data": { /* or [] */ },        // Present on success when returning resource(s)
+	"error": {                      // Present when status=="error"
+		"code": "validation_error",  // REQUIRED when error object present (stable machine code)
+		"details": { /* OPTIONAL structured info (e.g. field errors) */ }
+	},
+	"meta": {                       // OPTIONAL diagnostics / pagination / tracing
+		"total": 123,
+		"page_size": 50,
+		"next": "?page=3",
+		"previous": null,
+		"request_id": "9f3c..."     // Mirrors X-Request-ID header (if configured)
+	}
 }
 ```
 
@@ -78,21 +80,18 @@ Temporary escape hatch (DEV ONLY):
 export API_ENVELOPE_ALLOW_RAW=1  # enable raw passthrough for debugging
 ```
 
-Even when enabled, avoid committing tests or clients that rely on raw responses. Removal date tracked in `docs/upgrade.md` (roadmap section).
+Even when enabled, avoid committing tests or clients that rely on raw responses. Removal date tracked in upgrade roadmap.
 
 Per-request bypass (rare, e.g. third‑party signature constraints): set `request._skip_envelope = True` **before** returning a `JsonResponse`. Each skip is surfaced in test run summaries; unexpected skips fail CI (future gate).
 
-## Legacy Key Bubbling Removal (2025-09-02)
+## Legacy Key Bubbling Removal
 
-During the migration window (Aug–early Sept 2025) middleware mirrored selected nested `data` keys (e.g. `results`, `count`, aggregation metrics) onto the top level of the envelope to keep untouched legacy tests green. This shim is now **removed**. Tests and clients must access payload fields strictly via:
+During a migration window middleware mirrored selected nested `data` keys (e.g. `results`, `count`) onto the top level to keep untouched legacy tests green. This shim is now **removed**. Access payload strictly via:
 
 ```python
-payload['data']['results']      # list resources
-payload['data']['count']        # pagination count (or better: use meta.total when implemented)
-payload['data']['total_lines']  # aggregation example
+payload['data']['results']
+payload['data']['count']
 ```
-
-Top-level lookups like `payload['results']` or `payload['count']` will now fail. Update any remaining references accordingly. Validation field errors likewise remain inside `error.details` (do not assume bubbled field keys at the root). If more ergonomic shortcuts are desired, add helper accessors in client code rather than re‑introducing middleware mutation.
 
 ## Pagination Meta
 
@@ -116,40 +115,32 @@ Representative tests (add new ones for new codes / variants):
 
 When adding an error code:
 
-1. Implement mapping in exception handlers / raising site.
+1. Implement mapping.
 2. Add table row above.
 3. Add test asserting HTTP status + `error.code` + shape.
 
 ## Versioning Policy
 
-Minor, *additive* meta fields require no version bump. Breaking changes (renaming keys, removing existing required keys) are disallowed without a deprecation cycle documented in `docs/upgrade.md`. If we ever introduce `v2`, we will support both for a defined overlap window and negotiate via `Accept: application/vnd.webclerk.v2+json` (planned, not yet required).
+Additive meta fields require no version bump. Breaking changes (renaming keys, removing existing required keys) follow deprecation cycle documented in upgrade roadmap. Future `v2` may negotiate via `Accept: application/vnd.webclerk.v2+json`.
 
 ## Client Guidance
-
-Pseudocode for robust client handling:
 
 ```python
 payload = response.json()
 if payload.get("status") == "error":
-    code = payload.get("error", {}).get("code", "unknown")
-    raise ApiError(code, payload.get("message"), details=payload.get("error", {}).get("details"))
+	code = payload.get("error", {}).get("code", "unknown")
+	raise ApiError(code, payload.get("message"), details=payload.get("error", {}).get("details"))
 data = payload.get("data")
 meta = payload.get("meta", {})
 ```
 
-Avoid relying on ordering or incidental fields; treat absence of `data` on success as an operation that yielded no resource body (e.g., DELETE, idempotent action trigger).
-
 ## FAQ
 
-**Why not replicate HTTP codes inside `error.code`?**  
-Semantic codes are more stable & expressive (`validation_error` beats repeating `400`). HTTP status still conveys coarse category to intermediaries.
+**Why not replicate HTTP codes inside `error.code`?** Stable semantic codes are more expressive. HTTP conveys coarse class.
 
-**Why keep `message` instead of forcing clients to interpret codes?**  
-Developer diagnostics and user‑facing toasts benefit from concise summaries; `code` is for branching logic, `message` for humans.
+**Why keep `message`?** Human diagnostics; `code` is for branching.
 
-**Can we embed partial success info?**  
-Return `status: "success"`, encode per-item issues under `meta.partial_failures` with an array of `{id, code, message}` objects; do **not** mix success+error top-level statuses.
+**Partial success?** Return `status: "success"` and embed per-item issues under `meta.partial_failures`.
 
 ---
-
-Maintain this document as the single source of truth; keep root `README.md` section concise and link here.
+Maintain this document as the single source of truth; root `README.md` links here.

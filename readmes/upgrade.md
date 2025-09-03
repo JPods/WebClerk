@@ -1,6 +1,8 @@
+<!-- Consolidated from docs/upgrade.md and README_s/upgrade.md (full content) -->
+
 # Upgrade Roadmap (webClerk3)
 
-(Moved from `README_UPGRADE.md` at project root on 2025-09-01.)
+(Content merged from legacy file. See git history for earlier versions.)
 
 Purpose: Shared, prioritized enhancement backlog for Core/BaseModel, Universal API, and related infrastructure. Focus on maintainability, performance, correctness, and developer velocity. Each item lists: Goal, Benefit, Acceptance Criteria, Effort (S/M/L), Priority (P1–P3).
 

@@ -1,6 +1,6 @@
-# Management & Operations Guide
+<!-- Replaced placeholder with authoritative content from README_s/manage.md -->
 
-(Moved from `README_MANAGE.md` at project root on 2025-09-01.)
+# Management & Operations Guide
 
 Central reference for Django management commands and operational scripts shipped in this repository. Commands are invoked with:
 
@@ -283,4 +283,3 @@ The `retired/` subfolder stores deprecated scripts retained for reference.
 
 ---
 Questions or clarifications: open an issue referencing this file and the command.
-
