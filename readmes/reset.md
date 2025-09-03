@@ -1,64 +1,204 @@
-<!-- Migrated from README_RESET.md (deleted at root). -->
+<!-- Authoritative reset workflow documentation -->
 
-# Full Reset & Migration Baseline
+# Destructive Full Reset & Baseline Rebuild
 
-This project supports a **full destructive local reset** to simplify development when migrations drift or demo data needs refreshing.
-
-## When To Use
-
-- Local schema churn made historical migrations noisy.
-- You intentionally reset migration history (never do this on a shared/staging/prod DB).
-- You want a clean dataset identical to `rebuild_demo_data` export snapshot.
-
-## What It Does
-
-`scripts/full_reset_and_rebuild.sh` will:
-
-1. Confirm (or auto-confirm with `-y`).
-2. Terminate active DB connections.
-3. Drop & recreate the target database (`$DATABASE_NAME` or default `commerce_expert`).
-4. Delete all migration files for domain apps (defined in the script).
-5. Run `makemigrations` to produce a single `0001_initial.py` per app.
-6. Apply migrations.
-7. Attempt superuser creation (skipped in non‑TTY).
-8. Load default company & access (non-fatal if JSON absent).
-9. Run `rebuild_demo_data --export-after` to seed and snapshot.
-
-## Safety Guards
-
-- Refuses to run if `DJANGO_SETTINGS_MODULE` contains `prod`.
-- Requires `DEBUG=1` (default) OR explicit `FORCE_FULL_RESET=1` override.
-- Interactive yes/no unless `-y` used (or running under CI sets auto-confirm).
-
-## Usage
-
-```bash
-./scripts/full_reset_and_rebuild.sh        # interactive
-./scripts/full_reset_and_rebuild.sh -y     # no prompt
-FORCE_FULL_RESET=1 DEBUG=0 ./scripts/full_reset_and_rebuild.sh -y  # explicit outside DEBUG
-```
-
-## Post-Reset
-
-- Run tests: `./bin/python -m pytest -q`.
-- Optionally create a superuser: `./bin/python manage.py createsuperuser`.
-
-## Version Control Strategy
-
-- We committed the new `0001_initial.py` per app as the fresh baseline.
-- Old multi-step migrations were removed; consumers must drop & recreate local DBs after pulling.
-- Coordinate with teammates before merging this baseline.
-
-## Export Snapshot
-
-`common/management/commands/all_tables_export.json` is produced by the rebuild step. It is ignored by default (see `.gitignore`); remove that line if you wish to track snapshot evolution.
-
-## Caveats
-
-- Never run against production data.
-- If you later add apps, update the `APPS` array in the script.
-- If default JSON seeds become required, ensure they are added to repo to avoid warning noise.
+This guide documents the **single supported way** to perform a destructive local reset of the development database and re-seed domain data. Use it sparingly and never on shared / staging / production environments.
 
 ---
 
-_This document was migrated into `docs/` on 2025‑09‑02._
+## 1. When To Use
+
+Use `full_reset_seed` only when:
+
+- Migration history has been squashed and you need a clean slate.
+- Local schema drift / abandoned experimental migrations cause failures.
+- You want freshly seeded synthetic + sample domain data and patterned superusers.
+- Tests should run against a pristine baseline state.
+
+Do NOT use:
+
+- To “refresh” production-like data (prefer targeted data loads instead).
+- Inside active feature branches just to clear minor local fixtures—resetting is heavy.
+
+---
+
+## 2. What Happens Under The Hood
+
+`python manage.py full_reset_seed` orchestrates:
+
+1. (Interactive unless `--force`) Safety confirmation.
+2. Environment guard: verifies interpreter matches project `bin/python` & Django 5.x (override with `ALLOW_SYSTEM_PY=1`).
+3. Terminates existing PostgreSQL sessions for the target DB.
+4. Drops and recreates the database (name from `DATABASE_NAME` / settings).
+5. Runs migrations (expects committed `0001_initial` baselines + any new deltas).
+6. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`.
+7. Light synthetic backfill via `reseed_all_models --no-flush --per-model 2` for sparse tables.
+8. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
+9. Relationship post-pass (M2M + org relations) handled inside `reseed_all_models` command logic.
+10. Summary output printed with seeds actually applied.
+
+---
+
+## 3. Usage Cheatsheet
+
+Interactive (asks for confirmation):
+
+```bash
+python manage.py full_reset_seed
+```
+
+Force (no prompt):
+
+```bash
+python manage.py full_reset_seed --force
+```
+
+Skip seeding but still create 3 superusers:
+
+```bash
+python manage.py full_reset_seed --force --no-seed
+```
+
+Create 5 superusers and include an extra seed command:
+
+```bash
+python manage.py full_reset_seed --force --superusers 5 --seed-cmd refresh_keywords
+```
+
+Skip superusers entirely:
+
+```bash
+python manage.py full_reset_seed --force --skip-superusers
+```
+
+Run while `DEBUG=False` (explicit override):
+
+```bash
+FORCE_FULL_RESET=1 python manage.py full_reset_seed --force
+```
+
+Bypass environment guard (e.g. running inside a container wrapper):
+
+```bash
+ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force
+```
+
+---
+
+## 4. Programmatic Invocation
+
+```python
+from common.rebuild import full_reset_and_seed
+res = full_reset_and_seed(create_superusers=2, seed_commands=("seed_orgs",), skip_seed=False)
+print(res)
+```
+
+The returned `ResetResult` dataclass exposes: `db_name`, `recreated`, `migrations_applied`, `superusers`, `seed_commands_run`.
+
+---
+
+## 5. Environment Guards & Safety
+
+Guard | Purpose | Override
+----- | ------- | --------
+Interpreter match | Prevent running with system Python (wrong Django) | `ALLOW_SYSTEM_PY=1`
+Django 5.x check | Avoid applying migrations with incompatible version | `ALLOW_SYSTEM_PY=1`
+DEBUG True | Block accidental destructive ops in prod-like config | `FORCE_FULL_RESET=1`
+Interactive confirm | Human “are you sure?” gate | `--force`
+
+The command still refuses if `DJANGO_SETTINGS_MODULE` suggests a production module (contains `prod`).
+
+---
+
+## 6. Post-Reset Checklist
+
+Step | Command | Notes
+---- | ------- | -----
+Run tests | `./bin/python -m pytest -q` | Should be green (baseline).
+Create extra admin | `./bin/python create_superuser.py --email admin2@example.com` | Optional.
+Inspect seed data | `./bin/python manage.py shell` | Sanity-check orgs, items.
+Envelope telemetry | `./bin/python manage.py storage_load_report --json` | Optional size snapshot.
+
+---
+
+## 7. Troubleshooting
+
+Symptom | Likely Cause | Fix
+------- | ------------ | ---
+`OperationalError: server closed the connection` | Using stale DB connection handle after drop | Fixed by function (ensure upgraded code). Re-run.
+`column "name" of relation "django_content_type" does not exist` | Ran migrations with older Django then switched versions | Drop DB & rerun via correct venv.
+`psql binary not found` | PostgreSQL client tools missing in PATH | Install `psql` / adjust PATH.
+Seed command missing file warnings | Optional JSON seeds not present | Supply JSON or ignore (non-fatal).
+Superusers not created | Email collision from prior import | Use higher `--superusers` or drop again.
+
+Log still shows intermediate product migrations (0002–0006)? They are **no-op stubs**—this is expected.
+
+---
+
+## 8. Migration Baseline Policy
+
+- Historical squashes (e.g., 2025‑09‑03) produce a single authoritative `0001_initial` per app.
+- Never hand-edit applied migration files post-commit; create new migration deltas.
+- Only re-squash after broad team coordination and just before a release boundary.
+
+---
+
+## 9. Extending Seeding
+
+Add a new management command and chain it by passing `--seed-cmd new_command` or programmatically supplying a tuple. Keep seeds:
+
+- Idempotent (safe to re-run).
+- Fast (< a few seconds) to keep reset cycles tight.
+- Resilient to partial existing data (use get_or_create / try/except guards).
+
+---
+
+## 10. Minimal One-Liner (Force, Quiet)
+
+```bash
+FORCE_FULL_RESET=1 python manage.py full_reset_seed --force --no-seed --skip-superusers
+```
+
+Useful when you only need a schema refresh without example data.
+
+---
+
+## 11. Data Export (Optional)
+
+If you maintain evolving demo snapshots, run an export immediately after a clean reset *before* hand edits:
+
+```bash
+python manage.py demo_data_import_export --export demo_snapshot.json
+```
+Commit only if intentionally curating a shared demo baseline.
+
+---
+
+## 12. FAQ
+
+Q: Why not call `makemigrations` automatically?
+A: Reset assumes committed, reviewed migration files. Auto-generation inside a destructive reset risks unreviewed schema drift.
+
+Q: Why do we still see product migrations 0002–0006 apply?
+A: They are zero-op placeholders retained only to satisfy Django’s dependency graph for any stale references; they do nothing.
+
+Q: Can I run only the seeding portion?
+A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `full_reset_seed` always recreates the DB first.
+
+---
+
+## 13. Quick Reference
+
+Action | Command
+------ | -------
+Full reset + seed + 3 superusers | `python manage.py full_reset_seed --force`
+Reset only (no seed, no superusers) | `python manage.py full_reset_seed --force --no-seed --skip-superusers`
+Reset with 5 superusers | `python manage.py full_reset_seed --force --superusers 5`
+Programmatic call | `from common.rebuild import full_reset_and_seed`
+Bypass env guard | `ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force`
+
+---
+
+End of reset guide.
+
+

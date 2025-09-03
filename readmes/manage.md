@@ -242,11 +242,26 @@ Add `--dry-run` first to preview.
 
 ## 5. Development Reset / Local Ops
 
-`reset_dev.sh` provides a convenience script to purge and re-seed a dev environment.
+Use the unified Django management command `full_reset_seed` for a **destructive local reset** (drops DB, migrates, seeds, creates three patterned superusers `1@1.com`, `2@2.com`, `3@3.com` all with password `1111pass`).
+
+Examples:
 
 ```bash
-bash common/management/commands/reset_dev.sh
+python manage.py full_reset_seed --force                # full reset + seed + 3 superusers
+python manage.py full_reset_seed --force --no-seed      # reset without running seed commands
+python manage.py full_reset_seed --force --superusers 5 # create 5 patterned superusers
+python manage.py full_reset_seed --force --skip-superusers --no-seed
 ```
+
+Patterned superusers use first/last names `first_N` / `last_N`.
+
+Environment override for safety when DEBUG=False:
+
+```bash
+FORCE_FULL_RESET=1 python manage.py full_reset_seed --force
+```
+
+Legacy shell scripts were removed; this command is the canonical path.
 
 ## 6. Postman / API Contract Assets
 
