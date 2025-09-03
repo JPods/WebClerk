@@ -1,9 +1,9 @@
-import axiosInstance from "./axios"; // or wherever your axiosInstance is
+import apiClient from "./axios"; // unified protected API client
 import { PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
 
 export const patchUserProfile = async (data:any) => {
   try {
-    const res = await axiosInstance.patch(PostLoginURL.updateProfile,{...data});
+  const res = await apiClient.patch(PostLoginURL.updateProfile,{...data});
     return res;
   }
   catch (error: any) { 
@@ -13,7 +13,7 @@ export const patchUserProfile = async (data:any) => {
 
 export const postPhone = async (data:any) => {
   try {
-    const res = await axiosInstance.post(PostLoginURL.addPhone,{...data});
+  const res = await apiClient.post(PostLoginURL.addPhone,{...data});
     return res;
   }
   catch (error: any) { 
@@ -24,7 +24,7 @@ export const postPhone = async (data:any) => {
 export const getPhone = async (id:any = '') => {
   const url = (id === '') ? PostLoginURL.addPhone : PostLoginURL.addPhone + id;
   try {
-    const res = await axiosInstance.get(url);
+  const res = await apiClient.get(url);
     return res.data;
   }
   catch (error: any) { 
@@ -34,7 +34,7 @@ export const getPhone = async (id:any = '') => {
 
 export const postEmail = async (data:any) => {
   try {
-    const res = await axiosInstance.post(PostLoginURL.addEmail,{...data});
+  const res = await apiClient.post(PostLoginURL.addEmail,{...data});
     return res;
   }
   catch (error: any) { 
@@ -45,7 +45,7 @@ export const postEmail = async (data:any) => {
 export const getEmail = async (id:any = '') => {
   const url = (id === '') ? PostLoginURL.addEmail : PostLoginURL.addEmail + id;
   try {
-    const res = await axiosInstance.get(url);
+  const res = await apiClient.get(url);
     return res.data;
   }
   catch (error: any) { 
@@ -55,7 +55,7 @@ export const getEmail = async (id:any = '') => {
 
 export const postAddress = async (data:any) => {
   try {
-    const res = await axiosInstance.post(PostLoginURL.addAddress,{...data});
+  const res = await apiClient.post(PostLoginURL.addAddress,{...data});
     return res;
   }
   catch (error: any) { 
@@ -66,7 +66,7 @@ export const postAddress = async (data:any) => {
 export const getAddress = async (id:any='') => {
    const url = (id === '') ? PostLoginURL.addAddress : PostLoginURL.addAddress + id;
   try {
-    const res = await axiosInstance.get(url);
+  const res = await apiClient.get(url);
     return res.data;
   }
   catch (error: any) { 
@@ -76,7 +76,7 @@ export const getAddress = async (id:any='') => {
 
 export const postDomain = async (data:any) => {
   try {
-    const res = await axiosInstance.post(PostLoginURL.addDomains,{...data});
+  const res = await apiClient.post(PostLoginURL.addDomains,{...data});
     return res;
   }
   catch (error: any) { 
@@ -87,7 +87,7 @@ export const postDomain = async (data:any) => {
 export const getDomain = async (id:any='') => {
    const url = (id === '') ? PostLoginURL.addDomains : PostLoginURL.addDomains + id;
   try {
-    const res = await axiosInstance.get(url);
+  const res = await apiClient.get(url);
     return res.data;
   }
   catch (error: any) { 
@@ -97,7 +97,7 @@ export const getDomain = async (id:any='') => {
 
 export const postAction = async (data:any) => {
   try {
-    const res = await axiosInstance.post(PostLoginURL.addActions,{...data});
+  const res = await apiClient.post(PostLoginURL.addActions,{...data});
     return res;
   }
   catch (error: any) { 
@@ -108,7 +108,7 @@ export const postAction = async (data:any) => {
 export const getAction = async (id:any = '') => {
   const url = (id === '') ? PostLoginURL.addActions : PostLoginURL.addActions + id;
   try {
-    const res = await axiosInstance.get(url);
+  const res = await apiClient.get(url);
     return res;
   }
   catch (error: any) { 
@@ -118,7 +118,7 @@ export const getAction = async (id:any = '') => {
 
 export const patchAction = async (id:any,data:any) => {
   try {
-    const res = await axiosInstance.patch(PostLoginURL.addActions + id +'/', {...data});
+  const res = await apiClient.patch(PostLoginURL.addActions + id +'/', {...data});
     return res;
   }
   catch (error: any) { 
@@ -128,7 +128,7 @@ export const patchAction = async (id:any,data:any) => {
 
 export const deleteAction = async (id:any) => {
   try {
-    const res = await axiosInstance.delete(PostLoginURL.addActions + id +'/');
+  const res = await apiClient.delete(PostLoginURL.addActions + id +'/');
     return res;
   }
   catch (error: any) { 
@@ -138,7 +138,7 @@ export const deleteAction = async (id:any) => {
 
 export const Contacts = async () => {
   try {
-    const res = await axiosInstance.get(PostLoginURL.allTypes + 'table_name=contacts' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=contacts' );
     return res;
   }
   catch (error: any) { 
@@ -148,7 +148,7 @@ export const Contacts = async () => {
 
 export const Actions = async () => {
   try {
-    const res = await axiosInstance.get(PostLoginURL.allTypes + 'table_name=actions' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=actions' );
     return res;
   }
   catch (error: any) { 

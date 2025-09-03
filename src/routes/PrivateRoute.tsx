@@ -6,24 +6,25 @@ import AppSidebar from '../layout/AppSidebar';
 import Backdrop from '../layout/Backdrop';
 import AppHeader from '../layout/AppHeader';
 import { useAuth } from '../hooks/useAuth';
+import { useAppSelector } from '../store/hooks';
 
 const AppLayout: React.FC = () => {
   
-  const { isAuthenticated, isLoading } = useAuth();
+  //const { isAuthenticated, isLoading } = useAuth();
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   const location = useLocation();
   const pathSegments = location.pathname.split('/');
   const segment = pathSegments[1]; 
 
-  //const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
     console.log("data url", isAuthenticated)
   if (isLoading) {
     return <div>Loading...</div>; // Or a loading spinner
   }
   
-  //const getToken = localStorage.getItem("accessToken");
-  const getToken = true
+  const getToken = localStorage.getItem("accessToken");
+  //const getToken = true
 
   return getToken ? (
     <div className="min-h-screen xl:flex">

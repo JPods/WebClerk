@@ -56,7 +56,7 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
  
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
     try {
-      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.id, formData);
+      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.name_first, formData);
       if (res.status === 201 || res.status === 200) {
         dispatch(showToast({ message: `Action ${mode === 'add' ? 'saved' : 'updated'} successfully`, type: "success" }));
         if (onSaved) {

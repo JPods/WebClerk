@@ -1,8 +1,16 @@
+// Network information for different base URLs
+// VITE_API_URL / VITE_API_URL_PROD -> Protected (post-login) API
+// VITE_AUTH_API_URL / VITE_AUTH_API_URL_PROD -> Auth server (login, refresh, signup)
 class NetworkInfo {
-  static readonly URL: string =
+  static readonly API_URL: string =
     import.meta.env.VITE_ENV === "DEV"
       ? import.meta.env.VITE_API_URL
       : import.meta.env.VITE_API_URL_PROD;
+
+  static readonly AUTH_URL: string =
+    import.meta.env.VITE_ENV === "DEV"
+      ? (import.meta.env.VITE_AUTH_API_URL || import.meta.env.VITE_API_URL) // fallback
+      : (import.meta.env.VITE_AUTH_API_URL_PROD || import.meta.env.VITE_API_URL_PROD);
 }
 
 class HTTPMethod {
@@ -15,8 +23,8 @@ class HTTPMethod {
 
 class AuthURL {
   static readonly SIGNUP: string = "/signup/";
-  static readonly LOGIN: string = "/login/"; 
-  static readonly REFRESH_TOKEN: string = "refresh/"; 
+  static readonly LOGIN: string = "/auth/login/"; 
+  static readonly REFRESH_TOKEN: string = "/api/token/"; 
   static readonly LOGOUT: string = "/logout"; 
   static readonly FORGOT_PASS: string = "/forgetPassword";
   static readonly verifyEmail: string = "/verify-email/"; 

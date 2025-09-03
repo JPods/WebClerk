@@ -39,26 +39,21 @@ export default function SignInForm() {
 
   const handleFormSubmit = async (data:any) => {
           // Overwritten on the backend by user profile
-             data.role = 'USER';
+             //data.role = 'USER';
        try {
-              const response = await login(data);              
-              if(response.status === 200 ) {
+              const response = await login(data);
+              console.log("Login response", response.data);
+              if (response.code === 200) {
+                  console.log("Login response2", response.data);
                   localStorage.setItem("accessToken", response.data.access);
                   localStorage.setItem("refreshToken", response.data.refresh);
 
-                       const res = await axiosInstance.get(PostLoginURL.getUser,{
-                            headers: {
-                              Authorization: `Bearer ${response.data.access}`,
-                            },
-                          });
-                        if(res.status === 200)
-                        {   
-                            const { id, uuid, email, role, name_first,name_middle, name_last, rank,company,date_joined,salutation,attention } = res.data;
-                            const user = {id, uuid,email,role,name_first,name_middle,name_last,rank,company,date_joined,salutation,attention};
-                            dispatch(setUser(user));  
-                            dispatch(showToast({ message: "Login successful!", type: "success" }));
-                            navigate('/dashboard');
-                        }    
+                  const { email, role, name_first, name_last } = response.data;
+                  const user = { email, role, name_first, name_last };
+                  dispatch(setUser(user));
+                  dispatch(showToast({ message: "Login successful!", type: "success" }));
+                  //navigate('/dashboard');
+                       // }    
                  
                        // dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
                  
