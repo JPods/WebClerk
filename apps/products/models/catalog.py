@@ -28,7 +28,9 @@ class CatalogLine(ItemLinkedBase):
     price_unit = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     discount_percent = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
-
+    items = models.JSONField(default=dict, blank=True, null=True)
+        # list ids prices, attributes, etc. for denormalized lookup
+        # if it exceeds a size, put it in an external doc store
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["catalog", "item"], name="uniq_catalog_item"),

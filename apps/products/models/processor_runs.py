@@ -1,0 +1,40 @@
+from __future__ import annotations
+
+from django.db import models
+
+
+class InventoryAdjustmentProcessorRun(models.Model):
+    """Audit log of each pending adjustment processor invocation."""
+
+    RUN_GLOBAL = 'global'
+    RUN_STACK = 'stack'
+    RUN_TYPES = [
+        (RUN_GLOBAL, 'Global'),
+        (RUN_STACK, 'Stack'),
+    ]
+
+    run_type = models.CharField(max_length=12, choices=RUN_TYPES, db_index=True)
+    stack_id = models.IntegerField(null=True, blank=True, db_index=True)
+    started_dt = models.DateTimeField()
+    finished_dt = models.DateTimeField()
+    duration_s = models.DecimalField(max_digits=10, decimal_places=3)
+    attempted = models.IntegerField(default=0)
+    applied = models.IntegerField(default=0)
+    skipped_locked = models.IntegerField(default=0)
+    still_locked = models.IntegerField(default=0)
+    insufficient = models.IntegerField(default=0)
+    canceled = models.IntegerField(default=0)
+    reserved_conflict_skipped = models.IntegerField(default=0)
+    dry_run = models.BooleanField(default=False)
+    summary = models.JSONField(default=dict, blank=True)
+
+    created_dt = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=("run_type", "created_dt"), name="invproc_run_type_created_idx"),
+        ]
+        ordering = ("-created_dt",)
+
+    def __str__(self):  # pragma: no cover
+        return f"ProcRun#{self.pk}:{self.run_type}:{self.attempted}/{self.applied}"

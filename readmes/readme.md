@@ -4,6 +4,7 @@
 ![CI](https://github.com/JPods/webClerk3/actions/workflows/ci.yml/badge.svg)
 <!-- Replace OWNER/REPO in next line once Codecov enabled; token not needed for public repos -->
 ![Coverage](https://codecov.io/gh/JPods/webClerk3/branch/main/graph/badge.svg)
+![Coverage bill_dev](https://codecov.io/gh/JPods/webClerk3/branch/bill_dev/graph/badge.svg)
 
 
 ## Project Docs
@@ -27,6 +28,7 @@ Authoritative guides are split by concern (single source each, no duplication):
 - Core onboarding & architecture: this README
 - Data / model structure map: `readmes/data-map.md`
 - Management & Operations: `readmes/manage.md`
+- Inventory & Costing: `readmes/inventory.md`
 - Testing & Verification: `readmes/testing.md`
 - Upgrade Roadmap: `readmes/upgrade.md`
 - Data / Model Map: `readmes/data-map.md`

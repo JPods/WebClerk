@@ -302,6 +302,19 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 30 * 60,  # every 30 minutes
         'options': {'expires': 25 * 60},
     },
+    # Drain pending inventory adjustments frequently (short task; self-limiting via limit arg)
+    'inventory-pending-drain-1m': {
+        'task': 'products.tasks.process_pending_inventory',
+        'schedule': 60,  # every minute
+        'options': {'expires': 55},
+        # args can be configured in DB scheduler; use default limit in task for now
+    },
+    # Expire stale inventory reservations every minute (short TTL reclamation)
+    'expire-inventory-reservations-1m': {
+        'task': 'products.tasks.expire_inventory_reservations',
+        'schedule': 60,
+        'options': {'expires': 55},
+    },
 }
 
 GRAPH_MODELS = {

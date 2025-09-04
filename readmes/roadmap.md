@@ -29,3 +29,7 @@ See design rationale and sequencing strategy in earlier discussion notes (commit
 - Batch convert 2–3 representative wcapi tests to `assert_envelope`.
 - Add simple link checker (optional) to CI after consolidation.
 
+## Additional tables may be added later:
+## Project Docs
+
+[Google Docs](https://docs.google.com/document/d/1a8ZYgSVpJsa6VhhEPkW5bOreRfY4mZ0tuRk0NHJIFJI/edit?usp=sharing)
