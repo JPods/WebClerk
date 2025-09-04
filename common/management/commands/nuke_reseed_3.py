@@ -10,9 +10,20 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):  # pragma: no cover
+        # Supply extended relationship seeding flags so order/customer links & orderline propagation happen in the FIRST run
         result = full_reset_and_seed(
             destructive=True,
-            seed_commands=None,  # use defaults
+            seed_commands=None,  # use defaults (includes seed_relationships)
+            seed_command_args={
+                'seed_relationships': [
+                    '--customer-order-links',
+                    '--orderline-links',
+                    '--order-contact',
+                    '--auto-create-contacts','5',
+                    '--ensure-contact-order-link',
+                    '--ensure-contact-org-link',
+                ]
+            },
             create_superusers=3,
             skip_seed=False,
             nuke_migrations=True,

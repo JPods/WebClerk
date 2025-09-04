@@ -28,14 +28,19 @@ from __future__ import annotations
 
 from typing import Iterable, Dict, Any
 from django.db import models
-
+#QQQ fix this by table_name
 STANDARD_LINK_KEYS: tuple[str, ...] = (
     "contacts",
     "emails",
     "phones",
     "locations",
     "domains",
-    "orgs",
+    # Organization type buckets expected by front-end
+    "customers",
+    "vendors",
+    "manufacturers",
+    "reps",
+    # Generic cross-type collections
     "orders",
     "projects",
     "documents",

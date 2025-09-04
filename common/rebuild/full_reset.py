@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import sys
 import django
+import traceback
 from typing import Iterable, Sequence
 from pathlib import Path
 from dataclasses import dataclass
@@ -92,6 +93,7 @@ def full_reset_and_seed(
     *,
     destructive: bool = True,
     seed_commands: Iterable[str] | None = None,
+    seed_command_args: dict[str, list[str]] | None = None,
     create_superusers: int = 3,
     skip_seed: bool = False,
     nuke_migrations: bool = False,
@@ -118,10 +120,15 @@ def full_reset_and_seed(
     try:
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
         expected_python = os.path.join(project_root, 'bin', 'python')
+        alt_python = os.path.join(project_root, 'bin', 'python3')
         if os.path.exists(expected_python):  # only enforce if venv bootstrap exists
-            if sys.executable != expected_python and not os.getenv('ALLOW_SYSTEM_PY'):
+            allowed = {expected_python}
+            if os.path.exists(alt_python):
+                allowed.add(alt_python)
+            if sys.executable not in allowed and not os.getenv('ALLOW_SYSTEM_PY'):
                 raise RuntimeError(
-                    f"Environment guard: running with sys.executable={sys.executable} but expected {expected_python}. "
+                    "Environment guard: running with sys.executable="
+                    f"{sys.executable} but expected one of {sorted(allowed)}. "
                     "Activate the project virtualenv or set ALLOW_SYSTEM_PY=1 to override."
                 )
         dj_version = django.get_version()
@@ -196,22 +203,49 @@ def full_reset_and_seed(
         pass
     call_command('migrate', interactive=False)
 
+    # Create superusers BEFORE seeding so they participate in relationship linking
+    su_created = 0
+    if create_superusers > 0:
+        try:
+            su_created = _create_superusers(create_superusers)
+        except Exception:
+            pass
+
     run_cmds: list[str] = []
     if not skip_seed:
         for cmd in (seed_commands or DEFAULT_SEED_COMMANDS):
+            started = False
             try:
-                call_command(cmd)
+                extra_args = []
+                if seed_command_args and cmd in seed_command_args:
+                    extra_args = seed_command_args[cmd]
+                started = True
+                call_command(cmd, *extra_args)
                 run_cmds.append(cmd)
-            except Exception:  # non-fatal seed errors
-                pass
-        # Light synthetic reseed for residual empty tables
+            except Exception as e:  # non-fatal seed errors, but make visible
+                if started and cmd not in run_cmds:
+                    err_cls = e.__class__.__name__
+                    msg = str(e).replace('\n', ' ')[:140]
+                    tb = traceback.format_exc()
+                    print("\n[seed-error] command=", cmd, "class=", err_cls, "message=", msg, file=sys.stderr)
+                    print("[seed-error-trace-begin]", file=sys.stderr)
+                    print(tb, file=sys.stderr)
+                    print("[seed-error-trace-end]", file=sys.stderr)
+                    run_cmds.append(f"{cmd}:ERROR:{err_cls}:{msg}")
         try:
             call_command('reseed_all_models', '--no-flush', '--per-model', '2')
             run_cmds.append('reseed_all_models')
         except Exception:
             pass
 
-    su_created = _create_superusers(create_superusers) if create_superusers > 0 else 0
+    # Optional: ensure superusers still exist (idempotent top-up) AFTER seeding if earlier creation failed
+    if create_superusers > 0 and su_created < create_superusers:
+        try:
+            su_created2 = _create_superusers(create_superusers)
+            if su_created2:
+                su_created = max(su_created, su_created2)
+        except Exception:
+            pass
 
     return ResetResult(
         db_name=db_name,

@@ -11,6 +11,7 @@ RELATED_TABLES: Dict[str, List[str]] = {
     # 'addresses' retained for backward compatibility (maps to Location model)
     'contacts': ['phones', 'emails', 'addresses', 'locations', 'actions', 'domains', 'orders', 'orgs'],
     'orgs': ['contacts', 'domains', 'locations'],  # basic reverse sets
+    'orders': ['contacts', 'orgs', 'orderlines'],  # expose forward-linked contacts/org + child order lines
 }
 
 def get_related_data(
@@ -36,6 +37,7 @@ def get_related_data(
         'orders': ('transactions', 'Order'),
         'orgs': ('orgs', 'OrgBase'),
         'contacts': ('core', 'Contact'),
+        'orderlines': ('transactions', 'OrderLine'),
     }
 
     tables_dict = related_tables_dict if related_tables_dict is not None else RELATED_TABLES
@@ -43,25 +45,30 @@ def get_related_data(
     print(f"get_related_data called with table_name={table_name}, id={id}")
     print(f"related_tables_dict={related_tables_dict}, pagination={pagination}")
 
-    # Optional forward-ref hydrate (contacts authoritative):
-    if table_name == 'contacts':
+    # Optional forward-ref hydrate (contacts & orders authoritative for some buckets):
+    if table_name in ('contacts', 'orders'):
         try:
-            contact_model = apps.get_model('core', 'Contact')
-            contact_obj = contact_model.objects.filter(id=id).only('refs').first()
+            model_lookup = {
+                'contacts': ('core', 'Contact'),
+                'orders': ('transactions', 'Order'),
+            }
+            app_label, model_name = model_lookup[table_name]
+            base_model = apps.get_model(app_label, model_name)
+            base_obj = base_model.objects.filter(id=id).only('refs').first()
         except Exception as e:  # pragma: no cover - defensive
-            contact_obj = None
-            errors['contact_fetch'] = str(e)
-        if contact_obj and getattr(contact_obj, 'refs', None):
-            links = (contact_obj.refs or {}).get('links', {})  # type: ignore[attr-defined]
-            # Map bucket -> (app_label, model_name)
+            base_obj = None
+            errors[f'{table_name}_fetch'] = str(e)
+        if base_obj and getattr(base_obj, 'refs', None):
+            links = (base_obj.refs or {}).get('links', {})  # type: ignore[attr-defined]
             forward_models = {
                 'emails': ('communications', 'Email'),
                 'phones': ('communications', 'Phone'),
                 'locations': ('communications', 'Location'),
                 'domains': ('communications', 'Domain'),
                 'actions': ('core', 'Action'),
-                'orders': ('transactions', 'Order'),
+                'orders': ('transactions', 'Order'),  # for a contact -> orders
                 'orgs': ('orgs', 'OrgBase'),
+                'contacts': ('core', 'Contact'),  # for an order -> contacts aggregated via seeding
             }
             for bucket, (app_label, model_name) in forward_models.items():
                 id_list = links.get(bucket) or []
@@ -89,8 +96,12 @@ def get_related_data(
                 model = apps.get_model(app_label, model_name)
                 # Reciprocal filter logic:
                 if table_name == 'contacts':
-                    # already handled above for forward refs; guard ensures we don't duplicate
-                    queryset = model.objects.none()
+                    queryset = model.objects.none()  # forward already hydrated
+                elif table_name == 'orders' and related_table in ('contacts', 'orgs'):
+                    queryset = model.objects.none()  # forward already hydrated
+                elif table_name == 'orders' and related_table == 'orderlines':
+                    # child lines by parent id
+                    queryset = model.objects.filter(parent_id=id)
                 elif table_name == 'orgs' and related_table == 'contacts':
                     # contacts forward links contain org ids in refs.links.orgs
                     contact_model = apps.get_model('core', 'Contact')

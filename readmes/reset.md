@@ -227,6 +227,7 @@ A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `fu
 | Fast dev nuke (regenerate + no seed) | `python manage.py dev_nuke --force --no-seed --skip-superusers` |
 | Quick reset (nuke + 3 superusers, no seed) | `python manage.py quick_reset --force` |
 | One-shot nuke + seed + 3 superusers | `python manage.py nuke_reseed_3` |
+| One-shot nuke + seed + 3 superusers (includes extended relationship linking: orders↔orgs, orderlines↔orders/contacts) | `python manage.py nuke_reseed_3` |
 
 ---
 
