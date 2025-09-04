@@ -58,7 +58,7 @@ export default function ContactList() {
     try {
       const res = await Contacts();
       if (res.status === 200) {
-        setData(res.data.data);
+        setData(res.data.data.results);
       }
     } catch (error) {
       console.error("Failed to fetch contacts", error);

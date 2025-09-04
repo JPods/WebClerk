@@ -24,7 +24,7 @@ class HTTPMethod {
 class AuthURL {
   static readonly SIGNUP: string = "/signup/";
   static readonly LOGIN: string = "/auth/login/"; 
-  static readonly REFRESH_TOKEN: string = "/api/token/"; 
+  static readonly REFRESH_TOKEN: string = "/token/"; 
   static readonly LOGOUT: string = "/logout"; 
   static readonly FORGOT_PASS: string = "/forgetPassword";
   static readonly verifyEmail: string = "/verify-email/"; 
