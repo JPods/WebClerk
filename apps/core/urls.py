@@ -23,6 +23,7 @@ from apps.core.views.keyword import KeywordSearchView
 # Deprecated dynamic query endpoint (replaced by registry-based wcapi) - retained commented for historical context
 # from apps.core.views.query_any import QueryAnyView
 from apps.core.views.model_info import ModelInfoView
+from apps.core.views.table_registry_view import TableRegistryView
 from django.views.generic import TemplateView
 from apps.core.views.pending import PendingListView, PendingDetailView, PendingSearchView
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
@@ -114,6 +115,7 @@ urlpatterns = [
     # path('wcapi/query-any/', QueryAnyView.as_view(), name='wcapi-query-any'),  # deprecated dynamic model access
     
     path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
+    path('wcapi/tables/', TableRegistryView.as_view(), name='wcapi-tables'),
 
     # Standardized Pending endpoints (List/Create, Detail with optimistic PATCH, Search)
     path('pending/', PendingListView.as_view(), name='pending-list'),

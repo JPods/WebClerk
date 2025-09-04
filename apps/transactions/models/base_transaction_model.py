@@ -114,7 +114,7 @@ class TransactionBaseModel(BaseModel):
         
         metadata['history'] = history
         # Add other metadata keys if needed, e.g., metadata['version'] = 1
-       # Expanded parties structure
+    # Expanded parties structure
         metadata.setdefault('history', {
             'created':   {'contact_id': None, 'attention': '', "dt": None},
             'updated':   {'contact_id': None, 'attention': '', "dt": None},

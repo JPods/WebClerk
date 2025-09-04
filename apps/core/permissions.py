@@ -16,6 +16,12 @@ def _cached_view_edit_matrix(setting_id: int, modified_dt: str):
 
 
 def _get_active_view_edit_setting(table_name: str) -> tuple[int | None, dict]:
+    """Return (setting_id, matrix) for active view_edit rule.
+
+    Strict lookup: only the exact table_name is considered valid. Returns (None, {})
+    if no active rule so callers can deny by default. Legacy alias support was
+    intentionally removed during dev pluralization cleanup.
+    """
     try:
         s = (Setting.objects
              .filter(purpose='view_edit', table_name=table_name, is_active=True)
@@ -26,7 +32,7 @@ def _get_active_view_edit_setting(table_name: str) -> tuple[int | None, dict]:
             return None, {}
         matrix = _cached_view_edit_matrix(s.id, str(s.modified_dt))
         return s.id, matrix
-    except ObjectDoesNotExist:
+    except ObjectDoesNotExist:  # pragma: no cover
         return None, {}
 
 

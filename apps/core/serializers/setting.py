@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.core.models.setting import Setting
+from apps.core.constants.table_registry import VALID_TABLE_NAMES
 from apps.core.utils import get_accessible_fields
 
 class SettingSerializer(serializers.ModelSerializer):
@@ -21,6 +22,11 @@ class SettingSerializer(serializers.ModelSerializer):
             'metadata','refs','prefs','comments','version','created_dt','modified_dt'
         ]
         read_only_fields = ['id','uuid','version','created_dt','modified_dt']
+
+    def validate_table_name(self, value):
+        if value and value not in VALID_TABLE_NAMES:
+            raise serializers.ValidationError(f"Invalid table_name '{value}'. Must be one of: {', '.join(VALID_TABLE_NAMES)}")
+        return value
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -9,9 +9,10 @@ from apps.core.services.view_edit_access import get_view_edit_fields
 
 RELATED_TABLES: Dict[str, List[str]] = {
     # 'addresses' retained for backward compatibility (maps to Location model)
-    'contacts': ['phones', 'emails', 'addresses', 'locations', 'actions', 'domains', 'orders', 'orgs'],
+    'contacts': ['phones', 'emails', 'addresses', 'locations', 'actions', 'domains', 'sales_orders', 'orders', 'orgs'],
     'orgs': ['contacts', 'domains', 'locations'],  # basic reverse sets
-    'orders': ['contacts', 'orgs', 'orderlines'],  # expose forward-linked contacts/org + child order lines
+    'sales_orders': ['contacts', 'orgs', 'sales_order_lines'],  # canonical new naming
+    'orders': ['contacts', 'orgs', 'orderlines'],  # legacy naming (mapped to same models)
 }
 
 def get_related_data(
@@ -34,10 +35,12 @@ def get_related_data(
         'locations': ('communications', 'Location'),
         'domains': ('communications', 'Domain'),
         'actions': ('core', 'Action'),
-        'orders': ('transactions', 'Order'),
+    'sales_orders': ('transactions', 'SalesOrder'),
+    'orders': ('transactions', 'SalesOrder'),  # legacy alias
         'orgs': ('orgs', 'OrgBase'),
         'contacts': ('core', 'Contact'),
-        'orderlines': ('transactions', 'OrderLine'),
+    'sales_order_lines': ('transactions', 'SalesOrderLine'),
+    'orderlines': ('transactions', 'SalesOrderLine'),  # legacy alias
     }
 
     tables_dict = related_tables_dict if related_tables_dict is not None else RELATED_TABLES
@@ -46,11 +49,12 @@ def get_related_data(
     print(f"related_tables_dict={related_tables_dict}, pagination={pagination}")
 
     # Optional forward-ref hydrate (contacts & orders authoritative for some buckets):
-    if table_name in ('contacts', 'orders'):
+    if table_name in ('contacts', 'sales_orders', 'orders'):
         try:
             model_lookup = {
                 'contacts': ('core', 'Contact'),
-                'orders': ('transactions', 'Order'),
+                'sales_orders': ('transactions', 'SalesOrder'),
+                'orders': ('transactions', 'SalesOrder'),
             }
             app_label, model_name = model_lookup[table_name]
             base_model = apps.get_model(app_label, model_name)
@@ -66,7 +70,8 @@ def get_related_data(
                 'locations': ('communications', 'Location'),
                 'domains': ('communications', 'Domain'),
                 'actions': ('core', 'Action'),
-                'orders': ('transactions', 'Order'),  # for a contact -> orders
+                'sales_orders': ('transactions', 'SalesOrder'),  # for a contact -> sales_orders
+                'orders': ('transactions', 'SalesOrder'),  # legacy
                 'orgs': ('orgs', 'OrgBase'),
                 'contacts': ('core', 'Contact'),  # for an order -> contacts aggregated via seeding
             }
@@ -97,9 +102,9 @@ def get_related_data(
                 # Reciprocal filter logic:
                 if table_name == 'contacts':
                     queryset = model.objects.none()  # forward already hydrated
-                elif table_name == 'orders' and related_table in ('contacts', 'orgs'):
+                elif table_name in ('sales_orders', 'orders') and related_table in ('contacts', 'orgs'):
                     queryset = model.objects.none()  # forward already hydrated
-                elif table_name == 'orders' and related_table == 'orderlines':
+                elif table_name in ('sales_orders', 'orders') and related_table in ('sales_order_lines', 'orderlines'):
                     # child lines by parent id
                     queryset = model.objects.filter(parent_id=id)
                 elif table_name == 'orgs' and related_table == 'contacts':

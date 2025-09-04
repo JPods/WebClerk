@@ -19,7 +19,7 @@ import random
 from decimal import Decimal
 
 from apps.orgs.models import CustomerOrg, VendorOrg
-from apps.transactions.models.line_variants import Order, OrderLine
+from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine
 
 
 class Command(BaseCommand):
@@ -49,11 +49,11 @@ class Command(BaseCommand):
         with transaction.atomic():
             for n in range(orders_requested):
                 order_no = f"SO-{random.randint(100000, 999999)}"
-                order = Order.objects.create(order_no=order_no)
+                order = SalesOrder.objects.create(order_no=order_no)
                 created_orders += 1
                 line_total = random.randint(min_lines, max_lines)
                 for i in range(line_total):
-                    line = OrderLine.objects.create(
+                    line = SalesOrderLine.objects.create(
                         parent=order,
                         parent_ref_id=order.pk,  # use pk to avoid accessing a non-existent 'id' attribute
                         status='open',

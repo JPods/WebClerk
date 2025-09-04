@@ -12,11 +12,11 @@ urlpatterns = [
     path('proposal-lines/', views.ProposalLineListCreate.as_view(), name='proposal-line-list'),
     path('proposal-lines/<int:pk>/', views.ProposalLineRetrieveUpdate.as_view(), name='proposal-line-detail'),
 
-    # Order
-    path('orders/', views.OrderListCreate.as_view(), name='order-list'),
-    path('orders/<int:pk>/', views.OrderRetrieveUpdate.as_view(), name='order-detail'),
-    path('order-lines/', views.OrderLineListCreate.as_view(), name='order-line-list'),
-    path('order-lines/<int:pk>/', views.OrderLineRetrieveUpdate.as_view(), name='order-line-detail'),
+    # Sales Order
+    path('sales-orders/', views.SalesOrderListCreate.as_view(), name='sales-order-list'),
+    path('sales-orders/<int:pk>/', views.SalesOrderRetrieveUpdate.as_view(), name='sales-order-detail'),
+    path('sales-order-lines/', views.SalesOrderLineListCreate.as_view(), name='sales-order-line-list'),
+    path('sales-order-lines/<int:pk>/', views.SalesOrderLineRetrieveUpdate.as_view(), name='sales-order-line-detail'),
 
     # Invoice
     path('invoices/', views.InvoiceListCreate.as_view(), name='invoice-list'),
@@ -24,11 +24,11 @@ urlpatterns = [
     path('invoice-lines/', views.InvoiceLineListCreate.as_view(), name='invoice-line-list'),
     path('invoice-lines/<int:pk>/', views.InvoiceLineRetrieveUpdate.as_view(), name='invoice-line-detail'),
 
-    # Purchase
-    path('purchases/', views.PurchaseListCreate.as_view(), name='purchase-list'),
-    path('purchases/<int:pk>/', views.PurchaseRetrieveUpdate.as_view(), name='purchase-detail'),
-    path('purchase-lines/', views.PurchaseLineListCreate.as_view(), name='purchase-line-list'),
-    path('purchase-lines/<int:pk>/', views.PurchaseLineRetrieveUpdate.as_view(), name='purchase-line-detail'),
+    # Purchase Order
+    path('purchase-orders/', views.PurchaseOrderListCreate.as_view(), name='purchase-order-list'),
+    path('purchase-orders/<int:pk>/', views.PurchaseOrderRetrieveUpdate.as_view(), name='purchase-order-detail'),
+    path('purchase-order-lines/', views.PurchaseOrderLineListCreate.as_view(), name='purchase-order-line-list'),
+    path('purchase-order-lines/<int:pk>/', views.PurchaseOrderLineRetrieveUpdate.as_view(), name='purchase-order-line-detail'),
 
     # Workorder
     path('workorders/', views.WorkorderListCreate.as_view(), name='workorder-list'),

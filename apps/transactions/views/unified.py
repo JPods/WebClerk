@@ -3,17 +3,17 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from apps.transactions.models.line_variants import (
     Proposal, ProposalLine,
-    Order, OrderLine,
+    SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
-    Purchase, PurchaseLine,
+    PurchaseOrder, PurchaseOrderLine,
     Workorder, WorkorderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
-    OrderSerializer, OrderLineSerializer,
+    SalesOrderSerializer, SalesOrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseSerializer, PurchaseLineSerializer,
+    PurchaseOrderSerializer, PurchaseOrderLineSerializer,
     WorkorderSerializer, WorkorderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
 )
@@ -23,9 +23,9 @@ from apps.transactions.views.line_views import BasePermission, DefaultPagination
 # Mapping helpers -----------------------------------------------------------
 HEADER_MAP = {
     'proposal': (Proposal, ProposalSerializer, ProposalLine, ProposalLineSerializer),
-    'order': (Order, OrderSerializer, OrderLine, OrderLineSerializer),
+    'sales-order': (SalesOrder, SalesOrderSerializer, SalesOrderLine, SalesOrderLineSerializer),
     'invoice': (Invoice, InvoiceSerializer, InvoiceLine, InvoiceLineSerializer),
-    'purchase': (Purchase, PurchaseSerializer, PurchaseLine, PurchaseLineSerializer),
+    'purchase-order': (PurchaseOrder, PurchaseOrderSerializer, PurchaseOrderLine, PurchaseOrderLineSerializer),
     'workorder': (Workorder, WorkorderSerializer, WorkorderLine, WorkorderLineSerializer),
     'requisition': (Requisition, RequisitionSerializer, RequisitionLine, RequisitionLineSerializer),
 }

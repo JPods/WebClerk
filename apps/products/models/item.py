@@ -123,7 +123,7 @@ class Item(StatsMixin, BaseModel):
     catalog = models.JSONField("Catalog", default=default_catalog, blank=True, help_text="Catalog placement data; see default_catalog() schema")
     # volumen of sales, number of items, 
     # number of returns, margins, margin velocity
-
+    quantity = models.JSONField(default=dict, blank=True, help_text="Inventory quantity status (on hand, allocated, available, on order)")
 
     class Meta:
         indexes = [

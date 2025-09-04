@@ -5,17 +5,17 @@ from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from apps.transactions.models.line_variants import (
     Proposal, ProposalLine,
-    Order, OrderLine,
+    SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
-    Purchase, PurchaseLine,
+    PurchaseOrder, PurchaseOrderLine,
     Workorder, WorkorderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
-    OrderSerializer, OrderLineSerializer,
+    SalesOrderSerializer, SalesOrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseSerializer, PurchaseLineSerializer,
+    PurchaseOrderSerializer, PurchaseOrderLineSerializer,
     WorkorderSerializer, WorkorderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
     ProjectSerializer,
@@ -65,22 +65,22 @@ class ProposalLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProposalLineSerializer
     permission_classes = [BasePermission]
 
-# Order
-class OrderListCreate(generics.ListCreateAPIView):
-    queryset = Order.objects.all().order_by('-id')
-    serializer_class = OrderSerializer
+# SalesOrder
+class SalesOrderListCreate(generics.ListCreateAPIView):
+    queryset = SalesOrder.objects.all().order_by('-id')
+    serializer_class = SalesOrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class OrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
+class SalesOrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = SalesOrder.objects.all()
+    serializer_class = SalesOrderSerializer
     permission_classes = [BasePermission]
 
-@extend_schema(summary="List/Create order lines")
-class OrderLineListCreate(generics.ListCreateAPIView):
-    queryset = OrderLine.objects.all().order_by('-id')
-    serializer_class = OrderLineSerializer
+@extend_schema(summary="List/Create sales order lines")
+class SalesOrderLineListCreate(generics.ListCreateAPIView):
+    queryset = SalesOrderLine.objects.all().order_by('-id')
+    serializer_class = SalesOrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
     filterset_fields = ['parent_ref_id', 'status']
@@ -88,9 +88,9 @@ class OrderLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_ref_id', 'status']
     pagination_class = DefaultPagination
 
-class OrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
-    queryset = OrderLine.objects.all()
-    serializer_class = OrderLineSerializer
+class SalesOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = SalesOrderLine.objects.all()
+    serializer_class = SalesOrderLineSerializer
     permission_classes = [BasePermission]
 
 # Invoice
@@ -121,22 +121,22 @@ class InvoiceLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
 
-# Purchase
-class PurchaseListCreate(generics.ListCreateAPIView):
-    queryset = Purchase.objects.all().order_by('-id')
-    serializer_class = PurchaseSerializer
+# PurchaseOrder
+class PurchaseOrderListCreate(generics.ListCreateAPIView):
+    queryset = PurchaseOrder.objects.all().order_by('-id')
+    serializer_class = PurchaseOrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class PurchaseRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Purchase.objects.all()
-    serializer_class = PurchaseSerializer
+class PurchaseOrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PurchaseOrder.objects.all()
+    serializer_class = PurchaseOrderSerializer
     permission_classes = [BasePermission]
 
-@extend_schema(summary="List/Create purchase lines")
-class PurchaseLineListCreate(generics.ListCreateAPIView):
-    queryset = PurchaseLine.objects.all().order_by('-id')
-    serializer_class = PurchaseLineSerializer
+@extend_schema(summary="List/Create purchase order lines")
+class PurchaseOrderLineListCreate(generics.ListCreateAPIView):
+    queryset = PurchaseOrderLine.objects.all().order_by('-id')
+    serializer_class = PurchaseOrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
     filterset_fields = ['parent_ref_id', 'status']
@@ -144,9 +144,9 @@ class PurchaseLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_ref_id', 'status']
     pagination_class = DefaultPagination
 
-class PurchaseLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
-    queryset = PurchaseLine.objects.all()
-    serializer_class = PurchaseLineSerializer
+class PurchaseOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PurchaseOrderLine.objects.all()
+    serializer_class = PurchaseOrderLineSerializer
     permission_classes = [BasePermission]
 
 # Workorder
@@ -205,8 +205,8 @@ class RequisitionLineListCreate(generics.ListCreateAPIView):
     summary="Aggregate totals across line types for a parent (with optional model scope)",
     parameters=[
         OpenApiParameter(name='parent_ref_id', description='Parent reference id', required=True, type=int),
-        OpenApiParameter(name='model', description='Optional line model code to scope aggregation (e.g., proposal-line)', required=False, type=str,
-                          enum=['proposal-line','order-line','invoice-line','purchase-line','workorder-line','requisition-line']),
+    OpenApiParameter(name='model', description='Optional line model code to scope aggregation (e.g., proposal-line)', required=False, type=str,
+              enum=['proposal-line','sales-order-line','invoice-line','purchase-order-line','workorder-line','requisition-line']),
         OpenApiParameter(name='ttl', description='Override cache TTL seconds (min 5). Default '+str(DEFAULT_CACHE_TTL_SECONDS), required=False, type=int),
         OpenApiParameter(name='include_breakdown', description='Include per-model breakdown even when scoped (0/1)', required=False, type=bool),
     ],
@@ -248,8 +248,8 @@ class LineAggregateView(views.APIView):
     summary="Return authorized view/edit fields for a model",
     parameters=[OpenApiParameter(
         name='model', description='Model code', required=True, type=str,
-        enum=['proposal-line','order-line','invoice-line','purchase-line','workorder-line','requisition-line',
-              'proposal','order','invoice','purchase','workorder','requisition']
+      enum=['proposal-line','sales-order-line','invoice-line','purchase-order-line','workorder-line','requisition-line',
+          'proposal','sales-order','invoice','purchase-order','workorder','requisition']
     )],
     responses={200: OpenApiResponse(description='Role field permissions')}
 )
@@ -259,15 +259,15 @@ class FieldAuthMatrixView(APIView):
 
     MODEL_MAP = {
         'proposal-line': ProposalLine,
-        'order-line': OrderLine,
-        'invoice-line': InvoiceLine,
-        'purchase-line': PurchaseLine,
+    'sales-order-line': SalesOrderLine,
+    'invoice-line': InvoiceLine,
+    'purchase-order-line': PurchaseOrderLine,
         'workorder-line': WorkorderLine,
         'requisition-line': RequisitionLine,
         'proposal': Proposal,
-        'order': Order,
-        'invoice': Invoice,
-        'purchase': Purchase,
+    'sales-order': SalesOrder,
+    'invoice': Invoice,
+    'purchase-order': PurchaseOrder,
         'workorder': Workorder,
         'requisition': Requisition,
     }

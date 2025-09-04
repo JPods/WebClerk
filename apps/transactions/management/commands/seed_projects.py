@@ -22,7 +22,7 @@ import random
 from decimal import Decimal
 
 from apps.transactions.models.projects import Project
-from apps.transactions.models.line_variants import Order
+from apps.transactions.models.line_variants import SalesOrder
 from apps.transactions.services.project_seeding import create_sample_projects
 
 
@@ -64,7 +64,7 @@ class Command(BaseCommand):
 
             link_orders_n = max(0, opts.get('link_orders') or 0)
             if link_orders_n and new_projects:
-                order_ids = list(Order.objects.order_by('?').values_list('id', flat=True)[:link_orders_n])
+                order_ids = list(SalesOrder.objects.order_by('?').values_list('id', flat=True)[:link_orders_n])
                 if order_ids:
                     for p in new_projects:
                         refs = getattr(p, 'refs', {}) or {}

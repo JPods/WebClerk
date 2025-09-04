@@ -2,9 +2,9 @@ from rest_framework import serializers
 from apps.core.permissions import get_role_field_rules
 from apps.transactions.models.line_variants import (
     Proposal, ProposalLine,
-    Order, OrderLine,
+    SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
-    Purchase, PurchaseLine,
+    PurchaseOrder, PurchaseOrderLine,
     Workorder, WorkorderLine,
     Requisition, RequisitionLine,
 )
@@ -73,18 +73,18 @@ class ProposalLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class SalesOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Order
+        model = SalesOrder
         fields = ['id', 'order_no', 'created_dt']
         read_only_fields = ['id', 'created_dt']
 
 
-class OrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+class SalesOrderLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=SalesOrder.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = OrderLine
+        model = SalesOrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
@@ -103,18 +103,18 @@ class InvoiceLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class PurchaseSerializer(serializers.ModelSerializer):
+class PurchaseOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Purchase
+        model = PurchaseOrder
         fields = ['id', 'po_no', 'created_dt']
         read_only_fields = ['id', 'created_dt']
 
 
-class PurchaseLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Purchase.objects.all())
+class PurchaseOrderLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=PurchaseOrder.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = PurchaseLine
+        model = PurchaseOrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 

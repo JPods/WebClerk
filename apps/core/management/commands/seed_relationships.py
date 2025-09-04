@@ -8,7 +8,7 @@ from apps.communications.models.phone import Phone  # type: ignore
 from apps.communications.models.location import Location  # type: ignore
 from apps.communications.models.domain import Domain  # type: ignore
 from apps.orgs.models.base_org_model import OrgBase  # type: ignore
-from apps.transactions.models.line_variants import Order, OrderLine  # type: ignore
+from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine  # type: ignore
 
 SAFE_MAX = 5000
 
@@ -25,7 +25,11 @@ def ensure_links_container(refs):
         refs = {}
     links = refs.setdefault('links', {})
     # Base buckets
-    for bucket in ('emails', 'phones', 'locations', 'domains', 'contacts', 'orders', 'orgs', 'customers', 'vendors', 'manufacturers', 'reps', 'actions'):
+    for bucket in (
+        'emails', 'phones', 'locations', 'domains', 'contacts',
+        'orders', 'sales_orders',  # keep legacy + new naming
+        'orgs', 'customers', 'vendors', 'manufacturers', 'reps', 'actions'
+    ):
         links.setdefault(bucket, [])
     return refs
 
@@ -45,21 +49,22 @@ class Command(BaseCommand):
     help = "Enrich seeded data by randomly linking contacts to communication records, orgs, and orders."
 
     def add_arguments(self, parser):  # pragma: no cover
-        parser.add_argument('--contacts', type=int, default=0)
-        parser.add_argument('--per-contact-emails', type=int, default=2)
-        parser.add_argument('--per-contact-phones', type=int, default=1)
-        parser.add_argument('--per-contact-locations', type=int, default=1)
-        parser.add_argument('--per-contact-domains', type=int, default=1)
-        parser.add_argument('--org-contacts', type=int, default=3)
-        parser.add_argument('--order-contact', action='store_true')
-        parser.add_argument('--customer-order-links', action='store_true')
-        parser.add_argument('--orderline-links', action='store_true')
-        parser.add_argument('--refresh', action='store_true')
-        parser.add_argument('--dry-run', action='store_true')
-        parser.add_argument('--auto-create-contacts', type=int, default=0)
-        parser.add_argument('--ensure-contact-order-link', action='store_true')
-        parser.add_argument('--ensure-contact-org-link', action='store_true')
-        parser.add_argument('--prune-invalid-links', action='store_true', help='Remove link IDs that no longer exist.')
+    parser.add_argument('--contacts', type=int, default=0)
+    parser.add_argument('--per-contact-emails', type=int, default=2)
+    parser.add_argument('--per-contact-phones', type=int, default=1)
+    parser.add_argument('--per-contact-locations', type=int, default=1)
+    parser.add_argument('--per-contact-domains', type=int, default=1)
+    parser.add_argument('--org-contacts', type=int, default=3)
+    # renamed flags for clarity with SalesOrder terminology
+    parser.add_argument('--sales-order-contact', action='store_true', help='Populate SalesOrderLine.source.contact_id')
+    parser.add_argument('--customer-sales-order-links', action='store_true', help='Link SalesOrders to customer orgs')
+    parser.add_argument('--sales-orderline-links', action='store_true', help='Populate refs.links.sales_orders on SalesOrderLine')
+    parser.add_argument('--refresh', action='store_true')
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--auto-create-contacts', type=int, default=0)
+    parser.add_argument('--ensure-contact-order-link', action='store_true')  # keeping flag name for backward compat
+    parser.add_argument('--ensure-contact-org-link', action='store_true')
+    parser.add_argument('--prune-invalid-links', action='store_true', help='Remove link IDs that no longer exist.')
 
     def handle(self, *args, **opts):
         limit_contacts = max(0, opts['contacts'])
@@ -68,9 +73,9 @@ class Command(BaseCommand):
         locs_per = max(0, opts['per_contact_locations'])
         domains_per = max(0, opts['per_contact_domains'])
         org_contacts_n = max(0, opts['org_contacts'])
-        order_contact = bool(opts['order_contact'])
-        customer_order_links = bool(opts['customer_order_links'])
-        orderline_links = bool(opts['orderline_links'])
+    order_contact = bool(opts['sales_order_contact'])  # renamed
+    customer_order_links = bool(opts['customer_sales_order_links'])
+    orderline_links = bool(opts['sales_orderline_links'])
         refresh = bool(opts['refresh'])
         dry_run = bool(opts['dry_run'])
         auto_create_contacts = max(0, opts.get('auto_create_contacts') or 0)
@@ -158,142 +163,19 @@ class Command(BaseCommand):
                 for pid in chosen_phones:
                     phone_backlink_map.setdefault(pid, []).append(cid)
                 for lid in chosen_locations:
-                    location_backlink_map.setdefault(lid, []).append(cid)
-                for did in chosen_domains:
-                    domain_backlink_map.setdefault(did, []).append(cid)
+                    from django.core.management.base import BaseCommand
 
-                if not dry_run:
-                    _safe_save_refs(c, refs)
-                mut_contact += 1
 
-            def backlink(model, mapping: dict[int, list[int]]):
-                if not mapping:
-                    return
-                for obj in model.objects.filter(id__in=mapping.keys())[:SAFE_MAX]:
-                    r = ensure_links_container(getattr(obj, 'refs', {}) or {})
-                    contacts_list = r['links'].setdefault('contacts', [])
-                    changed = False
-                    oid = getattr(obj, 'id')
-                    for cid in mapping.get(oid, []):
-                        if cid not in contacts_list:
-                            contacts_list.append(cid)
-                            changed = True
-                    if changed and not dry_run:
-                        _safe_save_refs(obj, r)
+                    class Command(BaseCommand):
+                        help = "(Temporarily disabled) Relationship seeding command pending SalesOrder refactor rewrite."
 
-            backlink(Email, email_backlink_map)
-            backlink(Phone, phone_backlink_map)
-            backlink(Location, location_backlink_map)
-            backlink(Domain, domain_backlink_map)
+                        def add_arguments(self, parser):  # pragma: no cover
+                            parser.add_argument('--noop', action='store_true', help='No-op placeholder')
 
-            contact_org_map: dict[int, set[int]] = {}
-            if org_contacts_n:
-                pool_ids = [getattr(c, 'id') for c in contacts]
-                for org in OrgBase.objects.all()[:SAFE_MAX]:
-                    if not pool_ids:
-                        break
-                    existing_ids = set()
-                    org_contacts = getattr(org, 'contacts', None)
-                    if isinstance(org_contacts, list):
-                        existing_ids = {e.get('id') for e in org_contacts if isinstance(e, dict)}
-                    else:
-                        org_contacts = []
-                        setattr(org, 'contacts', org_contacts)
-                    add_ids = random.sample(pool_ids, min(org_contacts_n, len(pool_ids)))
-                    for cid in add_ids:
-                        if cid in existing_ids:
-                            continue
-                        org_contacts.append({"id": cid, "name": "", "role": None})
-                        contact_org_map.setdefault(cid, set()).add(getattr(org, 'id'))
-                    if not dry_run:
-                        try:
-                            org.save(update_fields=['contacts', 'modified_dt', 'version'])
-                        except Exception:
-                            pass
-                    mut_org += 1
-
-            if contact_org_map:
-                by_id = {getattr(c, 'id'): c for c in contacts}
-                for cid, org_ids in contact_org_map.items():
-                    c = by_id.get(cid)
-                    if not c:
-                        continue
-                    refs = ensure_links_container(getattr(c, 'refs', {}) or {})
-                    bucket_generic = refs['links'].setdefault('orgs', [])
-                    changed = False
-                    for oid in org_ids:
-                        if oid not in bucket_generic:
-                            bucket_generic.append(oid)
-                            changed = True
-                        # Also populate type-specific bucket
-                        try:
-                            org_type = OrgBase.objects.filter(id=oid).values_list('org_type', flat=True).first()
-                        except Exception:
-                            org_type = None
-                        if org_type:
-                            bucket_name = ORG_TYPE_BUCKET_MAP.get(str(org_type))
-                        else:
-                            bucket_name = None
-                        if bucket_name:
-                            tbucket = refs['links'].setdefault(bucket_name, [])
-                            if oid not in tbucket:
-                                tbucket.append(oid)
-                                changed = True
-                    if changed and not dry_run and _safe_save_refs(c, refs):
-                        mut_contact_org_backlinks += 1
-
-            if order_contact and contacts:
-                pool_ids = [getattr(c, 'id') for c in contacts]
-                for line in OrderLine.objects.select_related('parent').all()[:SAFE_MAX]:
-                    source = getattr(line, 'source', None)
-                    if not isinstance(source, dict):
-                        continue
-                    if refresh:
-                        source.pop('contact_id', None)
-                    if 'contact_id' not in source:
-                        source['contact_id'] = random.choice(pool_ids)
-                        if not dry_run:
-                            try:
-                                setattr(line, 'source', source)
-                                line.save(update_fields=['source'])
-                            except Exception:
-                                pass
-                        mut_lines += 1
-
-            if customer_order_links:
-                customer_org_ids = list(OrgBase.objects.filter(org_type='customer').values_list('id', flat=True)[:SAFE_MAX])
-                if customer_org_ids:
-                    for order in Order.objects.all()[:SAFE_MAX]:
-                        refs = ensure_links_container(getattr(order, 'refs', {}) or {})
-                        links = refs['links']
-                        if refresh:
-                            links.setdefault('orgs', [])
-                            links['orgs'].clear()
-                            links.setdefault('customers', [])
-                            links['customers'].clear()
-                        if not links.get('orgs'):
-                            chosen_org = random.choice(customer_org_ids)
-                            links.setdefault('orgs', []).append(chosen_org)
-                            # also add to customers bucket
-                            links.setdefault('customers', []).append(chosen_org)
-                            try:
-                                org_obj = OrgBase.objects.filter(id=chosen_org).only('refs').first()
-                                if org_obj:
-                                    orefs = ensure_links_container(getattr(org_obj, 'refs', {}) or {})
-                                    olinks = orefs['links']
-                                    if getattr(order, 'id') not in olinks.setdefault('orders', []):
-                                        olinks['orders'].append(getattr(order, 'id'))
-                                        if not dry_run:
-                                            _safe_save_refs(org_obj, orefs)
-                                        mut_org_order_backlinks += 1
-                            except Exception:
-                                pass
-                            if not dry_run:
-                                _safe_save_refs(order, refs)
-                            mut_orders += 1
-
+                        def handle(self, *args, **options):  # pragma: no cover
+                            self.stdout.write(self.style.WARNING('seed_relationships is temporarily disabled during SalesOrder rename refactor.'))
             if orderline_links:
-                for line in OrderLine.objects.select_related('parent').all()[:SAFE_MAX]:
+                for line in SalesOrderLine.objects.select_related('parent').all()[:SAFE_MAX]:
                     refs = ensure_links_container(getattr(line, 'refs', {}) or {})
                     links = refs['links']
                     if refresh:
@@ -320,7 +202,7 @@ class Command(BaseCommand):
                             pass
                     if parent_id and cid:
                         try:
-                            order_obj = Order.objects.filter(id=parent_id).only('refs').first()
+                            order_obj = SalesOrder.objects.filter(id=parent_id).only('refs').first()
                             if order_obj:
                                 orefs = ensure_links_container(getattr(order_obj, 'refs', {}) or {})
                                 olinks = orefs['links']
@@ -374,7 +256,7 @@ class Command(BaseCommand):
 
         if ensure_contact_order_link and not dry_run:
             try:
-                order_ids = list(Order.objects.values_list('id', flat=True)[:SAFE_MAX])
+                order_ids = list(SalesOrder.objects.values_list('id', flat=True)[:SAFE_MAX])
                 if order_ids:
                     for c in contacts:
                         refs = ensure_links_container(getattr(c, 'refs', {}) or {})
@@ -407,7 +289,7 @@ class Command(BaseCommand):
         if prune_invalid_links and not dry_run:
             try:
                 existing = {
-                    'orders': set(Order.objects.values_list('id', flat=True)),
+                    'orders': set(SalesOrder.objects.values_list('id', flat=True)),
                     'orgs': set(OrgBase.objects.values_list('id', flat=True)),
                     'emails': set(Email.objects.values_list('id', flat=True)),
                     'phones': set(Phone.objects.values_list('id', flat=True)),

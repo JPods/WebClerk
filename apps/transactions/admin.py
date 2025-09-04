@@ -2,9 +2,9 @@ from django.contrib import admin
 
 from .models.line_variants import (
 	Proposal, ProposalLine,
-	Order, OrderLine,
+	SalesOrder, SalesOrderLine,
 	Invoice, InvoiceLine,
-	Purchase, PurchaseLine,
+	PurchaseOrder, PurchaseOrderLine,
 	Workorder, WorkorderLine,
 	Requisition, RequisitionLine,
 )
@@ -23,14 +23,14 @@ class ProposalLineAdmin(admin.ModelAdmin):
 	search_fields = ("id",)
 
 
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+@admin.register(SalesOrder)
+class SalesOrderAdmin(admin.ModelAdmin):
 	list_display = ("id", "order_no", "created_dt")
 	search_fields = ("order_no",)
 
 
-@admin.register(OrderLine)
-class OrderLineAdmin(admin.ModelAdmin):
+@admin.register(SalesOrderLine)
+class SalesOrderLineAdmin(admin.ModelAdmin):
 	list_display = ("id", "parent_ref_id", "status")
 	list_filter = ("status",)
 
@@ -47,14 +47,14 @@ class InvoiceLineAdmin(admin.ModelAdmin):
 	list_filter = ("status",)
 
 
-@admin.register(Purchase)
-class PurchaseAdmin(admin.ModelAdmin):
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
 	list_display = ("id", "po_no", "created_dt")
 	search_fields = ("po_no",)
 
 
-@admin.register(PurchaseLine)
-class PurchaseLineAdmin(admin.ModelAdmin):
+@admin.register(PurchaseOrderLine)
+class PurchaseOrderLineAdmin(admin.ModelAdmin):
 	list_display = ("id", "parent_ref_id", "status")
 	list_filter = ("status",)
 

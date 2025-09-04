@@ -67,3 +67,13 @@ def test_view_edit_cache_invalidation(django_user_model):
     data2 = resp2.data['data']  # type: ignore[attr-defined]
     item2 = data2['results'][0]
     assert 'status' in item2
+
+@pytest.mark.django_db
+def test_setting_invalid_table_name_rejected(django_user_model):
+    user = django_user_model.objects.create_user(email='invalidtbl@example.com', password='pass12345', role='ADMIN')
+    client = _auth_client(user)
+    payload = {"purpose": "view_edit", "table_name": "sales_order_line", "is_active": True, "data": {"ADMIN": {"view": ["id"], "edit": []}}}
+    resp = client.post('/settings/', payload, format='json')  # type: ignore
+    # Expect 400 with specific error
+    assert resp.status_code == 400  # type: ignore[attr-defined]
+    assert 'table_name' in (resp.data.get('error', {}).get('details', {}) if hasattr(resp, 'data') else {})  # type: ignore[attr-defined]

@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
 from common.models import BaseModel
+from django.core.exceptions import ValidationError
+from apps.core.constants.table_registry import VALID_TABLE_NAMES, is_valid_table_name
 # company, defaults, view_edit, user-levels,
 # poppups, question, constants, integrations, notifications,
 # 
@@ -18,6 +20,12 @@ class Setting(BaseModel):
 
     def __str__(self):
         return f"{self.name or 'Setting'} ({self.id})"
+
+    def clean(self):  # enforce canonical table names when provided
+        super().clean()
+        if self.table_name:
+            if self.table_name not in VALID_TABLE_NAMES:
+                raise ValidationError({'table_name': f"Invalid table_name '{self.table_name}'. Must be one of: {', '.join(VALID_TABLE_NAMES)}"})
     
 
 #QQQ look at documents as a model

@@ -18,8 +18,10 @@ TABLE_APP_MAP = {
     # products
     'items': 'products',  # apps.products.models.item.Item
     # transactions
-    'orders': 'transactions',        # Order model
-    'orderlines': 'transactions',    # OrderLine model (special-case name below)
+    'sales_orders': 'transactions',        # SalesOrder model
+    'sales_order_lines': 'transactions',    # SalesOrderLine model (special-case name below)
+    'orders': 'transactions',              # legacy alias -> SalesOrder
+    'orderlines': 'transactions',          # legacy alias -> SalesOrderLine
     # Add more as needed; prefer adding here to avoid broad app scan cost
 }
 
@@ -82,8 +84,10 @@ class WcapiGetView(APIView):
         # Basic plural -> ModelName heuristic with explicit special cases.
         if table_name == 'addresses':
             model_name = 'Location'  # legacy alias
-        elif table_name == 'orderlines':
-            model_name = 'OrderLine'
+        elif table_name in ('sales_order_lines', 'orderlines'):
+            model_name = 'SalesOrderLine'
+        elif table_name == 'orders':
+            model_name = 'SalesOrder'
         else:
             model_name = table_name.rstrip('s').capitalize()
         try:

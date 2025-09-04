@@ -6,7 +6,7 @@ from apps.orgs.models import (
     OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg,
 )
 from apps.products.models import Item
-from apps.transactions.models.line_variants import Order, OrderLine
+from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine
 
 MODEL_MAP = {
     'contacts': Contact,
@@ -21,8 +21,8 @@ MODEL_MAP = {
     # products
     'items': Item,
     # transactional documents (initial subset; add more as exposed)
-    'orders': Order,
-    'orderlines': OrderLine,
+    'sales_orders': SalesOrder,
+    'sales_order_lines': SalesOrderLine,
     # Unified organization entity + proxy filtered types
     'orgs': OrgBase,
     'customers': CustomerOrg,

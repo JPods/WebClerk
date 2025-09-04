@@ -4,16 +4,16 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any, List
 from django.conf import settings
 from apps.transactions.models.line_variants import (
-    ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkorderLine, RequisitionLine
+    ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine, WorkorderLine, RequisitionLine
 )
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 LINE_MODEL_MAP = {
     'proposal-line': ProposalLine,
-    'order-line': OrderLine,
+    'sales-order-line': SalesOrderLine,
     'invoice-line': InvoiceLine,
-    'purchase-line': PurchaseLine,
+    'purchase-order-line': PurchaseOrderLine,
     'workorder-line': WorkorderLine,
     'requisition-line': RequisitionLine,
 }
@@ -112,9 +112,9 @@ def compute_line_aggregate(parent_ref_id: int,
 
 
 @receiver([post_save, post_delete], sender=ProposalLine)
-@receiver([post_save, post_delete], sender=OrderLine)
+@receiver([post_save, post_delete], sender=SalesOrderLine)
 @receiver([post_save, post_delete], sender=InvoiceLine)
-@receiver([post_save, post_delete], sender=PurchaseLine)
+@receiver([post_save, post_delete], sender=PurchaseOrderLine)
 @receiver([post_save, post_delete], sender=WorkorderLine)
 @receiver([post_save, post_delete], sender=RequisitionLine)
 def clear_aggregate_cache(**kwargs):  # pragma: no cover - simple invalidation
