@@ -20,6 +20,7 @@ from django.db import models
 from django.utils import timezone
 
 from common.models import BaseModel
+from common.link_mixins import StandardLinksMixin
 
 # Django requires a custom manager for custom user models.
 # ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
@@ -71,7 +72,7 @@ class ContactManager(BaseUserManager):
 
 
 # see ContactManager below that is used for authentication
-class Contact(BaseModel, AbstractBaseUser, PermissionsMixin):
+class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin):
     """
     Contact model with Universal API metadata support and Django authentication
     Uses JSON metadata field instead of inheriting BaseModel to avoid dt_created conflicts

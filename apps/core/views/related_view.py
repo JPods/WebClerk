@@ -8,7 +8,9 @@ import json
 from apps.core.services.view_edit_access import get_view_edit_fields
 
 RELATED_TABLES: Dict[str, List[str]] = {
-    'contacts': ['phones', 'emails', 'addresses', 'actions', 'domains'],
+    # 'addresses' retained for backward compatibility (maps to Location model)
+    'contacts': ['phones', 'emails', 'addresses', 'locations', 'actions', 'domains', 'orders', 'orgs'],
+    'orgs': ['contacts', 'domains', 'locations'],  # basic reverse sets
 }
 
 def get_related_data(
@@ -28,8 +30,12 @@ def get_related_data(
         'phones': ('communications', 'Phone'),
         'emails': ('communications', 'Email'),
         'addresses': ('communications', 'Location'),
+        'locations': ('communications', 'Location'),
         'domains': ('communications', 'Domain'),
         'actions': ('core', 'Action'),
+        'orders': ('transactions', 'Order'),
+        'orgs': ('orgs', 'OrgBase'),
+        'contacts': ('core', 'Contact'),
     }
 
     tables_dict = related_tables_dict if related_tables_dict is not None else RELATED_TABLES
@@ -37,14 +43,60 @@ def get_related_data(
     print(f"get_related_data called with table_name={table_name}, id={id}")
     print(f"related_tables_dict={related_tables_dict}, pagination={pagination}")
 
+    # Optional forward-ref hydrate (contacts authoritative):
+    if table_name == 'contacts':
+        try:
+            contact_model = apps.get_model('core', 'Contact')
+            contact_obj = contact_model.objects.filter(id=id).only('refs').first()
+        except Exception as e:  # pragma: no cover - defensive
+            contact_obj = None
+            errors['contact_fetch'] = str(e)
+        if contact_obj and getattr(contact_obj, 'refs', None):
+            links = (contact_obj.refs or {}).get('links', {})  # type: ignore[attr-defined]
+            # Map bucket -> (app_label, model_name)
+            forward_models = {
+                'emails': ('communications', 'Email'),
+                'phones': ('communications', 'Phone'),
+                'locations': ('communications', 'Location'),
+                'domains': ('communications', 'Domain'),
+                'actions': ('core', 'Action'),
+                'orders': ('transactions', 'Order'),
+                'orgs': ('orgs', 'OrgBase'),
+            }
+            for bucket, (app_label, model_name) in forward_models.items():
+                id_list = links.get(bucket) or []
+                if not isinstance(id_list, list) or not id_list:
+                    continue
+                try:
+                    model = apps.get_model(app_label, model_name)
+                    qs = model.objects.filter(id__in=id_list)
+                    # preserve original ordering from forward refs
+                    obj_map = {getattr(o, 'id', None): o for o in qs if getattr(o, 'id', None) is not None}  # type: ignore[attr-defined]
+                    ordered = [obj_map[i] for i in id_list if i in obj_map]
+                    related[bucket] = [getattr(o, 'to_dict', lambda: o.__dict__)() if hasattr(o, 'to_dict') else {k: v for k, v in o.__dict__.items() if not k.startswith('_')} for o in ordered]
+                except Exception as e:  # pragma: no cover
+                    errors[bucket] = f"forward_ref_error: {e}"
+
     for related_table in tables_dict.get(table_name, []):
         print(f"Processing related_table: {related_table}")
         if related_table in related_models:
             app_label, model_name = related_models[related_table]
             print(f"Using model: {app_label}.{model_name}")
             try:
+                # Skip reciprocal query if we already hydrated via forward refs for this bucket
+                if table_name == 'contacts' and (related_table == 'addresses' and 'locations' in related or related_table in related):
+                    continue
                 model = apps.get_model(app_label, model_name)
-                queryset = model.objects.filter(**{f"refs__links__{table_name}__contains": [id]})
+                # Reciprocal filter logic:
+                if table_name == 'contacts':
+                    # already handled above for forward refs; guard ensures we don't duplicate
+                    queryset = model.objects.none()
+                elif table_name == 'orgs' and related_table == 'contacts':
+                    # contacts forward links contain org ids in refs.links.orgs
+                    contact_model = apps.get_model('core', 'Contact')
+                    queryset = contact_model.objects.filter(refs__links__orgs__contains=[id])
+                else:
+                    queryset = model.objects.filter(**{f"refs__links__{table_name}__contains": [id]})
                 print(f"Queryset count for {related_table}: {queryset.count()}")
                 # Pagination support
                 if pagination and related_table in pagination:

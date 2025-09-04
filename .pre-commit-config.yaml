@@ -25,5 +25,27 @@ repos:
         language: system
         pass_filenames: false
         stages: [commit]
+      - id: single-initial-migration
+        name: Enforce single 0001_initial per app (no additional numbered migrations)
+        entry: >-
+          bash -c '
+          APPS_DIR="apps"; violations=0; 
+          for app in $(find "$APPS_DIR" -maxdepth 1 -mindepth 1 -type d); do 
+            count=$(find "$app/migrations" -maxdepth 1 -type f -name "[0-9][0-9][0-9][0-9]*.py" 2>/dev/null | wc -l | tr -d " ");
+            if [ "$count" -gt 1 ]; then echo "ERROR: $app has $count migration files (policy: single baseline)."; violations=$((violations+1)); fi; 
+          done; 
+          if [ "$violations" -gt 0 ]; then exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+      - id: forbid-nuke-commit
+        name: Forbid committing nuke_migrations invocation references
+        entry: >-
+          bash -c '
+          if git diff --cached | grep -E "full_reset_seed" | grep -q "--nuke-migrations"; then 
+             echo "ERROR: Remove --nuke-migrations from committed script/README examples (local-only flag)."; exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [commit]
 
 # Install locally with:  pip install pre-commit && pre-commit install

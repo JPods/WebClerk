@@ -2,6 +2,11 @@
 
 # Data / Model Structure Map
 
+Date: 2025-09-03
+Review: 2025-12-15
+Status: -- status --
+Owner: Bill
+
 Central reference for high-level architecture diagrams, model inventory, and key cross-cutting data flows. Generated sections are delimited by markers so the `generate_data_map` management command can refresh them safely.
 
 ## System Architecture (High Level)

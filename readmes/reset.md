@@ -2,12 +2,21 @@
 
 # Destructive Full Reset & Baseline Rebuild
 
+Date: 2025-09-03
+Review: 2025-12-15
+Status: -- status --
+Owner: Bill
+
 This guide documents the **single supported way** to perform a destructive local reset of the development database and re-seed domain data. Use it sparingly and never on shared / staging / production environments.
 
-Creates 3 SuperUsers:
-1@1.com, 1111pass
-2@2.com, 1111pass
-3@3.com, 1111pass
+Creates 3 SuperUsers (patterned):
+
+| Email | Password |
+|-------|----------|
+| `1@1.com` | `1111pass` |
+| `2@2.com` | `1111pass` |
+| `3@3.com` | `1111pass` |
+
 ---
 
 ## 1. When To Use
@@ -34,7 +43,7 @@ Do NOT use:
 2. Environment guard: verifies interpreter matches project `bin/python` & Django 5.x (override with `ALLOW_SYSTEM_PY=1`).
 3. Terminates existing PostgreSQL sessions for the target DB.
 4. Drops and recreates the database (name from `DATABASE_NAME` / settings).
-5. Runs migrations (expects committed `0001_initial` baselines + any new deltas).
+5. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
 6. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`.
 7. Light synthetic backfill via `reseed_all_models --no-flush --per-model 2` for sparse tables.
 8. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
@@ -82,6 +91,18 @@ FORCE_FULL_RESET=1 python manage.py full_reset_seed --force
 ```
 
 Bypass environment guard (e.g. running inside a container wrapper):
+Regenerate migrations first (dangerous; local dev only):
+
+```bash
+python manage.py full_reset_seed --force --nuke-migrations --auto-make
+```
+
+Nuke migrations but let migrate fail if new ones were required (diagnostic):
+
+```bash
+python manage.py full_reset_seed --force --nuke-migrations
+```
+
 
 ```bash
 ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force
@@ -103,12 +124,12 @@ The returned `ResetResult` dataclass exposes: `db_name`, `recreated`, `migration
 
 ## 5. Environment Guards & Safety
 
-Guard | Purpose | Override
------ | ------- | --------
-Interpreter match | Prevent running with system Python (wrong Django) | `ALLOW_SYSTEM_PY=1`
-Django 5.x check | Avoid applying migrations with incompatible version | `ALLOW_SYSTEM_PY=1`
-DEBUG True | Block accidental destructive ops in prod-like config | `FORCE_FULL_RESET=1`
-Interactive confirm | Human “are you sure?” gate | `--force`
+| Guard | Purpose | Override |
+|-------|---------|----------|
+| Interpreter match | Prevent running with system Python (wrong Django) | `ALLOW_SYSTEM_PY=1` |
+| Django 5.x check | Avoid applying migrations with incompatible version | `ALLOW_SYSTEM_PY=1` |
+| DEBUG True | Block accidental destructive ops in prod-like config | `FORCE_FULL_RESET=1` |
+| Interactive confirm | Human “are you sure?” gate | `--force` |
 
 The command still refuses if `DJANGO_SETTINGS_MODULE` suggests a production module (contains `prod`).
 
@@ -116,24 +137,24 @@ The command still refuses if `DJANGO_SETTINGS_MODULE` suggests a production modu
 
 ## 6. Post-Reset Checklist
 
-Step | Command | Notes
----- | ------- | -----
-Run tests | `./bin/python -m pytest -q` | Should be green (baseline).
-Create extra admin | `./bin/python create_superuser.py --email admin2@example.com` | Optional.
-Inspect seed data | `./bin/python manage.py shell` | Sanity-check orgs, items.
-Envelope telemetry | `./bin/python manage.py storage_load_report --json` | Optional size snapshot.
+| Step | Command | Notes |
+|------|---------|-------|
+| Run tests | `./bin/python -m pytest -q` | Should be green (baseline). |
+| Create extra admin | `./bin/python create_superuser.py --email admin2@example.com` | Optional. |
+| Inspect seed data | `./bin/python manage.py shell` | Sanity-check orgs, items. |
+| Envelope telemetry | `./bin/python manage.py storage_load_report --json` | Optional size snapshot. |
 
 ---
 
 ## 7. Troubleshooting
 
-Symptom | Likely Cause | Fix
-------- | ------------ | ---
-`OperationalError: server closed the connection` | Using stale DB connection handle after drop | Fixed by function (ensure upgraded code). Re-run.
-`column "name" of relation "django_content_type" does not exist` | Ran migrations with older Django then switched versions | Drop DB & rerun via correct venv.
-`psql binary not found` | PostgreSQL client tools missing in PATH | Install `psql` / adjust PATH.
-Seed command missing file warnings | Optional JSON seeds not present | Supply JSON or ignore (non-fatal).
-Superusers not created | Email collision from prior import | Use higher `--superusers` or drop again.
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| `OperationalError: server closed the connection` | Using stale DB connection handle after drop | Fixed by function (ensure upgraded code). Re-run. |
+| `column "name" of relation "django_content_type" does not exist` | Ran migrations with older Django then switched versions | Drop DB & rerun via correct venv. |
+| `psql binary not found` | PostgreSQL client tools missing in PATH | Install `psql` / adjust PATH. |
+| Seed command missing file warnings | Optional JSON seeds not present | Supply JSON or ignore (non-fatal). |
+| Superusers not created | Email collision from prior import | Use higher `--superusers` or drop again. |
 
 Log still shows intermediate product migrations (0002–0006)? They are **no-op stubs**—this is expected.
 
@@ -141,9 +162,12 @@ Log still shows intermediate product migrations (0002–0006)? They are **no-op 
 
 ## 8. Migration Baseline Policy
 
-- Historical squashes (e.g., 2025‑09‑03) produce a single authoritative `0001_initial` per app.
-- Never hand-edit applied migration files post-commit; create new migration deltas.
-- Only re-squash after broad team coordination and just before a release boundary.
+- Historical squashes (e.g., 2025‑09‑03) and subsequent "nukes" produce a single authoritative `0001_initial` per app.
+- `--nuke-migrations` is a local developer convenience; DO NOT use on a shared branch without team agreement.
+- Never hand-edit applied migration files post-commit; prefer new migration deltas or an intentional coordinated nuke.
+- Only re-squash / nuke just before a release boundary or when pruning experimental churn.
+- CI Guard: A GitHub Action (`migration_guard`) enforces that each first-party app has at most one numbered migration (the baseline). Set `ALLOW_MULTIPLE_MIGRATIONS=1` secret to temporarily bypass.
+- Standalone script: `./bin/python -m common.rebuild.nuke_migrations` performs the same deletion/regeneration outside the full reset command.
 
 ---
 
@@ -193,16 +217,20 @@ A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `fu
 
 ## 13. Quick Reference
 
-Action | Command
------- | -------
-Full reset + seed + 3 superusers | `python manage.py full_reset_seed --force`
-Reset only (no seed, no superusers) | `python manage.py full_reset_seed --force --no-seed --skip-superusers`
-Reset with 5 superusers | `python manage.py full_reset_seed --force --superusers 5`
-Programmatic call | `from common.rebuild import full_reset_and_seed`
-Bypass env guard | `ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force`
+| Action | Command |
+|--------|---------|
+| Full reset + seed + 3 superusers | `python manage.py full_reset_seed --force` |
+| Reset only (no seed, no superusers) | `python manage.py full_reset_seed --force --no-seed --skip-superusers` |
+| Reset with 5 superusers | `python manage.py full_reset_seed --force --superusers 5` |
+| Programmatic call | `from common.rebuild import full_reset_and_seed` |
+| Bypass env guard | `ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force` |
+| Fast dev nuke (regenerate + no seed) | `python manage.py dev_nuke --force --no-seed --skip-superusers` |
+| Quick reset (nuke + 3 superusers, no seed) | `python manage.py quick_reset --force` |
+| One-shot nuke + seed + 3 superusers | `python manage.py nuke_reseed_3` |
 
 ---
 
 End of reset guide.
+
 
 

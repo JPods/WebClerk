@@ -1,0 +1,12 @@
+contact:{"refs": {
+                "tags": [],
+                "links": {
+                    "emails": [1,2]
+                    "phones": [1,2]
+                    "locations": [1,2]
+                    "domains": [1,2]
+                },
+                "keywords": [],
+                "categories": [],
+                "related_ids": []
+            }}

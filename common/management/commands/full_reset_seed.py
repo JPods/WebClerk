@@ -10,6 +10,8 @@ class Command(BaseCommand):
         parser.add_argument('--seed-cmd', action='append', dest='seed_cmds', help='Extra seed command(s) to run (can repeat).')
         parser.add_argument('--skip-superusers', action='store_true', help='Do not create any superusers.')
         parser.add_argument('--force', action='store_true', help='Override DEBUG False / safety guard (FORCE_FULL_RESET env also works).')
+        parser.add_argument('--nuke-migrations', action='store_true', help='Delete all numbered migration files before migrating (DEV ONLY).')
+        parser.add_argument('--auto-make', action='store_true', help='After nuking migrations, auto-run makemigrations before migrate.')
 
     def handle(self, *args, **opts):  # pragma: no cover - orchestration
         if not opts.get('force') and not self._okay():
@@ -21,6 +23,8 @@ class Command(BaseCommand):
             seed_commands=seed_cmds,
             create_superusers=0 if opts.get('skip_superusers') else int(opts['superusers']),
             skip_seed=opts['no_seed'],
+            nuke_migrations=opts.get('nuke_migrations', False),
+            auto_make_migrations=opts.get('auto_make', False),
         )
         self.stdout.write(self.style.SUCCESS(
             f"Reset complete: db={result.db_name} superusers_created={result.superusers} seeds={','.join(result.seed_commands_run) or 'none'}"

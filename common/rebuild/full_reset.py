@@ -6,6 +6,7 @@ import shutil
 import sys
 import django
 from typing import Iterable, Sequence
+from pathlib import Path
 from dataclasses import dataclass
 from django.conf import settings
 from django.core.management import call_command
@@ -19,6 +20,7 @@ DEFAULT_SEED_COMMANDS: Sequence[str] = (
     "seed_documents",
     "seed_projects",
     "seed_transactions",
+    "seed_relationships",  # enrich cross-entity lightweight links (contacts<->comm methods, org contact lists, order line contacts)
 )
 
 
@@ -92,6 +94,8 @@ def full_reset_and_seed(
     seed_commands: Iterable[str] | None = None,
     create_superusers: int = 3,
     skip_seed: bool = False,
+    nuke_migrations: bool = False,
+    auto_make_migrations: bool = False,
 ) -> ResetResult:
     """Destructive local reset: drop DB, migrate, seed, create superusers.
 
@@ -101,7 +105,11 @@ def full_reset_and_seed(
       create_superusers: Number of patterned superusers to create (1@1.com...).
       skip_seed: If True skips seed commands but still creates superusers.
 
-    Returns ResetResult summarizing actions.
+        Returns ResetResult summarizing actions.
+
+        Extra dev-only options:
+            nuke_migrations: Delete all numbered migration files (except __init__.py) for first‑party apps BEFORE migrate.
+            auto_make_migrations: If True and nuke_migrations used, run makemigrations prior to migrate.
     """
     # ------------------------------------------------------------------
     # Environment safety guard: ensure using the project virtualenv python
@@ -163,7 +171,24 @@ def full_reset_and_seed(
     except Exception:
         pass
 
-    # Force a fresh connection and run migrations (baseline assumed committed)
+    # Optional destructive migration nuke (local only). We detect local apps by presence of apps/*/migrations.
+    if nuke_migrations:
+        apps_dir = Path(project_root) / 'apps'
+        for mig in apps_dir.rglob('migrations'):
+            if not mig.is_dir():
+                continue
+            for f in mig.glob('[0-9][0-9][0-9][0-9]*.py'):
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+        if auto_make_migrations:
+            try:
+                call_command('makemigrations', interactive=False, verbosity=0)
+            except Exception:
+                pass
+
+    # Force a fresh connection and run migrations (baseline assumed committed OR just regenerated)
     try:
         connection.close()  # safety
         connection.ensure_connection()

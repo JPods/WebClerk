@@ -1,3 +1,4 @@
+__all__ = []  # intentionally empty to avoid early model imports during Django app loading
 """Common app init: ensure signals registered."""
 
 from django.apps import AppConfig

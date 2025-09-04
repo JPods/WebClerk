@@ -1,0 +1,19 @@
+name: Migration Guard
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  single-initial-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run migration guard
+        run: |
+          # Set ALLOW_MULTIPLE_MIGRATIONS=1 in workflow dispatch or future secret if temporary allowance needed
+          : "${ALLOW_MULTIPLE_MIGRATIONS:=0}"; export ALLOW_MULTIPLE_MIGRATIONS
+          bash .github/scripts/check_single_migration.sh

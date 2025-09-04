@@ -2,6 +2,11 @@
 
 # Management & Operations Guide
 
+Date: 2025-09-03
+Review: 2025-12-15
+Status: -- status --
+Owner: Bill
+
 Central reference for Django management commands and operational scripts shipped in this repository. Commands are invoked with:
 
 ```bash

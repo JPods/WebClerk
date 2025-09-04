@@ -41,6 +41,7 @@ from django.utils import timezone
 from django.contrib.postgres.indexes import GinIndex
 
 from common.models import BaseModel
+from common.link_mixins import StandardLinksMixin
 from common.stats_mixin import StatsMixin
 from common.relationship_stats_mixin import RelationshipStatsMixin
 
@@ -109,7 +110,7 @@ def default_gl_accounts():  # {sales:"4000", expense:"5000", ...}
 
 
 # ---------------- Unified model -----------------
-class OrgBase(RelationshipStatsMixin, StatsMixin, BaseModel):
+class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel):
 	"""Unified organization entity with flexible aspect JSON envelopes.
 
 	Key columns kept minimal for performance & indexing; JSON aspects capture
