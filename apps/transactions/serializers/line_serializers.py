@@ -9,9 +9,12 @@ from apps.transactions.models.line_variants import (
     Requisition, RequisitionLine,
 )
 from apps.transactions.models.projects import Project
+from .cost_validators import CostJSONField  # added
 
 
 class BaseLineSerializer(serializers.ModelSerializer):
+    cost = CostJSONField(required=False)
+
     class Meta:
         fields = [
             'id', 'parent_ref_id', 'status', 'type_sale', 'probability',
