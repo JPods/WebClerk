@@ -25,6 +25,11 @@ env:
   SECRET_KEY: ci-fallback-secret-key
   COVERAGE_FAIL_UNDER: 70
   # Smoke is non-blocking everywhere now
+  # Minimal email settings for tests (python-decouple reads these)
+  EMAIL_HOST: localhost
+  EMAIL_PORT: 1025
+  EMAIL_HOST_USER: ""
+  EMAIL_HOST_PASSWORD: ""
 
 jobs:
   smoke:
