@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Development DB Strategy: SQLite Fast Path + Postgres Validation](#development-db-strategy-sqlite-fast-path-postgres-validation)
+  - [Table of Contents](#table-of-contents)
   - [Why SQLite (Right Now)](#why-sqlite-right-now)
   - [Guardrails / Caveats vs Postgres](#guardrails-caveats-vs-postgres)
   - [Workflow](#workflow)

@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Support Notes](#support-notes)
+  - [Table of Contents](#table-of-contents)
   - [Currency Reference](#currency-reference)
 
 <!-- TOC END -->

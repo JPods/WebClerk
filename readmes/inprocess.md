@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [In-Process Roadmap: API Expansion & Contract Hardening](#in-process-roadmap-api-expansion-contract-hardening)
+  - [Table of Contents](#table-of-contents)
   - [Guiding Principles](#guiding-principles)
   - [High-Level Sequence (Checklist)](#high-level-sequence-checklist)
   - [Step Details & Implementation Notes](#step-details-implementation-notes)

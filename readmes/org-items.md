@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Org Items (OrgItem)](#org-items-orgitem)
+  - [Table of Contents](#table-of-contents)
   - [Purpose / When to Use](#purpose-when-to-use)
   - [Model Summary](#model-summary)
     - [Fields](#fields)

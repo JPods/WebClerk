@@ -1,5 +1,30 @@
 # Readme Documentation Sync Pipeline
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Readme Documentation Sync Pipeline](#readme-documentation-sync-pipeline)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Data Model Mapping](#data-model-mapping)
+  - [Management Command Usage](#management-command-usage)
+    - [Core Options](#core-options)
+    - [Examples](#examples)
+  - [Slug Generation Logic](#slug-generation-logic)
+  - [Exported Index Structure](#exported-index-structure)
+  - [React Client Access](#react-client-access)
+  - [Typical Lifecycle](#typical-lifecycle)
+  - [Integration Recommendations](#integration-recommendations)
+  - [Edge Cases & Notes](#edge-cases-notes)
+  - [Future Extensions (Roadmap)](#future-extensions-roadmap)
+  - [Troubleshooting](#troubleshooting)
+  - [Minimal Internal API Contract](#minimal-internal-api-contract)
+  - [At A Glance (Cheat Sheet)](#at-a-glance-cheat-sheet)
+
+<!-- TOC END -->
+
 This document explains how markdown files in the repository are ingested into `Document` rows (table_name = `readme`), exposed via API endpoints, and exported as a lightweight JSON index for client (React) consumption.
 
 ---

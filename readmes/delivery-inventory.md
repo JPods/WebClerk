@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Delivery & Inventory Verification Models](#delivery-inventory-verification-models)
+  - [Table of Contents](#table-of-contents)
   - [Purpose](#purpose)
   - [Model Overview](#model-overview)
   - [Delivery Flow](#delivery-flow)

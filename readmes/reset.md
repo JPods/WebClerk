@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Destructive Full Reset & Baseline Rebuild](#destructive-full-reset-baseline-rebuild)
+  - [Table of Contents](#table-of-contents)
   - [1. When To Use](#1-when-to-use)
   - [2. What Happens Under The Hood](#2-what-happens-under-the-hood)
   - [3. Usage Cheatsheet](#3-usage-cheatsheet)

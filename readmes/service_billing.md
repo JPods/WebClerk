@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Service Billing Guide](#service-billing-guide)
+  - [Table of Contents](#table-of-contents)
   - [1. Purpose](#1-purpose)
   - [2. JSON Schema (v1)](#2-json-schema-v1)
   - [3. Core Operations](#3-core-operations)

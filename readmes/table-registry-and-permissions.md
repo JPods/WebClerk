@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Table Registry & Permissions Refactor](#table-registry-permissions-refactor)
+  - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
   - [Motivations](#motivations)
   - [Key Artifacts](#key-artifacts)

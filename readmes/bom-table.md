@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Bill of Material (BOM) Table README](#bill-of-material-bom-table-readme)
+  - [Table of Contents](#table-of-contents)
   - [Core Fields](#core-fields)
   - [Constraints & Indexes](#constraints-indexes)
   - [Cost Snapshot Strategy](#cost-snapshot-strategy)

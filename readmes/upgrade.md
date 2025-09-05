@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Upgrade Roadmap (webClerk3)](#upgrade-roadmap-webclerk3)
+  - [Table of Contents](#table-of-contents)
   - [Changelog Consideration (Deferred)](#changelog-consideration-deferred)
   - [[0.4.0] - 2025-09-15](#040-2025-09-15)
     - [Added](#added)

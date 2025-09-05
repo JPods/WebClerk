@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Item Model Reference](#item-model-reference)
+  - [Table of Contents](#table-of-contents)
   - [Field Summary (Selected)](#field-summary-selected)
   - [JSON Schemas](#json-schemas)
     - [price](#price)

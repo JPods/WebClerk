@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Relationships & Link Strategy](#relationships-link-strategy)
+  - [Table of Contents](#table-of-contents)
   - [Core Principles](#core-principles)
   - [Data Model Summary](#data-model-summary)
   - [Lifecycle of a Link](#lifecycle-of-a-link)

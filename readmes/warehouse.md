@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Warehouse Model Overview](#warehouse-model-overview)
+  - [Table of Contents](#table-of-contents)
   - [Core Concepts](#core-concepts)
   - [`count` JSON Schema](#count-json-schema)
   - [Typical Usage](#typical-usage)

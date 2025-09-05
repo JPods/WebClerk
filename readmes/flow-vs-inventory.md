@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Flow vs Inventory Domain](#flow-vs-inventory-domain)
+  - [Table of Contents](#table-of-contents)
   - [TL;DR](#tldr)
   - [When To Add a Field](#when-to-add-a-field)
   - [Cross-Referencing](#cross-referencing)

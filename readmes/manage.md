@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Management & Operations Guide](#management-operations-guide)
+  - [Table of Contents](#table-of-contents)
   - [1. Data / JSON Envelope Telemetry](#1-data-json-envelope-telemetry)
     - [storage_load_report](#storageloadreport)
     - [org_aspect_metrics](#orgaspectmetrics)

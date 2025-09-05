@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Development & Debug Configuration Overview](#development-debug-configuration-overview)
+  - [Table of Contents](#table-of-contents)
   - [1. Core Environment Flags](#1-core-environment-flags)
   - [2. Field Access & Bypass Mechanics](#2-field-access-bypass-mechanics)
   - [3. Authentication Endpoints](#3-authentication-endpoints)

@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Migration Squash (September 2025)](#migration-squash-september-2025)
+  - [Table of Contents](#table-of-contents)
   - [Strategy](#strategy)
   - [Operational Notes](#operational-notes)
   - [Caution](#caution)

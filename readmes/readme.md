@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [webClerk3](#webclerk3)
+  - [Table of Contents](#table-of-contents)
   - [Project Docs](#project-docs)
   - [Contributors](#contributors)
   - [Documentation Map](#documentation-map)

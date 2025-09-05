@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Migration Squash Baseline (2025-09-03)](#migration-squash-baseline-2025-09-03)
+  - [Table of Contents](#table-of-contents)
   - [What Changed](#what-changed)
   - [Fresh Clone / Environment Reset](#fresh-clone-environment-reset)
   - [Existing Developer Instances](#existing-developer-instances)

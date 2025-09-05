@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Project Rules & Guidelines](#project-rules-guidelines)
+  - [Table of Contents](#table-of-contents)
   - [Git & Versioning](#git-versioning)
   - [Table Naming](#table-naming)
   - [Rate Limiting](#rate-limiting)

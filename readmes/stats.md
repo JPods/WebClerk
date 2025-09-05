@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Stats & Relationship Stats Architecture](#stats-relationship-stats-architecture)
+  - [Table of Contents](#table-of-contents)
   - [Goals](#goals)
   - [StatsMixin Structure](#statsmixin-structure)
   - [RelationshipStatsMixin](#relationshipstatsmixin)

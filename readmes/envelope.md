@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Unified API Response Envelope](#unified-api-response-envelope)
+  - [Table of Contents](#table-of-contents)
   - [Schema](#schema)
     - [Minimal Success](#minimal-success)
     - [Minimal Error](#minimal-error)

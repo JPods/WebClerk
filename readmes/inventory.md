@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Inventory & Costing Overview](#inventory-costing-overview)
+  - [Table of Contents](#table-of-contents)
   - [TL;DR](#tldr)
   - [Concepts](#concepts)
   - [InventoryStack.quantity Schema](#inventorystackquantity-schema)

@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Data / Model Structure Map](#data-model-structure-map)
+  - [Table of Contents](#table-of-contents)
   - [System Architecture (High Level)](#system-architecture-high-level)
   - [Universal API Concept](#universal-api-concept)
   - [Key Data Flows](#key-data-flows)

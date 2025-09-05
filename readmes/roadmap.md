@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Codebase Cleanup & Deprecation Roadmap](#codebase-cleanup-deprecation-roadmap)
+  - [Table of Contents](#table-of-contents)
   - [Legend](#legend)
   - [Active / Upcoming Cleanup Items](#active-upcoming-cleanup-items)
   - [Recently Completed](#recently-completed)

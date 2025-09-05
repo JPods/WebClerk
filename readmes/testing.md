@@ -8,6 +8,7 @@
 ## Table of Contents
 
 - [Test & Verification Guide](#test-verification-guide)
+  - [Table of Contents](#table-of-contents)
   - [1. Quick Start (most common)](#1-quick-start-most-common)
   - [2. Environment Assumptions](#2-environment-assumptions)
   - [3. Test Categories Overview](#3-test-categories-overview)
