@@ -1,5 +1,36 @@
 # Inventory & Costing Overview
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Inventory & Costing Overview](#inventory-costing-overview)
+  - [TL;DR](#tldr)
+  - [Concepts](#concepts)
+  - [InventoryStack.quantity Schema](#inventorystackquantity-schema)
+  - [InventoryStack.cost Schema](#inventorystackcost-schema)
+  - [Locking & Deferred Issues](#locking-deferred-issues)
+  - [Reservations (Soft Holds)](#reservations-soft-holds)
+    - [Reservation REST Endpoints](#reservation-rest-endpoints)
+    - [PendingInventoryAdjustment Fields](#pendinginventoryadjustment-fields)
+    - [Processor Strategies](#processor-strategies)
+    - [Example (Programmatic)](#example-programmatic)
+- [Queue an issue while locked](#queue-an-issue-while-locked)
+- [Unlock -> auto processing](#unlock-auto-processing)
+    - [Smoke Test Pattern](#smoke-test-pattern)
+  - [Cost Update Helper](#cost-update-helper)
+  - [Roadmap / Next Steps](#roadmap-next-steps)
+  - [Design Rationale](#design-rationale)
+  - [Operational Metrics & Monitoring](#operational-metrics-monitoring)
+    - [JSON Metrics Endpoint](#json-metrics-endpoint)
+    - [Prometheus Endpoint](#prometheus-endpoint)
+    - [Dashboard Ideas](#dashboard-ideas)
+    - [Housekeeping](#housekeeping)
+  - [Quick Reference](#quick-reference)
+
+<!-- TOC END -->
+
 ## TL;DR
 
 InventoryStack holds per‑receipt quantity & cost JSON. If a stack is locked or insufficient, issues enqueue as PendingInventoryAdjustment. Unlock or periodic processor drains queue FIFO, applying issues. Use `process_pending_inventory` (global) or `process_pending_for_stack` (single) or rely on automatic unlock signal. Cost JSON has stable keys (unit_po, landed, moving_avg, etc.) for downstream valuation and reporting.
@@ -132,8 +163,8 @@ Celery task: `products.tasks.process_pending_inventory` (optionally schedule via
 | reason | Short code (e.g. `issue`, `insufficient_issue`) |
 | reserved_conflict | Immediate issue would violate active (pending) reservations; processor defers until reservations release/expire |
 | request_ref | Opaque JSON (caller context / correlation id) |
-| created_dt | Auto timestamp |
-| applied_dt | Set on success |
+| dt_created | Auto timestamp |
+| dt_applied | Set on success |
 | cancel_reason | Explanation when state=canceled |
 
 ### Processor Strategies

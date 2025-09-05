@@ -1,5 +1,27 @@
 # In-Process Roadmap: API Expansion & Contract Hardening
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [In-Process Roadmap: API Expansion & Contract Hardening](#in-process-roadmap-api-expansion-contract-hardening)
+  - [Guiding Principles](#guiding-principles)
+  - [High-Level Sequence (Checklist)](#high-level-sequence-checklist)
+  - [Step Details & Implementation Notes](#step-details-implementation-notes)
+    - [1. CI Guard (Contract & Hygiene)](#1-ci-guard-contract-hygiene)
+    - [2. Widen `assert_envelope` Adoption](#2-widen-assertenvelope-adoption)
+    - [3. New Tables (Models + Migrations + Admin)](#3-new-tables-models-migrations-admin)
+    - [4. Serializers / Views / URLs / Services / Mixins (Stubs)](#4-serializers-views-urls-services-mixins-stubs)
+    - [5. Targeted Endpoint Tests (Envelope First)](#5-targeted-endpoint-tests-envelope-first)
+    - [6. Business Logic Iteration](#6-business-logic-iteration)
+  - [Progress Log](#progress-log)
+  - [Next Immediate Actions (Proposed)](#next-immediate-actions-proposed)
+  - [Open Questions / Decisions To Revisit](#open-questions-decisions-to-revisit)
+  - [Appendix: Draft CI Guard Patterns](#appendix-draft-ci-guard-patterns)
+
+<!-- TOC END -->
+
 Living document tracking the staged rollout of new tables/endpoints while safeguarding the standardized response envelope.
 
 ## Guiding Principles

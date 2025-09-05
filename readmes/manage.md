@@ -2,6 +2,37 @@
 
 # Management & Operations Guide
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Management & Operations Guide](#management-operations-guide)
+  - [1. Data / JSON Envelope Telemetry](#1-data-json-envelope-telemetry)
+    - [storage_load_report](#storageloadreport)
+    - [org_aspect_metrics](#orgaspectmetrics)
+    - [Aspect validation (service-layer helper)](#aspect-validation-service-layer-helper)
+    - [org_validate_aspects](#orgvalidateaspects)
+    - [API Validation Toggle (Universal)](#api-validation-toggle-universal)
+    - [Model Hooks & Async Events](#model-hooks-async-events)
+    - [Hook Reference](#hook-reference)
+  - [2. Keyword / Search Maintenance](#2-keyword-search-maintenance)
+    - [refresh_keywords](#refreshkeywords)
+  - [3. Demo / Fixture Utilities](#3-demo-fixture-utilities)
+    - [demo_data_import_export](#demodataimportexport)
+    - [demo_data_fix_dup_key](#demodatafixdupkey)
+    - [audit_base_models](#auditbasemodels)
+  - [4. Access / Permission Adjustments](#4-access-permission-adjustments)
+    - [fix_view_edit_PUBLIC](#fixvieweditpublic)
+  - [5. Development Reset / Local Ops](#5-development-reset-local-ops)
+  - [6. Postman / API Contract Assets](#6-postman-api-contract-assets)
+  - [7. Retired / Legacy Commands](#7-retired-legacy-commands)
+  - [8. Operational Best Practices](#8-operational-best-practices)
+  - [9. Adding a New Command](#9-adding-a-new-command)
+  - [10. Quick Reference Table](#10-quick-reference-table)
+
+<!-- TOC END -->
+
 Date: 2025-09-03
 Review: 2025-12-15
 Status: -- status --

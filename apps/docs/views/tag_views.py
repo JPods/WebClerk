@@ -15,8 +15,8 @@ class TagListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = TagPagination
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['modified_dt','created_dt','name','purpose','status','security_level','sequence']
-    ordering = ['-modified_dt']
+    ordering_fields = ['dt_modified','dt_created','name','purpose','status','security_level','sequence']
+    ordering = ['-dt_modified']
 
     def get_queryset(self):
         qs = Tag.objects.filter(is_active=True)  # exclude inactive by default
@@ -130,7 +130,7 @@ class TagSearchView(APIView):
         # Build AND chain of prefix filters across name/purpose
         for term in terms:
             qs = qs.filter(Q(name__istartswith=term) | Q(purpose__istartswith=term))
-        qs = qs.order_by('-modified_dt')[:100]
+        qs = qs.order_by('-dt_modified')[:100]
         data = TagSerializer(qs, many=True).data
         # Increment access counters
         for tag in qs:

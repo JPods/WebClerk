@@ -30,8 +30,8 @@ class QAListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = QAPagination
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['modified_dt','created_dt','sequence','security_level','status']
-    ordering = ['-modified_dt']
+    ordering_fields = ['dt_modified','dt_created','sequence','security_level','status']
+    ordering = ['-dt_modified']
 
     def get_queryset(self):
         qs = Qa.objects.all()

@@ -1,5 +1,27 @@
 # Relationships & Link Strategy
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Relationships & Link Strategy](#relationships-link-strategy)
+  - [Core Principles](#core-principles)
+  - [Data Model Summary](#data-model-summary)
+  - [Lifecycle of a Link](#lifecycle-of-a-link)
+  - [Commands](#commands)
+    - [reconcile_links](#reconcilelinks)
+    - [Operational Guidance](#operational-guidance)
+  - [Celery Strategy](#celery-strategy)
+  - [Error Handling](#error-handling)
+  - [Future Enhancements](#future-enhancements)
+    - [Party Role Address/Contact Strategy (BillTo / ShipTo / SellTo / BuyFrom)](#party-role-addresscontact-strategy-billto-shipto-sellto-buyfrom)
+  - [Rationale vs Join Tables](#rationale-vs-join-tables)
+  - [Soft Limits](#soft-limits)
+  - [Testing Notes](#testing-notes)
+
+<!-- TOC END -->
+
 Date: 2025-09-03
 Review: 2025-12-15
 Status: Draft (living design)

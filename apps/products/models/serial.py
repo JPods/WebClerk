@@ -8,11 +8,13 @@ from .warehouse import Warehouse
 
 class Serial(ItemLinkedBase):
     """One serialized unit of an item."""
-    serial_ida = models.CharField(max_length=120, unique=True)
+    # We may not control serial number uniqueness. use internal id as PK.
+    serial_ida = models.CharField(max_length=120, unique=False)
     model_ida = models.CharField(max_length=120, blank=True, db_index=True)
     warranty = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=40, blank=True, db_index=True)
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
+    # Current location / warehouse / inventory stack
+    site = models.JSONField(default=dict, blank=True, help_text="Lightweight site/location snapshot (geo codes, address refs)")
     inventory_stack = models.ForeignKey('products.InventoryStack', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
     data = models.JSONField(default=dict, blank=True)
     qr_code = models.CharField(max_length=255, blank=True, db_index=True)

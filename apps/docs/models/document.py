@@ -28,6 +28,7 @@ class Document(BaseModel):
     """
 
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    slug = models.SlugField(max_length=255, blank=True, null=True, unique=True, help_text="Stable slug (for readmes / API consumption)")
     status = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     body = models.TextField(blank=True, null=True)
@@ -90,6 +91,19 @@ class Document(BaseModel):
         if self.body and not self.size_bytes:
             self.size_bytes = len(self.body.encode('utf-8'))
         is_create = self.pk is None
+        # ensure slug if missing and name present (non-destructive)
+        if not self.slug and self.name:
+            from django.utils.text import slugify
+            base = slugify(self.name)[:240] or None
+            if base:
+                candidate = base
+                # handle potential collisions (rare for readmes)
+                i = 2
+                while type(self).objects.filter(slug=candidate).exclude(pk=self.pk or 0).exists():
+                    suffix = f"-{i}"
+                    candidate = (base[: 240 - len(suffix)] + suffix)
+                    i += 1
+                self.slug = candidate
         # Capture original field values for change detection (only if existing)
         tracked_original = {}
         tracked_fields: list[str] = []

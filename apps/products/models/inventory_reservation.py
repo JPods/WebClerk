@@ -48,8 +48,8 @@ class InventoryReservation(models.Model):
     released_at = models.DateTimeField(null=True, blank=True)
     context = models.JSONField(default=default_context, blank=True)
     reason = models.CharField(max_length=80, blank=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
-    modified_dt = models.DateTimeField(auto_now=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
+    dt_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         indexes = [
@@ -69,7 +69,7 @@ class InventoryReservation(models.Model):
             # Convert to real issue from stack (if still available)
             if r.stack and r.stack.remaining_qty() >= self.qty:
                 r.stack.mark_issue(self.qty)
-                r.stack.save(update_fields=['quantity', 'modified_dt', 'version'])
+                r.stack.save(update_fields=['quantity', 'dt_modified', 'version'])
             r.state = self.STATE_COMMITTED
             r.committed_at = timezone.now()
             r.save(update_fields=['state', 'committed_at'])

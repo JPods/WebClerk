@@ -2,6 +2,28 @@
 
 # Unified API Response Envelope
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Unified API Response Envelope](#unified-api-response-envelope)
+  - [Schema](#schema)
+    - [Minimal Success](#minimal-success)
+    - [Minimal Error](#minimal-error)
+    - [Design Notes](#design-notes)
+  - [Current Error Codes](#current-error-codes)
+  - [Enforcement Infrastructure](#enforcement-infrastructure)
+  - [Raw / Transitional Mode (Deprecated)](#raw-transitional-mode-deprecated)
+  - [Legacy Key Bubbling Removal](#legacy-key-bubbling-removal)
+  - [Pagination Meta](#pagination-meta)
+  - [Testing & Guardrails](#testing-guardrails)
+  - [Versioning Policy](#versioning-policy)
+  - [Client Guidance](#client-guidance)
+  - [FAQ](#faq)
+
+<!-- TOC END -->
+
 Canonical specification for the JSON envelope emitted by **all** API endpoints (Universal `wcapi/*` + dedicated DRF views + future async job status endpoints). Middleware + exception handlers enforce this contract so new code cannot silently diverge.
 
 ## Schema

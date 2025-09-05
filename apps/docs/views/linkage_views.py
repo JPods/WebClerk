@@ -13,7 +13,7 @@ class LinkagePagination(pagination.PageNumberPagination):
 
 
 class LinkageListCreateView(generics.ListCreateAPIView):
-    queryset = Linkage.objects.all().order_by('-modified_dt')
+    queryset = Linkage.objects.all().order_by('-dt_modified')
     serializer_class = LinkageSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = LinkagePagination

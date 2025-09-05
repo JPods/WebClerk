@@ -113,14 +113,14 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
             InventoryAdjustmentProcessorRun.objects
             .filter(run_type=InventoryAdjustmentProcessorRun.RUN_GLOBAL)
             .order_by('-id')
-            .values('id', 'attempted', 'applied', 'skipped_locked', 'still_locked', 'insufficient', 'canceled', 'reserved_conflict_skipped', 'duration_s', 'started_dt', 'finished_dt', 'dry_run')
+            .values('id', 'attempted', 'applied', 'skipped_locked', 'still_locked', 'insufficient', 'canceled', 'reserved_conflict_skipped', 'duration_s', 'dt_started', 'dt_finished', 'dry_run')
             .first()
         )
         latest_stack = (
             InventoryAdjustmentProcessorRun.objects
             .filter(run_type=InventoryAdjustmentProcessorRun.RUN_STACK)
             .order_by('-id')
-            .values('id', 'stack_id', 'attempted', 'applied', 'insufficient', 'canceled', 'reserved_conflict_skipped', 'duration_s', 'started_dt', 'finished_dt', 'dry_run')
+            .values('id', 'stack_id', 'attempted', 'applied', 'insufficient', 'canceled', 'reserved_conflict_skipped', 'duration_s', 'dt_started', 'dt_finished', 'dry_run')
             .first()
         )
         # Cumulative aggregates (lightweight sums)
@@ -166,8 +166,8 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
     if include_samples:
         sample_padjs = list(
             padj_qs.filter(state=PendingInventoryAdjustment.STATE_PENDING)
-            .order_by('-created_dt')[:sample_limit]
-            .values('id', 'stack_id', 'qty', 'reason', 'created_dt')
+            .order_by('-dt_created')[:sample_limit]
+            .values('id', 'stack_id', 'qty', 'reason', 'dt_created')
         )
         sample_reservations = list(
             InventoryReservation.objects.filter(state=InventoryReservation.STATE_PENDING, expires_at__gt=now)

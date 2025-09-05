@@ -39,6 +39,6 @@ class Domain(BaseModel):
     def increment_access(self, by: int = 1, save: bool = True):
         self.count_accessed = (self.count_accessed or 0) + by
         if save:
-            self.save(update_fields=['count_accessed', 'modified_dt', 'version'])
+            self.save(update_fields=['count_accessed', 'dt_modified', 'version'])
         return self.count_accessed
     

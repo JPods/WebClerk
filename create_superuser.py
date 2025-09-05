@@ -51,8 +51,8 @@ def main():
             if hasattr(exists, 'role'): update_fields.append('role')
             if hasattr(exists, 'name_first'): update_fields.append('name_first')
             if hasattr(exists, 'name_last'): update_fields.append('name_last')
-            # include modified_dt/version if model tracks them
-            if hasattr(exists, 'modified_dt'): update_fields.append('modified_dt')
+            # include dt_modified/version if model tracks them
+            if hasattr(exists, 'dt_modified'): update_fields.append('dt_modified')
             if hasattr(exists, 'version'): update_fields.append('version')
             exists.save(update_fields=update_fields)
             print(f"Updated existing superuser {args.email}.")

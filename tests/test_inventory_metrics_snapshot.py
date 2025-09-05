@@ -22,6 +22,6 @@ class InventoryMetricsSnapshotTests(TestCase):
         create_reservation(self.stack, Decimal('3'), ttl_seconds=300)
         call_command('snapshot_inventory_metrics', '--samples')
         self.assertGreaterEqual(InventoryMetricsSnapshot.objects.count(), 1)
-        snap = InventoryMetricsSnapshot.objects.latest('created_dt')
+        snap = InventoryMetricsSnapshot.objects.latest('dt_created')
         self.assertIn('reservations', snap.metrics)
         self.assertIn('active_reserved_qty', snap.metrics['reservations'])

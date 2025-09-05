@@ -1,7 +1,8 @@
-from rest_framework import generics, permissions, pagination, filters
+from rest_framework import generics, permissions, pagination, filters, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.db import connection
 from django.contrib.postgres import search as pg_search
 try:
     # Django 5+ provides SearchHeadline; type ignore for older stubs
@@ -24,7 +25,23 @@ except AttributeError:  # Fallback for older Django versions without SearchHeadl
             super().__init__(Value('english'), expr, query, Value(options), output_field=self.output_field, **extra)
 from django.db.models import F, Q, Func, Value
 from apps.docs.models.document import Document
-from apps.docs.serializers.document_serializers import DocumentSerializer, DocumentSearchSerializer
+from django.utils.http import http_date
+from django.utils import timezone
+import hashlib
+import threading
+try:  # optional dependency
+    from markdown import markdown as md_to_html  # type: ignore
+except Exception:  # fallback if markdown not installed
+    def md_to_html(text: str) -> str:  # type: ignore
+        return text  # degrade gracefully
+from pathlib import Path
+from django.conf import settings
+from apps.docs.serializers.document_serializers import (
+    DocumentSerializer,
+    DocumentSearchSerializer,
+    DocumentReadmeListSerializer,
+    DocumentReadmeDetailSerializer,
+)
 
 
 class DocumentPagination(pagination.PageNumberPagination):
@@ -38,8 +55,8 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = DocumentPagination
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['modified_dt', 'created_dt', 'name', 'security_level', 'status']
-    ordering = ['-modified_dt']
+    ordering_fields = ['dt_modified', 'dt_created', 'name', 'security_level', 'status']
+    ordering = ['-dt_modified']
 
     def get_queryset(self):
         qs = Document.objects.all()
@@ -119,3 +136,257 @@ class DocumentSearchView(APIView):
 
         data = DocumentSearchSerializer(qs, many=True).data
         return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})
+
+
+class ReadmeIndexView(generics.ListAPIView):
+    """Lightweight list of readme documents (slug + summary).
+
+    Criteria: status in ('published','internal','draft') and table_name='readme' OR data.category='readme'.
+    """
+    serializer_class = DocumentReadmeListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Document.objects.all()
+        # Heuristic: readme marker
+        qs = qs.filter(
+            Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
+        )
+        level = self.request.GET.get('level') or self.request.GET.get('security_level')
+        if level is not None:
+            try:
+                qs = qs.filter(security_level__lte=int(level))
+            except ValueError:
+                pass
+        return qs.order_by('slug','name')
+
+
+class ReadmeDetailView(generics.RetrieveAPIView):
+    """Retrieve full readme by slug (body returned)."""
+    serializer_class = DocumentReadmeDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'slug'
+    queryset = Document.objects.all()
+
+    def get_queryset(self):
+        qs = super().get_queryset().filter(
+            Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
+        )
+        level = self.request.GET.get('level') or self.request.GET.get('security_level')
+        if level is not None:
+            try:
+                qs = qs.filter(security_level__lte=int(level))
+            except ValueError:
+                pass
+        return qs
+
+    def retrieve(self, request, *args, **kwargs):
+        obj: Document = self.get_object()
+        # Conditional ETag / Last-Modified support
+        body = obj.body or ''
+        checksum = (obj.data or {}).get('checksum') or hashlib.sha256(body.encode('utf-8')).hexdigest()
+        etag = f"W/\"{checksum[:32]}\""
+        try:
+            if hasattr(obj, 'dt_modified') and obj.dt_modified and hasattr(obj.dt_modified, 'timestamp'):
+                lm = http_date(int(obj.dt_modified.timestamp()))
+            else:
+                lm = http_date(int(timezone.now().timestamp()))
+        except Exception:
+            lm = http_date(int(timezone.now().timestamp()))
+        if_none_match = request.headers.get('If-None-Match')
+        if_modified_since = request.headers.get('If-Modified-Since')
+        if if_none_match == etag or (if_modified_since and if_modified_since == lm):
+            # Not modified
+            resp = Response(status=status.HTTP_304_NOT_MODIFIED)
+            resp['ETag'] = etag
+            resp['Last-Modified'] = lm
+            return resp
+        response = super().retrieve(request, *args, **kwargs)
+        obj.increment_access(by=1, update_history=False)
+        response['ETag'] = etag
+        response['Last-Modified'] = lm
+        # cache headers (soft: private so browser can store per-user)
+        max_age = getattr(settings, 'README_CACHE_SECONDS', 60)
+        response['Cache-Control'] = f"private, max-age={max_age}"
+        response['X-Readme-Access-Count'] = str(obj.count_accessed)
+        # Optional HTML render (cached in data)
+        try:
+            if isinstance(obj.data, dict) and 'html' not in obj.data:
+                html = md_to_html(body)
+                if len(html.encode('utf-8')) < 500_000:
+                    obj.data['html'] = html
+                    Document.objects.filter(pk=obj.pk).update(data=obj.data)
+            # Envelope may have wrapped response; attempt nested injection
+            if hasattr(response, 'data') and isinstance(response.data, dict):
+                payload = response.data.get('data') if 'data' in response.data else response.data
+                if isinstance(payload, dict):
+                    payload['html'] = (obj.data or {}).get('html')
+                    if 'data' in response.data and isinstance(response.data['data'], dict):
+                        response.data['data'] = payload
+        except Exception:
+            pass
+        return response
+
+
+# --- In-memory readme index search (lightweight) ----------------------------
+_index_cache_lock = threading.Lock()
+_index_cache: list[dict] | None = None
+_index_cache_mtime: float | None = None
+
+
+def _load_index_if_needed(path: str = 'docs_index.json') -> list[dict]:
+    global _index_cache, _index_cache_mtime
+    p = Path(path)
+    if not p.exists():
+        return []
+    stat = p.stat()
+    with _index_cache_lock:
+        if _index_cache is None or _index_cache_mtime != stat.st_mtime:
+            try:
+                import json
+                _index_cache = json.loads(p.read_text(encoding='utf-8'))
+                _index_cache_mtime = stat.st_mtime
+            except Exception:
+                _index_cache = []
+        return _index_cache or []
+
+
+class ReadmeSearchIndexView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        q = (request.GET.get('q') or '').strip().lower()
+        limit = min(int(request.GET.get('limit', 25)), 200)
+        fuzzy_requested = (request.GET.get('fuzzy') or '').lower() in {'1','true','yes','on'}
+        index = _load_index_if_needed()
+        if not q:
+            return Response({'results': index[:limit], 'count': len(index), 'q': q, 'cache': bool(index)})
+        terms = [t for t in q.split() if t]
+        results: list[dict] = []
+        for rec in index:
+            hay = ' '.join([rec.get('slug',''), rec.get('title',''), ' '.join(rec.get('headings', []))]).lower()
+            if all(t in hay for t in terms):
+                results.append(rec)
+                if len(results) >= limit:
+                    break
+        fuzzy_info = None
+        if (fuzzy_requested or not results) and terms and connection.vendor == 'postgresql':
+            try:
+                from django.contrib.postgres.search import TrigramSimilarity  # type: ignore
+                from functools import reduce
+                from django.db.models import Q
+                q_filter = reduce(lambda acc, t: acc | Q(name__icontains=t) | Q(description__icontains=t) | Q(body__icontains=t), terms[1:], Q(name__icontains=terms[0]) | Q(description__icontains=terms[0]) | Q(body__icontains=terms[0]))
+                # Build similarity expression sum
+                sim_expr = None
+                for t in terms:
+                    part = TrigramSimilarity('name', t) + TrigramSimilarity('description', t)
+                    sim_expr = part if sim_expr is None else sim_expr + part
+                qs = Document.objects.filter(
+                    (Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')) & q_filter
+                ).annotate(trigram=sim_expr).order_by('-trigram')[:limit]
+                seen = {r.get('slug') for r in results}
+                trigram_results = []
+                for doc in qs:
+                    if doc.slug in seen:
+                        continue
+                    trigram_results.append({
+                        'slug': doc.slug,
+                        'title': doc.name,
+                        'score': getattr(doc, 'trigram', 0),
+                        'match_type': 'trigram',
+                        'headings': (doc.data or {}).get('headings') or []
+                    })
+                if trigram_results:
+                    remaining = max(0, limit - len(results))
+                    results.extend(trigram_results[:remaining])
+                    fuzzy_info = {'fuzzy_applied': True, 'trigram': True, 'fuzzy_candidates': len(trigram_results)}
+            except Exception:
+                pass
+        # Python fallback if still empty or fuzzy explicitly requested
+        if (fuzzy_requested or not results) and terms and fuzzy_info is None:
+            def _lev(a: str, b: str) -> int:
+                if a == b:
+                    return 0
+                la, lb = len(a), len(b)
+                if la == 0:
+                    return lb
+                if lb == 0:
+                    return la
+                prev = list(range(lb + 1))
+                for i, ca in enumerate(a, 1):
+                    cur = [i]
+                    for j, cb in enumerate(b, 1):
+                        cost = 0 if ca == cb else 1
+                        cur.append(min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + cost))
+                    prev = cur
+                return prev[-1]
+            def _similarity(a: str, b: str) -> float:
+                m = max(len(a), len(b)) or 1
+                return 1.0 - (_lev(a, b) / m)
+            scored: list[tuple[float, dict]] = []
+            term_threshold = 0.68
+            for rec in index:
+                hay_tokens = {t for t in (rec.get('slug','') + ' ' + rec.get('title','') + ' ' + ' '.join(rec.get('headings', []))).lower().split() if t}
+                term_scores = []
+                for t in terms:
+                    best = 0.0
+                    for tok in hay_tokens:
+                        if tok and t and tok[0] != t[0] and abs(len(tok)-len(t)) > 2:
+                            continue
+                        sim = _similarity(t, tok)
+                        if sim > best:
+                            best = sim
+                        if best == 1.0:
+                            break
+                    if best >= term_threshold:
+                        term_scores.append(best)
+                    else:
+                        term_scores = []
+                        break
+                if term_scores:
+                    scored.append((sum(term_scores)/len(term_scores), rec))
+            already_ids = {id(r) for r in results}
+            fuzzy_sorted = [r for score, r in sorted(scored, key=lambda x: x[0], reverse=True) if id(r) not in already_ids]
+            if fuzzy_sorted:
+                score_map = {id(rec): score for score, rec in scored}
+                annotated = []
+                for r in fuzzy_sorted:
+                    r_copy = dict(r)
+                    r_copy['score'] = round(score_map[id(r)],4)
+                    r_copy['match_type'] = 'fuzzy'
+                    annotated.append(r_copy)
+                remaining = max(0, limit - len(results))
+                results.extend(annotated[:remaining])
+                fuzzy_info = {'fuzzy_applied': True, 'fuzzy_candidates': len(fuzzy_sorted)}
+            else:
+                fuzzy_info = {'fuzzy_applied': True, 'fuzzy_candidates': 0}
+        payload = {'results': results, 'count': len(results), 'q': q, 'terms': terms}
+        if fuzzy_info:
+            payload.update(fuzzy_info)
+        payload['fuzzy_requested'] = fuzzy_requested
+        return Response(payload)
+
+
+class ReadmeTopView(generics.ListAPIView):
+    """Return top accessed readmes (default 10)."""
+    serializer_class = DocumentReadmeListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        limit = 10
+        try:
+            limit = min(int(self.request.GET.get('limit', 10)), 100)
+        except ValueError:
+            pass
+        qs = Document.objects.filter(
+            Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
+        ).order_by('-count_accessed', 'slug')
+        return qs[:limit]
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        max_age = getattr(settings, 'README_INDEX_CACHE_SECONDS', 120)
+        response['Cache-Control'] = f"private, max-age={max_age}"
+        return response

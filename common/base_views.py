@@ -13,7 +13,7 @@ class BaseListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsAuthenticated]
     ALLOWED_ROLES: set[str] | None = None
-    ordering = '-modified_dt'
+    ordering = '-dt_modified'
 
     def _role_allowed(self, user):
         if not user.is_authenticated:

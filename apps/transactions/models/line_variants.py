@@ -11,7 +11,7 @@ from .base_line_model import BaseLineModel
 # ---------------------------------------------------------------------------
 class Proposal(models.Model):
     name = models.CharField(max_length=120)
-    created_dt = models.DateTimeField(auto_now_add=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Proposal:{self.pk}:{self.name}" if self.pk else "Proposal:new"
@@ -19,7 +19,7 @@ class Proposal(models.Model):
 
 class SalesOrder(models.Model):
     order_no = models.CharField(max_length=40, unique=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "sales_orders"
@@ -30,7 +30,7 @@ class SalesOrder(models.Model):
 
 class Invoice(models.Model):
     invoice_no = models.CharField(max_length=40, unique=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Invoice:{self.invoice_no}" if self.invoice_no else f"Invoice:{self.pk}"
@@ -38,7 +38,7 @@ class Invoice(models.Model):
 
 class PurchaseOrder(models.Model):
     po_no = models.CharField(max_length=40, unique=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "purchase_orders"
@@ -49,7 +49,7 @@ class PurchaseOrder(models.Model):
 
 class Workorder(models.Model):
     work_no = models.CharField(max_length=40, unique=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "work_orders"
@@ -60,7 +60,7 @@ class Workorder(models.Model):
 
 class Requisition(models.Model):
     req_no = models.CharField(max_length=40, unique=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"REQ:{self.req_no}" if self.req_no else f"REQ:{self.pk}"

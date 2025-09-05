@@ -2,6 +2,28 @@
 
 # Destructive Full Reset & Baseline Rebuild
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Destructive Full Reset & Baseline Rebuild](#destructive-full-reset-baseline-rebuild)
+  - [1. When To Use](#1-when-to-use)
+  - [2. What Happens Under The Hood](#2-what-happens-under-the-hood)
+  - [3. Usage Cheatsheet](#3-usage-cheatsheet)
+  - [4. Programmatic Invocation](#4-programmatic-invocation)
+  - [5. Environment Guards & Safety](#5-environment-guards-safety)
+  - [6. Post-Reset Checklist](#6-post-reset-checklist)
+  - [7. Troubleshooting](#7-troubleshooting)
+  - [8. Migration Baseline Policy](#8-migration-baseline-policy)
+  - [9. Extending Seeding](#9-extending-seeding)
+  - [10. Minimal One-Liner (Force, Quiet)](#10-minimal-one-liner-force-quiet)
+  - [11. Data Export (Optional)](#11-data-export-optional)
+  - [12. FAQ](#12-faq)
+  - [13. Quick Reference](#13-quick-reference)
+
+<!-- TOC END -->
+
 Date: 2025-09-03
 Review: 2025-12-15
 Status: -- status --

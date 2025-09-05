@@ -49,22 +49,26 @@ class Command(BaseCommand):
     help = "Enrich seeded data by randomly linking contacts to communication records, orgs, and orders."
 
     def add_arguments(self, parser):  # pragma: no cover
-    parser.add_argument('--contacts', type=int, default=0)
-    parser.add_argument('--per-contact-emails', type=int, default=2)
-    parser.add_argument('--per-contact-phones', type=int, default=1)
-    parser.add_argument('--per-contact-locations', type=int, default=1)
-    parser.add_argument('--per-contact-domains', type=int, default=1)
-    parser.add_argument('--org-contacts', type=int, default=3)
-    # renamed flags for clarity with SalesOrder terminology
-    parser.add_argument('--sales-order-contact', action='store_true', help='Populate SalesOrderLine.source.contact_id')
-    parser.add_argument('--customer-sales-order-links', action='store_true', help='Link SalesOrders to customer orgs')
-    parser.add_argument('--sales-orderline-links', action='store_true', help='Populate refs.links.sales_orders on SalesOrderLine')
-    parser.add_argument('--refresh', action='store_true')
-    parser.add_argument('--dry-run', action='store_true')
-    parser.add_argument('--auto-create-contacts', type=int, default=0)
-    parser.add_argument('--ensure-contact-order-link', action='store_true')  # keeping flag name for backward compat
-    parser.add_argument('--ensure-contact-org-link', action='store_true')
-    parser.add_argument('--prune-invalid-links', action='store_true', help='Remove link IDs that no longer exist.')
+        parser.add_argument('--contacts', type=int, default=0)
+        parser.add_argument('--per-contact-emails', type=int, default=2)
+        parser.add_argument('--per-contact-phones', type=int, default=1)
+        parser.add_argument('--per-contact-locations', type=int, default=1)
+        parser.add_argument('--per-contact-domains', type=int, default=1)
+        parser.add_argument('--org-contacts', type=int, default=3)
+        # renamed flags for clarity with SalesOrder terminology
+        parser.add_argument('--sales-order-contact', action='store_true', help='Populate SalesOrderLine.source.contact_id')
+        parser.add_argument('--customer-sales-order-links', action='store_true', help='Link SalesOrders to customer orgs')
+        parser.add_argument('--sales-orderline-links', action='store_true', help='Populate refs.links.sales_orders on SalesOrderLine')
+        # backward-compatible aliases for older invocations
+        parser.add_argument('--order-contact', dest='sales_order_contact', action='store_true', help='[alias] Populate SalesOrderLine.source.contact_id')
+        parser.add_argument('--customer-order-links', dest='customer_sales_order_links', action='store_true', help='[alias] Link SalesOrders to customer orgs')
+        parser.add_argument('--orderline-links', dest='sales_orderline_links', action='store_true', help='[alias] Populate refs.links.sales_orders on SalesOrderLine')
+        parser.add_argument('--refresh', action='store_true')
+        parser.add_argument('--dry-run', action='store_true')
+        parser.add_argument('--auto-create-contacts', type=int, default=0)
+        parser.add_argument('--ensure-contact-order-link', action='store_true')  # keeping flag name for backward compat
+        parser.add_argument('--ensure-contact-org-link', action='store_true')
+        parser.add_argument('--prune-invalid-links', action='store_true', help='Remove link IDs that no longer exist.')
 
     def handle(self, *args, **opts):
         limit_contacts = max(0, opts['contacts'])
@@ -73,9 +77,9 @@ class Command(BaseCommand):
         locs_per = max(0, opts['per_contact_locations'])
         domains_per = max(0, opts['per_contact_domains'])
         org_contacts_n = max(0, opts['org_contacts'])
-    order_contact = bool(opts['sales_order_contact'])  # renamed
-    customer_order_links = bool(opts['customer_sales_order_links'])
-    orderline_links = bool(opts['sales_orderline_links'])
+        order_contact = bool(opts['sales_order_contact'])  # renamed (alias supported)
+        customer_order_links = bool(opts['customer_sales_order_links'])
+        orderline_links = bool(opts['sales_orderline_links'])
         refresh = bool(opts['refresh'])
         dry_run = bool(opts['dry_run'])
         auto_create_contacts = max(0, opts.get('auto_create_contacts') or 0)

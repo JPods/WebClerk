@@ -7,11 +7,11 @@ class OrgBaseAdmin(admin.ModelAdmin):
 	list_display = ("id", "display_name", "org_type", "status", "is_active", "version")
 	list_filter = ("org_type", "status", "is_active")
 	search_fields = ("display_name", "domains", "contacts")
-	readonly_fields = ("version", "created_dt", "modified_dt")
+	readonly_fields = ("version", "dt_created", "dt_modified")
 	fieldsets = (
 		(None, {"fields": ("display_name", "org_type", "status", "is_active")}),
 		("Aspects", {"fields": ("contacts", "locations", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
-		("Versioning", {"fields": ("version", "created_dt", "modified_dt")}),
+		("Versioning", {"fields": ("version", "dt_created", "dt_modified")}),
 	)
 
 

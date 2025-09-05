@@ -11,4 +11,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):  # pragma: no cover
         snap = snapshot_inventory_metrics(include_samples=bool(opts.get('samples')))
-        self.stdout.write(json.dumps({'id': snap.id, 'created_dt': snap.created_dt.isoformat()}))
+        # Model field is dt_created
+        self.stdout.write(json.dumps({'id': snap.id, 'dt_created': snap.dt_created.isoformat()}))

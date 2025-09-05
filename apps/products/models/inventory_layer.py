@@ -56,7 +56,7 @@ class InventoryStack(ItemLinkedBase):
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_stacks")
     source = models.JSONField(default=dict, blank=True)
     # dt_s in metadata.history
-    #received_dt = models.BigIntegerField(db_index=True)
+    #dt_received = models.BigIntegerField(db_index=True)
     quantity = models.JSONField(default=dict, blank=True)
     #qty_perished
     #qty_received = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
@@ -257,7 +257,7 @@ class PendingInventoryAdjustment(models.Model):
     """Deferred inventory mutation when target stack is locked or insufficient.
 
     Processing strategy (future service): a periodic job or unlock hook attempts
-    to apply PENDING rows in FIFO order. If successful, state -> APPLIED and applied_dt set.
+    to apply PENDING rows in FIFO order. If successful, state -> APPLIED and dt_applied set.
     If permanently invalid (e.g., stack depleted), state -> CANCELED with a reason.
     """
     STATE_PENDING = "pending"
@@ -273,8 +273,8 @@ class PendingInventoryAdjustment(models.Model):
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
     reason = models.CharField(max_length=80, blank=True)
     request_ref = models.JSONField(default=dict, blank=True)
-    created_dt = models.DateTimeField(auto_now_add=True)
-    applied_dt = models.DateTimeField(null=True, blank=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
+    dt_applied = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.CharField(max_length=120, blank=True)
 
     class Meta:
@@ -293,11 +293,11 @@ class PendingInventoryAdjustment(models.Model):
         if stack.is_locked:
             return False
         stack.mark_issue(self.qty)
-        stack.save(update_fields=["quantity", "modified_dt", "version"])
+        stack.save(update_fields=["quantity", "dt_modified", "version"])
         from django.utils import timezone
         self.state = self.STATE_APPLIED
-        self.applied_dt = timezone.now()
-        self.save(update_fields=["state", "applied_dt"])
+        self.dt_applied = timezone.now()
+        self.save(update_fields=["state", "dt_applied"])
         return True
 
     def cancel(self, reason: str):

@@ -18,10 +18,10 @@ class LocationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'uuid', 'address1', 'address2', 'address_type', 'city', 'country',
             'instructions', 'latitude', 'longitude', 'state', 'zip', 'full',
-            'is_active', 'created_dt', 'modified_dt', 'version',
+            'is_active', 'dt_created', 'dt_modified', 'version',
             'refs', 'prefs', 'metadata'
         ]
-        read_only_fields = ['id', 'uuid', 'is_active', 'created_dt', 'modified_dt', 'version']
+    read_only_fields = ['id', 'uuid', 'is_active', 'dt_created', 'dt_modified', 'version']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

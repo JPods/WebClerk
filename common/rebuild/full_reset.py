@@ -181,8 +181,12 @@ def full_reset_and_seed(
     # Optional destructive migration nuke (local only). We detect local apps by presence of apps/*/migrations.
     if nuke_migrations:
         apps_dir = Path(project_root) / 'apps'
+        preserve_apps = {"sync"}  # keep initial migrations to satisfy squashed deps
         for mig in apps_dir.rglob('migrations'):
             if not mig.is_dir():
+                continue
+            app_name = mig.parent.name
+            if app_name in preserve_apps:
                 continue
             for f in mig.glob('[0-9][0-9][0-9][0-9]*.py'):
                 try:
@@ -190,10 +194,18 @@ def full_reset_and_seed(
                 except Exception:
                     pass
         if auto_make_migrations:
+            # Generate initial migrations for all first-party apps that define models.
+            # Preserve 'sync' migrations (already present) to satisfy cross-app deps.
             try:
-                call_command('makemigrations', interactive=False, verbosity=0)
-            except Exception:
-                pass
+                call_command(
+                    'makemigrations',
+                    'core', 'communications', 'accounts', 'docs', 'orgs', 'transactions', 'products', 'support',
+                    interactive=False,
+                    verbosity=1,
+                )
+            except Exception as e:
+                # Surface the error to help diagnose missing dependencies immediately
+                raise RuntimeError(f"makemigrations failed during reset: {e}")
 
     # Force a fresh connection and run migrations (baseline assumed committed OR just regenerated)
     try:

@@ -1,5 +1,32 @@
 # Project Rules & Guidelines
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Project Rules & Guidelines](#project-rules-guidelines)
+  - [Git & Versioning](#git-versioning)
+  - [Table Naming](#table-naming)
+  - [Rate Limiting](#rate-limiting)
+  - [Logging & Monitoring](#logging-monitoring)
+  - [Related Data JSON Shape](#related-data-json-shape)
+  - [Performance](#performance)
+  - [Deployment](#deployment)
+  - [Table Structure](#table-structure)
+  - [Business Logic Placement](#business-logic-placement)
+  - [Version Control Strategy](#version-control-strategy)
+  - [Frontend Naming](#frontend-naming)
+  - [Date / Time Handling](#date-time-handling)
+  - [Internationalization](#internationalization)
+  - [API Docs & Deprecation](#api-docs-deprecation)
+  - [Security](#security)
+  - [Data Validation](#data-validation)
+  - [Timestamp Summary](#timestamp-summary)
+    - [Timestamp Naming Enforcement](#timestamp-naming-enforcement)
+
+<!-- TOC END -->
+
 Date: 2025-09-03
 Review: 2025-12-15
 Status: -- status --
@@ -164,3 +191,14 @@ Manage UI translations in React if you ever need to expand.
 ## Timestamp Summary
 
 Always UTC (`timezone.now()`), names prefixed `dt_`; use DateTimeField or ms epoch for JSON.
+
+### Timestamp Naming Enforcement
+
+Run the helper command to scan for fields that violate the `dt_` prefix convention:
+
+```bash
+python manage.py check_dt_conventions --json
+```
+
+Legacy patterns like `dt_created` / `dt_modified` will be flagged; the correct forms are now `dt_created` / `dt_modified`.
+Apply renames via standard Django field Rename migrations to fully converge.

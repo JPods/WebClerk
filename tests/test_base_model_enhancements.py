@@ -29,21 +29,21 @@ def test_changed_fields_recorded():
     assert 'changed_fields' in universal and 'name_first' in universal['changed_fields']
 
 @pytest.mark.django_db
-def test_created_dt_immutable():
+def dt_test_created_immutable():
     c = Contact.objects.create(email='imm@test.com', name_first='Im', name_last='Mut')
-    original = c.created_dt
+    original = c.dt_created
     # If original somehow None (should not), set an arbitrary future value; else offset
-    c.created_dt = (original + 999999) if original else int(timezone.now().timestamp() * 1000) + 999999
+    c.dt_created = (original + 999999) if original else int(timezone.now().timestamp() * 1000) + 999999
     v_before = c.version
     c.save(expected_version=v_before)
-    assert c.created_dt == original
+    assert c.dt_created == original
 
 @pytest.mark.django_db
 def test_touch_does_not_bump_version():
     c = Contact.objects.create(email='touch@test.com', name_first='To', name_last='Uch')
     v = c.version
-    before_mod = c.modified_dt
+    before_mod = c.dt_modified
     c.touch()
     c.refresh_from_db()
     assert c.version == v  # unchanged
-    assert c.modified_dt >= before_mod
+    assert c.dt_modified >= before_mod

@@ -348,7 +348,7 @@ class ProjectListCreate(generics.ListCreateAPIView):
     pagination_class = DefaultPagination
     filterset_fields = ['status', 'priority', 'attention', 'category', 'contact_id']
     search_fields = ['situation', 'intent', 'objective']
-    ordering_fields = ['id', 'priority', 'status', 'attention', 'burndown', 'profit', 'modified_dt']
+    ordering_fields = ['id', 'priority', 'status', 'attention', 'burndown', 'profit', 'dt_modified']
 
 
 class ProjectRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):

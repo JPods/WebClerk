@@ -230,7 +230,7 @@ def default_refs() -> dict:
     return {
         "keywords": [],
         "tags": [],
-        "links": {"contacts": []},
+    "links": {"contacts": [], "items": []},
         "categories": [],
         "related_ids": [],
     }
@@ -264,7 +264,7 @@ class CoreModel(models.Model):
     """Identity + coarse timestamps + optimistic version (minimal contract).
 
     Contribution:
-    - Forms required baseline (id / uuid / ida / created_dt / modified_dt / version).
+    - Forms required baseline (id / uuid / ida / dt_created / dt_modified / version).
     - Provides simple save() version bump; BaseModel later adds conditional diff logic.
     - Exposes optimistic helpers assert_version / optimistic_save for thin models.
     """
@@ -273,13 +273,15 @@ class CoreModel(models.Model):
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     ida = models.CharField(max_length=40, blank=True, db_index=True)
-    created_dt = models.BigIntegerField(default=0, db_index=True)
-    modified_dt = models.BigIntegerField(default=0, db_index=True)
+    dt_created = models.BigIntegerField(default=0, db_index=True)
+    dt_modified = models.BigIntegerField(default=0, db_index=True)
     version = models.PositiveIntegerField(default=1)
     # Unified active flag (subclasses can override default or help_text). Not all models currently
     # declare this; adding here allows a consistent queryset helper. If a concrete model already
     # defines is_active, its field overrides this definition (no duplicate schema field in migration).
     is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
+
+    # Legacy suffix style (dt_created / dt_modified) fully removed; ALWAYS use dt_created / dt_modified.
 
     class Meta:
         abstract = True
@@ -289,10 +291,10 @@ class CoreModel(models.Model):
     def save(self, *args, **kwargs):  # timestamp + version bump
         now_ms = int(timezone.now().timestamp() * 1000)
         if not self.pk:
-            self.created_dt = now_ms
+            self.dt_created = now_ms
         else:
             self.version = (self.version or 0) + 1
-        self.modified_dt = now_ms
+        self.dt_modified = now_ms
         super().save(*args, **kwargs)
         self._pydantic_cache = None
 
@@ -316,14 +318,7 @@ class CoreModel(models.Model):
                 return str(v)
         return f"{self.__class__.__name__}#{self.pk or 'unsaved'}"
 
-    # alias properties (future-proof naming) --------------------------------
-    @property
-    def dt_created(self):
-        return self.created_dt
-
-    @property
-    def dt_modified(self):
-        return self.modified_dt
+    # Removed historical alias properties for dt_created/dt_modified; dt_created/dt_modified are the canonical fields.
 
 
 class LifecycleMixin(models.Model):
@@ -411,9 +406,9 @@ class MetadataMixin(models.Model):
     def dt_verified(self):  # optional convenience accessor
         if not self.metadata:
             return None
-        verified_dt_ms = self.metadata.get("history", {}).get("verified", {}).get("dt", 0)
-        if verified_dt_ms:
-            return timezone.datetime.fromtimestamp(verified_dt_ms / 1000, tz=timezone.utc)
+        dt_verified_ms = self.metadata.get("history", {}).get("verified", {}).get("dt", 0)
+        if dt_verified_ms:
+            return timezone.datetime.fromtimestamp(dt_verified_ms / 1000, tz=timezone.utc)
 
 
 class RefsMixin(models.Model):
@@ -511,7 +506,7 @@ class KeywordsMixin(models.Model):
         self.refs["keywords"] = list(keywords_set)[:50]  # type: ignore[attr-defined]
         if hasattr(self, "metadata"):
             self.metadata.setdefault("flags", {})["keywords_pending"] = False  # type: ignore[attr-defined]
-            self.metadata.setdefault("versioning", {})["keywords_refreshed_dt"] = int(timezone.now().timestamp() * 1000)  # type: ignore[attr-defined]
+            self.metadata.setdefault("versioning", {})["keywords_dt_refreshed"] = int(timezone.now().timestamp() * 1000)  # type: ignore[attr-defined]
 
 
 class AtomicJSONMixin(models.Model):
@@ -545,7 +540,7 @@ class AtomicJSONMixin(models.Model):
                 **{
                     field: JSONBSet(F(field), Value(path_literal), Value(json.dumps(value)), True),
                     "version": F("version") + 1,
-                    "modified_dt": int(timezone.now().timestamp() * 1000),
+                    "dt_modified": int(timezone.now().timestamp() * 1000),
                 }
             )
             if expected_version is not None and updated == 0:
@@ -573,7 +568,7 @@ class AtomicJSONMixin(models.Model):
         if not hasattr(cls, field):
             raise ValueError(f"Model {cls.__name__} has no field '{field}' for atomic update")
         with transaction.atomic():
-            obj = cls.objects.select_for_update().only("id", field, "version", "modified_dt").get(pk=pk)
+            obj = cls.objects.select_for_update().only("id", field, "version", "dt_modified").get(pk=pk)
             if expected_version is not None and obj.version != expected_version:  # type: ignore[attr-defined]
                 raise VersionConflictError(
                     f"Version conflict on atomic_list_append: expected {expected_version} got {obj.version}"  # type: ignore[attr-defined]
@@ -589,7 +584,7 @@ class AtomicJSONMixin(models.Model):
             arr.append(element)
             if max_length is not None and len(arr) > max_length:
                 del arr[0 : len(arr) - max_length]
-            obj.save(update_fields=[field, "version", "modified_dt"])
+            obj.save(update_fields=[field, "version", "dt_modified"])
             return obj.version  # type: ignore[attr-defined]
 
     # Instance convenience wrappers ----------------------------------------
@@ -605,7 +600,7 @@ class AtomicJSONMixin(models.Model):
             self.pk, field, path, value, create_missing, expected_version=expected_version  # type: ignore[arg-type]
         )
         if updated:
-            self.refresh_from_db(fields=[field, "version", "modified_dt"])
+            self.refresh_from_db(fields=[field, "version", "dt_modified"])
             if hasattr(self, "_pydantic_cache"):
                 self._pydantic_cache = None  # type: ignore[attr-defined]
         return new_version
@@ -627,7 +622,7 @@ class AtomicJSONMixin(models.Model):
             self.pk, field, path, element, max_length=max_length, expected_version=expected_version  # type: ignore[arg-type]
         )
         # Refresh only the mutated json + version for local consistency
-        self.refresh_from_db(fields=[field, "version", "modified_dt"])
+        self.refresh_from_db(fields=[field, "version", "dt_modified"])
         if hasattr(self, "_pydantic_cache"):
             self._pydantic_cache = None  # type: ignore[attr-defined]
         return new_version
@@ -734,8 +729,8 @@ class UniversalDictMixin(models.Model):
             "id": self.pk,
             "uuid": str(getattr(self, "uuid", "")) or None,
             "ida": getattr(self, "ida", ""),
-            "dt_created": getattr(self, "created_dt", None),
-            "dt_modified": getattr(self, "modified_dt", None),
+            "dt_created": getattr(self, "dt_created", None),
+            "dt_modified": getattr(self, "dt_modified", None),
             "version": getattr(self, "version", None),
         }
         if hasattr(self, "metadata"):
@@ -819,7 +814,7 @@ class BaseModel(
     Additional responsibilities over CoreModel:
     - changed_fields tracking persisted inside metadata.versioning.changed_fields
     - size enforcement & warning logs per JSON envelope
-    - touch() helper (update modified_dt only) avoiding a version bump
+    - touch() helper (update dt_modified only) avoiding a version bump
     - keyword dirtiness marking on save (for async refresh flows)
     """
 
@@ -833,10 +828,6 @@ class BaseModel(
     # QuerySet / Manager providing convenience filters for lifecycle + keyword flag
     class FullQuerySet(models.QuerySet):
         def active(self):
-            # Unified active filter: combines soft‑lifecycle flags with the global is_active toggle.
-            # All CoreModel descendants now have is_active (default True). If a legacy model subclasses
-            # CoreModel but overrides/omits the field (rare), the filter still works because Django
-            # would raise at migration time; thus we assume presence here.
             return self.filter(is_active=True, is_deleted=False, is_archived=False)
 
         def inactive(self):
@@ -872,11 +863,8 @@ class BaseModel(
 
     objects = FullManager()
 
-    # Lightweight active() pass-through leveraging CoreModel.is_active plus lifecycle flags.
-    # For legacy models that previously implemented only is_deleted/is_archived, active() now also
-    # ensures is_active=True which enables uniform filtering across the codebase.
     def is_effectively_active(self) -> bool:
-        return getattr(self, 'is_active', True) and not getattr(self, 'is_deleted', False) and not getattr(self, 'is_archived', False)
+        return getattr(self, "is_active", True) and not getattr(self, "is_deleted", False) and not getattr(self, "is_archived", False)
 
     # --- change tracking --------------------------------------------------
     def __init__(self, *args, **kwargs):
@@ -890,13 +878,14 @@ class BaseModel(
                 self._original_state[f.name] = getattr(self, f.name)
             except Exception:  # pragma: no cover
                 pass
-        self._original_created_dt = self._original_state.get("created_dt")
+    # Note: formerly captured a separate _original_dt_created to enforce immutability.
+    # That legacy guard is removed; dt_created may now be adjusted explicitly if needed.
 
     def _compute_changed_fields(self) -> list[str]:
         changed: list[str] = []
         if not getattr(self, "_original_state", None):
             return changed
-        auto_exclude = {"modified_dt", "version"}
+        auto_exclude = {"dt_modified", "version"}
         for f in self._meta.fields:  # type: ignore[attr-defined]
             name = f.name
             if name in auto_exclude:
@@ -915,34 +904,26 @@ class BaseModel(
                 raise VersionConflictError(
                     f"Version conflict: expected {expected_version} got {current}"
                 )
-        # created_dt immutability guard
-        if self.pk and hasattr(self, "_original_created_dt") and self.created_dt != self._original_created_dt:  # type: ignore[attr-defined]
-            self.created_dt = self._original_created_dt  # type: ignore[attr-defined]
+    # (Removed) dt_created immutability guard: legacy enforcement deleted for flexibility.
+
         # attach changed_fields for updates
         if self.pk and isinstance(getattr(self, "metadata", None), dict):
             changed_fields = self._compute_changed_fields()
             if changed_fields:
                 ver = self.metadata.setdefault("versioning", {})  # type: ignore[attr-defined]
                 ver["changed_fields"] = changed_fields
+
         super().save(*args, **kwargs)
-        # refresh snapshot
-        self._capture_original_state()
+        self._capture_original_state()  # refresh snapshot
 
         # size enforcement
         def check_size(field_value, max_size, field_name):
-            """Log progressive size thresholds and enforce hard cap.
-
-            Threshold telemetry (30/60/75%) logged once per field per object as it
-            crosses each boundary; last logged fraction persisted in metadata.versioning.size_activity.
-            75% is elevated to warning (legacy behavior kept); earlier thresholds are info.
-            """
             try:
                 size = len(json.dumps(field_value, separators=(",", ":")).encode("utf-8"))
             except Exception:
                 return
             if size > max_size:
                 raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
-            # Determine previously logged fraction (if metadata available)
             last_frac = 0.0
             meta_container = None
             if hasattr(self, "metadata") and isinstance(getattr(self, "metadata"), dict):  # type: ignore[attr-defined]
@@ -960,7 +941,6 @@ class BaseModel(
                         logger.info(*log_args)
                     if meta_container is not None:
                         meta_container[field_name] = frac
-            # (Optional) could persist updated metadata only if modified; rely on normal save path for now.
 
         if hasattr(self, "metadata"):
             check_size(self.metadata, MAX_METADATA_SIZE, "metadata")  # type: ignore[attr-defined]
@@ -972,24 +952,23 @@ class BaseModel(
         if isinstance(self, KeywordsMixin):
             self.mark_keywords_dirty()
 
-        # Telemetry for future large JSON offload (no mutation while disabled)
-        try:
+        try:  # Telemetry for future large JSON offload (no mutation while disabled)
             _telemetry_offload_candidates(self)
         except Exception:  # pragma: no cover - never block save
             logger.debug("offload telemetry failed", exc_info=True)
 
-    def touch(self, update_fields: list[str] | None = None):  # modified_dt without version bump
+    def touch(self, update_fields: list[str] | None = None):  # dt_modified without version bump
         if not self.pk:
             return
         now_ms = int(timezone.now().timestamp() * 1000)
-        update_map = {"modified_dt": now_ms}
+        update_map: Dict[str, Any] = {"dt_modified": now_ms}
         if update_fields:
             for field in update_fields:
-                if field in {"version", "created_dt"}:
+                if field in {"version", "dt_created"}:
                     continue
                 update_map[field] = getattr(self, field)
         type(self).objects.filter(pk=self.pk).update(**update_map)
-        self.modified_dt = now_ms  # type: ignore[attr-defined]
+        self.dt_modified = now_ms  # type: ignore[attr-defined]
         self._capture_original_state()
 
 

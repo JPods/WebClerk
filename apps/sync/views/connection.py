@@ -40,6 +40,6 @@ class ConnectionSearchView(APIView):
             qs = qs.filter(
                 models.Q(name__icontains=term) | models.Q(type__icontains=term) | models.Q(status__icontains=term)
             )
-        qs = qs.order_by('-modified_dt')[:100]
+        qs = qs.order_by('-dt_modified')[:100]
         data = ConnectionSerializer(qs, many=True, context={'request': request}).data
         return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})

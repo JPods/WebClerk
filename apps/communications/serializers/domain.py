@@ -13,8 +13,8 @@ class DomainSerializer(RoleAwareModelSerializer):
         model = Domain
         fields = [
             'id', 'uuid', 'path', 'type', 'comment', 'status', 'security_level', 'sequence', 'count_accessed', 'is_active',
-            'refs', 'prefs', 'metadata', 'created_dt', 'modified_dt', 'version'
+            'refs', 'prefs', 'metadata', 'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'count_accessed', 'created_dt', 'modified_dt', 'version']
+    read_only_fields = ['id', 'uuid', 'count_accessed', 'dt_created', 'dt_modified', 'version']
 
     table_name = 'domains'

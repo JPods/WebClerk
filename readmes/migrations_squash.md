@@ -1,5 +1,22 @@
 # Migration Squash Baseline (2025-09-03)
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Migration Squash Baseline (2025-09-03)](#migration-squash-baseline-2025-09-03)
+  - [What Changed](#what-changed)
+  - [Fresh Clone / Environment Reset](#fresh-clone-environment-reset)
+  - [Existing Developer Instances](#existing-developer-instances)
+  - [Rationale](#rationale)
+  - [Policy Going Forward](#policy-going-forward)
+  - [Verifications Performed](#verifications-performed)
+  - [Troubleshooting](#troubleshooting)
+  - [Contact](#contact)
+
+<!-- TOC END -->
+
 This project intentionally squashed historical migrations for a cleaner onboarding and faster test/db setup.
 
 ## What Changed
@@ -7,7 +24,7 @@ This project intentionally squashed historical migrations for a cleaner onboardi
 Apps impacted:
 
 - `orgs`: Legacy migrations collapsed into `0001_initial` with final `OrgBase` schema (connections JSON replaces older access constructs, stats + relationship_stats present).
-- `products`: Former chain `0001`-`0006` merged into a single authoritative `0001_initial` capturing all current models and fields (Item `qr_code`, `base_uom`, BillOfMaterial extended fields, Serial unified on `serial_ida` with `model_ida`, `warranty`, `data`, `qr_code`, plus ItemCarried uniqueness, JSON price/cost factories, all indexes & constraints).
+- `products`: Former chain `0001`-`0006` merged into a single authoritative `0001_initial` capturing all current models and fields (Item `qr_code`, `base_uom`, BillOfMaterial extended fields, Serial unified on `serial_ida` with `model_ida`, `warranty`, `data`, `qr_code`, plus OrgItem (renamed from ItemCarried) uniqueness, JSON price/cost factories, all indexes & constraints).
 
 Intermediate migrations (`0002`–`0006` in products) were converted to explicit no-op stubs (empty `operations = []`) to satisfy any stale dependency references during local dev without applying duplicate DDL.
 

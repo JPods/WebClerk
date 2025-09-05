@@ -12,7 +12,7 @@ from .models.line_variants import (
 
 @admin.register(Proposal)
 class ProposalAdmin(admin.ModelAdmin):
-	list_display = ("id", "name", "created_dt")
+	list_display = ("id", "name", "dt_created")
 	search_fields = ("name",)
 
 
@@ -25,7 +25,7 @@ class ProposalLineAdmin(admin.ModelAdmin):
 
 @admin.register(SalesOrder)
 class SalesOrderAdmin(admin.ModelAdmin):
-	list_display = ("id", "order_no", "created_dt")
+	list_display = ("id", "order_no", "dt_created")
 	search_fields = ("order_no",)
 
 
@@ -37,7 +37,7 @@ class SalesOrderLineAdmin(admin.ModelAdmin):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-	list_display = ("id", "invoice_no", "created_dt")
+	list_display = ("id", "invoice_no", "dt_created")
 	search_fields = ("invoice_no",)
 
 
@@ -49,7 +49,7 @@ class InvoiceLineAdmin(admin.ModelAdmin):
 
 @admin.register(PurchaseOrder)
 class PurchaseOrderAdmin(admin.ModelAdmin):
-	list_display = ("id", "po_no", "created_dt")
+	list_display = ("id", "po_no", "dt_created")
 	search_fields = ("po_no",)
 
 
@@ -61,7 +61,7 @@ class PurchaseOrderLineAdmin(admin.ModelAdmin):
 
 @admin.register(Workorder)
 class WorkorderAdmin(admin.ModelAdmin):
-	list_display = ("id", "work_no", "created_dt")
+	list_display = ("id", "work_no", "dt_created")
 	search_fields = ("work_no",)
 
 
@@ -73,7 +73,7 @@ class WorkorderLineAdmin(admin.ModelAdmin):
 
 @admin.register(Requisition)
 class RequisitionAdmin(admin.ModelAdmin):
-	list_display = ("id", "req_no", "created_dt")
+	list_display = ("id", "req_no", "dt_created")
 	search_fields = ("req_no",)
 
 

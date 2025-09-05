@@ -1,5 +1,97 @@
 # webClerk3
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [webClerk3](#webclerk3)
+  - [Project Docs](#project-docs)
+  - [Contributors](#contributors)
+  - [Documentation Map](#documentation-map)
+  - [Data Basics](#data-basics)
+  - [Path Basics](#path-basics)
+  - [Install](#install)
+    - [Enable Coverage Badge (Codecov)](#enable-coverage-badge-codecov)
+    - [Normal run](#normal-run)
+    - [Port already in use](#port-already-in-use)
+    - [Schema changes (add/remove/modify columns)](#schema-changes-addremovemodify-columns)
+    - [First time setup](#first-time-setup)
+- [or: psql -U williamjames -d postgres](#or-psql-u-williamjames-d-postgres)
+    - [Reset Postgres (if issues)](#reset-postgres-if-issues)
+  - [Git Workflow](#git-workflow)
+  - [Running Tests](#running-tests)
+    - [Test Database Strategy](#test-database-strategy)
+  - [🎯 Architecture Overview](#architecture-overview)
+    - [Pattern Structure (dev without front end)](#pattern-structure-dev-without-front-end)
+    - [Universal API Endpoints](#universal-api-endpoints)
+  - [Universal API Usage Examples](#universal-api-usage-examples)
+    - [View All Contacts](#view-all-contacts)
+    - [View Specific Contact](#view-specific-contact)
+    - [Manage Contact's Emails](#manage-contacts-emails)
+    - [Create New Action](#create-new-action)
+    - [API Data Retrieval](#api-data-retrieval)
+    - [Key Features](#key-features)
+    - [New: Bill of Material (BOM) API (Experimental)](#new-bill-of-material-bom-api-experimental)
+    - [Unified Response Envelope](#unified-response-envelope)
+    - [Operational Headers](#operational-headers)
+    - [Client Migration Checklist](#client-migration-checklist)
+    - [Pagination (Universal Query)](#pagination-universal-query)
+    - [Field Projection (Selective Columns)](#field-projection-selective-columns)
+    - [Optimistic Concurrency (Universal Save)](#optimistic-concurrency-universal-save)
+    - [Strict Filter Mode (Opt-In)](#strict-filter-mode-opt-in)
+    - [Filtering Infrastructure (django-filter)](#filtering-infrastructure-django-filter)
+    - [Metrics Backend Options](#metrics-backend-options)
+    - [Projection Field Cache](#projection-field-cache)
+    - [Metrics Endpoint](#metrics-endpoint)
+- [HELP wcapi_requests_total Total WCAPI requests](#help-wcapirequeststotal-total-wcapi-requests)
+- [TYPE wcapi_requests_total counter](#type-wcapirequeststotal-counter)
+- [HELP wcapi_request_duration_seconds Request duration seconds](#help-wcapirequestdurationseconds-request-duration-seconds)
+- [TYPE wcapi_request_duration_seconds summary](#type-wcapirequestdurationseconds-summary)
+    - [Model Registry & Security Hardening](#model-registry-security-hardening)
+    - [Error Path Guarantees](#error-path-guarantees)
+    - [Extending the Universal API](#extending-the-universal-api)
+    - [Navigation Structure](#navigation-structure)
+  - [Model Visualization](#model-visualization)
+  - [Celery Monitoring](#celery-monitoring)
+  - [Keyword Refresh System (Universal API Search Index)](#keyword-refresh-system-universal-api-search-index)
+  - [API Rate Limiting](#api-rate-limiting)
+  - [Logging](#logging)
+  - [Transaction Line & Aggregation Endpoints](#transaction-line-aggregation-endpoints)
+    - [Field-Level Authorization (view_edit)](#field-level-authorization-viewedit)
+  - [Running Tests](#running-tests)
+  - [Deployment (Placeholder)](#deployment-placeholder)
+  - [Environment Variables](#environment-variables)
+  - [API Documentation Access (Placeholder)](#api-documentation-access-placeholder)
+  - [Internationalization (i18n)](#internationalization-i18n)
+  - [Production Deployment (Placeholder)](#production-deployment-placeholder)
+  - [Optimistic Concurrency & Atomic JSON PATCH (Universal API)](#optimistic-concurrency-atomic-json-patch-universal-api)
+    - [Why](#why)
+    - [Core Pieces](#core-pieces)
+    - [PATCH Payload Contract (Atomic)](#patch-payload-contract-atomic)
+    - [Fallback (Non-atomic) Partial Update](#fallback-non-atomic-partial-update)
+    - [Example Flow](#example-flow)
+    - [Error Responses](#error-responses)
+    - [Extending To Another Model](#extending-to-another-model)
+    - [Design Rationale](#design-rationale)
+    - [Future Enhancements](#future-enhancements)
+  - [Modular BaseModel & CoreModel (Capability Composition)](#modular-basemodel-coremodel-capability-composition)
+    - [Mixins & Capabilities](#mixins-capabilities)
+    - [Choosing a Composition](#choosing-a-composition)
+    - [Example Compositions](#example-compositions)
+    - [Pending (Queue) Example](#pending-queue-example)
+    - [Migrating an Existing Full Model to a Leaner Composition](#migrating-an-existing-full-model-to-a-leaner-composition)
+    - [Capability Introspection](#capability-introspection)
+    - [Design Principles](#design-principles)
+    - [Why Not Just Two Bases?](#why-not-just-two-bases)
+    - [Pydantic Integration](#pydantic-integration)
+    - [Future Extensions](#future-extensions)
+  - [Consistency Standards (All Apps / Models)](#consistency-standards-all-apps-models)
+- [serializers/myresource.py](#serializersmyresourcepy)
+- [views/myresource.py](#viewsmyresourcepy)
+
+<!-- TOC END -->
+
 <!-- CI Badges (add actual URLs once Codecov token configured in repo secrets) -->
 ![CI](https://github.com/JPods/webClerk3/actions/workflows/ci.yml/badge.svg)
 <!-- Replace OWNER/REPO in next line once Codecov enabled; token not needed for public repos -->
@@ -29,10 +121,13 @@ Authoritative guides are split by concern (single source each, no duplication):
 - Data / model structure map: `readmes/data-map.md`
 - Management & Operations: `readmes/manage.md`
 - Inventory & Costing: `readmes/inventory.md`
+- Flow vs Inventory Domain Boundary: `readmes/flow-vs-inventory.md`
 - Testing & Verification: `readmes/testing.md`
 - Upgrade Roadmap: `readmes/upgrade.md`
-- Data / Model Map: `readmes/data-map.md`
 - Rules & Guidelines: `readmes/rules.md`
+- Service Billing Guide: `readmes/service_billing.md`
+- Service JSON Schemas: `readmes/service_schemas.md`
+- Table Registry & Permissions: `readmes/table-registry-and-permissions.md`
 
 If you add >~15 lines of procedural or reference material, place it in the appropriate doc file under `readmes/` and add (or update) a single-line link here instead of duplicating.
 
@@ -805,7 +900,7 @@ Example output:
 {
   "proposal_line": {
     "id": 42,
-    "modified_dt": "2025-08-29T06:50:00.123456Z",
+  "dt_modified": "2025-08-29T06:50:00.123456Z",
     "data": {
       "USER": {"view": ["id", "status"], "edit": ["status"]}
     }
@@ -988,13 +1083,13 @@ class WidgetDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
 
 ## Modular BaseModel & CoreModel (Capability Composition)
 
-We decomposed the former monolithic `BaseModel` into a small `CoreModel` plus optional mixins. Compose only what each table needs while keeping a universal contract (id, uuid, ida, created_dt, modified_dt, version).
+We decomposed the former monolithic `BaseModel` into a small `CoreModel` plus optional mixins. Compose only what each table needs while keeping a universal contract (id, uuid, ida, dt_created, dt_modified, version).
 
 ### Mixins & Capabilities
 
 | Mixin / Core | Adds Fields | Key Helpers | feature_flags | Typical Use |
 |--------------|-------------|-------------|---------------|-------------|
-| CoreModel | id, uuid, ida, created_dt, modified_dt, version | optimistic_save/assert_version | core | Minimal high‑churn tables, queues |
+| CoreModel | id, uuid, ida, dt_created, dt_modified, version | optimistic_save/assert_version | core | Minimal high‑churn tables, queues |
 | MetadataMixin | metadata | history access, set/get metadata value | metadata | Lifecycle, audit, versioned schemas |
 | RefsMixin | refs | add_keyword/add_tag | refs | Keyword/tag search, soft links |
 | PrefsMixin | prefs | (none yet) | prefs | Per-record user configuration |
@@ -1097,7 +1192,7 @@ Every model inheriting `BaseModel` should expose a uniform API surface:
    - `resource/search/` (multi-term prefix search)
 6. Field visibility & edit rules: driven by settings `view_edit` matrix; serializers automatically enforce.
 7. Pagination: page size default 25 with `?page_size=` override up to 500.
-8. Ordering: list views support `?ordering=` parameter (defaults to `-modified_dt`).
+8. Ordering: list views support `?ordering=` parameter (defaults to `-dt_modified`).
 9. Versioning: clients must supply `version` in atomic PATCH payload; conflict => 412.
 10. Minimal fallback exposure for non-privileged roles when no matrix configured.
 
@@ -1112,8 +1207,8 @@ class MyResourceSerializer(RoleAwareModelSerializer):
   table_name = 'my_resource'
   class Meta:
     model = MyResource
-    fields = ['id','uuid','name','status','refs','prefs','metadata','created_dt','modified_dt','version']
-    read_only_fields = ['id','uuid','created_dt','modified_dt','version']
+  fields = ['id','uuid','name','status','refs','prefs','metadata','dt_created','dt_modified','version']
+  read_only_fields = ['id','uuid','dt_created','dt_modified','version']
 
 # views/myresource.py
 from common.base_views import BaseListCreateView, BaseOptimisticDetailView

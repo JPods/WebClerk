@@ -313,7 +313,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			del val[limit:]
 
 	def _update_aspect_meta(self, aspect: str):
-		"""Update metadata.versioning.aspects entry for given aspect with count & refreshed_dt."""
+		"""Update metadata.versioning.aspects entry for given aspect with count & dt_refreshed."""
 		if not hasattr(self, "metadata"):
 			return
 		aspects_meta = self.metadata.setdefault("versioning", {}).setdefault("aspects", {})  # type: ignore[attr-defined]
@@ -325,7 +325,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			count = len(val.keys())
 		aspects_meta[aspect] = {
 			"count": count,
-			"refreshed_dt": int(timezone.now().timestamp() * 1000),
+			"dt_refreshed": int(timezone.now().timestamp() * 1000),
 		}
 
 	def refresh_aspects(self, prune: bool = True, aspects: list[str] | None = None):

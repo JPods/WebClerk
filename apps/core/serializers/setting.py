@@ -19,9 +19,9 @@ class SettingSerializer(serializers.ModelSerializer):
         model = Setting
         fields = [
             'id','uuid','name','purpose','role','table_name','is_active','data',
-            'metadata','refs','prefs','comments','version','created_dt','modified_dt'
+            'metadata','refs','prefs','comments','version','dt_created','dt_modified'
         ]
-        read_only_fields = ['id','uuid','version','created_dt','modified_dt']
+    read_only_fields = ['id','uuid','version','dt_created','dt_modified']
 
     def validate_table_name(self, value):
         if value and value not in VALID_TABLE_NAMES:
@@ -35,7 +35,7 @@ class SettingSerializer(serializers.ModelSerializer):
             mode = 'edit' if request.method in ['POST','PUT','PATCH'] else 'view'
             allowed = set(get_accessible_fields('settings', mode, request.user))
             # Always keep identity + version fields
-            core_fields = {'id','uuid','version','created_dt','modified_dt','name','purpose','table_name','data'}
+            core_fields = {'id','uuid','version','dt_created','dt_modified','name','purpose','table_name','data'}
             if allowed:
                 for fname in list(self.fields.keys()):
                     if fname not in allowed and fname not in core_fields:

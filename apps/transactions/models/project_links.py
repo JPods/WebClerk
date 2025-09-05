@@ -22,7 +22,7 @@ class ProjectAssociation(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="associations")
     model_code = models.CharField(max_length=32, choices=LINK_MODEL_CHOICES, db_index=True)
     object_id = models.BigIntegerField(db_index=True)
-    created_dt = models.BigIntegerField(auto_created=False, default=0, db_index=True)
+    dt_created = models.BigIntegerField(auto_created=False, default=0, db_index=True)
 
     class Meta:
         db_table = "project_associations"

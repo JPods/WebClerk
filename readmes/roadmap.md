@@ -1,5 +1,20 @@
 # Roadmap & In-Process Tracker
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Roadmap & In-Process Tracker](#roadmap-in-process-tracker)
+  - [Active Sequence](#active-sequence)
+  - [Details](#details)
+  - [Progress Log](#progress-log)
+  - [Next Short-Term Actions](#next-short-term-actions)
+  - [Additional tables may be added later:](#additional-tables-may-be-added-later)
+  - [Project Docs](#project-docs)
+
+<!-- TOC END -->
+
 Date: 2025-09-03
 Review: 2025-12-15
 Status: -- status --

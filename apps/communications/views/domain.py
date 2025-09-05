@@ -190,7 +190,7 @@ class DomainDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDestroyAPIVi
                 new_list = [d for d in domains_list if str(d) != str(domain.id)]
                 if new_list != domains_list:
                     c.refs.setdefault('links', {})['domains'] = new_list
-                    c.save(update_fields=['refs', 'modified_dt'])
+                    c.save(update_fields=['refs', 'dt_modified'])
             except Exception:  # defensive; do not block delete on malformed refs
                 pass
         response = super().delete(request, *args, **kwargs)
@@ -230,7 +230,7 @@ class DomainSearchView(APIView):
             qs = qs.filter(
                 models.Q(path__istartswith=term) | models.Q(type__istartswith=term) | models.Q(comment__istartswith=term)
             )
-        qs = qs.order_by('-modified_dt')[:100]
+        qs = qs.order_by('-dt_modified')[:100]
         data = DomainSerializer(qs, many=True, context={'request': request}).data
         for d in qs:
             d.increment_access(by=1, save=True)

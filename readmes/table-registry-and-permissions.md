@@ -1,5 +1,28 @@
 # Table Registry & Permissions Refactor
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Table Registry & Permissions Refactor](#table-registry-permissions-refactor)
+  - [Summary](#summary)
+  - [Motivations](#motivations)
+  - [Key Artifacts](#key-artifacts)
+    - [Table Registry](#table-registry)
+    - [Validation](#validation)
+    - [Permissions](#permissions)
+    - [Registry API Endpoint](#registry-api-endpoint)
+    - [Purge Utility](#purge-utility)
+  - [Migration / Reset Approach](#migration-reset-approach)
+  - [Test Additions](#test-additions)
+  - [Extension Points](#extension-points)
+  - [Quick Usage](#quick-usage)
+  - [Gotchas](#gotchas)
+  - [Next Steps (Optional)](#next-steps-optional)
+
+<!-- TOC END -->
+
 ## Summary
 
 Between Sept 3–4 2025 we performed a domain naming and authorization hardening pass:

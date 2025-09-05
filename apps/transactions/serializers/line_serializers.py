@@ -19,9 +19,9 @@ class BaseLineSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'parent_ref_id', 'status', 'type_sale', 'probability',
             'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source',
-            'created_dt', 'modified_dt'
+            'dt_created', 'dt_modified'
         ]
-        read_only_fields = ['id', 'parent_ref_id', 'created_dt', 'modified_dt']
+    read_only_fields = ['id', 'parent_ref_id', 'dt_created', 'dt_modified']
 
     def _filter_representation(self, data: dict) -> dict:
         request = self.context.get('request')
@@ -32,10 +32,10 @@ class BaseLineSerializer(serializers.ModelSerializer):
             return data
         rules = get_role_field_rules(model, getattr(request.user, 'role', ''))
         allowed = set(rules.get('view', [])) | {'id'}
-        if 'created_dt' in data:
-            allowed.add('created_dt')
-        if 'modified_dt' in data:
-            allowed.add('modified_dt')
+        if 'dt_created' in data:
+            allowed.add('dt_created')
+        if 'dt_modified' in data:
+            allowed.add('dt_modified')
         return {k: v for k, v in data.items() if k in allowed}
 
     def to_representation(self, instance):
@@ -61,8 +61,8 @@ class BaseLineSerializer(serializers.ModelSerializer):
 class ProposalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proposal
-        fields = ['id', 'name', 'created_dt']
-        read_only_fields = ['id', 'created_dt']
+        fields = ['id', 'name', 'dt_created']
+        read_only_fields = ['id', 'dt_created']
 
 
 class ProposalLineSerializer(BaseLineSerializer):
@@ -76,8 +76,8 @@ class ProposalLineSerializer(BaseLineSerializer):
 class SalesOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesOrder
-        fields = ['id', 'order_no', 'created_dt']
-        read_only_fields = ['id', 'created_dt']
+        fields = ['id', 'order_no', 'dt_created']
+        read_only_fields = ['id', 'dt_created']
 
 
 class SalesOrderLineSerializer(BaseLineSerializer):
@@ -91,8 +91,8 @@ class SalesOrderLineSerializer(BaseLineSerializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
-        fields = ['id', 'invoice_no', 'created_dt']
-        read_only_fields = ['id', 'created_dt']
+        fields = ['id', 'invoice_no', 'dt_created']
+        read_only_fields = ['id', 'dt_created']
 
 
 class InvoiceLineSerializer(BaseLineSerializer):
@@ -106,8 +106,8 @@ class InvoiceLineSerializer(BaseLineSerializer):
 class PurchaseOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseOrder
-        fields = ['id', 'po_no', 'created_dt']
-        read_only_fields = ['id', 'created_dt']
+        fields = ['id', 'po_no', 'dt_created']
+        read_only_fields = ['id', 'dt_created']
 
 
 class PurchaseOrderLineSerializer(BaseLineSerializer):
@@ -121,8 +121,8 @@ class PurchaseOrderLineSerializer(BaseLineSerializer):
 class WorkorderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Workorder
-        fields = ['id', 'work_no', 'created_dt']
-        read_only_fields = ['id', 'created_dt']
+        fields = ['id', 'work_no', 'dt_created']
+        read_only_fields = ['id', 'dt_created']
 
 
 class WorkorderLineSerializer(BaseLineSerializer):
@@ -136,8 +136,8 @@ class WorkorderLineSerializer(BaseLineSerializer):
 class RequisitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requisition
-        fields = ['id', 'req_no', 'created_dt']
-        read_only_fields = ['id', 'created_dt']
+        fields = ['id', 'req_no', 'dt_created']
+        read_only_fields = ['id', 'dt_created']
 
 
 class RequisitionLineSerializer(BaseLineSerializer):
@@ -154,9 +154,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'uuid', 'situation', 'objective', 'priority', 'status', 'attention',
             'contact_id', 'tasks', 'burndown', 'category', 'intent', 'logistics',
-            'profit', 'profit_velocity', 'security_level', 'data', 'created_dt', 'modified_dt', 'version'
+            'profit', 'profit_velocity', 'security_level', 'data', 'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'burndown', 'created_dt', 'modified_dt', 'version']
+    read_only_fields = ['id', 'uuid', 'burndown', 'dt_created', 'dt_modified', 'version']
 
     def validate_priority(self, value):  # guard even though model clean enforces
         if not (1 <= value <= 5):

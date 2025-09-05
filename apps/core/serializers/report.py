@@ -10,8 +10,8 @@ class ReportSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Report
-        fields = ['id','uuid','is_active','metadata','refs','prefs','comments','version','created_dt','modified_dt']
-        read_only_fields = ['id','uuid','version','created_dt','modified_dt']
+        fields = ['id','uuid','is_active','metadata','refs','prefs','comments','version','dt_created','dt_modified']
+        read_only_fields = ['id','uuid','version','dt_created','dt_modified']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

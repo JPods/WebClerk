@@ -84,8 +84,8 @@ class InventoryAvailabilityView(APIView):
                     'released_at': None,
                     'context': {},
                     'reason': '',
-                    'created_dt': '2025-09-04T11:50:00Z',
-                    'modified_dt': '2025-09-04T11:50:00Z'
+                    'dt_created': '2025-09-04T11:50:00Z',
+                    'dt_modified': '2025-09-04T11:50:00Z'
                 }
             }
         )
@@ -141,8 +141,8 @@ class InventoryReservationCreateView(APIView):
                     'released_at': None,
                     'context': {},
                     'reason': '',
-                    'created_dt': '2025-09-04T11:50:00Z',
-                    'modified_dt': '2025-09-04T11:55:00Z'
+                    'dt_created': '2025-09-04T11:50:00Z',
+                    'dt_modified': '2025-09-04T11:55:00Z'
                 }
             }
         )
@@ -214,8 +214,8 @@ class InventoryReservationActionView(APIView):
                             'canceled': 0,
                             'reserved_conflict_skipped': 1,
                             'duration_s': 0.12,
-                            'started_dt': '2025-09-04T07:30:00Z',
-                            'finished_dt': '2025-09-04T07:30:00Z',
+                            'dt_started': '2025-09-04T07:30:00Z',
+                            'dt_finished': '2025-09-04T07:30:00Z',
                             'dry_run': False
                         },
                         'latest_stack': None,

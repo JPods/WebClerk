@@ -7,7 +7,7 @@ from django.dispatch import receiver
 
 
 @lru_cache(maxsize=256)
-def _cached_view_edit_matrix(setting_id: int, modified_dt: str):
+def _cached_view_edit_matrix(setting_id: int, dt_modified: str):
     try:
         s = Setting.objects.only('data').get(id=setting_id)
     except Setting.DoesNotExist:
@@ -25,12 +25,12 @@ def _get_active_view_edit_setting(table_name: str) -> tuple[int | None, dict]:
     try:
         s = (Setting.objects
              .filter(purpose='view_edit', table_name=table_name, is_active=True)
-             .order_by('-modified_dt')
-             .only('id', 'data', 'modified_dt')
+             .order_by('-dt_modified')
+             .only('id', 'data', 'dt_modified')
              .first())
         if not s:
             return None, {}
-        matrix = _cached_view_edit_matrix(s.id, str(s.modified_dt))
+        matrix = _cached_view_edit_matrix(s.id, str(s.dt_modified))
         return s.id, matrix
     except ObjectDoesNotExist:  # pragma: no cover
         return None, {}

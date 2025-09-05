@@ -10,14 +10,17 @@ class InventoryMetricsSnapshot(models.Model):
     Keep lean; prune externally if growth becomes large.
     """
 
-    created_dt = models.DateTimeField(auto_now_add=True, db_index=True)
+    dt_created = models.DateTimeField(auto_now_add=True, db_index=True)
     metrics = models.JSONField()
 
     class Meta:
         indexes = [
-            models.Index(fields=("created_dt",), name="invmet_snapshot_created_idx"),
+            models.Index(fields=("dt_created",), name="invmet_snapshot_created_idx"),
         ]
-        ordering = ("-created_dt",)
+        ordering = ("-dt_created",)
 
     def __str__(self):  # pragma: no cover
-        return f"InventoryMetricsSnapshot#{self.pk} {self.created_dt}"
+        return f"InventoryMetricsSnapshot#{self.pk} {self.dt_created}"
+
+    # Standard manager (legacy suffix style support removed; use dt_created)
+    objects = models.Manager()

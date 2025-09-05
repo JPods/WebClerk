@@ -39,7 +39,7 @@ def process_pending_inventory(limit: int = 100, apply_insufficient: bool = False
     pending_qs = (PendingInventoryAdjustment.objects
                   .select_related('stack')
                   .filter(state=PendingInventoryAdjustment.STATE_PENDING)
-                  .order_by('created_dt')[:limit])
+                  .order_by('dt_created')[:limit])
 
     # We'll lock rows inside a loop using select_for_update(skip_locked=True) batches
     ids = list(pending_qs.values_list('id', flat=True))
@@ -86,10 +86,10 @@ def process_pending_inventory(limit: int = 100, apply_insufficient: bool = False
                 # Apply
                 if not dry_run:
                     stack.mark_issue(padj.qty)
-                    stack.save(update_fields=["quantity", "modified_dt", "version"])
+                    stack.save(update_fields=["quantity", "dt_modified", "version"])
                     padj.state = PendingInventoryAdjustment.STATE_APPLIED
-                    padj.applied_dt = timezone.now()
-                    padj.save(update_fields=["state", "applied_dt"])
+                    padj.dt_applied = timezone.now()
+                    padj.save(update_fields=["state", "dt_applied"])
                 applied += 1
             except Exception:
                 # Best-effort; swallow to keep loop robust. Could add logging.
@@ -110,8 +110,8 @@ def process_pending_inventory(limit: int = 100, apply_insufficient: bool = False
         InventoryAdjustmentProcessorRun.objects.create(
             run_type=InventoryAdjustmentProcessorRun.RUN_GLOBAL,
             stack_id=None,
-            started_dt=started,
-            finished_dt=timezone.now(),
+            dt_started=started,
+            dt_finished=timezone.now(),
             duration_s=summary['duration_s'],
             attempted=attempted,
             applied=applied,
@@ -139,7 +139,7 @@ def process_pending_for_stack(stack_id: int, apply_insufficient: bool = False, c
     ids = list(PendingInventoryAdjustment.objects.filter(
         stack_id=stack_id,
         state=PendingInventoryAdjustment.STATE_PENDING
-    ).order_by('created_dt').values_list('id', flat=True))
+    ).order_by('dt_created').values_list('id', flat=True))
     for pid in ids:
         attempted += 1
         with transaction.atomic():
@@ -174,10 +174,10 @@ def process_pending_for_stack(stack_id: int, apply_insufficient: bool = False, c
             # Apply now
             if not dry_run:
                 stack.mark_issue(padj.qty)
-                stack.save(update_fields=["quantity", "modified_dt", "version"])
+                stack.save(update_fields=["quantity", "dt_modified", "version"])
                 padj.state = PendingInventoryAdjustment.STATE_APPLIED
-                padj.applied_dt = timezone.now()
-                padj.save(update_fields=["state", "applied_dt"])
+                padj.dt_applied = timezone.now()
+                padj.save(update_fields=["state", "dt_applied"])
             applied += 1
     summary = {
         "stack_id": stack_id,
@@ -193,8 +193,8 @@ def process_pending_for_stack(stack_id: int, apply_insufficient: bool = False, c
         InventoryAdjustmentProcessorRun.objects.create(
             run_type=InventoryAdjustmentProcessorRun.RUN_STACK,
             stack_id=stack_id,
-            started_dt=started,
-            finished_dt=timezone.now(),
+            dt_started=started,
+            dt_finished=timezone.now(),
             duration_s=summary['duration_s'],
             attempted=attempted,
             applied=applied,

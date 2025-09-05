@@ -2,6 +2,30 @@
 
 # Test & Verification Guide
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Test & Verification Guide](#test-verification-guide)
+  - [1. Quick Start (most common)](#1-quick-start-most-common)
+  - [2. Environment Assumptions](#2-environment-assumptions)
+  - [3. Test Categories Overview](#3-test-categories-overview)
+  - [4. Size Telemetry & JSON Envelope Checks](#4-size-telemetry-json-envelope-checks)
+- [Example manipulations here](#example-manipulations-here)
+  - [5. Org Aspect Metrics & Validation](#5-org-aspect-metrics-validation)
+  - [6. Storage Load Report (Admin Telemetry)](#6-storage-load-report-admin-telemetry)
+  - [7. Optimistic Concurrency Pattern](#7-optimistic-concurrency-pattern)
+  - [8. Adding New Tests](#8-adding-new-tests)
+  - [9. (Planned) Postman / API Contract Suite](#9-planned-postman-api-contract-suite)
+  - [10. Markers & Layered CI Execution](#10-markers-layered-ci-execution)
+  - [11. Continuous Integration (Implemented & Next)](#11-continuous-integration-implemented-next)
+  - [12. Troubleshooting](#12-troubleshooting)
+  - [13. Fast Local Loop Tips](#13-fast-local-loop-tips)
+  - [14. Guardrails Before Merge](#14-guardrails-before-merge)
+
+<!-- TOC END -->
+
 Date: 2025-09-03
 Review: 2025-12-15
 Status: -- status --

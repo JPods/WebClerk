@@ -17,10 +17,10 @@ class PhoneSerializer(serializers.ModelSerializer):
         model = Phone
         fields = [
             'id', 'uuid', 'attention', 'country_code', 'format', 'name', 'number',
-            'opt_out', 'is_active', 'created_dt', 'modified_dt', 'version',
+            'opt_out', 'is_active', 'dt_created', 'dt_modified', 'version',
             'refs', 'prefs', 'metadata'
         ]
-        read_only_fields = ['id', 'uuid', 'is_active', 'created_dt', 'modified_dt', 'version']
+    read_only_fields = ['id', 'uuid', 'is_active', 'dt_created', 'dt_modified', 'version']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

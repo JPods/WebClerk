@@ -42,7 +42,7 @@ class APISchemaAndInventoryCommitFailureTests(TestCase):
         rid = res.json()['data']['id']
         # Simulate external issue reducing remaining to 0
         stack.mark_issue(5)
-        stack.save(update_fields=['quantity', 'modified_dt', 'version'])
+        stack.save(update_fields=['quantity', 'dt_modified', 'version'])
         # Attempt commit -> current behavior commits even if no quantity is issued (idempotent commit)
         commit_resp = self.client.post(
             '/products/inventory/reservations/action/',

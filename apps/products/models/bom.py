@@ -88,27 +88,25 @@ class BillOfMaterial(BaseModel):
         # Capture cost snapshot on create
         component_pk = getattr(self, 'component_id', None)  # type: ignore[attr-defined]
         if creating and self.cost_snapshot is None and component_pk:
-            # Try multiple potential cost sources; fallback None silently
-            for attr in ("default_cost", "cost", "price"):
-                val = getattr(self.component, attr, None)
-                # cost / price might be JSON; attempt to pull standard/base keys
-                if isinstance(val, dict):
-                    for key in ("standard", "avg", "base", "last"):
-                        raw = val.get(key)
-                        if raw is not None:
-                            try:
-                                self.cost_snapshot = Decimal(str(raw))
-                                break
-                            except Exception:
-                                continue
-                    if self.cost_snapshot is not None:
-                        break
-                else:
-                    if val is not None:
+            val = getattr(self.component, 'cost', None)
+            if isinstance(val, dict):
+                # Cost precedence order:
+                # We intentionally probe keys in this fixed sequence so the first
+                # populated value becomes the snapshot. Treat the first non-null as
+                # the "authoritative" unit cost for BOM purposes.
+                # Default order (highest priority first): avg → standard → last → landed.
+                # Rationale: avg typically reflects rolling actuals; if absent fall back
+                # to standard cost policy; if neither present try last receipt; finally
+                # landed (may be noisy with freight allocations). Reordering this tuple
+                # lets an implementation shift precedence without schema changes.
+                for key in ("avg", "standard", "last", "landed"):
+                    raw = val.get(key)
+                    if raw is not None:
                         try:
-                            self.cost_snapshot = Decimal(str(val))
+                            self.cost_snapshot = Decimal(str(raw))
+                            break
                         except Exception:
-                            pass
+                            continue
             self.dt_last_recalc = timezone.now()
         super().save(*args, **kwargs)
 
@@ -117,8 +115,18 @@ class BillOfMaterial(BaseModel):
     def recalc_parent_cost(parent_item_id: int):  # pragma: no cover - service style
         """Recompute aggregate component cost snapshot for a parent item.
 
-        Stores summarized value under parent.cost['components']['snapshot_total'] (if JSON present) or sets
-        parent.default_cost if empty and snapshot available. Silent on errors.
+        Behaviour:
+          - Uses each BOM line's stored ``cost_snapshot`` when present.
+          - If a line has no snapshot (e.g. created before component cost populated),
+            it will *fallback* to current component.cost JSON probing the same
+            precedence order used at creation (avg -> standard -> last -> landed).
+          - Ignores lines where neither snapshot nor a fallback value resolved.
+          - Applies scrap_factor as qty * (1 + scrap).
+          - Result is rounded (quantized) to 4 decimal places for consistency with
+            ``cost_snapshot`` field precision before storing.
+
+        Stores summarized value under ``parent.cost['components']['snapshot_total']``
+        (if parent.cost is a dict). Silent on all errors by design (best-effort roll-up).
         """
         try:
             parent = Item.objects.get(id=parent_item_id)
@@ -131,17 +139,40 @@ class BillOfMaterial(BaseModel):
             try:
                 qty = line.quantity or _D("0")
                 scrap = line.scrap_factor or _D("0")
-                cost = line.cost_snapshot or _D("0")
-                total += cost * qty * (_D("1") + scrap)
+                unit_cost = line.cost_snapshot
+                if unit_cost is None:
+                    # Fallback probe of live component.cost JSON (same precedence as snapshot capture)
+                    comp_cost = getattr(line.component, 'cost', None)
+                    if isinstance(comp_cost, dict):
+                        for key in ("avg", "standard", "last", "landed"):
+                            raw = comp_cost.get(key)
+                            if raw is not None:
+                                try:
+                                    unit_cost = _D(str(raw))
+                                    break
+                                except Exception:  # pragma: no cover - non-numeric
+                                    continue
+                if unit_cost is None:
+                    continue  # no usable cost
+                total += unit_cost * qty * (_D("1") + scrap)
             except Exception:
                 continue
         try:
             if isinstance(parent.cost, dict):
                 comp = parent.cost.setdefault('components', {})
+                # Quantize to 4 decimal places for deterministic representation
+                try:
+                    total = total.quantize(_D("0.0001"))
+                except Exception:  # pragma: no cover - safety
+                    pass
                 comp['snapshot_total'] = float(total)
-            elif getattr(parent, 'default_cost', None) in (None, 0) and total > 0:
-                parent.default_cost = total
-            parent.save(update_fields=['cost', 'default_cost'])
+                # Optional multi-level propagation: if parent has no direct avg/standard cost assigned yet,
+                # promote the aggregated component snapshot total into 'avg' (non-destructive if already set).
+                # This allows higher-level assemblies to contribute their rolled-up cost when used as components elsewhere.
+                if parent.cost.get('avg') in (None, 0, 0.0):
+                    parent.cost['avg'] = float(total)
+                # History: let Item.save() handle diff-based history when saving (update_fields includes cost)
+            parent.save(update_fields=['cost'])
         except Exception:
             return
 

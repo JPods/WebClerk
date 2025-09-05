@@ -47,6 +47,6 @@ class PrefixAndSearchView(APIView):
             return Response({'results': [], 'count': 0})
         terms = [t for t in raw_q.split() if t]
         qs = self.get_queryset()
-        qs = self.build_query(qs, terms).order_by('-modified_dt')[: self.max_results]
+        qs = self.build_query(qs, terms).order_by('-dt_modified')[: self.max_results]
         data = self.serializer_class(qs, many=True, context={'request': request}).data  # type: ignore
         return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})

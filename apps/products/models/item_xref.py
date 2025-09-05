@@ -24,7 +24,8 @@ class ItemXRef(ItemLinkedBase):
     source_name = models.CharField(max_length=120, blank=True)
     external_sku = models.CharField(max_length=120, db_index=True)
     external_uuid = models.UUIDField(blank=True, null=True)
-    cost = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
+    # Structured cost object (e.g. {"value": 12.34, "currency": "USD", "breaks": []})
+    cost = models.JSONField(default=dict, blank=True, null=True, help_text="Structured cost data (value, currency, tiers, etc.)")
     is_preferred = models.BooleanField(default=False, db_index=True)
 
     class Meta:

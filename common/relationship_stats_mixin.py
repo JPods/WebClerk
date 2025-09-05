@@ -9,9 +9,9 @@ def default_relationship_stats() -> dict:
 
     Keys:
       counts: mapping of relation_type -> count (e.g., customers, vendors, manufacturers)
-      last_dt: last updated timestamp per relation_type
+      dt_last: last updated timestamp per relation_type
     """
-    return {"counts": {}, "last_dt": {}}
+    return {"counts": {}, "dt_last": {}}
 
 
 class RelationshipStatsMixin(models.Model):
@@ -34,7 +34,7 @@ class RelationshipStatsMixin(models.Model):
         stats = self.relationship_stats
         stats.setdefault("counts", {})[relation_type] = int(count)
         if dt_ms is not None:
-            stats.setdefault("last_dt", {})[relation_type] = dt_ms
+            stats.setdefault("dt_last", {})[relation_type] = dt_ms
         self.relationship_stats = stats
         return count
 
@@ -48,7 +48,7 @@ class RelationshipStatsMixin(models.Model):
         counts = stats.setdefault("counts", {})
         counts[relation_type] = int(counts.get(relation_type, 0)) + delta
         if dt_ms is not None:
-            stats.setdefault("last_dt", {})[relation_type] = dt_ms
+            stats.setdefault("dt_last", {})[relation_type] = dt_ms
         self.relationship_stats = stats
         return counts[relation_type]
 

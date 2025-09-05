@@ -1,0 +1,33 @@
+name: Docs Consistency
+
+on:
+  pull_request:
+    paths:
+      - 'readmes/**'
+      - 'Scripts/gen_docs_index.py'
+      - 'Scripts/gen_readmes_toc.py'
+      - 'Scripts/check_docs_consistency.py'
+  push:
+    branches: [ main, bill_dev ]
+    paths:
+      - 'readmes/**'
+      - 'Scripts/gen_docs_index.py'
+      - 'Scripts/gen_readmes_toc.py'
+      - 'Scripts/check_docs_consistency.py'
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install minimal deps
+        run: |
+          python -m pip install --upgrade pip
+      - name: Run docs consistency script
+        run: |
+          python Scripts/check_docs_consistency.py

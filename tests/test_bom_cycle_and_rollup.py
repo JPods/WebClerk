@@ -29,17 +29,45 @@ def test_bom_cycle_prevention():
 @pytest.mark.bom
 @pytest.mark.fast
 def test_bom_cost_rollup_simple():
-    # parent with one component snapshot cost
+    # parent with one component cost populated in JSON (avg preferred)
     parent = make_item('P2')
-    comp = make_item('C2', default_cost=Decimal('5'))
+    comp = make_item('C2')
+    comp.cost = {"avg": 5, "standard": None, "last": None, "landed": None, "currency": "USD", "history": [], "breaks": []}
+    comp.save(update_fields=["cost"])
     line = BillOfMaterial.objects.create(parent=parent, component=comp, quantity=Decimal('2'))
-    # simulate reseed roll-up invocation
     BillOfMaterial.recalc_parent_cost(parent.id)
     parent.refresh_from_db()
-    # cost snapshot captured at creation
     assert line.cost_snapshot in (Decimal('5'), Decimal('5.0000'))
-    # aggregated cost stored either in parent.cost JSON or default_cost fallback
-    if isinstance(parent.cost, dict) and 'components' in parent.cost:
-        assert parent.cost['components'].get('snapshot_total') in (10.0, 10, 10.0000)
-    else:
-        assert parent.default_cost in (Decimal('10'), Decimal('10.0000'))
+    assert isinstance(parent.cost, dict)
+    assert parent.cost['components'].get('snapshot_total') in (10.0, 10.0000)
+
+
+@pytest.mark.bom
+@pytest.mark.fast
+def test_bom_rollup_fallback_when_snapshot_missing():
+    parent = make_item('P3')
+    comp = make_item('C3')
+    # Populate live cost AFTER creating BOM line so snapshot is None
+    line = BillOfMaterial.objects.create(parent=parent, component=comp, quantity=Decimal('3'))
+    assert line.cost_snapshot is None
+    comp.cost = {"avg": None, "standard": 2.5, "last": None, "landed": None, "currency": "USD", "history": [], "breaks": []}
+    comp.save(update_fields=["cost"])
+    BillOfMaterial.recalc_parent_cost(parent.id)
+    parent.refresh_from_db()
+    # fallback should pick standard (2.5) * qty 3 = 7.5
+    assert abs(parent.cost['components']['snapshot_total'] - 7.5) < 1e-9
+
+
+@pytest.mark.bom
+@pytest.mark.fast
+def test_bom_rollup_rounding_quantize():
+    parent = make_item('P4')
+    comp = make_item('C4')
+    # Use float for JSON-serializable avg cost (avoid Decimal serialization in JSONField)
+    comp.cost = {"avg": 1.234567, "standard": None, "last": None, "landed": None, "currency": "USD", "history": [], "breaks": []}
+    comp.save(update_fields=["cost"])
+    BillOfMaterial.objects.create(parent=parent, component=comp, quantity=Decimal('1.5'))
+    BillOfMaterial.recalc_parent_cost(parent.id)
+    parent.refresh_from_db()
+    # 1.234567 * 1.5 = 1.8518505 -> quantized to 4 decimals = 1.8519
+    assert parent.cost['components']['snapshot_total'] in (1.8519, 1.8519)

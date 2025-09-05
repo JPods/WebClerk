@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "gadget",
+    "title": "Gadget Overview",
+    "path": "test_readme_etag_24a2da/gadget.md",
+    "bytes": 28,
+    "headings": [
+      "Gadget Overview"
+    ]
+  },
+  {
+    "slug": "widget",
+    "title": "Widget System",
+    "path": "test_readme_etag_24a2da/widget.md",
+    "bytes": 34,
+    "headings": [
+      "Widget System"
+    ]
+  },
+  {
+    "slug": "index",
+    "title": "Index Root",
+    "path": "test_readme_etag_24a2da/index.md",
+    "bytes": 26,
+    "headings": [
+      "Index Root"
+    ]
+  }
+]

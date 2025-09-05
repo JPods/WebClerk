@@ -6,9 +6,9 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = [
             'id','uuid','name','purpose','status','security_level','table_name','record_id',
-            'data','count_accessed','sequence','is_active','created_dt','modified_dt','version'
+            'data','count_accessed','sequence','is_active','dt_created','dt_modified','version'
         ]
-        read_only_fields = ['id','uuid','created_dt','modified_dt','version','count_accessed']
+        read_only_fields = ['id','uuid','dt_created','dt_modified','version','count_accessed']
 
 class TagDetailSerializer(TagSerializer):
     children = serializers.SerializerMethodField()

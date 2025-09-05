@@ -15,6 +15,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 INSTALLED_APPS = [
     #'debug_toolbar',
 
+    'apps.accounts',
     'apps.communications',
     'apps.core',
     'apps.docs',
@@ -234,6 +235,11 @@ LOGGING = {
 }
 
 
+# Readme API cache tuning (seconds)
+README_CACHE_SECONDS = int(os.getenv('README_CACHE_SECONDS', '60'))
+README_INDEX_CACHE_SECONDS = int(os.getenv('README_INDEX_CACHE_SECONDS', '120'))
+
+
 
 DRF_SPECTACULAR_SETTINGS = {
     'TITLE': 'WEBCLERK 3.0 API',
@@ -279,6 +285,15 @@ INTERNAL_IPS = [
     '127.0.0.1',
     'localhost',
 ]
+
+# --- Squashed migration modules (fresh baseline) ---
+# We redirect Django to alternate migration module paths for orgs/products/transactions
+# so we can generate clean 0001_initial migrations without deleting legacy files.
+MIGRATION_MODULES = {
+    'orgs': 'apps.orgs.squashed_migrations',
+    'products': 'apps.products.squashed_migrations',
+    'transactions': 'apps.transactions.squashed_migrations',
+}
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or use RabbitMQ if you prefer
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'

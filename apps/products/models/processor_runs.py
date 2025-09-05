@@ -15,8 +15,8 @@ class InventoryAdjustmentProcessorRun(models.Model):
 
     run_type = models.CharField(max_length=12, choices=RUN_TYPES, db_index=True)
     stack_id = models.IntegerField(null=True, blank=True, db_index=True)
-    started_dt = models.DateTimeField()
-    finished_dt = models.DateTimeField()
+    dt_started = models.DateTimeField()
+    dt_finished = models.DateTimeField()
     duration_s = models.DecimalField(max_digits=10, decimal_places=3)
     attempted = models.IntegerField(default=0)
     applied = models.IntegerField(default=0)
@@ -28,13 +28,13 @@ class InventoryAdjustmentProcessorRun(models.Model):
     dry_run = models.BooleanField(default=False)
     summary = models.JSONField(default=dict, blank=True)
 
-    created_dt = models.DateTimeField(auto_now_add=True, db_index=True)
+    dt_created = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=("run_type", "created_dt"), name="invproc_run_type_created_idx"),
+            models.Index(fields=("run_type", "dt_created"), name="invproc_run_type_created_idx"),
         ]
-        ordering = ("-created_dt",)
+        ordering = ("-dt_created",)
 
     def __str__(self):  # pragma: no cover
         return f"ProcRun#{self.pk}:{self.run_type}:{self.attempted}/{self.applied}"

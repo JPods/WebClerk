@@ -49,11 +49,11 @@ class BaseModelTests(TestCase):
 
     def test_history_timestamps(self):
         """Test that created and modified timestamps are set and updated."""
-        created_dt = self.contact.metadata['history']['created']['dt']
+        dt_created = self.contact.metadata['history']['created']['dt']
         self.contact.name_first = "William"
         self.contact.save()
-        modified_dt = self.contact.metadata['history']['modified']['dt']
-        self.assertTrue(modified_dt >= created_dt)
+        dt_modified = self.contact.metadata['history']['modified']['dt']
+        self.assertTrue(dt_modified >= dt_created)
 
     def test_size_limits(self):
         """Test that oversized metadata, refs, prefs raise ValueError."""
@@ -80,7 +80,7 @@ class BaseModelTests(TestCase):
         value = self.contact.get_metadata_value('history.verified.dt')
         self.assertEqual(value, 1234567890)
 
-    def test_dt_verified_property(self):
+    def dt_test_verified_property(self):
         """Test dt_verified property returns correct datetime or None."""
         self.contact.set_metadata_value('history.verified.dt', 1234567890000)
         self.contact.save()

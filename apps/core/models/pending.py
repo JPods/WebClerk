@@ -28,7 +28,7 @@ class Pending(CoreModel):
         if self.dt_processed == 0:
             self.dt_processed = int(timezone.now().timestamp() * 1000)
             if save:
-                self.save(update_fields=['dt_processed', 'modified_dt', 'version'])
+                self.save(update_fields=['dt_processed', 'dt_modified', 'version'])
         return self.dt_processed
 
     def is_processed(self):

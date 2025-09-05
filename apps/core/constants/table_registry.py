@@ -61,6 +61,8 @@ TABLE_REGISTRY: Dict[str, TableMeta] = {
     'settings': TableMeta('settings', 'apps.core.models.setting.Setting', 'Setting', 'Settings', 'settings', kind='support'),
     # Generic documents (legacy / keyword indexing placeholder)
     'documents': TableMeta('documents', 'apps.core.models.setting.Setting', 'Document', 'Documents', 'documents', kind='support'),
+    # Products / org assortment
+    'org_items': TableMeta('org_items', 'apps.products.models.org_item.OrgItem', 'Org Item', 'Org Items', 'org-items', kind='support'),
 }
 
 VALID_TABLE_NAMES: List[str] = list(TABLE_REGISTRY.keys())

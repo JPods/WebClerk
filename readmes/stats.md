@@ -2,6 +2,25 @@
 
 # Stats & Relationship Stats Architecture
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Stats & Relationship Stats Architecture](#stats-relationship-stats-architecture)
+  - [Goals](#goals)
+  - [StatsMixin Structure](#statsmixin-structure)
+  - [RelationshipStatsMixin](#relationshipstatsmixin)
+  - [Celery Tasks](#celery-tasks)
+  - [Usage Examples](#usage-examples)
+  - [Offload Guidance](#offload-guidance)
+  - [Extension Ideas](#extension-ideas)
+  - [Caveats](#caveats)
+  - [Periodic Schedule](#periodic-schedule)
+  - [Backwards Compatibility](#backwards-compatibility)
+
+<!-- TOC END -->
+
 Lightweight in-row statistics facilities provided by `StatsMixin` / `RelationshipStatsMixin` plus supporting Celery tasks.
 
 ## Goals
@@ -33,7 +52,7 @@ Field: `relationship_stats` (JSON)
 ```json
 {
   "counts": { "customers": 42, "vendors": 5, "parents": 1, "children": 3 },
-  "last_dt": { "customers": 1698789000000 }
+  "dt_last": { "customers": 1698789000000 }
 }
 ```
 

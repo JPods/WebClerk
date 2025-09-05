@@ -76,7 +76,7 @@ class Command(BaseCommand):
                         # idempotent create
                         obj, created_flag = ProjectAssociation.objects.get_or_create(
                             project=proj, model_code=code, object_id=oid,
-                            defaults={'created_dt': now_ms}
+                            defaults={'dt_created': now_ms}
                         )
                         if created_flag:
                             created += 1
