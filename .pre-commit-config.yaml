@@ -3,28 +3,40 @@ repos:
     hooks:
       - id: forbid-root-docs
         name: Forbid root-level doc files (use readmes/)
-        entry: >-
-          bash -c '
-          BLOCK_PATTERNS="^(README(|_[A-Z0-9-]+)?\.md|MAP\.md|MIGRATIONS_SQUASH\.md|UpGrade\.md|upgrade\.md|rules\.md)$"; \
-          for f in $(git diff --cached --name-only --diff-filter=ACM); do \
-            case "$f" in \
-              readmes/*) ;; \
-              *) if echo "$f" | grep -Eq "$BLOCK_PATTERNS"; then \
-                   echo "ERROR: $f must reside under readmes/ (centralized documentation policy)."; \
-                   exit 1; \
-                 fi ;; \
-            esac; \
-          done'
+        entry: bash
+        args:
+          - -c
+          - |
+            set -euo pipefail
+            BLOCK_PATTERNS="^(README(|_[A-Z0-9-]+)?\.md|MAP\.md|MIGRATIONS_SQUASH\.md|UpGrade\.md|upgrade\.md|rules\.md)$"
+            for f in $(git diff --cached --name-only --diff-filter=ACM); do
+              case "$f" in
+                readmes/*) ;;
+                *) if echo "$f" | grep -Eq "$BLOCK_PATTERNS"; then
+                     echo "ERROR: $f must reside under readmes/ (centralized documentation policy)."
+                     exit 1
+                   fi ;;
+              esac
+            done
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
+
       - id: md-trailing-whitespace-trim
         name: Trim trailing whitespace in Markdown
-        entry: >-
-          bash -c 'for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E "\.md$"); do sed -i '' -e "s/[[:space:]]*$//" "$f"; git add "$f"; done'
+        entry: bash
+        args:
+          - -c
+          - |
+            set -euo pipefail
+            for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E "\.md$"); do
+              sed -i '' -e "s/[[:space:]]*$//" "$f"
+              git add "$f"
+            done
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
+
       - id: single-initial-migration
         name: Enforce single 0001_initial per app (no additional numbered migrations)
         entry: >-
@@ -44,7 +56,8 @@ repos:
           if [ "$violations" -gt 0 ]; then exit 1; fi'
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
+
       - id: forbid-nuke-commit
         name: Forbid committing nuke_migrations invocation references
         entry: >-
@@ -53,15 +66,25 @@ repos:
              echo "ERROR: Remove --nuke-migrations from committed script/README examples (local-only flag)."; exit 1; fi'
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
 
       - id: docs-consistency
         name: Docs index & TOC consistency (docs_index.json + readmes TOC)
-        entry: >-
-          bash -c 'python Scripts/check_docs_consistency.py'
+        entry: bash
+        args:
+          - -c
+          - |
+            set -euo pipefail
+            if [ -x ./bin/python ]; then
+              ./bin/python Scripts/check_docs_consistency.py
+            elif command -v python3 >/dev/null 2>&1; then
+              python3 Scripts/check_docs_consistency.py
+            else
+              python Scripts/check_docs_consistency.py
+            fi
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
 
       - id: docs-layout-guard
         name: Documentation layout guard (validate_docs_location.sh)
@@ -69,6 +92,6 @@ repos:
           bash -c 'bash .github/scripts/validate_docs_location.sh'
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
 
 # Install locally with:  pip install pre-commit && pre-commit install
