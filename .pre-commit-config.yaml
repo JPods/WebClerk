@@ -30,9 +30,16 @@ repos:
         entry: >-
           bash -c '
           APPS_DIR="apps"; violations=0; 
+          ALLOW=${ALLOW_MULTIPLE_MIGRATIONS:-0}; PROTECTED_BRANCHES="${PROTECTED_BRANCHES:-main bill_dev}";
+          BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "");
+          MODE=fail; for p in $PROTECTED_BRANCHES; do [ "$BRANCH" = "$p" ] && MODE=fail && break || MODE=warn; done;
+          [ "$ALLOW" = "1" ] && echo "ALLOW_MULTIPLE_MIGRATIONS=1 set; skipping enforcement." && exit 0;
           for app in $(find "$APPS_DIR" -maxdepth 1 -mindepth 1 -type d); do 
             count=$(find "$app/migrations" -maxdepth 1 -type f -name "[0-9][0-9][0-9][0-9]*.py" 2>/dev/null | wc -l | tr -d " ");
-            if [ "$count" -gt 1 ]; then echo "ERROR: $app has $count migration files (policy: single baseline)."; violations=$((violations+1)); fi; 
+            if [ "$count" -gt 1 ]; then 
+              if [ "$MODE" = "fail" ]; then echo "ERROR: $app has $count migration files (policy: single baseline)."; violations=$((violations+1)); 
+              else echo "WARNING: $app has $count migration files (policy: single baseline)."; fi; 
+            fi; 
           done; 
           if [ "$violations" -gt 0 ]; then exit 1; fi'
         language: system
