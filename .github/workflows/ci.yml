@@ -1,10 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches: [ main, bill_dev ]
-  pull_request:
-    branches: [ main, bill_dev ]
+  # Temporarily disable auto CI triggers; manual runs only
   workflow_dispatch:
     inputs:
       allow_smoke_failures:

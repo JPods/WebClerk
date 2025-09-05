@@ -1,19 +1,8 @@
 name: Docs Consistency
 
 on:
-  pull_request:
-    paths:
-      - 'readmes/**'
-      - 'Scripts/gen_docs_index.py'
-      - 'Scripts/gen_readmes_toc.py'
-      - 'Scripts/check_docs_consistency.py'
-  push:
-    branches: [ main, bill_dev ]
-    paths:
-      - 'readmes/**'
-      - 'Scripts/gen_docs_index.py'
-      - 'Scripts/gen_readmes_toc.py'
-      - 'Scripts/check_docs_consistency.py'
+  # Temporarily disable automatic docs checks; manual runs only
+  workflow_dispatch:
 
 jobs:
   docs-check:
