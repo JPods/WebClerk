@@ -246,6 +246,53 @@
     ]
   },
   {
+    "slug": "dev-setup",
+    "title": "Developer Setup & Requirements",
+    "headings": [
+      "Table of Contents",
+      "Quick Start (TL;DR)",
+      "Python & Virtual Environment",
+      "Install Dependencies",
+      "Pre-commit Hooks",
+      "Running Tests",
+      "Common Environment Vars",
+      "Troubleshooting"
+    ],
+    "path": "readmes/dev-setup.md",
+    "tags": [
+      "install",
+      "pre",
+      "commit",
+      "pip",
+      "docs",
+      "hooks",
+      "fast",
+      "tests",
+      "environment",
+      "requirements",
+      "python",
+      "pytest",
+      "repo",
+      "root",
+      "toc",
+      "start",
+      "quick",
+      "dependencies",
+      "running",
+      "readmes",
+      "index",
+      "developer",
+      "setup",
+      "table",
+      "contents",
+      "recommended",
+      "virtual",
+      "common",
+      "vars",
+      "troubleshooting"
+    ]
+  },
+  {
     "slug": "docs-sync",
     "title": "Readme Documentation Sync Pipeline",
     "headings": [
