@@ -1,0 +1,97 @@
+{
+  "info": {
+    "name": "webClerk3 Smoke",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Minimal JSON-first smoke checks for local dev: metrics, readmes, contacts query."
+  },
+  "item": [
+    {
+      "name": "Inventory Metrics",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/products/inventory/metrics/"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status OK', () => pm.response.to.have.status(200));",
+              "pm.test('JSON content-type', () => pm.expect(pm.response.headers.get('content-type')).to.include('application/json'));",
+              "let body = {}; try { body = pm.response.json(); } catch(e) { pm.test('Body is JSON', () => { throw new Error('Response not JSON'); }); }",
+              "if (body) { pm.test('Envelope shape', () => { pm.expect(body).to.have.property('status'); pm.expect(body).to.have.property('code'); pm.expect(body).to.have.property('data'); }); }"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": { "followRedirects": true }
+    },
+    {
+      "name": "Docs Readmes",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs/readmes/"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status OK', () => pm.response.to.have.status(200));",
+              "pm.test('JSON content-type', () => pm.expect(pm.response.headers.get('content-type')).to.include('application/json'));",
+              "let body = {}; try { body = pm.response.json(); } catch(e) { pm.test('Body is JSON', () => { throw new Error('Response not JSON'); }); }",
+              "if (body) { pm.test('Envelope shape', () => { pm.expect(body).to.have.property('status'); pm.expect(body).to.have.property('code'); pm.expect(body).to.have.property('data'); }); }"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": { "followRedirects": true }
+    },
+    {
+      "name": "Contacts Query (core/wcapi)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/core/wcapi/query/?table_name=contacts&limit=2"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status OK', () => pm.response.to.have.status(200));",
+              "pm.test('JSON content-type', () => pm.expect(pm.response.headers.get('content-type')).to.include('application/json'));",
+              "let body = {}; try { body = pm.response.json(); } catch(e) { pm.test('Body is JSON', () => { throw new Error('Response not JSON'); }); }",
+              "if (body) { pm.test('Envelope shape', () => { pm.expect(body).to.have.property('status'); pm.expect(body).to.have.property('code'); pm.expect(body).to.have.property('data'); }); }"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": { "followRedirects": true }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "{{baseUrl}}" },
+    { "key": "token", "value": "{{token}}" }
+  ]
+}
