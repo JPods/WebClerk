@@ -55,4 +55,20 @@ repos:
         pass_filenames: false
         stages: [commit]
 
+      - id: docs-consistency
+        name: Docs index & TOC consistency (docs_index.json + readmes TOC)
+        entry: >-
+          bash -c 'python Scripts/check_docs_consistency.py'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+
+      - id: docs-layout-guard
+        name: Documentation layout guard (validate_docs_location.sh)
+        entry: >-
+          bash -c 'bash .github/scripts/validate_docs_location.sh'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+
 # Install locally with:  pip install pre-commit && pre-commit install
