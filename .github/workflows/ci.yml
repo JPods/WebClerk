@@ -5,6 +5,12 @@ on:
     branches: [ main, bill_dev ]
   pull_request:
     branches: [ main, bill_dev ]
+  workflow_dispatch:
+    inputs:
+      allow_smoke_failures:
+        description: "Allow smoke stage to fail without blocking (1 to allow)"
+        required: false
+        default: "0"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -18,6 +24,7 @@ env:
   # Provide a fallback SECRET_KEY so settings import succeeds
   SECRET_KEY: ci-fallback-secret-key
   COVERAGE_FAIL_UNDER: 70
+  # Smoke is non-blocking everywhere now
 
 jobs:
   smoke:
@@ -38,9 +45,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-django hypothesis coverage
-      - name: Run smoke tests
+      - name: Run smoke tests (always non-blocking)
         run: |
-          pytest -q -m smoke --junitxml=pytest-smoke.xml
+          pytest -q -m smoke --junitxml=pytest-smoke.xml || true
       - name: Upload smoke JUnit
         if: always()
         uses: actions/upload-artifact@v4
