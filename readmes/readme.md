@@ -119,6 +119,8 @@
 Authoritative guides are split by concern (single source each, no duplication):
 
 - Core onboarding & architecture: this README
+- Install (pip): `readmes/pip-install.md`
+- Developer Setup: `readmes/dev-setup.md`
 - Data / model structure map: `readmes/data-map.md`
 - Management & Operations: `readmes/manage.md`
 - Inventory & Costing: `readmes/inventory.md`
@@ -148,7 +150,7 @@ If needed (example):
 DROP TABLE IF EXISTS pending CASCADE;
 ```
 
-Location: `common/management/commands/`  
+Location: `common/management/commands/`
 Data file: `all_tables_export.json`
 
 Export/import data (avoid exporting or importing rows still marked pending):
@@ -369,13 +371,13 @@ Source: `webclerk3/core/urls.py`
 
 ### Key Features
 
-✅ **Universal API** – One pattern for all tables  
-✅ **Contact-Centric** – Everything revolves around contacts  
-✅ **Relationship Management** – JSON refs system  
-✅ **Lesson1-Style Navigation** – Clean, emoji-driven nav  
-✅ **Bootstrap 5 UI** – Modern, responsive design  
-✅ **Django Default 404** – Developer-friendly error pages  
-✅ **Consolidated Patterns** – All in core/templates/  
+✅ **Universal API** – One pattern for all tables
+✅ **Contact-Centric** – Everything revolves around contacts
+✅ **Relationship Management** – JSON refs system
+✅ **Lesson1-Style Navigation** – Clean, emoji-driven nav
+✅ **Bootstrap 5 UI** – Modern, responsive design
+✅ **Django Default 404** – Developer-friendly error pages
+✅ **Consolidated Patterns** – All in core/templates/
 ✅ **Future-Proof** – Ready for React front-end migration
 
 ### New: Bill of Material (BOM) API (Experimental)
@@ -636,13 +638,13 @@ Future enhancements being considered:
 
 ### Navigation Structure
 
-🏠 **Home** – Landing page with system overview  
-**About** – System documentation and features  
-**Contacts** – `/wcapi/manage/?table_name=contacts`  
-**Actions** – `/wcapi/manage/?table_name=actions`  
-**Communications** – `/wcapi/manage/?table_name=emails`  
-🥳 **New Contact** – Quick create contact  
-**Admin** – Django admin (superusers only)  
+🏠 **Home** – Landing page with system overview
+**About** – System documentation and features
+**Contacts** – `/wcapi/manage/?table_name=contacts`
+**Actions** – `/wcapi/manage/?table_name=actions`
+**Communications** – `/wcapi/manage/?table_name=emails`
+🥳 **New Contact** – Quick create contact
+**Admin** – Django admin (superusers only)
 🤚 **Logout** – Session termination
 
 ## Model Visualization
