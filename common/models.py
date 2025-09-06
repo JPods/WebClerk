@@ -270,8 +270,11 @@ class CoreModel(models.Model):
     """
 
     feature_flags = {"core"}
+    #unique per data system.
     id = models.BigAutoField(primary_key=True)
+    #exchanged between data systems (if any)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    #soft id from external system (if any)
     ida = models.CharField(max_length=40, blank=True, db_index=True)
     dt_created = models.BigIntegerField(default=0, db_index=True)
     dt_modified = models.BigIntegerField(default=0, db_index=True)

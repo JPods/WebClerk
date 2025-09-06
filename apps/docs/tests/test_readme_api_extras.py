@@ -1,5 +1,6 @@
 import json
 import io
+import os
 from pathlib import Path
 import uuid
 import time
@@ -83,11 +84,10 @@ def test_readme_index_search_endpoint(monkeypatch, api_client, tmp_path, user):
         'beta.md': '# Beta Doc\nContains architecture bits',
         'gamma.md': '# Gamma Guide\nMisc',
     })
-    # export index
-    _run_sync(export_index=True, index_path=str(tmp_path / 'docs_index.json'))
-    # copy exported index to default path (docs_index.json) for loader
-    default_index = Path('docs_index.json')
-    default_index.write_text((tmp_path / 'docs_index.json').read_text(encoding='utf-8'), encoding='utf-8')
+    # export index to temp path and point loader to it via env var
+    temp_index = tmp_path / 'docs_index.json'
+    _run_sync(export_index=True, index_path=str(temp_index))
+    monkeypatch.setenv('DOCS_INDEX_PATH', str(temp_index))
     url = reverse('readme-search-index')
     resp = api_client.get(url, {'q': 'alpha'})
     assert resp.status_code == 200, resp.content
@@ -109,8 +109,9 @@ def test_readme_index_search_fuzzy(monkeypatch, api_client, tmp_path, user):
         'gadget.md': '# Gadget Overview\nMisc tools',
         'index.md': '# Index Root\nGeneral intro',
     })
-    _run_sync(export_index=True, index_path=str(tmp_path / 'docs_index.json'))
-    Path('docs_index.json').write_text((tmp_path / 'docs_index.json').read_text(encoding='utf-8'), encoding='utf-8')
+    temp_index2 = tmp_path / 'docs_index.json'
+    _run_sync(export_index=True, index_path=str(temp_index2))
+    monkeypatch.setenv('DOCS_INDEX_PATH', str(temp_index2))
     url = reverse('readme-search-index')
     # Deliberate misspelling: widgit (should fuzzy match widget)
     resp = api_client.get(url, {'q': 'widgit', 'fuzzy': '1'})

@@ -11,17 +11,42 @@ from common.api_responses import api_response
 TABLE_APP_MAP = {
     'contacts': 'core',
     'actions': 'core',
+    'settings': 'core',
+    'templates': 'core',
+    'pending': 'core',
     'emails': 'communications',
     'phones': 'communications',
     'locations': 'communications',
+    'addresses': 'communications',  # legacy alias for locations
     'domains': 'communications',
+    'documents': 'docs',
+    'qas': 'docs',
+    'tags': 'docs',
+    'linkages': 'docs',
     # products
     'items': 'products',  # apps.products.models.item.Item
     # transactions
     'sales_orders': 'transactions',        # SalesOrder model
     'sales_order_lines': 'transactions',    # SalesOrderLine model (special-case name below)
-    'orders': 'transactions',              # legacy alias -> SalesOrder
-    'orderlines': 'transactions',          # legacy alias -> SalesOrderLine
+    'proposals': 'transactions',
+    'proposal_lines': 'transactions',
+    'invoices': 'transactions',
+    'invoice_lines': 'transactions',
+    'purchase_orders': 'transactions',
+    'purchase_order_lines': 'transactions',
+    'work_orders': 'transactions',
+    'work_order_lines': 'transactions',
+    'requisitions': 'transactions',
+    'requisition_lines': 'transactions',
+    'purchase_receipts': 'transactions',
+   
+    # orgs
+    'orgs': 'orgs',                        # maps to OrgBase model
+    'customers': 'orgs',                   # maps to CustomerOrg model
+    'vendors': 'orgs',                     # maps to VendorOrg model
+    'reps': 'orgs',                        # maps to RepOrg model
+    'employees': 'orgs',                   # maps to EmployeeOrg model
+    'manufacturers': 'orgs',               # maps to ManufacturerOrg model
     # Add more as needed; prefer adding here to avoid broad app scan cost
 }
 
@@ -88,6 +113,40 @@ class WcapiGetView(APIView):
             model_name = 'SalesOrderLine'
         elif table_name == 'orders':
             model_name = 'SalesOrder'
+        elif table_name == 'proposals':
+            model_name = 'Proposal'
+        elif table_name == 'proposal_lines':
+            model_name = 'ProposalLine'
+        elif table_name == 'invoices':
+            model_name = 'Invoice'
+        elif table_name == 'invoice_lines':
+            model_name = 'InvoiceLine'
+        elif table_name == 'purchase_orders':
+            model_name = 'PurchaseOrder'
+        elif table_name == 'purchase_order_lines':
+            model_name = 'PurchaseOrderLine'
+        elif table_name == 'work_orders':
+            model_name = 'Workorder'
+        elif table_name == 'work_order_lines':
+            model_name = 'WorkorderLine'
+        elif table_name == 'requisitions':
+            model_name = 'Requisition'
+        elif table_name == 'requisition_lines':
+            model_name = 'RequisitionLine'
+        elif table_name == 'purchase_receipts':
+            model_name = 'PurchaseReceipt'
+        elif table_name == 'orgs':
+            model_name = 'OrgBase'
+        elif table_name == 'customers':
+            model_name = 'CustomerOrg'
+        elif table_name == 'vendors':
+            model_name = 'VendorOrg'
+        elif table_name == 'reps':
+            model_name = 'RepOrg'
+        elif table_name == 'employees':
+            model_name = 'EmployeeOrg'
+        elif table_name == 'manufacturers':
+            model_name = 'ManufacturerOrg'
         else:
             model_name = table_name.rstrip('s').capitalize()
         try:

@@ -1,4 +1,12 @@
-# purchase = the purchasing document (original PO)
-# purchase_line = line items on the purchase (PO lines)
-# purchase_receipt = a received shipment (can cover partials; add receipt_no / dt_received) 
-# inventory_layer (for FIFO/LIFO buckets) tied to receipt and is the receipt_line. If there are landing costs, etc... these get assign by the receipt to the various inventory_layers.
+from django.db import models
+
+class PurchaseReceipt(models.Model):
+	"""Received shipment representing one or more received PO line partials."""
+	receipt_no = models.CharField(max_length=40, unique=True)
+	dt_received = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		db_table = "purchase_receipts"
+
+	def __str__(self) -> str:  # pragma: no cover
+		return f"PR:{self.receipt_no}" if self.receipt_no else f"PR:{self.pk}"

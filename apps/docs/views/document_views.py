@@ -240,7 +240,9 @@ _index_cache_mtime: float | None = None
 
 def _load_index_if_needed(path: str = 'docs_index.json') -> list[dict]:
     global _index_cache, _index_cache_mtime
-    p = Path(path)
+    import os
+    override = os.getenv('DOCS_INDEX_PATH')
+    p = Path(override) if override else Path(path)
     if not p.exists():
         return []
     stat = p.stat()

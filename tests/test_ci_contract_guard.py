@@ -13,7 +13,7 @@ FORBIDDEN_PATTERNS = [
 ]
 
 ALLOWLIST_DIR_NAMES = {
-    'bin', 'lib', 'include', 'Scripts', '__pycache__', '.hypothesis'
+    'bin', 'lib', 'include', 'Scripts', '__pycache__', '.hypothesis', '.git'
 }
 
 SKIP_EXTENSIONS = {
