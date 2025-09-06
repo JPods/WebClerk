@@ -237,8 +237,12 @@ def default_refs() -> dict:
 
 
 def default_prefs() -> dict:
-    """User / system preference seed; intentionally sparse to stay evolvable."""
-    return {"userdefined": ""}
+        """User / system preference seed; intentionally sparse to stay evolvable.
+
+        Shape: prefs.userdefined is a dict mapping unique keys to values, e.g.,
+            {"foo": "bar"}
+        """
+        return {"userdefined": {}}
 
 
 def default_data() -> dict:  # reserved placeholder (not currently used)

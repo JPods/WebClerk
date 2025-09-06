@@ -1,8 +1,10 @@
 import time, uuid, logging, os
+from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from typing import Any, Dict
 from django.http import JsonResponse
 from django.utils.functional import Promise
+from common.api_responses import api_response
 from django.utils.encoding import force_str
 
 EXEMPT_PATH_PREFIXES: tuple[str, ...] = (
@@ -35,6 +37,13 @@ def _force(value: Any):
     if isinstance(value, Promise):
         return force_str(value)
     return value
+
+def _ensure_rendered(response):
+    try:
+        if hasattr(response, 'render') and getattr(response, '_is_rendered', False) is False:  # DRF Response / TemplateResponse
+            response.render()  # type: ignore[attr-defined]
+    except Exception:
+        pass
 
 logger = logging.getLogger('request')
 
@@ -72,9 +81,11 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
             path = getattr(request, 'path', '')
             if is_exempt_path(path):
                 _record_skip(path, 'exempt_path', getattr(response, 'status_code', 0))
+                _ensure_rendered(response)
                 return response
             if getattr(request, '_skip_envelope', False):
                 _record_skip(path, 'skip_flag', getattr(response, 'status_code', 0))
+                _ensure_rendered(response)
                 return response
             if _allow_raw_query() and getattr(request, 'GET', {}).get('raw') == '1':
                 # Transitional raw: still envelope but record skip & also surface underlying structure at top-level for tests
@@ -91,9 +102,11 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
                     return response
             else:
                 _record_skip(path, 'non_json_response', getattr(response, 'status_code', 0))
+                _ensure_rendered(response)
                 return response
             if isinstance(data, dict) and data.get('status') in ('success', 'fail', 'error') and 'code' in data:
                 # Already enveloped – leave untouched.
+                _ensure_rendered(response)
                 return response
             status_code = getattr(response, 'status_code', 200)
             if status_code >= 500:
@@ -130,5 +143,74 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
             if isinstance(response, JsonResponse):
                 return JsonResponse(envelope, status=response.status_code)
         except Exception:
+            _ensure_rendered(response)
             return response
+        _ensure_rendered(response)
+        return response
+
+
+class ExceptionAsJsonMiddleware(MiddlewareMixin):
+    """Convert unhandled exceptions into JSON envelopes for API/JSON requests.
+
+    Applies when either:
+      - Path starts with '/wcapi/' (our API namespace), or
+      - Client indicates JSON via Accept or Content-Type headers.
+
+    This ensures Postman and other API clients receive JSON even in DEBUG.
+    """
+    def process_exception(self, request, exception):  # pragma: no cover (exercised via integration)
+        try:
+            path = getattr(request, 'path', '')
+            accept = request.headers.get('Accept', '') if hasattr(request, 'headers') else ''
+            content_type = request.headers.get('Content-Type', '') if hasattr(request, 'headers') else ''
+            is_api_path = path.startswith('/wcapi/')
+            wants_json = ('application/json' in accept) or ('application/json' in content_type)
+            if not (is_api_path or wants_json):
+                # Non-API HTML page: let Django render default error page
+                return None
+            # Map common exceptions to status/code
+            from django.core.exceptions import PermissionDenied
+            from django.http import Http404
+            from rest_framework import exceptions as drf_exc
+            status_code = 500
+            code = 'server_error'
+            message = 'Server error'
+            if isinstance(exception, (Http404, drf_exc.NotFound)):
+                status_code, code, message = 404, 'not_found', 'Not found'
+            elif isinstance(exception, (PermissionDenied, drf_exc.PermissionDenied)):
+                status_code, code, message = 403, 'forbidden', 'Forbidden'
+            elif isinstance(exception, (drf_exc.NotAuthenticated, drf_exc.AuthenticationFailed)):
+                status_code, code, message = 401, 'not_authenticated', 'Authentication required'
+            elif isinstance(exception, drf_exc.MethodNotAllowed):
+                status_code, code, message = 405, 'method_not_allowed', 'Method not allowed'
+            elif isinstance(exception, drf_exc.ParseError):
+                status_code, code, message = 400, 'parse_error', 'Invalid request'
+            # Include minimal details in DEBUG; suppress in production
+            details = str(exception) if getattr(settings, 'DEBUG', False) else None
+            error = {'code': code, 'details': details}
+            # Build envelope payload and return as JsonResponse to be fully rendered immediately
+            from django.http import JsonResponse
+            payload = {
+                'status': 'error' if status_code >= 500 else 'fail',
+                'error': error,
+                'code': status_code,
+                'message': message,
+                'data': None,
+            }
+            return JsonResponse(payload, status=status_code)
+        except Exception:
+            return None
+
+
+class EnsureRenderedMiddleware(MiddlewareMixin):
+    """Ensure TemplateResponse/DRF Response objects are rendered before other middlewares access response.content.
+
+    Place this before Django's CommonMiddleware to avoid ContentNotRenderedError when that middleware sets Content-Length.
+    """
+    def process_response(self, request, response):  # pragma: no cover (integration behavior)
+        try:
+            if hasattr(response, 'render') and getattr(response, '_is_rendered', False) is False:
+                response.render()  # type: ignore[attr-defined]
+        except Exception:
+            pass
         return response

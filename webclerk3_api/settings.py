@@ -52,7 +52,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # JSON-only API policy: the next three middleware ensure all API responses are JSON
+    # 1) EnsureRenderedMiddleware renders DRF Response objects early so later middleware can safely access content
+    # 2) ExceptionAsJsonMiddleware converts unhandled exceptions on API/JSON requests into JSON envelopes
+    # 3) AutoEnvelopeMiddleware standardizes all JSON responses into a unified {status, code, message, data} envelope
     'common.middleware.RequestLogMiddleware',
+    'common.middleware.EnsureRenderedMiddleware',
+    'common.middleware.ExceptionAsJsonMiddleware',
     'common.middleware.AutoEnvelopeMiddleware',
 ]
 
@@ -156,6 +162,7 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
         'rest_framework.filters.SearchFilter',
     ],
+    # DRF exceptions are forced into our JSON envelope via this custom handler
     'EXCEPTION_HANDLER': 'common.exception_handlers.api_exception_handler',
 }
 

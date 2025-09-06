@@ -97,7 +97,7 @@ def ensure_item_prefs(prefs: dict | None) -> dict:
     prefs.setdefault("display", {})            # presentation (columns, default_uom)
     prefs.setdefault("restrictions", {})       # channel / region restrictions
     prefs.setdefault("shipping", {})           # weight, dims cache
-    prefs.setdefault("userdefined", "")       # preserve original base key
+    prefs.setdefault("userdefined", {})       # preserve original base key as dict of key->value
     return prefs
 
 # Explicit wrapper factories (some Django system checks were not recognizing
