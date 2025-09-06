@@ -30,9 +30,9 @@ env:
 
 jobs:
   smoke:
-    name: Smoke (markers=smoke)
-    runs-on: ubuntu-latest
-    steps:
+  name: Smoke (markers=smoke)
+  runs-on: ubuntu-latest
+  steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Enforce docs layout

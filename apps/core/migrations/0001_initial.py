@@ -66,7 +66,7 @@ class Migration(migrations.Migration):
                 ('prefs', models.JSONField(default=common.models.default_prefs, help_text='User preferences / settings')),
                 ('comments', models.JSONField(default=common.models.default_comments, help_text='Threaded notes / comment fields')),
                 ('health_rating', models.IntegerField(default=0, help_text='Data quality rating (0-100)')),
-                ('is_active', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(db_index=True, default=True, help_text='Record is logically active')),
                 ('name', models.CharField(blank=True, max_length=255, null=True)),
                 ('purpose', models.CharField(blank=True, max_length=255, null=True)),
                 ('role', models.CharField(blank=True, max_length=255, null=True)),

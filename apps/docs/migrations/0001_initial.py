@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 ('mime_type', models.CharField(blank=True, max_length=255, null=True)),
                 ('path', models.JSONField(blank=True, null=True)),
                 ('checksum', models.CharField(blank=True, max_length=255, null=True)),
-                ('is_active', models.BooleanField(db_index=True, default=True)),
+                ('is_active', models.BooleanField(db_index=True, default=True, help_text='Record is logically active')),
                 ('search_vector', django.contrib.postgres.search.SearchVectorField(editable=False, null=True)),
             ],
             options={
@@ -112,7 +112,7 @@ class Migration(migrations.Migration):
                 ('data', models.JSONField(blank=True, help_text='Arbitrary structured tag payload', null=True)),
                 ('count_accessed', models.IntegerField(default=0)),
                 ('sequence', models.IntegerField(db_index=True, default=0)),
-                ('is_active', models.BooleanField(db_index=True, default=True)),
+                ('is_active', models.BooleanField(db_index=True, default=True, help_text='Record is logically active')),
             ],
             options={
                 'db_table': 'tags',

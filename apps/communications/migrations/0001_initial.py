@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
                 ('security_level', models.PositiveSmallIntegerField(db_index=True, default=0)),
                 ('sequence', models.PositiveIntegerField(db_index=True, default=0, help_text='Custom ordering value')),
                 ('count_accessed', models.PositiveIntegerField(default=0, help_text='Access counter')),
-                ('is_active', models.BooleanField(db_index=True, default=True)),
+                ('is_active', models.BooleanField(db_index=True, default=True, help_text='Record is logically active')),
             ],
             options={
                 'db_table': 'domains',
