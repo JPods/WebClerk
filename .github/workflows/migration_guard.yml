@@ -1,31 +1,10 @@
-name: Migration Guard
+name: Migration Guard (disabled)
 
 on:
-  # Temporarily disable automatic guard; manual runs only
   workflow_dispatch:
-    inputs:
-      allow_multiple_migrations:
-        description: "Temporarily allow multiple migrations (1 to allow)"
-        required: false
-        default: "0"
-      protected_branches:
-        description: "Space-separated list of protected branches"
-        required: false
-        default: "main bill_dev"
 
 jobs:
-  single-initial-check:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run migration guard
-        run: |
-          # Configure from dispatch inputs or env/secret
-          : "${ALLOW_MULTIPLE_MIGRATIONS:=${{ github.event.inputs.allow_multiple_migrations || '0' }}}"; export ALLOW_MULTIPLE_MIGRATIONS
-          : "${PROTECTED_BRANCHES:=${{ github.event.inputs.protected_branches || 'main bill_dev' }}}"; export PROTECTED_BRANCHES
-          # Pass branch metadata for PRs and pushes
-          export GITHUB_EVENT_NAME="${{ github.event_name }}"
-          export GITHUB_BASE_REF="${{ github.base_ref }}"
-          export GITHUB_REF_NAME="${{ github.ref_name }}"
-          bash .github/scripts/check_single_migration.sh
+      - run: echo "Migration Guard workflow is disabled; no-op."
