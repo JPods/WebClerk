@@ -1,5 +1,24 @@
 # Changelog
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Changelog](#changelog)
+  - [Table of Contents](#table-of-contents)
+  - [[Unreleased]](#unreleased)
+  - [[0.1.0] - 2025-09-04](#010-2025-09-04)
+    - [Added](#added)
+    - [Changed](#changed)
+    - [Fixed](#fixed)
+    - [Documentation](#documentation)
+    - [Tests](#tests)
+    - [Internal / Future (Planned)](#internal-future-planned)
+  - [Historical Context](#historical-context)
+
+<!-- TOC END -->
+
 All notable changes to this project will be documented in this file.
 
 The format loosely follows Keep a Changelog, and versioning will begin once a formal release tag is created.

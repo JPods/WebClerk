@@ -1,5 +1,54 @@
 [
   {
+    "slug": "CHANGELOG",
+    "title": "Changelog",
+    "headings": [
+      "Table of Contents",
+      "[Unreleased]",
+      "[0.1.0] - 2025-09-04",
+      "Added",
+      "Changed",
+      "Fixed",
+      "Documentation",
+      "Tests",
+      "Internal / Future (Planned)",
+      "Historical Context"
+    ],
+    "path": "readmes/CHANGELOG.md",
+    "tags": [
+      "metrics",
+      "run",
+      "processor",
+      "inventory",
+      "prometheus",
+      "added",
+      "tests",
+      "reservation",
+      "buckets",
+      "stack",
+      "cumulative",
+      "changelog",
+      "documentation",
+      "future",
+      "json",
+      "histogram",
+      "adjustment",
+      "global",
+      "duration",
+      "logging",
+      "table",
+      "contents",
+      "unreleased",
+      "2025",
+      "changed",
+      "fixed",
+      "internal",
+      "planned",
+      "historical",
+      "context"
+    ]
+  },
+  {
     "slug": "bom-table",
     "title": "Bill of Material (BOM) Table README",
     "headings": [
@@ -45,6 +94,13 @@
       "enhancements",
       "notes"
     ]
+  },
+  {
+    "slug": "cleanup-roadmap",
+    "title": "Cleanup Roadmap",
+    "headings": [],
+    "path": "readmes/cleanup-roadmap.md",
+    "tags": []
   },
   {
     "slug": "data-map",
@@ -730,6 +786,13 @@
     ]
   },
   {
+    "slug": "migrations_squash",
+    "title": "Migrations_Squash",
+    "headings": [],
+    "path": "readmes/migrations_squash.md",
+    "tags": []
+  },
+  {
     "slug": "org-items",
     "title": "Org Items (OrgItem)",
     "headings": [
@@ -1176,6 +1239,50 @@
       "etc",
       "project",
       "shape"
+    ]
+  },
+  {
+    "slug": "schema-iteration",
+    "title": "Schema iteration workflow (temporary, September 2025)",
+    "headings": [
+      "Table of Contents",
+      "Daily flow",
+      "Commands",
+      "CI",
+      "Exit plan"
+    ],
+    "path": "readmes/schema-iteration.md",
+    "tags": [
+      "rebaseline",
+      "admin",
+      "migrate",
+      "app",
+      "keep",
+      "database",
+      "schema",
+      "temporary",
+      "commands",
+      "drop",
+      "create",
+      "0001",
+      "scripts",
+      "iteration",
+      "workflow",
+      "september",
+      "2025",
+      "table",
+      "contents",
+      "daily",
+      "flow",
+      "just",
+      "skip",
+      "creation",
+      "exit",
+      "plan",
+      "fast",
+      "model",
+      "migrations",
+      "models"
     ]
   },
   {

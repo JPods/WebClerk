@@ -25,7 +25,6 @@ class Tag(BaseModel):
     data = models.JSONField(blank=True, null=True, help_text="Arbitrary structured tag payload")
     count_accessed = models.IntegerField(default=0)
     sequence = models.IntegerField(default=0, db_index=True)
-    is_active = models.BooleanField(default=True, db_index=True)
 
     class Meta:
         db_table = 'tags'

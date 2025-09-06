@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, pagination, filters, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.core.management import call_command
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.db import connection
 from django.contrib.postgres import search as pg_search
@@ -36,6 +37,8 @@ except Exception:  # fallback if markdown not installed
         return text  # degrade gracefully
 from pathlib import Path
 from django.conf import settings
+import io
+import re
 from apps.docs.serializers.document_serializers import (
     DocumentSerializer,
     DocumentSearchSerializer,
@@ -390,3 +393,66 @@ class ReadmeTopView(generics.ListAPIView):
         max_age = getattr(settings, 'README_INDEX_CACHE_SECONDS', 120)
         response['Cache-Control'] = f"private, max-age={max_age}"
         return response
+
+
+class ReadmeSyncView(APIView):
+    """Admin-only endpoint to run the sync_readmes command.
+
+    Query params mapped to management options:
+    - root: can be provided multiple times to include additional roots
+    - delete_missing: '1'/'true' to enable deletions
+    - dry_run: '1'/'true' dry run
+    - force, allow_empty, export_index, truncate: '1'/'true'
+    - max_bytes: integer, index_path: string
+    - modified_since: epoch ms or YYYY-MM-DDTHH:MM:SSZ
+    """
+
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        params = request.query_params
+        def as_bool(key: str) -> bool:
+            val = (params.get(key) or '').lower()
+            return val in {"1", "true", "yes", "on"}
+
+        opts: dict = {}
+        # Repeatable params
+        roots = params.getlist('root') if hasattr(params, 'getlist') else []
+        if roots:
+            opts['root'] = roots
+        # Simple flags
+        for flag in ['delete_missing', 'dry_run', 'force', 'allow_empty', 'export_index', 'truncate']:
+            if as_bool(flag):
+                opts[flag] = True
+        # Scalars
+        if params.get('max_bytes'):
+            try:
+                opts['max_bytes'] = int(params.get('max_bytes'))
+            except Exception:
+                pass
+        if params.get('modified_since'):
+            opts['modified_since'] = params.get('modified_since')
+        if params.get('index_path'):
+            opts['index_path'] = params.get('index_path')
+
+        buf = io.StringIO()
+        try:
+            call_command('sync_readmes', stdout=buf, stderr=buf, **opts)
+        except Exception as exc:
+            return Response({'ok': False, 'error': str(exc), 'opts': opts}, status=status.HTTP_400_BAD_REQUEST)
+
+        out = buf.getvalue()
+        # Parse summary line if present
+        stats = {}
+        m = re.search(r"Created=(?P<created>\d+) Updated=(?P<updated>\d+) Unchanged=(?P<unchanged>\d+) Discovered=(?P<discovered>\d+)", out)
+        if m:
+            stats = {k: int(v) for k, v in m.groupdict().items()}
+        payload = {
+            'ok': True,
+            'stats': stats,
+            'opts': opts,
+        }
+        # Avoid returning potentially long stdout unless requested
+        if as_bool('include_output'):
+            payload['output'] = out[-5000:]
+        return Response(payload)

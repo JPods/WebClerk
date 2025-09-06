@@ -146,7 +146,6 @@ class BaseLineModel(BaseModel):
     status = models.CharField(max_length=50, blank=True, null=True)
 
     # JSON field shells (populated via ensure_json_defaults)
-    comments = models.JSONField(default=dict, blank=True, null=True)
     item = models.JSONField(default=dict, blank=True, null=True)
     quantity = models.JSONField(default=dict, blank=True, null=True)
     cost = models.JSONField(default=dict, blank=True, null=True)

@@ -138,7 +138,6 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True)
 	display_name = models.CharField(max_length=255, db_index=True)
 	status = models.CharField(max_length=30, blank=True, db_index=True)  # e.g. active, prospect, retired
-	is_active = models.BooleanField(default=True, db_index=True)
 
 	# Aspect JSONB fields -------------------------------------------------
 	# denormalized hybrid of table data into a flatter structure

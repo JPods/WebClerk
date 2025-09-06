@@ -7,7 +7,6 @@ from apps.core.constants.table_registry import VALID_TABLE_NAMES, is_valid_table
 # poppups, question, constants, integrations, notifications,
 # 
 class Setting(BaseModel):
-    is_active = models.BooleanField(default=False)
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=255, blank=True, null=True)

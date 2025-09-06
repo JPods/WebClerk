@@ -41,7 +41,6 @@ class Connection(BaseModel):
         #path_working = models.CharField(max_length=255, blank=True, null=True)
         #key = models.CharField(max_length=255, blank=True, null=True)
         #pin = models.CharField(max_length=255, blank=True, null=True)
-    is_active = models.BooleanField(default=True)
     status = models.CharField(max_length=255, blank=True, null=True)
     scripts = models.JSONField(blank=True, null=True)
     relationships = models.JSONField(blank=True, null=True)

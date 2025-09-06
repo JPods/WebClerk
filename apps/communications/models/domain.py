@@ -20,7 +20,6 @@ class Domain(BaseModel):
     security_level = models.PositiveSmallIntegerField(default=0, db_index=True)
     sequence = models.PositiveIntegerField(default=0, db_index=True, help_text="Custom ordering value")
     count_accessed = models.PositiveIntegerField(default=0, help_text="Access counter")
-    is_active = models.BooleanField(default=True, db_index=True)
 
     # all metadata changes inside common/models/BaseModel.py
 

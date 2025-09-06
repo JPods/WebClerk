@@ -46,7 +46,6 @@ class Document(BaseModel):
     mime_type = models.CharField(max_length=255, blank=True, null=True)
     path = models.JSONField(blank=True, null=True)
     checksum = models.CharField(max_length=255, blank=True, null=True)
-    is_active = models.BooleanField(default=True, db_index=True)
     search_vector = SearchVectorField(null=True, editable=False)
 
     class Meta:

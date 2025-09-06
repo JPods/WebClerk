@@ -7,6 +7,7 @@ from apps.docs.views.document_views import (
     ReadmeDetailView,
     ReadmeSearchIndexView,
     ReadmeTopView,
+    ReadmeSyncView,
 )
 from apps.docs.views.linkage_views import (
     LinkageListCreateView,
@@ -33,6 +34,7 @@ urlpatterns = [
     path('readmes/', ReadmeIndexView.as_view(), name='readme-index'),
     path('readmes/search-index/', ReadmeSearchIndexView.as_view(), name='readme-search-index'),
     path('readmes/top/', ReadmeTopView.as_view(), name='readme-top'),
+    path('readmes/sync/', ReadmeSyncView.as_view(), name='readme-sync'),
     path('readmes/<slug:slug>/', ReadmeDetailView.as_view(), name='readme-detail'),
     # Linkages
     path('linkages/', LinkageListCreateView.as_view(), name='linkage-list'),

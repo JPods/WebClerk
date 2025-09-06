@@ -33,7 +33,6 @@ class Qa(BaseModel):
     security_level = models.IntegerField(blank=True, null=True, db_index=True)
     sequence = models.IntegerField(default=0, db_index=True)
     count_accessed = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True, db_index=True)
     search_vector = SearchVectorField(null=True, editable=False)
 
     class Meta:
