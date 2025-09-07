@@ -87,6 +87,7 @@ Temporarily bypass docs layout (transition only): export DOC_GUARD_ALLOW_LEGACY=
   - python Scripts/gen_readmes_toc.py
   - python Scripts/gen_docs_index.py
   - git add docs_index.json readmes/*.md
+  - New docs to include in index: readmes/email-verification.md, readmes/exchange-review.md
 - Migrations policy blocks: set ALLOW_MULTIPLE_MIGRATIONS=1 for local/wip branches, but fix before merging to protected branches.
 - psycopg2 issues: ensure Postgres headers/client tools are present or use psycopg2-binary (already in requirements).
 
