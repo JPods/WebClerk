@@ -72,6 +72,8 @@ refs: {
 | `seed_relationships` | Randomized dev data linking (forward + reciprocal at seed time) |
 | `reconcile_links` | Backfill / repair reciprocal links from authoritative contact refs (optional prune) |
 
+Note: `seed_relationships` runs automatically as part of `reseed --full` and is invoked after targeted reseeds via `python manage.py reseed ...`.
+
 ### reconcile_links
 
 ```bash

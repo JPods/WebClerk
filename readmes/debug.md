@@ -57,7 +57,10 @@ See `apps/core/services/view_edit_access.py` – dev bypass returns `['*']` wild
 
 ## 5. Data Seeding Strategy
 
-Single canonical command: `reseed_all_models` (see `manage.md` for options). Legacy multi-command chain removed.
+Single canonical command: `reseed`.
+
+- Full destructive reset + seed: `python manage.py reseed --full`
+- Targeted reseed (no flush): `python manage.py reseed --no-flush --per-model 3 --model communications.Location`
 
 ## 6. Stats & Periodic Tasks
 
@@ -81,7 +84,7 @@ See quick table in original file; condensed here:
 
 | Goal | Command |
 |------|---------|
-| Reseed dataset | `python manage.py reseed_all_models --per-model 3` |
+| Reseed dataset | `python manage.py reseed --no-flush --per-model 3` |
 | Inspect model counts | One-liner in README root (search `Inspect model counts`) |
 | Test open read | `curl http://localhost:8000/wcapi/get/?table_name=contacts` |
 | JWT login | cURL POST to `/wcapi/login/` |

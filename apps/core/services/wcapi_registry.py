@@ -17,7 +17,8 @@ MODEL_MAP = {
     'phones': Phone,
     'domains': Domain,
     'emails': Email,
-    'addresses': Location,
+    'locations': Location,
+    'addresses': Location,  # alias for backward compatibility
     # products
     'items': Item,
     # transactional documents (initial subset; add more as exposed)

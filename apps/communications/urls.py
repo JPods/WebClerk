@@ -3,7 +3,7 @@ from django.urls import path
 from .views.domain import DomainView, DomainDetailView, DomainSearchView
 from .views.email import EmailView, EmailDetailView
 from .views.phone import PhoneView, PhoneDetailView
-from .views.address import LocationView, LocationDetailView
+from .views.location import LocationView, LocationDetailView
 
 app_name = 'communications'
 
@@ -17,7 +17,7 @@ urlpatterns = [
     # Phone endpoints
     path('phones/', PhoneView.as_view(), name='phone-list'),
     path('phones/<int:pk>/', PhoneDetailView.as_view(), name='phone-detail'),
-    # Address (Location) endpoints
-    path('addresses/', LocationView.as_view(), name='address-list'),
-    path('addresses/<int:pk>/', LocationDetailView.as_view(), name='address-detail'),
+    # Location endpoints
+    path('locations/', LocationView.as_view(), name='location-list'),
+    path('locations/<int:pk>/', LocationDetailView.as_view(), name='location-detail'),
 ] 

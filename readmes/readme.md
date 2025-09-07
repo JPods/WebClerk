@@ -325,7 +325,7 @@ Create PR:
 
 ## 🎯 Architecture Overview
 
-**Universal API System** – One API pattern handles all data operations (contacts, actions, emails, phones, domains, addresses).
+**Universal API System** – One API pattern handles all data operations (contacts, actions, emails, phones, domains, locations).
 
 ### Pattern Structure (dev without front end)
 

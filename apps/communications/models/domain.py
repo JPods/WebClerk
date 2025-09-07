@@ -39,3 +39,10 @@ class Domain(BaseModel):
             self.save(update_fields=['count_accessed', 'dt_modified', 'version'])
         return self.count_accessed
     
+    def queue_verification(self, connection_name: str | None = None) -> None:
+        try:
+            from apps.communications.tasks import validate_domain_basic
+            validate_domain_basic.delay(self.pk)
+        except Exception:
+            pass
+    

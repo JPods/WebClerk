@@ -1,8 +1,12 @@
 # path: apps/communications/tasks.py
 from celery import shared_task
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from django.apps import apps
+from apps.sync.services.email_verification import verify_email_via_connection
+from apps.sync.services.phone_verification import verify_phone_via_connection
+from apps.sync.services.location_verification import verify_location_via_connection
+from apps.sync.services.domain_verification import verify_domain_via_connection
 
 @shared_task
 def hello():
@@ -26,26 +30,40 @@ def user_id_is_superuser(user_id):
 
 # -------- Validation / cleanup stubs ---------------------------------------
 @shared_task
-def validate_location_osm(location_id: int) -> Dict[str, Any]:
-    """Stub address verification using an OSM-like provider.
+def validate_location_osm(location_id: int, connection_name: str | None = None) -> Dict[str, Any]:
+    """Location verification via Connection/Exchange (stubbed provider).
 
-    No external call is made; we record a 'stubbed' status. Replace later with
-    an actual Nominatim request and mapping. The model's apply_validation_result
-    will map fields and update metadata.
+    Builds a minimal location payload and verifies through a Connection of
+    type 'location_verification'. Records review pending exchange in metadata.
     """
     Location = apps.get_model('communications', 'Location')
     loc = Location.objects.filter(pk=location_id).first()
     if not loc:
         return {"ok": False, "error": "not_found"}
-    result = {
-        "provider": "osm",
-        "status": "stubbed",
-        "match_score": 0,
-        # Optionally include lat/long and normalized fields when real API added
+    payload = {
+        "address1": getattr(loc, "address1", ""),
+        "address2": getattr(loc, "address2", ""),
+        "city": getattr(loc, "city", ""),
+        "state": getattr(loc, "state", ""),
+        "zip": getattr(loc, "zip", ""),
+        "country": getattr(loc, "country", ""),
     }
+    res = verify_location_via_connection(payload, connection_name)
+    result = res.get("result") or {}
+    exchange_id = res.get("exchange_id")
+
     try:
-        loc.apply_validation_result(result)
-        return {"ok": True, "applied": True}
+        obj = cast(Any, loc)
+        if hasattr(obj, "apply_validation_result"):
+            obj.apply_validation_result(result)
+        # Ensure review info is present
+        meta = getattr(obj, "metadata", {}) or {}
+        ver = meta.setdefault("versioning", {}).setdefault("validation", {})
+        rev = ver.setdefault("review", {})
+        rev.update({"status": "pending", "exchange_id": exchange_id})
+        obj.metadata = meta
+        obj.save(update_fields=["metadata", "dt_modified", "version"])  # type: ignore[attr-defined]
+        return {"ok": True, "applied": True, "exchange_id": exchange_id}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -57,25 +75,75 @@ def validate_email_format(email_id: int) -> Dict[str, Any]:
     obj = Email.objects.filter(pk=email_id).first()
     if not obj:
         return {"ok": False, "error": "not_found"}
-    # Could set metadata.versioning.validation = { provider:'local', status:'checked' }
-    meta = obj.metadata or {}
+    # Use provider-agnostic verification via sync Connection/Exchange.
+    email_addr = getattr(obj, "email", "")
+    res = verify_email_via_connection(email_addr)
+    meta = getattr(obj, "metadata", {}) or {}
     ver = meta.setdefault('versioning', {}).setdefault('validation', {})
-    ver.update({"provider": "local", "status": "stubbed"})
-    obj.metadata = meta
-    obj.save(update_fields=['metadata', 'dt_modified', 'version'])
-    return {"ok": True}
+    result = res.get('result') or {}
+    ver.update({
+        "provider": result.get('provider', 'stub'),
+        "status": result.get('status', 'stubbed'),
+        "deliverability": result.get('deliverability', 'unknown'),
+        "reason": result.get('reason', ''),
+        "review": {"status": "pending", "exchange_id": res.get('exchange_id')},
+    })
+    obj.metadata = meta  # type: ignore[attr-defined]
+    # Defer flipping is_verified until review acceptance.
+    obj.save(update_fields=['metadata', 'dt_modified', 'version'])  # type: ignore[attr-defined]
+    return {"ok": True, "result": result}
 
 
 @shared_task
 def validate_phone_basic(phone_id: int) -> Dict[str, Any]:
-    """Stub phone validation. Could add E.164 normalization later."""
+    """Phone verification via Connection/Exchange (stubbed).
+
+    Records review-pending exchange_id in metadata.
+    """
     Phone = apps.get_model('communications', 'Phone')
     obj = Phone.objects.filter(pk=phone_id).first()
     if not obj:
         return {"ok": False, "error": "not_found"}
-    meta = obj.metadata or {}
+    number = getattr(obj, "number", "")
+    res = verify_phone_via_connection(number)
+    result = res.get("result") or {}
+    exchange_id = res.get("exchange_id")
+
+    meta = getattr(obj, "metadata", {}) or {}
     ver = meta.setdefault('versioning', {}).setdefault('validation', {})
-    ver.update({"provider": "local", "status": "stubbed"})
-    obj.metadata = meta
-    obj.save(update_fields=['metadata', 'dt_modified', 'version'])
-    return {"ok": True}
+    ver.update({
+        "provider": result.get('provider', 'stub'),
+        "status": result.get('status', 'stubbed'),
+        "valid": result.get('valid', None),
+        "reason": result.get('reason', ''),
+        "review": {"status": "pending", "exchange_id": exchange_id},
+    })
+    obj.metadata = meta  # type: ignore[attr-defined]
+    obj.save(update_fields=['metadata', 'dt_modified', 'version'])  # type: ignore[attr-defined]
+    return {"ok": True, "result": result}
+
+
+@shared_task
+def validate_domain_basic(domain_id: int) -> Dict[str, Any]:
+    """Domain verification via Connection/Exchange (stubbed)."""
+    Domain = apps.get_model('communications', 'Domain')
+    obj = Domain.objects.filter(pk=domain_id).first()
+    if not obj:
+        return {"ok": False, "error": "not_found"}
+    path = getattr(obj, "path", "")
+    res = verify_domain_via_connection(path)
+    result = res.get("result") or {}
+    exchange_id = res.get("exchange_id")
+
+    meta = getattr(obj, "metadata", {}) or {}
+    ver = meta.setdefault('versioning', {}).setdefault('validation', {})
+    ver.update({
+        "provider": result.get('provider', 'stub'),
+        "status": result.get('status', 'stubbed'),
+        "reachable": result.get('reachable', None),
+        "reason": result.get('reason', ''),
+        "review": {"status": "pending", "exchange_id": exchange_id},
+    })
+    obj.metadata = meta  # type: ignore[attr-defined]
+    obj.save(update_fields=['metadata', 'dt_modified', 'version'])  # type: ignore[attr-defined]
+    return {"ok": True, "result": result}

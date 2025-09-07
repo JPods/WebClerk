@@ -116,7 +116,10 @@ def filter_record_for_role(record: dict, table_name: str, role: str, access_type
     # If wildcard or bypass -> expand to model concrete fields to ensure full dict
     if '*' in allowed_fields or dev_bypass_enabled() or not allowed_fields:
         # Attempt to resolve model name heuristically (plural to singular) similar to WcapiGetView
-        model_name = 'Location' if table_name == 'addresses' else table_name.rstrip('s').capitalize()
+        if table_name in ('addresses', 'locations'):
+            model_name = 'Location'
+        else:
+            model_name = table_name.rstrip('s').capitalize()
         app_guess = table_name.split('.')[0] if '.' in table_name else None
         model = None
         if app_guess:

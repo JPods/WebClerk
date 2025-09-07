@@ -55,6 +55,12 @@ No table name should use 'es' pluralization.
 - Avoid irregular 'es' forms: not `addresses`, `classes`, `processes`.
 - Prefer synonyms to dodge awkward plurals (`location` over `address`).
 
+## Display metadata conventions
+
+- When a model has a common user-facing one-line label derived from multiple fields, persist it under `metadata.display.<name>` to avoid recomputing per request.
+- For `Location`, we store `metadata.display.full_location` along with `standard` and `country_code`.
+- Bulk updates that bypass model `save()` won’t recompute display; follow up with a refresh or a backfill job.
+
 Field / verbose names may use 'es' if needed; restriction applies to actual table names only.
 
 Baseline rules that require a published exception:

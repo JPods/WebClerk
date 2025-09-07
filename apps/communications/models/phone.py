@@ -41,3 +41,11 @@ class Phone(BaseModel):
     def post_save_hook(self, data):  # type: ignore[override]
         # Return informational message (useful for tests / client log)
         return 'phone saved'
+
+    # --- Verification queue (stub) ---------------------------------------
+    def queue_verification(self, connection_name: str | None = None) -> None:
+        try:
+            from apps.communications.tasks import validate_phone_basic
+            validate_phone_basic.delay(self.pk)
+        except Exception:
+            pass

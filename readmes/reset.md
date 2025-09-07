@@ -18,7 +18,7 @@
   - [7. Troubleshooting](#7-troubleshooting)
   - [8. Migration Baseline Policy](#8-migration-baseline-policy)
   - [9. Extending Seeding](#9-extending-seeding)
-  - [10. Minimal One-Liner (Force, Quiet)](#10-minimal-one-liner-force-quiet)
+  - [10. Minimal One-Liner](#10-minimal-one-liner)
   - [11. Data Export (Optional)](#11-data-export-optional)
   - [12. FAQ](#12-faq)
   - [13. Quick Reference](#13-quick-reference)
@@ -31,7 +31,7 @@ Review: 2025-12-15
 Status: -- status --
 Owner: Bill
 
-This guide documents the **single supported way** to perform a destructive local reset of the development database and re-seed domain data. Use it sparingly and never on shared / staging / production environments.
+This guide documents the **single supported way** to perform a destructive local reset of the development database and re-seed domain data using the unified `reseed` command. Use it sparingly and never on shared / staging / production environments.
 
 Creates 3 SuperUsers (patterned):
 
@@ -45,7 +45,7 @@ Creates 3 SuperUsers (patterned):
 
 ## 1. When To Use
 
-Use `full_reset_seed` only when:
+Use `reseed --full` only when:
 
 - Migration history has been squashed and you need a clean slate.
 - Local schema drift / abandoned experimental migrations cause failures.
@@ -61,75 +61,45 @@ Do NOT use:
 
 ## 2. What Happens Under The Hood
 
-`python manage.py full_reset_seed` orchestrates:
+`python manage.py reseed --full` orchestrates:
 
-1. (Interactive unless `--force`) Safety confirmation.
-2. Environment guard: verifies interpreter matches project `bin/python` & Django 5.x (override with `ALLOW_SYSTEM_PY=1`).
-3. Terminates existing PostgreSQL sessions for the target DB.
-4. Drops and recreates the database (name from `DATABASE_NAME` / settings).
-5. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
-6. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`.
-7. Light synthetic backfill via `reseed_all_models --no-flush --per-model 2` for sparse tables.
-8. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
-9. Relationship post-pass (M2M + org relations) handled inside `reseed_all_models` command logic.
-10. Summary output printed with seeds actually applied.
+1. Environment guard: verifies interpreter matches project `bin/python` & Django 5.x (override with `ALLOW_SYSTEM_PY=1`).
+1. Terminates existing PostgreSQL sessions for the target DB.
+1. Drops and recreates the database (name from `DATABASE_NAME` / settings).
+1. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
+1. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`, and `seed_relationships`.
+1. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables.
+1. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
+1. Ensures default `sync.Connection` entries exist (safety alert + verification stubs).
+1. Backfills `Location.metadata.display` by saving each Location (ensures `full_location` is populated).
+1. Summary output printed with seeds actually applied.
 
 ---
 
 ## 3. Usage Cheatsheet
 
-Interactive (asks for confirmation):
+Full destructive reset + seed (default 3 superusers):
 
 ```bash
-python manage.py full_reset_seed
+python manage.py reseed --full
 ```
 
-Force (no prompt):
+Reset with 5 superusers and an extra seed command:
 
 ```bash
-python manage.py full_reset_seed --force
+python manage.py reseed --full --superusers 5 --seed-cmd refresh_keywords
 ```
 
-Skip seeding but still create 3 superusers:
-
-```bash
-python manage.py full_reset_seed --force --no-seed
-```
-
-Create 5 superusers and include an extra seed command:
-
-```bash
-python manage.py full_reset_seed --force --superusers 5 --seed-cmd refresh_keywords
-```
-
-Skip superusers entirely:
-
-```bash
-python manage.py full_reset_seed --force --skip-superusers
-```
-
-Run while `DEBUG=False` (explicit override):
-
-```bash
-FORCE_FULL_RESET=1 python manage.py full_reset_seed --force
-```
-
-Bypass environment guard (e.g. running inside a container wrapper):
 Regenerate migrations first (dangerous; local dev only):
 
 ```bash
-python manage.py full_reset_seed --force --nuke-migrations --auto-make
+python manage.py reseed --full --nuke-migrations --auto-makemigrations
 ```
 
-Nuke migrations but let migrate fail if new ones were required (diagnostic):
+Bypass environment guard (e.g., container wrapper):
 
 ```bash
-python manage.py full_reset_seed --force --nuke-migrations
-```
-
-
-```bash
-ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force
+ALLOW_SYSTEM_PY=1 python manage.py reseed --full
 ```
 
 ---
@@ -138,7 +108,7 @@ ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force
 
 ```python
 from common.rebuild import full_reset_and_seed
-res = full_reset_and_seed(create_superusers=2, seed_commands=("seed_orgs",), skip_seed=False)
+res = full_reset_and_seed(create_superusers=2, seed_commands=("seed_orgs",))
 print(res)
 ```
 
@@ -153,7 +123,6 @@ The returned `ResetResult` dataclass exposes: `db_name`, `recreated`, `migration
 | Interpreter match | Prevent running with system Python (wrong Django) | `ALLOW_SYSTEM_PY=1` |
 | Django 5.x check | Avoid applying migrations with incompatible version | `ALLOW_SYSTEM_PY=1` |
 | DEBUG True | Block accidental destructive ops in prod-like config | `FORCE_FULL_RESET=1` |
-| Interactive confirm | Human “are you sure?” gate | `--force` |
 
 The command still refuses if `DJANGO_SETTINGS_MODULE` suggests a production module (contains `prod`).
 
@@ -205,13 +174,13 @@ Add a new management command and chain it by passing `--seed-cmd new_command` or
 
 ---
 
-## 10. Minimal One-Liner (Force, Quiet)
+## 10. Minimal One-Liner
 
 ```bash
-FORCE_FULL_RESET=1 python manage.py full_reset_seed --force --no-seed --skip-superusers
+FORCE_FULL_RESET=1 ALLOW_SYSTEM_PY=1 python manage.py reseed --full
 ```
 
-Useful when you only need a schema refresh without example data.
+Fast local reset with defaults (seeds + 3 superusers).
 
 ---
 
@@ -243,19 +212,26 @@ A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `fu
 
 | Action | Command |
 |--------|---------|
-| Full reset + seed + 3 superusers | `python manage.py full_reset_seed --force` |
-| Reset only (no seed, no superusers) | `python manage.py full_reset_seed --force --no-seed --skip-superusers` |
-| Reset with 5 superusers | `python manage.py full_reset_seed --force --superusers 5` |
+| Full reset + seed + 3 superusers | `python manage.py reseed --full` |
+| Full reset with 5 superusers | `python manage.py reseed --full --superusers 5` |
 | Programmatic call | `from common.rebuild import full_reset_and_seed` |
-| Bypass env guard | `ALLOW_SYSTEM_PY=1 python manage.py full_reset_seed --force` |
-| Fast dev nuke (regenerate + no seed) | `python manage.py dev_nuke --force --no-seed --skip-superusers` |
-| Quick reset (nuke + 3 superusers, no seed) | `python manage.py quick_reset --force` |
-| One-shot nuke + seed + 3 superusers | `python manage.py nuke_reseed_3` |
-| One-shot nuke + seed + 3 superusers (includes extended relationship linking: orders↔orgs, orderlines↔orders/contacts) | `python manage.py nuke_reseed_3` |
+| Bypass env guard | `ALLOW_SYSTEM_PY=1 python manage.py reseed --full` |
 
 ### Safety alert Connection
 
-`nuke_reseed_3` also ensures a safety alert connection exists:
+`reseed --full` also ensures a safety alert connection exists and performs location display backfill:
+ 
+### Targeted reseeds (per model)
+
+Use the unified command to reseed only a specific model/table without flushing:
+
+```bash
+python manage.py reseed --no-flush --per-model 3 --model communications.Location
+# or by db table name
+python manage.py reseed --no-flush --per-model 3 --table locations
+```
+
+Relationship building and `seed_relationships` run automatically for both `reseed --full` and targeted reseeds.
 
 - `sync.Connection`: name=`alert`, type=`safety_alert`, purpose=`webclerk.com`, status=`safe`.
 - Used to signal assaults/incidents to webclerk.com for verification and coordinated communication.

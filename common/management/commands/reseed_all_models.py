@@ -51,6 +51,8 @@ class Command(BaseCommand):
         parser.add_argument('--no-relate', action='store_true', help='Skip relationship (FK/M2M/org relations) pass.')
         parser.add_argument('--m2m-max', type=int, default=3, help='Max related objects to attach per M2M field.')
         parser.add_argument('--org-relations', type=int, default=3, help='OrgBase relations parent/child/linked cap.')
+        parser.add_argument('--model', type=str, help='Target a single model (app_label.ModelName or ModelName).')
+        parser.add_argument('--table', type=str, help='Target a single model by db table name (exact match).')
 
     def handle(self, *args, **opts):  # pragma: no cover - orchestration
         per_model = max(1, int(opts['per_model']))
@@ -62,7 +64,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('Flushing database ...'))
             call_command('flush', interactive=False)
 
-        # Collect candidate models
+    # Collect candidate models
         # Pass 6: Seed 3-level BOM hierarchy (parent -> mid -> leaf components) -----------------
         if not dry_run:
             try:
@@ -129,6 +131,32 @@ class Command(BaseCommand):
         if restrict_apps:
             all_models = [m for m in all_models if m._meta.app_label in restrict_apps]
 
+        # Optional: narrow to a specific model via --model or --table
+        target_model = None
+        target_model_arg = (opts.get('model') or '').strip()
+        target_table = (opts.get('table') or '').strip()
+        if target_model_arg:
+            if '.' in target_model_arg:
+                app_label, cls_name = target_model_arg.split('.', 1)
+                try:
+                    target_model = apps.get_model(app_label, cls_name)
+                except Exception:
+                    target_model = None
+            else:
+                # Search by class name (first match)
+                for m in all_models:
+                    if m.__name__.lower() == target_model_arg.lower():
+                        target_model = m
+                        break
+        elif target_table:
+            for m in all_models:
+                if getattr(m._meta, 'db_table', '').lower() == target_table.lower():
+                    target_model = m
+                    break
+        if target_model is not None:
+            all_models = [target_model]
+            self.stdout.write(self.style.NOTICE(f"Targeting single model: {target_model._meta.app_label}.{target_model.__name__}"))
+
         # Exclude Django internal / migration bookkeeping models
         EXCLUDE_PREFIXES = {'auth.', 'admin.', 'sessions.', 'contenttypes.', 'django_celery_', 'django_'}
         models_list = []
@@ -138,7 +166,7 @@ class Command(BaseCommand):
                 continue
             models_list.append(m)
 
-        # Build dependency graph (required FKs only)
+    # Build dependency graph (required FKs only)
         deps: Dict[models.Model, Set[models.Model]] = {}
         for m in models_list:
             required: Set[models.Model] = set()
@@ -175,6 +203,12 @@ class Command(BaseCommand):
         # Optional relationship building pass
         if not opts.get('no_relate'):
             self._build_relationships(models_list, dry_run=dry_run, m2m_max=int(opts['m2m_max']), org_rel_cap=int(opts['org_relations']))
+            # Also run seed_relationships to populate refs.links and related caches (idempotent)
+            try:
+                call_command('seed_relationships')
+                self.stdout.write(self.style.SUCCESS('seed_relationships complete.'))
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f'seed_relationships skipped: {e}'))
 
     # -------- internals -------------------------------------------------
     def _toposort(self, models_list: List[models.Model], deps: Dict[models.Model, Set[models.Model]]):

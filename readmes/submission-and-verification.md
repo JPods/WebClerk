@@ -17,7 +17,7 @@
 
 ## Overview
 
-Communications models (Location, Email, Phone) support a submission/verification flow. On create, we capture the original client payload in `prefs.submission.as_submitted` for traceability. Background tasks (Celery) can verify records (e.g., addresses via OpenStreetMap/Nominatim) and update model fields and metadata.
+Communications models (Location, Email, Phone) support a submission/verification flow. On create, we capture the original client payload in `prefs.submission.as_submitted` for traceability. Background tasks (Celery) can verify records (e.g., physical locations via OpenStreetMap/Nominatim) and update model fields and metadata.
 
 ## Submission Snapshot
 
@@ -31,7 +31,7 @@ Communications models (Location, Email, Phone) support a submission/verification
   - `validate_location_osm(location_id)` — marks provider `osm`, status `stubbed`.
   - `validate_email_format(email_id)` — marks provider `local`, status `stubbed`.
   - `validate_phone_basic(phone_id)` — marks provider `local`, status `stubbed`.
-- Trigger address verification: `location.queue_verification('osm')`.
+- Trigger location verification: `location.queue_verification('osm')`.
 
 ## Applying Results
 
@@ -43,6 +43,25 @@ Communications models (Location, Email, Phone) support a submission/verification
 ## Clearing the Snapshot
 
 - After successful validation, call `Location.clear_submission_snapshot(keep_copy_in_versioning=False)`.
+
+## Location display metadata
+
+On each save, `Location` computes a compact single-line label and persists it to `metadata.display.full_location`. It also stores a detected formatting `standard` (e.g., `us` or `eu`) and a `country_code` where possible. This keeps common UI labels fast to render without reformatting on every request.
+
+Example `metadata.display` payload:
+
+```json
+{
+  "full_location": "123 Main St, Apt 5, Springfield, IL 62704",
+  "standard": "us",
+  "country_code": "US"
+}
+```
+
+Notes:
+
+- Bulk `.update()` calls will not trigger recompute; prefer model `save()` or schedule a refresh.
+- For advanced international formatting, consider integrating libpostal or Babel in the future.
   - Optionally archives a copy into `metadata.versioning.submission_archived`.
 
 ## Next Steps

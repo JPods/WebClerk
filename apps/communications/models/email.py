@@ -62,3 +62,25 @@ class Email(BaseModel):
     def status_display(self):
         """Human-readable status derived from opt_out state."""
         return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')
+
+    # --- Verification helpers (async + decision gate) -------------------
+    def queue_verification(self, connection_name: str | None = None) -> None:
+        try:
+            from apps.communications.tasks import validate_email_format
+            validate_email_format.delay(self.pk)
+        except Exception:
+            pass
+
+    def mark_verification_review(self, status: str, exchange_id: int | None = None, by: int | None = None):
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        ver_parent = meta.setdefault('versioning', {})
+        if not isinstance(ver_parent, dict):
+            ver_parent = {}
+            meta['versioning'] = ver_parent
+        ver = ver_parent.setdefault('validation', {})
+        if not isinstance(ver, dict):
+            ver = {}
+            ver_parent['validation'] = ver
+        ver['review'] = {"status": status, "exchange_id": exchange_id, "by": by or 0, "dt": int(timezone.now().timestamp()*1000)}
+        self.metadata = meta  # type: ignore[assignment]
+        self.save(update_fields=['metadata', 'dt_modified'])

@@ -54,7 +54,7 @@ class Location(BaseModel):
           - latitude, longitude: floats
           - normalized: dict with cleaned fields
         """
-        meta = self.metadata or {}
+        meta: Dict[str, Any] = dict(self.metadata or {})
         ver = meta.setdefault("versioning", {}).setdefault("validation", {})
         if "provider" in result:
             ver["provider"] = result["provider"]
@@ -95,7 +95,7 @@ class Location(BaseModel):
         prefs = getattr(self, 'prefs', {}) or {}
         as_sub = prefs.get('submission', {}).get('as_submitted')
         if keep_copy_in_versioning and as_sub:
-            meta = self.metadata or {}
+            meta: Dict[str, Any] = dict(self.metadata or {})
             ver = meta.setdefault('versioning', {})
             ver['submission_archived'] = as_sub
             self.metadata = meta
@@ -104,3 +104,162 @@ class Location(BaseModel):
             prefs['submission'].pop('as_submitted', None)
         self.prefs = prefs
         self.save(update_fields=['prefs', 'metadata', 'dt_modified'])
+
+    # --- Compact display metadata ---------------------------------------
+    def _compute_display_location(self) -> Dict[str, Any]:
+        """Return a small dict suitable for metadata.display.* storage.
+
+        Keeps it concise: {'full_location': str, 'standard': 'us'|'eu', 'country_code': 'US'|..}
+        """
+        data = self.as_standard('auto')
+        return {
+            'full_location': data.get('full', ''),
+            'standard': data.get('standard', 'auto'),
+            'country_code': data.get('country_code', ''),
+        }
+
+    def _refresh_display_metadata(self) -> None:
+        try:
+            meta: Dict[str, Any] = dict(self.metadata or {})
+            display = meta.setdefault('display', {})
+            display.update(self._compute_display_location())
+            self.metadata = meta
+        except Exception:
+            # Never block save due to formatting issues
+            pass
+
+    def save(self, *args, **kwargs):  # type: ignore[override]
+        # Persist computed display bits prior to saving
+        self._refresh_display_metadata()
+        return super().save(*args, **kwargs)
+
+    # --- Standard formatting helpers (US/EU generic) ----------------------
+    # Note: Python stdlib doesn’t include postal address formatters.
+    # These helpers provide lightweight, conventional formats without deps.
+    # For advanced i18n, consider: libpostal (py-libpostal) or Babel+i18naddress.
+
+    _COUNTRY_NORMALIZE = {
+        'UNITED STATES': ('US', 'United States'), 'USA': ('US', 'United States'), 'US': ('US', 'United States'),
+        'UNITED KINGDOM': ('GB', 'United Kingdom'), 'UK': ('GB', 'United Kingdom'), 'GB': ('GB', 'United Kingdom'),
+        'GERMANY': ('DE', 'Germany'), 'DE': ('DE', 'Germany'),
+        'FRANCE': ('FR', 'France'), 'FR': ('FR', 'France'),
+        'CANADA': ('CA', 'Canada'), 'CA': ('CA', 'Canada'),
+    }
+
+    def _norm_str(self, v: Optional[str]) -> str:
+        return (v or '').strip()
+
+    def _country_norm(self) -> tuple[str, str]:
+        raw = self._norm_str(getattr(self, 'country', ''))
+        key = raw.upper()
+        return self._COUNTRY_NORMALIZE.get(key, (raw[:2].upper() if raw else '', raw or ''))
+
+    def parts(self) -> Dict[str, str]:
+        """Return sanitized address parts."""
+        return {
+            'address1': self._norm_str(getattr(self, 'address1', '')),
+            'address2': self._norm_str(getattr(self, 'address2', '')),
+            'city': self._norm_str(getattr(self, 'city', '')),
+            'state': self._norm_str(getattr(self, 'state', '')),
+            'zip': self._norm_str(getattr(self, 'zip', '')),
+            'country': self._norm_str(getattr(self, 'country', '')),
+        }
+
+    # Generic EU-ish single-line (postal code before city), minimal heuristic
+    def full_eu(self, include_country: bool = False) -> str:
+        p = self.parts()
+        segments: list[str] = []
+        if p['address1']:
+            segments.append(p['address1'])
+        if p['address2']:
+            segments.append(p['address2'])
+        town = ' '.join(s for s in [p['zip'], p['city']] if s)
+        region = p['state']
+        if town:
+            segments.append(town)
+        if region:
+            segments.append(region)
+        if include_country and p['country']:
+            segments.append(p['country'])
+        return ', '.join([s for s in segments if s])
+
+    # US single-line (City, ST ZIP)
+    def full_us(self, include_country: bool = False) -> str:
+        p = self.parts()
+        line1 = p['address1']
+        line2 = p['address2']
+        city_state_zip = ' '.join(s for s in [f"{p['city']}," if p['city'] else '', p['state'], p['zip']] if s)
+        segments = [line1]
+        if line2:
+            segments.append(line2)
+        if city_state_zip:
+            segments.append(city_state_zip)
+        if include_country and p['country']:
+            segments.append(p['country'])
+        return ', '.join([s for s in segments if s])
+
+    def lines_us(self, include_country: bool = False) -> list[str]:
+        p = self.parts()
+        lines: list[str] = []
+        if p['address1']:
+            lines.append(p['address1'])
+        if p['address2']:
+            lines.append(p['address2'])
+        city_line = ' '.join(s for s in [f"{p['city']}," if p['city'] else '', p['state'], p['zip']] if s)
+        if city_line:
+            lines.append(city_line)
+        if include_country and p['country']:
+            lines.append(p['country'])
+        return lines
+
+    def lines_eu(self, include_country: bool = False) -> list[str]:
+        p = self.parts()
+        lines: list[str] = []
+        if p['address1']:
+            lines.append(p['address1'])
+        if p['address2']:
+            lines.append(p['address2'])
+        town = ' '.join(s for s in [p['zip'], p['city']] if s)
+        if town:
+            lines.append(town)
+        if p['state']:
+            lines.append(p['state'])
+        if include_country and p['country']:
+            lines.append(p['country'])
+        return lines
+
+    def format_auto(self, include_country_if_foreign: bool = True) -> str:
+        code, _ = self._country_norm()
+        include_country = include_country_if_foreign and code not in ('', 'US')
+        if code == 'US':
+            return self.full_us(include_country=include_country)
+        return self.full_eu(include_country=include_country)
+
+    def as_standard(self, standard: str = 'auto') -> Dict[str, Any]:
+        """Return a standard dictionary for common uses.
+
+        standard: 'auto'|'us'|'eu'. Includes:
+          - standard, country_code, country
+          - parts: normalized components
+          - lines: array form
+          - full: single-line label
+        """
+        code, name = self._country_norm()
+        p = self.parts()
+        std = standard.lower() if isinstance(standard, str) else 'auto'
+        if std == 'auto':
+            std = 'us' if code == 'US' else 'eu'
+        if std == 'us':
+            lines = self.lines_us(include_country=False)
+            full = self.full_us(include_country=False)
+        else:
+            lines = self.lines_eu(include_country=False)
+            full = self.full_eu(include_country=False)
+        return {
+            'standard': std,
+            'country_code': code,
+            'country': name or p['country'],
+            'parts': p,
+            'lines': lines,
+            'full': full,
+        }

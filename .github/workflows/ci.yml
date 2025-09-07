@@ -30,9 +30,9 @@ env:
 
 jobs:
   smoke:
-  name: Smoke (markers=smoke)
-  runs-on: ubuntu-latest
-  steps:
+    name: Smoke (markers=smoke)
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Enforce docs layout
@@ -40,8 +40,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-            python-version: '3.13'
-            cache: 'pip'
+          python-version: '3.13'
+          cache: 'pip'
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
