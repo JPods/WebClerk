@@ -30,6 +30,10 @@ Quick start (stub mode, no external calls):
 
    - Call the Celery task `validate_email_format(email_id)` after creating an Email, or from the admin.
 
+Safety alert connection:
+
+- The `nuke_reseed_3` command auto-seeds a `sync.Connection` with `name="alert"`, `type="safety_alert"`, `purpose="webclerk.com"`, and `status="safe"`. This is reserved for incident signaling; if the local system detects an assault, it can trigger an Exchange via this connection to notify webclerk.com for verification and coordinated communication.
+
 Result schema (normalized):
 
 ```json
