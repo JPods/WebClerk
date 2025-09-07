@@ -19,10 +19,10 @@ def user(api_client):
 
 def test_tag_list_create_and_pagination(api_client, user):
     list_url = reverse('tag-list')
-    r = api_client.post(list_url, {'name':'T1','purpose':'track','status':'active','table_name':'shipments','record_id':1}, format='json')
+    r = api_client.post(list_url, {'name':'T1','purpose':'track','status':'active','record_id':1}, format='json')
     assert r.status_code in (200,201)
     for i in range(30):
-        api_client.post(list_url, {'name':f'T{i}','purpose':'batch','table_name':'equip','record_id':i}, format='json')
+        api_client.post(list_url, {'name':f'T{i}','purpose':'batch','record_id':i}, format='json')
     page1 = api_client.get(list_url)
     assert page1.status_code == 200
     data = page1.json()['data']

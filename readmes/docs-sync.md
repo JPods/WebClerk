@@ -25,7 +25,7 @@
 
 <!-- TOC END -->
 
-This document explains how markdown files in the repository are ingested into `Document` rows (table_name = `readme`), exposed via API endpoints, and exported as a lightweight JSON index for client (React) consumption.
+This document explains how markdown files in the repository are ingested into `Document` rows (model_name = `readme`), exposed via API endpoints, and exported as a lightweight JSON index for client (React) consumption.
 
 ---
 
@@ -53,7 +53,7 @@ Each markdown file becomes a `Document` with:
 - `name`: First H1 line (or stem if absent).
 - `description`: Auto-filled reference to source path.
 - `body`: Entire markdown content (possibly truncated if configured).
-- `table_name`: Always `readme` for these ingested docs.
+- `model_name`: Always `readme` for these ingested docs.
 - `data` JSON extras:
   - `category`: `readme`
   - `source_path`: Repository-relative path

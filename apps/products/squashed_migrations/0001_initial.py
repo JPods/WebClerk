@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('dt_effective_end', models.BigIntegerField(blank=True, null=True)),
                 ('is_active', models.BooleanField(db_index=True, default=True)),
                 ('metrics', models.JSONField(blank=True, default=apps.products.models.catalog.default_catalog_metrics, help_text='Operational & performance metrics (plan vs actual, sync stats, counts)', null=True)),
-                ('connection', models.ForeignKey(blank=True, help_text='Sync connection managing external catalog integration (optional)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='catalogs', to='sync.connection')),
+                ('connection', models.ForeignKey(blank=True, help_text='Sync connection managing external catalog integration (optional)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='catalogs', to='sync.Connection')),
                 ('customer_org', models.ForeignKey(blank=True, help_text='Target customer organization scope (optional)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='customer_catalogs', to='orgs.orgbase')),
                 ('employee_org', models.ForeignKey(blank=True, help_text='Internal employee / corporate organizational context (optional)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='employee_catalogs', to='orgs.orgbase')),
                 ('manufacturer_org', models.ForeignKey(blank=True, help_text='Manufacturer associated with this catalog (optional)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='manufacturer_catalogs', to='orgs.orgbase')),

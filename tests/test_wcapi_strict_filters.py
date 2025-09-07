@@ -18,18 +18,18 @@ class WcapiStrictFilterTests(TestCase):
         return self.client.post('/wcapi/query/', data=json.dumps(payload), content_type='application/json', **headers)
 
     def test_default_ignores_unknown(self):
-        resp = self.post({'table_name': 'contacts', 'unknown_field': 'x'})
+        resp = self.post({'model_name': 'contact', 'unknown_field': 'x'})  #chaned from t_n
         self.assertEqual(resp.status_code, 200)
         assert_envelope(resp.json(), expect_status='success')
 
     def test_strict_param_rejects_unknown(self):
-        resp = self.post({'table_name': 'contacts', 'unknown_field': 'x', 'strict': 1})
+        resp = self.post({'model_name': 'contact', 'unknown_field': 'x', 'strict': 1})  #chaned from t_n
         self.assertEqual(resp.status_code, 400)
         body = resp.json(); assert_envelope(body, expect_status='fail')
         self.assertIn('Invalid filter field', body.get('message', ''))
 
     def test_strict_header_rejects_unknown(self):
-        resp = self.post({'table_name': 'contacts', 'unknown_field': 'x'}, HTTP_WCAPI_STRICT='1')
+        resp = self.post({'model_name': 'contact', 'unknown_field': 'x'}, HTTP_WCAPI_STRICT='1')  #chaned from t_n
         self.assertEqual(resp.status_code, 400)
         body = resp.json(); assert_envelope(body, expect_status='fail')
         self.assertIn('Invalid filter field', body.get('message', ''))

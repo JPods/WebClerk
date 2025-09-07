@@ -37,7 +37,7 @@ class WcapiConcurrencyTests(TestCase):
     def test_update_with_matching_version_succeeds_and_bumps(self):
         v = self.contact.version
         resp = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'version': v,
             'name_first': 'Updated'
@@ -50,7 +50,7 @@ class WcapiConcurrencyTests(TestCase):
     def test_update_with_stale_version_conflicts(self):
         v = self.contact.version
         ok = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'version': v,
             'name_last': 'One'
@@ -59,7 +59,7 @@ class WcapiConcurrencyTests(TestCase):
         new_v = assert_envelope(ok.json(), expect_status='success')['version']
         self.assertEqual(new_v, v + 1)
         conflict = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'version': v,
             'name_last': 'Two'
@@ -70,7 +70,7 @@ class WcapiConcurrencyTests(TestCase):
     def test_if_match_header_precedence(self):
         v = self.contact.version
         first = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'version': v,
             'name_first': 'One'
@@ -80,7 +80,7 @@ class WcapiConcurrencyTests(TestCase):
         self.assertEqual(bumped, v + 1)
         # Stale body version but correct If-Match header should allow update
         second = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'version': v,  # stale body version; header takes precedence
             'name_first': 'Two'
@@ -93,7 +93,7 @@ class WcapiConcurrencyTests(TestCase):
     def test_if_match_header_conflict(self):
         v = self.contact.version
         first = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'version': v,
             'name_last': 'Alpha'
@@ -102,7 +102,7 @@ class WcapiConcurrencyTests(TestCase):
         bumped = assert_envelope(first.json(), expect_status='success')['version']
         self.assertEqual(bumped, v + 1)
         conflict = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'name_last': 'Beta'
         }, headers={'HTTP_IF_MATCH': str(v)})
@@ -112,7 +112,7 @@ class WcapiConcurrencyTests(TestCase):
     def test_if_match_wildcard_skips_check(self):
         v = self.contact.version
         resp = self.save({
-            'table_name': 'contacts',
+            'model_name': 'contact',  #chaned from t_n
             'id': self.contact.id,
             'name_first': 'Wildcard'
         }, headers={'HTTP_IF_MATCH': '*'})

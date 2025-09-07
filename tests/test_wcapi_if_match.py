@@ -34,7 +34,7 @@ class WcapiIfMatchTests(TestCase):
 
     def test_if_match_success(self):
         v = self.contact.version
-        resp = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_first': 'Alpha'}, HTTP_IF_MATCH=str(v))
+        resp = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_first': 'Alpha'}, HTTP_IF_MATCH=str(v))  #chaned from t_n
         self.assertEqual(resp.status_code, 200)
         data = assert_envelope(resp.json(), expect_status='success')
         record = data.get('record') or data
@@ -43,10 +43,10 @@ class WcapiIfMatchTests(TestCase):
 
     def test_if_match_conflict_412(self):
         v = self.contact.version
-        ok = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'One'}, HTTP_IF_MATCH=str(v))
+        ok = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_last': 'One'}, HTTP_IF_MATCH=str(v))  #chaned from t_n
         self.assertEqual(ok.status_code, 200)
         assert_envelope(ok.json(), expect_status='success')
-        stale = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Two'}, HTTP_IF_MATCH=str(v))
+        stale = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_last': 'Two'}, HTTP_IF_MATCH=str(v))  #chaned from t_n
         self.assertEqual(stale.status_code, 412)
         body = stale.json()
         assert_envelope(body)  # structural check (status likely 'error')
@@ -54,7 +54,7 @@ class WcapiIfMatchTests(TestCase):
 
     def test_if_match_malformed_header_400(self):
         v = self.contact.version
-        bad = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_first': 'Bad'}, HTTP_IF_MATCH='"abc"')
+        bad = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_first': 'Bad'}, HTTP_IF_MATCH='"abc"')  #chaned from t_n
         self.assertEqual(bad.status_code, 400)
         body = bad.json()
         assert_envelope(body)
@@ -64,10 +64,10 @@ class WcapiIfMatchTests(TestCase):
 
     def test_if_match_wildcard_skips_check(self):
         v = self.contact.version
-        first = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_first': 'One'}, HTTP_IF_MATCH='*')
+        first = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_first': 'One'}, HTTP_IF_MATCH='*')  #chaned from t_n
         self.assertEqual(first.status_code, 200)
         assert_envelope(first.json(), expect_status='success')
-        second = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_first': 'Two'}, HTTP_IF_MATCH='*')
+        second = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_first': 'Two'}, HTTP_IF_MATCH='*')  #chaned from t_n
         self.assertEqual(second.status_code, 200)
         data2 = assert_envelope(second.json(), expect_status='success')
         record2 = data2.get('record') or data2
@@ -75,12 +75,12 @@ class WcapiIfMatchTests(TestCase):
 
     def test_if_match_wildcard_bypasses_stale(self):
         v = self.contact.version
-        ok = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage1'}, HTTP_IF_MATCH=str(v))
+        ok = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_last': 'Stage1'}, HTTP_IF_MATCH=str(v))  #chaned from t_n
         self.assertEqual(ok.status_code, 200)
         assert_envelope(ok.json(), expect_status='success')
-        conflict = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage2'}, HTTP_IF_MATCH=str(v))
+        conflict = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_last': 'Stage2'}, HTTP_IF_MATCH=str(v))  #chaned from t_n
         self.assertEqual(conflict.status_code, 412)
-        wildcard = self.post({'table_name': 'contacts', 'id': self.contact.id, 'name_last': 'Stage3'}, HTTP_IF_MATCH='*')
+        wildcard = self.post({'model_name': 'contact', 'id': self.contact.id, 'name_last': 'Stage3'}, HTTP_IF_MATCH='*')  #chaned from t_n
         self.assertEqual(wildcard.status_code, 200)
         data_wild = assert_envelope(wildcard.json(), expect_status='success')
         record_wild = data_wild.get('record') or data_wild
@@ -88,7 +88,7 @@ class WcapiIfMatchTests(TestCase):
 
     def test_legacy_expected_version_deprecation_message(self):
         v = self.contact.version
-        resp = self.post({'table_name': 'contacts', 'id': self.contact.id, 'expected_version': v, 'name_first': 'Legacy'})
+        resp = self.post({'model_name': 'contact', 'id': self.contact.id, 'expected_version': v, 'name_first': 'Legacy'})  #chaned from t_n
         self.assertEqual(resp.status_code, 200)
         data = assert_envelope(resp.json(), expect_status='success')
         self.assertIn('messages', data)

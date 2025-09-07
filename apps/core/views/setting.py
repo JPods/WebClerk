@@ -9,7 +9,7 @@ class SettingListView(BaseListCreateView):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'settings'
+    # model_name only; legacy table_name removed
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
         page_size_query_param = 'page_size'
@@ -20,12 +20,12 @@ class SettingDetailView(BaseOptimisticDetailView):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'settings'
+    # model_name only; legacy table_name removed
 
 class SettingSearchView(PrefixAndSearchView):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
     permission_classes = [IsAuthenticated]
-    search_fields = ['name','purpose','table_name','ida']
-    table_name = 'settings'
+    search_fields = ['name','purpose','model_name','ida']
+    # model_name only; legacy table_name removed
     model = Setting

@@ -21,7 +21,7 @@ def file_checksum(path: Path) -> str:
 
 
 class Command(BaseCommand):
-    help = 'Sync markdown readme files into Document rows (table_name=readme, slug=derived).'
+    help = 'Sync markdown readme files into Document rows (model_name=readme, slug=derived).'
 
     def add_arguments(self, parser):
         parser.add_argument('--delete-missing', action='store_true', help='Delete Document rows whose source file disappeared')
@@ -138,7 +138,7 @@ class Command(BaseCommand):
                     'name': title,
                     'description': f'Readme imported from {rel}',
                     'body': text,
-                    'table_name': 'readme',
+                    'model_name': 'readme',
                     'data': {
                         'category': 'readme',
                         'source_path': rel,
@@ -166,7 +166,7 @@ class Command(BaseCommand):
                     idx += 1
                 discovered[slug] = payload
 
-        existing = {d.slug: d for d in Document.objects.filter(table_name='readme')}
+    existing = {d.slug: d for d in Document.objects.filter(model_name='readme')}
         created = 0
         updated = 0
         unchanged = 0

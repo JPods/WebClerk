@@ -29,7 +29,7 @@ class UniversalAPITestCase(TestCase):
 
     # Helper methods
     def universal_query(self, table_name, **extra):
-        payload = {'table_name': table_name}
+        payload = {'model_name': table_name.rstrip('s') if table_name.endswith('s') else table_name}
         payload.update(extra)
         return self.client.post(
             '/wcapi/query/',
@@ -38,7 +38,7 @@ class UniversalAPITestCase(TestCase):
         )
 
     def universal_save(self, table_name, record):
-        payload = {'table_name': table_name}
+        payload = {'model_name': table_name.rstrip('s') if table_name.endswith('s') else table_name}
         payload.update(record)
         return self.client.post(
             '/wcapi/save/',
@@ -49,7 +49,7 @@ class UniversalAPITestCase(TestCase):
     def universal_get(self, table_name, pk):
         return self.client.post(
             '/wcapi/get/',
-            data=json.dumps({'table_name': table_name, 'id': pk}),
+            data=json.dumps({'model_name': table_name.rstrip('s') if table_name.endswith('s') else table_name, 'id': pk}),
             content_type='application/json'
         )
 
@@ -58,7 +58,7 @@ class ContactAPITests(UniversalAPITestCase):
     def test_query_contacts(self):
         resp = self.universal_query('contacts')
         data = assert_envelope(resp.json(), expect_status='success')
-        self.assertEqual(data['table_name'], 'contacts')
+        self.assertEqual(data['model_name'], 'contact')
         self.assertIn('results', data)
         # ensure at least the two seeded contacts exist
         emails = {r.get('email') for r in data['results']}

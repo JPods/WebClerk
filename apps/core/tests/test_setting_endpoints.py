@@ -28,7 +28,7 @@ def auth_client(api_client, admin_user):
 def test_setting_crud_and_search(auth_client):
     # create
     list_url = reverse('setting-list')
-    create_resp = auth_client.post(list_url, {'name':'Keywords Config','purpose':'keywords','table_name':'documents','data':{'fields':['title','body']}}, format='json')
+    create_resp = auth_client.post(list_url, {'name':'Keywords Config','purpose':'keywords','model_name':'documents','data':{'fields':['title','body']}}, format='json')
     assert create_resp.status_code == 201, getattr(create_resp,'data',None)
     rid = create_resp.data['data'].get('id') or create_resp.data['data'].get('record', {}).get('id')  # type: ignore[attr-defined]
     # detail

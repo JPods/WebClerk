@@ -28,7 +28,7 @@ def auth_client(api_client, admin_user):
 def test_template_crud_and_search(auth_client):
     # create
     list_url = reverse('template-list')
-    create_resp = auth_client.post(list_url, {'name':'Welcome Email','purpose':'welcome','table_name':'emails'}, format='json')
+    create_resp = auth_client.post(list_url, {'name':'Welcome Email','purpose':'welcome','model_name':'email'}, format='json')
     assert create_resp.status_code == 201, getattr(create_resp,'data',None)
     rid = create_resp.data['data'].get('id') or create_resp.data['data'].get('record', {}).get('id')  # type: ignore[attr-defined]
     # detail

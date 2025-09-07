@@ -2,7 +2,7 @@
 {% load static %}
 {% load i18n %}
 
-{% block title %}Manage Contacts - WebClerk 3.0{% endblock %}
+{% block title %}Manage contact - WebClerk 3.0{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -18,14 +18,14 @@
                             <i class="fas fa-user"></i> Me
                         </button>
                         <input type="search" id="contact-search" class="form-control form-control-sm" 
-                               placeholder="Search contacts..." onkeyup="searchContacts()">
+                               placeholder="Search contact..." onkeyup="searchcontact()">
                     </div>
                 </div>
                 <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                    <div id="contacts-list">
+                    <div id="contact-list">
                         <div class="text-center">
                             <div class="spinner-border spinner-border-sm" role="status"></div>
-                            <small class="text-muted">Loading contacts...</small>
+                            <small class="text-muted">Loading contact...</small>
                         </div>
                     </div>
                 </div>
@@ -60,9 +60,9 @@
             </div>
         </div>
         
-        <!-- Right Side - Related Tables -->
+        <!-- Right Side - Related models -->
         <div class="col-md-6">
-            <!-- Actions Table -->
+            <!-- Actions model -->
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-tasks"></i> Actions</h5>
@@ -79,7 +79,7 @@
                 </div>
             </div>
             
-            <!-- Emails Table -->
+            <!-- Emails model -->
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-envelope"></i> Emails</h5>
@@ -96,7 +96,7 @@
                 </div>
             </div>
             
-            <!-- Phones Table -->
+            <!-- Phones model -->
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-phone"></i> Phone Numbers</h5>
@@ -113,7 +113,7 @@
                 </div>
             </div>
             
-            <!-- Locationes Table -->
+            <!-- Locationes model -->
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-map-marker-alt"></i> Locationes</h5>
@@ -130,7 +130,7 @@
                 </div>
             </div>
             
-            <!-- Domains Table -->
+            <!-- Domains model -->
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="fas fa-globe"></i> Domains</h5>
@@ -156,7 +156,7 @@
         <strong>Check Allowed Fields</strong>
     </div>
     <div class="card-body d-flex gap-2 align-items-center">
-        <input type="text" id="allowed-fields-table" class="form-control form-control-sm" placeholder="Table name (e.g. emails)">
+        <input type="text" id="allowed-fields-model" class="form-control form-control-sm" placeholder="model name (e.g. emails)">
         <input type="text" id="allowed-fields-role" class="form-control form-control-sm" placeholder="Role (e.g. ADMIN)">
         <button class="btn btn-sm btn-info" onclick="runAllowedFieldsCheck()">Check</button>
     </div>
@@ -169,55 +169,55 @@
 <script src="{% static 'js/contact.js' %}"></script>
 <script>
 const SIGNED_CONTACT_ID = {{ user.id|default:'null' }};
-let allContacts = [];
+let allcontact = [];
 let selected_id = null;
-let _contactsLoadedOnce = false;
+let _contactLoadedOnce = false;
 let isEditingContact = false;
 let isCreatingContact = false;
 
-async function loadContacts() {
+async function loadcontact() {
     try {
-        const response = await fetch('/wcapi/get/?table_name=contacts');
+        const response = await fetch('/wcapi/get/?model_name=contact');
         const data = await response.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
              // Only use data.data for primary records
              // Do not expect data.related see user.html for related
-            allContacts = data.data;
-            if (!_contactsLoadedOnce) {
-                selected_id = allContacts[0].id;
-                _contactsLoadedOnce = true;
+            allcontact = data.data;
+            if (!_contactLoadedOnce) {
+                selected_id = allcontact[0].id;
+                _contactLoadedOnce = true;
                 await loadAndRenderContact(selected_id);
-                renderContactsList(allContacts);
+                rendercontactList(allcontact);
             } else {
-                renderContactsList(allContacts);
+                rendercontactList(allcontact);
             }
         } else {
-            document.getElementById('contacts-list').innerHTML = '<div class="text-danger">No contacts found.</div>';
+            document.getElementById('contact-list').innerHTML = '<div class="text-danger">No contact found.</div>';
             renderContactDetails(null);
         }
     } catch (e) {
-        console.error("Error loading contacts:", e);
-        document.getElementById('contacts-list').innerHTML = '<div class="text-danger">Failed to load contacts.</div>';
+        console.error("Error loading contact:", e);
+        document.getElementById('contact-list').innerHTML = '<div class="text-danger">Failed to load contact.</div>';
         renderContactDetails(null);
     }
 }
 
 async function loadAndRenderContact(user_id) {
-    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}`);
+    const response = await fetch(`/wcapi/get/?model_name=contact&id=${user_id}`);
     const data = await response.json();
     if (data.success && data.data) {
         renderContactDetails(data.data); // from contact.js
-        populateRelatedTables(data.data.data || {}); // from contact.js
+        populateRelatedModel(data.data.data || {}); // from contact.js
     } else {
         renderContactDetails(null);
-        populateRelatedTables({});
+        populateRelatedModel({});
     }
 }
 
-function renderContactsList(contacts) {
-    const list = document.getElementById('contacts-list');
+function rendercontactList(contact) {
+    const list = document.getElementById('contact-list');
     list.innerHTML = '';
-    contacts.forEach(contact => {
+    contact.forEach(contact => {
         const div = document.createElement('div');
         div.className = 'contact-list-item';
         if (String(selected_id) === String(contact.id)) { // Always use .id
@@ -245,16 +245,16 @@ async function selectContact(id) {
     isEditingContact = false;
     isCreatingContact = false;
     await loadAndRenderContact(selected_id);
-    renderContactsList(allContacts); // Ensure highlight updates
+    rendercontactList(allcontact); // Ensure highlight updates
 }
 
 
 function renderContactDetails(contact) {
     const details = document.getElementById('contact-details');
-    // If no contact is selected or in create mode, clear related tables
+    // If no contact is selected or in create mode, clear related models
     if (!contact || !contact.id || contact.id === 0 || isCreatingContact) {
         details.innerHTML = '<div class="text-center text-muted"><i class="fas fa-user-circle fa-3x mb-3"></i><p>Select a contact from the list above</p></div>';
-        populateRelatedTables({}); // Clear all related tables
+        populateRelatedModel({}); // Clear all related models
         return;
     }
     const c = contact;
@@ -296,7 +296,7 @@ function renderContactDetails(contact) {
     }
     // Only fetch related data if a valid contact is present and not in create mode
     if (c.id && !isCreatingContact) {
-        fetchRelatedData('contacts', c.id);
+        fetchRelatedData('contact', c.id);
     }
 }
 
@@ -307,7 +307,7 @@ function toggleContactEdit() {
         document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-edit"></i> Edit';
     } else {
         isEditingContact = true;
-        renderContactDetails(allContacts.find(c => c.id == selected_id));
+        renderContactDetails(allcontact.find(c => c.id == selected_id));
         document.getElementById('edit-contact-btn').innerHTML = '<i class="fas fa-save"></i> Save';
     }
 }
@@ -326,7 +326,7 @@ function saveContact() {
         return;
     }
     const updated = {
-        table_name: 'contacts',
+        model_name: 'contact',
         id: selected_id,
         name_first: document.getElementById('edit-name-first').value,
         name_last: document.getElementById('edit-name-last').value,
@@ -349,8 +349,8 @@ function saveContact() {
             alert('Contact saved!');
             //isEditingContact = false;
             // QQQ perhaps reloading is good incase there were server-side changes
-            //_contactsLoadedOnce = false; // <-- Add this line
-            //loadContacts(); // Refresh list and details
+            //_contactLoadedOnce = false; // <-- Add this line
+            //loadcontact(); // Refresh list and details
         } else {
             alert('Error saving contact: ' + (data.message || 'Unknown error'));
         }
@@ -360,54 +360,54 @@ function saveContact() {
     });
 }
 
-//cdn.jsdelivr.net/npm/axios/dist/axios.min.js#async function fetchRelatedData(table_name, selected_id) {
-    //console.log("Calling fetchRelatedData", table_name, selected_id);
-    //const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}&id=${encodeURIComponent(selected_id)}`);
-   // //const response = await fetch(`/wcapi/get/?table_name=related&contact_id=${encodeURIComponent(selected_id)}`);
+//cdn.jsdelivr.net/npm/axios/dist/axios.min.js#async function fetchRelatedData(model_name, selected_id) {
+    //console.log("Calling fetchRelatedData", model_name, selected_id);
+    //const response = await fetch(`/wcapi/related/?model_name=${encodeURIComponent(model_name)}&id=${encodeURIComponent(selected_id)}`);
+   // //const response = await fetch(`/wcapi/get/?model_name=related&contact_id=${encodeURIComponent(selected_id)}`);
     //const data = await response.json();
     //if (data.success) {
-   //     populateRelatedTables(data.related);
+   //     populateRelatedModel(data.related);
    // }
 //}
-async function fetchRelatedData(table_name, selected_id) {
-    console.log("Calling fetchRelatedData", table_name, selected_id);
-    const response = await fetch(`/wcapi/related/?table_name=${encodeURIComponent(table_name)}&id=${encodeURIComponent(selected_id)}`);
+async function fetchRelatedData(model_name, selected_id) {
+    console.log("Calling fetchRelatedData", model_name, selected_id);
+    const response = await fetch(`/wcapi/related/?model_name=${encodeURIComponent(model_name)}&id=${encodeURIComponent(selected_id)}`);
     const data = await response.json();
     if (data.success) {
-        populateRelatedTables(data.data); // Use .data, not .related
+        populateRelatedModel(data.data); // Use .data, not .related
     }
 }
 
 
 
-// Helper to render related tables
-function populateRelatedTables(related) {
-    ['actions', 'emails', 'phones', 'addresses', 'domains'].forEach(table => {
-        const tableDiv = document.getElementById(`${table}-list`);
-        if (tableDiv) {
-            if (related && Array.isArray(related[table]) && related[table].length > 0) {
-                tableDiv.innerHTML = related[table].map(a => {
-                    // Custom rendering per table
-                    if (table === 'emails') {
+// Helper to render related models
+function populateRelatedModel(related) {
+    ['action', 'email', 'phone', 'address', 'domain'].forEach(model => {
+        const modelDiv = document.getElementById(`${model}-list`);
+        if (modelDiv) {
+            if (related && Array.isArray(related[model]) && related[model].length > 0) {
+                modelDiv.innerHTML = related[model].map(a => {
+                    // Custom rendering per model
+                    if (model === 'email') {
                         return `<div>${a.email || '[no email]'}${a.name ? ' (' + a.name + ')' : ''}</div>`;
                     }
-                    if (table === 'phones') {
+                    if (model === 'phone') {
                         return `<div>${a.number || '[no number]'}${a.name ? ' (' + a.name + ')' : ''}</div>`;
                     }
-                    if (table === 'addresses') {
+                    if (model === 'address') {
                         return `<div>${a.address1 || ''} ${a.address2 || ''} ${a.city || ''} ${a.state || ''} ${a.zip || ''}</div>`;
                     }
-                    if (table === 'domains') {
+                    if (model === 'domain') {
                         return `<div>${a.domain || a.path || '[no domain]'}</div>`;
                     }
-                    if (table === 'actions') {
+                    if (model === 'action') {
                         return `<div>${a.action || '[no action]'}${a.status ? ' - ' + a.status : ''}</div>`;
                     }
                     // Fallback
                     return `<div>${JSON.stringify(a)}</div>`;
                 }).join('');
             } else {
-                tableDiv.innerHTML = `<div class="text-muted"><small>No ${table} found.</small></div>`;
+                modelDiv.innerHTML = `<div class="text-muted"><small>No ${model} found.</small></div>`;
             }
         }
     });
@@ -421,17 +421,17 @@ function selectMyContact() {
 }
 
 function runAllowedFieldsCheck() {
-    const table = document.getElementById('allowed-fields-table').value.trim();
+    const model = document.getElementById('allowed-fields-model').value.trim();
     const role = document.getElementById('allowed-fields-role').value.trim();
-    if (!table || !role) {
-        alert('Please enter both table name and role.');
+    if (!model || !role) {
+        alert('Please enter both model name and role.');
         return;
     }
-    fetchAllowedFields(table, role);
+    fetchAllowedFields(model, role);
 }
 
-async function fetchAllowedFields(table_query, role, access_type="view") {
-    const response = await fetch(`/wcapi/utilities/allowed-fields/?table=${encodeURIComponent(table_query)}&role=${encodeURIComponent(role)}&access_type=${encodeURIComponent(access_type)}`);
+async function fetchAllowedFields(model_query, role, access_type="view") {
+    const response = await fetch(`/wcapi/utilities/allowed-fields/?model=${encodeURIComponent(model_query)}&role=${encodeURIComponent(role)}&access_type=${encodeURIComponent(access_type)}`);
     const data = await response.json();
     if (data.success) {
         document.getElementById('allowed-fields-result').textContent = JSON.stringify(data.fields, null, 2);
@@ -440,9 +440,9 @@ async function fetchAllowedFields(table_query, role, access_type="view") {
     }
 }
 
-// Optionally, implement searchContacts as needed
+// Optionally, implement searchcontact as needed
 // must be last
-document.addEventListener('DOMContentLoaded', loadContacts);
+document.addEventListener('DOMContentLoaded', loadcontact);
 </script>
 <style>
 .contact-list-item {

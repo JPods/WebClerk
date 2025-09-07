@@ -20,7 +20,7 @@
                     </h3>
                     <div>
                         <span class="badge bg-primary">{{ contact.get_role_display_name }}</span>
-                        <a href="/wcapi/get/?table_name=contacts&id={{ contact.id }}" class="btn btn-sm btn-outline-secondary ms-2">
+                        <a href="/wcapi/get/?model_name=contact&id={{ contact.id }}" class="btn btn-sm btn-outline-secondary ms-2">
                             <i class="fas fa-code"></i> API Data
                         </a>
                     </div>
@@ -102,7 +102,7 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-tasks"></i> Actions</h5>
-                    <a href="/wcapi/manage/?table_name=actions&contact_id={{ contact.id }}" class="btn btn-sm btn-primary">
+                    <a href="/wcapi/manage/?model_name=action&contact_id={{ contact.id }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-cog"></i> Manage Actions
                     </a>
                 </div>
@@ -122,7 +122,7 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-envelope"></i> Email Addresses</h5>
-                    <a href="/wcapi/manage/?table_name=emails&contact_id={{ contact.id }}" class="btn btn-sm btn-primary">
+                    <a href="/wcapi/manage/?model_name=email&contact_id={{ contact.id }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-cog"></i> Manage Emails
                     </a>
                 </div>
@@ -142,7 +142,7 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-phone"></i> Phone Numbers</h5>
-                    <a href="/wcapi/manage/?table_name=phones&contact_id={{ contact.id }}" class="btn btn-sm btn-success">
+                    <a href="/wcapi/manage/?model_name=phone&contact_id={{ contact.id }}" class="btn btn-sm btn-success">
                         <i class="fas fa-cog"></i> Manage Phones
                     </a>
                 </div>
@@ -162,7 +162,7 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-globe"></i> Domains</h5>
-                    <a href="/wcapi/manage/?table_name=domains&contact_id={{ contact.id }}" class="btn btn-sm btn-info">
+                    <a href="/wcapi/manage/?model_name=domain&contact_id={{ contact.id }}" class="btn btn-sm btn-info">
                         <i class="fas fa-cog"></i> Manage Domains
                     </a>
                 </div>
@@ -182,7 +182,7 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Locationes</h5>
-                    <a href="/wcapi/manage/?table_name=addresses&contact_id={{ contact.id }}" class="btn btn-sm btn-warning">
+                    <a href="/wcapi/manage/?model_name=address&contact_id={{ contact.id }}" class="btn btn-sm btn-warning">
                         <i class="fas fa-cog"></i> Manage Locationes
                     </a>
                 </div>
@@ -209,7 +209,7 @@ const contactId = {{ contact.id }};
 // Load Actions via Universal API
 async function loadActions() {
     try {
-        const response = await fetch(`/wcapi/find/?table_name=actions&refs.links.contacts=${contactId}&limit=5`);
+        const response = await fetch(`/wcapi/find/?model_name=action&refs.links.contact=${contactId}&limit=5`);
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
@@ -273,7 +273,7 @@ async function loadActions() {
 // Load Emails via Universal API
 async function loadEmails() {
     try {
-        const response = await fetch(`/wcapi/find/?table_name=emails&refs.links.contacts=${contactId}`);
+        const response = await fetch(`/wcapi/find/?model_name=email&refs.links.contact=${contactId}`);
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
@@ -337,7 +337,7 @@ async function loadEmails() {
 // Load Phones via Universal API
 async function loadPhones() {
     try {
-        const response = await fetch(`/wcapi/find/?table_name=phones&refs.links.contacts=${contactId}`);
+        const response = await fetch(`/wcapi/find/?model_name=phone&refs.links.contact=${contactId}`);
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
@@ -393,7 +393,7 @@ async function loadPhones() {
 // Load Domains via Universal API
 async function loadDomains() {
     try {
-        const response = await fetch(`/wcapi/find/?table_name=domains&refs.links.contacts=${contactId}`);
+        const response = await fetch(`/wcapi/find/?model_name=domain&refs.links.contact=${contactId}`);
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
@@ -447,7 +447,7 @@ async function loadDomains() {
 // Load Locationes via Universal API
 async function loadLocationes() {
     try {
-        const response = await fetch(`/wcapi/find/?table_name=addresses&refs.links.contacts=${contactId}`);
+        const response = await fetch(`/wcapi/find/?model_name=address&refs.links.contact=${contactId}`);
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
@@ -465,16 +465,17 @@ async function loadLocationes() {
                         </thead>
                         <tbody>
             `;
+
             
-            data.data.forEach(address => {
-                const googleMapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address.full || `${address.address1}, ${address.city}, ${address.state}`)}`;
+            data.data.forEach(location => {
+                const googleMapsUrl = `https://maps.google.com/?q=${encodeURIComponent(location.full || `${location.address1}, ${location.city}, ${location.state}`)}`;
                 
                 html += `
                     <tr>
-                        <td>${address.address_type || 'Location'}</td>
-                        <td>${address.address1}</td>
-                        <td>${address.city}</td>
-                        <td>${address.state}</td>
+                        <td>${location.address_type || 'Location'}</td>
+                        <td>${location.address1}</td>
+                        <td>${location.city}</td>
+                        <td>${location.state}</td>
                         <td>
                             <a href="${googleMapsUrl}" target="_blank" class="btn btn-sm btn-outline-warning">
                                 <i class="fas fa-map"></i>
@@ -533,7 +534,7 @@ function sendTestEmail() {
 
 function exportContact() {
     // Use Universal API to export contact data
-    window.open(`/wcapi/get/?table_name=contacts&id=${contactId}&format=json`, '_blank');
+    window.open(`/wcapi/get/?model_name=contact&id=${contactId}&format=json`, '_blank');
 }
 
 // Load all related data when page loads
@@ -570,7 +571,7 @@ async function loadRelatedData(parentTable, parentId) {
 
 // Example usage: load related data for contact with id 6
 document.addEventListener('DOMContentLoaded', function() {
-    loadRelatedData('contacts', 6); // Replace 6 with the actual contact id as needed
+    loadRelatedData('contact', 6); // Replace 6 with the actual contact id as needed
 });
 </script>
 {% endblock %}

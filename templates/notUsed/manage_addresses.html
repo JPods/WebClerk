@@ -161,7 +161,7 @@ SECURITY: Inherits authentication requirements from Universal API
 
     <div class="contact-actions">
         {% if contact %}
-            <a href="/wcapi/get?table_name=contacts&id={{ contact.id }}/" class="btn btn-secondary">Back to Contact</a>
+            <a href="/wcapi/get?model_name=contact&id={{ contact.id }}/" class="btn btn-secondary">Back to Contact</a>
         {% else %}
             <a href="/" class="btn btn-secondary">Back to Home</a>
         {% endif %}
@@ -185,7 +185,7 @@ async function editLocation(addressId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                table_name: 'addresses',
+                model_name: 'address',
                 id: addressId
             })
         });
@@ -224,7 +224,7 @@ async function deleteLocation(addressId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                table_name: 'addresses',
+                model_name: 'address',
                 id: addressId
             })
         });
@@ -252,7 +252,7 @@ document.getElementById('addressForm').addEventListener('submit', async function
     
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
-    data.table_name = 'addresses';
+    data.model_name = 'address';
     
     try {
         const response = await fetch('/wcapi/save/', {

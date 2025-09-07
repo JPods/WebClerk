@@ -89,11 +89,11 @@ Baseline rules that require a published exception:
     Version / concurrency conflicts MUST use HTTP 412 with status="fail" and error.code="version_conflict".
     Validation failures: HTTP 400, status="fail", error.code a specific domain/validation code, error.details list/dict of field issues.
 4. JSONs for exchanging information, even inputs. Convert all CSV, etc. into JSON outside of WebClerk.
-5. Always refer to the table_name in its plural and a record in its singular. Drive table_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in plain trailing 'e'.
-6. Always use table_name for the primary table name; primary id field is "id". For non-primary FKs use table_name_id format.
+5. +** all these were replaced by model_name  instead of table_!name Always refer to the model_name in its plural and a record in its singular. Drive model_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in plain trailing 'e'.
+6. Always use model_name for the primary table name; primary id field is "id". For non-primary FKs use model_name_id format.
 7. Save paths to larger documents. Never save large documents in the database.
 8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py).
-9. Always put relationships into table_name.refs.links{"related_table_name":[id1,id4,...],"related_table_name2":[]} (legacy shape migrations should move toward the unified related envelope where exposed externally).
+9. Always put relationships into model_name.refs.links{"related_model_name":[id1,id4,...],"related_model_name2":[]} (legacy shape migrations should move toward the unified related envelope where exposed externally).
 10. Settings records for view_edit. "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
 11. Break the common Django framework of put, post, add functions with generalized, universal wcapi/relate, wcapi/get, wcapi/save etc... see core/urls.py
 12. Use Celery to wrap generalized functions such as wcapi/save for pre/post hooks.

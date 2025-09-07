@@ -59,7 +59,7 @@
           {"key": "Content-Type", "value": "application/json"},
           {"key": "Authorization", "value": "Bearer {{access_token}}"}
         ],
-        "body": {"mode": "raw", "raw": "{\n  \"table_name\": \"contacts\",\n  \"name_first\": \"Contract\",\n  \"name_last\": \"Test\"\n}"},
+        "body": {"mode": "raw", "raw": "{\n  \"model_name\": \"contacts\",\n  \"name_first\": \"Contract\",\n  \"name_last\": \"Test\"\n}"},
         "url": {"raw": "{{base_url}}/wcapi/save/", "host": ["{{base_url}}"], "path": ["wcapi","save",""]}
       },
       "event": [{"listen": "test", "script": {"exec": [
@@ -72,8 +72,8 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/get/?table_name=contacts&id={{contact_id}}", "host": ["{{base_url}}"], "path": ["wcapi","get",""], "query": [
-          {"key": "table_name", "value": "contacts"},
+        "url": {"raw": "{{base_url}}/wcapi/get/?model_name=contacts&id={{contact_id}}", "host": ["{{base_url}}"], "path": ["wcapi","get",""], "query": [
+          {"key": "model_name", "value": "contacts"},
             {"key": "id", "value": "{{contact_id}}"}
         ]}
       },
@@ -88,8 +88,8 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/query/?table_name=contacts&limit=5", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
-          {"key": "table_name", "value": "contacts"}, {"key": "limit", "value": "5"}
+        "url": {"raw": "{{base_url}}/wcapi/query/?model_name=contacts&limit=5", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
+          {"key": "model_name", "value": "contacts"}, {"key": "limit", "value": "5"}
         ]}
       },
       "event": [{"listen": "test", "script": {"exec": [
@@ -106,7 +106,7 @@
           {"key": "Authorization", "value": "Bearer {{access_token}}"},
           {"key": "If-Match", "value": "0"}
         ],
-        "body": {"mode": "raw", "raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": {{contact_id}},\n  \"name_first\": \"Conflict\"\n}"},
+        "body": {"mode": "raw", "raw": "{\n  \"model_name\": \"contacts\",\n  \"id\": {{contact_id}},\n  \"name_first\": \"Conflict\"\n}"},
         "url": {"raw": "{{base_url}}/wcapi/save/", "host": ["{{base_url}}"], "path": ["wcapi","save",""]}
       },
       "event": [{"listen": "test", "script": {"exec": [
@@ -118,7 +118,7 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/utilities/allowed-fields/?table_name=contacts", "host": ["{{base_url}}"], "path": ["wcapi","utilities","allowed-fields",""] , "query": [ {"key":"table_name","value":"contacts"} ]}
+        "url": {"raw": "{{base_url}}/wcapi/utilities/allowed-fields/?model_name=contacts", "host": ["{{base_url}}"], "path": ["wcapi","utilities","allowed-fields",""] , "query": [ {"key":"model_name","value":"contacts"} ]}
       },
       "event": [{"listen": "test", "script": {"exec": [
         "pm.test('Allowed fields 200', function () { pm.response.to.have.status(200); });",
@@ -130,7 +130,7 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/models/?table_name=contacts", "host": ["{{base_url}}"], "path": ["wcapi","models",""] , "query": [ {"key":"table_name","value":"contacts"} ]}
+        "url": {"raw": "{{base_url}}/wcapi/models/?model_name=contacts", "host": ["{{base_url}}"], "path": ["wcapi","models",""] , "query": [ {"key":"model_name","value":"contacts"} ]}
       },
       "event": [{"listen": "test", "script": {"exec": [
         "pm.test('Models metadata 200', function () { pm.response.to.have.status(200); });"
@@ -152,8 +152,8 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": {"raw": "{{base_url}}/wcapi/query/?table_name=contacts&limit=1", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
-          {"key": "table_name", "value": "contacts"}, {"key": "limit", "value": "1"}
+        "url": {"raw": "{{base_url}}/wcapi/query/?model_name=contacts&limit=1", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
+          {"key": "model_name", "value": "contacts"}, {"key": "limit", "value": "1"}
         ]}
       },
       "event": [{"listen": "test", "script": {"exec": [
@@ -165,8 +165,8 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/query/?table_name=contacts&limit=2&offset=0&name_first=Contract", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
-          {"key": "table_name", "value": "contacts"},
+        "url": {"raw": "{{base_url}}/wcapi/query/?model_name=contacts&limit=2&offset=0&name_first=Contract", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
+          {"key": "model_name", "value": "contacts"},
           {"key": "limit", "value": "2"},
           {"key": "offset", "value": "0"},
           {"key": "name_first", "value": "Contract"}
@@ -182,7 +182,7 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/models/?table_name=contacts", "host": ["{{base_url}}"], "path": ["wcapi","models",""] , "query": [ {"key":"table_name","value":"contacts"} ]}
+        "url": {"raw": "{{base_url}}/wcapi/models/?model_name=contacts", "host": ["{{base_url}}"], "path": ["wcapi","models",""] , "query": [ {"key":"model_name","value":"contacts"} ]}
       },
       "event": [{"listen": "test", "script": {"exec": [
         "const baseline = ['id','name_first','name_last'];",
@@ -197,8 +197,8 @@
       "request": {
         "method": "GET",
         "header": [ {"key": "Authorization", "value": "Bearer {{access_token}}"} ],
-        "url": {"raw": "{{base_url}}/wcapi/query/?table_name=contacts&limit=5", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
-          {"key": "table_name", "value": "contacts"}, {"key": "limit", "value": "5"}
+        "url": {"raw": "{{base_url}}/wcapi/query/?model_name=contacts&limit=5", "host": ["{{base_url}}"], "path": ["wcapi","query",""], "query": [
+          {"key": "model_name", "value": "contacts"}, {"key": "limit", "value": "5"}
         ]}
       },
       "event": [{"listen": "test", "script": {"exec": [

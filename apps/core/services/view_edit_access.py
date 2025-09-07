@@ -1,22 +1,22 @@
 # Used by celery to load view/edit fields from the Setting model
 # This module provides utilities for managing and enforcing view/edit access to model fields
-# based on user roles and table names, using configuration stored in the Setting model.
+# based on user roles and model names, using configuration stored in the Setting model.
 
 # Functions:
 
-# - get_view_edit_fields(table_name: str, role: str, access_type: str = "view") -> list:
-#     Retrieves a list of allowed fields for a specified table, user role, and access type
+# - get_view_edit_fields(model_name: str, role: str, access_type: str = "view") -> list:
+#     Retrieves a list of allowed fields for a specified model, user role, and access type
 #     ('view' or 'edit'), based on the active Setting record.
 
-# - filter_json_response(table_name_getter, access_type="view"):
+# - filter_json_response(model_name_getter, access_type="view"):
 #     Decorator for Django views that filters the JSON response data, ensuring only fields
 #     permitted for the user's role and access type are included in the response.
 
-# - get_allowed_fields(table_name: str, role: str, access_type: str = "view"):
+# - get_allowed_fields(model_name: str, role: str, access_type: str = "view"):
 #     Alias for get_view_edit_fields, returns the list of allowed fields for the given parameters.
 
-# - filter_record_for_role(record: dict, table_name: str, role: str, access_type: str = "view"):
-#     Filters a dictionary record, returning only the fields allowed for the specified table,
+# - filter_record_for_role(record: dict, model_name: str, role: str, access_type: str = "view"):
+#     Filters a dictionary record, returning only the fields allowed for the specified model,
 #     role, and access type.
 
 # Usage:
@@ -38,20 +38,20 @@ def dev_bypass_enabled() -> bool:
 _reported_missing: set[tuple[str,str,str]] = set()
 logger = logging.getLogger(__name__)
 
-def get_view_edit_fields(table_name: str, role: str, access_type: str = "view") -> list:
+def get_view_edit_fields(model_name: str, role: str, access_type: str = "view") -> list:
     """
-    Returns a list of allowed fields for a given table, role, and access_type ('view' or 'edit'),
+    Returns a list of allowed fields for a given model key, role, and access_type ('view' or 'edit'),
     using Setting records from the database.
     """
     if dev_bypass_enabled():
         # Wide open: simply signal '*' (all fields) – no model resolution needed.
         return ['*']
     try:
-        setting = Setting.objects.get(
+        setting = Setting.objects.filter(
             is_active=True,
             purpose="view_edit",
-            table_name=table_name
-        )
+            model_name=model_name
+        ).first()
         data = getattr(setting, "data", None)
     # Intentionally silent unless debugging; uncomment for deep trace.
         if not isinstance(data, dict):
@@ -62,18 +62,18 @@ def get_view_edit_fields(table_name: str, role: str, access_type: str = "view") 
             # fallback to PUBLIC already handled; avoid noisy prints
         return role_data.get(access_type, [])
     # unreachable after return
-    except Setting.DoesNotExist:
-        key = (table_name, role.upper(), access_type)
+    except Exception:
+        key = (model_name, role.upper(), access_type)
         if key not in _reported_missing:
             _reported_missing.add(key)
-            logger.debug("view_edit_access: no Setting found (table=%s role=%s access=%s) - returning empty list (may be widened by bypass/fail-open)", *key)
+            logger.debug("view_edit_access: no Setting found (model=%s role=%s access=%s) - returning empty list (may be widened by bypass/fail-open)", *key)
         return []
         
 
-def filter_json_response(table_name_getter, access_type="view"):
+def filter_json_response(model_name_getter, access_type="view"):
     """
     Decorator to filter JSON response data for allowed fields.
-    table_name_getter: function(request, *args, **kwargs) -> str
+    model_name_getter: function(request, *args, **kwargs) -> str
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -93,13 +93,13 @@ def filter_json_response(table_name_getter, access_type="view"):
                             pass
                     if include_related and "related" in data:
                         user_role = getattr(request.user, "role", "PUBLIC")
-                        table_name = table_name_getter(request, *args, **kwargs)
+                        model_name = model_name_getter(request, *args, **kwargs)
                         from apps.core.services.view_edit_access import filter_record_for_role
-                        # data["related"] should be a dict of lists keyed by table name
+                        # data["related"] should be a dict of lists keyed by model name
                         filtered_related = {}
-                        for table, records in data["related"].items():
-                            filtered_related[table] = [
-                                filter_record_for_role(r, table, user_role, access_type)
+                        for rel_model_name, records in data["related"].items():
+                            filtered_related[rel_model_name] = [
+                                filter_record_for_role(r, rel_model_name, user_role, access_type)
                                 for r in records
                             ]
                         data["related"] = filtered_related
@@ -108,31 +108,19 @@ def filter_json_response(table_name_getter, access_type="view"):
         return _wrapped_view
     return decorator
 
-def get_allowed_fields(table_name: str, role: str, access_type: str = "view"):
-    return get_view_edit_fields(table_name, role, access_type)
+def get_allowed_fields(model_name: str, role: str, access_type: str = "view"):
+    return get_view_edit_fields(model_name, role, access_type)
 
-def filter_record_for_role(record: dict, table_name: str, role: str, access_type: str = "view"):
-    allowed_fields = get_allowed_fields(table_name, role, access_type)
+def filter_record_for_role(record: dict, model_name: str, role: str, access_type: str = "view"):
+    allowed_fields = get_allowed_fields(model_name, role, access_type)
     # If wildcard or bypass -> expand to model concrete fields to ensure full dict
     if '*' in allowed_fields or dev_bypass_enabled() or not allowed_fields:
-        # Attempt to resolve model name heuristically (plural to singular) similar to WcapiGetView
-        if table_name in ('addresses', 'locations'):
-            model_name = 'Location'
-        else:
-            model_name = table_name.rstrip('s').capitalize()
-        app_guess = table_name.split('.')[0] if '.' in table_name else None
+        # Attempt to resolve the Django model by class name only.
         model = None
-        if app_guess:
-            try:
-                model = _apps.get_model(app_guess, model_name)
-            except Exception:
-                model = None
-        if model is None:
-            # brute force search among installed models for matching name
-            for m in _apps.get_models():
-                if m.__name__.lower() == model_name.lower():
-                    model = m
-                    break
+        for m in _apps.get_models():
+            if m.__name__.lower() == model_name.lower():
+                model = m
+                break
         if model is not None:
             field_names = [f.name for f in model._meta.get_fields() if getattr(f, 'concrete', False) and not getattr(f, 'many_to_many', False)]  # type: ignore[attr-defined]
             # Include any existing keys (JSON / dynamic) to avoid dropping data

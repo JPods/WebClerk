@@ -7,7 +7,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         model = Document
         fields = [
             'id','uuid','name','slug','status','description','body','data','comment','confidential',
-            'copyright','count_accessed','table_name','retention_period','security_level',
+            'copyright','count_accessed','model_name','retention_period','security_level',
             'sequence','size_bytes','mime_type','path','checksum','is_active','dt_created',
             'dt_modified','version'
         ]

@@ -28,7 +28,7 @@ class KeywordSearchView(APIView):
 
     def post(self, request):
         keywords_raw = request.data.get('keywords', '')
-        table_name = request.data.get('table_name', '')
+        table_name = request.data.get('model_name', '')  # accept singular or plural key
         query_type = request.data.get('query_type', 'AND').upper()
 
         keywords = [kw.strip() for kw in keywords_raw.split(',') if kw.strip()]
@@ -69,7 +69,7 @@ class KeywordSearchView(APIView):
                 errors[table_name] = "Model not found"
 
         payload = {
-            'table_name': table_name,
+            'model_name': table_name,
             'query_type': query_type,
             'keywords': keywords,
             'results': results,

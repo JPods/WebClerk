@@ -70,7 +70,7 @@
           { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
         "url": {
-          "raw": "{{baseUrl}}/core/wcapi/query/?table_name=contacts&limit=2"
+          "raw": "{{baseUrl}}/core/wcapi/query/?model_name=contacts&limit=2"
         }
       },
       "event": [

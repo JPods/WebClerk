@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!user_id) return;
 
     // Fetch the user's contact record with related data
-    const response = await fetch(`/wcapi/get/?table_name=contacts&id=${user_id}&include_related=true`);
+    const response = await fetch(`/wcapi/get/?model_name=contact&id=${user_id}&include_related=true`);
     const envelope = await response.json();
     console.log('API response:', envelope);
     if (envelope.status === 'success' && envelope.data && envelope.data.record) {

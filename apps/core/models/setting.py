@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
-from apps.core.constants.table_registry import VALID_TABLE_NAMES, is_valid_table_name
+from apps.core.constants.table_registry import VALID_TABLE_NAMES, TABLE_REGISTRY_BY_ENDPOINT
 # company, defaults, view_edit, user-levels,
 # poppups, question, constants, integrations, notifications,
 # 
@@ -10,7 +10,8 @@ class Setting(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=255, blank=True, null=True)
-    table_name = models.CharField(max_length=255, blank=True, null=True)
+    # Canonical model identifier (replaces table_name)
+    model_name = models.CharField(max_length=255, blank=True, null=True)
     data = models.JSONField(blank=True, null=True)
     
 
@@ -20,17 +21,32 @@ class Setting(BaseModel):
     def __str__(self):
         return f"{self.name or 'Setting'} ({self.id})"
 
-    def clean(self):  # enforce canonical table names when provided
+    def clean(self):  # enforce canonical names when provided
         super().clean()
-        if self.table_name:
-            if self.table_name not in VALID_TABLE_NAMES:
-                raise ValidationError({'table_name': f"Invalid table_name '{self.table_name}'. Must be one of: {', '.join(VALID_TABLE_NAMES)}"})
+        # Validate model_name if provided; accept canonical key, endpoint slug, or simple singular/plural variants.
+        target = (self.model_name or '').strip().lower() if self.model_name else None
+        if not target:
+            return
+        key = None
+        # 1) Exact registry key
+        if target in VALID_TABLE_NAMES:
+            key = target
+        # 2) Endpoint slug
+        elif target in TABLE_REGISTRY_BY_ENDPOINT:
+            key = TABLE_REGISTRY_BY_ENDPOINT[target].key
+        # 3) Singular provided (e.g., 'sales_order_line'): try plural + 's'
+        elif target + 's' in VALID_TABLE_NAMES:
+            key = target + 's'
+        if not key:
+            raise ValidationError({'model_name': f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_TABLE_NAMES)}"})
+        # Store singular form consistently (drop a single trailing 's' when present)
+        self.model_name = key[:-1] if key.endswith('s') else key
     
 
 #QQQ look at documents as a model
 # we have settings record for each table that
 # lists the fields that are denormalized into .refs.keywords.
-# settings.table_name = table_name and settings.purpose = keywords
+# settings.model_name = canonical model name and settings.purpose = keywords
 # settings.data contains an object listing fields 
 # for the values to be denormalized into keywords.
 

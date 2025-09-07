@@ -9,7 +9,7 @@ class TemplateListView(BaseListCreateView):
     queryset = Template.objects.all()
     serializer_class = TemplateSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'templates'
+    model_name = 'template'
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
         page_size_query_param = 'page_size'
@@ -20,12 +20,12 @@ class TemplateDetailView(BaseOptimisticDetailView):
     queryset = Template.objects.all()
     serializer_class = TemplateSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'templates'
+    model_name = 'template'
 
 class TemplateSearchView(PrefixAndSearchView):
     queryset = Template.objects.all()
     serializer_class = TemplateSerializer
     permission_classes = [IsAuthenticated]
-    search_fields = ['name','purpose','table_name','ida']
-    table_name = 'templates'
+    search_fields = ['name','purpose','ida']
+    model_name = 'template'
     model = Template

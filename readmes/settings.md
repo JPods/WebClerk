@@ -16,17 +16,17 @@ This document catalogs the canonical purposes for rows in the `settings` table a
 Applies to model: `apps.core.models.Setting` (db_table=`settings`). Fields of note:
 
 - `purpose`: categorizes the setting entry
-- `table_name` (optional): scope to a specific model/table (e.g., `transactions_proposalline`)
+- `model_name` (optional): scope to a specific model/table (e.g., `transactions_proposalline`)
 - `role` (optional): role-specific variant (e.g., `USER`, `ADMIN`, `PUBLIC`)
 - `data` (JSON): payload; shape depends on `purpose`
 
-Recommended uniqueness: at most one active row per `(purpose, table_name, role)` combination. If multiple exist, the system should pick the most recent by `dt_modified`.
+Recommended uniqueness: at most one active row per `(purpose, model_name, role)` combination. If multiple exist, the system should pick the most recent by `dt_modified`.
 
 ## Recognized purposes
 
 1. view_edit (field-level authorization)
 
-Scope: requires `table_name`. Defines per-role field lists.
+Scope: requires `model_name`. Defines per-role field lists.
 
 Shape (data):
 
@@ -45,7 +45,7 @@ Notes:
 
 1. constants (user defined CONSTANTS)
 
-Scope: global or per-role. `table_name` typically null.
+Scope: global or per-role. `model_name` typically null.
 
 Shape (data): simple flat map of constant names to values.
 
@@ -73,7 +73,7 @@ Shape (data):
 
 1. sales_defaults
 
-Scope: global or by `table_name` for a specific sales model.
+Scope: global or by `model_name` for a specific sales model.
 
 Shape (data):
 
@@ -89,7 +89,7 @@ Shape (data):
 
 1. purchase_defaults
 
-Scope: global or by `table_name` for a specific purchasing model.
+Scope: global or by `model_name` for a specific purchasing model.
 
 Shape (data):
 
@@ -129,5 +129,5 @@ Shape (data):
 Conventions:
 
 - `purpose` values are lowercase snake case: `view_edit`, `constants`, `db_defaults`, `sales_defaults`, `purchase_defaults`, `accounting_defaults`.
-- Prefer small, composable settings over monoliths; split by `table_name` or `role` as needed.
+- Prefer small, composable settings over monoliths; split by `model_name` or `role` as needed.
 - Changes should invalidate caches via `dt_modified` checks; consumers should refresh on change.

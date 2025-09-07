@@ -2,53 +2,13 @@
 from django.http import JsonResponse  # legacy (remove after full migration)
 from rest_framework.views import APIView
 from rest_framework import permissions
-from django.apps import apps
 from django.forms.models import model_to_dict
 from apps.core.views.related_view import get_related_data
 from apps.core.services.view_edit_access import filter_record_for_role
 from common.api_responses import api_response
+from apps.core.services.wcapi_registry import normalize_table_key, get_model, to_model_name
 
-TABLE_APP_MAP = {
-    'contacts': 'core',
-    'actions': 'core',
-    'settings': 'core',
-    'templates': 'core',
-    'pending': 'core',
-    'emails': 'communications',
-    'phones': 'communications',
-    'locations': 'communications',
-    'addresses': 'communications',  # legacy alias for locations
-    'domains': 'communications',
-    'documents': 'docs',
-    'qas': 'docs',
-    'tags': 'docs',
-    'linkages': 'docs',
-    # products
-    'items': 'products',  # apps.products.models.item.Item
-    # transactions
-    'sales_orders': 'transactions',        # SalesOrder model
-    'sales_order_lines': 'transactions',    # SalesOrderLine model (special-case name below)
-    'proposals': 'transactions',
-    'proposal_lines': 'transactions',
-    'invoices': 'transactions',
-    'invoice_lines': 'transactions',
-    'purchase_orders': 'transactions',
-    'purchase_order_lines': 'transactions',
-    'work_orders': 'transactions',
-    'work_order_lines': 'transactions',
-    'requisitions': 'transactions',
-    'requisition_lines': 'transactions',
-    'purchase_receipts': 'transactions',
-   
-    # orgs
-    'orgs': 'orgs',                        # maps to OrgBase model
-    'customers': 'orgs',                   # maps to CustomerOrg model
-    'vendors': 'orgs',                     # maps to VendorOrg model
-    'reps': 'orgs',                        # maps to RepOrg model
-    'employees': 'orgs',                   # maps to EmployeeOrg model
-    'manufacturers': 'orgs',               # maps to ManufacturerOrg model
-    # Add more as needed; prefer adding here to avoid broad app scan cost
-}
+"""This view now resolves models via the registry; no app map needed."""
 
 class OpenReadOrAuthenticated(permissions.BasePermission):
     """Allow unauthenticated read/query when WCAPI_OPEN_READ enabled and JWT not forced."""
@@ -100,71 +60,30 @@ class WcapiGetView(APIView):
         if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
             return api_response(success=False, status_code=401, message='JWT required (missing Bearer token)', error={'code':'jwt_required','details':'JWT required (missing Bearer token)'})
 
-        table_name = request.GET.get('table_name')
+        # Require model_name (singular)  #chaned from t_n: removed legacy 'table_name'
+        raw_name = request.GET.get('model_name')
+        table_name = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
         user_role = getattr(request.user, 'role', 'PUBLIC')
         if not table_name:
-            return api_response(success=False, status_code=400, message='Missing table_name', error={'code':'missing_table_name','details':'Missing table_name'})
-        app_label = TABLE_APP_MAP.get(table_name, 'core')
-        # Basic plural -> ModelName heuristic with explicit special cases.
-        if table_name == 'addresses':
-            model_name = 'Location'  # legacy alias
-        elif table_name in ('sales_order_lines', 'orderlines'):
-            model_name = 'SalesOrderLine'
-        elif table_name == 'orders':
-            model_name = 'SalesOrder'
-        elif table_name == 'proposals':
-            model_name = 'Proposal'
-        elif table_name == 'proposal_lines':
-            model_name = 'ProposalLine'
-        elif table_name == 'invoices':
-            model_name = 'Invoice'
-        elif table_name == 'invoice_lines':
-            model_name = 'InvoiceLine'
-        elif table_name == 'purchase_orders':
-            model_name = 'PurchaseOrder'
-        elif table_name == 'purchase_order_lines':
-            model_name = 'PurchaseOrderLine'
-        elif table_name == 'work_orders':
-            model_name = 'Workorder'
-        elif table_name == 'work_order_lines':
-            model_name = 'WorkorderLine'
-        elif table_name == 'requisitions':
-            model_name = 'Requisition'
-        elif table_name == 'requisition_lines':
-            model_name = 'RequisitionLine'
-        elif table_name == 'purchase_receipts':
-            model_name = 'PurchaseReceipt'
-        elif table_name == 'orgs':
-            model_name = 'OrgBase'
-        elif table_name == 'customers':
-            model_name = 'CustomerOrg'
-        elif table_name == 'vendors':
-            model_name = 'VendorOrg'
-        elif table_name == 'reps':
-            model_name = 'RepOrg'
-        elif table_name == 'employees':
-            model_name = 'EmployeeOrg'
-        elif table_name == 'manufacturers':
-            model_name = 'ManufacturerOrg'
-        else:
-            model_name = table_name.rstrip('s').capitalize()
-        try:
-            model = apps.get_model(app_label, model_name)
-        except LookupError:
-            return api_response(success=False, status_code=400, message='Model not found', error={'code':'unknown_table','details':f'Model not found for {table_name}'})
+            return api_response(success=False, status_code=400, message='Missing model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})  #chaned from t_n
+        model = get_model(table_name)
+        if not model:
+            # Keep generic unknown phrasing
+            return api_response(success=False, status_code=400, message='Model not found', error={'code':'unknown_model','details':f'Model not found for {raw_name}'})
+        singular = to_model_name(table_name)
         if record_id:
             try:
                 obj = model.objects.get(id=record_id)
             except model.DoesNotExist:  # type: ignore[attr-defined]
                 return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-            record = model_to_dict(obj)
-            filtered_record = filter_record_for_role(record, table_name, user_role, 'view')
+            record = model_to_dict(obj)  # type: ignore[arg-type]
+            filtered_record = filter_record_for_role(record, singular or '', user_role, 'view')
             related_result = get_related_data(table_name, int(record_id))
             safe_record = {k: self._sanitize(v) for k, v in filtered_record.items()}
             safe_related = {rk: [ {sk: self._sanitize(sv) for sk, sv in r.items()} for r in rv ] for rk, rv in related_result.get('related', {}).items()} if related_result.get('related') else {}
             payload = {
-                'table_name': table_name,
+                'model_name': singular,
                 'record': safe_record,
             }
             if safe_related:
@@ -175,7 +94,7 @@ class WcapiGetView(APIView):
         # list
         queryset = model.objects.all()  # type: ignore[attr-defined]
         raw_records = [
-            filter_record_for_role(model_to_dict(obj), table_name, user_role, 'view')
+            filter_record_for_role(model_to_dict(obj), singular or '', user_role, 'view')
             for obj in queryset
         ]
         safe_records = [
@@ -183,7 +102,7 @@ class WcapiGetView(APIView):
             for rec in raw_records
         ]
         payload = {
-            'table_name': table_name,
+            'model_name': singular,
             'results': safe_records,
             'total': len(safe_records),
             'limit': None,

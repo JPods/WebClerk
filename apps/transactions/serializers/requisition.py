@@ -2,7 +2,7 @@ from common.base_serializers import RoleAwareModelSerializer
 from apps.transactions.models.requisition import RequisitionStd
 
 class RequisitionSerializer(RoleAwareModelSerializer):
-    table_name = 'requisitions'
+    model_name = 'requisition'
 
     class Meta:
         model = RequisitionStd

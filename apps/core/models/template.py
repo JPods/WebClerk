@@ -3,7 +3,6 @@ from django.db import models
 from common.models import BaseModel
 
 class Template(BaseModel):
-    table_name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=120, blank=True, null=True)
     name = models.CharField(max_length=120, blank=True, null=True)
     data = models.JSONField(default=dict)

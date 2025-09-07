@@ -6,6 +6,7 @@ from django.apps import apps
 from django.core.paginator import Paginator, EmptyPage
 import json
 from apps.core.services.view_edit_access import get_view_edit_fields
+from apps.core.services.wcapi_registry import normalize_table_key
 
 RELATED_TABLES: Dict[str, List[str]] = {
     # 'addresses' retained for backward compatibility (maps to Location model)
@@ -157,12 +158,14 @@ class RelatedDataAdvancedView(View):
     def post(self, request):
         try:
             body = json.loads(request.body.decode('utf-8'))
-            table_name = body.get('table_name')
+            # Accept model_name (singular)
+            raw_name = body.get('model_name')
+            table_name = normalize_table_key(raw_name) if raw_name else None
             record_id = body.get('id')
             related_tables_dict = body.get('related_tables_dict')  # Optional
             pagination = body.get('pagination')  # Optional
             if not table_name or not record_id:
-                return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
+                return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
             result = get_related_data(
                 table_name,
                 int(record_id),
@@ -175,7 +178,8 @@ class RelatedDataAdvancedView(View):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
     def get(self, request):
-        table_name = request.GET.get('table_name')
+        raw_name = request.GET.get('model_name')
+        table_name = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
         related_tables_dict = request.GET.get('related_tables_dict')
         pagination = request.GET.get('pagination')
@@ -190,7 +194,7 @@ class RelatedDataAdvancedView(View):
             except Exception:
                 pagination = None
         if not table_name or not record_id:
-            return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
+            return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
         try:
             result = get_related_data(
                 table_name,
@@ -205,10 +209,11 @@ class RelatedDataAdvancedView(View):
 
 class RelatedDataView(View):
     def get(self, request):
-        table_name = request.GET.get('table_name')
+        raw_name = request.GET.get('model_name')
+        table_name = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
         if not table_name or not record_id:
-            return JsonResponse({'success': False, 'error': 'table_name and id are required'}, status=400)
+            return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
         try:
             result = get_related_data(table_name, int(record_id))
             user_role = request.user.role  # or however you get the user's role

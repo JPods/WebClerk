@@ -61,33 +61,33 @@
                             <tr>
                                 <td><code>/wcapi/manage/</code></td>
                                 <td>Management Interface</td>
-                                <td><a href="/wcapi/manage/?table_name=contacts">?table_name=contacts</a></td>
+                                <td><a href="/wcapi/manage/?model_name=contact">?model_name=contacts</a></td>
                             </tr>
                             <tr>
                                 <td><code>/wcapi/get/</code></td>
                                 <td>Retrieve Data</td>
-                                <td><a href="/wcapi/get/?table_name=emails">?table_name=emails</a></td>
+                                <td><a href="/wcapi/get/?model_name=email">?model_name=emails</a></td>
                             </tr>
                             <tr>
                                 <td><code>/wcapi/query/</code></td>
                                 <td>Search & Filter</td>
-                                <td><code>?table_name=contacts&search=john</code></td>
+                                <td><code>?model_name=contacts&search=john</code></td>
                             </tr>
 
                             <tr>
                                 <td><code>/wcapi/keywords/</code></td>
                                 <td>Search & Filter</td>
-                                <td><code>?table_name=contacts&keywords=john,Smith</code></td>
+                                <td><code>?model_name=contacts&keywords=john,Smith</code></td>
                             </tr>
                             <tr>
                                 <td><code>/wcapi/save/</code></td>
                                 <td>Create/Update</td>
-                                <td><code>POST ?table_name=actions&id=456&template_name=core/action.html</code></td>
+                                <td><code>POST ?model_name=actions&id=456&template_name=core/action.html</code></td>
                             </tr>
                             <tr>
                                 <td><code>/wcapi/delete/</code></td>
                                 <td>Remove Records</td>
-                                <td><code>DELETE ?table_name=phones&id=456</code></td>
+                                <td><code>DELETE ?model_name=phones&id=456</code></td>
                             </tr>
                         </tbody>
                     </table>
@@ -121,13 +121,13 @@
                     <h5><i class="fas fa-rocket"></i> Quick Actions</h5>
                 </div>
                 <div class="card-body">
-                    <a href="/wcapi/manage/?table_name=contacts" class="btn btn-primary w-100 mb-2">
+                    <a href="/wcapi/manage/?model_name=contacts" class="btn btn-primary w-100 mb-2">
                         <i class="fas fa-users"></i> Manage Contacts
                     </a>
-                    <a href="/wcapi/manage/?table_name=emails" class="btn btn-success w-100 mb-2">
+                    <a href="/wcapi/manage/?model_name=emails" class="btn btn-success w-100 mb-2">
                         <i class="fas fa-envelope"></i> View Communications
                     </a>
-                    <a href="/wcapi/manage/?table_name=actions" class="btn btn-warning w-100">
+                    <a href="/wcapi/manage/?model_name=actions" class="btn btn-warning w-100">
                         <i class="fas fa-tasks"></i> Track Actions
                     </a>
                 </div>

@@ -24,7 +24,7 @@ class Document(BaseModel):
       - Consolidated publish + security concept: security_level gate; higher role level required.
       - copy_right collapsed into structured copyright JSON.
       - Added GIN-based full-text search vector over name/description/body.
-      - Added indexes on security_level, status, name, table_name per request.
+    - Added indexes on security_level, status, name.
     """
 
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
@@ -38,7 +38,8 @@ class Document(BaseModel):
     confidential = models.CharField(max_length=255, blank=True, null=True)
     copyright = models.JSONField(blank=True, null=True, help_text="{level:int,path:str,holder:str,notes:[]} structure")
     count_accessed = models.IntegerField(default=0)
-    table_name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    # Canonical model identifier
+    model_name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     retention_period = models.IntegerField(blank=True, null=True)
     sequence = models.IntegerField(blank=True, null=True)
     size_bytes = models.IntegerField(blank=True, null=True)
@@ -53,7 +54,7 @@ class Document(BaseModel):
             GinIndex(fields=["search_vector"], name="doc_search_gin"),
             models.Index(fields=["status"], name="doc_status_idx"),
             models.Index(fields=["name"], name="doc_name_idx"),
-            models.Index(fields=["table_name"], name="doc_table_name_idx"),
+            models.Index(fields=["model_name"], name="doc_model_name_idx"),
         ]
 
     def __str__(self):
@@ -106,8 +107,9 @@ class Document(BaseModel):
         tracked_fields: list[str] = []
         try:
             # Fetch settings specifying keyword fields: purpose='keywords'
-            table_name = self._meta.db_table
-            setting = Setting.objects.filter(table_name=table_name, purpose='keywords', is_active=True).first()
+            model_key = 'Document'  # canonical model identifier for settings
+            # Prefer model_name in Setting going forward
+            setting = Setting.objects.filter(model_name=model_key, purpose='keywords', is_active=True).first()
             if setting and isinstance(setting.data, dict):
                 fields_spec = setting.data.get('fields') or setting.data.get('field_list') or []
                 if isinstance(fields_spec, str):  # allow comma-separated string
@@ -129,7 +131,7 @@ class Document(BaseModel):
 
         # Decide whether to enqueue Pending
         try:
-            table_name = self._meta.db_table
+            model_key = 'Document'
             enqueue = False
             if is_create:
                 enqueue = True
@@ -141,14 +143,14 @@ class Document(BaseModel):
                         enqueue = True
                         break
             # Fallback: if no tracked fields defined but table configured in keyword requirements
-            if not enqueue and table_name in get_keyword_requirements():
+            if not enqueue and model_key in get_keyword_requirements():
                 enqueue = is_create  # only create on new rows to avoid noise
 
             if enqueue:
                 # Debounce: ensure no unprocessed Pending exists for this id/table
-                if not Pending.objects.filter(table_name=table_name, record_id=self.id, dt_processed=0).exists():
+                if not Pending.objects.filter(model_name=model_key, record_id=self.id, dt_processed=0).exists():
                     Pending.objects.create(
-                        table_name=table_name,
+                        model_name=model_key,
                         record_id=self.id,
                         data={'reason': 'keywords', 'model': 'Document', 'tracked_fields': tracked_fields}
                     )

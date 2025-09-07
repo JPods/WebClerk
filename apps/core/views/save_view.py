@@ -26,9 +26,7 @@ from django.views import View
 from rest_framework.views import APIView  # type: ignore
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from apps.core.services.wcapi_registry import get_model  # explicit registry lookup (replaces dynamic app scan)
-from django.apps import apps  # QQQ legacy import retained temporarily (confirm safe to remove)
-from django.utils.text import capfirst  # QQQ legacy import retained until full deprecation
+from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
 import json
 from apps.core import tasks
 from django.db import IntegrityError
@@ -74,99 +72,117 @@ class SaveWcapiView(APIView):
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
-        print(f"SaveWcapiView: require_jwt={require_jwt} is_jwt={is_jwt} user={request.user}")
         if not request.user.is_authenticated:
             return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
         if require_jwt and not is_jwt:
             return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
+
+        # Parse JSON body
         try:
-            # extract JSON data from the request body
             data = json.loads(request.body)
         except json.JSONDecodeError as e:
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
 
-        # get table name and record ID from data
-        # QQQ we should add table_name to every json requested by front end
-        table_name = data.get('table_name')
-        record_id = data.get('id')
-        # Version precedence: If-Match header > body.version > body.expected_version (deprecated)
-        header_if_match = request.META.get('HTTP_IF_MATCH')  # stub: treat numeric value as expected version
+        # Required: model_name (singular)  #chaned from t_n: removed legacy 'table_name'
+        raw_model_name = data.get('model_name')
+        if not raw_model_name:
+            return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})
+
+        # Normalize and resolve model
+        norm_key = normalize_table_key(raw_model_name)
+        if not norm_key:
+            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})  #chaned from t_n
+        model = get_model(norm_key)
+        if not model:
+            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})  #chaned from t_n
+        model_key = to_model_name(norm_key) or raw_model_name
+
+        # Concurrency: If-Match header > body.version > expected_version (deprecated)
+        header_if_match = request.META.get('HTTP_IF_MATCH')
         body_version = data.get('version')
         legacy_expected = data.get('expected_version')
         deprecation_flag = False
         expected_version = None
         if header_if_match:
             header_raw = header_if_match.strip()
-            # Accept plain integer or * wildcard (skip check). Future: strong/weak ETag parsing.
             if header_raw == '*':
-                expected_version = None  # wildcard skip
+                expected_version = None
+            elif header_raw.isdigit():
+                expected_version = int(header_raw)
             else:
-                if header_raw.isdigit():
-                    expected_version = int(header_raw)
-                else:
-                    return api_response(success=False, status_code=400, message='Malformed If-Match header', error={'code':'if_match_malformed','details': header_raw})
+                return api_response(success=False, status_code=400, message='Malformed If-Match header', error={'code':'if_match_malformed','details': header_raw})
         elif body_version is not None:
             expected_version = body_version
         elif legacy_expected is not None:
             expected_version = legacy_expected
             deprecation_flag = True
 
-        if not table_name:
-            return api_response(success=False, status_code=400, message='Missing required field: table_name', error={'code':'missing_table_name','details':'Missing required field: table_name'})
-
-        # Registry-based resolution (whitelist enforced). QQQ confirm table_name already validated earlier layers
-        model = get_model(table_name)
-        if not model:
-            return api_response(success=False, status_code=400, message=f'Unknown table: {table_name}', error={'code':'unknown_table','details':f'Unknown table: {table_name}'})
-
-        # Check for special cases
-        #if table_name in SPECIAL_CASES:
-            #return SPECIAL_CASES[table_name](request, data)
-
+        record_id = data.get('id')
+        print(f"record_id: {record_id} -- {data}")
+        #QQQ what what happens when we send id=0  
+        # Antor and Riju resolve  
         nested_fields = ['refs', 'prefs', 'metadata']
- 
-        # is it a new record or an update
-        is_update = bool(record_id)
 
+        # Create or update
+        is_update = bool(record_id)
         if is_update:
             try:
-                # get the current record
                 obj = model.objects.get(id=record_id)
             except model.DoesNotExist:
                 return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-            # optimistic concurrency
             if expected_version is not None:
                 current_version = getattr(obj, 'version', None)
                 if current_version != expected_version:
-                    return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})  # 412 Precondition Failed
+                    return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
         else:
-            # create an empty record
-            obj = model()  # ID will be auto-generated by the database
+            obj = model()
 
-        # Pre-save: prefer model hook; fall back to task only if hook absent
-        if hasattr(obj, 'pre_save_hook'):
-            result = obj.pre_save_hook(data)  # type: ignore[attr-defined]
+        # Pre-save hook or task
+        pre_hook = getattr(obj, 'pre_save_hook', None)
+        if callable(pre_hook):
+            # Try flexible signatures: (data, is_update, context) -> (data, is_update) -> (data)
+            context = {
+                'model_name': model_key,
+                'is_update': is_update,
+                'user_id': getattr(request.user, 'id', None),
+            }
+            try:
+                try:
+                    result = pre_hook(data, is_update, context)  # type: ignore[misc]
+                except TypeError:
+                    try:
+                        result = pre_hook(data, is_update)  # type: ignore[misc]
+                    except TypeError:
+                        result = pre_hook(data)  # type: ignore[misc]
+            except Exception as e:
+                return api_response(success=False, status_code=400, message='Pre-save validation failed', error={'code':'validation_exception','details': str(e)})
+            # Interpret result: None means OK; tuple (ok, msg?) supported; any other non-None treated as error message
             if result is not None:
-                return api_response(success=False, status_code=400, message=result, error={'code':'validation','details':result})
+                if isinstance(result, tuple):
+                    ok = bool(result[0])
+                    msg = result[1] if len(result) > 1 else 'Validation failed'
+                    msg_str = str(msg)
+                    if not ok:
+                        return api_response(success=False, status_code=400, message=msg_str, error={'code':'validation','details': msg_str})
+                else:
+                    return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
         else:
             try:
-                tasks.save_pre.apply(args=[table_name, data])  # synchronous if broker unavailable
+                tasks.save_pre.apply(args=[model_key, data])
             except Exception:
                 try:
-                    tasks.save_pre(table_name, data)
+                    tasks.save_pre(model_key, data)
                 except Exception:
                     pass
-        # QQQ can this be accomplished with python threading
 
+        # Assign fields
         field_size_errors = []
         raw_password = None
         for field, value in data.items():
-            # Special handling: never assign raw password directly; defer to set_password
             if field == 'password':
                 raw_password = value
                 continue
-            # Concurrency control fields are NOT persisted directly; they are used only for optimistic checks
-            if field in ('version', 'expected_version'):
+            if field in ('model_name', 'id', 'version', 'expected_version'):
                 continue
             if field in nested_fields and hasattr(obj, field):
                 allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())
@@ -189,92 +205,40 @@ class SaveWcapiView(APIView):
                     setattr(obj, field, current)
                 except ValueError as e:
                     field_size_errors.append(str(e))
-                    # Do not set the field if the whole dict is too large
-            elif field not in ('table_name', 'id') and hasattr(obj, field):
+            elif hasattr(obj, field):
                 try:
                     check_field_size(value, MAX_FIELD_SIZE, field)
                     setattr(obj, field, value)
                 except ValueError as e:
                     field_size_errors.append(str(e))
-            else:
-                # Unknown top-level field: if short (<=120 chars) and scalar, capture into prefs.userdefined{} as key->value
-                if field in ('table_name', 'id', 'version', 'expected_version'):
-                    continue
-                # Only handle simple scalars; skip objects/arrays
-                if isinstance(value, (dict, list)):
-                    continue
-                try:
-                    text_val = '' if value is None else str(value)
-                except Exception:
-                    text_val = ''
-                if len(text_val) <= UNKNOWN_FIELD_MAX_CHARS and hasattr(obj, 'prefs'):
-                    prefs = getattr(obj, 'prefs') or {}
-                    if isinstance(prefs, str):
-                        try:
-                            prefs = json.loads(prefs)
-                        except json.JSONDecodeError:
-                            prefs = {}
-                    userdefined = prefs.get('userdefined')
-                    # migrate legacy string or list formats to dict
-                    if isinstance(userdefined, str):
-                        d = {}
-                        for line in userdefined.splitlines():
-                            if '=' in line:
-                                k, v = line.split('=', 1)
-                                d[k.strip()] = v.strip()
-                        userdefined = d
-                    elif isinstance(userdefined, list):
-                        # list of {key,value}
-                        d = {}
-                        for entry in userdefined:
-                            try:
-                                k = str(entry.get('key'))
-                                v = '' if entry.get('value') is None else str(entry.get('value'))
-                                if k:
-                                    d[k] = v
-                            except Exception:
-                                continue
-                        userdefined = d
-                    if not isinstance(userdefined, dict):
-                        userdefined = {}
-                    # set/overwrite by unique key
-                    userdefined[str(field)] = text_val
-                    prefs['userdefined'] = userdefined
-                    try:
-                        check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
-                        setattr(obj, 'prefs', prefs)
-                    except ValueError as e:
-                        field_size_errors.append(str(e))
-        # Apply password hashing if required
+
         if raw_password is not None and hasattr(obj, 'set_password'):
             try:
                 obj.set_password(raw_password)  # type: ignore[attr-defined]
-            except Exception as e:  # pragma: no cover - defensive
+            except Exception as e:
                 return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
 
-        # Generic model payload validation hook across all tables.
-        # Flags:
-        #   UNIVERSAL_API_VALIDATE -> apply to any model exposing api_validate_payload(data,is_update)
-        #   ORGS_VALIDATE_API -> legacy, orgs-only (preserved for backward compat)
+        # Optional model-level payload validation
         try:
             universal_flag = getattr(settings, 'UNIVERSAL_API_VALIDATE', False)
         except Exception:
             universal_flag = False
-        apply_validation = universal_flag or (table_name == 'orgs' and getattr(settings, 'ORGS_VALIDATE_API', False))
+        apply_validation = universal_flag or (norm_key == 'orgs' and getattr(settings, 'ORGS_VALIDATE_API', False))
         if apply_validation and hasattr(obj, 'api_validate_payload'):
             try:
                 ok, errors = obj.api_validate_payload(data, is_update)  # type: ignore[attr-defined]
-            except Exception as e:  # safety net: treat unexpected exceptions as validation failure
+            except Exception as e:
                 logging.getLogger(__name__).warning(
-                    "validation_exception table=%s model=%s error=%s", table_name, model.__name__, e
+                    "validation_exception model=%s class=%s error=%s", model_key, model.__name__, e
                 )
                 return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_exception','details': [str(e)]})
             if not ok:
                 logging.getLogger(__name__).info(
-                    "validation_failed table=%s model=%s errors=%s", table_name, model.__name__, errors
+                    "validation_failed model=%s class=%s errors=%s", model_key, model.__name__, errors
                 )
                 return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_failed','details': errors})
 
+        # Save
         try:
             obj.save()
         except IntegrityError as e:
@@ -282,40 +246,50 @@ class SaveWcapiView(APIView):
         except Exception as e:
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-        # Post-save: prefer model hook; fall back to task only if hook absent
+        # Post-save hook or task
         post_hook_note = None
-        if hasattr(obj, 'post_save_hook'):
+        post_hook = getattr(obj, 'post_save_hook', None)
+        if callable(post_hook):
             try:
-                post_hook_note = obj.post_save_hook(data)  # type: ignore[attr-defined]
-            except Exception as e:  # pragma: no cover - defensive
+                context = {
+                    'model_name': model_key,
+                    'is_update': is_update,
+                    'user_id': getattr(request.user, 'id', None),
+                }
+                try:
+                    post_hook_note = post_hook(data, is_update, context)  # type: ignore[misc]
+                except TypeError:
+                    try:
+                        post_hook_note = post_hook(data, is_update)  # type: ignore[misc]
+                    except TypeError:
+                        post_hook_note = post_hook(data)  # type: ignore[misc]
+            except Exception as e:
                 post_hook_note = f'post_save_hook error: {e}'
         else:
             try:
-                tasks.save_post.apply(args=[table_name, data])
+                tasks.save_post.apply(args=[model_key, data])
             except Exception:
                 try:
-                    tasks.save_post(table_name, data)
+                    tasks.save_post(model_key, data)
                 except Exception:
                     pass
-        # Queue lightweight async fan-out (best effort, ignore failures silently in test/local)
         try:
-            if hasattr(tasks, 'save_post_async'):
-                tasks.save_post_async.delay(table_name, obj.id, getattr(obj, 'version', None))  # type: ignore[attr-defined]
+            task_async = getattr(tasks, 'save_post_async', None)
+            if task_async is not None:
+                task_async.delay(model_key, obj.id, getattr(obj, 'version', None))
         except Exception:
             pass
-        logger = logging.getLogger(__name__)
-        logger.info(f"Saved {table_name} record {obj.id}")  # type: ignore[attr-defined]
 
-        # Serialize only concrete fields to avoid M2M Permission objects (e.g., user_permissions/groups)
+        # Response
         try:
             safe_fields = [f.name for f in obj._meta.concrete_fields]
             record = model_to_dict(obj, fields=safe_fields)
         except Exception:
             record = {'id': getattr(obj, 'id', None)}
         payload = {
-            'id': obj.id,  # type: ignore[attr-defined]
+            'id': obj.id,
             'record': record,
-            'table_name': table_name,
+            'model_name': model_key,
             'version': getattr(obj, 'version', None)
         }
         messages = []
@@ -325,7 +299,7 @@ class SaveWcapiView(APIView):
             messages.append(post_hook_note)
         if deprecation_flag:
             messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
-            logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", table_name)
+            logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", model_key)
         if messages:
             payload['messages'] = messages
         return api_response(data=payload)

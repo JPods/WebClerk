@@ -1,10 +1,10 @@
 {
 	"delete_NotNeeded":"2025-10-15",
-	"setup_postman_endpoints": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"table_name\":\"contacts\",\"id\":3})",
+	"setup_postman_endpoints": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"model_name\":\"contact\",\"id\":3})",
 	"info": {
 		"_postman_id": "22cefbe9-95e0-4354-b2f7-86e9bf42eeba",
 		"name": "WebClerk API Endpoints",
-		"description": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"table_name\":\"contacts\",\"id\":3})",
+		"description": "Postman collection for WebClerk Django API endpoints (all POST, body: {\"model_name\":\"contact\",\"id\":3})",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "14022474",
 		"_collection_link": "https://www.postman.com/restless-moon-518305/workspace/webclerk/collection/45428116-22cefbe9-95e0-4354-b2f7-86e9bf42eeba?action=share&source=collection_link&creator=14022474"
@@ -51,7 +51,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/login/",
@@ -80,7 +80,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/logout/",
@@ -109,7 +109,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/connect/",
@@ -139,7 +139,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/delete/",
@@ -169,7 +169,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/query/",
@@ -211,7 +211,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/get/",
@@ -241,7 +241,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/head/",
@@ -271,7 +271,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/help/",
@@ -301,7 +301,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/manage/",
@@ -331,7 +331,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/options/",
@@ -361,7 +361,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/patch/",
@@ -391,7 +391,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/post/",
@@ -421,7 +421,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/save/",
@@ -451,7 +451,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/put/",
@@ -481,7 +481,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"table_name\": \"contacts\",\n  \"id\": 3\n}"
+					"raw": "{\n  \"model_name\": \"contact\",\n  \"id\": 3\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/wcapi/trace/",
@@ -555,7 +555,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8000/wcapi/get/?table_name=contacts",
+					"raw": "http://localhost:8000/wcapi/get/?model_name=contact",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -568,8 +568,8 @@
 					],
 					"query": [
 						{
-							"key": "table_name",
-							"value": "contacts"
+							"key": "model_name",
+							"value": "contact"
 						}
 					]
 				}

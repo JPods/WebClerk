@@ -10,7 +10,7 @@ class ContactListView(BaseListCreateView):
     queryset = Contact.objects.all().order_by('-id')
     serializer_class = ContactSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'contacts'
+    model_name = 'contact'
 
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
@@ -24,7 +24,7 @@ class ContactDetailView(BaseOptimisticDetailView):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'contacts'
+    model_name = 'contact'
 
 
 class ContactSearchView(PrefixAndSearchView):
@@ -35,5 +35,5 @@ class ContactSearchView(PrefixAndSearchView):
         'email', 'company', 'title', 'department',
         'name_first', 'name_last', 'ida'
     ]
-    table_name = 'contacts'
+    model_name = 'contact'
     model = Contact

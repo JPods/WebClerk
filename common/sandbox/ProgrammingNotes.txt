@@ -5,12 +5,7 @@ core/views/__init__.py
 Care must be taken if the table 
 name is not a standard "s" ending
 
-
-        app_label = TABLE_APP_MAP.get(table_name, 'core')
-        if table_name == "addresses":
-            model_name = "Location"
-        else:
-            model_name = table_name.rstrip('s').capitalize()
+table_ name should always be replaced by model_name
 
 Form versus table references to tables
   "tablename-table" suffix for all table references displayed in a table or list

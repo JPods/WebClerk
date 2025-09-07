@@ -12,7 +12,7 @@ def _auth_client(user):
 
 @pytest.mark.django_db
 def test_field_auth_matrix_endpoint(django_user_model):
-    Setting.objects.create(purpose='view_edit', table_name='proposal_line', is_active=True,
+    Setting.objects.create(purpose='view_edit', model_name='proposal_line', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='user1@example.com', password='pass12345', role='USER')
     client = _auth_client(user)
@@ -23,7 +23,7 @@ def test_field_auth_matrix_endpoint(django_user_model):
 
 @pytest.mark.django_db
 def test_serializer_field_filtering(django_user_model):
-    Setting.objects.create(purpose='view_edit', table_name='proposal_line', is_active=True,
+    Setting.objects.create(purpose='view_edit', model_name='proposal_line', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": ["status"]}})
     user = django_user_model.objects.create_user(email='user2@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
@@ -37,7 +37,7 @@ def test_serializer_field_filtering(django_user_model):
 
 @pytest.mark.django_db
 def test_disallowed_edit(django_user_model):
-    Setting.objects.create(purpose='view_edit', table_name='proposal_line', is_active=True,
+    Setting.objects.create(purpose='view_edit', model_name='proposal_line', is_active=True,
                            data={"USER": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='user3@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
@@ -48,7 +48,7 @@ def test_disallowed_edit(django_user_model):
 
 @pytest.mark.django_db
 def test_view_edit_cache_invalidation(django_user_model):
-    setting = Setting.objects.create(purpose='view_edit', table_name='proposal_line', is_active=True,
+    setting = Setting.objects.create(purpose='view_edit', model_name='proposal_line', is_active=True,
                                      data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='cachetest@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create()
@@ -69,11 +69,11 @@ def test_view_edit_cache_invalidation(django_user_model):
     assert 'status' in item2
 
 @pytest.mark.django_db
-def test_setting_invalid_table_name_rejected(django_user_model):
+def test_setting_invalid_model_name_rejected(django_user_model):
     user = django_user_model.objects.create_user(email='invalidtbl@example.com', password='pass12345', role='ADMIN')
     client = _auth_client(user)
-    payload = {"purpose": "view_edit", "table_name": "sales_order_line", "is_active": True, "data": {"ADMIN": {"view": ["id"], "edit": []}}}
+    payload = {"purpose": "view_edit", "model_name": "not_a_model", "is_active": True, "data": {"ADMIN": {"view": ["id"], "edit": []}}}
     resp = client.post('/settings/', payload, format='json')  # type: ignore
     # Expect 400 with specific error
     assert resp.status_code == 400  # type: ignore[attr-defined]
-    assert 'table_name' in (resp.data.get('error', {}).get('details', {}) if hasattr(resp, 'data') else {})  # type: ignore[attr-defined]
+    assert 'model_name' in (resp.data.get('error', {}).get('details', {}) if hasattr(resp, 'data') else {})  # type: ignore[attr-defined]

@@ -12,7 +12,7 @@ class TemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
         fields = [
-            'id','uuid','name','purpose','table_name','is_active',
+            'id','uuid','name','purpose','is_active',
             'metadata','refs','prefs','comments','version','dt_created','dt_modified'
         ]
     read_only_fields = ['id','uuid','version','dt_created','dt_modified']
@@ -22,8 +22,8 @@ class TemplateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and hasattr(request,'user') and request.user.is_authenticated:
             mode = 'edit' if request.method in ['POST','PUT','PATCH'] else 'view'
-            allowed = set(get_accessible_fields('templates', mode, request.user))
-            core_fields = {'id','uuid','version','dt_created','dt_modified','name','purpose','table_name'}
+            allowed = set(get_accessible_fields('template', mode, request.user))
+            core_fields = {'id','uuid','version','dt_created','dt_modified','name','purpose'}
             if allowed:
                 for fname in list(self.fields.keys()):
                     if fname not in allowed and fname not in core_fields:

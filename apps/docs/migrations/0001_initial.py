@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('confidential', models.CharField(blank=True, max_length=255, null=True)),
                 ('copyright', models.JSONField(blank=True, help_text='{level:int,path:str,holder:str,notes:[]} structure', null=True)),
                 ('count_accessed', models.IntegerField(default=0)),
-                ('table_name', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
+                ('model_name', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
                 ('retention_period', models.IntegerField(blank=True, null=True)),
                 ('sequence', models.IntegerField(blank=True, null=True)),
                 ('size_bytes', models.IntegerField(blank=True, null=True)),
@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'documents',
-                'indexes': [django.contrib.postgres.indexes.GinIndex(fields=['search_vector'], name='doc_search_gin'), models.Index(fields=['status'], name='doc_status_idx'), models.Index(fields=['name'], name='doc_name_idx'), models.Index(fields=['table_name'], name='doc_table_name_idx')],
+                'indexes': [django.contrib.postgres.indexes.GinIndex(fields=['search_vector'], name='doc_search_gin'), models.Index(fields=['status'], name='doc_status_idx'), models.Index(fields=['name'], name='doc_name_idx'), models.Index(fields=['model_name'], name='doc_model_name_idx')],
             },
         ),
         migrations.CreateModel(
@@ -109,7 +109,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
                 ('purpose', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
                 ('status', models.CharField(blank=True, db_index=True, max_length=100, null=True)),
-                ('table_name', models.CharField(blank=True, db_index=True, help_text='Source table this tag decorates', max_length=255, null=True)),
+                ('model_name', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
                 ('record_id', models.IntegerField(blank=True, db_index=True, help_text='ID in source table', null=True)),
                 ('data', models.JSONField(blank=True, help_text='Arbitrary structured tag payload', null=True)),
                 ('count_accessed', models.IntegerField(default=0)),
@@ -117,7 +117,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'tags',
-                'indexes': [models.Index(fields=['purpose'], name='tag_purpose_idx'), models.Index(fields=['status'], name='tag_status_idx'), models.Index(fields=['table_name', 'record_id'], name='tag_table_record_idx')],
+                'indexes': [models.Index(fields=['purpose'], name='tag_purpose_idx'), models.Index(fields=['status'], name='tag_status_idx'), models.Index(fields=['model_name'], name='tag_model_name_idx')],
             },
         ),
         migrations.CreateModel(

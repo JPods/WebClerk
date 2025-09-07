@@ -72,7 +72,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, max_length=255, null=True)),
                 ('purpose', models.CharField(blank=True, max_length=255, null=True)),
                 ('role', models.CharField(blank=True, max_length=255, null=True)),
-                ('table_name', models.CharField(blank=True, max_length=255, null=True)),
+                ('model_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('data', models.JSONField(blank=True, null=True)),
             ],
             options={
@@ -97,7 +97,6 @@ class Migration(migrations.Migration):
                 ('prefs', models.JSONField(default=common.models.default_prefs, help_text='User preferences / settings')),
                 ('comments', models.JSONField(default=common.models.default_comments, help_text='Threaded notes / comment fields')),
                 ('health_rating', models.IntegerField(default=0, help_text='Data quality rating (0-100)')),
-                ('table_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('purpose', models.CharField(blank=True, max_length=120, null=True)),
                 ('name', models.CharField(blank=True, max_length=120, null=True)),
                 ('data', models.JSONField(default=dict)),
@@ -162,7 +161,7 @@ class Migration(migrations.Migration):
                 ('version', models.PositiveIntegerField(default=1)),
                 ('is_active', models.BooleanField(db_index=True, default=True, help_text='Record is logically active')),
                 ('security_level', models.IntegerField(blank=True, db_index=True, default=0, help_text='Security level or classification')),
-                ('table_name', models.CharField(blank=True, max_length=255, null=True)),
+                ('model_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('record_id', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
                 ('purpose', models.CharField(blank=True, max_length=120, null=True)),
                 ('name', models.CharField(blank=True, max_length=120, null=True)),
@@ -171,7 +170,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'pending',
-                'indexes': [models.Index(fields=['table_name'], name='pending_table_n_b8acef_idx'), models.Index(fields=['record_id'], name='pending_record__e5e38e_idx'), models.Index(fields=['dt_processed'], name='pending_dt_proc_dc4dfc_idx')],
+                'indexes': [models.Index(fields=['model_name'], name='pending_model_na_8a7f2c_idx'), models.Index(fields=['record_id'], name='pending_record__e5e38e_idx'), models.Index(fields=['dt_processed'], name='pending_dt_proc_dc4dfc_idx')],
             },
         ),
     ]

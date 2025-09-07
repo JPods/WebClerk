@@ -4,6 +4,7 @@ from django.dispatch import receiver
 from apps.core.models.pending import Pending
 from apps.core.constants.keyword_requirements import get_keyword_requirements
 from django.db import connection
+from apps.core.services.wcapi_registry import to_model_name
 
 @receiver(post_save)
 def create_pending_on_save(sender, instance, created, **kwargs):
@@ -21,9 +22,11 @@ def create_pending_on_save(sender, instance, created, **kwargs):
         if 'settings' not in existing_tables or 'pending' not in existing_tables:
             return
         if table_name in get_keyword_requirements():
+            model_name = to_model_name(table_name) or table_name
             Pending.objects.create(
-                table_name=table_name,
+                model_name=model_name,
                 record_id=record_id,
+                ida=f"{model_name}:{record_id}",
                 data={},  # Optionally pass relevant data
             )
     except Exception as e:

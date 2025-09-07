@@ -14,10 +14,10 @@ def test_wcapi_query_orgs_basic():
     User.objects.create_user(email='wcorg@example.com', password='pw12345', name_first='Org', name_last='User', username='')
     c = Client(); assert c.login(email='wcorg@example.com', password='pw12345')
 
-    resp = c.post('/wcapi/query/', data=json.dumps({'table_name': 'orgs'}), content_type='application/json')
+    resp = c.post('/wcapi/query/', data=json.dumps({'model_name': 'org'}), content_type='application/json')  #chaned from t_n
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status='success')
-    assert data['table_name'] == 'orgs'
+    assert data['model_name'] == 'org'
     names = {r['display_name'] for r in data['results']}
     assert 'Acme Customer' in names and 'Vendor LLC' in names
 
@@ -29,7 +29,7 @@ def test_wcapi_query_customers_proxy_filters():
     User.objects.create_user(email='wcorg2@example.com', password='pw12345', name_first='Org', name_last='User', username='')
     c = Client(); assert c.login(email='wcorg2@example.com', password='pw12345')
 
-    resp = c.post('/wcapi/query/', data=json.dumps({'table_name': 'customers'}), content_type='application/json')
+    resp = c.post('/wcapi/query/', data=json.dumps({'model_name': 'customer'}), content_type='application/json')  #chaned from t_n
     assert resp.status_code == 200
     data = assert_envelope(resp.json(), expect_status='success')
     names = {r['display_name'] for r in data['results']}

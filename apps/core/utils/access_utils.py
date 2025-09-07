@@ -5,12 +5,12 @@ from .global_storage import GlobalStorage
 # Initialize global storage
 global_storage = GlobalStorage()
 
-def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool = False) -> list:
+def get_accessible_fields(model_name: str, mode: str, user, force_refresh: bool = False) -> list:
     """
-    Retrieve accessible fields for a given table and mode based on user roles, with caching.
+    Retrieve accessible fields for a given model and mode based on user roles, with caching.
 
     Args:
-        table_name: The name of the table (e.g., 'contacts', 'actions').
+    model_name: The canonical model name (singular, e.g., 'Contact', 'Action').
         mode: The access mode ('view' or 'edit').
         user: The authenticated user object from the request.
         force_refresh: If True, bypasses cache and queries database (default: False).
@@ -26,8 +26,8 @@ def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool 
     if isinstance(user_roles, str):
         user_roles = [user_roles]
     
-    # Generate cache key based on table_name, mode, and user roles
-    cache_key = f"accessible_fields_{table_name}_{mode}_{'_'.join(sorted(user_roles))}"
+    # Generate cache key based on model_name, mode, and user roles
+    cache_key = f"accessible_fields_{model_name}_{mode}_{'_'.join(sorted(user_roles))}"
     
     # Check cache first
     cached_fields = global_storage.get(cache_key, force_refresh=force_refresh)
@@ -36,7 +36,7 @@ def get_accessible_fields(table_name: str, mode: str, user, force_refresh: bool 
 
     try:
         setting = Setting.objects.get(
-            table_name=table_name,
+            model_name=model_name,
             purpose='view_edit',
             role='all',
             is_active=True

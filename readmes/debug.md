@@ -86,7 +86,7 @@ See quick table in original file; condensed here:
 |------|---------|
 | Reseed dataset | `python manage.py reseed --no-flush --per-model 3` |
 | Inspect model counts | One-liner in README root (search `Inspect model counts`) |
-| Test open read | `curl http://localhost:8000/wcapi/get/?table_name=contacts` |
+| Test open read | `curl http://localhost:8000/wcapi/get/?model_name=contact` |
 | JWT login | cURL POST to `/wcapi/login/` |
 
 ## 10. Future Cleanup Targets

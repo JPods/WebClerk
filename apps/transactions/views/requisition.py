@@ -9,7 +9,7 @@ class RequisitionListView(BaseListCreateView):
     queryset = RequisitionStd.objects.all()
     serializer_class = RequisitionSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'requisitions'
+    model_name = 'requisition'
     ALLOWED_ROLES = {'staff','admin'}
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
@@ -21,7 +21,7 @@ class RequisitionDetailView(BaseOptimisticDetailView):
     queryset = RequisitionStd.objects.all()
     serializer_class = RequisitionSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'requisitions'
+    model_name = 'requisition'
     ALLOWED_ROLES = {'staff','admin'}
 
 class RequisitionSearchView(PrefixAndSearchView):

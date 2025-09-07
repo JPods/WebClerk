@@ -17,4 +17,4 @@ class DomainSerializer(RoleAwareModelSerializer):
         ]
     read_only_fields = ['id', 'uuid', 'count_accessed', 'dt_created', 'dt_modified', 'version']
 
-    table_name = 'domains'
+            # model_name-only world; no model_name attribute

@@ -24,11 +24,12 @@ class ContactDetailView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         contact_id = kwargs.get('contact_id')
         
-        # Existing: Simple contact lookup - no prefetch needed with Universal API
-        contact = get_object_or_404(Contact, id=contact_id)
+    # Existing: Simple contact lookup - no prefetch needed with Universal API
+    contact = get_object_or_404(Contact, id=contact_id)
         
-        context['contact'] = contact
-        context['is_own_profile'] = (contact.id == self.request.user.id)
+    context['contact'] = contact
+    user_id = getattr(self.request.user, 'id', None)
+    context['is_own_profile'] = (contact.id == user_id)
         
         # ADD: Optionally, filter fields in contact based on role's allowed "view" fields from settings.
         # Example: Only include fields in can_user_view('contacts', user.role)
@@ -37,15 +38,15 @@ class ContactDetailView(LoginRequiredMixin, TemplateView):
 
     async def fetch_contact_data(self, user_id=None):
         if user_id is None:
-            user_id = self.request.user.id
+            user_id = getattr(self.request.user, 'id', None)
 
         # Existing: Fetch related records for the contact via async HTTP calls to the Universal API.
         endpoints = [
-            ("addresses", f"/wcapi/get/?table_name=addresses&contact_id={user_id}"),
-            ("phones", f"/wcapi/get/?table_name=phones&contact_id={user_id}"),
-            ("emails", f"/wcapi/get/?table_name=emails&contact_id={user_id}"),
-            ("domains", f"/wcapi/get/?table_name=domains&contact_id={user_id}"),
-            ("actions", f"/wcapi/get/?table_name=actions&contact_id={user_id}"),
+            ("addresses", f"/wcapi/get/?model_name=address&contact_id={user_id}"),
+            ("phones", f"/wcapi/get/?model_name=phone&contact_id={user_id}"),
+            ("emails", f"/wcapi/get/?model_name=email&contact_id={user_id}"),
+            ("domains", f"/wcapi/get/?model_name=domain&contact_id={user_id}"),
+            ("actions", f"/wcapi/get/?model_name=action&contact_id={user_id}"),
         ]
 
         results = {}

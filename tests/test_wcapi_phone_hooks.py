@@ -13,7 +13,7 @@ def test_phone_pre_and_post_hooks_success(monkeypatch):
     user = User.objects.create_user(email='phook@example.com', password='pw12345', name_first='P', name_last='User', username='')
     c = Client(); assert c.login(email='phook@example.com', password='pw12345')
     payload = {
-        'table_name': 'phones',
+        'model_name': 'phone',  #chaned from t_n
         'number': '5551234',
         'country_code': '+1',
         'name': 'Desk'
@@ -32,7 +32,7 @@ def test_phone_pre_save_rejects_short_number():
     user = User.objects.create_user(email='phook2@example.com', password='pw12345', name_first='P', name_last='User', username='')
     c = Client(); assert c.login(email='phook2@example.com', password='pw12345')
     payload = {
-        'table_name': 'phones',
+        'model_name': 'phone',  #chaned from t_n
         'number': '12',  # too short triggers pre_save_hook rejection
         'country_code': '+1'
     }
@@ -48,7 +48,7 @@ def test_phone_api_validate_country_code_error():
     user = User.objects.create_user(email='phook3@example.com', password='pw12345', name_first='P', name_last='User', username='')
     c = Client(); assert c.login(email='phook3@example.com', password='pw12345')
     payload = {
-        'table_name': 'phones',
+        'model_name': 'phone',  #chaned from t_n
         'number': '5559999',
         'country_code': '1'  # missing leading + triggers api_validate_payload error
     }

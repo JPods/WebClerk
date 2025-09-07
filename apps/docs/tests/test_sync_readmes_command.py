@@ -42,7 +42,7 @@ def _run_command(**opts):
 
 def test_sync_readmes_create_and_slug_collision(monkeypatch):
     # Isolate existing docs
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     root = _make_root()
     # create two README.md in different subfolders -> different slugs
     (root / 'a').mkdir()
@@ -57,7 +57,7 @@ def test_sync_readmes_create_and_slug_collision(monkeypatch):
     out = _run_command()
     metrics = _parse_summary(out)
     assert metrics.get('Created') == 2, out
-    docs = list(Document.objects.filter(table_name='readme'))
+    docs = list(Document.objects.filter(model_name='readme'))
     slugs = {d.slug for d in docs}
     # Expect slugs to incorporate parent folder names (a-readme / b-readme or similar)
     assert len(slugs) == 2
@@ -66,7 +66,7 @@ def test_sync_readmes_create_and_slug_collision(monkeypatch):
 
 
 def test_sync_readmes_update_and_unchanged(monkeypatch):
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     root = _make_root()
     f1 = root / 'guide.md'
     f2 = root / 'plan.md'
@@ -85,7 +85,7 @@ def test_sync_readmes_update_and_unchanged(monkeypatch):
 
 
 def test_sync_readmes_delete_missing(monkeypatch):
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     root = _make_root()
     f1 = root / 'keep.md'
     f2 = root / 'drop.md'
@@ -98,13 +98,13 @@ def test_sync_readmes_delete_missing(monkeypatch):
     f2.unlink()
     out = _run_command(delete_missing=True)
     metrics = _parse_summary(out)
-    assert Document.objects.filter(table_name='readme').count() == 1
+    assert Document.objects.filter(model_name='readme').count() == 1
     # No new creations expected
     assert metrics.get('Created') == 0
 
 
 def test_sync_readmes_truncate_and_export_index(monkeypatch, tmp_path):
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     root = _make_root()
     big_content = '# Big File\n' + ('A' * 5000)
     (root / 'big.md').write_text(big_content, encoding='utf-8')
@@ -114,7 +114,7 @@ def test_sync_readmes_truncate_and_export_index(monkeypatch, tmp_path):
     out = _run_command(max_bytes=100, truncate=True, export_index=True, index_path=str(index_path))
     metrics = _parse_summary(out)
     assert metrics.get('Created') == 1
-    doc = Document.objects.filter(table_name='readme').first()
+    doc = Document.objects.filter(model_name='readme').first()
     assert doc is not None
     assert doc.body is not None
     assert len(doc.body.encode('utf-8')) <= 100  # truncated

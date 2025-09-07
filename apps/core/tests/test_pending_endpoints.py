@@ -30,7 +30,7 @@ def auth_client(api_client, user):
 def test_pending_list_create_and_pagination(auth_client):
     # create few records
     for i in range(3):
-        Pending.objects.create(table_name='domains', record_id=str(i))
+        Pending.objects.create(model_name='domain', record_id=str(i))
     url = reverse('pending-list')
     resp = auth_client.get(url)
     assert resp.status_code == 200
@@ -40,7 +40,7 @@ def test_pending_list_create_and_pagination(auth_client):
 
 @pytest.mark.django_db
 def test_pending_detail_and_optimistic_patch(auth_client):
-    p = Pending.objects.create(table_name='domains', record_id='42')
+    p = Pending.objects.create(model_name='domain', record_id='42')
     detail_url = reverse('pending-detail', args=[p.id])
     # fetch
     resp = auth_client.get(detail_url)
@@ -62,9 +62,9 @@ def test_pending_detail_and_optimistic_patch(auth_client):
 
 @pytest.mark.django_db
 def test_pending_search(auth_client):
-    Pending.objects.create(table_name='alpha', record_id='1')
-    Pending.objects.create(table_name='beta', record_id='2')
+    Pending.objects.create(model_name='alpha', record_id='1')
+    Pending.objects.create(model_name='beta', record_id='2')
     url = reverse('pending-search') + '?q=alp'
     resp = auth_client.get(url)
     assert resp.status_code == 200
-    assert any(r['table_name']=='alpha' for r in resp.data['data']['results'])
+    assert any(r.get('model_name')=='alpha' for r in resp.data['data']['results'])

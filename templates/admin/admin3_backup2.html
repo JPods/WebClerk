@@ -132,17 +132,17 @@ let detailAllFields = [];
 
 // Default fields for tables (can be edited later)
 const defaultTableFields = {
-    "contacts": ["id", "email", "name_first", "name_last", "company"],
-    "actions": ["actions", "action_by", "priority", "status"],
-    "settings": ["id", "key", "value", "description", "updated_at"],
-    "notifications": ["id", "user", "message", "created_at", "read"],
-    "pendings": ["id", "item", "requested_by", "status", "created_at"],
-    "reports": ["id", "title", "created_by", "created_at", "status"],
-    "templates": ["id", "name", "type", "content", "created_at"],
-    "domains": ["id", "domain_name", "owner", "created_at", "status"],
-    "emails": ["id", "email", "user", "verified", "created_at"],
-    "locations": ["id", "address", "city", "state", "country"],
-    "phones": ["id", "number", "type", "user", "verified"]
+    "contact": ["id", "email", "name_first", "name_last", "company"],
+    "action": ["actions", "action_by", "priority", "status"],
+    "setting": ["id", "key", "value", "description", "updated_at"],
+    "notification": ["id", "user", "message", "created_at", "read"],
+    "pending": ["id", "item", "requested_by", "status", "created_at"],
+    "report": ["id", "title", "created_by", "created_at", "status"],
+    "template": ["id", "name", "type", "content", "created_at"],
+    "domain": ["id", "domain_name", "owner", "created_at", "status"],
+    "email": ["id", "email", "user", "verified", "created_at"],
+    "location": ["id", "address", "city", "state", "country"],
+    "phone": ["id", "number", "type", "user", "verified"]
 };
 
 let fieldMode = 'list'; // 'list' or 'detail'
@@ -154,7 +154,7 @@ let selectedFieldNames = [];
 
 function loadTableData(tableName) {
     currentTableName = tableName;
-    fetch(`/wcapi/models/?table_name=${tableName}`)
+    fetch(`/wcapi/models/?model_name=${tableName}`)
         .then(resp => resp.json())
         .then(fieldResult => {
             console.log('fieldResult:', fieldResult); // <-- Add this line
@@ -180,7 +180,7 @@ function loadTableData(tableName) {
             selectedFieldNames = [];
             renderLeftFieldsTable();
 
-            fetch(`/wcapi/get/?table_name=${tableName}`)
+            fetch(`/wcapi/get/?model_name=${tableName}`)
                 .then(response => response.json())
                 .then(result => {
                     const data = result.data;
@@ -212,7 +212,7 @@ function loadTableData(tableName) {
 // ...existing code...
 
 function loadDetail(tableName, recordId) {
-    fetch(`/wcapi/get/?table_name=${tableName}&id=${recordId}`)
+    fetch(`/wcapi/get/?model_name=${tableName}&id=${recordId}`)
         .then(response => response.json())
         .then(result => {
             const data = result.data;
@@ -231,7 +231,7 @@ function loadDetail(tableName, recordId) {
             detailDisplayedFields = Object.keys(data);
 
             // Fetch field info for detail fields table
-            fetch(`/wcapi/models/?table_name=${tableName}`)
+            fetch(`/wcapi/models/?model_name=${tableName}`)
                 .then(resp => resp.json())
                 .then(fieldResult => {
                     const modelFields = fieldResult.models && fieldResult.models[tableName];
@@ -335,7 +335,7 @@ function toggleDetailField(fieldName) {
 }
 
 function renderCenterTable() {
-    fetch(`/wcapi/get/?table_name=${currentTableName}`)
+    fetch(`/wcapi/get/?model_name=${currentTableName}`)
         .then(response => response.json())
         .then(result => {
             const data = result.data;

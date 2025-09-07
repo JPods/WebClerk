@@ -25,17 +25,17 @@ class TestReadmeContent(unittest.TestCase):
     self.assertIn("python manage.py load_default_access", self.content)
 
   def test_universal_api_examples_present(self):
-    self.assertIn("/wcapi/manage/?table_name=contacts", self.content)
-    self.assertIn("/wcapi/manage/?table_name=contacts&id=123", self.content)
-    self.assertIn("/wcapi/manage/?table_name=emails&contact_id=123", self.content)
-    self.assertIn("/wcapi/manage/?table_name=actions&mode=create", self.content)
-    self.assertIn("/wcapi/get/?table_name=contacts&id=123", self.content)
+    self.assertIn("/wcapi/manage/?model_name=contact", self.content)
+    self.assertIn("/wcapi/manage/?model_name=contact&id=123", self.content)
+    self.assertIn("/wcapi/manage/?model_name=email&contact_id=123", self.content)
+    self.assertIn("/wcapi/manage/?model_name=action&mode=create", self.content)
+    self.assertIn("/wcapi/get/?model_name=contact&id=123", self.content)
 
   def test_navigation_structure_present(self):
     self.assertIn("🏠 **Home**", self.content)
-    self.assertIn("**Contacts**", self.content)
-    self.assertIn("**Actions**", self.content)
-    self.assertIn("**Communications**", self.content)
+    self.assertIn("**Contact**", self.content)
+    self.assertIn("**Action**", self.content)
+    self.assertIn("**Communication**", self.content)
     self.assertIn("**Admin**", self.content)
     self.assertIn("🤚 **Logout**", self.content)
 

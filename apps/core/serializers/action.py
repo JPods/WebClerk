@@ -2,7 +2,6 @@ from common.base_serializers import RoleAwareModelSerializer
 from apps.core.models.action import Action
 
 class ActionSerializer(RoleAwareModelSerializer):
-    table_name = 'actions'
     class Meta:
         model = Action
         fields = '__all__'

@@ -9,7 +9,7 @@ class ActionListView(BaseListCreateView):
     queryset = Action.objects.all()
     serializer_class = ActionSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'actions'
+    model_name = 'action'
     ALLOWED_ROLES = {'staff','admin'}
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
@@ -21,7 +21,7 @@ class ActionDetailView(BaseOptimisticDetailView):
     queryset = Action.objects.all()
     serializer_class = ActionSerializer
     permission_classes = [IsAuthenticated]
-    table_name = 'actions'
+    model_name = 'action'
     ALLOWED_ROLES = {'staff','admin'}
 
 class ActionSearchView(PrefixAndSearchView):

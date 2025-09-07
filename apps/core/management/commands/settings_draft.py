@@ -6,14 +6,14 @@ import json
 class Command(BaseCommand):
     help = "Build settings for working with gantt charts"
 
-    #required_fields = ["name", "purpose", "role", "table_name", "data"]
+    #required_fields = ["name", "purpose", "role", "model_name", "data"]
 
-    required_fields = ["name", "purpose", "role", "table_name", "data"]
+    required_fields = ["name", "purpose", "role", "model_name", "data"]
 
     def create_settings_record(self, **kwargs):
         """
         #Stub: Create a settings record for gantt charts.
-        #Required fields: name, purpose, role, table_name, data
+    #Required fields: name, purpose, role, model_name, data
         #Returns the created record as a dictionary.
         """
         record = {}
@@ -28,7 +28,7 @@ class Command(BaseCommand):
             "name": "Project Gantt",
             "purpose": "Track project tasks",
             "role": "admin",
-            "table_name": "actions",
+            "model_name": "action",
             "data": {"some": "value"}
         }
         record = self.create_settings_record(**settings_data)
@@ -62,7 +62,7 @@ class Command(BaseCommand):
             "name": "Project Gantt",
             "purpose": "Track project tasks",
             "role": "admin",
-            "table_name": "actions",
+            "model_name": "action",
             "data": {"some": "value"}
         }
         return json.dumps(example_json, indent=2)

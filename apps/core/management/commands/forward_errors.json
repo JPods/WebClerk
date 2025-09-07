@@ -3,7 +3,7 @@
     "name": "forward_errors",
     "purpose": "techsupport",
     "role": "all",
-    "table_name": "",
+    "model_name": "",
     "data": {
         "rules": "Automatically forward all API error messages and payloads to WebClerk.com tech support."
     },

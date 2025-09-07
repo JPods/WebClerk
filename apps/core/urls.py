@@ -72,8 +72,8 @@ urlpatterns = [
     
     # list/read records
     path('wcapi/get/', WcapiGetView.as_view(), name='get'),
-    # GET /wcapi/get/?table_name=contacts
-    # GET  /wcapi/get/?table_name=contacts&id=6    
+    # GET /wcapi/get/?model_name=contact
+    # GET  /wcapi/get/?model_name=contact&id=6    
     # Headers only
     # path('wcapi/head/', WcapiView.as_view(), name='head'),  # HEAD handled implicitly
     

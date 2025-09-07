@@ -43,13 +43,13 @@ UNIVERSAL API: Links to /wcapi/{table}/manage/ endpoints for related data
 REPLACES: Old hardcoded URLs like /manage-addresses/, /manage-phones/
 TEAM NOTE: Shows how to convert traditional Django links to Universal API URLs
 ARCHITECTURE: Central hub that connects to all related data via Universal API
-URL PATTERN: href="/wcapi/{table_name}/manage/?contact_id={{ user.id }}"
+URL PATTERN: href="/wcapi/{model_name}/manage/?contact_id={{ user.id }}"
 NAVIGATION:
-  - Locationes: /wcapi/addresses/manage/?contact_id=X
-  - Phones: /wcapi/phones/manage/?contact_id=X
-  - Emails: /wcapi/emails/manage/?contact_id=X
-  - Domains: /wcapi/domains/manage/?contact_id=X
-  - Actions: /wcapi/actions/manage/?contact_id=X
+  - Locationes: /wcapi/address/manage/?contact_id=X
+  - Phones: /wcapi/phone/manage/?contact_id=X
+  - Emails: /wcapi/email/manage/?contact_id=X
+  - Domains: /wcapi/domain/manage/?contact_id=X
+  - Actions: /wcapi/action/manage/?contact_id=X
 TABLES: Links to all communication tables via Universal API
 CONTEXT: Receives contact data from Django view, passes to Universal API via URLs
 -->
@@ -194,7 +194,7 @@ cat > temp_header.txt << 'EOF'
 # TEAM NOTE: These patterns enable Universal API to work with any table name dynamically
 # ARCHITECTURE: Implements 4D-style universal table access via URLs
 # URL PATTERNS:
-#   - /wcapi/<table_name>/manage/ -> Universal management interface
+#   - /wcapi/<model_name>/manage/ -> Universal management interface
 #   - /wcapi/query/ -> Universal query endpoint
 #   - /wcapi/save/ -> Universal save endpoint
 #   - /wcapi/get/ -> Universal get endpoint

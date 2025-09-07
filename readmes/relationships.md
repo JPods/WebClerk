@@ -31,9 +31,9 @@ Owner: Bill
 ## Core Principles
 
 1. Authoritative Source: **Contact refs** are the source of truth for lightweight cross-entity relationships.
-2. Storage Shape: All links live under `refs.links.<table_name>[]` (arrays of integer primary keys).
+2. Storage Shape: All links live under `refs.links.<model_name>[]` (arrays of integer primary keys).
 3. Reciprocal Convenience: Communication & other target records (emails, phones, locations, domains, etc.) may also store `refs.links.contacts[]` as a **derived cache** to accelerate reverse lookups and related fetches.
-4. API Semantics: `GET /wcapi/get/?table_name=<name>` returns a flat list (no `related`); `GET /wcapi/get/?table_name=<name>&id=<id>` returns a single record and MAY include `related` (resolved using contact authoritative refs + reciprocal cache when present).
+4. API Semantics: `GET /wcapi/get/?model_name=<name>` returns a flat list (no `related`); `GET /wcapi/get/?model_name=<name>&id=<id>` returns a single record and MAY include `related` (resolved using contact authoritative refs + reciprocal cache when present).
 5. Expandability: New link buckets are added by extending `STANDARD_LINK_KEYS` and (optionally) running a reconcile task.
 6. Non-blocking Integrity: Missing reciprocal links should not 500 the API; integrity is restored asynchronously.
 

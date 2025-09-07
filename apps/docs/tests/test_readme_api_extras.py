@@ -52,10 +52,10 @@ def _temp_root(monkeypatch, content_map):
 
 
 def test_readme_detail_etag_last_modified(monkeypatch, api_client, user):
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     _temp_root(monkeypatch, {'sample.md': '# Title\nBody here'})
     _run_sync()
-    doc = Document.objects.filter(table_name='readme').first()
+    doc = Document.objects.filter(model_name='readme').first()
     assert doc is not None
     assert doc.slug
     detail_url = reverse('readme-detail', kwargs={'slug': doc.slug})
@@ -78,7 +78,7 @@ def test_readme_detail_etag_last_modified(monkeypatch, api_client, user):
 
 
 def test_readme_index_search_endpoint(monkeypatch, api_client, tmp_path, user):
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     _temp_root(monkeypatch, {
         'alpha.md': '# Alpha Doc\nSomething about systems',
         'beta.md': '# Beta Doc\nContains architecture bits',
@@ -103,7 +103,7 @@ def test_readme_index_search_endpoint(monkeypatch, api_client, tmp_path, user):
 
 def test_readme_index_search_fuzzy(monkeypatch, api_client, tmp_path, user):
     """Fuzzy search should return near-miss tokens when enabled or when no exact match."""
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     _temp_root(monkeypatch, {
         'widget.md': '# Widget System\nHandles processing',
         'gadget.md': '# Gadget Overview\nMisc tools',
@@ -133,7 +133,7 @@ def test_readme_index_search_fuzzy(monkeypatch, api_client, tmp_path, user):
 
 def test_readme_top_endpoint(monkeypatch, api_client, user):
     """Ensure /readmes/top/ returns highest accessed readmes in order."""
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     _temp_root(monkeypatch, {
         'one.md': '# One\nFirst',
         'two.md': '# Two\nSecond',
@@ -167,7 +167,7 @@ def test_readme_top_endpoint(monkeypatch, api_client, user):
 
 
 def test_sync_modified_since_and_pattern(monkeypatch):
-    Document.objects.filter(table_name='readme').delete()
+    Document.objects.filter(model_name='readme').delete()
     root = _temp_root(monkeypatch, {
         'keep.md': '# Keep\nOriginal',
         'skip.md': '# Skip\nOriginal',

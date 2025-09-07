@@ -72,7 +72,7 @@ Do NOT use:
 1. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`, and `seed_relationships`.
 1. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables.
 1. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
-1. Ensures default `sync.Connection` entries exist (safety alert + verification stubs).
+1. Ensures default `sync.Connection` entries exist (safety alert + verification stubs). Currency records can link to a provider `Connection` for external rate updates.
 1. Backfills `Location.metadata.display` by saving each Location (ensures `full_location` is populated).
 1. Summary output printed with seeds actually applied.
 

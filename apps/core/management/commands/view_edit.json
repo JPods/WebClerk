@@ -1,10 +1,10 @@
 [
   {
     "is_active": true,
-    "name": "contacts",
+    "name": "contact",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "contacts",
+    "model_name": "contact",
     "data": {
       "SUPER": {
         "view": ["id", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"],
@@ -43,10 +43,10 @@
   },
   {
     "is_active": true,
-    "name": "actions",
+    "name": "action",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "actions",
+    "model_name": "action",
     "data": {
       "SUPER": {
         "view": ["id", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"],
@@ -85,62 +85,62 @@
   },
   {
     "is_active": true,
-    "name": "pendings",
+    "name": "pending",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "pendings",
+    "model_name": "pending",
     "data": {
       "SUPER": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       },
       "ADMIN": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       },
       "SALE": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       },
       "REP": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       },
       "VENDOR": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       },
       "CUSTOMER": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       },
       "USER": {
-        "view": ["id", "ida", "table_name","dt_processed"],
-        "edit": ["id", "ida", "table_name", "dt_processed"]
+        "view": ["id", "ida", "model_name","dt_processed"],
+        "edit": ["id", "ida", "model_name", "dt_processed"]
       }
     }
   },
   {
     "is_active": true,
-    "name": "settings",
+    "name": "setting",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "settings",
+    "model_name": "setting",
     "data": {
       "SUPER": {
-        "view": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"],
-        "edit": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"]
+        "view": ["id", "is_active", "name", "purpose", "role", "model_name", "comment"],
+        "edit": ["id", "is_active", "name", "purpose", "role", "model_name", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"],
-        "edit": ["is_active", "name", "purpose", "role", "table_name", "comment"]
+        "view": ["id", "is_active", "name", "purpose", "role", "model_name", "comment"],
+        "edit": ["is_active", "name", "purpose", "role", "model_name", "comment"]
       },
       "SALE": {
-        "view": ["id", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "model_name"],
         "edit": []
       },
       "REP": {
-        "view": ["id", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "model_name"],
         "edit": []
       },
       "VENDOR": {
@@ -156,33 +156,33 @@
         "edit": []
       },
       "PUBLIC": {
-        "view": ["id", "is_active", "name", "purpose", "role", "table_name", "comment"],
-        "edit": ["is_active", "name", "purpose", "role", "table_name", "comment"]
+        "view": ["id", "is_active", "name", "purpose", "role", "model_name", "comment"],
+        "edit": ["is_active", "name", "purpose", "role", "model_name", "comment"]
       }
     },
     "comment": ""
   },
   {
     "is_active": true,
-    "name": "templates",
+    "name": "template",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "templates",
+    "model_name": "template",
     "data": {
       "SUPER": {
-        "view": ["id", "name", "purpose", "table_name", "comment"],
-        "edit": ["id", "name", "purpose", "table_name", "comment"]
+        "view": ["id", "name", "purpose", "model_name", "comment"],
+        "edit": ["id", "name", "purpose", "model_name", "comment"]
       },
       "ADMIN": {
-        "view": ["id", "name", "purpose", "table_name", "comment"],
-        "edit": ["name", "purpose", "table_name", "comment"]
+        "view": ["id", "name", "purpose", "model_name", "comment"],
+        "edit": ["name", "purpose", "model_name", "comment"]
       },
       "SALE": {
-        "view": ["id", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "model_name"],
         "edit": []
       },
       "REP": {
-        "view": ["id", "name", "purpose", "table_name"],
+        "view": ["id", "name", "purpose", "model_name"],
         "edit": []
       },
       "VENDOR": {
@@ -198,18 +198,18 @@
         "edit": []
       },
       "PUBLIC": {
-        "view": ["id", "name", "purpose", "table_name", "comment"],
-        "edit": ["name", "purpose", "table_name", "comment"]
+        "view": ["id", "name", "purpose", "model_name", "comment"],
+        "edit": ["name", "purpose", "model_name", "comment"]
       }
     },
     "comment": ""
   },
   {
     "is_active": true,
-    "name": "locations",
+    "name": "location",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "locations",
+    "model_name": "location",
     "data": {
       "SUPER": {
         "view": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
@@ -248,10 +248,10 @@
   },
   {
     "is_active": true,
-    "name": "domains",
+    "name": "domain",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "domains",
+    "model_name": "domain",
     "data": {
       "SUPER": {
         "view": ["id", "path", "type", "comment"],
@@ -290,10 +290,10 @@
   },
   {
     "is_active": true,
-    "name": "emails",
+    "name": "email",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "emails",
+    "model_name": "email",
     "data": {
       "SUPER": {
         "view": ["id", "email", "attention", "name", "opt_out", "comment"],
@@ -332,10 +332,10 @@
   },
   {
     "is_active": true,
-    "name": "phones",
+    "name": "phone",
     "purpose": "view_edit",
     "role": "all",
-    "table_name": "phones",
+    "model_name": "phone",
     "data": {
       "SUPER": {
         "view": ["id", "attention", "country_code", "format", "name", "number", "opt_out", "comment"],

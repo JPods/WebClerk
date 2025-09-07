@@ -2,6 +2,7 @@ from django.db import models
 from common.models import BaseModel
 
 class Term(BaseModel):
+    name = models.CharField(max_length=255, blank=True, null=True)
     approved_by = models.CharField(max_length=255, blank=True, null=True)
     day_cut_off_due = models.IntegerField(blank=True, null=True)
     day_cut_off_invoice = models.IntegerField(blank=True, null=True)

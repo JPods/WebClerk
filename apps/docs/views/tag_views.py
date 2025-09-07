@@ -2,6 +2,7 @@ from rest_framework import generics, permissions, pagination, filters, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import F, Q
+from django.db import models
 from apps.docs.models.tag import Tag
 from apps.docs.serializers.tag_serializers import TagSerializer, TagDetailSerializer
 
@@ -23,7 +24,8 @@ class TagListCreateView(generics.ListCreateAPIView):
         purpose = self.request.GET.get('purpose')
         status_val = self.request.GET.get('status')
         level = self.request.GET.get('security_level') or self.request.GET.get('level')
-        table = self.request.GET.get('table_name') or self.request.GET.get('table')
+        # Model scoping: model_name only
+        model_param = self.request.GET.get('model_name')
         record_id = self.request.GET.get('record_id')
         if self.request.GET.get('include_inactive') in ('1','true','yes'):
             qs = Tag.objects.all()  # override filter
@@ -36,14 +38,22 @@ class TagListCreateView(generics.ListCreateAPIView):
                 qs = qs.filter(security_level=int(level))
             except ValueError:
                 pass
-        if table:
-            qs = qs.filter(table_name=table)
+        if model_param:
+            qs = qs.filter(models.Q(model_name=model_param))
         if record_id:
             try:
                 qs = qs.filter(record_id=int(record_id))
             except ValueError:
                 pass
         return qs
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class TagRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     queryset = Tag.objects.filter(is_active=True)

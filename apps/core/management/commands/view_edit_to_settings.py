@@ -6,7 +6,7 @@ Django management command to load default access settings from a JSON file into 
 
 This command reads the 'common/default_access.json' file, parses its contents, and updates or creates
 Setting objects in the database for each entry found in the JSON. Each entry should contain the fields:
-'name', 'is_active', 'purpose', 'role', 'table_name', 'data', and 'comment'. If a field is missing,
+'name', 'is_active', 'purpose', 'role', 'model_name', 'data', and 'comment'. If a field is missing,
 a default value is used.
 
 Attributes:
@@ -28,12 +28,12 @@ class Command(BaseCommand):
             data = json.load(f)
         count = 0
         for entry in data:
-            table_name = entry.get('table_name')
+            model_name = entry.get('model_name')
             obj, created = Setting.objects.update_or_create(
                 purpose="view_edit",
-                table_name=table_name,
+                model_name=model_name,
                 defaults={
-                    'name': table_name,
+                    'name': model_name,
                     'role': 'all',
                     'is_active': True,
                     'data': entry.get('data', {}),

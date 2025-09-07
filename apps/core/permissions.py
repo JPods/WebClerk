@@ -4,6 +4,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from apps.core.models.setting import Setting
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from apps.core.services.wcapi_registry import to_model_name
 
 
 @lru_cache(maxsize=256)
@@ -15,16 +16,15 @@ def _cached_view_edit_matrix(setting_id: int, dt_modified: str):
     return s.data or {}
 
 
-def _get_active_view_edit_setting(table_name: str) -> tuple[int | None, dict]:
-    """Return (setting_id, matrix) for active view_edit rule.
+def _get_active_view_edit_setting(model_name: str) -> tuple[int | None, dict]:
+    """Return (setting_id, matrix) for active view_edit rule by canonical model_name.
 
-    Strict lookup: only the exact table_name is considered valid. Returns (None, {})
-    if no active rule so callers can deny by default. Legacy alias support was
-    intentionally removed during dev pluralization cleanup.
+    Strict lookup on Setting(model_name=...). Returns (None, {}) if no active rule so
+    callers can deny by default.
     """
     try:
         s = (Setting.objects
-             .filter(purpose='view_edit', table_name=table_name, is_active=True)
+             .filter(purpose='view_edit', model_name=model_name, is_active=True)
              .order_by('-dt_modified')
              .only('id', 'data', 'dt_modified')
              .first())
@@ -53,14 +53,14 @@ class ViewEditPermission(BasePermission):
         user = getattr(request, 'user', None)
         if not user or not user.is_authenticated:
             return False
-
         queryset = getattr(view, 'queryset', None)
         model = getattr(queryset, 'model', None)
         if model is None:
             return True  # nothing to enforce
-        table_name = model._meta.db_table
+        # Resolve canonical model_name from db_table (registry-backed)
+        model_name = to_model_name(model._meta.db_table)
 
-        _, matrix = _get_active_view_edit_setting(table_name)
+        _, matrix = _get_active_view_edit_setting(model_name or '')
         if not matrix:
             return False  # secure default: no active rules
 
@@ -76,8 +76,8 @@ class ViewEditPermission(BasePermission):
         return self.has_permission(request, view)
 
 def get_role_field_rules(model, role: str) -> dict:
-    table_name = model._meta.db_table
-    _, matrix = _get_active_view_edit_setting(table_name)
+    model_name = to_model_name(model._meta.db_table)
+    _, matrix = _get_active_view_edit_setting(model_name or '')
     if not matrix:
         return {"view": [], "edit": []}
     role_key = (role or '').upper()

@@ -28,7 +28,7 @@ class Command(BaseCommand):
             for item in data:
                 try:
                     # Validate required fields
-                    required_fields = ["name", "purpose", "role", "table_name", "data"]
+                    required_fields = ["name", "purpose", "role", "model_name", "data"]
                     missing_fields = [field for field in required_fields if field not in item]
                     if missing_fields:
                         self.stdout.write(
@@ -40,14 +40,13 @@ class Command(BaseCommand):
 
                     # Check if a setting with the same attributes already exists
                     existing_setting = Setting.objects.filter(
-                        name=item["name"], purpose=item["purpose"], role=item["role"], table_name=item["table_name"]
+                        name=item["name"], purpose=item["purpose"], role=item["role"], model_name=item["model_name"]
                     ).first()
 
                     if existing_setting:
                         # Update existing setting
                         existing_setting.is_active = item.get("is_active", True)
                         existing_setting.data = item["data"]
-                        existing_setting.comment = item.get("comment", "")
                         existing_setting.save()
                         updated_count += 1
                         self.stdout.write(
@@ -55,7 +54,7 @@ class Command(BaseCommand):
                                 f"Updated setting with name '{item['name']}', "
                                 f"purpose '{item['purpose']}', "
                                 f"role '{item['role']}', "
-                                f"table_name '{item['table_name']}'"
+                                f"model_name '{item['model_name']}'"
                             )
                         )
                     else:
@@ -65,9 +64,8 @@ class Command(BaseCommand):
                             name=item["name"],
                             purpose=item["purpose"],
                             role=item["role"],
-                            table_name=item["table_name"],
+                            model_name=item["model_name"],
                             data=item["data"],
-                            comment=item.get("comment", ""),
                         )
                         inserted_count += 1
                         self.stdout.write(
@@ -75,7 +73,7 @@ class Command(BaseCommand):
                                 f"Created setting with name '{item['name']}', "
                                 f"purpose '{item['purpose']}', "
                                 f"role '{item['role']}', "
-                                f"table_name '{item['table_name']}'"
+                                f"model_name '{item['model_name']}'"
                             )
                         )
 

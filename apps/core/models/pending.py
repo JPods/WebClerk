@@ -9,7 +9,8 @@ class Pending(CoreModel):
     Lightweight by design: no metadata/refs/prefs/comments overhead.
     Use for decoupling write spikes & deferred processing.
     """
-    table_name = models.CharField(max_length=255, blank=True, null=True)
+    # Canonical model identifier
+    model_name = models.CharField(max_length=255, blank=True, null=True)
     record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     purpose = models.CharField(max_length=120, blank=True, null=True)
     name = models.CharField(max_length=120, blank=True, null=True)
@@ -19,7 +20,7 @@ class Pending(CoreModel):
     class Meta:
         db_table = 'pending'
         indexes = [
-            models.Index(fields=['table_name']),
+            models.Index(fields=['model_name']),
             models.Index(fields=['record_id']),
             models.Index(fields=['dt_processed']),
         ]
@@ -35,4 +36,4 @@ class Pending(CoreModel):
         return self.dt_processed > 0
 
     def __str__(self):
-        return f"{self.table_name}:{self.record_id} (processed={self.is_processed()})"
+        return f"{self.model_name}:{self.record_id} (processed={self.is_processed()})"

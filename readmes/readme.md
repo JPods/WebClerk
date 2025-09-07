@@ -27,9 +27,9 @@
     - [Pattern Structure (dev without front end)](#pattern-structure-dev-without-front-end)
     - [Universal API Endpoints](#universal-api-endpoints)
   - [Universal API Usage Examples](#universal-api-usage-examples)
-    - [View All Contacts](#view-all-contacts)
+    - [View All contact](#view-all-contact)
     - [View Specific Contact](#view-specific-contact)
-    - [Manage Contact's Emails](#manage-contacts-emails)
+    - [Manage Contact's email](#manage-contact-email)
     - [Create New Action](#create-new-action)
     - [API Data Retrieval](#api-data-retrieval)
     - [Key Features](#key-features)
@@ -94,7 +94,7 @@
 <!-- TOC END -->
 
 <!-- CI Badges (add actual URLs once Codecov token configured in repo secrets) -->
-![CI](https://github.com/JPods/webClerk3/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/JPods/webClerk3/action/workflows/ci.yml/badge.svg)
 <!-- Replace OWNER/REPO in next line once Codecov enabled; token not needed for public repos -->
 ![Coverage](https://codecov.io/gh/JPods/webClerk3/branch/main/graph/badge.svg)
 ![Coverage bill_dev](https://codecov.io/gh/JPods/webClerk3/branch/bill_dev/graph/badge.svg)
@@ -310,7 +310,7 @@ Environment variables:
 | `USE_SQLITE_TEST=1` | Force ephemeral in-memory SQLite even outside pytest (warning printed) | One-off throwaway experiments |
 | (unset) | Default behavior (SQLite in pytest, Postgres otherwise) | Standard workflow |
 
-If you unexpectedly see auth errors like `no such table: contacts` outside pytest, ensure you did not export `USE_SQLITE_TEST=1` and that migrations have been applied (`python manage.py migrate`).
+If you unexpectedly see auth errors like `no such table: contact` outside pytest, ensure you did not export `USE_SQLITE_TEST=1` and that migrations have been applied (`python manage.py migrate`).
 
 Deeper details & scenarios: see `README_TESTS.md` (Environment Assumptions section).
 
@@ -325,7 +325,7 @@ Create PR:
 
 ## 🎯 Architecture Overview
 
-**Universal API System** – One API pattern handles all data operations (contacts, actions, emails, phones, domains, locations).
+**Universal API System** – One API pattern handles all data operations (contact, action, email, phones, domain, locations).
 
 ### Pattern Structure (dev without front end)
 
@@ -349,30 +349,30 @@ Details listed below with examples.
 
 Source: `webclerk3/core/urls.py`
 
-### View All Contacts
+### View All contact
 
-`http://localhost:8000/wcapi/manage/?table_name=contacts`
+`http://localhost:8000/wcapi/manage/?model_name=contact`
 
 ### View Specific Contact
 
-`http://localhost:8000/wcapi/manage/?table_name=contacts&id=123`
+`http://localhost:8000/wcapi/manage/?model_name=contact&id=123`
 
-### Manage Contact's Emails
+### Manage Contact's email
 
-`http://localhost:8000/wcapi/manage/?table_name=emails&contact_id=123`
+`http://localhost:8000/wcapi/manage/?model_name=email&contact_id=123`
 
 ### Create New Action
 
-`http://localhost:8000/wcapi/manage/?table_name=actions&mode=create`
+`http://localhost:8000/wcapi/manage/?model_name=action&mode=create`
 
 ### API Data Retrieval
 
-`http://localhost:8000/wcapi/get/?table_name=contacts&id=123`
+`http://localhost:8000/wcapi/get/?model_name=contact&id=123`
 
 ### Key Features
 
 ✅ **Universal API** – One pattern for all tables
-✅ **Contact-Centric** – Everything revolves around contacts
+✅ **Contact-Centric** – Everything revolves around contact
 ✅ **Relationship Management** – JSON refs system
 ✅ **Lesson1-Style Navigation** – Clean, emoji-driven nav
 ✅ **Bootstrap 5 UI** – Modern, responsive design
@@ -448,7 +448,7 @@ All list responses now include:
 ```json
 {
   "status": "success",
-  "table_name": "contacts",
+  "model_name": "contact",
   "data": [ ... ],
   "total": 123,      // total rows matching filters (before limit/offset)
   "limit": 25,       // page size actually applied (capped at 50)
@@ -463,20 +463,20 @@ Client supplies `?limit=` and `?offset=` (GET) or includes them in JSON body (PO
 Reduce payload size by requesting only specific fields:
 
 ```http
-GET /wcapi/query/?table_name=contacts&fields=id,email,name_first
+GET /wcapi/query/?model_name=contact&fields=id,email,name_first
 ```
 
 or JSON list (URL encoded):
 
 ```http
-GET /wcapi/query/?table_name=contacts&fields=["id","email"]
+GET /wcapi/query/?model_name=contact&fields=["id","email"]
 ```
 
 POST body variant:
 
 ```json
 {
-  "table_name": "contacts",
+  "model_name": "contact",
   "fields": "id,email,name_first",
   "company": "Acme"  // normal filters still allowed
 }
@@ -490,7 +490,7 @@ Updates can include a `version` field (preferred) or an `If-Match` header to avo
 
 ```http
 POST /wcapi/save/
-{"table_name":"contacts","id":7,"version":3,"name_first":"Ada"}
+{"model_name":"contact","id":7,"version":3,"name_first":"Ada"}
 ```
 
 If the current row version differs → `412 Precondition Failed`:
@@ -518,7 +518,7 @@ Default behavior: unknown filter keys on `/wcapi/query/` are ignored (backward c
 Enable strict validation (reject any unknown filter key with HTTP 400) via body param or header:
 
 ```json
-{"table_name":"contacts","status":"active","strict":1}
+{"model_name":"contact","status":"active","strict":1}
 ```
 
 Header equivalent:
@@ -592,14 +592,14 @@ Dynamic model resolution has been replaced with an explicit allow‑list in `app
 
 ```python
 MODEL_MAP = {
-  'contacts': Contact,
-  'actions': Action,
-  'emails': Email,
+  'contact': Contact,
+  'action': Action,
+  'email': Email,
   # ...
 }
 ```
 
-Only keys in `MODEL_MAP` (exported as `ALLOWED_TABLE_NAMES`) can be queried. The universal query view (`WcapiView`) rejects unknown tables with HTTP 400.
+Only keys in `MODEL_MAP` (exported as `ALLOWED_model_nameS`) can be queried. The universal query view (`WcapiView`) rejects unknown tables with HTTP 400.
 
 Filtering is intentionally constrained to a small safe subset (`SAFE_FILTER_FIELDS`) to avoid heavy uncontrolled queries or probing internal structure. Current allow‑list:
 
@@ -613,7 +613,7 @@ Requests providing other keys are ignored for filtering (not errors). Result set
 
 | Scenario | Status | HTTP | Message |
 |----------|--------|------|---------|
-| Missing `table_name` (GET/POST) | error | 400 | Missing table_name / Missing required field: table_name |
+| Missing `model_name` (GET/POST) | error | 400 | Missing model_name / Missing required field: model_name |
 | Unknown table | error | 400 | Unknown table |
 | Invalid JSON body | error | 400 | Invalid JSON ... |
 | Record id not found (GET with id) | error | 404 | Not found |
@@ -640,9 +640,9 @@ Future enhancements being considered:
 
 🏠 **Home** – Landing page with system overview
 **About** – System documentation and features
-**Contacts** – `/wcapi/manage/?table_name=contacts`
-**Actions** – `/wcapi/manage/?table_name=actions`
-**Communications** – `/wcapi/manage/?table_name=emails`
+**contact** – `/wcapi/manage/?model_name=contact`
+**action** – `/wcapi/manage/?model_name=action`
+**Communications** – `/wcapi/manage/?model_name=email`
 🥳 **New Contact** – Quick create contact
 **Admin** – Django admin (superusers only)
 🤚 **Logout** – Session termination
@@ -809,7 +809,7 @@ OpenAPI generation (drf-spectacular) will include summaries for these endpoints.
 
 ### Field-Level Authorization (view_edit)
 
-Field visibility & editability are driven by rows in `settings` with `purpose="view_edit"` and `table_name` matching the model DB table (e.g. `transactions_proposalline`). The JSON structure:
+Field visibility & editability are driven by rows in `settings` with `purpose="view_edit"` and `model_name` matching the model DB table (e.g. `transaction_proposalline`). The JSON structure:
 
 ```json
 {
@@ -1018,11 +1018,11 @@ If the PATCH body lacks `set`/`append`, the request falls back to normal DRF par
 
 ### Example Flow
 
-1. Client GET `/comm/domains/42/` → `{ ..., "version": 7 }`.
+1. Client GET `/comm/domain/42/` → `{ ..., "version": 7 }`.
 1. Client wants to bump schema rev:
 
 ```http
-PATCH /comm/domains/42/
+PATCH /comm/domain/42/
 Content-Type: application/json
 
 {"version":7, "set":{"metadata.flags.schema_rev":5}}
@@ -1032,7 +1032,7 @@ Content-Type: application/json
 1. Client appends a note:
 
 ```http
-PATCH /comm/domains/42/
+PATCH /comm/domain/42/
 {"version":8, "append":{"comments.notes":{"text":"investigated","type":"log"}}}
 ```
 
@@ -1185,7 +1185,7 @@ Granular mixins prevent midpoint compromises (e.g., wanting metadata + refs but 
 
 Every model inheriting `BaseModel` should expose a uniform API surface:
 
-1. Serializer: subclass `RoleAwareModelSerializer` (in `common/base_serializers.py`) and set `table_name` if DB table differs.
+1. Serializer: subclass `RoleAwareModelSerializer` (in `common/base_serializers.py`) and set `model_name` if DB table differs.
 2. List/Create: subclass `BaseListCreateView` (in `common/base_views.py`) and set `queryset`, `serializer_class`, optional `ALLOWED_ROLES`, and `pagination_class`.
 3. Detail (Retrieve/Update/Destroy): subclass `BaseOptimisticDetailView` for versioned PATCH + atomic ops.
 4. Search: subclass `PrefixAndSearchView` (in `common/search_mixins.py`) setting `model`, `serializer_class`, `search_fields`, optional `role_set`.
@@ -1207,7 +1207,7 @@ from common.base_serializers import RoleAwareModelSerializer
 from .models import MyResource
 
 class MyResourceSerializer(RoleAwareModelSerializer):
-  table_name = 'my_resource'
+  model_name = 'my_resource'
   class Meta:
     model = MyResource
   fields = ['id','uuid','name','status','refs','prefs','metadata','dt_created','dt_modified','version']

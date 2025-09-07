@@ -144,7 +144,7 @@ class DocumentSearchView(APIView):
 class ReadmeIndexView(generics.ListAPIView):
     """Lightweight list of readme documents (slug + summary).
 
-    Criteria: status in ('published','internal','draft') and table_name='readme' OR data.category='readme'.
+    Criteria: status in ('published','internal','draft') and model_name='readme' OR data.category='readme'.
     """
     serializer_class = DocumentReadmeListSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -154,7 +154,7 @@ class ReadmeIndexView(generics.ListAPIView):
         qs = Document.objects.all()
         # Heuristic: readme marker
         qs = qs.filter(
-            Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
+            Q(model_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
         )
         level = self.request.GET.get('level') or self.request.GET.get('security_level')
         if level is not None:
@@ -174,7 +174,7 @@ class ReadmeDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         qs = super().get_queryset().filter(
-            Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
+            Q(model_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
         )
         level = self.request.GET.get('level') or self.request.GET.get('security_level')
         if level is not None:
@@ -288,7 +288,7 @@ class ReadmeSearchIndexView(APIView):
                     part = TrigramSimilarity('name', t) + TrigramSimilarity('description', t)
                     sim_expr = part if sim_expr is None else sim_expr + part
                 qs = Document.objects.filter(
-                    (Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')) & q_filter
+                    (Q(model_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')) & q_filter
                 ).annotate(trigram=sim_expr).order_by('-trigram')[:limit]
                 seen = {r.get('slug') for r in results}
                 trigram_results = []
@@ -386,7 +386,7 @@ class ReadmeTopView(generics.ListAPIView):
         except ValueError:
             pass
         qs = Document.objects.filter(
-            Q(table_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
+            Q(model_name='readme') | Q(data__category='readme') | Q(name__iendswith='.md')
         ).order_by('-count_accessed', 'slug')
         return qs[:limit]
 

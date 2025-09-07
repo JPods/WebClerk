@@ -21,8 +21,8 @@ class PrefixAndSearchView(APIView):
     search_fields: list[str] = []
     role_set: set[str] | None = None
     max_results = 100
-    # Optional: explicit table name for settings lookups; if not provided, uses model._meta.db_table
-    table_name: str | None = None
+    # Optional: explicit model name for settings lookups; defaults to model class name
+    model_name: str | None = None
     # Optional: maximum security level enforced via query param; see _apply_security_filters
     security_param_names: tuple[str, ...] = ("level", "security_level")
 
@@ -93,18 +93,17 @@ class PrefixAndSearchView(APIView):
         valid model field names to include in search. Accepts data.fields (list) or
         data.field_list (comma-separated string). Silently ignores invalid/unknown fields.
         """
-        # Resolve table for settings
+        # Resolve model for settings
         try:
-            table = self.table_name or getattr(getattr(self, 'model', None)._meta, 'db_table', None)  # type: ignore[attr-defined]
-            if not table:
+            model_key = self.model_name or getattr(getattr(self, 'model', None), '__name__', None)  # type: ignore[attr-defined]
+            if not model_key:
                 return []
             # Lazy import to avoid cycles
             from apps.core.models.setting import Setting  # type: ignore
-            setting = (
-                Setting.objects.filter(table_name=table, purpose='keywords', is_active=True)
-                .order_by('-dt_modified')
-                .first()
-            )
+            setting = (Setting.objects
+                       .filter(model_name=model_key, purpose='keywords', is_active=True)
+                       .order_by('-dt_modified')
+                       .first())
             if not setting or not isinstance(setting.data, dict):
                 return []
             fields_spec: Any = setting.data.get('fields') or setting.data.get('field_list') or None

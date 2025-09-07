@@ -163,8 +163,8 @@ Hook sequence (create or update):
 3. `api_validate_payload(self, data, is_update)` if validation flags enabled.
 4. `obj.save()` (BaseModel version increment, changed_fields tracking, telemetry).
 5. `post_save_hook(self, data)` (synchronous). Return a string to append into response `messages`.
-6. `tasks.save_post(table_name, data)` (dynamic table-specific synchronous task; best effort).
-7. `tasks.save_post_async.delay(table_name, id, version)` (generic async fan-out).
+6. `tasks.save_post(model_name, data)` (dynamic table-specific synchronous task; best effort).
+7. `tasks.save_post_async.delay(model_name, id, version)` (generic async fan-out).
 
 Async fan-out:
 
