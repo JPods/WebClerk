@@ -6,6 +6,7 @@
 ## Table of Contents
 
 - [Standards: alerts and email normalization](#standards-alerts-and-email-normalization)
+  - [Table of Contents](#table-of-contents)
 
 <!-- TOC END -->
 

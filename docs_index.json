@@ -1219,11 +1219,13 @@
       "data",
       "baseline",
       "use",
+      "safety",
       "migration",
       "command",
+      "connection",
       "only",
       "run",
-      "safety",
+      "alert",
       "com",
       "not",
       "django",
@@ -1233,9 +1235,7 @@
       "when",
       "one",
       "export",
-      "optional",
-      "guard",
-      "bin"
+      "optional"
     ]
   },
   {
@@ -1536,23 +1536,30 @@
   {
     "slug": "standards",
     "title": "Standards: alerts and email normalization",
-    "headings": [],
+    "headings": [
+      "Table of Contents"
+    ],
     "path": "readmes/standards.md",
     "tags": [
       "email",
+      "contents",
+      "standards",
+      "alerts",
+      "normalization",
+      "table",
       "alert",
       "severity",
       "category",
       "dedupe",
       "status",
+      "toc",
       "small",
       "keep",
       "map",
       "provider",
       "event",
-      "standards",
-      "alerts",
-      "normalization",
+      "start",
+      "end",
       "project",
       "defines",
       "stable",
@@ -1563,12 +1570,7 @@
       "consistent",
       "across",
       "providers",
-      "contents",
-      "order",
-      "info",
-      "notice",
-      "warning",
-      "critical"
+      "order"
     ]
   },
   {
