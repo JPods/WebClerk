@@ -9,6 +9,7 @@
   - [Table of Contents](#table-of-contents)
   - [Git & Versioning](#git-versioning)
   - [Table Naming](#table-naming)
+  - [Display metadata conventions](#display-metadata-conventions)
   - [Rate Limiting](#rate-limiting)
   - [Logging & Monitoring](#logging-monitoring)
   - [Related Data JSON Shape](#related-data-json-shape)

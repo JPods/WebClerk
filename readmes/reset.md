@@ -23,6 +23,8 @@
   - [12. FAQ](#12-faq)
   - [13. Quick Reference](#13-quick-reference)
     - [Safety alert Connection](#safety-alert-connection)
+    - [Targeted reseeds (per model)](#targeted-reseeds-per-model)
+- [or by db table name](#or-by-db-table-name)
 
 <!-- TOC END -->
 

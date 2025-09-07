@@ -40,13 +40,15 @@ def main():
 
     # Rebuild TOCs
     # Get git status before
-    before = run(['git', 'diff', '--name-only', 'readmes'])
+    before = run(['git', '--no-pager', 'diff', '--name-only', 'readmes']).splitlines()
     run([sys.executable, 'Scripts/gen_readmes_toc.py'])
-    after_diff = run(['git', 'diff', '--name-only', 'readmes'])
-    toc_changed = bool(after_diff.strip())
+    after = run(['git', '--no-pager', 'diff', '--name-only', 'readmes']).splitlines()
+    # Only fail if the generator introduced new diffs (i.e., TOC was stale)
+    added = sorted(set(after) - set(before))
+    toc_changed = bool(added)
     if toc_changed:
         print('ERROR: One or more readmes missing updated TOC. Run: python Scripts/gen_readmes_toc.py')
-        print(after_diff)
+        print('\n'.join(added))
 
     if stale_index or toc_changed:
         sys.exit(1)

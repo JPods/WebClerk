@@ -11,6 +11,7 @@
   - [Verification Stubs](#verification-stubs)
   - [Applying Results](#applying-results)
   - [Clearing the Snapshot](#clearing-the-snapshot)
+  - [Location display metadata](#location-display-metadata)
   - [Next Steps](#next-steps)
 
 <!-- TOC END -->

@@ -42,7 +42,10 @@ def process(md: Path):
     # Keyword extraction across whole file
     words = [w.lower() for w in WORD_RE.findall(text)]
     words = [w for w in words if w not in STOP]
-    top = [w for w,_ in Counter(words).most_common(30)]
+    counts = Counter(words)
+    # Stable ordering: frequency desc, then word asc to break ties deterministically
+    top_items = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:30]
+    top = [w for w, _ in top_items]
     return {
         'slug': md.stem,
         'title': title,
