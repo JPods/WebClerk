@@ -1,5 +1,15 @@
 # Email verification via sync connections
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Email verification via sync connections](#email-verification-via-sync-connections)
+  - [Table of Contents](#table-of-contents)
+
+<!-- TOC END -->
+
 This project supports a provider-agnostic email verification flow that uses the `sync` app for configuration and exchange logging.
 
 What you get:

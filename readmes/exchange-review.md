@@ -1,5 +1,15 @@
 # Exchange review and acknowledgement
 
+
+<!-- TOC START -->
+
+## Table of Contents
+
+- [Exchange review and acknowledgement](#exchange-review-and-acknowledgement)
+  - [Table of Contents](#table-of-contents)
+
+<!-- TOC END -->
+
 Foreign/provider data is not applied automatically. Each `sync.Exchange` created by an integration has a `response.review.status` field that starts as `pending`. An authorized reviewer must accept or reject the exchange before changes are committed to core records.
 
 Workflow (email verification example):
