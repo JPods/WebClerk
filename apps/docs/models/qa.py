@@ -30,7 +30,6 @@ class Qa(BaseModel):
     answered_by_contact = models.ForeignKey('core.Contact', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_answers')
     answered_by_name = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
-    security_level = models.IntegerField(blank=True, null=True, db_index=True)
     sequence = models.IntegerField(default=0, db_index=True)
     count_accessed = models.IntegerField(default=0)
     search_vector = SearchVectorField(null=True, editable=False)
@@ -39,7 +38,6 @@ class Qa(BaseModel):
         db_table = 'qas'
         indexes = [
             GinIndex(fields=["search_vector"], name="qa_search_gin"),
-            models.Index(fields=["security_level"], name="qa_sec_level_idx"),
             models.Index(fields=["status"], name="qa_status_idx"),
             models.Index(fields=["question"], name="qa_question_idx"),
         ]

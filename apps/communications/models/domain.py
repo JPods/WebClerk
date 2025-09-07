@@ -17,7 +17,6 @@ class Domain(BaseModel):
     comment = models.TextField(blank=True, default="", help_text="General notes")
     
     status = models.CharField(max_length=30, blank=True, default='active', db_index=True)
-    security_level = models.PositiveSmallIntegerField(default=0, db_index=True)
     sequence = models.PositiveIntegerField(default=0, db_index=True, help_text="Custom ordering value")
     count_accessed = models.PositiveIntegerField(default=0, help_text="Access counter")
 
@@ -28,7 +27,6 @@ class Domain(BaseModel):
         indexes = [
             models.Index(fields=['path']),
             models.Index(fields=['type', 'status']),
-            models.Index(fields=['security_level']),
         ]
         
     def __str__(self):

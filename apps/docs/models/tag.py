@@ -19,7 +19,6 @@ class Tag(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
-    security_level = models.IntegerField(blank=True, null=True, db_index=True)
     table_name = models.CharField(max_length=255, blank=True, null=True, db_index=True, help_text="Source table this tag decorates")
     record_id = models.IntegerField(blank=True, null=True, db_index=True, help_text="ID in source table")
     data = models.JSONField(blank=True, null=True, help_text="Arbitrary structured tag payload")
@@ -31,7 +30,6 @@ class Tag(BaseModel):
         indexes = [
             models.Index(fields=['purpose'], name='tag_purpose_idx'),
             models.Index(fields=['status'], name='tag_status_idx'),
-            models.Index(fields=['security_level'], name='tag_sec_level_idx'),
             models.Index(fields=['table_name', 'record_id'], name='tag_table_record_idx'),
         ]
 

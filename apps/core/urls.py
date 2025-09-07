@@ -29,6 +29,11 @@ from apps.core.views.pending import PendingListView, PendingDetailView, PendingS
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
 from apps.core.views.setting import SettingListView, SettingDetailView, SettingSearchView
 from apps.core.views.template import TemplateListView, TemplateDetailView, TemplateSearchView
+from apps.core.views.contact_api import (
+    ContactListView as ContactApiListView,
+    ContactDetailView as ContactApiDetailView,
+    ContactSearchView as ContactApiSearchView,
+)
 
 urlpatterns = [
     path('api/token/', LoginTokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -139,4 +144,9 @@ urlpatterns = [
 
     # GET /wcapi/models/?table_name=contacts&related_tables=actions,phones
     # Returns info for contacts, actions, and phones.
+    
+        # Contacts API endpoints (standardized)
+        path('contacts/', ContactApiListView.as_view(), name='contact-list'),
+        path('contacts/<int:pk>/', ContactApiDetailView.as_view(), name='contact-detail'),
+        path('contacts/search/', ContactApiSearchView.as_view(), name='contact-search'),
 ]

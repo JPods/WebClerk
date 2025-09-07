@@ -40,7 +40,6 @@ class Document(BaseModel):
     count_accessed = models.IntegerField(default=0)
     table_name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     retention_period = models.IntegerField(blank=True, null=True)
-    security_level = models.IntegerField(blank=True, null=True, db_index=True)
     sequence = models.IntegerField(blank=True, null=True)
     size_bytes = models.IntegerField(blank=True, null=True)
     mime_type = models.CharField(max_length=255, blank=True, null=True)
@@ -52,7 +51,6 @@ class Document(BaseModel):
         db_table = 'documents'
         indexes = [
             GinIndex(fields=["search_vector"], name="doc_search_gin"),
-            models.Index(fields=["security_level"], name="doc_sec_level_idx"),
             models.Index(fields=["status"], name="doc_status_idx"),
             models.Index(fields=["name"], name="doc_name_idx"),
             models.Index(fields=["table_name"], name="doc_table_name_idx"),

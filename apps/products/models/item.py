@@ -214,7 +214,6 @@ class Item(StatsMixin, BaseModel):
     # retail, wholesale, education, distributor, etc...,
     cost = models.JSONField(default=cost_default_factory, blank=True, help_text="Cost information dict; see default_cost() schema")
     #average, last_inship, landed, etc...
-    security_level = models.IntegerField(default=0, db_index=True)  
     tax_code = models.JSONField(default=default_tax, blank=True, help_text="Tax metadata JSON; includes code/category/rate plus jurisdiction_params stub for localized product-type handling")
     specification_id = models.BigIntegerField(("Specification ID"), null=True, blank=True)
     catalog = models.JSONField("Catalog", default=default_catalog, blank=True, help_text="Catalog placement data; see default_catalog() schema")
@@ -226,7 +225,7 @@ class Item(StatsMixin, BaseModel):
     class Meta:
         indexes = [
             models.Index(fields=("kind", "is_active"), name="item_kind_active_idx"),
-            models.Index(fields=("is_active", "kind", "security_level"), name="item_active_kind_sec_idx"),
+            models.Index(fields=("is_active", "kind"), name="item_active_kind_idx"),
             models.Index(Lower("sku"), name="item_sku_lower_idx"),
         ]
         # No uniqueness constraints on sku or qr_code by business decision.

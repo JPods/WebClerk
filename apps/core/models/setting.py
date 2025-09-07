@@ -34,6 +34,14 @@ class Setting(BaseModel):
 # settings.data contains an object listing fields 
 # for the values to be denormalized into keywords.
 
+# Purposes registry (see readmes/settings.md for shapes):
+# - view_edit: per-table field visibility/edit matrix by role
+# - constants: global user-defined constants map
+# - db_defaults: global database/platform defaults
+# - sales_defaults: sales module defaults (global or per table)
+# - purchase_defaults: purchasing module defaults (global or per table)
+# - accounting_defaults: accounting/GL/tax defaults
+
 #Logic now:
 # Reads active Setting with purpose='keywords' for the documents table.
 # Accepts data.fields (list/tuple) or comma string (data.field_list fallback).
@@ -43,3 +51,4 @@ class Setting(BaseModel):
 # Fallback: if no tracked fields configured but table in get_keyword_requirements(), only enqueue on create.
 # Includes tracked_fields list in Pending.data for transparency.
 # Guarded against errors; won’t break saves.
+

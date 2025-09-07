@@ -76,7 +76,6 @@ class OrgItem(ItemLinkedBase):
     org = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name="org_items")
     catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, blank=True, null=True, related_name="org_items", help_text="Optional catalog / channel context scoping this association")
     description = models.CharField(max_length=255, blank=True)
-    security_level = models.IntegerField(default=0, db_index=True)
     # --- Enumerations / standardized codes ---------------------------------
     STATE_ENABLED = "enabled"
     STATE_PAUSED = "paused"
@@ -146,7 +145,6 @@ class OrgItem(ItemLinkedBase):
         indexes = [
             models.Index(fields=("org", "item"), name="carried_org_item_idx"),
             models.Index(fields=("org", "availability_state"), name="orgitem_org_state_idx"),
-            models.Index(fields=("org", "security_level"), name="orgitem_org_sec_lvl_idx"),
             models.Index(fields=("catalog",), name="orgitem_catalog_idx"),
             models.Index(fields=("dt_last_checked",), name="orgitem_lastcheck_idx"),
             models.Index(fields=("dt_next_check",), name="orgitem_nextcheck_idx"),

@@ -1390,6 +1390,47 @@
     ]
   },
   {
+    "slug": "settings",
+    "title": "Settings records: purposes and shapes",
+    "headings": [
+      "Table of Contents",
+      "Recognized purposes"
+    ],
+    "path": "readmes/settings.md",
+    "tags": [
+      "table",
+      "defaults",
+      "json",
+      "name",
+      "purposes",
+      "scope",
+      "data",
+      "shape",
+      "view",
+      "edit",
+      "settings",
+      "role",
+      "global",
+      "shapes",
+      "model",
+      "purpose",
+      "specific",
+      "user",
+      "status",
+      "records",
+      "contents",
+      "recognized",
+      "should",
+      "field",
+      "constants",
+      "currency",
+      "usd",
+      "default",
+      "sales",
+      "tax"
+    ]
+  },
+  {
     "slug": "stats",
     "title": "Stats & Relationship Stats Architecture",
     "headings": [

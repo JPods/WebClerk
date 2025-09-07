@@ -71,7 +71,6 @@ class Project(BaseModel):
     slug = models.CharField(max_length=180, blank=True, db_index=True, help_text="URL / human friendly identifier derived from intent (unique)")
     profit = models.DecimalField(default=Decimal('0.00'), max_digits=14, decimal_places=2, help_text="Projected or realized profit (base currency with cents)")
     profit_velocity = models.IntegerField(default=0, help_text="Profit per time unit (arbitrary) for trend")
-    security_level = models.PositiveSmallIntegerField(default=0, help_text="0 (open) – 5 (restricted)")
     # Allow NULL so callers can intentionally distinguish "no payload yet" vs empty structure
     data = models.JSONField(default=default_data, blank=True, null=True, help_text="Arbitrary project-specific data payload (nullable)")
 
@@ -89,7 +88,6 @@ class Project(BaseModel):
         constraints = [
             models.CheckConstraint(check=models.Q(priority__gte=PRIORITY_MIN, priority__lte=PRIORITY_MAX), name="project_priority_range"),
             models.CheckConstraint(check=models.Q(burndown__gte=0, burndown__lte=100), name="project_burndown_range"),
-            models.CheckConstraint(check=models.Q(security_level__gte=0, security_level__lte=5), name="project_security_range"),
         ]
         unique_together = (("slug",),)
 
@@ -131,8 +129,6 @@ class Project(BaseModel):
             errors['priority'] = f"Priority must be {PRIORITY_MIN}-{PRIORITY_MAX}"
         if not (0 <= (self.burndown or 0) <= 100):
             errors['burndown'] = "Burndown must be 0-100"
-        if not (0 <= (self.security_level or 0) <= 5):
-            errors['security_level'] = "Security level must be 0-5"
         if errors:
             raise ValidationError(errors)
 

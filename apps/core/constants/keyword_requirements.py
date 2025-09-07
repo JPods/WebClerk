@@ -7,8 +7,10 @@ from django.db import connection
 
 def load_keyword_requirements():
     # Load all active keyword requirements once at startup
+    # Select only columns we need to avoid referencing columns that may not exist in early migrations
     requirements = {}
-    for setting in Setting.objects.filter(purpose="keywords_from", is_active=True):
+    qs = Setting.objects.filter(purpose="keywords_from", is_active=True).only("table_name", "data")
+    for setting in qs:
         requirements[setting.table_name] = setting.data
     return requirements
 

@@ -2,6 +2,7 @@ from django.db import models
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import permissions
+from typing import Any, Sequence
 
 
 class PrefixAndSearchView(APIView):
@@ -20,6 +21,10 @@ class PrefixAndSearchView(APIView):
     search_fields: list[str] = []
     role_set: set[str] | None = None
     max_results = 100
+    # Optional: explicit table name for settings lookups; if not provided, uses model._meta.db_table
+    table_name: str | None = None
+    # Optional: maximum security level enforced via query param; see _apply_security_filters
+    security_param_names: tuple[str, ...] = ("level", "security_level")
 
     def _role_allowed(self, user):
         if not user.is_authenticated:
@@ -31,22 +36,139 @@ class PrefixAndSearchView(APIView):
     def get_queryset(self):
         return self.model.objects.all()  # type: ignore
 
+    def get_base_queryset(self, request):
+        """Authorization-aware base queryset.
+
+        If the model exposes authorized_qs (see AuthorizedAccessMixin), use it; otherwise
+        fall back to model.objects.all(). Subclasses can override for extra joins.
+        """
+        model_cls = getattr(self, 'model', None)
+        if model_cls is None:
+            return self.get_queryset()
+        authz = getattr(model_cls, 'authorized_qs', None)
+        if callable(authz):
+            try:
+                return authz(user=request.user, action='search', base_qs=None, context={'view': self})
+            except Exception:
+                return self.get_queryset()
+        return self.get_queryset()
+
+    def policy_scope(self, qs, request):
+        """Optional per-view policy filter hook.
+
+        Override in subclasses to apply additional domain rules (e.g., vendor-scoped items).
+        Default: identity (no changes).
+        """
+        return qs
+
+    def _apply_security_filters(self, qs, request):
+        """Apply optional security level constraint if the model has such a field.
+
+        Honors ?level or ?security_level query params. If provided and the model has a
+        `security_level` field, constrain to rows with security_level <= provided value.
+        """
+        try:
+            field_names = {f.name for f in self.model._meta.fields}  # type: ignore[attr-defined]
+            if 'security_level' not in field_names:
+                return qs
+            level_val = None
+            for p in self.security_param_names:
+                raw = request.GET.get(p)
+                if raw is not None and raw != '':
+                    try:
+                        level_val = int(raw)
+                        break
+                    except Exception:
+                        pass
+            if level_val is not None:
+                return qs.filter(security_level__lte=level_val)
+            return qs
+        except Exception:
+            return qs
+
+    def _settings_keyword_fields(self) -> list[str]:
+        """Fetch additional denormalized keyword fields from settings (purpose='keywords').
+
+        Reads apps.core.models.setting.Setting for this view's table and returns a list of
+        valid model field names to include in search. Accepts data.fields (list) or
+        data.field_list (comma-separated string). Silently ignores invalid/unknown fields.
+        """
+        # Resolve table for settings
+        try:
+            table = self.table_name or getattr(getattr(self, 'model', None)._meta, 'db_table', None)  # type: ignore[attr-defined]
+            if not table:
+                return []
+            # Lazy import to avoid cycles
+            from apps.core.models.setting import Setting  # type: ignore
+            setting = (
+                Setting.objects.filter(table_name=table, purpose='keywords', is_active=True)
+                .order_by('-dt_modified')
+                .first()
+            )
+            if not setting or not isinstance(setting.data, dict):
+                return []
+            fields_spec: Any = setting.data.get('fields') or setting.data.get('field_list') or None
+            # Normalize into a list[str]
+            fields_list: list[str] = []
+            if isinstance(fields_spec, str):
+                parts = fields_spec.split(',')
+                fields_list = [s.strip() for s in parts if s and s.strip()]
+            elif isinstance(fields_spec, Sequence):
+                fields_list = [f for f in list(fields_spec) if isinstance(f, str) and f]
+            else:
+                fields_list = []
+            if not fields_list:
+                return []
+            candidate_fields = fields_list
+            # Validate against model fields to avoid FieldError at query time
+            valid: list[str] = []
+            model_cls = getattr(self, 'model', None)
+            if not model_cls:
+                return []
+            for fname in candidate_fields:
+                try:
+                    # Will raise if unknown; we allow concrete fields only
+                    field_obj = model_cls._meta.get_field(fname)  # type: ignore[attr-defined]
+                    if isinstance(field_obj, (models.CharField, models.TextField)):
+                        valid.append(fname)
+                except Exception:
+                    # Ignore unknown or non-concrete fields
+                    continue
+            return valid
+        except Exception:
+            return []
+
     def build_query(self, qs, terms):
+        # Combine base fields, settings-provided fields, and include refs.keywords
+        extra_fields = self._settings_keyword_fields()
+        fields = list(dict.fromkeys([*self.search_fields, *extra_fields]))  # preserve order, de-dup
+        # Determine if model has 'refs' JSON field (present on BaseModel descendants)
+        try:
+            model_field_names = {f.name for f in self.model._meta.fields}  # type: ignore[attr-defined]
+        except Exception:
+            model_field_names = set()
+        has_refs = 'refs' in model_field_names
         for term in terms:
             or_q = models.Q()
-            for f in self.search_fields:
+            # Prefix matches on configured fields
+            for f in fields:
                 or_q |= models.Q(**{f"{f}__istartswith": term})
+            # Keyword match (substring) from refs.keywords array/text
+            if has_refs:
+                or_q |= models.Q(**{"refs__keywords__icontains": term})
             qs = qs.filter(or_q)
         return qs
 
     def get(self, request):
         if not self._role_allowed(request.user):
-            return Response({'detail':'Forbidden'}, status=403)
+            return Response({'detail': 'Forbidden'}, status=403)
         raw_q = (request.GET.get('q') or '').strip()
         if not raw_q:
             return Response({'results': [], 'count': 0})
         terms = [t for t in raw_q.split() if t]
-        qs = self.get_queryset()
+        qs = self.get_base_queryset(request)
+        qs = self._apply_security_filters(qs, request)
+        qs = self.policy_scope(qs, request)
         qs = self.build_query(qs, terms).order_by('-dt_modified')[: self.max_results]
         data = self.serializer_class(qs, many=True, context={'request': request}).data  # type: ignore
         return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})
