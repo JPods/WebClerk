@@ -81,6 +81,12 @@ class EmailView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.save()
+        # Record submission snapshot
+        try:
+            email.record_submission_snapshot(request.data, actor_id=getattr(request.user, 'id', 0))
+            email.save(update_fields=['prefs', 'dt_modified'])
+        except Exception:
+            pass
         if not email.refs:
             email.refs = default_refs()
         if 'links' not in email.refs:

@@ -903,6 +903,30 @@ class BaseModel(
                 changed.append(name)
         return changed
 
+    # Lightweight helper to record the client's original submission payload.
+    # Stores a bounded snapshot under prefs.submission.as_submitted: {data, dt, by}
+    def record_submission_snapshot(self, data: Dict[str, Any], actor_id: int | None = None, max_bytes: int = 16384):
+        try:
+            payload = data or {}
+            # Bound the size to avoid bloating prefs; if too large, keep shallow keys only
+            raw = json.dumps(payload, separators=(",", ":"))
+            if len(raw.encode("utf-8")) > max_bytes:
+                if isinstance(payload, dict):
+                    trimmed = {k: payload.get(k) for k in list(payload.keys())[:50]}
+                else:
+                    trimmed = payload
+                payload = {"_trimmed": True, "_note": f">={max_bytes}B", "data": trimmed}
+            prefs = getattr(self, "prefs", {}) or {}
+            sub = prefs.setdefault("submission", {})
+            sub["as_submitted"] = {
+                "data": payload,
+                "dt": int(timezone.now().timestamp() * 1000),
+                "by": actor_id or 0,
+            }
+            self.prefs = prefs  # type: ignore[assignment]
+        except Exception:  # pragma: no cover - defensive
+            pass
+
     def save(self, *args, **kwargs):  # orchestrate save chain
         expected_version = kwargs.pop("expected_version", None)
         if expected_version is not None and self.pk:

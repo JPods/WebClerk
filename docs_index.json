@@ -788,9 +788,31 @@
   {
     "slug": "migrations_squash",
     "title": "Migrations_Squash",
-    "headings": [],
+    "headings": [
+      "Table of Contents",
+      "Note"
+    ],
     "path": "readmes/migrations_squash.md",
-    "tags": []
+    "tags": [
+      "migrations",
+      "squash",
+      "table",
+      "contents",
+      "note",
+      "toc",
+      "start",
+      "migrationssquash",
+      "end",
+      "file",
+      "exists",
+      "compatibility",
+      "older",
+      "references",
+      "using",
+      "underscore",
+      "canonical",
+      "document"
+    ]
   },
   {
     "slug": "org-items",
@@ -1478,6 +1500,52 @@
       "examples",
       "offload",
       "guidance"
+    ]
+  },
+  {
+    "slug": "submission-and-verification",
+    "title": "Submission and Verification (Communications)",
+    "headings": [
+      "Table of Contents",
+      "Overview",
+      "Submission Snapshot",
+      "Verification Stubs",
+      "Applying Results",
+      "Clearing the Snapshot",
+      "Next Steps"
+    ],
+    "path": "readmes/submission-and-verification.md",
+    "tags": [
+      "submission",
+      "verification",
+      "snapshot",
+      "location",
+      "communications",
+      "email",
+      "phone",
+      "metadata",
+      "stubbed",
+      "osm",
+      "provider",
+      "status",
+      "table",
+      "contents",
+      "overview",
+      "stubs",
+      "applying",
+      "results",
+      "clearing",
+      "next",
+      "steps",
+      "celery",
+      "fields",
+      "validate",
+      "marks",
+      "queue",
+      "validation",
+      "versioning",
+      "toc",
+      "create"
     ]
   },
   {

@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from apps.core.utils import get_accessible_fields
 from common.models import default_refs  # Add this import
+from common.api_responses import api_response
 
 class CommPagination(pagination.PageNumberPagination):
     page_size = 25
@@ -39,7 +40,23 @@ class LocationView(generics.ListCreateAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        raw_flag = request.query_params.get('raw') == '1'
+        response = super().get(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        data = response.data
+        if isinstance(data, dict) and {'results', 'count'}.issubset(data.keys()):
+            meta = {
+                'total': data.get('count'),
+                'page_size': data.get('page_size') or request.query_params.get('page_size') or CommPagination.page_size,
+                'next': data.get('next'),
+                'previous': data.get('previous'),
+            }
+            results = data.get('results')
+            payload = {'results': results}
+            payload.update({k: v for k, v in meta.items() if v is not None})
+            return api_response(data=payload, raw=raw_flag)
+        return api_response(data=data, raw=raw_flag)
 
     @extend_schema(
         summary="Create Location",
@@ -53,18 +70,22 @@ class LocationView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         accessible_fields = get_accessible_fields('addresses', 'edit', request.user)
         if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="No editable fields allowed for your role", raw=raw_flag)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         # FIXED: Create address first, then set refs
         address = serializer.save()
+        # Record submission snapshot
+        try:
+            address.record_submission_snapshot(request.data, actor_id=getattr(request.user, 'id', 0))
+            address.save(update_fields=['prefs', 'dt_modified'])
+        except Exception:
+            pass
         
         # FIXED: Properly handle refs.links.contacts structure
         if not address.refs:
@@ -83,7 +104,9 @@ class LocationView(generics.ListCreateAPIView):
         # Save the updated refs
         address.save()
         
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    if raw_flag:
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED, raw=raw_flag)
 
 # ... existing LocationView code ...
 
@@ -111,7 +134,11 @@ class LocationDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        raw_flag = request.query_params.get('raw') == '1'
+        response = super().get(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(data=response.data, raw=raw_flag)
 
     @extend_schema(
         summary="Update Location",
@@ -126,13 +153,14 @@ class LocationDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def patch(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         accessible_fields = get_accessible_fields('addresses', 'edit', request.user)
         if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        return super().patch(request, *args, **kwargs)
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="No editable fields allowed for your role", raw=raw_flag)
+        response = super().patch(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(data=response.data, raw=raw_flag)
 
     @extend_schema(
         summary="Delete Location",
@@ -145,10 +173,11 @@ class LocationDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def delete(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         accessible_fields = get_accessible_fields('addresses', 'edit', request.user)
         if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        return super().delete(request, *args, **kwargs)
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="No editable fields allowed for your role", raw=raw_flag)
+        response = super().delete(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(message="Deleted", data=None, status_code=response.status_code, raw=raw_flag)

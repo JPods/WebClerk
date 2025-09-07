@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from apps.core.utils import get_accessible_fields
 from common.models import default_refs  # ✅ ADD THIS IMPORT
+from common.api_responses import api_response
 
 class CommPagination(pagination.PageNumberPagination):
     page_size = 25
@@ -39,7 +40,23 @@ class PhoneView(generics.ListCreateAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        raw_flag = request.query_params.get('raw') == '1'
+        response = super().get(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        data = response.data
+        if isinstance(data, dict) and {'results', 'count'}.issubset(data.keys()):
+            meta = {
+                'total': data.get('count'),
+                'page_size': data.get('page_size') or request.query_params.get('page_size') or CommPagination.page_size,
+                'next': data.get('next'),
+                'previous': data.get('previous'),
+            }
+            results = data.get('results')
+            payload = {'results': results}
+            payload.update({k: v for k, v in meta.items() if v is not None})
+            return api_response(data=payload, raw=raw_flag)
+        return api_response(data=data, raw=raw_flag)
 
     @extend_schema(
         summary="Create Phone",
@@ -53,12 +70,10 @@ class PhoneView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         accessible_fields = get_accessible_fields('phones', 'edit', request.user)
         if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="No editable fields allowed for your role", raw=raw_flag)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -66,6 +81,12 @@ class PhoneView(generics.ListCreateAPIView):
                  
         # ✅ STEP 1: Create phone FIRST
         phone = serializer.save()
+        # Record submission snapshot
+        try:
+            phone.record_submission_snapshot(request.data, actor_id=getattr(request.user, 'id', 0))
+            phone.save(update_fields=['prefs', 'dt_modified'])
+        except Exception:
+            pass
         
         # ✅ STEP 2: Setup refs structure properly
         if not phone.refs:
@@ -84,7 +105,9 @@ class PhoneView(generics.ListCreateAPIView):
         # ✅ STEP 4: Save the updated refs
         phone.save()
         
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if raw_flag:
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED, raw=raw_flag)
 
 class PhoneDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Handles retrieving, updating, and deleting a phone with role-based field access."""
@@ -110,7 +133,11 @@ class PhoneDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        raw_flag = request.query_params.get('raw') == '1'
+        response = super().get(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(data=response.data, raw=raw_flag)
 
     @extend_schema(
         summary="Update Phone",
@@ -125,13 +152,14 @@ class PhoneDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def patch(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         accessible_fields = get_accessible_fields('phones', 'edit', request.user)
         if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        return super().patch(request, *args, **kwargs)
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="No editable fields allowed for your role", raw=raw_flag)
+        response = super().patch(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(data=response.data, raw=raw_flag)
 
     @extend_schema(
         summary="Delete Phone",
@@ -144,10 +172,11 @@ class PhoneDetailView(generics.RetrieveUpdateDestroyAPIView):
         }
     )
     def delete(self, request, *args, **kwargs):
+        raw_flag = request.query_params.get('raw') == '1'
         accessible_fields = get_accessible_fields('phones', 'edit', request.user)
         if not accessible_fields:
-            return Response(
-                {"detail": "No editable fields allowed for your role"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        return super().delete(request, *args, **kwargs)
+            return api_response(success=False, status_code=status.HTTP_403_FORBIDDEN, message="No editable fields allowed for your role", raw=raw_flag)
+        response = super().delete(request, *args, **kwargs)
+        if raw_flag:
+            return response
+        return api_response(message="Deleted", data=None, status_code=response.status_code, raw=raw_flag)
