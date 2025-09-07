@@ -1201,7 +1201,8 @@
       "10. Minimal One-Liner (Force, Quiet)",
       "11. Data Export (Optional)",
       "12. FAQ",
-      "13. Quick Reference"
+      "13. Quick Reference",
+      "Safety alert Connection"
     ],
     "path": "readmes/reset.md",
     "tags": [
@@ -1212,16 +1213,18 @@
       "force",
       "manage",
       "superusers",
-      "migrations",
       "nuke",
-      "data",
+      "migrations",
       "bash",
+      "data",
       "baseline",
       "use",
       "migration",
       "command",
       "only",
       "run",
+      "safety",
+      "com",
       "not",
       "django",
       "skip",
@@ -1232,9 +1235,7 @@
       "export",
       "optional",
       "guard",
-      "bin",
-      "allow",
-      "system"
+      "bin"
     ]
   },
   {
@@ -1530,6 +1531,44 @@
       "default",
       "sales",
       "tax"
+    ]
+  },
+  {
+    "slug": "standards",
+    "title": "Standards: alerts and email normalization",
+    "headings": [],
+    "path": "readmes/standards.md",
+    "tags": [
+      "email",
+      "alert",
+      "severity",
+      "category",
+      "dedupe",
+      "status",
+      "small",
+      "keep",
+      "map",
+      "provider",
+      "event",
+      "standards",
+      "alerts",
+      "normalization",
+      "project",
+      "defines",
+      "stable",
+      "dictionaries",
+      "reduce",
+      "noise",
+      "semantics",
+      "consistent",
+      "across",
+      "providers",
+      "contents",
+      "order",
+      "info",
+      "notice",
+      "warning",
+      "critical"
     ]
   },
   {

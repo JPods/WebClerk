@@ -22,6 +22,7 @@
   - [11. Data Export (Optional)](#11-data-export-optional)
   - [12. FAQ](#12-faq)
   - [13. Quick Reference](#13-quick-reference)
+    - [Safety alert Connection](#safety-alert-connection)
 
 <!-- TOC END -->
 
@@ -251,6 +252,20 @@ A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `fu
 | Quick reset (nuke + 3 superusers, no seed) | `python manage.py quick_reset --force` |
 | One-shot nuke + seed + 3 superusers | `python manage.py nuke_reseed_3` |
 | One-shot nuke + seed + 3 superusers (includes extended relationship linking: orders↔orgs, orderlines↔orders/contacts) | `python manage.py nuke_reseed_3` |
+
+### Safety alert Connection
+
+`nuke_reseed_3` also ensures a safety alert connection exists:
+
+- `sync.Connection`: name=`alert`, type=`safety_alert`, purpose=`webclerk.com`, status=`safe`.
+- Used to signal assaults/incidents to webclerk.com for verification and coordinated communication.
+
+Smoke test:
+
+```bash
+python manage.py test_alert_connection --event assault_detected --severity warning
+```
+
 
 ---
 
