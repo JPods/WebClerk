@@ -35,7 +35,7 @@ class ExchangeRate(BaseModel):
         indexes = [
             models.Index(
                 fields=("currency_base", "currency_target", "is_active"),
-                name="acct_exrate_base_target_active_idx",
+                name="acct_exrate_curpair_act_idx",
             )
         ]
         constraints = [

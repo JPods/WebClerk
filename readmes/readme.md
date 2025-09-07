@@ -29,7 +29,7 @@
   - [Universal API Usage Examples](#universal-api-usage-examples)
     - [View All contact](#view-all-contact)
     - [View Specific Contact](#view-specific-contact)
-    - [Manage Contact's email](#manage-contact-email)
+    - [Manage Contact's email](#manage-contacts-email)
     - [Create New Action](#create-new-action)
     - [API Data Retrieval](#api-data-retrieval)
     - [Key Features](#key-features)

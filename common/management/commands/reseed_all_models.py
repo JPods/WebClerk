@@ -53,6 +53,8 @@ class Command(BaseCommand):
         parser.add_argument('--org-relations', type=int, default=3, help='OrgBase relations parent/child/linked cap.')
         parser.add_argument('--model', type=str, help='Target a single model (app_label.ModelName or ModelName).')
         parser.add_argument('--table', type=str, help='Target a single model by db table name (exact match).')
+        # superusers: -1 means auto (3 when seeding all models; 0 when targeting a single model). Override by setting >=0.
+        parser.add_argument('--superusers', type=int, default=-1, help='Create N patterned superusers (i@i.com / 1111pass). Default: 3 when not targeting a single model; 0 when targeting a single model.')
 
     def handle(self, *args, **opts):  # pragma: no cover - orchestration
         per_model = max(1, int(opts['per_model']))
@@ -60,7 +62,14 @@ class Command(BaseCommand):
         dry_run = opts['dry_run']
         max_passes = max(1, int(opts['max_passes']))
 
-        if not opts['no_flush'] and not dry_run:
+        # Decide if targeting a single model (by --model or --table)
+        target_model = None
+        target_model_arg = (opts.get('model') or '').strip()
+        target_table = (opts.get('table') or '').strip()
+        is_single_target = bool(target_model_arg or target_table)
+
+        # Default behavior: flush only when NOT targeting a single model unless --no-flush is provided
+        if not opts['no_flush'] and not dry_run and not is_single_target:
             self.stdout.write(self.style.WARNING('Flushing database ...'))
             call_command('flush', interactive=False)
 
@@ -127,14 +136,12 @@ class Command(BaseCommand):
                 except Exception:
                     pass
                 self.stdout.write(self.style.NOTICE(f"BOM hierarchy seeded: {created_bom} lines (3-level structure)."))
+
         all_models = [m for m in apps.get_models() if m._meta.managed and not m._meta.proxy]
         if restrict_apps:
             all_models = [m for m in all_models if m._meta.app_label in restrict_apps]
 
-        # Optional: narrow to a specific model via --model or --table
-        target_model = None
-        target_model_arg = (opts.get('model') or '').strip()
-        target_table = (opts.get('table') or '').strip()
+        # Optional: narrow to a specific model via --model or --table (reuse parsed target flags above)
         if target_model_arg:
             if '.' in target_model_arg:
                 app_label, cls_name = target_model_arg.split('.', 1)
@@ -166,7 +173,7 @@ class Command(BaseCommand):
                 continue
             models_list.append(m)
 
-    # Build dependency graph (required FKs only)
+        # Build dependency graph (required FKs only)
         deps: Dict[models.Model, Set[models.Model]] = {}
         for m in models_list:
             required: Set[models.Model] = set()
@@ -209,6 +216,39 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS('seed_relationships complete.'))
             except Exception as e:
                 self.stdout.write(self.style.WARNING(f'seed_relationships skipped: {e}'))
+
+        # Create patterned superusers if requested (idempotent)
+        # Compute superuser count: auto (3) when not targeting single model; 0 when targeting single model, unless explicitly provided
+        # argparse ensures a default; treat negative as auto
+        requested_su = int(opts['superusers'])
+        if requested_su >= 0:
+            su_count = requested_su
+        else:
+            su_count = 0 if is_single_target else 3
+        if not dry_run and su_count > 0:
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                created = 0
+                for i in range(1, su_count + 1):
+                    email = f"{i}@{i}.com"
+                    if User.objects.filter(email=email).exists():
+                        continue
+                    try:
+                        User.objects.create_superuser(
+                            email=email,
+                            username=email,
+                            password='1111pass',
+                            first_name=f'first_{i}',
+                            last_name=f'last_{i}',
+                        )
+                        created += 1
+                    except Exception:
+                        # best-effort; continue creating others
+                        continue
+                self.stdout.write(self.style.SUCCESS(f"Pattern superusers created: {created}/{su_count}"))
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Superuser creation skipped: {e}"))
 
     # -------- internals -------------------------------------------------
     def _toposort(self, models_list: List[models.Model], deps: Dict[models.Model, Set[models.Model]]):

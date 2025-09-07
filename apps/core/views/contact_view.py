@@ -23,17 +23,13 @@ class ContactDetailView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         contact_id = kwargs.get('contact_id')
-        
-    # Existing: Simple contact lookup - no prefetch needed with Universal API
-    contact = get_object_or_404(Contact, id=contact_id)
-        
-    context['contact'] = contact
-    user_id = getattr(self.request.user, 'id', None)
-    context['is_own_profile'] = (contact.id == user_id)
-        
+        # Existing: Simple contact lookup - no prefetch needed with Universal API
+        contact = get_object_or_404(Contact, id=contact_id)
+        context['contact'] = contact
+        user_id = getattr(self.request.user, 'id', None)
+        context['is_own_profile'] = (contact.id == user_id)
         # ADD: Optionally, filter fields in contact based on role's allowed "view" fields from settings.
         # Example: Only include fields in can_user_view('contacts', user.role)
-
         return context
 
     async def fetch_contact_data(self, user_id=None):

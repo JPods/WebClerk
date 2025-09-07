@@ -1,0 +1,1 @@
+#python manage.py reseed_all_models --per-model 5

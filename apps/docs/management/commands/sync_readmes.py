@@ -166,7 +166,7 @@ class Command(BaseCommand):
                     idx += 1
                 discovered[slug] = payload
 
-    existing = {d.slug: d for d in Document.objects.filter(model_name='readme')}
+        existing = {d.slug: d for d in Document.objects.filter(model_name='readme')}
         created = 0
         updated = 0
         unchanged = 0

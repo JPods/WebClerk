@@ -24,6 +24,7 @@ from apps.core.views.keyword import KeywordSearchView
 # from apps.core.views.query_any import QueryAnyView
 from apps.core.views.model_info import ModelInfoView
 from apps.core.views.table_registry_view import TableRegistryView
+from apps.core.views.model_name_view import ModelNameListView, ModelNameDetailView
 from django.views.generic import TemplateView
 from apps.core.views.pending import PendingListView, PendingDetailView, PendingSearchView
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
@@ -121,6 +122,8 @@ urlpatterns = [
     
     path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
     path('wcapi/tables/', TableRegistryView.as_view(), name='wcapi-tables'),
+    path('wcapi/model_name/list/', ModelNameListView.as_view(), name='model-name-list'),
+    path('wcapi/model_name/detail/', ModelNameDetailView.as_view(), name='model-name-detail'),
 
     # Standardized Pending endpoints (List/Create, Detail with optimistic PATCH, Search)
     path('pending/', PendingListView.as_view(), name='pending-list'),

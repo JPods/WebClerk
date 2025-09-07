@@ -39,11 +39,7 @@ class Exchange(BaseModel):
     #         self.exchange = default_exchange()
 
     class Meta:
-        db_table = 'acct_exchanges'
-        indexes = [models.Index(fields=("currency_base","currency_target","is_active"), name="acct_exch_cur_base_target_idx")]
-        constraints = [
-            models.UniqueConstraint(fields=["currency_base","currency_target","dt_start","dt_end"], name="uniq_acct_exchange_window")
-        ]
+        abstract = True  # Legacy placeholder; use ExchangeTransaction instead
 
     # Note: removed self-referential alias properties for dt_start/dt_end to avoid masking fields.
 

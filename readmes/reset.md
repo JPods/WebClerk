@@ -1,19 +1,19 @@
 <!-- Authoritative reset workflow documentation -->
 
-# Destructive Full Reset & Baseline Rebuild
-
+# Destructive Full Reset and Baseline Rebuild
 
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Destructive Full Reset & Baseline Rebuild](#destructive-full-reset-baseline-rebuild)
+- [Destructive Full Reset and Baseline Rebuild](#destructive-full-reset-and-baseline-rebuild)
   - [Table of Contents](#table-of-contents)
   - [1. When To Use](#1-when-to-use)
   - [2. What Happens Under The Hood](#2-what-happens-under-the-hood)
   - [3. Usage Cheatsheet](#3-usage-cheatsheet)
+  - [3.1. Quick reseed-only (no DB drop)](#31-quick-reseed-only-no-db-drop)
   - [4. Programmatic Invocation](#4-programmatic-invocation)
-  - [5. Environment Guards & Safety](#5-environment-guards-safety)
+  - [5. Environment Guards and Safety](#5-environment-guards-and-safety)
   - [6. Post-Reset Checklist](#6-post-reset-checklist)
   - [7. Troubleshooting](#7-troubleshooting)
   - [8. Migration Baseline Policy](#8-migration-baseline-policy)
@@ -24,7 +24,6 @@
   - [13. Quick Reference](#13-quick-reference)
     - [Safety alert Connection](#safety-alert-connection)
     - [Targeted reseeds (per model)](#targeted-reseeds-per-model)
-- [or by db table name](#or-by-db-table-name)
 
 <!-- TOC END -->
 
@@ -70,7 +69,7 @@ Do NOT use:
 1. Drops and recreates the database (name from `DATABASE_NAME` / settings).
 1. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
 1. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`, and `seed_relationships`.
-1. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables.
+1. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables. By default `reseed_all_models` will flush and seed all models and create 3 patterned superusers, unless you target a specific model.
 1. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
 1. Ensures default `sync.Connection` entries exist (safety alert + verification stubs). Currency records can link to a provider `Connection` for external rate updates.
 1. Backfills `Location.metadata.display` by saving each Location (ensures `full_location` is populated).
@@ -84,7 +83,7 @@ Full destructive reset + seed (default 3 superusers):
 
 ```bash
 python manage.py reseed --full
-```
+# end of header block
 
 Reset with 5 superusers and an extra seed command:
 
@@ -106,6 +105,31 @@ ALLOW_SYSTEM_PY=1 python manage.py reseed --full
 
 ---
 
+### 3.1. Quick reseed-only (no DB drop)
+
+Use this when you want to quickly re-populate synthetic rows across models without recreating the database:
+
+```bash
+python manage.py reseed_all_models               # flushes DB, seeds, creates 3 superusers
+python manage.py reseed_all_models --dry-run     # show actions without writing
+```
+
+Target a single model without flushing and without superusers by default:
+
+```bash
+python manage.py reseed_all_models --model apps.core.models.Contact --per-model 5
+# or by DB table
+python manage.py reseed_all_models --table contacts --per-model 5
+```
+
+Overrides:
+
+- Prevent flush: `--no-flush`
+- Control superusers: `--superusers N` (negative = auto: 3 for full reseed, 0 when targeting one model)
+- Skip relationship pass: `--no-relate`
+
+---
+
 ## 4. Programmatic Invocation
 
 ```python
@@ -118,7 +142,7 @@ The returned `ResetResult` dataclass exposes: `db_name`, `recreated`, `migration
 
 ---
 
-## 5. Environment Guards & Safety
+## 5. Environment Guards and Safety
 
 | Guard | Purpose | Override |
 |-------|---------|----------|

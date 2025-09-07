@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.core.models.setting import Setting
-from apps.core.constants.table_registry import VALID_TABLE_NAMES
+from apps.core.constants.table_registry import VALID_TABLE_NAMES, TABLE_REGISTRY_BY_ENDPOINT
 from apps.core.utils import get_accessible_fields
 
 class SettingSerializer(serializers.ModelSerializer):
@@ -37,3 +37,18 @@ class SettingSerializer(serializers.ModelSerializer):
                 for fname in list(self.fields.keys()):
                     if fname not in allowed and fname not in core_fields:
                         self.fields.pop(fname, None)
+
+    def validate_model_name(self, value: str | None) -> str | None:
+        if not value:
+            return value
+        target = value.strip().lower()
+        if target in VALID_TABLE_NAMES:
+            key = target
+        elif target in TABLE_REGISTRY_BY_ENDPOINT:
+            key = TABLE_REGISTRY_BY_ENDPOINT[target].key
+        elif target + 's' in VALID_TABLE_NAMES:
+            key = target + 's'
+        else:
+            raise serializers.ValidationError(f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_TABLE_NAMES)}")
+        # return singular form
+        return key[:-1] if key.endswith('s') else key

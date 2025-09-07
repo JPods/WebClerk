@@ -42,6 +42,20 @@ class Setting(BaseModel):
         # Store singular form consistently (drop a single trailing 's' when present)
         self.model_name = key[:-1] if key.endswith('s') else key
     
+    def save(self, *args, **kwargs):
+        """Ensure model_name is normalized/validated even when created directly.
+
+        Django doesn't call clean() automatically on save. We enforce it here so
+        records created via ORM (bypassing serializers) still store canonical model_name.
+        """
+        # Use full_clean to include clean() and field validation; ignore unique checks at DB level.
+        try:
+            self.full_clean()
+        except ValidationError:
+            # Re-raise to surface up to callers (API should translate to 400)
+            raise
+        return super().save(*args, **kwargs)
+    
 
 #QQQ look at documents as a model
 # we have settings record for each table that
