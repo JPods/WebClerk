@@ -33,11 +33,11 @@ MODEL_MAP = {
     'manufacturers': ManufacturerOrg,
 }
 
-ALLOWED_TABLE_NAMES = set(MODEL_MAP.keys())
+ALLOWED_TABLE_KEYS = set(MODEL_MAP.keys())
 
 """
-Helpers to support migration from table_name -> model_name.
-normalize_table_key accepts either a plural table_name or a singular model_name and
+Helpers for mapping between table keys and model_name.
+normalize_table_key accepts either a plural registry key ("table key") or a singular model_name and
 returns the canonical table key used by the registry. to_model_name returns the
 singular form for responses and logs.
 """
@@ -65,7 +65,7 @@ _SINGULAR_ALIAS_TO_TABLE = {
     'manufacturer': 'manufacturers',
 }
 
-# Canonical reverse: table_name -> singular model_name
+# Canonical reverse: table key -> singular model_name
 _TABLE_TO_MODEL_NAME = {
     'contacts': 'contact',
     'actions': 'action',
@@ -78,8 +78,20 @@ _TABLE_TO_MODEL_NAME = {
     'locations': 'location',
     'addresses': 'location',
     'items': 'item',
+    # transactional headers/lines (cover both explicit db_table names and defaults)
     'sales_orders': 'sales_order',
     'sales_order_lines': 'sales_order_line',
+    'purchase_orders': 'purchase_order',
+    'purchase_order_lines': 'purchase_order_line',
+    'work_orders': 'work_order',
+    'work_order_lines': 'work_order_line',
+    'proposal_line': 'proposal_line',
+    'invoice_line': 'invoice_line',
+    'requisition_line': 'requisition_line',
+    # Default Django table names for headers without explicit db_table
+    'transactions_proposal': 'proposal',
+    'transactions_invoice': 'invoice',
+    'transactions_requisition': 'requisition',
     'orgs': 'org',
     'customers': 'customer',
     'vendors': 'vendor',
@@ -106,10 +118,10 @@ def to_model_name(table_key: str | None) -> str | None:
     key = table_key.strip().lower()
     return _TABLE_TO_MODEL_NAME.get(key, key[:-1] if key.endswith('s') else key)
 
-def get_model(table_name: str):
-    if not table_name:
+def get_model(table_key: str):
+    if not table_key:
         return None
-    key = normalize_table_key(table_name)
+    key = normalize_table_key(table_key)
     if not key:
         return None
     return MODEL_MAP.get(key)

@@ -10,7 +10,7 @@ class Setting(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=255, blank=True, null=True)
-    # Canonical model identifier (replaces table_name)
+    # Canonical model identifier (model_name-only)
     model_name = models.CharField(max_length=255, blank=True, null=True)
     data = models.JSONField(blank=True, null=True)
     

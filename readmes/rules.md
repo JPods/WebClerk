@@ -8,7 +8,8 @@
 - [Project Rules & Guidelines](#project-rules-guidelines)
   - [Table of Contents](#table-of-contents)
   - [Git & Versioning](#git-versioning)
-  - [Table Naming](#table-naming)
+  - [Model and Table Key Naming](#model-and-table-key-naming)
+  - [Examples](#examples)
   - [Display metadata conventions](#display-metadata-conventions)
   - [Rate Limiting](#rate-limiting)
   - [Logging & Monitoring](#logging-monitoring)
@@ -48,13 +49,29 @@ Pushing to dev/main:
 
 Baseline contracts = v0.3; breaking changes require version bump + docs.
 
-## Table Naming
+## Model and Table Key Naming
 
-No table name should use 'es' pluralization.
+Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es' plurals.
 
-- Use 's' plurals: `contacts`, `locations`, `domains`, `phones`, `emails`, `actions`.
-- Avoid irregular 'es' forms: not `addresses`, `classes`, `processes`.
-- Prefer synonyms to dodge awkward plurals (`location` over `address`).
+- Use 's' plurals where possible: `contacts`, `locations`, `domains`, `phones`, `emails`, `actions`.
+- Avoid irregular 'es' forms (prefer synonyms): not `addresses`, `classes`, `processes`.
+- Public docs/UI should refer to model_name (singular) for a record and the table key (plural) for collections.
+
+## Examples
+
+| model_name (singular) | table key (registry, plural) | db_table (actual) |
+|-----------------------|-------------------------------|-------------------|
+| contact               | contacts                      | contacts          |
+| sales_order           | sales_orders                  | sales_orders      |
+| purchase_order        | purchase_orders               | purchase_orders   |
+| sales_order_line      | sales_order_lines             | sales_order_lines |
+| invoice_line          | invoice_line                  | invoice_line      |
+| location              | locations                     | locations         |
+
+Notes:
+
+- The "table key" is the Universal API registry key. For most models, db_table equals the key. Some line tables (e.g., `invoice_line`) are singular by convention.
+- If a model doesn’t set `db_table`, Django will default to `<app_label>_<model>` (e.g., `transactions_proposal`). Use model_name in Settings and permissions; clients send `model_name` (singular) to APIs.
 
 ## Display metadata conventions
 
@@ -62,7 +79,7 @@ No table name should use 'es' pluralization.
 - For `Location`, we store `metadata.display.full_location` along with `standard` and `country_code`.
 - Bulk updates that bypass model `save()` won’t recompute display; follow up with a refresh or a backfill job.
 
-Field / verbose names may use 'es' if needed; restriction applies to actual table names only.
+Field / verbose names may use 'es' if needed; restriction applies to registry keys/db_table only.
 
 Baseline rules that require a published exception:
 
@@ -89,11 +106,11 @@ Baseline rules that require a published exception:
     Version / concurrency conflicts MUST use HTTP 412 with status="fail" and error.code="version_conflict".
     Validation failures: HTTP 400, status="fail", error.code a specific domain/validation code, error.details list/dict of field issues.
 4. JSONs for exchanging information, even inputs. Convert all CSV, etc. into JSON outside of WebClerk.
-5. +** all these were replaced by model_name  instead of table_!name Always refer to the model_name in its plural and a record in its singular. Drive model_names so they only have plural forms that end in "s" or "es". Minimize "es" endings. No tables ending in plain trailing 'e'.
-6. Always use model_name for the primary table name; primary id field is "id". For non-primary FKs use model_name_id format.
+5. Always use model_name instead of legacy table_name. Refer to a collection by its table key (plural) and a record by its model_name (singular). Avoid trailing plain 'e'.
+6. Primary id field is "id". For non-primary FKs use model_name_id format.
 7. Save paths to larger documents. Never save large documents in the database.
 8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py).
-9. Always put relationships into model_name.refs.links{"related_model_name":[id1,id4,...],"related_model_name2":[]} (legacy shape migrations should move toward the unified related envelope where exposed externally).
+9. Always put relationships into model_name.refs.links{"related_model_name":[id1,id4,...],"related_model_name2":[]} (legacy shapes should migrate toward the unified related envelope where exposed externally).
 10. Settings records for view_edit. "view_edit" is a keyword that cannot be used for anything except referring to [] of fields by role for table, etc...
 11. Break the common Django framework of put, post, add functions with generalized, universal wcapi/relate, wcapi/get, wcapi/save etc... see core/urls.py
 12. Use Celery to wrap generalized functions such as wcapi/save for pre/post hooks.

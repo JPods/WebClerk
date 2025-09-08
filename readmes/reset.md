@@ -11,7 +11,8 @@
   - [1. When To Use](#1-when-to-use)
   - [2. What Happens Under The Hood](#2-what-happens-under-the-hood)
   - [3. Usage Cheatsheet](#3-usage-cheatsheet)
-  - [3.1. Quick reseed-only (no DB drop)](#31-quick-reseed-only-no-db-drop)
+    - [3.1. Quick reseed-only (no DB drop)](#31-quick-reseed-only-no-db-drop)
+- [or by DB table](#or-by-db-table)
   - [4. Programmatic Invocation](#4-programmatic-invocation)
   - [5. Environment Guards and Safety](#5-environment-guards-and-safety)
   - [6. Post-Reset Checklist](#6-post-reset-checklist)
@@ -24,6 +25,7 @@
   - [13. Quick Reference](#13-quick-reference)
     - [Safety alert Connection](#safety-alert-connection)
     - [Targeted reseeds (per model)](#targeted-reseeds-per-model)
+- [or by db table name](#or-by-db-table-name)
 
 <!-- TOC END -->
 
@@ -65,15 +67,15 @@ Do NOT use:
 `python manage.py reseed --full` orchestrates:
 
 1. Environment guard: verifies interpreter matches project `bin/python` & Django 5.x (override with `ALLOW_SYSTEM_PY=1`).
-1. Terminates existing PostgreSQL sessions for the target DB.
-1. Drops and recreates the database (name from `DATABASE_NAME` / settings).
-1. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
-1. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`, and `seed_relationships`.
-1. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables. By default `reseed_all_models` will flush and seed all models and create 3 patterned superusers, unless you target a specific model.
-1. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
-1. Ensures default `sync.Connection` entries exist (safety alert + verification stubs). Currency records can link to a provider `Connection` for external rate updates.
-1. Backfills `Location.metadata.display` by saving each Location (ensures `full_location` is populated).
-1. Summary output printed with seeds actually applied.
+2. Terminates existing PostgreSQL sessions for the target DB.
+3. Drops and recreates the database (name from `DATABASE_NAME` / settings).
+4. Runs migrations (expects committed `0001_initial` baselines + any new deltas, or freshly regenerated if using `--nuke-migrations --auto-make`).
+5. Executes seed commands (idempotent best-effort): `load_default_company`, `load_default_access`, `seed_orgs`, `seed_documents`, `seed_projects`, `seed_transactions`, and `seed_relationships`.
+6. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables. By default, `reseed_all_models` will flush and seed all models and create 3 patterned superusers unless you target a specific model.
+7. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
+8. Ensures default `sync.Connection` entries exist (safety alert + verification stubs). Currency records can link to a provider `Connection` for external rate updates.
+9. Backfills `Location.metadata.display` by saving each Location (ensures `full_location` is populated).
+10. Summary output printed with seeds actually applied.
 
 ---
 
@@ -83,7 +85,7 @@ Full destructive reset + seed (default 3 superusers):
 
 ```bash
 python manage.py reseed --full
-# end of header block
+```
 
 Reset with 5 superusers and an extra seed command:
 
@@ -175,7 +177,7 @@ The command still refuses if `DJANGO_SETTINGS_MODULE` suggests a production modu
 | Seed command missing file warnings | Optional JSON seeds not present | Supply JSON or ignore (non-fatal). |
 | Superusers not created | Email collision from prior import | Use higher `--superusers` or drop again. |
 
-Log still shows intermediate product migrations (0002–0006)? They are **no-op stubs**—this is expected.
+Log still shows intermediate product migrations (0002–0006)? They are no-op stubs—this is expected.
 
 ---
 
@@ -212,11 +214,12 @@ Fast local reset with defaults (seeds + 3 superusers).
 
 ## 11. Data Export (Optional)
 
-If you maintain evolving demo snapshots, run an export immediately after a clean reset *before* hand edits:
+If you maintain evolving demo snapshots, run an export immediately after a clean reset before hand edits:
 
 ```bash
 python manage.py demo_data_import_export --export demo_snapshot.json
 ```
+
 Commit only if intentionally curating a shared demo baseline.
 
 ---
@@ -246,7 +249,7 @@ A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `fu
 ### Safety alert Connection
 
 `reseed --full` also ensures a safety alert connection exists and performs location display backfill:
- 
+
 ### Targeted reseeds (per model)
 
 Use the unified command to reseed only a specific model/table without flushing:
@@ -267,7 +270,6 @@ Smoke test:
 ```bash
 python manage.py test_alert_connection --event assault_detected --severity warning
 ```
-
 
 ---
 

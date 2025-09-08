@@ -59,6 +59,7 @@
   - [API Rate Limiting](#api-rate-limiting)
   - [Logging](#logging)
   - [Transaction Line & Aggregation Endpoints](#transaction-line-aggregation-endpoints)
+    - [Totals Preview (per header)](#totals-preview-per-header)
     - [Field-Level Authorization (view_edit)](#field-level-authorization-viewedit)
   - [Running Tests](#running-tests)
   - [Deployment (Placeholder)](#deployment-placeholder)
@@ -806,6 +807,13 @@ Throttle Scopes:
 - Aggregate: `tx_aggregate`
 
 OpenAPI generation (drf-spectacular) will include summaries for these endpoints.
+
+### Totals Preview (per header)
+
+- GET `/tx/<kind>/<id>/preview-totals/?include_breakdown=1` returns cached totals for the header’s lines (scoped to `<kind>-line`).
+- Always enveloped (`status`, `code`, `message`, `data`).
+- Honors view_edit permissions on the header model.
+- See also: `readmes/transaction-flow-responsibilities.md` (Preview & validation section).
 
 ### Field-Level Authorization (view_edit)
 

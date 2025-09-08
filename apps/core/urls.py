@@ -107,7 +107,7 @@ urlpatterns = [
     # path('wcapi/put/', WcapiView.as_view(), name='put'),  # replaced by /wcapi/save/
     # save was used in 4D, replace with post/put
     path('wcapi/save/', SaveWcapiView.as_view(), name='wcapi_save'),
-    # pass table_name and id wcapi/save/?table_name=<table_name>&id=<id>
+    # Legacy note removed: use model_name consistently for wcapi endpoints.
     # Root endpoint for wcapi
     # Diagnostic endpoint for tracing
     # path('wcapi/trace/', WcapiView.as_view(), name='trace'),  # replaced by logging/metrics
@@ -145,7 +145,7 @@ urlpatterns = [
     path('templates/<int:pk>/', TemplateDetailView.as_view(), name='template-detail'),
     path('templates/search/', TemplateSearchView.as_view(), name='template-search'),
 
-    # GET /wcapi/models/?table_name=contacts&related_tables=actions,phones
+    # Example: GET /wcapi/models/?model_name=contact&related_models=actions,phones
     # Returns info for contacts, actions, and phones.
     
         # Contacts API endpoints (standardized)

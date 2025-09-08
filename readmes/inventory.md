@@ -29,6 +29,7 @@
     - [Dashboard Ideas](#dashboard-ideas)
     - [Housekeeping](#housekeeping)
   - [Quick Reference](#quick-reference)
+  - [Purchase Order Receiving](#purchase-order-receiving)
 
 <!-- TOC END -->
 
@@ -334,3 +335,71 @@ inventory_processor_global_duration_bucket{le="0.25"} 1
 | Global processor | `process_pending_inventory` |
 
 Add enhancements to this document; keep README root concise by linking here.
+
+## Purchase Order Receiving
+
+Endpoint (writes inventory):
+
+- POST `/transactions/purchase-orders/<pk>/receive/`
+
+Request body:
+
+```json
+{
+  "receipt_no": "RCPT-2025-0001",
+  "lines": [
+    {
+      "po_line_id": 123,
+      "qty": 5,
+      "warehouse_code": "MAIN",
+      "unit_cost": 12.5,
+      "lot": "LOT-A",
+      "serial_batch": ""
+    }
+  ]
+}
+```
+
+Success (201):
+
+```json
+{ "receipt_id": 987, "stacks_created": [321, 322] }
+```
+
+Behavior
+
+- Validates the Purchase Order header (`<pk>`) and that each `po_line_id` belongs to it.
+- Resolves the Item from the PO line JSON `item.id_num` (fallback: `id` / `item_id`).
+- Looks up `Warehouse` by `warehouse_code`.
+- Creates one `InventoryStack` per received line with:
+  - `quantity`: `{ "received": qty, "issued": 0, "scrapped": 0 }`
+  - `source_doc_type`: `"purchase_receipt"`
+  - `source_doc_id`: the created `PurchaseReceipt.id`
+- Updates cost via `InventoryStack.update_cost_after_receipt(unit_cost)`; if `unit_cost` omitted, uses the PO line `cost.unit` when present.
+- Increments a `received` hint inside the PO line `quantity` JSON when available.
+
+Error modes (400)
+
+- Missing `receipt_no`.
+- `po_line_id` not found for this purchase order.
+- PO line lacks `item.id_num` and no fallback ID present.
+- Item or Warehouse not found.
+
+Notes
+
+- This action is not idempotent; repeated calls will create additional stacks. Call once per receipt.
+- Authorization follows the project `view_edit` rules; ensure the user can edit purchase orders and inventory.
+- Lot/serial fields are optional; provide when your process requires traceability.
+
+Example
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "receipt_no":"RCPT-1001",
+        "lines":[{"po_line_id":1,"qty":3.5,"warehouse_code":"MAIN","unit_cost":9.99}] 
+      }' \
+  http://localhost:8000/transactions/purchase-orders/42/receive/
+```

@@ -59,7 +59,9 @@ class Command(BaseCommand):
                         # Update existing setting
                         existing_setting.is_active = item.get("is_active", True)
                         existing_setting.data = item["data"]
-                        existing_setting.comment = item.get("comment", "")
+                        # Set 'comment' only if the field exists on the model
+                        if any(f.name == "comment" for f in Setting._meta.get_fields()):
+                            setattr(existing_setting, "comment", item.get("comment", ""))
                         existing_setting.save()
                         updated_count += 1
                         self.stdout.write(
@@ -67,27 +69,30 @@ class Command(BaseCommand):
                                 f"Updated setting with name '{item['name']}', "
                                 f"purpose '{item['purpose']}', "
                                 f"role '{item['role']}', "
-                                f"table_name '{item['table_name']}'"
+                                f"model_name '{item['model_name']}'"
                             )
                         )
                     else:
                         # Create new Setting instance
-                        Setting.objects.create(
-                            is_active=item.get("is_active", True),
-                            name=item["name"],
-                            purpose=item["purpose"],
-                            role=item["role"],
-                            model_name=item["model_name"],
-                            data=item["data"],
-                            comment=item.get("comment", ""),
-                        )
+                        create_kwargs = {
+                            "is_active": item.get("is_active", True),
+                            "name": item["name"],
+                            "purpose": item["purpose"],
+                            "role": item["role"],
+                            "model_name": item["model_name"],
+                            "data": item["data"],
+                        }
+                        # Include 'comment' only if the field exists on the model
+                        if any(f.name == "comment" for f in Setting._meta.get_fields()):
+                            create_kwargs["comment"] = item.get("comment", "")
+                        Setting.objects.create(**create_kwargs)
                         inserted_count += 1
                         self.stdout.write(
                             self.style.SUCCESS(
                                 f"Created setting with name '{item['name']}', "
                                 f"purpose '{item['purpose']}', "
                                 f"role '{item['role']}', "
-                                f"table_name '{item['table_name']}'"
+                                f"model_name '{item['model_name']}'"
                             )
                         )
 

@@ -6,7 +6,7 @@ from rest_framework.views import APIView  # type: ignore
 from django.contrib.auth.mixins import LoginRequiredMixin
 import json
 import time
-from .wcapi_registry import get_model, ALLOWED_TABLE_NAMES, normalize_table_key, to_model_name
+from .wcapi_registry import get_model, ALLOWED_TABLE_KEYS, normalize_table_key, to_model_name
 from common.api_responses import api_response
 from rest_framework.response import Response  # type: ignore
 from django.db import models
@@ -105,8 +105,8 @@ class WcapiView(LoginRequiredMixin, APIView):
             return list(sliced.values(*fields))
         return list(sliced.values())
 
-    def _model_or_400(self, table_name):
-        model = get_model(table_name)
+    def _model_or_400(self, table_key):
+        model = get_model(table_key)
         if not model:
             return None, api_response(success=False, status_code=400, message='Unknown model', error={'code':'unknown_model','details':'Unknown model'})  #chaned from t_n
         return model, None
@@ -125,16 +125,16 @@ class WcapiView(LoginRequiredMixin, APIView):
         if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
             return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
         start = time.perf_counter()
-        raw_name = request.GET.get('model_name')  #chaned from t_n: removed 'table_name' fallback
+        raw_name = request.GET.get('model_name')  # removed legacy fallback
         if not raw_name:
             return api_response(success=False, status_code=400, message='Missing model_name', error={'code':'missing_model_name','details':'Missing model_name'})
-        table_name = normalize_table_key(raw_name)
-        if not table_name:
+        table_key = normalize_table_key(raw_name)
+        if not table_key:
             return api_response(success=False, status_code=400, message='Unknown model', error={'code':'unknown_model','details':'Unknown model'})
-        model, err = self._model_or_400(table_name)
+        model, err = self._model_or_400(table_key)
         if err:
             return err
-        singular = to_model_name(table_name)
+        singular = to_model_name(table_key)
         # Field projection
         self._requested_fields = self._parse_projection(request, model)
         if isinstance(self._requested_fields, (JsonResponse, Response)):
@@ -183,13 +183,13 @@ class WcapiView(LoginRequiredMixin, APIView):
             payload = json.loads(request.body or '{}')
         except json.JSONDecodeError:
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details':'Invalid JSON'})
-        raw_name = payload.get('model_name')  #chaned from t_n: removed 'table_name' fallback
+        raw_name = payload.get('model_name')  # removed legacy fallback
         if not raw_name:
             return api_response(success=False, status_code=400, message='Missing model_name', error={'code':'missing_model_name','details':'Missing model_name'})
-        table_name = normalize_table_key(raw_name)
-        if not table_name:
+        table_key = normalize_table_key(raw_name)
+        if not table_key:
             return api_response(success=False, status_code=400, message='Unknown model', error={'code':'unknown_model','details':'Unknown model'})
-        model, err = self._model_or_400(table_name)
+        model, err = self._model_or_400(table_key)
         if err:
             return err
         self._requested_fields = self._parse_projection(payload, model)
@@ -219,7 +219,7 @@ class WcapiView(LoginRequiredMixin, APIView):
         if PROM_ENABLED and _PROM_REQS is not None and _PROM_DUR is not None:
             _PROM_REQS.labels(method='POST').inc()
             _PROM_DUR.labels(method='POST').observe(time.perf_counter()-start)
-        singular = to_model_name(table_name)
+        singular = to_model_name(table_key)
         return api_response(data={'model_name': singular, 'results': data, 'total': total, 'limit': limit, 'offset': offset})
 
     # Unimplemented verbs -> explicit 405 or minimal info
@@ -236,7 +236,8 @@ class WcapiView(LoginRequiredMixin, APIView):
         return self.get(request)
 
     def options(self, request):
-        return api_response(data={'model_names': [to_model_name(t) for t in sorted(ALLOWED_TABLE_NAMES)]})
+        """Return the list of allowed model_names for discovery."""
+        return api_response(data={'model_names': [to_model_name(t) for t in sorted(ALLOWED_TABLE_KEYS)]})
 
     def trace(self, request):
         return api_response(success=False, status_code=405, message='TRACE not supported', error={'code': 'method_not_allowed', 'details': 'TRACE not supported'})

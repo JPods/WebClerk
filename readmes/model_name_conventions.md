@@ -6,11 +6,13 @@
 ## Table of Contents
 
 - [Model name conventions](#model-name-conventions)
+  - [Table of Contents](#table-of-contents)
+  - [Endpoints](#endpoints)
   - [Static files note](#static-files-note)
 
 <!-- TOC END -->
 
-- Only model_name is used; table_name is deprecated.
+- Only model_name is used; legacy aliases are not supported.
 - Acceptable inputs when creating a Setting:
   - Canonical key from table registry (e.g., sales_order_lines, proposal_line)
   - Endpoint slug (e.g., sales-order-lines)
@@ -26,6 +28,56 @@ Endpoints to model_name mapping (examples)
 - /tx/purchase-order-lines/ -> purchase_order_lines -> stored as purchase_order_line
 - /tx/workorder-lines/ -> work_order_lines -> stored as work_order_line
 - /tx/requisition-lines/ -> requisition_line
+
+## Endpoints
+
+- List available model_name values (singular codes):
+  - GET `/wcapi/model_name/list/`
+- Detail for a specific model_name (metadata + fields):
+  - GET `/wcapi/model_name/detail/?model_name=sales_order_line`
+
+Examples:
+
+```bash
+curl -sS "http://localhost:8000/wcapi/model_name/detail/?model_name=purchase_order_line" \
+  -H "Authorization: Bearer <token>" | jq
+```
+
+Example responses
+
+- List
+
+```json
+{
+  "ok": true,
+  "data": {
+    "model_names": ["invoice_line", "purchase_order_line", "sales_order_line", "work_order_line"],
+    "count": 4
+  }
+}
+```
+
+- Detail
+
+```json
+{
+  "ok": true,
+  "data": {
+    "model": {
+      "model_name": "purchase_order_line",
+      "app_label": "transactions",
+      "db_table": "purchase_order_lines",
+      "endpoint": "/tx/purchase-order-lines/",
+      "verbose_name": "Purchase order line",
+      "fields": [
+        {"name": "id", "type": "UUIDField", "required": true},
+        {"name": "quantity", "type": "DecimalField", "required": true},
+        {"name": "unit_price", "type": "DecimalField", "required": false}
+      ]
+    }
+  }
+}
+```
 
 ## Static files note
 

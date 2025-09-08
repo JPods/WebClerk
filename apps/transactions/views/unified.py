@@ -1,6 +1,7 @@
 from typing import Tuple, Type, Optional
 from django.shortcuts import get_object_or_404
-from rest_framework import generics
+from rest_framework import generics, response, status
+from common.api_responses import api_response
 from apps.transactions.models.line_variants import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
@@ -18,6 +19,8 @@ from apps.transactions.serializers.line_serializers import (
     RequisitionSerializer, RequisitionLineSerializer,
 )
 from apps.transactions.views.line_views import BasePermission, DefaultPagination
+from apps.transactions.aggregation import compute_line_aggregate
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 
 
 # Mapping helpers -----------------------------------------------------------
@@ -154,3 +157,50 @@ class TransactionLineDetail(_KindMixin, generics.RetrieveUpdateDestroyAPIView):
 
 
 # Lightweight kind discovery endpoint (optional future): could list supported kinds.
+
+
+@extend_schema(
+    summary="Preview totals for a header",
+    parameters=[OpenApiParameter(name='include_breakdown', required=False, type=bool, description='Include per-model breakdown (0/1)')],
+    responses={200: OpenApiResponse(description='Aggregate totals payload in unified envelope')}
+)
+class TransactionTotalsPreview(_KindMixin, generics.GenericAPIView):
+    """Read-only totals preview for a header using line aggregation.
+
+    GET /api/tx/<kind>/<id>/preview-totals/?include_breakdown=1
+    """
+    permission_classes = [BasePermission]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.initialize_kind(**kwargs)
+        self.header_id = kwargs.get('pk')
+        return super().dispatch(request, *args, **kwargs)
+
+    # Provide queryset so ViewEditPermission can resolve model for permission rules
+    def get_queryset(self):
+        return self.get_header_model().objects.all()
+
+    def get(self, request, *args, **kwargs):  # noqa: D401
+        """Return aggregate totals for this header's lines.
+
+        By default, scopes aggregation to this kind's line model (e.g., sales-order-line).
+        Pass include_breakdown=1 to include per-model breakdown (useful if future variants
+        also link to the same header id).
+        """
+        # Validate header id
+        if self.header_id is None:
+            return response.Response({'detail': 'Missing header id'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            header_id = int(self.header_id)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return response.Response({'detail': 'Invalid header id'}, status=status.HTTP_400_BAD_REQUEST)
+
+        include_breakdown_param = request.query_params.get('include_breakdown')
+        include_breakdown = include_breakdown_param in ('1', 'true', 'True', 'yes')
+        kind = self.kind or ''
+        model_key = f"{kind}-line" if kind else None
+        try:
+            data = compute_line_aggregate(header_id, model_key, include_breakdown=include_breakdown)
+        except ValueError:
+            return response.Response({'detail': 'Invalid kind'}, status=status.HTTP_400_BAD_REQUEST)
+        return api_response(data=data)

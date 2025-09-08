@@ -8,7 +8,7 @@ from common.api_responses import api_response
 #     check_field_size(field_value, max_size, field_name):
 #         Checks if the serialized size of a field value exceeds the specified maximum size in bytes.
 #         Raises ValueError if the size is exceeded.
-#     find_model_for_table(table_name: str):
+#     find_model_for_table(model_name: str):
 #         Searches all installed Django apps to find and return the model class corresponding to the given table name.
 #         Returns None if no matching model is found.
 # Constants:
@@ -16,7 +16,7 @@ from common.api_responses import api_response
 #     MAX_FIELD_SIZE: Maximum allowed size (in bytes) for any field value.
 # View Details:
 #     WcapiView.post(request):
-#         - Expects a JSON body with at least 'table_name' and optionally 'id' (for updates).
+#         - Expects a JSON body with 'model_name' (singular) and optionally 'id' (for updates).
 #         - Finds the corresponding model for the given table name.
 #         - Handles both record creation and update.
 #         - Validates field sizes and allowed nested keys.
@@ -54,7 +54,7 @@ def check_field_size(field_value, max_size, field_name):
         raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
 
 # Deprecated: dynamic model discovery replaced by explicit allow-list registry (see wcapi_registry.py)
-# def find_model_for_table(table_name: str):
+# def find_model_for_table(model_name: str):
 #     QQQ confirm no remaining callers, then fully remove
 #     ...
 

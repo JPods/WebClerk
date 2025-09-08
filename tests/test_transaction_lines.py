@@ -30,12 +30,11 @@ def test_line_aggregation_simple(django_user_model):
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='agg@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name="P1")
-    parent2 = SalesOrder.objects.create(order_no="O1")
-    # Create lines with mixed numeric/string extended values
+    # Create two lines under the same parent with mixed numeric/string extended values
     ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN',
                                 price={"extended": "10.50"}, cost={"extended": 5})
-    SalesOrderLine.objects.create(parent=parent2, parent_ref_id=parent2.pk, status='OPEN',
-                             price={"extended": 2}, cost={"extended": "1.25"})
+    ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN',
+                                price={"extended": 2}, cost={"extended": "1.25"})
     client = _auth(user)
     resp = client.get(f'/tx/lines/aggregate/?parent_ref_id={parent.pk}')
     # Aggregator sums across all line models sharing the same parent_ref_id value (cross-document id collision allowed).

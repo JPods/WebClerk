@@ -4,6 +4,11 @@ from apps.transactions.views import unified as unified_views
 from apps.transactions.views.requisition import (
     RequisitionListView, RequisitionDetailView, RequisitionSearchView
 )
+from apps.transactions.views.actions import (
+    ProposalToSalesOrderView,
+    SalesOrderToInvoiceView,
+    ReceivePurchaseOrderView,
+)
 
 urlpatterns = [
     # Proposal
@@ -61,4 +66,11 @@ urlpatterns = [
     path('tx/<str:kind>/<int:pk>/', unified_views.TransactionHeaderDetail.as_view(), name='tx-header-detail'),
     path('tx/<str:kind>/<int:pk>/lines/', unified_views.TransactionLineListCreate.as_view(), name='tx-line-list-create'),
     path('tx/<str:kind>/<int:pk>/lines/<int:line_pk>/', unified_views.TransactionLineDetail.as_view(), name='tx-line-detail'),
+    # Friendly shorter path used by tests (mounted under /tx/ at project level)
+    path('<str:kind>/<int:pk>/preview-totals/', unified_views.TransactionTotalsPreview.as_view(), name='tx-totals-preview'),
+
+    # Flow actions
+    path('proposals/<int:pk>/convert-to-sales-order/', ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
+    path('sales-orders/<int:pk>/convert-to-invoice/', SalesOrderToInvoiceView.as_view(), name='so-to-invoice'),
+    path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
 ]
