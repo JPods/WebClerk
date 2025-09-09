@@ -14,7 +14,7 @@ def user2(django_user_model):
 
 
 @pytest.mark.django_db
-def test_wcapi_missing_table_name_get(client, user1):
+def test_wcapi_missing_model_name_get(client, user1):
     client.force_login(user1)
     resp = client.get('/wcapi/query/')
     assert resp.status_code == 400

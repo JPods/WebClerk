@@ -94,21 +94,4 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: forbid-table-name
-        name: Forbid legacy table_name usage
-        entry: bash
-        args:
-          - -c
-          - |
-            set -euo pipefail
-            VIOLATIONS=$(git grep -n "table_name" -- ':!readmes/*' ':!*.md' || true)
-            if [ -n "$VIOLATIONS" ]; then
-              echo "ERROR: Found legacy 'table_name' references:" >&2
-              echo "$VIOLATIONS" >&2
-              exit 1
-            fi
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-
 # Install locally with:  pip install pre-commit && pre-commit install

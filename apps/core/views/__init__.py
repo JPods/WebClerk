@@ -28,12 +28,12 @@ class AboutView(TemplateView):
 # class WcapiView(View):
 #     """Save (create/update) records to any table"""
 #     def post(self, request):
-#         table_name = request.GET.get('table_name', 'contacts')
+#         table-name = request.GET.get('table-name', 'contacts')
 #         record_id = request.GET.get('id')
         
 #         data = {
 #             'success': True,
-#             'message': f'Record {"updated" if record_id else "created"} in {table_name}',
+#             'message': f'Record {"updated" if record_id else "created"} in {table-name}',
 #             'id': record_id or 123
 #         }
         
@@ -42,12 +42,12 @@ class AboutView(TemplateView):
 # class WcapiView(View):
 #     """Delete records from any table"""
 #     def delete(self, request):
-#         table_name = request.GET.get('table_name', 'contacts')
+#         table-name = request.GET.get('table-name', 'contacts')
 #         record_id = request.GET.get('id')
         
 #         data = {
 #             'success': True,
-#             'message': f'Record {record_id} deleted from {table_name}'
+#             'message': f'Record {record_id} deleted from {table-name}'
 #         }
         
 #         return JsonResponse(data)

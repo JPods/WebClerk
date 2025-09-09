@@ -83,7 +83,7 @@ class SaveWcapiView(APIView):
         except json.JSONDecodeError as e:
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
 
-        # Required: model_name (singular)  #chaned from t_n: removed legacy 'table_name'
+    # Required: model_name (singular)
         raw_model_name = data.get('model_name')
         if not raw_model_name:
             return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})

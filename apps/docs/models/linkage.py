@@ -6,7 +6,7 @@ from django.utils import timezone
 # with one document that passes on specs, paths, comments, and other details
 
 #linkage model primarily uses its 
-# .refs.links:{"table_name1":[], "table_name2":[]}
+# .refs.links:{"model_name":[], "model_name":[]}
 # purpose of these records is to link records 
 # that can be linked to many other models. 
 # For instance, a linkage record can be 

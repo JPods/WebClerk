@@ -10,26 +10,26 @@ def celery_startup_task():
     print("Access rules loaded in Celery worker.")
 
 @shared_task
-def save_pre(table_name, data):
-    # Dynamically call a table-specific pre-save task if it exists
-    func_name = f"{table_name.rstrip('s')}_save_pre"
+def save_pre(model_key, data):
+    # Dynamically call a model-specific pre-save task if it exists
+    func_name = f"{model_key.rstrip('s')}_save_pre"
     if func_name in globals():
         return globals()[func_name](data)
     # Default: do nothing
     return {'success': True}
 
 @shared_task
-def save_post(table_name, data):
-    # Dynamically call a table-specific post-save task if it exists
-    print("Post-save for:", table_name)
-    func_name = f"{table_name.rstrip('s')}_save_post"
+def save_post(model_key, data):
+    # Dynamically call a model-specific post-save task if it exists
+    print("Post-save for:", model_key)
+    func_name = f"{model_key.rstrip('s')}_save_post"
     if func_name in globals():
         return globals()[func_name](data)
     # Default: do nothing
     return {'success': True}
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
-def save_post_async(self, table_name, record_id, version):  # type: ignore[override]
+def save_post_async(self, model_key, record_id, version):  # type: ignore[override]
     """Generic async fan-out hook after a record is saved.
 
     Retries up to 3 times with exponential backoff (unless disabled by setting SAVE_POST_ASYNC_RETRY_ENABLED=False).
@@ -42,8 +42,8 @@ def save_post_async(self, table_name, record_id, version):  # type: ignore[overr
         # If retries disabled mid-flight, stop further attempts.
         return {'dispatched': False, 'attempt': self.request.retries, 'retry_disabled': True}
     logger.info(
-        "save_post_async dispatch table=%s id=%s version=%s attempt=%s retry_enabled=%s",
-        table_name,
+    "save_post_async dispatch table=%s id=%s version=%s attempt=%s retry_enabled=%s",
+    model_key,
         record_id,
         version,
         self.request.retries,

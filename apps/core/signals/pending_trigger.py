@@ -10,27 +10,30 @@ from apps.core.services.wcapi_registry import to_model_name
 def create_pending_on_save(sender, instance, created, **kwargs):
     if 'makemigrations' in sys.argv or 'migrate' in sys.argv:
         return
-    table_name = getattr(instance._meta, 'db_table', None)
+    model_key = getattr(instance._meta, 'db_table', None)  # physical table identifier
     record_id = getattr(instance, 'id', None)
-    if not table_name or not record_id:
+    if not model_key or not record_id:
         return
 
-    # Only create Pending if denormalized keyword requirements exist
+    # Only create Pending if keyword requirements registered for this model
     try:
-        existing_tables = set(connection.introspection.table_names())
-        # If settings or pending table not yet created, skip
+        with connection.cursor() as cur:
+            table_list = connection.introspection.get_table_list(cur)
+            existing_tables = {t.name for t in table_list}
+        # Ensure supporting tables exist before proceeding
         if 'settings' not in existing_tables or 'pending' not in existing_tables:
             return
-        if table_name in get_keyword_requirements():
-            model_name = to_model_name(table_name) or table_name
+        if model_key in get_keyword_requirements():
+            model_name = to_model_name(model_key) or model_key
             Pending.objects.create(
                 model_name=model_name,
                 record_id=record_id,
                 ida=f"{model_name}:{record_id}",
-                data={},  # Optionally pass relevant data
+                data={},
             )
-    except Exception as e:
-        if 'no such table' in str(e).lower():  # sqlite wording
+    except Exception as e:  # pragma: no cover
+        msg = str(e).lower()
+        if 'no such table' in msg or 'does not exist' in msg:
             return
         raise
 

@@ -17,7 +17,7 @@ RELATED_TABLES: Dict[str, List[str]] = {
 }
 
 def get_related_data(
-    table_name: str,
+    table_key: str,
     id: int,
     related_tables_dict: Optional[Dict[str, List[str]]] = None,
     pagination: Optional[Dict[str, Dict[str, int]]] = None
@@ -46,23 +46,23 @@ def get_related_data(
 
     tables_dict = related_tables_dict if related_tables_dict is not None else RELATED_TABLES
 
-    print(f"get_related_data called with table_name={table_name}, id={id}")
+    print(f"get_related_data called with model/table_key={table_key}, id={id}")
     print(f"related_tables_dict={related_tables_dict}, pagination={pagination}")
 
     # Optional forward-ref hydrate (contacts & orders authoritative for some buckets):
-    if table_name in ('contacts', 'sales_orders', 'orders'):
+    if table_key in ('contacts', 'sales_orders', 'orders'):
         try:
             model_lookup = {
                 'contacts': ('core', 'Contact'),
                 'sales_orders': ('transactions', 'SalesOrder'),
                 'orders': ('transactions', 'SalesOrder'),
             }
-            app_label, model_name = model_lookup[table_name]
+            app_label, model_name = model_lookup[table_key]
             base_model = apps.get_model(app_label, model_name)
             base_obj = base_model.objects.filter(id=id).only('refs').first()
         except Exception as e:  # pragma: no cover - defensive
             base_obj = None
-            errors[f'{table_name}_fetch'] = str(e)
+            errors[f'{table_key}_fetch'] = str(e)
         if base_obj and getattr(base_obj, 'refs', None):
             links = (base_obj.refs or {}).get('links', {})  # type: ignore[attr-defined]
             forward_models = {
@@ -90,30 +90,30 @@ def get_related_data(
                 except Exception as e:  # pragma: no cover
                     errors[bucket] = f"forward_ref_error: {e}"
 
-    for related_table in tables_dict.get(table_name, []):
+    for related_table in tables_dict.get(table_key, []):
         print(f"Processing related_table: {related_table}")
         if related_table in related_models:
             app_label, model_name = related_models[related_table]
             print(f"Using model: {app_label}.{model_name}")
             try:
                 # Skip reciprocal query if we already hydrated via forward refs for this bucket
-                if table_name == 'contacts' and (related_table == 'addresses' and 'locations' in related or related_table in related):
+                if table_key == 'contacts' and (related_table == 'addresses' and 'locations' in related or related_table in related):
                     continue
                 model = apps.get_model(app_label, model_name)
                 # Reciprocal filter logic:
-                if table_name == 'contacts':
+                if table_key == 'contacts':
                     queryset = model.objects.none()  # forward already hydrated
-                elif table_name in ('sales_orders', 'orders') and related_table in ('contacts', 'orgs'):
+                elif table_key in ('sales_orders', 'orders') and related_table in ('contacts', 'orgs'):
                     queryset = model.objects.none()  # forward already hydrated
-                elif table_name in ('sales_orders', 'orders') and related_table in ('sales_order_lines', 'orderlines'):
+                elif table_key in ('sales_orders', 'orders') and related_table in ('sales_order_lines', 'orderlines'):
                     # child lines by parent id
                     queryset = model.objects.filter(parent_id=id)
-                elif table_name == 'orgs' and related_table == 'contacts':
+                elif table_key == 'orgs' and related_table == 'contacts':
                     # contacts forward links contain org ids in refs.links.orgs
                     contact_model = apps.get_model('core', 'Contact')
                     queryset = contact_model.objects.filter(refs__links__orgs__contains=[id])
                 else:
-                    queryset = model.objects.filter(**{f"refs__links__{table_name}__contains": [id]})
+                    queryset = model.objects.filter(**{f"refs__links__{table_key}__contains": [id]})
                 print(f"Queryset count for {related_table}: {queryset.count()}")
                 # Pagination support
                 if pagination and related_table in pagination:
@@ -160,14 +160,14 @@ class RelatedDataAdvancedView(View):
             body = json.loads(request.body.decode('utf-8'))
             # Accept model_name (singular)
             raw_name = body.get('model_name')
-            table_name = normalize_table_key(raw_name) if raw_name else None
+            table_key = normalize_table_key(raw_name) if raw_name else None
             record_id = body.get('id')
             related_tables_dict = body.get('related_tables_dict')  # Optional
             pagination = body.get('pagination')  # Optional
-            if not table_name or not record_id:
+            if not table_key or not record_id:
                 return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
             result = get_related_data(
-                table_name,
+                table_key,
                 int(record_id),
                 related_tables_dict=related_tables_dict,
                 pagination=pagination
@@ -179,7 +179,7 @@ class RelatedDataAdvancedView(View):
 
     def get(self, request):
         raw_name = request.GET.get('model_name')
-        table_name = normalize_table_key(raw_name) if raw_name else None
+        table_key = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
         related_tables_dict = request.GET.get('related_tables_dict')
         pagination = request.GET.get('pagination')
@@ -193,11 +193,11 @@ class RelatedDataAdvancedView(View):
                 pagination = json.loads(pagination)
             except Exception:
                 pagination = None
-        if not table_name or not record_id:
+        if not table_key or not record_id:
             return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
         try:
             result = get_related_data(
-                table_name,
+                table_key,
                 int(record_id),
                 related_tables_dict=related_tables_dict,
                 pagination=pagination
@@ -210,13 +210,13 @@ class RelatedDataAdvancedView(View):
 class RelatedDataView(View):
     def get(self, request):
         raw_name = request.GET.get('model_name')
-        table_name = normalize_table_key(raw_name) if raw_name else None
+        table_key = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
-        if not table_name or not record_id:
+        if not table_key or not record_id:
             return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
         try:
-            result = get_related_data(table_name, int(record_id))
-            user_role = request.user.role  # or however you get the user's role
+            result = get_related_data(table_key, int(record_id))
+            user_role = getattr(request.user, 'role', 'PUBLIC')
             filtered = filter_related_data(result['related'], user_role)
             return JsonResponse({'success': True, 'data': filtered, 'errors': result['errors']})
         except Exception as e:

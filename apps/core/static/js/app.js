@@ -18,7 +18,7 @@ class UniversalAPI {
                     'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify({
-                    table_name: tableName,
+                    model_name: tableName.endsWith('s') ? tableName.slice(0, -1) : tableName,
                     filters: filters
                 })
             });

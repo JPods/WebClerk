@@ -4,7 +4,7 @@ Each entry describes a backend table (db_table), its Django model class path,
 singular object label, plural collection label, and primary API endpoint slug.
 
 This allows consistent usage across:
- - Settings (enforcing valid table_name values)
+ - Settings (enforcing valid model_name values)
  - Permission matrix queries
  - Front-end discovery / docs
  - Potential code generation
@@ -65,7 +65,7 @@ TABLE_REGISTRY: Dict[str, TableMeta] = {
     'org_items': TableMeta('org_items', 'apps.products.models.org_item.OrgItem', 'Org Item', 'Org Items', 'org-items', kind='support'),
 }
 
-VALID_TABLE_NAMES: List[str] = list(TABLE_REGISTRY.keys())
+VALID_MODEL_KEYS: List[str] = list(TABLE_REGISTRY.keys())
 
 # Reverse lookup by endpoint slug (unique by convention)
 TABLE_REGISTRY_BY_ENDPOINT: Dict[str, TableMeta] = {m.endpoint: m for m in TABLE_REGISTRY.values()}
@@ -76,10 +76,10 @@ def get_table_meta(key: str) -> TableMeta | None:
 def get_table_meta_by_endpoint(endpoint: str) -> TableMeta | None:
     return TABLE_REGISTRY_BY_ENDPOINT.get(endpoint)
 
-def is_valid_table_name(name: str) -> bool:
+def is_valid_model_key(name: str) -> bool:
     return name in TABLE_REGISTRY
 
 __all__ = [
-    'TableMeta', 'TABLE_REGISTRY', 'VALID_TABLE_NAMES', 'TABLE_REGISTRY_BY_ENDPOINT',
-    'is_valid_table_name', 'get_table_meta', 'get_table_meta_by_endpoint'
+    'TableMeta', 'TABLE_REGISTRY', 'VALID_MODEL_KEYS', 'TABLE_REGISTRY_BY_ENDPOINT',
+    'is_valid_model_key', 'get_table_meta', 'get_table_meta_by_endpoint'
 ]

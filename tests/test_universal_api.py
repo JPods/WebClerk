@@ -28,8 +28,8 @@ class UniversalAPITestCase(TestCase):
         self.client.login(email='test@example.com', password='testpass123')
 
     # Helper methods
-    def universal_query(self, table_name, **extra):
-        payload = {'model_name': table_name.rstrip('s') if table_name.endswith('s') else table_name}
+    def universal_query(self, model_key, **extra):
+        payload = {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key}
         payload.update(extra)
         return self.client.post(
             '/wcapi/query/',
@@ -37,8 +37,8 @@ class UniversalAPITestCase(TestCase):
             content_type='application/json'
         )
 
-    def universal_save(self, table_name, record):
-        payload = {'model_name': table_name.rstrip('s') if table_name.endswith('s') else table_name}
+    def universal_save(self, model_key, record):
+        payload = {'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key}
         payload.update(record)
         return self.client.post(
             '/wcapi/save/',
@@ -46,10 +46,10 @@ class UniversalAPITestCase(TestCase):
             content_type='application/json'
         )
 
-    def universal_get(self, table_name, pk):
+    def universal_get(self, model_key, pk):
         return self.client.post(
             '/wcapi/get/',
-            data=json.dumps({'model_name': table_name.rstrip('s') if table_name.endswith('s') else table_name, 'id': pk}),
+            data=json.dumps({'model_name': model_key.rstrip('s') if model_key.endswith('s') else model_key, 'id': pk}),
             content_type='application/json'
         )
 

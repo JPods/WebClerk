@@ -106,7 +106,7 @@ Baseline rules that require a published exception:
     Version / concurrency conflicts MUST use HTTP 412 with status="fail" and error.code="version_conflict".
     Validation failures: HTTP 400, status="fail", error.code a specific domain/validation code, error.details list/dict of field issues.
 4. JSONs for exchanging information, even inputs. Convert all CSV, etc. into JSON outside of WebClerk.
-5. Always use model_name instead of legacy table_name. Refer to a collection by its table key (plural) and a record by its model_name (singular). Avoid trailing plain 'e'.
+5. Always use model_name instead of legacy table-name. Refer to a collection by its table key (plural) and a record by its model_name (singular). Avoid trailing plain 'e'.
 6. Primary id field is "id". For non-primary FKs use model_name_id format.
 7. Save paths to larger documents. Never save large documents in the database.
 8. Limit size of objects that can be stored in JSONBs that might be exposed to the outside (see MAX_METADATA_SIZE = 32000 in common/models.py).

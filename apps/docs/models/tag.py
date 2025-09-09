@@ -106,7 +106,7 @@ class Tag(BaseModel):
 
 #     Key changes:
 
-# Expanded Tag model: added name/purpose/status/security_level indexes, table_name+record_id composite index, count_accessed, sequence, is_active, hierarchy helpers (add_child, remove_child, set_parent, children_ids, parent_id), and access counter method.
+# Expanded Tag model: added name/purpose/status/security_level indexes, model_name+record_id composite index, count_accessed, sequence, is_active, hierarchy helpers (add_child, remove_child, set_parent, children_ids, parent_id), and access counter method.
 # Added robust _ensure_tag_refs handling legacy list refs.
 # Created serializers (TagSerializer, TagDetailSerializer).
 # Added views: list/create (TagListCreateView with 

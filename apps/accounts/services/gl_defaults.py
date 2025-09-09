@@ -30,12 +30,12 @@ def _resolve_default(purpose: str, org_defaults: dict) -> Optional[str]:
     return FALLBACK_DEFAULTS.get(purpose)
 
 
-def assign_gl_defaults(obj, *, table_name: Optional[str] = None, purposes: Iterable[str] = ()):  # pragma: no cover
+def assign_gl_defaults(obj, *, model_name: Optional[str] = None, purposes: Iterable[str] = ()):  # pragma: no cover
     """Assign default GL accounts onto an object if missing.
 
     Inputs:
       - obj: model instance (Item/Service, TaxJurisdiction, Contact, etc.)
-      - table_name: explicit table hint (plural, e.g., 'items', 'services', 'contacts', 'tax_jurisdictions')
+    - model_name: explicit model hint (plural collection key, e.g., 'items', 'services', 'contacts', 'tax_jurisdictions')
       - purposes: iterable of purposes (e.g., 'sales','inventory','cost','purchase','commission','tax_payable')
 
     Behavior:
@@ -48,14 +48,14 @@ def assign_gl_defaults(obj, *, table_name: Optional[str] = None, purposes: Itera
     org = getattr(obj, 'org', None) or getattr(obj, 'organization', None)
     org_defaults = _get_org_defaults(org)
 
-    # Normalize table_name from model when not provided
-    if not table_name:
+    # Normalize model_name from model when not provided
+    if not model_name:
         try:
-            table_name = obj._meta.db_table
+            model_name = obj._meta.db_table
         except Exception:
-            table_name = obj.__class__.__name__.lower()
+            model_name = obj.__class__.__name__.lower()
 
-    t = (table_name or '').lower()
+    t = (model_name or '').lower()
     wanted = set([p.lower() for p in purposes])
     changed = 0
 
@@ -114,8 +114,8 @@ class GLDefaultsMixin:
         class SomeModel(GLDefaultsMixin, BaseModel):
             ...
             def ensure_gl_defaults(self):
-                return self.assign_gl_defaults(table_name='items', purposes=['sales','inventory','cost','purchase'])
+                return self.assign_gl_defaults(model_name='items', purposes=['sales','inventory','cost','purchase'])
     """
 
-    def assign_gl_defaults(self, *, table_name: Optional[str] = None, purposes: Iterable[str] = ()):  # pragma: no cover
-        return assign_gl_defaults(self, table_name=table_name, purposes=purposes)
+    def assign_gl_defaults(self, *, model_name: Optional[str] = None, purposes: Iterable[str] = ()):  # pragma: no cover
+        return assign_gl_defaults(self, model_name=model_name, purposes=purposes)

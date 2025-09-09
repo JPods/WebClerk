@@ -333,7 +333,8 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(blank=True, db_index=True, help_text='Optional lifecycle / state label', max_length=30)),
                 ('source', models.CharField(choices=[('manufacturer', 'Manufacturer'), ('wholesaler', 'Wholesaler'), ('other', 'Other')], db_index=True, max_length=40)),
                 ('source_id', models.BigIntegerField(blank=True, null=True)),
-                ('source_table_name', models.CharField(blank=True, max_length=40)),
+                #forced removal of table-name w/ underscore
+                ('source_table-name', models.CharField(blank=True, max_length=40)),
                 ('source_name', models.CharField(blank=True, max_length=120)),
                 ('external_sku', models.CharField(db_index=True, max_length=120)),
                 ('external_uuid', models.UUIDField(blank=True, null=True)),

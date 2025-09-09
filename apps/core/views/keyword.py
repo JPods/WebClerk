@@ -4,19 +4,19 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from common.api_responses import api_response
 
-# Map table names to model classes
+# Map canonical model keys (plural db_table) to model classes
 TABLE_MODEL_MAP = {
     "contacts": "core.models.contact.Contact",
     "actions": "core.models.action.Action",
     "phones": "core.models.phone.Phone",
     "emails": "core.models.email.Email",
     "locations": "communications.models.location.Location",
-    # Add more as needed
+    # Extend as needed
 }
 
-def get_model_class(table_name):
+def get_model_class(model_key):
     import importlib
-    model_path = TABLE_MODEL_MAP.get(table_name)
+    model_path = TABLE_MODEL_MAP.get(model_key)
     if not model_path:
         return None
     module_path, class_name = model_path.rsplit('.', 1)
@@ -28,7 +28,7 @@ class KeywordSearchView(APIView):
 
     def post(self, request):
         keywords_raw = request.data.get('keywords', '')
-        table_name = request.data.get('model_name', '')  # accept singular or plural key
+        model_key = request.data.get('model_name', '')  # accept singular or plural key
         query_type = request.data.get('query_type', 'AND').upper()
 
         keywords = [kw.strip() for kw in keywords_raw.split(',') if kw.strip()]
@@ -46,7 +46,7 @@ class KeywordSearchView(APIView):
         results = []
         errors = {}
 
-        if table_name == "give_me_all":
+        if model_key == "give_me_all":
             for tbl, model_path in TABLE_MODEL_MAP.items():
                 model_cls = get_model_class(tbl)
                 if model_cls:
@@ -58,18 +58,18 @@ class KeywordSearchView(APIView):
                 else:
                     errors[tbl] = "Model not found"
         else:
-            model_cls = get_model_class(table_name)
+            model_cls = get_model_class(model_key)
             if model_cls:
                 qs = model_cls.objects.filter(q_obj)
                 results = [
-                    {"table": table_name, "id": obj.id, "keywords": obj.refs.get("keywords", [])}
+                    {"table": model_key, "id": obj.id, "keywords": obj.refs.get("keywords", [])}
                     for obj in qs
                 ]
             else:
-                errors[table_name] = "Model not found"
+                errors[model_key] = "Model not found"
 
         payload = {
-            'model_name': table_name,
+            'model_name': model_key,
             'query_type': query_type,
             'keywords': keywords,
             'results': results,

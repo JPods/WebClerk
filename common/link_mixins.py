@@ -9,9 +9,11 @@ Usage:
     class MyModel(StandardLinksMixin, RefsMixin, BaseModel):
         ...
 
-The mixin ensures (on save) that refs.links contains the canonical keys:
-    contacts, emails, phones, locations, domains,
-    orgs, orders, projects, documents
+The mixin ensures (on save) that refs.links contains the canonical keys
+USING singular model_name (canonical) forms:
+    contact, email, phone, location, domain,
+    customer, vendor, manufacturer, rep,
+    order, project, document
 
 It DOES NOT overwrite existing arrays; it only initializes missing ones.
 This keeps it safe / idempotent for existing records.
@@ -28,23 +30,25 @@ from __future__ import annotations
 
 from typing import Iterable, Dict, Any
 from django.db import models
-#QQQ fix this by table_name
+# TODO: potential enhancement: refine link resolution by canonical model key
+# Canonical singular model_name keys
 STANDARD_LINK_KEYS: tuple[str, ...] = (
-    "contacts",
-    "emails",
-    "phones",
-    "locations",
-    "domains",
-    # Organization type buckets expected by front-end
-    "customers",
-    "vendors",
-    "manufacturers",
-    "reps",
-    # Generic cross-type collections
-    "orders",
-    "projects",
-    "documents",
+    "contact",
+    "email",
+    "phone",
+    "location",
+    "domain",
+    # Organization type buckets (singular)
+    "customer",
+    "vendor",
+    "manufacturer",
+    "rep",
+    # Generic cross-type (singular)
+    "order",
+    "project",
+    "document",
 )
+
 
 
 def ensure_standard_links(refs: dict | None) -> dict:
@@ -81,7 +85,7 @@ def default_extended_refs() -> dict:
         "tags": [],
         "categories": [],
         "related_ids": [],
-        "links": {k: [] for k in STANDARD_LINK_KEYS},
+    "links": {k: [] for k in STANDARD_LINK_KEYS},
     }
 
 

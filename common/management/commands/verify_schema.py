@@ -119,13 +119,18 @@ class Command(BaseCommand):
 
                 rows = []
                 if opts['types'] and vendor == 'postgresql':
-                    # Separate lightweight query for Postgres physical types.
                     cur.execute(
                         """
-                        SELECT column_name, udt_name
-                        FROM information_schema.columns
-                        WHERE table_name = %s
-                        ORDER BY ordinal_position
+                        SELECT a.attname AS column_name, t.typname AS udt_name
+                        FROM pg_attribute a
+                        JOIN pg_class c ON a.attrelid = c.oid
+                        JOIN pg_namespace n ON c.relnamespace = n.oid
+                        JOIN pg_type t ON a.atttypid = t.oid
+                        WHERE c.relname = %s
+                          AND n.nspname = ANY (current_schemas(false))
+                          AND a.attnum > 0
+                          AND NOT a.attisdropped
+                        ORDER BY a.attnum
                         """,
                         [table.split('.')[-1]],
                     )

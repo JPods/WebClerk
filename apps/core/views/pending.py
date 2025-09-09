@@ -13,7 +13,7 @@ class PendingListView(BaseListCreateView):
     queryset = Pending.objects.all().order_by('-id')
     serializer_class = PendingSerializer
     permission_classes = [IsAuthenticated]
-    # model_name only; legacy table_name removed
+    # model_name only
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
         page_size_query_param = 'page_size'
@@ -25,7 +25,7 @@ class PendingDetailView(BaseOptimisticDetailView):
     queryset = Pending.objects.all()
     serializer_class = PendingSerializer
     permission_classes = [IsAuthenticated]
-    # model_name only; legacy table_name removed
+    # model_name only
     # disable atomic JSON operations (SlimBaseModel lacks metadata/refs JSON envelopes)
     atomic_keys = ()
 
@@ -35,5 +35,5 @@ class PendingSearchView(PrefixAndSearchView):
     serializer_class = PendingSerializer
     permission_classes = [IsAuthenticated]
     search_fields = ['model_name','record_id','ida']
-    # model_name only; legacy table_name removed
+    # model_name only
     model = Pending

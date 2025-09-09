@@ -22,7 +22,10 @@ class Command(BaseCommand):
             Model = dj_apps.get_model(app_label, model_name)
             cnt = 0
             for obj in Model.objects.only('id').iterator(chunk_size=200):
-                changed = assign_gl_defaults(obj, table_name=Model._meta.db_table, purposes=purposes)
+                # model_name should be singular canonical form (strip trailing 's')
+                model_key = Model._meta.db_table
+                singular = model_key[:-1] if model_key.endswith('s') else model_key
+                changed = assign_gl_defaults(obj, model_name=singular, purposes=purposes)
                 if changed:
                     obj.save(update_fields=['gls'])
                     total_changed += changed
@@ -34,7 +37,9 @@ class Command(BaseCommand):
         TJ = dj_apps.get_model('accounts', 'TaxJurisdiction')
         cnt = 0
         for tj in TJ.objects.only('id','gl_account_payable').iterator(chunk_size=200):
-            changed = assign_gl_defaults(tj, table_name=TJ._meta.db_table, purposes=['tax_payable'])
+            model_key = TJ._meta.db_table
+            singular = model_key[:-1] if model_key.endswith('s') else model_key
+            changed = assign_gl_defaults(tj, model_name=singular, purposes=['tax_payable'])
             if changed:
                 tj.save(update_fields=['gl_account_payable'])
                 total_changed += changed
@@ -46,7 +51,7 @@ class Command(BaseCommand):
         Contact = dj_apps.get_model('core', 'Contact')
         cnt = 0
         for c in Contact.objects.only('id','prefs').iterator(chunk_size=200):
-            changed = assign_gl_defaults(c, table_name='contacts', purposes=['commission'])
+            changed = assign_gl_defaults(c, model_name='contact', purposes=['commission'])
             if changed:
                 c.save(update_fields=['prefs'])
                 total_changed += changed

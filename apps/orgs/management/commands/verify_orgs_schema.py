@@ -1,24 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import connection
-
-"""Verify live database schema for orgs.OrgBase matches current model definition.
-
-Checks performed:
-1. Column set equality (expected vs actual) ignoring Django's implicit id differences if any.
-2. Extra columns in DB (potential leftovers like 'access').
-3. Missing columns in DB (model requires but DB lacks).
-4. JSON field type sanity (basic check via information_schema or pg_catalog for PostgreSQL).
-
-Exit codes:
- 0 = OK (no discrepancies)
- 1 = Discrepancies found (unless --allow-extra and only extras present that are allowed)
-
-Usage examples:
-  ./bin/python manage.py verify_orgs_schema
-  ./bin/python manage.py verify_orgs_schema --json
-  ./bin/python manage.py verify_orgs_schema --expect-no-access --fail-on-diff
-"""
+from apps.core.services.wcapi_registry import to_model_name
 
 
 class Command(BaseCommand):
@@ -27,26 +10,41 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--json', action='store_true', help='Output JSON result')
         parser.add_argument('--fail-on-diff', action='store_true', help='Exit with code 1 if any diff found')
-        parser.add_argument('--expect-no-access', action='store_true', help="Treat presence of legacy 'access' column as an error")
+        parser.add_argument('--expect-no-access', action='store_true',
+                            help="Treat presence of legacy 'access' column as an error")
 
     def handle(self, *args, **opts):
         OrgBase = apps.get_model('orgs', 'OrgBase')
-        # Collect model column names (exclude related/auto fields without column attr)
-        model_fields = [f.column for f in OrgBase._meta.concrete_fields if getattr(f, 'column', None)]
+        model_key = OrgBase._meta.db_table          # physical table (plural)
+        model_name = to_model_name(model_key) or (model_key[:-1] if model_key.endswith('s') else model_key)
+
+        # Collect model column names
+        model_fields = [
+            f.column for f in OrgBase._meta.concrete_fields
+            if getattr(f, 'column', None)
+        ]
         model_field_set = set(model_fields)
 
+        # Query PostgreSQL system catalogs (no information_schema.table-name usage)
         with connection.cursor() as cur:
-            vendor = connection.vendor
-            if vendor != 'postgresql':
-                self.stdout.write('Warning: Command optimized for PostgreSQL; type checks may be limited.')
+            if connection.vendor != 'postgresql':
+                self.stdout.write('Warning: Optimized for PostgreSQL; results may vary on other vendors.')
+            # c.relname matches physical db_table (model_key), not model_name.
             cur.execute(
                 """
-                SELECT column_name, data_type
-                FROM information_schema.columns
-                WHERE table_name = %s
-                ORDER BY ordinal_position
+                SELECT a.attname AS column_name,
+                       format_type(a.atttypid, a.atttypmod) AS data_type
+                FROM pg_attribute a
+                JOIN pg_class c ON a.attrelid = c.oid
+                JOIN pg_namespace n ON c.relnamespace = n.oid
+                WHERE c.relkind = 'r'
+                  AND c.relname = %s
+                  AND n.nspname = ANY (current_schemas(false))
+                  AND a.attnum > 0
+                  AND NOT a.attisdropped
+                ORDER BY a.attnum
                 """,
-                [OrgBase._meta.db_table],
+                [model_key],
             )
             rows = cur.fetchall()
 
@@ -55,10 +53,14 @@ class Command(BaseCommand):
 
         extra = sorted(db_field_set - model_field_set)
         missing = sorted(model_field_set - db_field_set)
-        legacy_access_present = ('access' in extra) or ('access' in db_field_set and 'access' not in model_field_set)
+        legacy_access_present = (
+            'access' in extra
+            or ('access' in db_field_set and 'access' not in model_field_set)
+        )
 
         result = {
-            'table': OrgBase._meta.db_table,
+            'model_key': model_key,
+            'model_name': model_name,
             'model_fields': sorted(model_field_set),
             'db_columns': db_columns,
             'extra_columns': extra,
@@ -71,7 +73,9 @@ class Command(BaseCommand):
             import json
             self.stdout.write(json.dumps(result, indent=2))
         else:
-            self.stdout.write(f"OrgBase schema check for table '{result['table']}':")
+            self.stdout.write(
+                f"OrgBase schema check for model '{result['model_name']}' (key='{result['model_key']}'):"
+            )
             if result['ok']:
                 self.stdout.write('  OK: schema matches model.')
             else:

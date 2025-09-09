@@ -12,4 +12,4 @@ class ConnectionSerializer(RoleAwareModelSerializer):
         ]
     read_only_fields = ['id','uuid','dt_created','dt_modified','version']
 
-    # model_name-only world; no table_name attribute
+    # model_name-only; legacy naming fully removed

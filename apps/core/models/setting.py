@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
-from apps.core.constants.table_registry import VALID_TABLE_NAMES, TABLE_REGISTRY_BY_ENDPOINT
+from apps.core.constants.table_registry import VALID_MODEL_KEYS, TABLE_REGISTRY_BY_ENDPOINT
 # company, defaults, view_edit, user-levels,
 # poppups, question, constants, integrations, notifications,
 # 
@@ -29,16 +29,16 @@ class Setting(BaseModel):
             return
         key = None
         # 1) Exact registry key
-        if target in VALID_TABLE_NAMES:
+        if target in VALID_MODEL_KEYS:
             key = target
         # 2) Endpoint slug
         elif target in TABLE_REGISTRY_BY_ENDPOINT:
             key = TABLE_REGISTRY_BY_ENDPOINT[target].key
         # 3) Singular provided (e.g., 'sales_order_line'): try plural + 's'
-        elif target + 's' in VALID_TABLE_NAMES:
+        elif target + 's' in VALID_MODEL_KEYS:
             key = target + 's'
         if not key:
-            raise ValidationError({'model_name': f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_TABLE_NAMES)}"})
+            raise ValidationError({'model_name': f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_MODEL_KEYS)}"})
         # Store singular form consistently (drop a single trailing 's' when present)
         self.model_name = key[:-1] if key.endswith('s') else key
     
