@@ -26,7 +26,7 @@ class Linkage(BaseModel):
     
     purpose = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
-    comment = models.TextField(blank=True, default="", help_text="General notes")
+    note = models.TextField(blank=True, default="", help_text="General note (Linkage-specific text block)")
 
     class Meta:
         db_table = 'linkages'
@@ -83,4 +83,8 @@ class Linkage(BaseModel):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+    # Delegated comment handling via BaseModel / CommentsMixin; keep thin summary wrapper.
+    def aggregated_comment_summary(self) -> dict:  # compatibility wrapper
+        return getattr(self, 'comments', {})
 

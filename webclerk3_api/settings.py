@@ -301,14 +301,7 @@ INTERNAL_IPS = [
     'localhost',
 ]
 
-# --- Squashed migration modules (fresh baseline) ---
-# We redirect Django to alternate migration module paths for orgs/products/transactions
-# so we can generate clean 0001_initial migrations without deleting legacy files.
-MIGRATION_MODULES = {
-    'orgs': 'apps.orgs.squashed_migrations',
-    'products': 'apps.products.squashed_migrations',
-    'transactions': 'apps.transactions.squashed_migrations',
-}
+# (Removed old MIGRATION_MODULES override that pointed to temporary squashed_migrations modules.)
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or use RabbitMQ if you prefer
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'

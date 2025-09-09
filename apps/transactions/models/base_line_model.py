@@ -131,6 +131,26 @@ def default_source() -> Dict[str, Any]:
         "manufacturer_id": 0
     }
 
+def default_metadata() -> Dict[str, Any]:
+    return {
+    # History is a dict keyed by event ('created','modified', etc.)
+    "history": {},
+        "parent_link": {},  # populated during flow conversions (kind/id + quantity_at_parent)
+        "forms": [],
+    }
+
+def default_refs() -> Dict[str, Any]:
+    return {
+        "serials": [],  # each: {id, serial_number, status, qty?, lot?}
+        "bill_to": {},
+    "ship_to": {},
+    "links": {"linkage": []},  # list of linkage record ids (usually length 1 for flow lineage)
+    }
+
+def default_prefs() -> Dict[str, Any]:
+    return {"currency": "", "locale": "", "terms": ""}
+
+
 class BaseLineModel(BaseModel):
     """Abstract transactional line base.
 
@@ -146,6 +166,7 @@ class BaseLineModel(BaseModel):
     status = models.CharField(max_length=50, blank=True, null=True)
 
     # JSON field shells (populated via ensure_json_defaults)
+    # Core JSON structures (kept intentionally denormalized for agility)
     item = models.JSONField(default=dict, blank=True, null=True)
     quantity = models.JSONField(default=dict, blank=True, null=True)
     cost = models.JSONField(default=dict, blank=True, null=True)
@@ -155,6 +176,11 @@ class BaseLineModel(BaseModel):
     physical = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
+    # Extended / governance & linkage JSON clusters
+    metadata = models.JSONField(default=dict, blank=True, null=True, help_text="Lifecycle + lineage (parent_link, history, forms, etc.)")
+    refs = models.JSONField(default=dict, blank=True, null=True, help_text="Structured references (bill_to, ship_to, campaign, serials, etc.)")
+    prefs = models.JSONField(default=dict, blank=True, null=True, help_text="Preference / option flags (currency, terms, locale, etc.)")
+    #comments = models.JSONField(default=dict, blank=True, null=True, help_text="Public/process/foreign comment channels")
 
     class Meta:
         abstract = True
@@ -174,6 +200,9 @@ class BaseLineModel(BaseModel):
         "physical": default_physical,
         "flow": default_transaction_flow,
         "source": default_source,
+    "metadata": default_metadata,
+    "refs": default_refs,
+    "prefs": default_prefs,
     }
 
     def ensure_json_defaults(self) -> None:

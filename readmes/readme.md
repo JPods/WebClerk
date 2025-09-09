@@ -60,6 +60,8 @@
   - [Logging](#logging)
   - [Transaction Line & Aggregation Endpoints](#transaction-line-aggregation-endpoints)
     - [Totals Preview (per header)](#totals-preview-per-header)
+  - [Lineage & Serial Tracking](#lineage-serial-tracking)
+    - [Comment / Linkage Strategy](#comment-linkage-strategy)
     - [Field-Level Authorization (view_edit)](#field-level-authorization-viewedit)
   - [Running Tests](#running-tests)
   - [Deployment (Placeholder)](#deployment-placeholder)
@@ -812,6 +814,29 @@ OpenAPI generation (drf-spectacular) will include summaries for these endpoints.
 
 - GET `/tx/<kind>/<id>/preview-totals/?include_breakdown=1` returns cached totals for the header’s lines (scoped to `<kind>-line`).
 - Always enveloped (`status`, `code`, `message`, `data`).
+## Lineage & Serial Tracking
+
+Flow conversions (proposal -> sales order -> invoice, etc.) enrich each new line with:
+
+- metadata.parent_link: { parent_id, parent_model, quantity_at_parent{...} }
+  - Captures the source line's parent document id/model and a snapshot of key quantity metrics present at conversion (ordered/placed/shipped/packed/etc.).
+- refs.serials: []
+  - Reserved for serial-numbered item tracking; each entry shape: { id, serial_number, status, qty?, lot? }.
+  - Populated by fulfillment/receiving services when serial-managed inventory is allocated, received, shipped, or serviced.
+
+When adding new JSON fields to line models, update LINE_JSON_FIELDS_TO_COPY in apps/transactions/services/flow.py and extend the parity test tests/test_line_copy_field_parity.py. This enforces review discipline so lineage and serial scaffolding remain consistent across transformations.
+
+### Comment / Linkage Strategy
+
+We adopt Strategy #2 (shared linkage record) for propagating comments across a transaction flow:
+
+- A single linkage record id is placed into `refs.links.linkage[0]` for the originating proposal (or first document in a chain).
+- Subsequent documents & lines copy that id instead of duplicating comment JSON, minimizing noise while keeping global visibility.
+- Comments added at any stage can be resolved by traversing the linkage id; UI can aggregate thread history across proposal/order/invoice lineage.
+- If a source line already has a linkage id, conversions NEVER create a new one (idempotent propagation).
+
+Future: a service may auto-create a linkage record when absent and append it to `refs.links.linkage`; conversions then simply propagate.
+
 - Honors view_edit permissions on the header model.
 - See also: `readmes/transaction-flow-responsibilities.md` (Preview & validation section).
 

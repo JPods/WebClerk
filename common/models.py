@@ -457,18 +457,108 @@ class CommentsMixin(models.Model):
     class Meta:
         abstract = True
 
-    def add_note(self, note_type: str, text: str, by: int | str = "system"):
+    # ---- Internal helpers -------------------------------------------------
+    def _ensure_comment_root(self):  # pragma: no cover trivial
         if not isinstance(self.comments, dict):
-            self.comments = default_comments()
-        notes = self.comments.setdefault("notes", [])
-        notes.append({
-            "type": note_type,
-            "text": text,
-            "by": by,
-            "dt": int(timezone.now().timestamp() * 1000),
-        })
-        # mirror last value for quick access
-        self.comments[note_type] = text
+            self.comments = {}
+        self.comments.setdefault('general', {})
+        self.comments.setdefault('records', {})
+        for ch in ('public', 'process', 'foreign'):
+            self.comments['general'].setdefault(ch, [])
+
+    @staticmethod
+    def _clip_comment_text(txt: str) -> str:
+        if not isinstance(txt, str):
+            txt = str(txt)
+        return txt[:255]
+
+    def _get_linkage_id(self) -> int | None:
+        """Return linkage id if present in refs.links.linkage[0]."""
+        if not hasattr(self, 'refs'):
+            return None
+        refs = getattr(self, 'refs') or {}
+        if not isinstance(refs, dict):
+            return None
+        links = refs.get('links') or {}
+        if not isinstance(links, dict):
+            return None
+        linkage_list = links.get('linkage') or []
+        if isinstance(linkage_list, list) and linkage_list:
+            return linkage_list[0]
+        return None
+
+    # ---- Public API -------------------------------------------------------
+    def add_comment(self,
+                    channel: str,
+                    text: str,
+                    by: str | int = 'system',
+                    model: str | None = None,
+                    record_id: int | None = None,
+                    scope: str = 'auto',
+                    source: str | None = None,
+                    use_linkage: bool = True) -> dict:
+        """Add a comment to this record or its linkage hub if present.
+
+        channel: public|process|foreign (defaults to public if invalid)
+        scope: 'general' | 'record' | 'auto'. 'auto' chooses 'record' when model & record_id provided.
+        If use_linkage and a linkage id is attached, comment is routed to linkage record
+        (centralized cross-table feed). Fallback: local comments JSON.
+        Returns stored comment entry.
+        """
+        channel = channel if channel in ('public', 'process', 'foreign') else 'public'
+        clipped = self._clip_comment_text(text)
+        linkage_id = self._get_linkage_id() if use_linkage else None
+        if linkage_id:
+            try:
+                from apps.docs.models.linkage import Linkage  # local import to avoid cycles
+                linkage = Linkage.objects.filter(pk=linkage_id).first()
+                if linkage:
+                    return linkage.add_comment(channel=channel, text=clipped, by=str(by), model=model, record_id=record_id, scope=scope, source=source)
+            except Exception:  # pragma: no cover
+                pass
+        # Fallback local storage
+        self._ensure_comment_root()
+        target_container = None
+        if scope == 'general' or (scope == 'auto' and not (model and record_id)):
+            target_container = self.comments['general']
+        else:
+            rec_key = f"{model}/{record_id}" if model and record_id else None
+            if rec_key is None:
+                target_container = self.comments['general']
+            else:
+                rec_bucket = self.comments['records'].setdefault(rec_key, {})
+                for ch in ('public', 'process', 'foreign'):
+                    rec_bucket.setdefault(ch, [])
+                target_container = rec_bucket
+        entry = {
+            'ts': timezone.now().isoformat().replace('+00:00', 'Z'),
+            'by': by,
+            'text': clipped,
+        }
+        if source:
+            entry['source'] = source
+        target_container[channel].append(entry)  # type: ignore[index]
+        self.save(update_fields=['comments', 'dt_modified', 'version'])  # type: ignore[attr-defined]
+        return entry
+
+    # Backwards compatibility wrapper
+    def add_note(self, note_type: str, text: str, by: int | str = "system"):
+        return self.add_comment(channel=note_type, text=text, by=by, scope='general')
+
+    def aggregated_comments(self) -> dict:
+        """Return linkage aggregated comments if linkage present, else local."""
+        linkage_id = self._get_linkage_id()
+        if linkage_id:
+            try:
+                from apps.docs.models.linkage import Linkage
+                linkage = Linkage.objects.filter(pk=linkage_id).first()
+                if linkage:
+                    return linkage.aggregated_comment_summary()
+            except Exception:  # pragma: no cover
+                pass
+        # ensure local structure for callers
+        self._ensure_comment_root()
+        return self.comments
 
 
 class HealthMixin(models.Model):

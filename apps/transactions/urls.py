@@ -7,7 +7,9 @@ from apps.transactions.views.requisition import (
 from apps.transactions.views.actions import (
     ProposalToSalesOrderView,
     SalesOrderToInvoiceView,
+    SalesOrderToPurchaseOrderView,
     ReceivePurchaseOrderView,
+    LinkageCommentsAggregateView,
 )
 
 urlpatterns = [
@@ -72,5 +74,7 @@ urlpatterns = [
     # Flow actions
     path('proposals/<int:pk>/convert-to-sales-order/', ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
     path('sales-orders/<int:pk>/convert-to-invoice/', SalesOrderToInvoiceView.as_view(), name='so-to-invoice'),
+    path('sales-orders/<int:pk>/convert-to-purchase-order/', SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),
     path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
+    path('linkages/<int:linkage_id>/comments/', LinkageCommentsAggregateView.as_view(), name='linkage-comments'),
 ]
