@@ -7,6 +7,10 @@ import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
 import ContactAdd from "./contacts/ContactAdd";
 import ContactList from "./contacts/ContactList";
+import SettingAdd from "./setting/SettingAdd";
+import SettingList from "./setting/SettingList";
+import DomainAdd from "./domain/DomainAdd";
+import DomainList from "./domain/DomainList";
 
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
@@ -22,6 +26,10 @@ export {
   ActionAdd,
   ContactAdd,
   ContactList,
+  SettingAdd,
+  SettingList,
+  DomainAdd,
+  DomainList, 
   
   Calendar,
   FormElements,

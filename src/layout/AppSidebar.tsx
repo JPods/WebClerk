@@ -65,7 +65,34 @@ const navItems: NavItem[] = [
       }
     ],
   },
-   
+  {
+    icon: <GridIcon />,
+    name: "Domains",
+    subItems: [
+      {
+         name: "Add Domain", 
+         path: "/domain-add",
+      },
+      {
+         name: "Domain List", 
+         path: "/domain-list",
+      }
+    ],
+  },
+   {
+    icon: <GridIcon />,
+    name: "Settings",
+    subItems: [
+      {
+         name: "Add Setting", 
+         path: "/setting-add",
+      },
+      {
+         name: "Setting List", 
+         path: "/setting-list",
+      }
+    ],
+  },
   {
     icon: <UserCircleIcon />,
     name: "User Profile",

@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
-import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, FormElements, Home, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
 import { Provider } from 'react-redux';
 import { store } from '../store';
 import Test from '../pages/test/Test';
@@ -31,7 +31,12 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.actionAdd + '/:id'} element={<ActionAdd />} /> 
               <Route path={PageRoutes.contactList} element={<ContactList />} /> 
               <Route path={PageRoutes.contactAdd} element={<ContactAdd />} />
-          
+              <Route path={PageRoutes.contactAdd + '/:id'} element={<ContactAdd />} />
+              <Route path={PageRoutes.settingList} element={<SettingList />} /> 
+              <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
+              <Route path={PageRoutes.domainList} element={<DomainList />} /> 
+              <Route path={PageRoutes.domainAdd} element={<DomainAdd />} />
+    
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />
               <Route path="/basic-tables" element={<BasicTables />} />   

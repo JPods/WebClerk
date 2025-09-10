@@ -3,13 +3,14 @@ import ComponentCard from "../../components/common/ComponentCard";
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { createTheme } from 'react-data-table-component';
 import { useEffect, useState } from "react";
-import { Contacts, deleteAction } from "../../api/userProfile";
+import { Contacts, deleteAction, Settings } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../context/ThemeContext";
-import ContactAdd from "./ContactAdd";
+import ContactAdd from "./SettingAdd";
+import SettingAdd from "./SettingAdd";
 
 // Create the dark theme only once
 createTheme('tailwindDark', {
@@ -46,7 +47,7 @@ createTheme('tailwindDark', {
   },
 });
 
-export default function ContactList() {
+export default function SettingList() {
   const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
   const [selectedContact, setSelectedContact] = useState<dynamicData | null>(null);
@@ -54,19 +55,19 @@ export default function ContactList() {
   
   const dispatch = useDispatch();
 
-  const getContactData = async () => {
+  const getSettingData = async () => {
     try {
-      const res = await Contacts();
+      const res = await Settings();
       if (res.status === 200) {
         setData(res.data.data.results);
       }
     } catch (error) {
-      console.error("Failed to fetch contacts", error);
+      console.error("Failed to fetch settings", error);
     }
   };
 
   useEffect(() => {
-    getContactData();
+    getSettingData();
   }, []);
 
   const handleView = (row: dynamicData) => {
@@ -74,12 +75,8 @@ export default function ContactList() {
     setFormMode('view');
   };
 
-  const handleEdit = async (row: dynamicData) => {
-     const res = await Contacts(row.id);
-      if (res.status === 200) 
-        setSelectedContact(res.data.data.record);
-      else
-        setSelectedContact(row);
+  const handleEdit = (row: dynamicData) => {
+    setSelectedContact(row);
     setFormMode('edit');
   };
 
@@ -93,7 +90,7 @@ export default function ContactList() {
       try {
         await deleteAction(row.id);
         dispatch(showToast({ message: "Contact deleted successfully", type: "success" }));
-        getContactData(); // Refresh data
+        getSettingData(); // Refresh data
         if (selectedContact && selectedContact.id === row.id) {
           setFormMode(null);
           setSelectedContact(null);
@@ -105,7 +102,7 @@ export default function ContactList() {
   };
 
   const handleFormSaved = () => {
-    getContactData();
+    getSettingData();
     setFormMode(null);
     setSelectedContact(null);
   };
@@ -116,9 +113,14 @@ export default function ContactList() {
   };
 
   const userColumns: TableColumn<dynamicData>[] = [
-    { name: 'First Name', selector: (row) => row.name_first, sortable: true },
-    { name: 'Last Name', selector: (row) => row.name_last, sortable: true },
-    { name: 'Company', selector: (row) => row.company, sortable: true },
+    { id: 'health_rating', name: 'Health Rating', selector: (row) => row.health_rating, sortable: true },
+    { id: 'name', name: 'Name', selector: (row) => row.name, sortable: true },
+    { id: 'purpose', name: 'Purpose', selector: (row) => row.purpose, sortable: true },
+    { id: 'role', name: 'Role', selector: (row) => row.role, sortable: true },
+    { id: 'table_name', name: 'Table Name', selector: (row) => row.table_name, sortable: true },
+    // { name: 'First Name', selector: (row) => row.name_first, sortable: true },
+    // { name: 'Last Name', selector: (row) => row.name_last, sortable: true },
+    // { name: 'Company', selector: (row) => row.company, sortable: true },
     {
       name: 'Action',
       cell: (row) => (
@@ -142,9 +144,9 @@ export default function ContactList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Contact Management" />
+      <PageBreadcrumb pageTitle="Setting Management" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+        <div className={formMode ? "lg:col-span-2" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="flex justify-end mb-4">
               <button 
@@ -152,7 +154,7 @@ export default function ContactList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
               >
                 <FaPlus />
-                Add Contact
+                Add Setting
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
@@ -169,8 +171,8 @@ export default function ContactList() {
           </ComponentCard>
         </div>
         {formMode && (
-          <div className="lg:col-span-2">
-            <ContactAdd
+          <div className="lg:col-span-1">
+            <SettingAdd
               inline
               modeProp={formMode}
               dataProp={selectedContact}

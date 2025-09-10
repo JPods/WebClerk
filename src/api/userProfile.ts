@@ -136,9 +136,9 @@ export const deleteAction = async (id:any) => {
   }  
 };  
 
-export const Contacts = async () => {
+export const Contacts = async (id:any = '') => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=contacts' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=contact' + (id ? `&id=${id}` : '') );
     return res;
   }
   catch (error: any) { 
@@ -149,6 +149,41 @@ export const Contacts = async () => {
 export const Actions = async () => {
   try {
   const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=actions' );
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+// Generic fetch for any table by id via the allTypes endpoint
+export const getByTypeAndId = async (tableName: string, id: string | number) => {
+  try {
+    const url = `${PostLoginURL.allTypes}table_name=${encodeURIComponent(tableName)}&id=${encodeURIComponent(String(id))}`;
+    const res = await apiClient.get(url);
+    // Some endpoints return { data: [...] } or a single object; normalize to array of items
+    const payload = (res as any).data ?? res;
+    // Try to extract item(s)
+    if (Array.isArray(payload)) return payload;
+    if (payload?.data && Array.isArray(payload.data)) return payload.data;
+    return [payload];
+  } catch (error: any) {
+    return [];
+  }
+};
+
+export const Settings = async () => {
+  try {
+  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=settings' );
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+export const Domains = async () => {
+  try {
+  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=domains' );
     return res;
   }
   catch (error: any) { 

@@ -3,13 +3,14 @@ import ComponentCard from "../../components/common/ComponentCard";
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { createTheme } from 'react-data-table-component';
 import { useEffect, useState } from "react";
-import { Contacts, deleteAction } from "../../api/userProfile";
+import { Contacts, deleteAction, Domains } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../context/ThemeContext";
-import ContactAdd from "./ContactAdd";
+import ContactAdd from "./DomainAdd";
+import DomainAdd from "./DomainAdd";
 
 // Create the dark theme only once
 createTheme('tailwindDark', {
@@ -46,7 +47,7 @@ createTheme('tailwindDark', {
   },
 });
 
-export default function ContactList() {
+export default function DomainList() {
   const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
   const [selectedContact, setSelectedContact] = useState<dynamicData | null>(null);
@@ -54,19 +55,19 @@ export default function ContactList() {
   
   const dispatch = useDispatch();
 
-  const getContactData = async () => {
+  const getDomainData = async () => {
     try {
-      const res = await Contacts();
+      const res = await Domains();
       if (res.status === 200) {
         setData(res.data.data.results);
       }
     } catch (error) {
-      console.error("Failed to fetch contacts", error);
+      console.error("Failed to fetch domains", error);
     }
   };
 
   useEffect(() => {
-    getContactData();
+    getDomainData();
   }, []);
 
   const handleView = (row: dynamicData) => {
@@ -74,12 +75,8 @@ export default function ContactList() {
     setFormMode('view');
   };
 
-  const handleEdit = async (row: dynamicData) => {
-     const res = await Contacts(row.id);
-      if (res.status === 200) 
-        setSelectedContact(res.data.data.record);
-      else
-        setSelectedContact(row);
+  const handleEdit = (row: dynamicData) => {
+    setSelectedContact(row);
     setFormMode('edit');
   };
 
@@ -92,8 +89,8 @@ export default function ContactList() {
     if (window.confirm(`Delete contact ${row.name_first}?`)) {
       try {
         await deleteAction(row.id);
-        dispatch(showToast({ message: "Contact deleted successfully", type: "success" }));
-        getContactData(); // Refresh data
+        dispatch(showToast({ message: "Domain deleted successfully", type: "success" }));
+        getDomainData(); // Refresh data
         if (selectedContact && selectedContact.id === row.id) {
           setFormMode(null);
           setSelectedContact(null);
@@ -105,7 +102,7 @@ export default function ContactList() {
   };
 
   const handleFormSaved = () => {
-    getContactData();
+    getDomainData();
     setFormMode(null);
     setSelectedContact(null);
   };
@@ -116,10 +113,16 @@ export default function ContactList() {
   };
 
   const userColumns: TableColumn<dynamicData>[] = [
-    { name: 'First Name', selector: (row) => row.name_first, sortable: true },
-    { name: 'Last Name', selector: (row) => row.name_last, sortable: true },
-    { name: 'Company', selector: (row) => row.company, sortable: true },
+    { id: 'health_rating', name: 'Health Rating', selector: (row) => row.health_rating, sortable: true },
+    { id: 'path', name: 'Path', selector: (row) => row.path, sortable: true },
+    { id: 'type', name: 'Type', selector: (row) => row.type, sortable: true },
+    { id: 'comment', name: 'Comment', selector: (row) => row.comment, sortable: true },
+    { id: 'status', name: 'Status', selector: (row) => row.status, sortable: true },
+    { id: 'security_level', name: 'Security Level', selector: (row) => row.security_level, sortable: true },
+    { id: 'sequence', name: 'Sequence', selector: (row) => row.sequence, sortable: true },
+    { id: 'count_accessed', name: 'Count Accessed', selector: (row) => row.count_accessed, sortable: true },
     {
+      id: 'action',
       name: 'Action',
       cell: (row) => (
         <div className="flex gap-2">
@@ -142,9 +145,9 @@ export default function ContactList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Contact Management" />
+      <PageBreadcrumb pageTitle="Domain Management" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+        <div className={formMode ? "lg:col-span-2" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="flex justify-end mb-4">
               <button 
@@ -152,7 +155,7 @@ export default function ContactList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
               >
                 <FaPlus />
-                Add Contact
+                Add Domain
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
@@ -169,8 +172,8 @@ export default function ContactList() {
           </ComponentCard>
         </div>
         {formMode && (
-          <div className="lg:col-span-2">
-            <ContactAdd
+          <div className="lg:col-span-1">
+            <DomainAdd
               inline
               modeProp={formMode}
               dataProp={selectedContact}

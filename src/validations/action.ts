@@ -15,5 +15,6 @@ export const contactSchema = z.object({
   name_last: z.string().min(1,"Last Name is required"),
   name_middle: z.string().min(1,"Middle Name is required"),
   email: z.string().min(1,"Email is required").email("Invalid email format"),
+  phone: z.string().min(1,"Phone is required"),
   company: z.string().min(1,"Company is required"),
 });

@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
-import { Input } from "../../components/wrapper";
+import { Input, TextArea } from "../../components/wrapper";
 
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 
-import { contactSchema } from "../../validations/action";
-import { getByTypeAndId, patchAction, postAction } from "../../api/userProfile";
+import { actionSchema, contactSchema } from "../../validations/action";
+import { patchAction, postAction } from "../../api/userProfile";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../store/hooks";
@@ -25,7 +25,7 @@ interface ContactAddProps {
   onCancelInline?: () => void;
 }
 
-export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved, inline = false, onCancelInline }: ContactAddProps) {
+export default function SettingAdd({ modeProp, dataProp, hideBreadcrumb, onSaved, inline = false, onCancelInline }: ContactAddProps) {
   
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
@@ -39,7 +39,7 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
   const routeState = (location.state as any) || {};
   const mode: 'add' | 'edit' | 'view' = modeProp || routeState.mode || 'add';
   const data = dataProp || routeState.data || null;
-  const [linkedLists, setLinkedLists] = useState<Record<string, any[]>>({});
+
    useEffect(() => {
     if (mode === 'add') {
       reset();
@@ -49,30 +49,8 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
           setValue(key, data[key]);
         }
       });
-      // Fetch linked lists by ids if present: data.refs.links
-      const links = (data as any)?.refs?.links as Record<string, (string|number)[]> | undefined;
-      if (links) {
-        const fetchAll = async () => {
-          const entries: Array<[string, any[]]> = await Promise.all(
-            Object.entries(links).map(async ([key, ids]): Promise<[string, any[]]> => {
-              if (!Array.isArray(ids) || ids.length === 0) return [key, []];
-              // Fetch each id and flatten
-              const results = await Promise.all(ids.map((id) => getByTypeAndId(key, id)));
-              const flat = (results as any[]).flat().filter(Boolean) as any[];
-              return [key, flat];
-            })
-          );
-          const map: Record<string, any[]> = {};
-          entries.forEach(([k, v]) => { map[k] = v; });
-          setLinkedLists(map);
-        };
-        fetchAll();
-      } else {
-        setLinkedLists({});
-      }
     } else {
       reset({});
-      setLinkedLists({});
     }
   }, [data, reset, setValue, mode]);
  
@@ -92,12 +70,12 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
 
   return (
     <>
-      {!hideBreadcrumb && !inline && <PageBreadcrumb pageTitle={mode === 'edit' ? 'Edit Action' : mode === 'view' ? 'View Action' : 'Add Contact'} />}
+      {!hideBreadcrumb && !inline && <PageBreadcrumb pageTitle={mode === 'edit' ? 'Edit Setting' : mode === 'view' ? 'View Setting' : 'Add Setting'} />}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className=" dark:text-white text-lg font-semibold">
-              {mode === 'edit' ? 'Edit Contact' : mode === 'view' ? 'View Contact' : 'Add New Contact'}
+              {mode === 'edit' ? 'Edit Setting' : mode === 'view' ? 'View Setting' : 'Add New Setting'}
             </h3>
             {onCancelInline && (
               <button type="button" onClick={onCancelInline} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">&times;</button>
@@ -200,30 +178,6 @@ export default function ContactAdd({ modeProp, dataProp, hideBreadcrumb, onSaved
             </div>
           )}          
         </form>
-        {/* Linked data lists */}
-        {mode !== 'add' && (
-          <div className="mt-6 space-y-4">
-            {Object.keys(linkedLists).length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No linked data.</p>
-            ) : (
-              Object.entries(linkedLists).map(([section, items]) => (
-                <div key={section}>
-                  <h4 className="text-md font-semibold capitalize dark:text-white mb-2">{section.split('_').join(' ')}</h4>
-                  <ul className="text-sm divide-y divide-gray-200 dark:divide-gray-700 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
-                    {(items as any[]).map((item, idx) => (
-                      <li key={idx} className="p-2 flex items-center justify-between">
-                        <span className="truncate text-gray-500 dark:text-white">
-                          {item?.data?.record?.name || item?.data?.record?.title || item?.data?.record?.email || item?.data?.record?.phone || item?.data?.record?.id}
-                        </span>
-                        <span className="text-gray-400 text-xs">ID: {item?.data?.record?.id}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-          </div>
-        )}
       </ComponentCard>
     </>
   );
