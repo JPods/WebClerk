@@ -54,7 +54,7 @@ const Input: FC<InputProps> = ({
   const maxValue = typeof max === 'number' ? max.toString() : max;
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <input
         type={type}
         id={id}

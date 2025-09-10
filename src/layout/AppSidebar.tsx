@@ -26,15 +26,72 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+
+  // {
+  //   icon: <CalenderIcon />,
+  //   name: "Calendar",
+  //   path: "/calendar",
+  // },
   {
-    icon: <GridIcon />,
+    icon:<GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/dashboard",
   },
   {
     icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
+    name: "Actions",
+    subItems: [
+      {
+         name: "Add Action", 
+         path: "/action-add",
+      },
+      {
+         name: "Action List", 
+         path: "/action-list",
+      }
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Contact",
+    subItems: [
+      {
+         name: "Add Contact", 
+         path: "/contact-add",
+      },
+      {
+         name: "Contact List", 
+         path: "/contact-list",
+      }
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Domains",
+    subItems: [
+      {
+         name: "Add Domain", 
+         path: "/domain-add",
+      },
+      {
+         name: "Domain List", 
+         path: "/domain-list",
+      }
+    ],
+  },
+   {
+    icon: <GridIcon />,
+    name: "Settings",
+    subItems: [
+      {
+         name: "Add Setting", 
+         path: "/setting-add",
+      },
+      {
+         name: "Setting List", 
+         path: "/setting-list",
+      }
+    ],
   },
   {
     icon: <UserCircleIcon />,

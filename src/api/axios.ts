@@ -1,49 +1,73 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 
-let accessToken = localStorage.getItem("accessToken");
+// Access tokens are short-lived; keep latest in memory for fast access
+let accessToken: string | null = localStorage.getItem("accessToken");
+let isRefreshing = false;
+let refreshQueue: Array<(token: string | null) => void> = [];
 
-const axiosInstance = axios.create({
-  baseURL: NetworkInfo.URL,
+// Helper to process queued requests waiting for refresh
+const processQueue = (token: string | null) => {
+  refreshQueue.forEach((cb) => cb(token));
+  refreshQueue = [];
+};
+
+// Instance for protected API calls
+export const apiClient = axios.create({
+  baseURL: NetworkInfo.API_URL,
 });
 
-// Attach token to every request
-axiosInstance.interceptors.request.use(
-  (config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// Separate instance for auth endpoints (login, signup, refresh)
+export const authClient = axios.create({
+  baseURL: NetworkInfo.AUTH_URL,
+});
 
-// Automatically try refresh if token fails
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+apiClient.interceptors.request.use((config) => {
+  if (!accessToken) {
+    accessToken = localStorage.getItem("accessToken");
+  }
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+apiClient.interceptors.response.use(
+  (res) => res,
+  async (error: AxiosError) => {
+    const originalRequest: any = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          refreshQueue.push((token) => {
+            if (token) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            resolve(apiClient(originalRequest));
+          });
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        const refreshResponse = await axios.post(AuthURL.REFRESH_TOKEN, {
-          refreshToken,
-        }); // use plain axios
-        const newToken = refreshResponse.data.access;
+        if (!refreshToken) throw new Error("No refresh token");
 
-        // Update token
+        const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, { refresh: refreshToken });
+        const newToken = (refreshResponse as any).data.access;
         accessToken = newToken;
         localStorage.setItem("accessToken", newToken);
-
-        // Update header and retry original request
+        processQueue(newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return axiosInstance(originalRequest);
-      } catch (err) {
-        // Redirect or handle logout
-        // window.location.href = PageRoutes.login;
-        return Promise.reject(err);
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        processQueue(null);
+        // Optionally: localStorage.clear(); redirect to login
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
       }
     }
 
@@ -51,4 +75,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export default axiosInstance;
+export default apiClient;

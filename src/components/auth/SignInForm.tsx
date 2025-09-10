@@ -1,19 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
+import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import Checkbox from "../form/input/Checkbox";
+// import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { login, userDetails } from "../../api/auth";
+import { login } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
-import Select from "../form/Select";
 import axiosInstance from "../../api/axios";
 import { PostLoginURL } from "../../routes/network";
 
@@ -23,9 +22,9 @@ export default function SignInForm() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  //const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
   
-
+   console.log("User data",user)
   const {
     register,
     control,
@@ -39,26 +38,22 @@ export default function SignInForm() {
   });
 
   const handleFormSubmit = async (data:any) => {
-             data.role = 'SUPER';
+          // Overwritten on the backend by user profile
+             //data.role = 'USER';
        try {
-              const response = await login(data);              
-              if(response.status === 200 ) {
+              const response = await login(data);
+              console.log("Login response", response.data);
+              if (response.code === 200) {
+                  console.log("Login response2", response.data);
                   localStorage.setItem("accessToken", response.data.access);
                   localStorage.setItem("refreshToken", response.data.refresh);
 
-                       const res = await axiosInstance.get(PostLoginURL.getUser,{
-                            headers: {
-                              Authorization: `Bearer ${response.data.access}`,
-                            },
-                          });
-                        if(res.status === 200)
-                        {   
-                            const { id, uuid, email, role, name_first, name_last, rank } = res.data;
-                            const user = {id, uuid,email,role,name_first,name_last,rank};
-                            dispatch(setUser(user));  
-                            dispatch(showToast({ message: "Login successful!", type: "success" }));
-                            navigate('/dashboard');
-                        }    
+                  const { email, role, name_first, name_last } = response.data;
+                  const user = { email, role, name_first, name_last };
+                  dispatch(setUser(user));
+                  dispatch(showToast({ message: "Login successful!", type: "success" }));
+                  //navigate('/dashboard');
+                       // }    
                  
                        // dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
                  

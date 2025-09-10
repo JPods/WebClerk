@@ -15,7 +15,7 @@ export default function AuthLayout({children}: {children: React.ReactNode;})
     if (isAuthenticated) {
       navigate(PageRoutes.dashboard);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated]);
   
   return (
     <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">

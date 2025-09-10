@@ -14,10 +14,12 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { setUser } from "../../store/slices/authSlice";
 import { signup } from "../../api/auth";
 import MultiSelect from "../form/MultiSelect";
+import { ModalForm } from "../wrapper";
 
 export default function SignUpForm() {
+  const [modalOpen, setModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showPassword2, setShowPassword2] = useState(false);
+  const [data, setData] = useState<string>('');
   const [isChecked, setIsChecked] = useState(false);
 
   const dispatch = useAppDispatch();
@@ -44,33 +46,31 @@ export default function SignUpForm() {
     });
 
     const handleFormSubmit = async (data:RegisterFormData) => {
-           
+          
            try {
-                  const response = await signup(data); 
-                  console.log("response",response)
-                  if(response.access ) {
-                      localStorage.setItem("accessToken", response.access);
-                      dispatch(showToast({ message: "Login successful!", type: "success" }));
-                      dispatch(setUser({ ...response.access, isAuthenticated: true }));
-                      navigate('/dashboard');
+                  const response = await signup(data);                  
+                  if(response) {  
+                      setModalOpen(true)
+                      setData(data.email)
+                      // navigate(PageRoutes.login);
                   } else {               
                       dispatch(showToast({ message: "Try again later", type: "error" }));
                   }             
-           } catch (error : any) {
+           } catch (error:any) {
                  dispatch(showToast({ message: error, type: "error" }));
            }   
       };
     
-    const selectOption = [                          
-                          {value:"ADMIN", label:"ADMIN"},
-                          {value:"SUPER", label:"SUPER"},
-                          {value:"SALE", label:"Sales"},
-                          {value:"REP", label:"Representative"},
-                          {value:"VENDOR", label:"Vendor"}, 
-                          {value:"CUSTOMER", label:"Customer"},
-                          {value:"USER", label:"User"},
-                          {value:"PUBLIC", label:"Public"},                                                   
-                         ]
+    // const selectOption = [                          
+    //                       {value:"ADMIN", label:"ADMIN"},
+    //                       {value:"SUPER", label:"SUPER"},
+    //                       {value:"SALE", label:"Sales"},
+    //                       {value:"REP", label:"Representative"},
+    //                       {value:"VENDOR", label:"Vendor"}, 
+    //                       {value:"CUSTOMER", label:"Customer"},
+    //                       {value:"USER", label:"User"},
+    //                       {value:"PUBLIC", label:"Public"},                                                   
+    //                      ]
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">      
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -173,15 +173,15 @@ export default function SignUpForm() {
                   </div>
                 </div>
           
-                {/* <!-- Password --> */}
-                <div>
+                {/* <!-- Role --> */}
+                {/* <div>
                   <Label>
                     Role<span className="text-error-500">* { errors.role && errors.role.message}</span>
                   </Label>
                    <Controller
                       name="role"
                       control={control}
-                      defaultValue={["ADMIN"]}
+                      defaultValue={["USER"]}
                       render={({ field }) => (
                         <MultiSelect
                           options={selectOption}                          
@@ -190,7 +190,7 @@ export default function SignUpForm() {
                         />
                       )}
                     />                 
-                </div>
+                </div> */}
                 {/* <!-- Checkbox --> */}
                 {/* <div className="flex items-center gap-3">
                   <Checkbox
@@ -229,7 +229,8 @@ export default function SignUpForm() {
                 </Link>
               </p>
             </div>
-          </div>
+          </div> 
+              <ModalForm data={data} isOpen={modalOpen} onClose={() => setModalOpen(false)} />           
         </div>
       </div>
     </div>

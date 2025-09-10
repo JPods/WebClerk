@@ -1,11 +1,11 @@
-import axiosInstance from "./axios"; // or wherever your axiosInstance is
-import { LoginFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
+import apiClient, { authClient } from "./axios"; // separated clients
+import { EmailVerifyFormData, LoginFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
 import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
 
 export const login = async (credentials:any) => {
   try {
-    const res = await axiosInstance.post(AuthURL.LOGIN, credentials);
-    return res;
+  const res = await authClient.post(AuthURL.LOGIN, credentials);
+    return res.data;
   }
   catch (error: any) { 
     return error.response?.data || error.message   
@@ -13,14 +13,14 @@ export const login = async (credentials:any) => {
 };
 
 export const signup = async (userData: RegisterFormData) => {
-  const res = await axiosInstance.post(AuthURL.SIGNUP, userData);
-  return res.data;
+  const res = await authClient.post(AuthURL.SIGNUP, userData);
+  return res;
 };
 
 export const logout = async () => {
   try {
         const refreshToken = localStorage.getItem("refreshToken");
-        const res = await axiosInstance.post(AuthURL.LOGOUT,{
+  const res = await authClient.post(AuthURL.LOGOUT,{
             refresh:refreshToken,
         });
         localStorage.clear();  
@@ -32,7 +32,17 @@ export const logout = async () => {
 
 export const userDetails = async () => {
   try {
-    const res = await axiosInstance.get(PostLoginURL.getUser);
+  const res = await apiClient.get(PostLoginURL.getUser);
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+export const verifyEmail = async (userData:EmailVerifyFormData) => {
+  try {
+  const res = await authClient.post(AuthURL.verifyEmail, userData);
     return res;
   }
   catch (error: any) { 
