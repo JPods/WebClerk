@@ -70,6 +70,7 @@ repos:
 
       - id: docs-consistency
         name: Docs index & TOC consistency (docs_index.json + readmes TOC)
+        # Auto-regeneration now handled by preceding docs-index-regenerate hook.
         entry: bash
         args:
           - -c
@@ -81,6 +82,31 @@ repos:
               python3 Scripts/check_docs_consistency.py
             else
               python Scripts/check_docs_consistency.py
+            fi
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: docs-index-regenerate
+        name: Regenerate docs_index.json (if stale)
+        entry: bash
+        args:
+          - -c
+          - |
+            set -euo pipefail
+            # Regenerate into a temp file then compare to avoid unnecessary git add.
+            TMP_FILE=$(mktemp)
+            if [ -x ./bin/python ]; then
+              ./bin/python Scripts/gen_docs_index.py >/dev/null
+            elif command -v python3 >/dev/null 2>&1; then
+              python3 Scripts/gen_docs_index.py >/dev/null
+            else
+              python Scripts/gen_docs_index.py >/dev/null
+            fi
+            # gen script writes directly to docs_index.json; stage if changed.
+            if ! git diff --quiet -- docs_index.json; then
+              echo "[docs-index-regenerate] Staging updated docs_index.json"
+              git add docs_index.json
             fi
         language: system
         pass_filenames: false
