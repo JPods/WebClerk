@@ -17,5 +17,6 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
-  "references": []
+  "references": [],
+  "webclerk3":[{"path":"/webclerk3"}]
 }
