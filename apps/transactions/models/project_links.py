@@ -1,5 +1,6 @@
 from django.db import models
 from .projects import Project
+from common.models import BaseModel
 
 LINK_MODEL_CHOICES = [
     ("proposal", "Proposal"),
@@ -11,7 +12,7 @@ LINK_MODEL_CHOICES = [
 ]
 
 
-class ProjectAssociation(models.Model):
+class ProjectAssociation(BaseModel):
     """Formal link between a Project and a transactional header record.
 
     We keep this intentionally narrow (not generic foreign key) for predictable
@@ -22,7 +23,8 @@ class ProjectAssociation(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="associations")
     model_code = models.CharField(max_length=32, choices=LINK_MODEL_CHOICES, db_index=True)
     object_id = models.BigIntegerField(db_index=True)
-    dt_created = models.BigIntegerField(auto_created=False, default=0, db_index=True)
+    # dt_created/dt_modified provided by BaseModel.metadata history; retain BigInt dt_created only if required elsewhere.
+    # dt_created inherited from BaseModel
 
     class Meta:
         db_table = "project_associations"

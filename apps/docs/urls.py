@@ -25,6 +25,10 @@ from apps.docs.views.tag_views import (
     TagHierarchyView,
     TagSearchView,
 )
+from apps.docs.views.related_views import (
+    RelatedDocumentsView,
+    RelatedActionsView,
+)
 
 urlpatterns = [
     path('documents/', DocumentListCreateView.as_view(), name='document-list'),
@@ -40,6 +44,9 @@ urlpatterns = [
     path('linkages/', LinkageListCreateView.as_view(), name='linkage-list'),
     path('linkages/<int:pk>/', LinkageRetrieveUpdateView.as_view(), name='linkage-detail'),
     path('linkages/<int:pk>/links/', LinkageAddRemoveLinkView.as_view(), name='linkage-links'),
+    # Generic related endpoints
+    path('<str:model>/<int:pk>/documents/', RelatedDocumentsView.as_view(), name='model-related-documents'),
+    path('<str:model>/<int:pk>/actions/', RelatedActionsView.as_view(), name='model-related-actions'),
     # QA
     path('qas/', QAListCreateView.as_view(), name='qa-list'),
     path('qas/<int:pk>/', QARetrieveUpdateView.as_view(), name='qa-detail'),

@@ -1,10 +1,11 @@
-from django.db import models
 from decimal import Decimal
+from django.db import models
+from .base_line_model import BaseLineModel
 
 BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
 
-class ProposalLine(models.Model):
-    # Add any Proposal-specific fields or methods here
+# Deprecated module: ProposalLine is defined in line_variants.
+# Re-export here for backward compatibility if anything imports apps.transactions.models.proposal_line.ProposalLine
+from .line_variants import ProposalLine  # noqa: F401
 
-    quantity_ordered = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
-    quantity_blanket = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
+__all__ = ["ProposalLine"]

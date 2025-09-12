@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import models
+import uuid
 from django.db.models.functions import Lower
 from django.utils.text import slugify
 from datetime import datetime, timezone
@@ -315,8 +316,8 @@ class Item(StatsMixin, BaseModel):
             vmeta.setdefault('schema', {})
             # Derive set_uuid deterministically from our uuid when acting as parent/root item
             try:
-                if not vmeta.get('set_uuid'):
-                    vmeta['set_uuid'] = str(derive_variant_set_uuid(self.uuid))
+                if not vmeta.get('set_uuid') and getattr(self, 'uuid', None):
+                    vmeta['set_uuid'] = str(derive_variant_set_uuid(str(self.uuid)))
             except Exception:
                 pass
         if isinstance(getattr(self, 'refs', None), dict):
@@ -771,7 +772,8 @@ class Item(StatsMixin, BaseModel):
         set_uuid = vmeta.get('set_uuid')
         if not set_uuid:
             try:
-                set_uuid = str(derive_variant_set_uuid(self.uuid))
+                if getattr(self, 'uuid', None):
+                    set_uuid = str(derive_variant_set_uuid(str(self.uuid)))
             except Exception:
                 return None
         try:
@@ -798,6 +800,20 @@ class Item(StatsMixin, BaseModel):
             vmeta = self.metadata.setdefault('variants', {})
             try:
                 vmeta['set_uuid'] = str(derive_variant_set_uuid(parent_uuid))
+            except Exception:
+                # Fallback: if parent_uuid is invalid but parent_id is available, derive a deterministic family uuid from parent_id
+                if parent_id is not None:
+                    try:
+                        su = uuid.uuid5(uuid.NAMESPACE_URL, f"variant-set-id:{int(parent_id)}")
+                        vmeta['set_uuid'] = str(su)
+                    except Exception:
+                        pass
+        elif parent_id is not None and isinstance(getattr(self, 'metadata', None), dict):
+            # Fallback path when only parent_id provided (no/invalid parent_uuid)
+            vmeta = self.metadata.setdefault('variants', {})
+            try:
+                su = uuid.uuid5(uuid.NAMESPACE_URL, f"variant-set-id:{int(parent_id)}")
+                vmeta['set_uuid'] = str(su)
             except Exception:
                 pass
         return self

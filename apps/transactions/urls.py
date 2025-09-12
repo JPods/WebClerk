@@ -10,6 +10,8 @@ from apps.transactions.views.actions import (
     SalesOrderToPurchaseOrderView,
     ReceivePurchaseOrderView,
     LinkageCommentsAggregateView,
+    WorkorderTransitionView,
+    WorkorderLineTransitionView,
 )
 
 urlpatterns = [
@@ -77,4 +79,7 @@ urlpatterns = [
     path('sales-orders/<int:pk>/convert-to-purchase-order/', SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),
     path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
     path('linkages/<int:linkage_id>/comments/', LinkageCommentsAggregateView.as_view(), name='linkage-comments'),
+    # Workorder transitions
+    path('workorders/<int:pk>/transition/', WorkorderTransitionView.as_view(), name='workorder-transition'),
+    path('workorder-lines/<int:pk>/transition/', WorkorderLineTransitionView.as_view(), name='workorder-line-transition'),
 ]

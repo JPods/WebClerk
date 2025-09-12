@@ -12,7 +12,7 @@ doc,docs,apps.docs.models.document.Document,docs,support,"docs,document,document
 doc_linkage,docs,apps.docs.models.linkage.Linkage,doc-linkages,support,linkages
 doc_qa,docs,apps.docs.models.qa.Qa,doc-qas,support,qa
 doc_tag,docs,apps.docs.models.tag.Tag,doc-tags,support,tags
-document,core,apps.core.models.setting.Setting,documents,support,documents
+document,docs,apps.docs.models.document.Document,documents,support,"doc,documents"
 domain,communications,apps.communications.models.domain.Domain,domains,support,domains
 email,communications,apps.communications.models.email.Email,emails,support,emails
 exchange_rate,accounts,apps.accounts.models.exchange_rate.ExchangeRate,exchange-rates,support,exchange_rates

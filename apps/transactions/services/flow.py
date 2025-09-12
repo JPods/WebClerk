@@ -14,6 +14,7 @@ from apps.transactions.models.line_variants import (
     PurchaseOrder, PurchaseOrderLine,
 )
 from apps.docs.models.linkage import Linkage
+from apps.docs.models.linkage_index import LinkageIndex
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
 from apps.products.models.inventory_layer import InventoryStack
@@ -161,6 +162,11 @@ def ensure_linkage_for_lines(lines) -> int:
             lst = links_container.setdefault(table, [])
             if ln.pk:
                 lst.append(ln.pk)
+                # Maintain index row; ignore duplicates during rebuild flows
+                try:
+                    LinkageIndex.objects.get_or_create(linkage=linkage, table_name=table, record_id=ln.pk)
+                except Exception:
+                    pass
         except Exception:
             continue
     linkage.save(update_fields=['refs', 'dt_modified', 'version'])  # type: ignore[attr-defined]
@@ -172,7 +178,7 @@ def ensure_linkage_for_lines(lines) -> int:
             links = refs.setdefault('links', {"linkage": []})
             linkage_list = links.setdefault('linkage', [])
             if not linkage_list:
-                linkage_list.append(linkage.id)
+                linkage_list.append(linkage_id)
             setattr(ln, 'refs', refs)
             ln.save(update_fields=['refs', 'dt_modified', 'version'])  # type: ignore[attr-defined]
         except Exception:  # pragma: no cover

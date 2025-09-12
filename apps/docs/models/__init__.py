@@ -8,10 +8,12 @@ from .document import Document  # noqa: F401
 from .qa import Qa  # noqa: F401
 from .tag import Tag  # noqa: F401
 from .linkage import Linkage  # noqa: F401
+from .linkage_index import LinkageIndex  # noqa: F401
 
 __all__ = [
 	"Document",
 	"Qa",
 	"Tag",
 	"Linkage",
+	"LinkageIndex",
 ]

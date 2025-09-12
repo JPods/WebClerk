@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import uuid
 from apps.core.utils import get_accessible_fields
 
 
@@ -29,3 +30,33 @@ class RoleAwareModelSerializer(serializers.ModelSerializer):
             for f in list(self.fields.keys()):
                 if f not in minimal:
                     self.fields.pop(f, None)
+
+    # --- UUID policy at the API boundary ---
+    # If this serializer is used in an API request and the model has a 'uuid' field that is currently null,
+    # assign a UUIDv4. This keeps UUIDs optional internally but ensures externalized records gain stable IDs.
+    def _ensure_uuid_if_api(self, instance):
+        try:
+            request = self.context.get('request')
+        except Exception:
+            request = None
+        if not request:
+            return instance
+        if not hasattr(instance, 'uuid'):
+            return instance
+        if getattr(instance, 'uuid', None) is None:
+            # Assign v4 by default at the API boundary
+            try:
+                instance.uuid = uuid.uuid4()
+                instance.save(update_fields=['uuid'])
+            except Exception:
+                # Best-effort: if update fails, leave as-is and let endpoint surface errors if needed
+                pass
+        return instance
+
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        return self._ensure_uuid_if_api(instance)
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        return self._ensure_uuid_if_api(instance)

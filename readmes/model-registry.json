@@ -134,12 +134,13 @@
   },
   {
     "key": "document",
-    "app": "core",
-    "model": "apps.core.models.setting.Setting",
+    "app": "docs",
+    "model": "apps.docs.models.document.Document",
     "endpoint": "documents",
     "kind": "support",
     "aliases": [
-      "documents"
+      "documents",
+      "doc"
     ]
   },
   {

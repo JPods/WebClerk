@@ -32,6 +32,9 @@ jsonschema==4.23.0
 jsonschema-specifications==2025.4.1
 kombu==5.5.4
 packaging==25.0
+google-api-python-client==2.147.0
+google-auth==2.33.0
+google-auth-oauthlib==1.2.1
 prometheus_client==0.22.1
 prompt_toolkit==3.0.51
 psycopg2-binary==2.9.10

@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from common.models import BaseModel
 from django.utils import timezone
 # bulk of this table is in the .refs to relate other tables
@@ -45,11 +45,33 @@ class Linkage(BaseModel):
     def add_link(self, table: str, record_id):
         links = self._ensure_links()
         lst = links.setdefault(table, [])
-        if record_id not in lst:
+        if record_id in lst:
+            return False
+        # Enforce uniqueness at index level: a record belongs to only one linkage
+        from apps.docs.models.linkage_index import LinkageIndex
+        with transaction.atomic():
+            # Pre-check existing to avoid integrity errors
+            existing = LinkageIndex.objects.filter(table_name=table, record_id=record_id).first()
+            if existing:
+                if (getattr(existing, 'linkage_id', None) == self.id) or (getattr(existing, 'linkage', None) and existing.linkage.pk == self.id):
+                    lst.append(record_id)
+                    self.mark_keywords_dirty()
+                    return True
+                existing_target = getattr(existing, 'linkage_id', None) or (existing.linkage.pk if getattr(existing, 'linkage', None) else None)
+                raise ValueError(f"Record {table}:{record_id} already linked to linkage {existing_target if existing_target else 'unknown'}")
+            # Try to create, catch race
+            try:
+                LinkageIndex.objects.create(linkage=self, table_name=table, record_id=record_id)
+            except Exception:
+                existing2 = LinkageIndex.objects.filter(table_name=table, record_id=record_id).first()
+                if existing2 and ((getattr(existing2, 'linkage_id', None) == self.id) or (getattr(existing2, 'linkage', None) and existing2.linkage.pk == self.id)):
+                    pass
+                else:
+                    existing_target = getattr(existing2, 'linkage_id', None) or (existing2.linkage.pk if (existing2 and getattr(existing2, 'linkage', None)) else None)
+                    raise ValueError(f"Record {table}:{record_id} already linked to linkage {existing_target if existing_target else 'unknown'}")
             lst.append(record_id)
             self.mark_keywords_dirty()  # treat as structural change for keyword set
             return True
-        return False
 
     def remove_link(self, table: str, record_id):
         links = self._ensure_links()
@@ -57,6 +79,12 @@ class Linkage(BaseModel):
         if record_id in lst:
             lst.remove(record_id)
             self.mark_keywords_dirty()
+            # Remove index entry if present
+            try:
+                from apps.docs.models.linkage_index import LinkageIndex
+                LinkageIndex.objects.filter(linkage=self, table_name=table, record_id=record_id).delete()
+            except Exception:
+                pass
             return True
         return False
 
@@ -83,6 +111,33 @@ class Linkage(BaseModel):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+    # Idempotent bulk add helper driven by a mapping {table_name: [ids]}
+    def add_links(self, mapping: dict[str, list[int]], strict: bool = True) -> dict:
+        """Add multiple links ensuring index uniqueness.
+
+        strict=True will raise on any unique conflict; False will skip conflicts.
+        Returns a summary dict with counts.
+        """
+        added = 0
+        skipped = 0
+        for table, ids in (mapping or {}).items():
+            if not isinstance(ids, list):
+                continue
+            for rid in ids:
+                try:
+                    if self.add_link(table, rid):
+                        added += 1
+                except Exception:
+                    if strict:
+                        raise
+                    skipped += 1
+        if added:
+            try:
+                self.save(update_fields=['refs', 'dt_modified', 'version'])  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        return {'added': added, 'skipped': skipped}
 
     # Delegated comment handling via BaseModel / CommentsMixin; keep thin summary wrapper.
     def aggregated_comment_summary(self) -> dict:  # compatibility wrapper

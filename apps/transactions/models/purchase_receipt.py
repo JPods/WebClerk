@@ -1,6 +1,7 @@
 from django.db import models
+from common.models import BaseModel
 
-class PurchaseReceipt(models.Model):
+class PurchaseReceipt(BaseModel):
 	"""Received shipment representing one or more received PO line partials."""
 	receipt_no = models.CharField(max_length=40, unique=True)
 	dt_received = models.DateTimeField(auto_now_add=True)

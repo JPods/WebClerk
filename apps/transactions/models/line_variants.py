@@ -6,21 +6,20 @@ Parent models are intentionally minimal placeholders; expand as needed.
 from django.db import models
 from django.core.exceptions import ValidationError
 from .base_line_model import BaseLineModel
+from common.models import BaseModel
 
 # ---------------------------------------------------------------------------
 # Parent (header) models
 # ---------------------------------------------------------------------------
-class Proposal(models.Model):
+class Proposal(BaseModel):
     name = models.CharField(max_length=120)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Proposal:{self.pk}:{self.name}" if self.pk else "Proposal:new"
 
 
-class SalesOrder(models.Model):
+class SalesOrder(BaseModel):
     order_no = models.CharField(max_length=40, unique=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "sales_orders"
@@ -29,17 +28,15 @@ class SalesOrder(models.Model):
         return f"SO:{self.order_no}" if self.order_no else f"SO:{self.pk}"
 
 
-class Invoice(models.Model):
+class Invoice(BaseModel):
     invoice_no = models.CharField(max_length=40, unique=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Invoice:{self.invoice_no}" if self.invoice_no else f"Invoice:{self.pk}"
 
 
-class PurchaseOrder(models.Model):
+class PurchaseOrder(BaseModel):
     po_no = models.CharField(max_length=40, unique=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "purchase_orders"
@@ -48,7 +45,7 @@ class PurchaseOrder(models.Model):
         return f"PO:{self.po_no}" if self.po_no else f"PO:{self.pk}"
 
 
-class Workorder(models.Model):
+class Workorder(BaseModel):
     STATUS_PLANNED = 'planned'
     STATUS_RELEASED = 'released'
     STATUS_IN_PROGRESS = 'in_progress'
@@ -66,7 +63,6 @@ class Workorder(models.Model):
 
     work_no = models.CharField(max_length=40, unique=True)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, db_index=True, default=STATUS_PLANNED, help_text='Lifecycle state')
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "work_orders"
@@ -96,7 +92,8 @@ class Workorder(models.Model):
         # Additional completion guard: all lines must be done before completing
         if new == self.STATUS_COMPLETE and self.pk:
             # Only consider concrete line statuses equal to 'done'
-            if self.lines.exclude(status='done').exists():
+            # related manager exists via WorkorderLine.parent related_name="lines"
+            if self.lines.exclude(status='done').exists():  # type: ignore[attr-defined]
                 raise ValidationError({'status': 'Cannot complete while some lines are not done'})
 
     def save(self, *args, **kwargs):
@@ -110,9 +107,8 @@ class Workorder(models.Model):
         return super().save(*args, **kwargs)
 
 
-class Requisition(models.Model):
+class Requisition(BaseModel):
     req_no = models.CharField(max_length=40, unique=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"REQ:{self.req_no}" if self.req_no else f"REQ:{self.pk}"

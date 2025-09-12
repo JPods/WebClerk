@@ -134,7 +134,12 @@ def default_source() -> Dict[str, Any]:
 def default_metadata() -> Dict[str, Any]:
     return {
     # History is a dict keyed by event ('created','modified', etc.)
-    "history": {},
+        "history": {},
+        # Resource planning scaffold for lines
+        "resources": {
+            "required": {},
+            "allocated": {},
+        },
         "parent_link": {},  # populated during flow conversions (kind/id + quantity_at_parent)
         "forms": [],
     }
@@ -143,8 +148,10 @@ def default_refs() -> Dict[str, Any]:
     return {
         "serials": [],  # each: {id, serial_number, status, qty?, lot?}
         "bill_to": {},
-    "ship_to": {},
-    "links": {"linkage": []},  # list of linkage record ids (usually length 1 for flow lineage)
+        "ship_to": {},
+        "links": {"linkage": []},  # list of linkage record ids (usually length 1 for flow lineage)
+        # Optional execution dependencies
+        "depends_on": {},
     }
 
 def default_prefs() -> Dict[str, Any]:
@@ -176,11 +183,12 @@ class BaseLineModel(BaseModel):
     physical = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
-    # Extended / governance & linkage JSON clusters
-    metadata = models.JSONField(default=dict, blank=True, null=True, help_text="Lifecycle + lineage (parent_link, history, forms, etc.)")
-    refs = models.JSONField(default=dict, blank=True, null=True, help_text="Structured references (bill_to, ship_to, campaign, serials, etc.)")
-    prefs = models.JSONField(default=dict, blank=True, null=True, help_text="Preference / option flags (currency, terms, locale, etc.)")
-    #comments = models.JSONField(default=dict, blank=True, null=True, help_text="Public/process/foreign comment channels")
+    # Extended / governance & linkage JSON clusters are inherited from BaseModel:
+    # - metadata (with history/resources)
+    # - refs (keywords/tags/links/depends_on)
+    # - prefs (user/system prefs)
+    # We seed line‑specific keys via ensure_json_defaults instead of redefining fields.
+    # comments is inherited from BaseModel as well.
 
     class Meta:
         abstract = True
@@ -200,9 +208,13 @@ class BaseLineModel(BaseModel):
         "physical": default_physical,
         "flow": default_transaction_flow,
         "source": default_source,
-    "metadata": default_metadata,
-    "refs": default_refs,
-    "prefs": default_prefs,
+        # The BaseModel already provides metadata/refs/prefs fields; we do not
+        # supply full replacements here. Instead we add missing subkeys below.
+        # Keeping factories here allows legacy populate_json_fields to work if
+        # those values are empty/falsy at runtime.
+        "metadata": default_metadata,
+        "refs": default_refs,
+        "prefs": default_prefs,
     }
 
     def ensure_json_defaults(self) -> None:
@@ -220,6 +232,38 @@ class BaseLineModel(BaseModel):
         # Quantity (dependent on model variant)
         if not self.quantity:
             setattr(self, "quantity", default_quantity(transaction_type=self._meta.model_name))
+
+        # Ensure line‑specific keys exist inside inherited envelopes
+        # Metadata: ensure resources + parent_link + forms
+        if isinstance(getattr(self, "metadata", None), dict):
+            md = dict(self.metadata)
+            res = md.setdefault("resources", {})
+            if isinstance(res, dict):
+                res.setdefault("required", {})
+                res.setdefault("allocated", {})
+            md.setdefault("parent_link", {})
+            md.setdefault("forms", [])
+            self.metadata = md  # type: ignore[assignment]
+
+        # Refs: ensure expected line refs scaffolding exists without clobbering base keys
+        if isinstance(getattr(self, "refs", None), dict):
+            rf = dict(self.refs)
+            rf.setdefault("serials", [])
+            rf.setdefault("bill_to", {})
+            rf.setdefault("ship_to", {})
+            links = rf.setdefault("links", {})
+            if isinstance(links, dict):
+                links.setdefault("linkage", [])
+            rf.setdefault("depends_on", rf.get("depends_on", {}))
+            self.refs = rf  # type: ignore[assignment]
+
+        # Prefs: ensure common line prefs exist
+        if isinstance(getattr(self, "prefs", None), dict):
+            pf = dict(self.prefs)
+            pf.setdefault("currency", "")
+            pf.setdefault("locale", "")
+            pf.setdefault("terms", "")
+            self.prefs = pf  # type: ignore[assignment]
 
     # Backwards compatibility shim
     def populate_json_fields(self):  # pragma: no cover - retained for legacy calls

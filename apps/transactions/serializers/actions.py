@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List
 from decimal import Decimal
 from rest_framework import serializers
+from apps.transactions.models.line_variants import Workorder, WorkorderLine
 
 
 class ConvertRequestSerializer(serializers.Serializer):
@@ -22,3 +23,29 @@ class ReceiveLineSerializer(serializers.Serializer):
 class ReceivePurchaseOrderSerializer(serializers.Serializer):
     receipt_no = serializers.CharField(max_length=40)
     lines = ReceiveLineSerializer(many=True)
+
+
+class TransitionRequestSerializer(serializers.Serializer):
+    """Generic transition payload for header/line state changes.
+
+    Fields:
+    - to: target status (validated per endpoint's model)
+    - reason: optional free-text reason, stored in audit trail
+    """
+    to = serializers.CharField(max_length=40)
+    reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    depends_on = serializers.DictField(required=False, allow_empty=True)
+
+    def validate_to(self, value: str) -> str:
+        value = value.strip().lower()
+        ctx = self.context or {}
+        model = ctx.get('model')
+        if model is Workorder:
+            valid = {k for k, _ in Workorder.STATUS_CHOICES}
+        elif model is WorkorderLine:
+            valid = {k for k, _ in WorkorderLine.STATUS_CHOICES}
+        else:
+            valid = set()
+        if valid and value not in valid:
+            raise serializers.ValidationError(f"Invalid target status '{value}'")
+        return value

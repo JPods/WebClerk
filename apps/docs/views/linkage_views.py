@@ -41,7 +41,10 @@ class LinkageAddRemoveLinkView(APIView):
         record_id = request.data.get('record_id')
         if not table or record_id is None:
             return Response({'detail': 'table and record_id required'}, status=status.HTTP_400_BAD_REQUEST)
-        added = linkage.add_link(table, record_id)
+        try:
+            added = linkage.add_link(table, int(record_id))
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
         if added:
             linkage.save()
         return Response({'added': added, 'link_counts': linkage.link_counts()})

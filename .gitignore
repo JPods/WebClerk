@@ -10,6 +10,10 @@ __pycache__/
 **/.DS_Store
 .env
 .local/
+.local/**
+google-credentials*.json
+**/google-credentials*.json
+**/google_tokens_*.json
 
 # Test artifacts
 .hypothesis/

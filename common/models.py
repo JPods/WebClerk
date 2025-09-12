@@ -207,6 +207,10 @@ def default_metadata() -> dict:
         "priority": "",
         "version": "1.0",
         "access": {"view": [], "edit": []},
+        "resources": {  # planning stub
+            "required": {},
+            "allocated": {},
+        },
         "history": {
             "created": {"dt": now_ms, "contact_id": 0},
             "modified": {"dt": now_ms, "contact_id": 0},
@@ -230,7 +234,10 @@ def default_refs() -> dict:
     return {
         "keywords": [],
         "tags": [],
-    "links": {"contacts": [], "items": []},
+        "links": {"contacts": [], "items": []},
+        # Execution gating: identify upstream dependencies by model keys.
+        # Example: {"action": [1,2], "work_order": [5], "work_order_line": [9,10]}
+        "depends_on": {},
         "categories": [],
         "related_ids": [],
     }
@@ -276,8 +283,8 @@ class CoreModel(models.Model):
     feature_flags = {"core"}
     #unique per data system.
     id = models.BigAutoField(primary_key=True)
-    #exchanged between data systems (if any)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    # exchanged between data systems (if any). Nullable for safe backfill; generated in save() when missing.
+    uuid = models.UUIDField(editable=False, unique=True, null=True, blank=True)
     #soft id from external system (if any)
     ida = models.CharField(max_length=40, blank=True, db_index=True)
     dt_created = models.BigIntegerField(default=0, db_index=True)
@@ -295,7 +302,7 @@ class CoreModel(models.Model):
 
     _pydantic_cache: Optional[UniversalAPISchema] = None
 
-    def save(self, *args, **kwargs):  # timestamp + version bump
+    def save(self, *args, **kwargs):  # timestamp + version bump (uuid no longer auto-assigned)
         now_ms = int(timezone.now().timestamp() * 1000)
         if not self.pk:
             self.dt_created = now_ms
@@ -370,6 +377,11 @@ class MetadataMixin(models.Model):
         self.metadata.setdefault("history", default_metadata()["history"])
         self.metadata.setdefault("flags", {})
         self.metadata.setdefault("versioning", {})
+        # Ensure resources planning scaffold exists
+        res = self.metadata.setdefault("resources", {})
+        if isinstance(res, dict):
+            res.setdefault("required", {})
+            res.setdefault("allocated", {})
         self.metadata["flags"].setdefault("schema_rev", 1)
 
     def save(self, *args, **kwargs):  # inject history
@@ -822,9 +834,10 @@ class UniversalDictMixin(models.Model):
         abstract = True
 
     def to_universal_dict(self) -> Dict[str, Any]:
+        u = getattr(self, "uuid", None)
         base = {
             "id": self.pk,
-            "uuid": str(getattr(self, "uuid", "")) or None,
+            "uuid": (str(u) if u else None),
             "ida": getattr(self, "ida", ""),
             "dt_created": getattr(self, "dt_created", None),
             "dt_modified": getattr(self, "dt_modified", None),
@@ -918,8 +931,8 @@ class BaseModel(
     class Meta:
         abstract = True
         indexes = [
-            GinIndex(fields=["refs"], name="refs_gin_idx"),
-            GinIndex(fields=["prefs"], name="prefs_gin_idx"),
+            GinIndex(fields=["refs"]),
+            GinIndex(fields=["prefs"]),
         ]
 
     # QuerySet / Manager providing convenience filters for lifecycle + keyword flag

@@ -58,7 +58,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
 
     # --- core --- (A->Z by key)
     'action': ModelMeta('action', 'apps.core.models.action.Action', 'Action', 'Actions', 'actions', kind='support', aliases=['actions']),
-    'document': ModelMeta('document', 'apps.core.models.setting.Setting', 'Document', 'Documents', 'documents', kind='support', aliases=['documents']),
+    'document': ModelMeta('document', 'apps.docs.models.document.Document', 'Document', 'Documents', 'documents', kind='support', aliases=['documents', 'doc']),
     'notification': ModelMeta('notification', 'apps.core.models.notification.Notification', 'Notification', 'Notifications', 'notifications', kind='support', aliases=['notifications']),
     'report': ModelMeta('report', 'apps.core.models.report.Report', 'Report', 'Reports', 'reports', kind='support', aliases=['reports']),
     'setting': ModelMeta('setting', 'apps.core.models.setting.Setting', 'Setting', 'Settings', 'settings', kind='support', aliases=['settings']),
