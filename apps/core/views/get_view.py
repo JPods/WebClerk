@@ -54,33 +54,68 @@ class WcapiGetView(APIView):
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
         open_read = getattr(settings, 'WCAPI_OPEN_READ', False)
-        is_jwt = bool(getattr(request, 'auth', None)) or request.META.get('HTTP_AUTHORIZATION','').startswith('Bearer ')
+        is_jwt = bool(getattr(request, 'auth', None)) or request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated and not open_read:
-            return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
+            return api_response(
+                success=False,
+                status_code=401,
+                message='Authentication required',
+                error={'code': 'not_authenticated', 'details': 'Authentication required'},
+            )
         if require_jwt and not is_jwt and not (open_read and not request.user.is_authenticated):
-            return api_response(success=False, status_code=401, message='JWT required (missing Bearer token)', error={'code':'jwt_required','details':'JWT required (missing Bearer token)'})
+            return api_response(
+                success=False,
+                status_code=401,
+                message='JWT required (missing Bearer token)',
+                error={'code': 'jwt_required', 'details': 'JWT required (missing Bearer token)'},
+            )
 
-    # Require model_name (singular)
+        # Require model_name (singular)
         raw_name = request.GET.get('model_name')
         model_key = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
+        variants_of = request.GET.get('variants_of')
         user_role = getattr(request.user, 'role', 'PUBLIC')
+
         if not model_key:
-            return api_response(success=False, status_code=400, message='Missing model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})  #chaned from t_n
+            return api_response(
+                success=False,
+                status_code=400,
+                message='Missing model_name',
+                error={'code': 'missing_model_name', 'details': 'Provide model_name (singular)'},
+            )
+
         model = get_model(model_key)
         if not model:
-            return api_response(success=False, status_code=400, message='Model not found', error={'code':'unknown_model','details':f'Model not found for {raw_name}'})
+            return api_response(
+                success=False,
+                status_code=400,
+                message='Model not found',
+                error={'code': 'unknown_model', 'details': f'Model not found for {raw_name}'},
+            )
+
         singular = to_model_name(model_key)
+
+        # Detail record fetch
         if record_id:
             try:
                 obj = model.objects.get(id=record_id)
             except model.DoesNotExist:  # type: ignore[attr-defined]
-                return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
+                return api_response(
+                    success=False,
+                    status_code=404,
+                    message='Record not found',
+                    error={'code': 'not_found', 'details': 'Record not found'},
+                )
             record = model_to_dict(obj)  # type: ignore[arg-type]
             filtered_record = filter_record_for_role(record, singular or '', user_role, 'view')
             related_result = get_related_data(model_key, int(record_id))
             safe_record = {k: self._sanitize(v) for k, v in filtered_record.items()}
-            safe_related = {rk: [ {sk: self._sanitize(sv) for sk, sv in r.items()} for r in rv ] for rk, rv in related_result.get('related', {}).items()} if related_result.get('related') else {}
+            safe_related = (
+                {rk: [{sk: self._sanitize(sv) for sk, sv in r.items()} for r in rv] for rk, rv in related_result.get('related', {}).items()}
+                if related_result.get('related')
+                else {}
+            )
             payload = {
                 'model_name': singular,
                 'record': safe_record,
@@ -90,12 +125,40 @@ class WcapiGetView(APIView):
             if related_result.get('errors'):
                 payload['related_errors'] = related_result.get('errors')
             return api_response(data=payload)
-        # list
+
+        # List
         queryset = model.objects.all()  # type: ignore[attr-defined]
-        raw_records = [
-            filter_record_for_role(model_to_dict(obj), singular or '', user_role, 'view')
-            for obj in queryset
-        ]
+
+        # Optional variants-of filter for items
+        if variants_of and singular == 'item':
+            try:
+                pid = int(variants_of)
+                queryset = queryset.filter(refs__variants__parent_id=pid)  # type: ignore[attr-defined]
+            except Exception:
+                # Ignore bad input and fall back to unfiltered queryset
+                pass
+
+        # Optional small projection for frontend consumption
+        proj = request.GET.get('project')
+        if proj and singular == 'item':
+            allowed = {'id', 'name', 'price', 'quantity'}
+            fields = [f for f in (proj.split(',') if isinstance(proj, str) else []) if f in allowed]
+            if fields:
+                raw_records = [
+                    {k: v for k, v in model_to_dict(obj).items() if k in fields}
+                    for obj in queryset
+                ]
+            else:
+                raw_records = [
+                    filter_record_for_role(model_to_dict(obj), singular or '', user_role, 'view')
+                    for obj in queryset
+                ]
+        else:
+            raw_records = [
+                filter_record_for_role(model_to_dict(obj), singular or '', user_role, 'view')
+                for obj in queryset
+            ]
+
         safe_records = [
             {k: self._sanitize(v) for k, v in rec.items()}
             for rec in raw_records

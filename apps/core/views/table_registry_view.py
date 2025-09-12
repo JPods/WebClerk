@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from common.api_responses import api_response
-from apps.core.constants.table_registry import (
-    TABLE_REGISTRY, get_table_meta, get_table_meta_by_endpoint
+from apps.core.constants.model_registry import (
+    MODEL_REGISTRY, get_model_meta, get_model_meta_by_endpoint
 )
 from django.http import Http404
 
@@ -53,9 +53,9 @@ class TableRegistryView(APIView):
         if table_key or endpoint:
             meta = None
             if table_key:
-                meta = get_table_meta(table_key)
+                meta = get_model_meta(table_key)
             elif endpoint:
-                meta = get_table_meta_by_endpoint(endpoint)
+                meta = get_model_meta_by_endpoint(endpoint)
             if not meta:
                 raise Http404('Table not found')
             return api_response(data={'table': _serialize_table_meta(meta, include_fields=include_fields)})
@@ -63,6 +63,6 @@ class TableRegistryView(APIView):
         # list mode
         payload = {
             key: _serialize_table_meta(meta, include_fields=False)
-            for key, meta in TABLE_REGISTRY.items()
+            for key, meta in MODEL_REGISTRY.items()
         }
         return api_response(data={'tables': payload})

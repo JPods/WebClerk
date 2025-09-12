@@ -75,7 +75,7 @@ cat > temp_header.txt << 'EOF'
 # REPLACES: Individual hardcoded views for each table type (addresses, phones, emails, etc.)
 # TEAM NOTE: This is the heart of the Universal API - one set of views handles all tables
 # ARCHITECTURE: Recreates 30-year-old 4D database universal table access in modern Django
-# TABLES: Works with any table registered in TABLE_REGISTRY (addresses, phones, emails, domains, contacts)
+# TABLES: Works with any model registered in MODEL_REGISTRY (addresses, phones, emails, domains, contacts)
 # PATTERN: Uses dynamic model loading and serialization for any Django model
 # SECURITY: Requires login authentication for all operations
 # FEATURES: 
@@ -201,7 +201,7 @@ cat > temp_header.txt << 'EOF'
 #   - /wcapi/delete/ -> Universal delete endpoint
 #   - /wcapi/clone/ -> Universal clone endpoint
 # SECURITY: All Universal API endpoints require authentication
-# TABLES: Works with any table registered in WcapiView.TABLE_REGISTRY
+# TABLES: Works with any model registered in MODEL_REGISTRY
 
 EOF
 

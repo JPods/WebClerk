@@ -7,9 +7,10 @@ from django.utils.functional import Promise
 from common.api_responses import api_response
 from django.utils.encoding import force_str
 
-EXEMPT_PATH_PREFIXES: tuple[str, ...] = (
-    '/admin/', '/static/', '/media/'
-)
+# Read exemptions from settings with safe defaults.
+EXEMPT_PATH_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PATH_PREFIXES', ('/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/')))
+HTML_PAGE_PATHS_EXACT: set[str] = set(getattr(settings, 'HTML_EXEMPT_PATHS_EXACT', ('/', '/about/', '/signup/', '/login/', '/logout/')))
+HTML_PAGE_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PAGE_PREFIXES', ('/manage/', '/user/', '/manager/')))
 
 def _allow_raw_query() -> bool:
     """Return True if ?raw=1 bypass is allowed (env gated)."""
@@ -32,6 +33,11 @@ def _record_skip(path: str, reason: str, status_code: int):  # only during pytes
 
 def is_exempt_path(path: str) -> bool:
     return any(path.startswith(p) for p in EXEMPT_PATH_PREFIXES)
+
+def is_template_page(path: str) -> bool:
+    if path in HTML_PAGE_PATHS_EXACT:
+        return True
+    return any(path.startswith(p) for p in HTML_PAGE_PREFIXES) or is_exempt_path(path)
 
 def _force(value: Any):
     if isinstance(value, Promise):
@@ -79,7 +85,7 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
     def process_response(self, request, response):  # pragma: no cover (glue; exercised indirectly)
         try:
             path = getattr(request, 'path', '')
-            if is_exempt_path(path):
+            if is_template_page(path):
                 _record_skip(path, 'exempt_path', getattr(response, 'status_code', 0))
                 _ensure_rendered(response)
                 return response
@@ -101,7 +107,32 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
                     _record_skip(path, 'json_error', getattr(response, 'status_code', 0))
                     return response
             else:
-                _record_skip(path, 'non_json_response', getattr(response, 'status_code', 0))
+                # For non-template endpoints, force JSON envelope for any non-JSON error response (redirects, 4xx/5xx HTML).
+                status_code = getattr(response, 'status_code', 200)
+                # If settings.API_JSON_DEFAULT is truthy, treat all non-exempt paths as API.
+                json_default = bool(getattr(settings, 'API_JSON_DEFAULT', True))
+                treat_as_api = json_default and (not is_template_page(path))
+                if treat_as_api and status_code >= 300:
+                    # Map 3xx/4xx/5xx to our envelope; treat 3xx as fail for clients
+                    status_val = 'error' if status_code >= 500 else 'fail'
+                    # Try to use reason phrase if available; otherwise a generic label
+                    message = getattr(response, 'reason_phrase', '') or ''
+                    if not message:
+                        try:
+                            # Fallback mapping
+                            import http
+                            message = http.client.responses.get(status_code, '')  # type: ignore[attr-defined]
+                        except Exception:
+                            message = ''
+                    envelope: Dict[str, Any] = {
+                        'status': status_val,
+                        'error': {'code': 'http_error', 'details': None},
+                        'code': status_code,
+                        'message': message,
+                        'data': None,
+                    }
+                    return JsonResponse(envelope, status=status_code)
+                _record_skip(path, 'non_json_response', status_code)
                 _ensure_rendered(response)
                 return response
             if isinstance(data, dict) and data.get('status') in ('success', 'fail', 'error') and 'code' in data:
@@ -163,9 +194,10 @@ class ExceptionAsJsonMiddleware(MiddlewareMixin):
             path = getattr(request, 'path', '')
             accept = request.headers.get('Accept', '') if hasattr(request, 'headers') else ''
             content_type = request.headers.get('Content-Type', '') if hasattr(request, 'headers') else ''
-            is_api_path = path.startswith('/wcapi/')
             wants_json = ('application/json' in accept) or ('application/json' in content_type)
-            if not (is_api_path or wants_json):
+            # Treat any non-template endpoint as API when JSON-by-default is enabled; always JSONify errors there.
+            json_default = bool(getattr(settings, 'API_JSON_DEFAULT', True))
+            if is_template_page(path) and not wants_json:
                 # Non-API HTML page: let Django render default error page
                 return None
             # Map common exceptions to status/code

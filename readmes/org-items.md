@@ -91,7 +91,7 @@ due = OrgItem.objects.due_for_check()
 
 ### Permissions / Settings Integration
 
-Because `org_items` is in `TABLE_REGISTRY`, any `Setting` rows that target this table name will be validated. Add granular field-level permissions (view/edit) using the standard Settings matrix if needed.
+Because `org_item` is in `MODEL_REGISTRY` (canonical singular: org_item), any `Setting` rows that target this model will be validated. Add granular field-level permissions (view/edit) using the standard Settings matrix if needed.
 
 ## Migration History
 

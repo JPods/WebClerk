@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.core.models.setting import Setting
-from apps.core.constants.table_registry import VALID_MODEL_KEYS, TABLE_REGISTRY_BY_ENDPOINT
+from apps.core.constants.model_registry import VALID_MODEL_NAMES, get_model_meta, get_model_meta_by_endpoint
 from apps.core.utils import get_accessible_fields
 
 class SettingSerializer(serializers.ModelSerializer):
@@ -42,13 +42,8 @@ class SettingSerializer(serializers.ModelSerializer):
         if not value:
             return value
         target = value.strip().lower()
-        if target in VALID_MODEL_KEYS:
-            key = target
-        elif target in TABLE_REGISTRY_BY_ENDPOINT:
-            key = TABLE_REGISTRY_BY_ENDPOINT[target].key
-        elif target + 's' in VALID_MODEL_KEYS:
-            key = target + 's'
-        else:
-            raise serializers.ValidationError(f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_MODEL_KEYS)}")
-        # return singular form
-        return key[:-1] if key.endswith('s') else key
+        meta = get_model_meta(target) or get_model_meta_by_endpoint(target)
+        if not meta:
+            raise serializers.ValidationError(f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_MODEL_NAMES)}")
+        # return canonical singular key
+        return meta.key

@@ -6,6 +6,13 @@ from django.utils.text import slugify
 from datetime import datetime, timezone
 from common.models import BaseModel
 from common.stats_mixin import StatsMixin
+from apps.products.uom import normalize_uom, can_convert, convert
+from apps.products.variant_utils import (
+    derive_variant_set_uuid,
+    derive_variant_uuid,
+    canonicalize_variant_key,
+    validate_variant_attrs,
+)
 
 
 # ---- Default JSON factories (document expected schema) -----------------
@@ -277,6 +284,50 @@ class Item(StatsMixin, BaseModel):
                 val.setdefault(k, v)
         if hasattr(self, 'prefs'):
             self.prefs = ensure_item_prefs(getattr(self, 'prefs'))  # type: ignore[attr-defined]
+        # Normalize UOMs to canonical codes (store uppercase)
+        if self.uom:
+            self.uom = normalize_uom(self.uom)
+        if self.base_uom:
+            self.base_uom = normalize_uom(self.base_uom)
+        # Ensure pack defaults under prefs.shipping
+        if hasattr(self, 'prefs') and isinstance(self.prefs, dict):
+            ship = self.prefs.get('shipping') or {}
+            ship.setdefault('pack', {'qty': 1, 'uom': self.uom or 'EA'})
+            # sanitize
+            try:
+                pack = ship['pack']
+                if not isinstance(pack, dict):
+                    pack = {'qty': 1, 'uom': self.uom or 'EA'}
+                q = pack.get('qty')
+                if not isinstance(q, (int, float)) or q <= 0:
+                    pack['qty'] = 1
+                pack['uom'] = normalize_uom(pack.get('uom') or (self.uom or 'EA'))
+                ship['pack'] = pack
+            except Exception:
+                ship['pack'] = {'qty': 1, 'uom': self.uom or 'EA'}
+            self.prefs['shipping'] = ship
+        # Initialize variant scaffolding in envelopes (non-breaking)
+        # metadata.variants: {schema: {key:[values]}, set_uuid: str}
+        # refs.variants: {parent_uuid: str|None, attrs: dict, key: str}
+        # prefs.variants: {auto_slug: bool}
+        if isinstance(getattr(self, 'metadata', None), dict):
+            vmeta = self.metadata.setdefault('variants', {})
+            vmeta.setdefault('schema', {})
+            # Derive set_uuid deterministically from our uuid when acting as parent/root item
+            try:
+                if not vmeta.get('set_uuid'):
+                    vmeta['set_uuid'] = str(derive_variant_set_uuid(self.uuid))
+            except Exception:
+                pass
+        if isinstance(getattr(self, 'refs', None), dict):
+            vrefs = self.refs.setdefault('variants', {})
+            vrefs.setdefault('parent_uuid', None)
+            vrefs.setdefault('parent_id', None)
+            vrefs.setdefault('attrs', {})
+            vrefs['key'] = canonicalize_variant_key(vrefs.get('attrs') or {})
+        if isinstance(getattr(self, 'prefs', None), dict):
+            vp = self.prefs.setdefault('variants', {})
+            vp.setdefault('auto_slug', True)
 
     def _track_price_cost_history(self, orig_price: dict | None, orig_cost: dict | None):
         now = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -311,6 +362,19 @@ class Item(StatsMixin, BaseModel):
         if web.get('slug') or not self.name:
             return
         base = slugify(self.name)[:80] or 'item'
+        # Optional: include variant attrs in slug when enabled
+        try:
+            auto_slug = bool(self.prefs.get('variants', {}).get('auto_slug')) if isinstance(getattr(self, 'prefs', None), dict) else False
+            if auto_slug and isinstance(getattr(self, 'refs', None), dict):
+                vrefs = self.refs.get('variants') or {}
+                key = vrefs.get('key')
+                if isinstance(key, str) and key:
+                    # collapse canonical key "color=blue|size=m" -> "color-blue-size-m"
+                    variant_suffix = key.replace('=', '-').replace('|', '-')
+                    composed = f"{base}-{variant_suffix}"
+                    base = slugify(composed)[:80]
+        except Exception:
+            pass
         slug_candidate = base
         i = 2
         while Item.objects.filter(catalog__web__slug=slug_candidate).exclude(pk=self.pk).exists():  # type: ignore[name-defined]
@@ -491,6 +555,39 @@ class Item(StatsMixin, BaseModel):
         from django.core.exceptions import ValidationError
 
         errors = {}
+        # Validate variant attrs against optional schema
+        try:
+            vmeta = self.metadata.get('variants') if isinstance(getattr(self, 'metadata', None), dict) else None
+            vrefs = self.refs.get('variants') if isinstance(getattr(self, 'refs', None), dict) else None
+            schema = vmeta.get('schema') if isinstance(vmeta, dict) else None
+            attrs = vrefs.get('attrs') if isinstance(vrefs, dict) else None
+            # If schema absent but a parent reference exists, borrow parent's schema for validation
+            if not schema and isinstance(vrefs, dict):
+                pid = vrefs.get('parent_id')
+                puid = vrefs.get('parent_uuid')
+                parent = None
+                try:
+                    if pid:
+                        parent = Item.objects.only('metadata').filter(pk=pid).first()  # type: ignore[name-defined]
+                    elif puid:
+                        parent = Item.objects.only('metadata').filter(uuid=puid).first()  # type: ignore[name-defined]
+                except Exception:
+                    parent = None
+                if parent and isinstance(getattr(parent, 'metadata', None), dict):
+                    pmeta = parent.metadata.get('variants')
+                    if isinstance(pmeta, dict) and isinstance(pmeta.get('schema'), dict):
+                        schema = pmeta.get('schema')
+            if isinstance(attrs, dict):
+                ok, errs = validate_variant_attrs(attrs, schema)
+                if not ok:
+                    errors.setdefault('variants', []).extend(errs)
+        except Exception:
+            pass
+
+        # UOM compatibility: if both set, require same category
+        if self.uom and self.base_uom:
+            if not can_convert(self.uom, self.base_uom):
+                errors.setdefault('uom', []).append(f"uom {self.uom} not compatible with base_uom {self.base_uom}")
 
         def _validate_currency(container: dict, field: str):
             cur = container.get("currency") if isinstance(container, dict) else None
@@ -602,6 +699,114 @@ class Item(StatsMixin, BaseModel):
         if errors:
             raise ValidationError(errors)
         return super().clean()
+
+    # ---------------- UOM helpers (no DB schema changes) -----------------
+    def convert_qty_to_base(self, qty: float) -> float:
+        """Convert a qty from self.uom to self.base_uom. If base_uom missing or same, return qty.
+        Raises ValueError if not convertible."""
+        if not self.base_uom or not self.uom or self.base_uom == self.uom:
+            return float(qty)
+        return convert(qty, self.uom, self.base_uom)
+
+    def convert_qty_from_base(self, qty_base: float, to_uom: str | None = None) -> float:
+        """Convert a qty from base_uom to target uom (defaults to self.uom or EA)."""
+        target = normalize_uom(to_uom or self.uom or self.base_uom or 'EA')
+        if not self.base_uom or target == self.base_uom:
+            return float(qty_base)
+        return convert(qty_base, self.base_uom, target)
+
+    def pack_info(self) -> dict:
+        """Return pack info from prefs.shipping: {qty, uom}. Defaults to 1 EA."""
+        prefs = getattr(self, 'prefs', {}) if hasattr(self, 'prefs') else {}
+        ship = prefs.get('shipping') or {}
+        pack = ship.get('pack') or {'qty': 1, 'uom': self.uom or 'EA'}
+        try:
+            qty = pack.get('qty')
+            if not isinstance(qty, (int, float)) or qty <= 0:
+                pack['qty'] = 1
+            pack['uom'] = normalize_uom(pack.get('uom') or 'EA')
+        except Exception:
+            pack = {'qty': 1, 'uom': 'EA'}
+        return pack
+
+    def packs_for_qty(self, qty: float) -> dict:
+        """Return {'packs': int, 'remainder': float, 'pack_qty': float, 'pack_uom': str} for a given qty in self.uom.
+        Converts qty to pack uom if needed and computes whole packs + remainder."""
+        pack = self.pack_info()
+        pack_uom = pack['uom']
+        pack_qty = float(pack['qty'])
+        # Convert incoming qty to pack_uom
+        q = float(qty)
+        src_uom = normalize_uom(self.uom or 'EA')
+        if src_uom != pack_uom:
+            if can_convert(src_uom, pack_uom):
+                q = convert(q, src_uom, pack_uom)
+        packs = int(q // pack_qty) if pack_qty > 0 else 0
+        remainder = max(0.0, q - packs * pack_qty)
+        return {'packs': packs, 'remainder': remainder, 'pack_qty': pack_qty, 'pack_uom': pack_uom}
+
+    # ---------------- Variant helpers -----------------------------------
+    def variant_set_uuid(self) -> str | None:
+        vmeta = self.metadata.get('variants') if isinstance(getattr(self, 'metadata', None), dict) else None
+        if isinstance(vmeta, dict):
+            return vmeta.get('set_uuid')
+        return None
+
+    def variant_canonical_key(self) -> str:
+        vrefs = self.refs.get('variants') if isinstance(getattr(self, 'refs', None), dict) else None
+        if isinstance(vrefs, dict):
+            return canonicalize_variant_key(vrefs.get('attrs') or {})
+        return ""
+
+    def variant_uuid(self) -> str | None:
+        """Return deterministic variant UUID if this item is a variant child.
+
+        Uses parent family set_uuid (or own set when parent) and current attrs.
+        """
+        vrefs = self.refs.get('variants') if isinstance(getattr(self, 'refs', None), dict) else None
+        vmeta = self.metadata.get('variants') if isinstance(getattr(self, 'metadata', None), dict) else None
+        if not isinstance(vrefs, dict) or not isinstance(vmeta, dict):
+            return None
+        attrs = vrefs.get('attrs') or {}
+        set_uuid = vmeta.get('set_uuid')
+        if not set_uuid:
+            try:
+                set_uuid = str(derive_variant_set_uuid(self.uuid))
+            except Exception:
+                return None
+        try:
+            vu = derive_variant_uuid(set_uuid, attrs)
+            return str(vu)
+        except Exception:
+            return None
+
+    def set_variant_schema(self, schema: dict[str, list[object]]):
+        if isinstance(getattr(self, 'metadata', None), dict):
+            vmeta = self.metadata.setdefault('variants', {})
+            vmeta['schema'] = schema or {}
+        return self
+
+    def set_variant_attrs(self, attrs: dict[str, object], parent_uuid: str | None = None, parent_id: int | None = None):
+        if isinstance(getattr(self, 'refs', None), dict):
+            vrefs = self.refs.setdefault('variants', {})
+            vrefs['attrs'] = attrs or {}
+            vrefs['parent_uuid'] = parent_uuid
+            vrefs['parent_id'] = parent_id
+            vrefs['key'] = canonicalize_variant_key(attrs or {})
+        # Ensure family set_uuid derives from parent when provided
+        if parent_uuid and isinstance(getattr(self, 'metadata', None), dict):
+            vmeta = self.metadata.setdefault('variants', {})
+            try:
+                vmeta['set_uuid'] = str(derive_variant_set_uuid(parent_uuid))
+            except Exception:
+                pass
+        return self
+
+    def variant_parent_id(self) -> int | None:
+        vrefs = self.refs.get('variants') if isinstance(getattr(self, 'refs', None), dict) else None
+        if isinstance(vrefs, dict):
+            return vrefs.get('parent_id')
+        return None
 
     # Public helper to set quantity safely
     def set_quantity(self, **kwargs):  # pragma: no cover simple delegate

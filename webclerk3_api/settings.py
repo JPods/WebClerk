@@ -200,7 +200,10 @@ STATIC_URL = 'static/'
 
 import os
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'core', 'static'),
+    # Project-level static assets
+    os.path.join(BASE_DIR, 'static'),
+    # App-level static assets (core app)
+    os.path.join(BASE_DIR, 'apps', 'core', 'static'),
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -248,6 +251,19 @@ LOGGING = {
         },
     },
 }
+
+# JSON-by-default configuration: treat all paths as API (JSON) unless explicitly allowed as HTML.
+# You can extend these in environment-specific settings or override in local settings.
+API_JSON_DEFAULT = True
+HTML_EXEMPT_PATH_PREFIXES = (
+    '/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/',
+)
+HTML_EXEMPT_PATHS_EXACT = (
+    '/', '/about/', '/signup/', '/login/', '/logout/',
+)
+HTML_EXEMPT_PAGE_PREFIXES = (
+    '/manage/', '/user/', '/manager/',
+)
 
 
 # Readme API cache tuning (seconds)
@@ -337,6 +353,17 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'products.tasks.expire_inventory_reservations',
         'schedule': 60,
         'options': {'expires': 55},
+    },
+    # Documentation/registry hygiene: refresh artifacts daily and remind every 3 days
+    'refresh-model-registry-docs-daily': {
+        'task': 'common.tasks.refresh_model_registry_docs',
+        'schedule': 24 * 60 * 60,  # daily
+        'options': {'expires': 23 * 60 * 60},
+    },
+    'docs-staleness-reminder-3d': {
+        'task': 'common.tasks.docs_staleness_reminder',
+        'schedule': 3 * 24 * 60 * 60,  # every 3 days
+        'options': {'expires': 2 * 24 * 60 * 60},
     },
 }
 

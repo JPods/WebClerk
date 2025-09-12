@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from common.models import BaseModel
 from django.core.exceptions import ValidationError
-from apps.core.constants.table_registry import VALID_MODEL_KEYS, TABLE_REGISTRY_BY_ENDPOINT
+from apps.core.constants.model_registry import VALID_MODEL_NAMES, get_model_meta, get_model_meta_by_endpoint
 # company, defaults, view_edit, user-levels,
 # poppups, question, constants, integrations, notifications,
 # 
@@ -27,20 +27,11 @@ class Setting(BaseModel):
         target = (self.model_name or '').strip().lower() if self.model_name else None
         if not target:
             return
-        key = None
-        # 1) Exact registry key
-        if target in VALID_MODEL_KEYS:
-            key = target
-        # 2) Endpoint slug
-        elif target in TABLE_REGISTRY_BY_ENDPOINT:
-            key = TABLE_REGISTRY_BY_ENDPOINT[target].key
-        # 3) Singular provided (e.g., 'sales_order_line'): try plural + 's'
-        elif target + 's' in VALID_MODEL_KEYS:
-            key = target + 's'
-        if not key:
-            raise ValidationError({'model_name': f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_MODEL_KEYS)}"})
-        # Store singular form consistently (drop a single trailing 's' when present)
-        self.model_name = key[:-1] if key.endswith('s') else key
+        meta = get_model_meta(target) or get_model_meta_by_endpoint(target)
+        if not meta:
+            raise ValidationError({'model_name': f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_MODEL_NAMES)}"})
+        # Store canonical singular key
+        self.model_name = meta.key
     
     def save(self, *args, **kwargs):
         """Ensure model_name is normalized/validated even when created directly.

@@ -37,7 +37,7 @@ Only models registered in wcapi_registry.py are accessible. Filtering is restric
 small allow-list to reduce risk of accidental heavy queries or probing internal structure.
 """
 
-SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status", "contact_id"}
+SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status", "contact_id", "parent_ref_id"}
 STRICT_PARAM = 'strict'
 STRICT_HEADER = 'HTTP_WCAPI_STRICT'
 PROJECTION_PARAM = 'fields'
@@ -157,6 +157,28 @@ class WcapiView(LoginRequiredMixin, APIView):
                 _PROM_DUR.labels(method='GET').observe(time.perf_counter()-start)
             return api_response(data={'model_name': singular, 'results': data})
         qs = model.objects.all()  # type: ignore[attr-defined]
+        # Optional filtered GET (mirrors POST filter semantics)
+        strict = self._strict_mode(request, {})
+        invalid_filters: list[str] = []
+        # Build filter dict from query params
+        params = {k: v for k, v in request.GET.items()}
+        # Convenience mapping: allow workorder_id to filter line models via parent_ref_id
+        if 'workorder_id' in params and hasattr(model, 'parent_ref_id'):
+            params = dict(params)
+            params['parent_ref_id'] = params.pop('workorder_id')
+        for k, v in list(params.items()):
+            if k in (PROJECTION_PARAM, 'model_name', 'id', 'limit', 'offset', STRICT_PARAM):
+                continue
+            if k in SAFE_FILTER_FIELDS and hasattr(model, k):
+                try:
+                    qs = qs.filter(**{k: v})
+                except Exception:
+                    pass
+            else:
+                if strict and k not in invalid_filters:
+                    invalid_filters.append(k)
+        if strict and invalid_filters:
+            return api_response(success=False, status_code=400, message='Invalid filter field(s)', error={'code':'invalid_filters','details':sorted(invalid_filters)})
         total = qs.count()
         limit, offset = _pagination_params(request)
         data = self._serialize_queryset(qs, limit, offset)
@@ -198,6 +220,13 @@ class WcapiView(LoginRequiredMixin, APIView):
         qs = model.objects.all()  # type: ignore[attr-defined]
         strict = self._strict_mode(request, payload)
         invalid_filters: list[str] = []
+        # Convenience mapping: allow workorder_id to filter line models via parent_ref_id
+        if isinstance(payload, dict) and 'workorder_id' in payload and hasattr(model, 'parent_ref_id'):
+            try:
+                payload = dict(payload)  # shallow copy to avoid mutating caller
+                payload['parent_ref_id'] = payload.pop('workorder_id')
+            except Exception:
+                pass
         for k, v in payload.items():
             if k in (PROJECTION_PARAM, 'model_name', 'limit', 'offset', STRICT_PARAM):
                 continue

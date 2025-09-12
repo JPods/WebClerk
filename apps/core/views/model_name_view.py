@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from common.api_responses import api_response
-from apps.core.constants.table_registry import TABLE_REGISTRY, get_table_meta
+from apps.core.constants.model_registry import MODEL_REGISTRY, get_model_meta
 from django.http import Http404
 from apps.core.views.table_registry_view import _serialize_table_meta
 
@@ -13,7 +13,7 @@ class ModelNameListView(APIView):
     """Return the list of canonical singular model_name codes."""
 
     def get(self, request):  # type: ignore[override]
-        names = sorted({_to_singular_code(k) for k in TABLE_REGISTRY.keys()})
+        names = sorted(MODEL_REGISTRY.keys())
         return api_response(data={'model_names': names, 'count': len(names)})
 
 
@@ -24,14 +24,10 @@ class ModelNameDetailView(APIView):
         model_name = (request.query_params.get('model_name') or '').strip().lower()
         if not model_name:
             raise Http404('model_name required')
-        # Map singular code back to registry key
-        candidates = [model_name, model_name + 's']
-        key = next((k for k in candidates if k in TABLE_REGISTRY), None)
-        if not key:
-            raise Http404('Unknown model_name')
-        meta = get_table_meta(key)
+        # Resolve using canonical/aliases/endpoints
+        meta = get_model_meta(model_name)
         if not meta:
             raise Http404('Unknown model_name')
         payload = _serialize_table_meta(meta, include_fields=True)
-        payload['model_name'] = _to_singular_code(key)
+        payload['model_name'] = meta.key
         return api_response(data={'model': payload})

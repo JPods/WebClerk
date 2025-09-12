@@ -35,13 +35,23 @@ class KeywordSearchView(APIView):
         if not keywords:
             return api_response(success=False, status_code=400, message='No keywords provided', error={'code':'no_keywords','details':'No keywords provided'})
 
+        # Match against keywords plus variant canonical key and attrs
+        def _or_term(kw: str):
+            return (
+                Q(refs__keywords__icontains=kw) |
+                Q(refs__variants__key__icontains=kw) |
+                Q(refs__variants__attrs__icontains=kw)
+            )
         q_obj = Q()
         if query_type == 'OR':
             for kw in keywords:
-                q_obj |= Q(refs__keywords__icontains=kw)
+                q_obj |= _or_term(kw)
         else:  # AND
-            for kw in keywords:
-                q_obj &= Q(refs__keywords__icontains=kw)
+            # Start with first then & rest
+            if keywords:
+                q_obj = _or_term(keywords[0])
+                for kw in keywords[1:]:
+                    q_obj &= _or_term(kw)
 
         results = []
         errors = {}

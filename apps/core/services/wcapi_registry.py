@@ -6,7 +6,7 @@ from apps.orgs.models import (
     OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg,
 )
 from apps.products.models import Item
-from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine
+from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine, Workorder, WorkorderLine
 
 MODEL_MAP = {
     'contacts': Contact,
@@ -24,6 +24,8 @@ MODEL_MAP = {
     # transactional documents (initial subset; add more as exposed)
     'sales_orders': SalesOrder,
     'sales_order_lines': SalesOrderLine,
+    'work_orders': Workorder,
+    'work_order_lines': WorkorderLine,
     # Unified organization entity + proxy filtered types
     'orgs': OrgBase,
     'customers': CustomerOrg,
@@ -57,6 +59,8 @@ _SINGULAR_ALIAS_TO_TABLE = {
     'item': 'items',
     'sales_order': 'sales_orders',
     'sales_order_line': 'sales_order_lines',
+    'work_order': 'work_orders',
+    'work_order_line': 'work_order_lines',
     'org': 'orgs',
     'customer': 'customers',
     'vendor': 'vendors',

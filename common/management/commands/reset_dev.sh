@@ -8,7 +8,8 @@ set -euo pipefail
 
 DB_NAME="commerce_expert"
 # Adjust to one valid local role
-DB_USER="williamjames"
+# set password to 'password' in pgAdmin or psql
+DB_USER="postgres"
 
 APPS=(core communications accounts docs)
 

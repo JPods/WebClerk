@@ -12,6 +12,7 @@ from .usage import ItemUsage
 from .service import Service
 from .metrics import InventoryMetricsSnapshot
 from .processor_runs import InventoryAdjustmentProcessorRun
+from .variant import Variant
 
 __all__ = [
 	"Item",
@@ -34,5 +35,6 @@ __all__ = [
 	"Service",
 	"InventoryMetricsSnapshot",
 	"InventoryAdjustmentProcessorRun",
+	"Variant",
 ]
 

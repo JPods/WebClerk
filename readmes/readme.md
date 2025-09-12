@@ -167,7 +167,14 @@ python manage.py seed_minimal_if_empty.py
 
 ```bash
 python -m venv .
-source ./bin/activate
+Mac
+source ./bin/activate 
+
+PC: 
+.\Scripts\activate.bat
+bash common/management/commands/reset_dev.sh
+use git bash for run this command
+
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py createsuperuser

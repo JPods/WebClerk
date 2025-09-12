@@ -20,6 +20,7 @@ from apps.core.views.utilities_view import AllowedFieldsView
 from apps.core.views.save_view import SaveWcapiView
 from apps.core.views.get_view import WcapiGetView
 from apps.core.views.keyword import KeywordSearchView
+from apps.products.views.item_variants import ItemVariantsView
 # Deprecated dynamic query endpoint (replaced by registry-based wcapi) - retained commented for historical context
 # from apps.core.views.query_any import QueryAnyView
 from apps.core.views.model_info import ModelInfoView
@@ -98,6 +99,8 @@ urlpatterns = [
     # path('wcapi/post/', WcapiView.as_view(), name='post'),  # replaced by /wcapi/save/
     
     path('wcapi/query/', WcapiView.as_view(), name='query'),  # canonical list/filter endpoint
+    # Variants adapter (items, filtered by parent and/or canonical key)
+    path('wcapi/items/', ItemVariantsView.as_view(), name='wcapi-items'),
     path('wcapi/metrics/', wcapi_metrics_response, name='wcapi-metrics'),
 
  # full update

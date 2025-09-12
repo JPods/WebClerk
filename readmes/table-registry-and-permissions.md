@@ -19,6 +19,7 @@
   - [Test Additions](#test-additions)
   - [Extension Points](#extension-points)
   - [Quick Usage](#quick-usage)
+    - [New entries: Work Orders](#new-entries-work-orders)
   - [Gotchas](#gotchas)
   - [Next Steps (Optional)](#next-steps-optional)
 
@@ -52,12 +53,12 @@ All tests: **156 passed, 1 skipped** after changes.
 
 ### Table Registry
 
-File: `apps/core/constants/table_registry.py`
+File: `apps/core/constants/model_registry.py`
 
 Provides:
 
 - `TableMeta` dataclass
-- `TABLE_REGISTRY` (key -> metadata)
+- `MODEL_REGISTRY` (canonical singular key -> metadata)
 - `VALID_model_nameS` list
 - Reverse endpoint lookup helpers
 - Lazy model import for field inspection
@@ -78,12 +79,13 @@ Provides:
 `GET /wcapi/tables/?endpoint=<slug>&include_fields=1` (lookup by endpoint slug)
 
 Field metadata includes:
-\n```json
+
+```json
 {
   "id": {"type": "BigAutoField", "null": false, "blank": false, "primary_key": true},
-  "status": {"type": "CharField", "null": false, "blank": false, "primary_key": false, "choices": [{"value": "OPEN", "label": "Open"}]}
+  "status": {"type": "CharField", "null": false, "blank": false, "primary_key": false}
 }
-\n```bash
+```
 
 
 ### Purge Utility
@@ -115,20 +117,35 @@ Dry run by default; shows count and sample of stale rows.
 ## Quick Usage
 
 Fetch all tables:
-\n```bash
-curl -s <http://localhost:8000/wcapi/tables/> | jq '.data.tables | keys'
 
 ```bash
+curl -s http://localhost:8000/wcapi/tables/ | jq '.data.tables | keys'
+```
 
 Fetch single table with fields:
-\n```bash
+
+```bash
 curl -s 'http://localhost:8000/wcapi/tables/?table=sales_order_lines&include_fields=1' | jq '.data.table.fields.status'
-\n```bash
+```
+
+### New entries: Work Orders
+
+The registry now includes Work Orders:
+
+- work_order — app: `transactions`, endpoint: `/wcapi/work-orders/`, kind: `header`, aliases: work_orders
+- work_order_line — app: `transactions`, endpoint: `/wcapi/workorder-lines/`, kind: `line`, aliases: work_order_lines
+
+Examples:
+
+```bash
+curl -s 'http://localhost:8000/wcapi/tables/?table=work_order&include_fields=1' | jq '.data.table'
+curl -s 'http://localhost:8000/wcapi/tables/?table=work_order_line&include_fields=1' | jq '.data.table'
+```
 
 
 ## Gotchas
 
-- Adding a new model requires updating `TABLE_REGISTRY`; forgetting leads to validation errors when creating Settings.
+- Adding a new model requires updating `MODEL_REGISTRY`; forgetting leads to validation errors when creating Settings.
 - The placeholder `documents` entry exists solely for an existing settings test – adjust once a real documents model lands.
 - Legacy singular settings must be purged or updated before deploying environments that relied on fallback logic.
 

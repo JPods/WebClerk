@@ -87,6 +87,34 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: model-registry-readme
+        name: Regenerate model-registry.md if MODEL_REGISTRY changed
+        entry: bash
+        args:
+          - -c
+          - |
+            set -euo pipefail
+            # Only run if the registry file changed in this commit.
+            if git diff --cached --name-only --diff-filter=ACM | grep -q "^apps/core/constants/model_registry.py$"; then
+              echo "[model-registry-readme] Rebuilding readmes/model-registry.md"
+              if [ -x ./bin/python ]; then
+                ./bin/python Scripts/gen_model_registry_readme.py >/dev/null
+              elif command -v python3 >/dev/null 2>&1; then
+                python3 Scripts/gen_model_registry_readme.py >/dev/null
+              else
+                python Scripts/gen_model_registry_readme.py >/dev/null
+              fi
+              # Stage artifacts if changed
+              for f in readmes/model-registry.md readmes/model-registry.json readmes/model-registry.csv; do
+                if ! git diff --quiet -- "$f"; then
+                  git add "$f"
+                fi
+              done
+            fi
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: docs-index-regenerate
         name: Regenerate docs_index.json (if stale)
         entry: bash

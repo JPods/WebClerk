@@ -1,6 +1,9 @@
 from celery import shared_task
 from django.apps import apps
 from django.utils import timezone
+from pathlib import Path
+import subprocess
+import os
 
 from .models import BaseModel
 from .stats_mixin import StatsMixin
@@ -110,3 +113,42 @@ def recompute_basic_stats(limit: int = 5000, batch_size: int = 500):
                 normalized += 1
     duration = (timezone.now() - started).total_seconds()
     return {'processed': processed, 'normalized': normalized, 'duration': duration}
+
+
+@shared_task(name='common.tasks.refresh_model_registry_docs')
+def refresh_model_registry_docs():
+    """Regenerate registry README/JSON/CSV and docs_index.json.
+
+    Runs the generator scripts using the project's ./bin/python if present,
+    otherwise falls back to system python3.
+    """
+    root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    # Choose interpreter
+    python = str(root / 'bin' / 'python') if (root / 'bin' / 'python').exists() else 'python3'
+    # Run generators
+    gen_readme = [python, str(root / 'Scripts' / 'gen_model_registry_readme.py')]
+    gen_index = [python, str(root / 'Scripts' / 'gen_docs_index.py')]
+    out = {}
+    try:
+        r1 = subprocess.run(gen_readme, cwd=str(root), env=env, capture_output=True, text=True, timeout=120)
+        out['gen_model_registry_readme'] = {'code': r1.returncode, 'stdout': r1.stdout, 'stderr': r1.stderr}
+    except Exception as e:
+        out['gen_model_registry_readme'] = {'error': str(e)}
+    try:
+        r2 = subprocess.run(gen_index, cwd=str(root), env=env, capture_output=True, text=True, timeout=120)
+        out['gen_docs_index'] = {'code': r2.returncode, 'stdout': r2.stdout, 'stderr': r2.stderr}
+    except Exception as e:
+        out['gen_docs_index'] = {'error': str(e)}
+    return out
+
+
+@shared_task(name='common.tasks.docs_staleness_reminder')
+def docs_staleness_reminder(days: int = 3):
+    """Emit a periodic reminder to review docs and registry for staleness.
+
+    In a more advanced setup this could create a Ticket/Notification or post to Slack.
+    For now, it logs a notice (print) which will surface in worker logs/monitoring.
+    """
+    print(f"[docs] Reminder: review project READMEs and MODEL_REGISTRY for freshness (every {days} days)")
+    return {'reminder': True, 'period_days': days}
