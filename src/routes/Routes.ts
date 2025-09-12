@@ -20,6 +20,6 @@ export class PageRoutes {
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";
-  static readonly basicTables: string = "/basic-tables";
+  static readonly basicTables: string = "/basic-models";
   static readonly test: string = "/test";
 }

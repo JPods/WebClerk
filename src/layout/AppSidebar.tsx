@@ -106,7 +106,7 @@ const navItems: NavItem[] = [
   {
     name: "Tables",
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    subItems: [{ name: "Basic Models", path: "/basic-models", pro: false }],
   },
   // {
   //   name: "Pages",

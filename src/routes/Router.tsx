@@ -39,7 +39,7 @@ const Router: React.FC = () => {
     
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />
-              <Route path="/basic-tables" element={<BasicTables />} />   
+              <Route path="/basic-models" element={<BasicTables />} />   
             </Route>
             
             {/* 404 page */}
