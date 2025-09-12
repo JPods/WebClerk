@@ -30,9 +30,9 @@
         font-size: 0.9em;
     }
 </style>
-<div class="container" style="display: flex; gap: 2rem;">
+<div class="container" style="display: flex; gap: 1rem; align-items: stretch;">
     <!-- Left column: Apps/Tables -->
-    <div class="sidebar-module scroll-column" style="flex: 1; border-right: 1px solid #ccc; padding-right: 1rem;">
+    <div class="sidebar-module scroll-column" style="flex: 0 0 20%; max-width: 20%; border-right: 1px solid #ccc; padding-right: 0.75rem; display: flex; flex-direction: column;">
         <h3 class="module-title">Apps / Tables</h3>
         <!-- {{ app_list }} -->
         {% for app in app_list %}
@@ -59,7 +59,7 @@
                 <input type="radio" name="fieldMode" value="detail" onchange="switchFieldMode('detail')"> Detail
             </label>
         </div>
-        <form id="list-fields-table" onsubmit="return false;">
+        <form id="list-fields-table" onsubmit="return false;" style="flex: 1 1 auto;">
             <table class="fields-table" id="fields-table-left">
                 <tr>
                     <th>Field Name</th>
@@ -71,13 +71,23 @@
             <button type="button" id="toggle-fields-btn" disabled onclick="toggleSelectedFields()">Toggle Selected</button>
         </form>
 
+        <!-- Left bottom: textarea to edit selected fields (applies to current mode: List or Detail) -->
+        <div style="margin-top: 0.75rem;">
+            <label for="left-fields-json"><strong>Fields JSON (Left - current mode)</strong></label>
+            <textarea id="left-fields-json" class="fields-table" style="width:100%; height: 100px;"></textarea>
+            <div style="margin-top: 0.25rem; display:flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" onclick="applyFromTextarea('left')">Apply Left</button>
+                <button type="button" onclick="savePrefs()">Save Prefs</button>
+            </div>
+        </div>
+
 
 
     </div>
     <!-- Center column: List -->
-    <div class="module scroll-column" style="flex: 2; border-right: 1px solid #ccc; padding: 0 1rem;" id="center-table-panel">
+    <div class="module scroll-column" style="flex: 0 0 30%; max-width: 30%; border-right: 1px solid #ccc; padding: 0 0.75rem; display: flex; flex-direction: column;" id="center-table-panel">
     <h3 class="module-title">List</h3>
-    <div id="center-table-content">
+    <div id="center-table-content" style="flex: 1 1 auto;">
         <p>Select a table to view records.</p>
     </div>
     <h4 style="margin-top:2rem;">Fields in Table</h4>
@@ -91,10 +101,19 @@
             <!-- JS will populate rows here -->
         </table>
     </div>
+    <!-- Center bottom: textarea to edit which columns are shown in the list -->
+    <div style="margin-top: 0.75rem;">
+        <label for="center-fields-json"><strong>Fields JSON (Center - list)</strong></label>
+        <textarea id="center-fields-json" class="fields-table" style="width:100%; height: 100px;"></textarea>
+        <div style="margin-top: 0.25rem; display:flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" onclick="applyFromTextarea('center')">Apply Center</button>
+            <button type="button" onclick="savePrefs()">Save Prefs</button>
+        </div>
+    </div>
 </div>
 
     <!-- Right column: Detail/Display -->
-    <div class="module scroll-column" style="flex: 2; padding-left: 1rem;">
+    <div class="module scroll-column" style="flex: 1 1 auto; min-width: 0; padding-left: 0.75rem;">
         <h3 class="module-title">Details</h3>
         {% if selected_record %}
             {% for field in fields %}
@@ -118,12 +137,26 @@
                 </tr>
                 <!-- JS will populate rows here -->
             </table> 
+        <!-- Right bottom: textarea to edit which fields show in detail -->
+        <div style="margin-top: 0.75rem;">
+            <label for="right-fields-json"><strong>Fields JSON (Right - detail)</strong></label>
+            <textarea id="right-fields-json" class="fields-table" style="width:100%; height: 100px;"></textarea>
+            <div style="margin-top: 0.25rem; display:flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" onclick="applyFromTextarea('right')">Apply Right</button>
+                <button type="button" onclick="savePrefs()">Save Prefs</button>
+            </div>
+        </div>
     </div>
 
 
 </div>
 
 <script>
+// User/role context for prefs (fallbacks if not present)
+const WB_USER = {
+    id: '{{ request.user.id|default:"anon" }}',
+    role: '{{ request.user.role|default:"PUBLIC" }}'
+};
 let centerDisplayedFields = [];
 let centerAllFields = [];
 let currentTableName = '';
@@ -150,6 +183,29 @@ let leftFields = []; // [{name, type}]
 let listFields = []; // names
 let detailFields = []; // names
 let selectedFieldNames = [];
+
+function prefsKey(model){
+    const m = model || currentTableName || 'none';
+    return `admin3:prefs:${WB_USER.id}:${WB_USER.role}:${m}`;
+}
+function loadPrefs(model){
+    try{
+        const raw = localStorage.getItem(prefsKey(model));
+        return raw ? JSON.parse(raw) : null;
+    }catch(_){ return null; }
+}
+function savePrefs(){
+    if(!currentTableName) return;
+    const obj = {
+        listFields,
+        centerDisplayedFields,
+        detailFields,
+        detailDisplayedFields,
+        fieldMode
+    };
+    localStorage.setItem(prefsKey(), JSON.stringify(obj));
+    alert('Preferences saved locally');
+}
 
 
 function loadTableData(tableName) {
@@ -178,7 +234,18 @@ function loadTableData(tableName) {
             detailFields = [];
             fieldMode = 'list';
             selectedFieldNames = [];
+
+            // Load saved prefs if present
+            const saved = loadPrefs(tableName);
+            if(saved){
+                if(Array.isArray(saved.listFields)) listFields = saved.listFields;
+                if(Array.isArray(saved.centerDisplayedFields)) centerDisplayedFields = saved.centerDisplayedFields;
+                if(Array.isArray(saved.detailFields)) detailFields = saved.detailFields;
+                if(Array.isArray(saved.detailDisplayedFields)) detailDisplayedFields = saved.detailDisplayedFields;
+                if(saved.fieldMode) fieldMode = saved.fieldMode;
+            }
             renderLeftFieldsTable();
+            syncFieldTextareas();
 
             fetch(`/wcapi/get/?model_name=${tableName}`)
                 .then(response => response.json())
@@ -338,7 +405,7 @@ function renderCenterTable() {
     fetch(`/wcapi/get/?model_name=${currentTableName}`)
         .then(response => response.json())
         .then(result => {
-            const data = result.data;
+            const data = (result.data && result.data.results) ? result.data.results : [];
             const contentDiv = document.getElementById('center-table-content');
             if (!Array.isArray(data) || data.length === 0) {
                 contentDiv.innerHTML = '<p>No records found.</p>';
@@ -420,6 +487,59 @@ function toggleSelectedFields() {
             console.warn('detail-fields-table not found in DOM');
         }
     }
+    syncFieldTextareas();
+}
+
+function syncFieldTextareas(){
+    // Left textarea reflects current mode's selection
+    const leftArr = (fieldMode === 'list') ? listFields : detailFields;
+    const lta = document.getElementById('left-fields-json');
+    if(lta) lta.value = JSON.stringify(leftArr, null, 2);
+    const cta = document.getElementById('center-fields-json');
+    if(cta) cta.value = JSON.stringify(centerDisplayedFields, null, 2);
+    const rta = document.getElementById('right-fields-json');
+    if(rta) rta.value = JSON.stringify(detailDisplayedFields, null, 2);
+}
+
+function applyFromTextarea(section){
+    try{
+        if(section === 'left'){
+            const raw = document.getElementById('left-fields-json').value || '[]';
+            const arr = JSON.parse(raw);
+            if(Array.isArray(arr)){
+                if(fieldMode === 'list'){
+                    listFields = arr.filter(Boolean);
+                    centerDisplayedFields = listFields.slice();
+                    renderCenterTable();
+                    renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+                } else {
+                    detailFields = arr.filter(Boolean);
+                    detailDisplayedFields = detailFields.slice();
+                    renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+                }
+            }
+        } else if(section === 'center'){
+            const raw = document.getElementById('center-fields-json').value || '[]';
+            const arr = JSON.parse(raw);
+            if(Array.isArray(arr)){
+                centerDisplayedFields = arr.filter(Boolean);
+                listFields = centerDisplayedFields.slice();
+                renderCenterTable();
+                renderFieldsTable(centerAllFields, centerDisplayedFields, 'center-fields-table', 'toggleCenterField');
+            }
+        } else if(section === 'right'){
+            const raw = document.getElementById('right-fields-json').value || '[]';
+            const arr = JSON.parse(raw);
+            if(Array.isArray(arr)){
+                detailDisplayedFields = arr.filter(Boolean);
+                detailFields = detailDisplayedFields.slice();
+                renderDetailFieldsTable(detailAllFields, detailDisplayedFields);
+            }
+        }
+    }catch(err){
+        alert('Invalid JSON');
+    }
+    syncFieldTextareas();
 }
 </script>
 {% endblock %}

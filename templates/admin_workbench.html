@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Workbench</title>
+  <link rel="stylesheet" href="{% static 'css/admin_workbench.css' %}">
+</head>
+<body>
+  <header class="wb-header">
+    <h1>Admin Workbench</h1>
+    <div class="wb-actions">
+      <button id="wb-refresh">Refresh</button>
+      <button id="wb-save-prefs">Save Prefs</button>
+      <span id="wb-status" class="wb-status"></span>
+    </div>
+  </header>
+  <main class="wb-main">
+    <section class="wb-col wb-col-left">
+      <div class="wb-col-head">
+        <strong>Models</strong>
+      </div>
+      <div class="wb-col-body">
+        <input id="wb-model-filter" placeholder="Filter models" />
+        <ul id="wb-model-list" class="wb-list"></ul>
+      </div>
+      <div class="wb-col-foot">
+        <details open>
+          <summary>Field picker</summary>
+          <div class="wb-field-picker">
+            <div class="wb-field-picker-actions">
+              <button id="wb-add-fields">Add ➜</button>
+              <button id="wb-remove-fields">⟵ Remove</button>
+            </div>
+            <div class="wb-field-picker-grid">
+              <div>
+                <div class="wb-subhead">All fields</div>
+                <ul id="wb-all-fields" class="wb-list small"></ul>
+              </div>
+              <div>
+                <div class="wb-subhead">Selected fields</div>
+                <ul id="wb-selected-fields" class="wb-list small"></ul>
+              </div>
+            </div>
+          </div>
+        </details>
+        <label class="wb-ta-label">Fields JSON (left)</label>
+        <textarea id="wb-left-fields-json" class="wb-json"></textarea>
+      </div>
+    </section>
+
+    <section class="wb-col wb-col-mid">
+      <div class="wb-col-head">
+        <strong>Records</strong>
+      </div>
+      <div class="wb-col-body">
+        <div class="wb-row">
+          <input id="wb-record-filter" placeholder="Search (safe fields only)" />
+          <button id="wb-record-search">Search</button>
+        </div>
+        <ul id="wb-record-list" class="wb-list"></ul>
+      </div>
+      <div class="wb-col-foot">
+        <label class="wb-ta-label">Fields JSON (middle)</label>
+        <textarea id="wb-mid-fields-json" class="wb-json"></textarea>
+      </div>
+    </section>
+
+    <section class="wb-col wb-col-right">
+      <div class="wb-col-head">
+        <strong>Editor</strong>
+        <button id="wb-save-record" class="primary">Save</button>
+      </div>
+      <div class="wb-col-body">
+        <form id="wb-editor-form" class="wb-form"></form>
+      </div>
+      <div class="wb-col-foot">
+        <label class="wb-ta-label">Fields JSON (right)</label>
+        <textarea id="wb-right-fields-json" class="wb-json"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.WCAPI = {
+      // Backend endpoints (use relative paths)
+      listModels: '/wcapi/model_name/list/',
+      modelDetail: '/wcapi/model_name/detail/', // ?model_name=
+      modelFields: '/api/model-fields/',
+      query: '/wcapi/query/',
+      get: '/wcapi/get/',
+      save: '/wcapi/save/',
+      // keep in sync with server SAFE_FILTER_FIELDS for UX hints
+      safeFilterFields: new Set(['email','name_first','name_last','company','action','status','contact_id','parent_ref_id'])
+    };
+  </script>
+  <script src="{% static 'js/admin_workbench.js' %}"></script>
+</body>
+</html>

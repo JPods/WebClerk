@@ -44,7 +44,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         content = build_model_map()
         if options["stdout"]:
-            self.stdout.write(content)
+            # Use plain print to avoid rare OutputWrapper stream issues in some environments
+            print(content)
             return
         docs_path = os.path.join(settings.BASE_DIR, "docs", "data-map.md")
         if not os.path.exists(docs_path):

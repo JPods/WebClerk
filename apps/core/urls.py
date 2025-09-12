@@ -24,6 +24,7 @@ from apps.products.views.item_variants import ItemVariantsView
 # Deprecated dynamic query endpoint (replaced by registry-based wcapi) - retained commented for historical context
 # from apps.core.views.query_any import QueryAnyView
 from apps.core.views.model_info import ModelInfoView
+from apps.core.views.model_fields import ModelFieldsView
 from apps.core.views.table_registry_view import TableRegistryView
 from apps.core.views.model_name_view import ModelNameListView, ModelNameDetailView
 from django.views.generic import TemplateView
@@ -31,6 +32,7 @@ from apps.core.views.pending import PendingListView, PendingDetailView, PendingS
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
 from apps.core.views.setting import SettingListView, SettingDetailView, SettingSearchView
 from apps.core.views.template import TemplateListView, TemplateDetailView, TemplateSearchView
+from apps.core.views import auth_views, admin_view
 from apps.core.views.contact_api import (
     ContactListView as ContactApiListView,
     ContactDetailView as ContactApiDetailView,
@@ -61,6 +63,10 @@ urlpatterns = [
     path('manage/actions/', TemplateView.as_view(template_name='manage_actions.html'), name='manage-actions'),
     path('user/', TemplateView.as_view(template_name='user.html'), name='user'),
     path('manager/', TemplateView.as_view(template_name='manager.html'), name='manager'),
+    # Admin Workbench (3-column model/records/editor with local JSON prefs)
+    path('admin/workbench/', TemplateView.as_view(template_name='admin_workbench.html'), name='admin-workbench'),
+    # Legacy/alt admin3 page from prior work (in admin/admin3.html)
+    path('admin/workbench3/', admin_view.admin3_view, name='admin-workbench3'),
 
     #path('manager/related/', RelatedDataView.as_view(), name='manager-related'),
     # Universal API endpoints
@@ -124,6 +130,7 @@ urlpatterns = [
     # path('wcapi/query-any/', QueryAnyView.as_view(), name='wcapi-query-any'),  # deprecated dynamic model access
     
     path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
+    path('api/model-fields/', ModelFieldsView.as_view(), name='api-model-fields'),
     path('wcapi/tables/', TableRegistryView.as_view(), name='wcapi-tables'),
     path('wcapi/model_name/list/', ModelNameListView.as_view(), name='model-name-list'),
     path('wcapi/model_name/detail/', ModelNameDetailView.as_view(), name='model-name-detail'),
