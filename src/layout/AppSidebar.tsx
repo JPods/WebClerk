@@ -38,6 +38,29 @@ const navItems: NavItem[] = [
     path: "/dashboard",
   },
   {
+    icon: <GridIcon />,
+    name: "Admin Workbench",
+    path: "/admin-wb",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Whitelist Tester",
+    path: "/whitelist",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Products",
+    path: "/products",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Transactions",
+    subItems: [
+      { name: "Orders", path: "/transactions/orders" },
+      { name: "Invoices", path: "/transactions/invoices" },
+    ],
+  },
+  {
     icon: <CalenderIcon />,
     name: "Actions",
     subItems: [

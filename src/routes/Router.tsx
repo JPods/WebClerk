@@ -4,6 +4,13 @@ import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
 import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+import AdminWorkbench from '../pages/admin/AdminWorkbench';
+import WhitelistTester from '../pages/tools/WhitelistTester';
+import ProductsPage from '../pages/items/ProductsPage';
+import OrdersListPage from '../pages/transactions/OrdersListPage';
+import OrderDetailPage from '../pages/transactions/OrderDetailPage';
+import InvoicesListPage from '../pages/transactions/InvoicesListPage';
+import InvoiceDetailPage from '../pages/transactions/InvoiceDetailPage';
 import { Provider } from 'react-redux';
 import { store } from '../store';
 import Test from '../pages/test/Test';
@@ -40,6 +47,15 @@ const Router: React.FC = () => {
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />
               <Route path="/basic-models" element={<BasicTables />} />   
+              <Route path={PageRoutes.adminWorkbench} element={<AdminWorkbench />} />
+              <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
+              {/* Products */}
+              <Route path={PageRoutes.products} element={<ProductsPage />} />
+              {/* Transactions */}
+              <Route path={PageRoutes.transactionsOrders} element={<OrdersListPage />} />
+              <Route path={PageRoutes.transactionsOrderDetail} element={<OrderDetailPage />} />
+              <Route path={PageRoutes.transactionsInvoices} element={<InvoicesListPage />} />
+              <Route path={PageRoutes.transactionsInvoiceDetail} element={<InvoiceDetailPage />} />
             </Route>
             
             {/* 404 page */}

@@ -15,6 +15,7 @@ import DomainList from "./domain/DomainList";
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
 import BasicTables from "./Tables/BasicTables";
+import AdminWorkbench from "./admin/AdminWorkbench";
 
 export {  
   SignIn,
@@ -34,4 +35,5 @@ export {
   Calendar,
   FormElements,
   BasicTables
+  , AdminWorkbench
 };

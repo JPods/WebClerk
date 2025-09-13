@@ -22,4 +22,15 @@ export class PageRoutes {
   static readonly formElements: string = "/form-elements";
   static readonly basicTables: string = "/basic-models";
   static readonly test: string = "/test";
+  static readonly adminWorkbench: string = "/admin-wb";
+  static readonly whitelist: string = "/whitelist";
+
+  // Products & Transactions
+  static readonly products: string = "/products";
+
+  static readonly transactionsOrders: string = "/transactions/orders";
+  static readonly transactionsOrderDetail: string = "/transactions/orders/:id";
+
+  static readonly transactionsInvoices: string = "/transactions/invoices";
+  static readonly transactionsInvoiceDetail: string = "/transactions/invoices/:id";
 }
