@@ -8,6 +8,10 @@ const OrderDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<any>(null);
   const [lines, setLines] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [phones, setPhones] = useState<any[]>([]);
+  const [emails, setEmails] = useState<any[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -23,6 +27,10 @@ const OrderDetailPage: React.FC = () => {
         // Prefer canonical key; fallbacks for legacy naming
         const detected = rel['sales_order_lines'] || rel['order_lines'] || rel['orderlines'] || [];
         setLines(Array.isArray(detected) ? detected : []);
+  setCustomers(Array.isArray(rel['customers']) ? rel['customers'] : []);
+  setAddresses(Array.isArray(rel['addresses']) ? rel['addresses'] : []);
+  setPhones(Array.isArray(rel['phones']) ? rel['phones'] : []);
+  setEmails(Array.isArray(rel['emails']) ? rel['emails'] : []);
       } catch (e: any) {
         setError(e?.message || 'Failed to load order');
       } finally {
@@ -58,6 +66,43 @@ const OrderDetailPage: React.FC = () => {
           <div className="card p-4 border rounded">
             <div className="font-medium mb-2">Order</div>
             <pre className="text-xs overflow-auto">{JSON.stringify(order, null, 2)}</pre>
+          </div>
+          <div className="card p-4 border rounded">
+            <div className="font-medium mb-2">Related Orgs & Contacts</div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-gray-500 mb-1">Customers</div>
+                {customers.length === 0 ? <div className="text-xs text-gray-400">None</div> : (
+                  <ul className="list-disc list-inside text-xs">
+                    {customers.map((c, i) => <li key={i}>{c?.display_name || c?.name || c?.id}</li>)}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <div className="text-gray-500 mb-1">Phones</div>
+                {phones.length === 0 ? <div className="text-xs text-gray-400">None</div> : (
+                  <ul className="list-disc list-inside text-xs">
+                    {phones.map((p, i) => <li key={i}>{p?.number || p?.name || p?.id}</li>)}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <div className="text-gray-500 mb-1">Emails</div>
+                {emails.length === 0 ? <div className="text-xs text-gray-400">None</div> : (
+                  <ul className="list-disc list-inside text-xs">
+                    {emails.map((e, i) => <li key={i}>{e?.email || e?.name || e?.id}</li>)}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <div className="text-gray-500 mb-1">Addresses</div>
+                {addresses.length === 0 ? <div className="text-xs text-gray-400">None</div> : (
+                  <ul className="list-disc list-inside text-xs">
+                    {addresses.map((a, i) => <li key={i}>{a?.display || a?.address1 || a?.id}</li>)}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
           <div className="card p-4 border rounded">
             <div className="font-medium mb-2">Order Totals</div>

@@ -11,8 +11,9 @@ import OrdersListPage from '../pages/transactions/OrdersListPage';
 import OrderDetailPage from '../pages/transactions/OrderDetailPage';
 import InvoicesListPage from '../pages/transactions/InvoicesListPage';
 import InvoiceDetailPage from '../pages/transactions/InvoiceDetailPage';
-import { Provider } from 'react-redux';
-import { store } from '../store';
+import PurchaseOrderDetailPage from '../pages/transactions/PurchaseOrderDetailPage';
+import ProposalDetailPage from '../pages/transactions/ProposalDetailPage';
+// Redux store is not used directly here; pages connect as needed.
 import Test from '../pages/test/Test';
 
 
@@ -56,6 +57,8 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.transactionsOrderDetail} element={<OrderDetailPage />} />
               <Route path={PageRoutes.transactionsInvoices} element={<InvoicesListPage />} />
               <Route path={PageRoutes.transactionsInvoiceDetail} element={<InvoiceDetailPage />} />
+              <Route path={PageRoutes.transactionsPurchaseOrderDetail} element={<PurchaseOrderDetailPage />} />
+              <Route path={PageRoutes.transactionsProposalDetail} element={<ProposalDetailPage />} />
             </Route>
             
             {/* 404 page */}

@@ -33,4 +33,10 @@ export class PageRoutes {
 
   static readonly transactionsInvoices: string = "/transactions/invoices";
   static readonly transactionsInvoiceDetail: string = "/transactions/invoices/:id";
+
+  static readonly transactionsPurchaseOrders: string = "/transactions/purchase-orders";
+  static readonly transactionsPurchaseOrderDetail: string = "/transactions/purchase-orders/:id";
+
+  static readonly transactionsProposals: string = "/transactions/proposals";
+  static readonly transactionsProposalDetail: string = "/transactions/proposals/:id";
 }
