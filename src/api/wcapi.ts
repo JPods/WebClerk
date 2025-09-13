@@ -37,28 +37,71 @@ export interface GetDetailPayload {
 }
 
 export async function getModelNames() {
-  const res = await apiClient.get<ApiEnvelope<ModelNamesPayload>>('/wcapi/model_name/list/');
-  return res.data.data;
+  try {
+    const res = await apiClient.get<ApiEnvelope<ModelNamesPayload>>('/wcapi/model_name/list/');
+    return res.data.data;
+  } catch (err: any) {
+    const status = err?.response?.status;
+    if (status === 404) {
+      // Fallback: some deployments mount API under /api
+      const res2 = await apiClient.get<ApiEnvelope<ModelNamesPayload>>('/api/wcapi/model_name/list/');
+      return res2.data.data;
+    }
+    // Bubble other errors (like 401) so caller can show a helpful message
+    throw err;
+  }
 }
 
 export async function getModelDetail(model_name: string) {
-  const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/wcapi/model_name/detail/', { params: { model_name } });
-  return res.data.data;
+  try {
+    const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/wcapi/model_name/detail/', { params: { model_name } });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/api/wcapi/model_name/detail/', { params: { model_name } });
+      return res2.data.data;
+    }
+    throw err;
+  }
 }
 
 export async function getRecords(model_name: string) {
-  const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name } });
-  return res.data.data;
+  try {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name } });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params: { model_name } });
+      return res2.data.data;
+    }
+    throw err;
+  }
 }
 
 export async function getRecord(model_name: string, id: number) {
-  const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>('/wcapi/get/', { params: { model_name, id } });
-  return res.data.data;
+  try {
+    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>('/wcapi/get/', { params: { model_name, id } });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>('/api/wcapi/get/', { params: { model_name, id } });
+      return res2.data.data;
+    }
+    throw err;
+  }
 }
 
 export async function saveRecord(model_name: string, payload: any) {
-  const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name, ...payload });
-  return res.data.data;
+  try {
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name, ...payload });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name, ...payload });
+      return res2.data.data;
+    }
+    throw err;
+  }
 }
 
 // Local persistence for field selections per model

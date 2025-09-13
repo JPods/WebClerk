@@ -3,6 +3,7 @@
 Welcome to the React2025 documentation. This folder mirrors the backend's `readmes/` for frontend topics.
 
 - Admin Workbench: `./admin-workbench.md`
+- Admin Window: `./admin-window.md`
 - API Integration: `./api-integration.md`
 - Environment Setup: `./env.md`
 - Whitelist Tester: `./whitelist.md`

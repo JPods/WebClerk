@@ -1,8 +1,23 @@
 import axios, { AxiosError } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
+import { store } from "../store";
+import { clearUser } from "../store/slices/authSlice";
 
 // Access tokens are short-lived; keep latest in memory for fast access
-let accessToken: string | null = localStorage.getItem("accessToken");
+// Helpers
+const isValidToken = (val: any): val is string =>
+  typeof val === 'string' && val.trim() !== '' && val !== 'undefined' && val !== 'null';
+
+// Access tokens are short-lived; keep latest in memory for fast access
+let accessToken: string | null = (() => {
+  const raw = localStorage.getItem("accessToken");
+  if (!isValidToken(raw)) {
+    // Clean up any bad leftovers to avoid gating UI with a bogus token
+    localStorage.removeItem("accessToken");
+    return null;
+  }
+  return raw;
+})();
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
 
@@ -26,7 +41,7 @@ apiClient.interceptors.request.use((config) => {
   if (!accessToken) {
     accessToken = localStorage.getItem("accessToken");
   }
-  if (accessToken) {
+  if (isValidToken(accessToken)) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
@@ -56,7 +71,13 @@ apiClient.interceptors.response.use(
         if (!refreshToken) throw new Error("No refresh token");
 
         const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, { refresh: refreshToken });
-        const newToken = (refreshResponse as any).data.access;
+        // Backend wraps JSON responses in an envelope: { status, code, message, data: { access } }
+        const body: any = (refreshResponse as any).data ?? {};
+        const fromEnvelope = body?.data?.access;
+        const fromTopLevel = body?.access; // fallback for non-enveloped
+        const newToken: string | null = isValidToken(fromEnvelope) ? fromEnvelope : (isValidToken(fromTopLevel) ? fromTopLevel : null);
+        if (!newToken) throw new Error("Invalid refresh response: missing access token");
+
         accessToken = newToken;
         localStorage.setItem("accessToken", newToken);
         processQueue(newToken);
@@ -64,7 +85,12 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshErr) {
         processQueue(null);
-        // Optionally: localStorage.clear(); redirect to login
+        // Defensive: remove bad tokens so guards don't pass with bogus strings
+        localStorage.removeItem("accessToken");
+        // Optionally also clear refresh on hard failures
+        // localStorage.removeItem("refreshToken");
+        // Update global auth state so UI reacts immediately
+        try { store.dispatch(clearUser()); } catch {}
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

@@ -116,7 +116,7 @@ const AppHeader: React.FC = () => {
             </svg>
           </button>
 
-          <div className="hidden lg:block">
+          <div className="hidden lg:flex items-center gap-3">
             <form>
               <div className="relative">
                 <span className="absolute -translate-y-1/2 pointer-events-none left-4 top-1/2">
@@ -149,6 +149,13 @@ const AppHeader: React.FC = () => {
                 </button>
               </div>
             </form>
+            <Link
+              to="/docs"
+              className="ml-2 inline-flex items-center px-3 h-11 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+              title="Open in-app Docs"
+            >
+              Docs
+            </Link>
           </div>
         </div>
         <div

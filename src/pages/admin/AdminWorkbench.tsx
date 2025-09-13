@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAppSelector } from '../../store/hooks';
+import { NetworkInfo } from '../../routes/network';
 import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, loadFieldSelections, saveFieldSelections } from '../../api/wcapi';
 
 //
@@ -18,8 +20,14 @@ const AdminWorkbench: React.FC = () => {
   const [allFields, setAllFields] = useState<string[]>([]);
   const [fieldPrefs, setFieldPrefs] = useState(loadFieldSelections());
   const prefsForModel = fieldPrefs[selectedModel] || { list: [], detail: [] };
+  const { isAuthenticated } = useAppSelector((s) => s.auth);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
 
+  // Load model names only when a token is present (avoids 401s pre-login)
   useEffect(() => {
+    const hasToken = !!(typeof window !== 'undefined' && localStorage.getItem('accessToken'));
+    if (!hasToken) return;
     (async () => {
       try {
         setLoadingModels(true);
@@ -27,6 +35,7 @@ const AdminWorkbench: React.FC = () => {
         const data = await getModelNames();
         const names = Array.isArray(data.model_names) ? data.model_names : [];
         setModelNames(names);
+        setLastModelsFetchAt(Date.now());
         // Auto-select first model to populate middle pane immediately
         if (!selectedModel && names.length > 0) {
           setSelectedModel(names[0]);
@@ -37,7 +46,8 @@ const AdminWorkbench: React.FC = () => {
         setLoadingModels(false);
       }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   useEffect(() => {
     if (!selectedModel) return;
@@ -136,6 +146,18 @@ const AdminWorkbench: React.FC = () => {
 
   return (
     <div className="p-4 space-y-4">
+      {/* Debug status strip for API and auth visibility */}
+      <div className="text-xs border rounded-md p-2 bg-gray-50 text-gray-600 flex flex-wrap gap-4">
+        <div><span className="font-semibold">API</span>: {NetworkInfo.API_URL || '(unset)'}</div>
+  <div><span className="font-semibold">Auth</span>: {token ? 'token ✓' : 'no token'} ({isAuthenticated ? 'auth ✓' : 'auth ✗'})</div>
+        <div><span className="font-semibold">Models</span>: {loadingModels ? 'loading…' : (modelNames.length ? `${modelNames.length} loaded` : 'none')}</div>
+        {lastModelsFetchAt && (
+          <div><span className="font-semibold">Last fetch</span>: {new Date(lastModelsFetchAt).toLocaleTimeString()}</div>
+        )}
+        {modelsError && (
+          <div className="text-red-600"><span className="font-semibold">Error</span>: {modelsError}</div>
+        )}
+      </div>
       <h1 className="text-xl font-semibold">Admin Workbench</h1>
       <div className="grid grid-cols-12 gap-4">
         {/* Left: Model list (20%) */}

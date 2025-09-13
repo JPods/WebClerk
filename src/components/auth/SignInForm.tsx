@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -13,21 +13,21 @@ import { login } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
-import axiosInstance from "../../api/axios";
-import { PostLoginURL } from "../../routes/network";
+// import axiosInstance from "../../api/axios";
+// import { PostLoginURL } from "../../routes/network";
 
 
 export default function SignInForm() {
 
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const { user, isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user } = useAppSelector((state) => state.auth);
   
    console.log("User data",user)
   const {
     register,
-    control,
+  // control,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
@@ -37,35 +37,45 @@ export default function SignInForm() {
     },
   });
 
+  const isValidToken = (val: any): val is string => typeof val === 'string' && val.trim() !== '' && val !== 'undefined' && val !== 'null';
+
   const handleFormSubmit = async (data:any) => {
           // Overwritten on the backend by user profile
              //data.role = 'USER';
-       try {
-              const response = await login(data);
-              console.log("Login response", response.data);
-              if (response.code === 200) {
-                  console.log("Login response2", response.data);
-                  localStorage.setItem("accessToken", response.data.access);
-                  localStorage.setItem("refreshToken", response.data.refresh);
+     try {
+        const resp = await login(data);
+        console.log("Login response", resp);
 
-                  const { email, role, name_first, name_last } = response.data;
-                  const user = { email, role, name_first, name_last };
-                  dispatch(setUser(user));
-                  dispatch(showToast({ message: "Login successful!", type: "success" }));
-                  //navigate('/dashboard');
-                       // }    
-                 
-                       // dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
-                 
-              } else {               
-                  dispatch(showToast({ message: response.error[0] ?? "Try again later", type: "error" }));
-              }             
-       } catch (error : any) {
-             dispatch(showToast({ message: error, type: "error" }));
-       }   
+  const accessRaw = resp?.data?.access ?? resp?.access ?? null;
+  const refreshRaw = resp?.data?.refresh ?? resp?.refresh ?? null;
+  const access = isValidToken(accessRaw) ? accessRaw : null;
+  const refresh = isValidToken(refreshRaw) ? refreshRaw : null;
+
+        if (!access) {
+          const msg = resp?.error?.[0] || resp?.message || 'Login failed';
+          dispatch(showToast({ message: msg, type: 'error' }));
+          return;
+        }
+
+  localStorage.setItem("accessToken", access);
+  if (refresh) localStorage.setItem("refreshToken", refresh);
+
+        const src: any = resp?.data || resp;
+        const user = {
+          email: src?.email ?? '',
+          role: src?.role ?? [],
+          name_first: src?.name_first ?? '',
+          name_last: src?.name_last ?? '',
+        };
+        dispatch(setUser(user));
+        dispatch(showToast({ message: "Login successful!", type: "success" }));
+        //navigate('/dashboard');
+     } catch (error : any) {
+       dispatch(showToast({ message: error, type: "error" }));
+     }   
   };
   const [showPassword, setShowPassword] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
+  // const [isChecked, setIsChecked] = useState(false);
 
   //  const selectOption = [                          
   //                         {value:"ADMIN", label:"ADMIN"},

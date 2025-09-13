@@ -24,6 +24,7 @@ export class PageRoutes {
   static readonly test: string = "/test";
   static readonly adminWorkbench: string = "/admin-wb";
   static readonly whitelist: string = "/whitelist";
+  static readonly docs: string = "/docs";
 
   // Products & Transactions
   static readonly products: string = "/products";

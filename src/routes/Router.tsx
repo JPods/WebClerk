@@ -15,6 +15,7 @@ import PurchaseOrderDetailPage from '../pages/transactions/PurchaseOrderDetailPa
 import ProposalDetailPage from '../pages/transactions/ProposalDetailPage';
 // Redux store is not used directly here; pages connect as needed.
 import Test from '../pages/test/Test';
+import DocsIndex from '../pages/docs/DocsIndex';
 
 
 
@@ -50,6 +51,7 @@ const Router: React.FC = () => {
               <Route path="/basic-models" element={<BasicTables />} />   
               <Route path={PageRoutes.adminWorkbench} element={<AdminWorkbench />} />
               <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
+              <Route path={PageRoutes.docs} element={<DocsIndex />} />
               {/* Products */}
               <Route path={PageRoutes.products} element={<ProductsPage />} />
               {/* Transactions */}
