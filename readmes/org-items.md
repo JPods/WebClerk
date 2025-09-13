@@ -1,14 +1,14 @@
-# Org Items (OrgItem)
+# Items and Org Associations (Item, OrgItem)
 
 
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Org Items (OrgItem)](#org-items-orgitem)
+- [Items and Org Associations (Item, OrgItem)](#items-and-org-associations-item-orgitem)
   - [Table of Contents](#table-of-contents)
   - [Purpose / When to Use](#purpose-when-to-use)
-  - [Model Summary](#model-summary)
+  - [Model Summary (OrgItem association)](#model-summary-orgitem-association)
     - [Fields](#fields)
     - [Indexes & Constraints](#indexes-constraints)
     - [Access Patterns](#access-patterns)
@@ -28,7 +28,7 @@
 
 <!-- TOC END -->
 
-Canonical association between an organization (`OrgBase`) and an `Item` indicating the item is listed / carried / offered by that org (customer, vendor, channel, etc.). Neutral naming avoids implying ownership or stock while enabling assortment / catalog style use cases.
+Canonical product record is Item (`apps.products.models.item.Item`). The OrgItem association (`apps.products.models.org_item.OrgItem`) links an organization (`OrgBase`) to an Item indicating the item is listed / carried / offered by that org (customer, vendor, channel, etc.). Neutral naming avoids implying ownership or stock while enabling assortment / catalog style use cases.
 
 ## Purpose / When to Use
 
@@ -36,13 +36,13 @@ Canonical association between an organization (`OrgBase`) and an `Item` indicati
 - Drive price list, merchandising, availability, or channel enablement logic
 - Basis for derived analytics (assortment breadth, adoption, gaps)
 
-## Model Summary
+## Model Summary (OrgItem association)
 
 | Aspect | Value |
 |--------|-------|
 | Django class | `apps.products.models.org_item.OrgItem` |
 | Table registry key | `org_items` |
-| Endpoint slug (planned) | `org-items` |
+| Endpoint slug | `org-items` |
 | Uniqueness | (`item`, `org`, `catalog`) via `uniq_item_org_catalog` (catalog nullable; allows multiple catalogs) |
 | Related name on OrgBase | `org_items` |
 | Security field | `security_level` (integer tier) |
@@ -92,6 +92,10 @@ due = OrgItem.objects.due_for_check()
 ### Permissions / Settings Integration
 
 Because `org_item` is in `MODEL_REGISTRY` (canonical singular: org_item), any `Setting` rows that target this model will be validated. Add granular field-level permissions (view/edit) using the standard Settings matrix if needed.
+
+## Item (product) quick reference
+
+Preferred model_name for products is `item` (plural table key: `items`). Endpoints via wcapi use `model_name=item` for list/detail, and the introspection docs will list `item` as the canonical product model. Existing clients using `org_item` (association) should switch to `item` when requesting product records.
 
 ## Migration History
 

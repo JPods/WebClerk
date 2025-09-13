@@ -46,6 +46,9 @@ class ContactManager(BaseUserManager):
             raise TypeError('Use name_first / name_last fields (legacy first_name/last_name no longer accepted)')
         # Drop any provided username silently (no legacy username field in model)
         user = self.model(email=email, **extra_fields)
+        # Some databases enforce NOT NULL on uuid; ensure it's populated on create
+        if not getattr(user, 'uuid', None):
+            user.uuid = uuid.uuid4()
         user.set_password(password)
         user.save(using=self._db)
         return user

@@ -5,6 +5,7 @@ audit,accounts,apps.accounts.models.audit.Audit,audits,support,audits
 bill_of_material,products,apps.products.models.bom.BillOfMaterial,bills-of-material,support,"bill_of_materials,bom"
 catalog,products,apps.products.models.catalog.Catalog,catalogs,support,catalogs
 connection,sync,apps.sync.models.connection.Connection,connections,support,connections
+contact,core,apps.core.models.contact.Contact,contacts,support,contacts
 currency,accounts,apps.accounts.models.currency.Currency,currencies,support,currencies
 delivery_line,products,apps.products.models.flow.DeliveryLine,delivery-lines,support,delivery_lines
 delivery_visit,products,apps.products.models.flow.DeliveryVisit,delivery-visits,support,delivery_visits
@@ -26,6 +27,7 @@ inventory_metrics_snapshot,products,apps.products.models.metrics.InventoryMetric
 inventory_reservation,products,apps.products.models.inventory_reservation.InventoryReservation,inventory-reservations,support,inventory_reservations
 invoice,transactions,apps.transactions.models.line_variants.Invoice,invoices,header,invoices
 invoice_line,transactions,apps.transactions.models.line_variants.InvoiceLine,invoice-lines,line,invoice_lines
+item,products,apps.products.models.item.Item,items,support,items
 ledger,accounts,apps.accounts.models.ledger.Ledger,ledgers,support,ledgers
 location,communications,apps.communications.models.location.Location,locations,support,locations
 notification,core,apps.core.models.notification.Notification,notifications,support,notifications

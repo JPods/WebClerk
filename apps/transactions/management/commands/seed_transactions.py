@@ -1,87 +1,103 @@
-"""Management command to seed Orders with child OrderLine rows.
-
-Usage examples:
-  python manage.py seed_transactions --orders 3 --min-lines 2 --max-lines 5
-  python manage.py seed_transactions --orders 2 --force
-
-Requirements:
-  - At least one CustomerOrg and VendorOrg (unless --force supplied)
-  - Order and OrderLine models (line_variants)
-
-Creates:
-  N Order records each with a random number (min-lines..max-lines) of OrderLine
-  JSON fields on lines are initialized via ensure_json_defaults then mutated.
-"""
-
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from typing import Optional
 import random
-from decimal import Decimal
 
-from apps.orgs.models import CustomerOrg, VendorOrg
+from apps.core.models import Contact
+from apps.products.models import Item
 from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine
 
 
 class Command(BaseCommand):
-    help = "Seed Orders with associated OrderLine rows (customer/vendor linkage)."
+    help = "Seed sample SalesOrders with SalesOrderLines for demo/testing"
 
-    def add_arguments(self, parser):  # pragma: no cover - simple CLI wiring
-        parser.add_argument('--orders', type=int, default=3, help='Number of orders to create (default 3).')
-        parser.add_argument('--min-lines', type=int, default=2, help='Minimum lines per order (default 2).')
-        parser.add_argument('--max-lines', type=int, default=5, help='Maximum lines per order (default 5).')
-        parser.add_argument('--force', action='store_true', help='Proceed even if no customers/vendors present.')
+    def add_arguments(self, parser):
+        parser.add_argument('--orders', type=int, default=2, help='Number of sales orders to create')
+        parser.add_argument('--lines', type=int, default=3, help='Lines per order')
 
-    def handle(self, *args, **opts):  # noqa: D401
-        orders_requested = max(1, opts['orders'])
-        min_lines = max(1, opts['min_lines'])
-        max_lines = max(min_lines, opts['max_lines'])
-        force = opts['force']
-
-        customers = list(CustomerOrg.objects.all()[:50])
-        vendors = list(VendorOrg.objects.all()[:50])
-        if (not customers or not vendors) and not force:
-            self.stdout.write(self.style.ERROR('Need at least one customer and one vendor (or use --force).'))
-            return
+    def handle(self, *args, **options):
+        orders = int(options.get('orders') or 2)
+        lines_per = int(options.get('lines') or 3)
 
         created_orders = 0
         created_lines = 0
 
+        # Try to find an existing contact to link
+        contact: Optional[Contact] = Contact.objects.order_by('id').first()
+
+        # Fetch items to use on lines; fall back to creating placeholder items if none
+        items = list(Item.objects.all()[:10])
+        if not items:
+            # Create a couple of placeholder items
+            for i in range(3):
+                itm = Item.objects.create(
+                    ida=f"DEMO-ITEM-{i+1}",
+                )
+                items.append(itm)
+
         with transaction.atomic():
-            for n in range(orders_requested):
-                order_no = f"SO-{random.randint(100000, 999999)}"
-                order = SalesOrder.objects.create(order_no=order_no)
+            for oi in range(orders):
+                order = SalesOrder.objects.create(order_no=f"SO-DEMO-{SalesOrder.objects.count()+1:04d}")
+
+                # Link related via refs.links so related endpoint can forward-hydrate
+                refs = order.refs or {}
+                links = refs.get('links') or {}
+                if contact:
+                    links.setdefault('contacts', [])
+                    if contact.id not in links['contacts']:
+                        links['contacts'].append(contact.id)
+                refs['links'] = links
+                order.refs = refs
+                order.save(update_fields=['refs'])
+
                 created_orders += 1
-                line_total = random.randint(min_lines, max_lines)
-                for i in range(line_total):
-                    line = SalesOrderLine.objects.create(
+
+                for li in range(lines_per):
+                    item = random.choice(items)
+                    line = SalesOrderLine(
                         parent=order,
-                        parent_ref_id=order.pk,  # use pk to avoid accessing a non-existent 'id' attribute
-                        status='open',
-                        type_sale='standard',
-                        probability=None,
+                        status='planned',
                     )
-                    # Initialize JSON structures
+                    # Ensure JSON defaults and set a minimal item/qty/price snapshot
                     line.ensure_json_defaults()
-                    # Mutate safely
-                    if isinstance(line.item, dict):
-                        line.item['description'] = f"Seed Item {n+1}-{i+1}"
-                        line.item['line_number'] = i + 1
-                    if isinstance(line.source, dict):
-                        if customers:
-                            line.source.setdefault('customer_id', getattr(random.choice(customers), 'id', 0))
-                        if vendors:
-                            line.source.setdefault('vendor_id', getattr(random.choice(vendors), 'id', 0))
-                    if isinstance(line.price, dict):
-                        unit_price = Decimal(random.randint(10, 200))
-                        line.price['unit'] = float(unit_price)
-                    if isinstance(line.cost, dict):
-                        line.cost['unit'] = float(line.price.get('unit', 0) * 0.6 if isinstance(line.price, dict) else 0)
-                    if isinstance(line.quantity, dict):
-                        line.quantity.setdefault('placed', 1)
-                    # Persist mutated JSON blobs
-                    line.save(update_fields=['item', 'source', 'price', 'cost', 'quantity', 'status', 'type_sale'])
+                    item_blob = dict(line.item or {})
+                    item_blob.update({
+                        'id_num': item.id,
+                        'uuid_item': str(item.uuid) if getattr(item, 'uuid', None) else '',
+                        'description': getattr(item, 'name', '') or getattr(item, 'ida', ''),
+                        'unit_measure': 'ea',
+                    })
+                    qty = (li + 1) * 2
+                    qty_blob = dict(line.quantity or {})
+                    qty_blob.update({
+                        'placed': qty,
+                        'backlog': qty,
+                        'remaining': qty,
+                        'precision': 0,
+                    })
+                    unit_price = 10.0 + li * 5.0
+                    price_blob = dict(line.price or {})
+                    price_blob.update({
+                        'unit': unit_price,
+                        'extended': unit_price * qty,
+                        'precision': 2,
+                    })
+                    # Initial save to get PK and mirror parent_ref_id
+                    line.save()
+                    # Persist JSON blobs via queryset.update to avoid static assignment warnings
+                    SalesOrderLine.objects.filter(pk=line.pk).update(
+                        item=item_blob,
+                        quantity=qty_blob,
+                        price=price_blob,
+                    )
                     created_lines += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f"Created {created_orders} orders and {created_lines} order lines (range {min_lines}-{max_lines} lines/order)."
+            f"Seeded {created_orders} sales orders with {created_lines} lines"
         ))
+"""
+Management command to seed SalesOrders with SalesOrderLines.
+Usage:
+  python manage.py seed_transactions --orders 2 --lines 3
+Creates demo orders and lines so detail GET embeds non-empty sales_order_lines.
+"""

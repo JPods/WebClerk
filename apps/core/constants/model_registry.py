@@ -72,6 +72,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'doc_tag': ModelMeta('doc_tag', 'apps.docs.models.tag.Tag', 'Doc Tag', 'Doc Tags', 'doc-tags', kind='support', aliases=['tags']),
 
     # --- products --- (A->Z by key)
+    'item': ModelMeta('item', 'apps.products.models.item.Item', 'Item', 'Items', 'items', kind='support', aliases=['items']),
     'bill_of_material': ModelMeta('bill_of_material', 'apps.products.models.bom.BillOfMaterial', 'Bill Of Material', 'Bill Of Materials', 'bills-of-material', kind='support', aliases=['bill_of_materials', 'bom']),
     'catalog': ModelMeta('catalog', 'apps.products.models.catalog.Catalog', 'Catalog', 'Catalogs', 'catalogs', kind='support', aliases=['catalogs']),
     'delivery_line': ModelMeta('delivery_line', 'apps.products.models.flow.DeliveryLine', 'Delivery Line', 'Delivery Lines', 'delivery-lines', kind='support', aliases=['delivery_lines']),

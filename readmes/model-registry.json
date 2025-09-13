@@ -61,6 +61,16 @@
     ]
   },
   {
+    "key": "contact",
+    "app": "core",
+    "model": "apps.core.models.contact.Contact",
+    "endpoint": "contacts",
+    "kind": "support",
+    "aliases": [
+      "contacts"
+    ]
+  },
+  {
     "key": "currency",
     "app": "accounts",
     "model": "apps.accounts.models.currency.Currency",
@@ -271,6 +281,16 @@
     "kind": "line",
     "aliases": [
       "invoice_lines"
+    ]
+  },
+  {
+    "key": "item",
+    "app": "products",
+    "model": "apps.products.models.item.Item",
+    "endpoint": "items",
+    "kind": "support",
+    "aliases": [
+      "items"
     ]
   },
   {
