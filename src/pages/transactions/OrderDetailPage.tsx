@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getRecord } from '../../api/wcapi';
 
@@ -7,6 +7,7 @@ const OrderDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<any>(null);
+  const [lines, setLines] = useState<any[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -18,6 +19,10 @@ const OrderDetailPage: React.FC = () => {
         const detail = await getRecord('sales_order', Number(id));
         if (!mounted) return;
         setOrder(detail?.record ?? null);
+        const rel = detail?.related || {};
+        // Prefer canonical key; fallbacks for legacy naming
+        const detected = rel['sales_order_lines'] || rel['order_lines'] || rel['orderlines'] || [];
+        setLines(Array.isArray(detected) ? detected : []);
       } catch (e: any) {
         setError(e?.message || 'Failed to load order');
       } finally {
@@ -27,6 +32,16 @@ const OrderDetailPage: React.FC = () => {
     load();
     return () => { mounted = false; };
   }, [id]);
+
+  const lineColumns = useMemo(() => {
+    if (!lines.length) return [] as string[];
+    // Pick a small, useful set; fall back to first few keys
+    const preferred = ['line_no', 'item_id', 'description', 'qty', 'price', 'amount'];
+    const keys = Object.keys(lines[0] || {});
+    const cols = preferred.filter((k) => keys.includes(k));
+    return cols.length ? cols : keys.slice(0, 8);
+  }, [lines]);
+
   return (
     <div className="p-4 space-y-4">
       <nav className="text-sm text-gray-500">Home / Transactions / Orders / {id}</nav>
@@ -61,7 +76,33 @@ const OrderDetailPage: React.FC = () => {
         <div className="space-y-4">
           <div className="card p-4 border rounded">Product Tree (placeholder)</div>
           <div className="card p-4 border rounded">Items List (placeholder)</div>
-          <div className="card p-4 border rounded">Order Lines (placeholder)</div>
+          <div className="card p-4 border rounded">
+            <div className="font-medium mb-2">Order Lines</div>
+            {lines.length === 0 ? (
+              <div className="text-sm text-gray-500">No lines</div>
+            ) : (
+              <div className="overflow-auto">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {lineColumns.map((c) => (
+                        <th key={c} className="text-left px-2 py-1 font-semibold text-gray-700 border-b">{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((ln, idx) => (
+                      <tr key={idx} className="odd:bg-white even:bg-gray-50">
+                        {lineColumns.map((c) => (
+                          <td key={c} className="px-2 py-1 border-b whitespace-nowrap">{String(ln?.[c] ?? '')}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
           <div className="card p-4 border rounded">QA List & Form (placeholder)</div>
         </div>
       </div>

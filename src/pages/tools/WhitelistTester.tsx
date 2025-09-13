@@ -66,6 +66,17 @@ const PRESETS: Preset[] = [
     },
   },
   {
+    label: 'Get Items (GET)',
+    method: 'GET',
+    url: '/wcapi/get/?model_name=item&limit=10',
+    body: {},
+    info: {
+      description: 'List items (canonical product model). Use model_name=item.',
+      requires: { query: ['model_name'], headers: ['Authorization (Bearer …) when auth enforced'] },
+      notes: ['Prefer item over org_item. org_item is an association (org↔item).'],
+    },
+  },
+  {
     label: 'Save (POST)',
     method: 'POST',
     url: '/wcapi/save/',
@@ -75,6 +86,20 @@ const PRESETS: Preset[] = [
       requires: { body: ['model_name', 'fields…'], headers: ['Authorization (Bearer …) when auth enforced'] },
       notes: ['Include id to update; omit id to create.', 'Field validation depends on model.'],
       example: { model_name: 'contact', id: 1, name: 'Alice' },
+    },
+  },
+  {
+    label: 'Order Detail + Lines (GET)',
+    method: 'GET',
+    url: '/wcapi/get/?model_name=sales_order&id=1',
+    body: {},
+    info: {
+      description: 'Order detail response embeds line items under data.related.*_lines.',
+      requires: { query: ['model_name', 'id'], headers: ['Authorization (Bearer …) when auth enforced'] },
+      notes: [
+        'No separate call needed for order lines.',
+        'Canonical key: related.sales_order_lines. Legacy fallbacks may include related.order_lines or related.orderlines depending on environment.',
+      ],
     },
   },
 ];
