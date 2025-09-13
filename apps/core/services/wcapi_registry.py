@@ -21,6 +21,8 @@ MODEL_MAP = {
     'addresses': Location,  # alias for backward compatibility
     # products
     'items': Item,
+    # alias to support org_item naming used by introspection
+    'org_items': Item,
     # transactional documents (initial subset; add more as exposed)
     'sales_orders': SalesOrder,
     'sales_order_lines': SalesOrderLine,
@@ -57,6 +59,7 @@ _SINGULAR_ALIAS_TO_TABLE = {
     'location': 'locations',
     'address': 'locations',  # force to locations
     'item': 'items',
+    'org_item': 'items',  # accept org_item as canonical alias
     'sales_order': 'sales_orders',
     'sales_order_line': 'sales_order_lines',
     'work_order': 'work_orders',

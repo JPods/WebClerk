@@ -6,6 +6,8 @@ from django.http import HttpRequest
 from apps.core.views.get_view import OpenReadOrAuthenticated
 from common.api_responses import api_response
 from apps.products.models import Item
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
+from rest_framework import serializers
 try:
     from apps.products.models import Variant  # type: ignore
 except Exception:  # pragma: no cover
@@ -21,6 +23,26 @@ class ItemVariantsView(APIView):
 
     permission_classes = [OpenReadOrAuthenticated]
 
+    @extend_schema(
+        operation_id="products_item_variants_retrieve",
+        parameters=[
+            OpenApiParameter(name='parent_id', required=False, type=int),
+            OpenApiParameter(name='parent_uuid', required=False, type=str),
+            OpenApiParameter(name='key', required=False, type=str),
+        ],
+        responses={
+            200: inline_serializer(
+                name="ItemVariantList",
+                fields={
+                    'model_name': serializers.CharField(),
+                    'results': serializers.ListField(child=serializers.DictField()),
+                    'total': serializers.IntegerField(),
+                    'limit': serializers.IntegerField(allow_null=True),
+                    'offset': serializers.IntegerField(),
+                }
+            )
+        }
+    )
     def get(self, request: HttpRequest):
         # Prefer concrete Variant for filtering when available
         parent_id = request.GET.get('parent_id')

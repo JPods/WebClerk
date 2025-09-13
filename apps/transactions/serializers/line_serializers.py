@@ -137,6 +137,7 @@ class RequisitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requisition
         fields = ['id', 'req_no', 'dt_created']
+        ref_name = 'TxRequisitionHeader'
         read_only_fields = ['id', 'dt_created']
 
 
@@ -146,6 +147,7 @@ class RequisitionLineSerializer(BaseLineSerializer):
     class Meta(BaseLineSerializer.Meta):
         model = RequisitionLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
+        ref_name = 'TxRequisitionLine'
 
 
 class ProjectSerializer(serializers.ModelSerializer):

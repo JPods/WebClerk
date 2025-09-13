@@ -3,6 +3,8 @@ from rest_framework.response import Response  # legacy direct usage (will wrap)
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from common.api_responses import api_response
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 
 # Map canonical model keys (plural db_table) to model classes
 TABLE_MODEL_MAP = {
@@ -26,6 +28,33 @@ def get_model_class(model_key):
 class KeywordSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id="core_keyword_search_create",
+        request=inline_serializer(
+            name="KeywordSearchRequest",
+            fields={
+                'keywords': serializers.CharField(),
+                'model_name': serializers.CharField(required=False),
+                'query_type': serializers.ChoiceField(choices=['AND', 'OR'], required=False),
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="KeywordSearchResponse",
+                fields={
+                    'model_name': serializers.CharField(),
+                    'query_type': serializers.CharField(),
+                    'keywords': serializers.ListField(child=serializers.CharField()),
+                    'results': serializers.ListField(child=inline_serializer(name='KeywordHit', fields={
+                        'table': serializers.CharField(),
+                        'id': serializers.IntegerField(),
+                        'keywords': serializers.ListField(child=serializers.CharField(), required=False),
+                    })),
+                    'errors': serializers.DictField(required=False),
+                }
+            )
+        }
+    )
     def post(self, request):
         keywords_raw = request.data.get('keywords', '')
         model_key = request.data.get('model_name', '')  # accept singular or plural key

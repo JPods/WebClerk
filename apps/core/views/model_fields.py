@@ -6,9 +6,11 @@ from django.apps import apps
 from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter, OpenApiExample
 
 
-def _field_info(f: models.Field) -> Dict[str, Any]:
+def _field_info(f: Any) -> Dict[str, Any]:
     info: Dict[str, Any] = {
         'name': getattr(f, 'attname', getattr(f, 'name', '')),
         'type': f.__class__.__name__,
@@ -42,12 +44,61 @@ class ModelFieldsView(APIView):
 
     Query params:
       - compact=1: only include names and types per field to reduce payload size
-      - app=<app_label>: filter to a specific app
+    - app_name=<app_label>: filter to a specific app
     """
 
+    @extend_schema(
+        operation_id="core_model_fields_retrieve",
+        parameters=[
+            OpenApiParameter(name='compact', description='Return only name and type for fields when 1/true', required=False, type=str),
+            OpenApiParameter(name='app_name', description='Filter to a single app', required=False, type=str),
+        ],
+        responses={
+            200: inline_serializer(
+                name="ModelFields",
+                many=True,
+                fields={
+                    'app': serializers.CharField(),
+                    'model': serializers.CharField(),
+                    'db_table': serializers.CharField(),
+                    'field_count': serializers.IntegerField(),
+                    'fields': inline_serializer(
+                        name="FieldInfo",
+                        many=True,
+                        fields={
+                            'name': serializers.CharField(),
+                            'type': serializers.CharField(),
+                            'null': serializers.BooleanField(required=False),
+                            'blank': serializers.BooleanField(required=False),
+                            'primary_key': serializers.BooleanField(required=False),
+                            'unique': serializers.BooleanField(required=False),
+                            'db_index': serializers.BooleanField(required=False),
+                            'max_length': serializers.IntegerField(required=False),
+                            'decimal_places': serializers.IntegerField(required=False),
+                            'max_digits': serializers.IntegerField(required=False),
+                            'related_model': serializers.CharField(required=False),
+                        },
+                    ),
+                },
+            )
+        },
+        examples=[
+            OpenApiExample(
+                'ModelFieldsExample',
+                value=[{
+                    'app': 'products',
+                    'model': 'products.Item',
+                    'db_table': 'items',
+                    'field_count': 12,
+                    'fields': [{'name': 'id', 'type': 'AutoField'}, {'name': 'name', 'type': 'CharField'}]
+                }]
+            )
+        ],
+        description="Introspect Django models and return their concrete fields.",
+    )
     def get(self, request):
         compact = request.query_params.get('compact') in ('1', 'true', 'yes')
-        only_app = request.query_params.get('app')
+        only_app = request.query_params.get('app_name')
         payload: List[Dict[str, Any]] = []
         for model in sorted(apps.get_models(), key=lambda m: f"{m._meta.app_label}.{m.__name__}"):
             app_label = model._meta.app_label

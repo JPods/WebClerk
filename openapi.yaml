@@ -1,0 +1,785 @@
+openapi: 3.0.3
+info:
+  title: WEBCLERK 3.0 API
+  version: 3.0.0
+  description: API for managing full ERP system with role-based access, email verification,
+    and JWT authentication.
+paths:
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Login and receive JWT pair plus basic user claims in the envelope
+        data.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginEnvelope'
+              examples:
+                LoginSuccess:
+                  value:
+                    status: success
+                    error: null
+                    code: 200
+                    message: ''
+                    data:
+                      refresh: '...'
+                      access: '...'
+                      email: 1@1.com
+                      role: admin
+                      name_first: first_1
+                      name_last: last_1
+          description: ''
+  /api/model-fields/:
+    get:
+      operationId: core_model_fields_retrieve
+      description: Introspect Django models and return their concrete fields.
+      parameters:
+      - in: query
+        name: app_name
+        schema:
+          type: string
+        description: Filter to a single app
+      - in: query
+        name: compact
+        schema:
+          type: string
+        description: Return only name and type for fields when 1/true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelFields'
+              examples:
+                ModelFieldsExample:
+                  value:
+                  - - app: products
+                      model: products.Item
+                      db_table: items
+                      field_count: 12
+                      fields:
+                      - name: id
+                        type: AutoField
+                      - name: name
+                        type: CharField
+          description: ''
+  /wcapi/get/:
+    get:
+      operationId: wcapi_get_retrieve
+      description: List or retrieve records from the registry by model_name. Returns
+        JSON envelope with results and basic pagination fields.
+      parameters:
+      - in: query
+        name: id
+        schema:
+          type: integer
+      - in: query
+        name: model_name
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: project
+        schema:
+          type: string
+      - in: query
+        name: variants_of
+        schema:
+          type: integer
+      tags:
+      - wcapi
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WcapiGetEnvelope'
+              examples:
+                WcapiGetContactList:
+                  value:
+                    status: success
+                    error: null
+                    code: 200
+                    message: ''
+                    data:
+                      model_name: contact
+                      results:
+                      - id: 9
+                        uuid: null
+                        ida: ''
+                        dt_created: 1757637369130
+                        dt_modified: 1757637369130
+                        version: 1
+                        security_level: 0
+                        is_deleted: false
+                        is_archived: false
+                        metadata:
+                          flags:
+                            schema_rev: 1
+                          access:
+                            edit: []
+                            view: []
+                          health:
+                            rating: 0
+                            accuracy: 0
+                            freshness: 0
+                            consistency: 0
+                            completeness: 0
+                          history:
+                            synced:
+                              dt: 0
+                              contact_id: 0
+                            created:
+                              dt: 1757637369130
+                              contact_id: 0
+                            accessed:
+                              dt: 1757637369130
+                              contact_id: 0
+                            modified:
+                              dt: 1757637369130
+                              contact_id: 0
+                            verified:
+                              dt: 0
+                              contact_id: 0
+                          publish: ''
+                          version: '1.0'
+                          priority: ''
+                          security: ''
+                          undefined: {}
+                          versioning: {}
+                        refs:
+                          tags: []
+                          links:
+                            rep: []
+                            email: []
+                            items: []
+                            order: []
+                            phone: []
+                            domain: []
+                            vendor: []
+                            contact: []
+                            project: []
+                            contacts: []
+                            customer: []
+                            document: []
+                            location: []
+                            manufacturer: []
+                          keywords: []
+                          categories: []
+                          related_ids: []
+                        prefs:
+                          userdefined: {}
+                        comments:
+                          notes: []
+                          public: ''
+                          partner: ''
+                          process: ''
+                        health_rating: 0
+                        password: ''
+                        last_login: null
+                        is_superuser: false
+                        email: ''
+                        name_first: fred
+                        name_last: ''
+                        name_middle: ''
+                        name_prefix: ''
+                        name_suffix: ''
+                        company: ''
+                        title: ''
+                        department: ''
+                        comment: ''
+                        role: user
+                        is_active: true
+                        is_staff: false
+                        date_joined: '2025-09-12T00:36:09.130497+00:00'
+                        groups: []
+                        user_permissions: []
+                      total: 9
+                      limit: null
+                      offset: 0
+                  description: Example GET /wcapi/get/?model_name=contact list response
+                WcapiGetContactDetail:
+                  value:
+                    status: success
+                    error: null
+                    code: 200
+                    message: ''
+                    data:
+                      model_name: contact
+                      record:
+                        id: 1
+                        uuid: null
+                        ida: contact_0
+                        dt_created: 1757535492500
+                        dt_modified: 1757535492500
+                        version: 1
+                        security_level: 0
+                        is_deleted: false
+                        is_archived: false
+                        metadata:
+                          flags:
+                            schema_rev: 1
+                          access:
+                            edit: []
+                            view: []
+                          health:
+                            rating: 0
+                            accuracy: 0
+                            freshness: 0
+                            consistency: 0
+                            completeness: 0
+                          history:
+                            synced:
+                              dt: 0
+                              contact_id: 0
+                            created:
+                              dt: 1757535492500
+                              contact_id: 0
+                            accessed:
+                              dt: 1757535492500
+                              contact_id: 0
+                            modified:
+                              dt: 1757535492500
+                              contact_id: 0
+                            verified:
+                              dt: 0
+                              contact_id: 0
+                          publish: ''
+                          version: '1.0'
+                          priority: ''
+                          security: ''
+                          undefined: {}
+                          versioning: {}
+                        refs:
+                          tags: []
+                          links:
+                            emails:
+                            - 2
+                            - 5
+                            phones:
+                            - 4
+                            actions:
+                            - 4
+                            domains:
+                            - 5
+                          keywords: []
+                          categories: []
+                          related_ids: []
+                        prefs:
+                          userdefined: {}
+                        comments:
+                          notes: []
+                          public: ''
+                          partner: ''
+                          process: ''
+                        health_rating: 0
+                        password: contact_0
+                        last_login: '2025-09-10T20:18:12.500650+00:00'
+                        is_superuser: false
+                        email: contact_0
+                        name_first: contact_0
+                        name_last: contact_0
+                        name_middle: contact_0
+                        name_prefix: contact_0
+                        name_suffix: contact_0
+                        company: contact_0
+                        title: contact_0
+                        department: contact_0
+                        comment: ''
+                        role: user
+                        is_active: true
+                        is_staff: false
+                        date_joined: '2025-09-10T20:18:12.500783+00:00'
+                        groups: []
+                        user_permissions:
+                        - 20
+                        - 268
+                        - 40
+                      related:
+                        emails:
+                        - id: 2
+                          ida: email_1
+                          email: email_1
+                          is_primary: false
+                          is_verified: false
+                        - id: 5
+                          ida: email_4
+                          email: email_4
+                          is_primary: false
+                          is_verified: false
+                        phones:
+                        - id: 4
+                          ida: phone_3
+                          number: phone_3
+                          opt_out: false
+                        locations:
+                        - id: 4
+                          ida: location_3
+                          address1: location_3
+                          city: location_3
+                        domains:
+                        - id: 5
+                          ida: domain_4
+                          path: domain_4
+                          status: active
+                        actions:
+                        - id: 4
+                          ida: action_3
+                          action: action_3
+                          status: action_3
+                  description: Example GET /wcapi/get/?model_name=contact&id=1 detail
+                    response including related
+          description: ''
+  /wcapi/model_name/detail/:
+    get:
+      operationId: core_model_name_detail_retrieve
+      description: Return detail for a given model_name (singular code), including
+        fields.
+      parameters:
+      - in: query
+        name: model_name
+        schema:
+          type: string
+        required: true
+      tags:
+      - wcapi
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelNameDetail'
+          description: ''
+  /wcapi/model_name/list/:
+    get:
+      operationId: core_model_names_list
+      description: Return the list of canonical singular model_name codes.
+      tags:
+      - wcapi
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelNameList'
+          description: ''
+  /wcapi/models/:
+    get:
+      operationId: core_model_info_retrieve
+      parameters:
+      - in: query
+        name: model_name
+        schema:
+          type: string
+        description: Singular model_name code to restrict
+      - in: query
+        name: related_model_names
+        schema:
+          type: string
+        description: Comma-separated model_name codes to include
+      tags:
+      - wcapi
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelInfoResponse'
+          description: ''
+  /wcapi/save/:
+    post:
+      operationId: wcapi_save_create_update
+      description: Create or update a record by model_name. If id is provided, updates
+        that record; otherwise creates a new record. Returns JSON envelope with saved
+        record and messages.
+      tags:
+      - wcapi
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WcapiSaveRequest'
+            examples:
+              UpdateContact:
+                value:
+                  model_name: contact
+                  id: 1
+                  name_first: fred
+                  user1: test of undefined
+                  needtoremove: find a way
+                description: Update existing contact id=1; unknown fields are ignored
+                  or captured in prefs.userdefined
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WcapiSaveRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WcapiSaveRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WcapiSaveEnvelope'
+              examples:
+                SaveResponse:
+                  value:
+                    status: success
+                    error: null
+                    code: 200
+                    message: ''
+                    data:
+                      id: 1
+                      model_name: contact
+                      version: 2
+                      record:
+                        id: 1
+                        name_first: fred
+                        role: user
+                      messages: []
+                  description: Response after save (update or create)
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WcapiSaveError'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WcapiSaveAuthError'
+          description: ''
+        '412':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WcapiSaveVersionConflict'
+          description: ''
+components:
+  schemas:
+    FieldInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        'null':
+          type: boolean
+        blank:
+          type: boolean
+        primary_key:
+          type: boolean
+        unique:
+          type: boolean
+        db_index:
+          type: boolean
+        max_length:
+          type: integer
+        decimal_places:
+          type: integer
+        max_digits:
+          type: integer
+        related_model:
+          type: string
+      required:
+      - name
+      - type
+    LoginEnvelope:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          nullable: true
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/LoginResponse'
+      required:
+      - code
+      - data
+      - message
+      - status
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+      required:
+      - email
+      - password
+    LoginResponse:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        name_first:
+          type: string
+        name_last:
+          type: string
+      required:
+      - access
+      - email
+      - name_first
+      - name_last
+      - refresh
+      - role
+    ModelFields:
+      type: object
+      properties:
+        app:
+          type: string
+        model:
+          type: string
+        db_table:
+          type: string
+        field_count:
+          type: integer
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldInfo'
+      required:
+      - app
+      - db_table
+      - field_count
+      - fields
+      - model
+    ModelInfoResponse:
+      type: object
+      properties:
+        models:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      required:
+      - models
+    ModelNameDetail:
+      type: object
+      properties:
+        model:
+          type: object
+          additionalProperties: {}
+      required:
+      - model
+    ModelNameList:
+      type: object
+      properties:
+        model_names:
+          type: array
+          items:
+            type: string
+        count:
+          type: integer
+      required:
+      - count
+      - model_names
+    WcapiGetEnvelope:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          nullable: true
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/WcapiGetResponse'
+      required:
+      - code
+      - data
+      - message
+      - status
+    WcapiGetResponse:
+      type: object
+      properties:
+        model_name:
+          type: string
+        record:
+          type: object
+          additionalProperties: {}
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        related:
+          type: object
+          additionalProperties: {}
+        related_errors:
+          type: object
+          additionalProperties: {}
+      required:
+      - model_name
+    WcapiSaveAuthError:
+      type: object
+      properties:
+        detail:
+          type: string
+    WcapiSaveEnvelope:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          nullable: true
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/WcapiSaveResponse'
+      required:
+      - code
+      - data
+      - message
+      - status
+    WcapiSaveError:
+      type: object
+      properties:
+        detail:
+          type: string
+    WcapiSaveRequest:
+      type: object
+      properties:
+        model_name:
+          type: string
+        id:
+          type: integer
+        version:
+          type: integer
+        expected_version:
+          type: integer
+      required:
+      - model_name
+    WcapiSaveResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        model_name:
+          type: string
+        version:
+          type: integer
+          nullable: true
+        record:
+          type: object
+          additionalProperties: {}
+        messages:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - model_name
+      - record
+    WcapiSaveVersionConflict:
+      type: object
+      properties:
+        detail:
+          type: string
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

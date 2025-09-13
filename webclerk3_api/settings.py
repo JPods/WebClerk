@@ -272,7 +272,7 @@ README_INDEX_CACHE_SECONDS = int(os.getenv('README_INDEX_CACHE_SECONDS', '120'))
 
 
 
-DRF_SPECTACULAR_SETTINGS = {
+SPECTACULAR_SETTINGS = {
     'TITLE': 'WEBCLERK 3.0 API',
     'DESCRIPTION': 'API for managing full ERP system with role-based access, email verification, and JWT authentication.',
     'VERSION': '3.0.0',
@@ -285,6 +285,9 @@ DRF_SPECTACULAR_SETTINGS = {
                 'bearerFormat': 'JWT',
             },
         },
+    ],
+    'PREPROCESSING_HOOKS': [
+        'common.schema_hooks.whitelist_preprocessor',
     ],
 }
 

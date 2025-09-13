@@ -33,6 +33,8 @@ from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
 from django.conf import settings
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -67,6 +69,76 @@ class SaveWcapiView(APIView):
     #def dispatch(self, *args, **kwargs):
         #return super().dispatch(*args, **kwargs)
     
+    @extend_schema(
+        operation_id="wcapi_save_create_update",
+        request=inline_serializer(
+            name="WcapiSaveRequest",
+            fields={
+                'model_name': serializers.CharField(),
+                'id': serializers.IntegerField(required=False),
+                'version': serializers.IntegerField(required=False),
+                'expected_version': serializers.IntegerField(required=False),
+                # arbitrary model fields accepted; unknown fields may be captured into prefs.userdefined
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="WcapiSaveEnvelope",
+                fields={
+                    'status': serializers.CharField(),
+                    'error': serializers.JSONField(required=False, allow_null=True),
+                    'code': serializers.IntegerField(),
+                    'message': serializers.CharField(allow_blank=True),
+                    'data': inline_serializer(
+                        name="WcapiSaveResponse",
+                        fields={
+                            'id': serializers.IntegerField(),
+                            'model_name': serializers.CharField(),
+                            'version': serializers.IntegerField(required=False, allow_null=True),
+                            'record': serializers.DictField(),
+                            'messages': serializers.ListField(child=serializers.CharField(), required=False),
+                        }
+                    ),
+                }
+            ),
+            400: inline_serializer(name='WcapiSaveError', fields={'detail': serializers.CharField(required=False)}),
+            401: inline_serializer(name='WcapiSaveAuthError', fields={'detail': serializers.CharField(required=False)}),
+            412: inline_serializer(name='WcapiSaveVersionConflict', fields={'detail': serializers.CharField(required=False)}),
+        },
+        examples=[
+            OpenApiExample(
+                name="UpdateContact",
+                description="Update existing contact id=1; unknown fields are ignored or captured in prefs.userdefined",
+                value={
+                    "model_name": "contact",
+                    "id": 1,
+                    "name_first": "fred",
+                    "user1": "test of undefined",
+                    "needtoremove": "find a way"
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                name="SaveResponse",
+                description="Response after save (update or create)",
+                value={
+                    "status": "success",
+                    "error": None,
+                    "code": 200,
+                    "message": "",
+                    "data": {
+                        "id": 1,
+                        "model_name": "contact",
+                        "version": 2,
+                        "record": {"id": 1, "name_first": "fred", "role": "user"},
+                        "messages": []
+                    }
+                },
+                response_only=True,
+            ),
+        ],
+        description="Create or update a record by model_name. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
+    )
     def post(self, request):
         # Auth: allow session or JWT; env flag WCAPI_JWT_ONLY can enforce JWT-only.
         from django.conf import settings

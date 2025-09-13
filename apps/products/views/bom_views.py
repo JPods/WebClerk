@@ -11,11 +11,25 @@ from apps.products.models.item import Item
 from apps.products.serializers.bom_serializers import BillOfMaterialSerializer
 from apps.products.services import bom_services
 from common.api_responses import api_response
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
+from rest_framework import serializers
 
 
 class BOMListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        operation_id="products_bom_list",
+        parameters=[
+            OpenApiParameter(name='as_of', description='Date (YYYY-MM-DD) to resolve historical BOM', required=False, type=str),
+            OpenApiParameter(name='revision', description='Revision code to select a specific BOM revision', required=False, type=str),
+            OpenApiParameter(name='raw', required=False, type=str),
+        ],
+        responses={200: inline_serializer(name='BillOfMaterialList', fields={
+            'results': serializers.ListField(child=BillOfMaterialSerializer()),
+            'total': serializers.IntegerField(),
+        })}
+    )
     def get(self, request, parent_id: int):
         raw_flag = request.query_params.get('raw') == '1'
         as_of_str = request.query_params.get('as_of')
@@ -36,6 +50,12 @@ class BOMListCreateView(APIView):
         }
         return api_response(data=payload, raw=raw_flag)
 
+    @extend_schema(
+        operation_id="products_bom_create",
+        request=BillOfMaterialSerializer,
+        responses={201: BillOfMaterialSerializer, 400: dict},
+        parameters=[OpenApiParameter(name='raw', required=False, type=str)],
+    )
     def post(self, request, parent_id: int):
         raw_flag = request.query_params.get('raw') == '1'
         data = request.data.copy()
@@ -60,6 +80,7 @@ class BOMDetailView(APIView):
     def get_object(self, pk: int) -> BillOfMaterial:
         return get_object_or_404(BillOfMaterial, pk=pk)
 
+    @extend_schema(operation_id="products_bom_retrieve", responses={200: BillOfMaterialSerializer}, parameters=[OpenApiParameter(name='raw', required=False, type=str)])
     def get(self, request, pk: int):
         raw_flag = request.query_params.get('raw') == '1'
         line = self.get_object(pk)
@@ -68,6 +89,7 @@ class BOMDetailView(APIView):
             return Response(data)
         return api_response(data=data, raw=raw_flag)
 
+    @extend_schema(operation_id="products_bom_partial_update", request=BillOfMaterialSerializer, responses={200: BillOfMaterialSerializer, 400: dict}, parameters=[OpenApiParameter(name='raw', required=False, type=str)])
     def patch(self, request, pk: int):
         raw_flag = request.query_params.get('raw') == '1'
         line = self.get_object(pk)
@@ -83,6 +105,7 @@ class BOMDetailView(APIView):
             return Response(serializer.errors, status=400)
         return api_response(success=False, status_code=400, message='Validation error', error={'fields': serializer.errors}, raw=raw_flag)
 
+    @extend_schema(operation_id="products_bom_destroy", responses={200: inline_serializer(name='DeleteMessage', fields={'message': serializers.CharField()})}, parameters=[OpenApiParameter(name='raw', required=False, type=str)])
     def delete(self, request, pk: int):
         raw_flag = request.query_params.get('raw') == '1'
         line = self.get_object(pk)
@@ -95,6 +118,11 @@ class BOMDetailView(APIView):
 class BOMRecalcCostView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        operation_id="products_bom_recalc_cost",
+        parameters=[OpenApiParameter(name='raw', required=False, type=str)],
+        responses={200: inline_serializer(name='RecalcMessage', fields={'message': serializers.CharField(), 'parent_id': serializers.IntegerField()})}
+    )
     def post(self, request, parent_id: int):
         raw_flag = request.query_params.get('raw') == '1'
         # Ensure parent exists for 404 semantics

@@ -7,4 +7,5 @@ class RequisitionSerializer(RoleAwareModelSerializer):
     class Meta:
         model = RequisitionStd
         fields = '__all__'
+        ref_name = 'TxRequisitionStd'
     read_only_fields = ['id','uuid','version','dt_created','dt_modified']

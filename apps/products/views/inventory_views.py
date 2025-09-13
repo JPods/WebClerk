@@ -16,7 +16,7 @@ from apps.products.services.inventory_reservations import (
 from apps.products.serializers.reservation_serializers import (
     InventoryReservationSerializer, ReservationCreateSerializer, ReservationActionSerializer,
 )
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
 from apps.products.services.inventory_metrics import summarize_inventory_metrics
 
 
@@ -238,6 +238,11 @@ class InventoryReservationActionView(APIView):
 class InventoryMetricsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        operation_id="inventory_metrics_retrieve",
+        responses={200: dict},
+        description="Summarized inventory metrics including reservations, stacks, protection, and processor runs.",
+    )
     def get(self, request):
         raw_flag = request.query_params.get('raw') == '1'
         samples_flag = request.query_params.get('samples') == '1'
@@ -254,10 +259,12 @@ class InventoryPrometheusMetricsView(APIView):
         parameters=[
             OpenApiParameter(name='auth', description='Set auth=0 to bypass auth when INVENTORY_PROMETHEUS_REQUIRE_AUTH is true', required=False, type=str),
         ],
-        responses={200: OpenApiExample(
-            'PrometheusSample',
-            value='''inventory_reservations_count{state="pending"} 3\ninventory_reservations_active_reserved_qty 15.0\n...'''
-        )},
+        responses={
+            200: OpenApiResponse(
+                response=str,
+                description='Prometheus plaintext metrics',
+            )
+        },
         description='Prometheus-style plaintext metrics for inventory, reservations, and processor runs.'
     )
     def get(self, request):

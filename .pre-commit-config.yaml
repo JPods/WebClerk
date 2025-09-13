@@ -1,6 +1,14 @@
 repos:
   - repo: local
     hooks:
+      - id: openapi-sync
+        name: OpenAPI YAML->JSON sync
+        entry: bin/python tools/openapi_sync.py
+        language: system
+        pass_filenames: false
+        files: ^(openapi\.yaml|openapi\.json|tools/openapi_sync\.py)$repos:
+  - repo: local
+    hooks:
       - id: forbid-root-docs
         name: Forbid root-level doc files (use readmes/)
         entry: bash
@@ -20,6 +28,7 @@ repos:
             done
         language: system
         pass_filenames: false
+       
         stages: [pre-commit]
 
       - id: md-trailing-whitespace-trim

@@ -104,13 +104,12 @@ urlpatterns = [
     # create or full update
     # path('wcapi/post/', WcapiView.as_view(), name='post'),  # replaced by /wcapi/save/
     
-    path('wcapi/query/', WcapiView.as_view(), name='query'),  # canonical list/filter endpoint
-    # Variants adapter (items, filtered by parent and/or canonical key)
-    path('wcapi/items/', ItemVariantsView.as_view(), name='wcapi-items'),
-    path('wcapi/metrics/', wcapi_metrics_response, name='wcapi-metrics'),
+    # path('wcapi/query/', WcapiView.as_view(), name='query'),  # disabled until reviewed
+    # path('wcapi/items/', ItemVariantsView.as_view(), name='wcapi-items'),  # disabled until reviewed
+    # path('wcapi/metrics/', wcapi_metrics_response, name='wcapi-metrics'),  # disabled until reviewed
 
  # full update
-    path('wcapi/related/', RelatedDataView.as_view(), name='related'),
+    # path('wcapi/related/', RelatedDataView.as_view(), name='related'),  # disabled until reviewed
     #path('wcapi/related/advanced/', RelatedDataAdvancedView.as_view(), name='related-data-advanced'),
   
     # path('wcapi/put/', WcapiView.as_view(), name='put'),  # replaced by /wcapi/save/
@@ -123,15 +122,15 @@ urlpatterns = [
     
     # path('wcapi/utilities/field-access/', FieldAccessView.as_view(), name='field-access'),
 
-    path('wcapi/utilities/allowed-fields/', AllowedFieldsView.as_view(), name='allowed-fields'),
-    
-    path('wcapi/keyword/', KeywordSearchView.as_view(), name='wcapi-keyword'),
+    # path('wcapi/utilities/allowed-fields/', AllowedFieldsView.as_view(), name='allowed-fields'),  # disabled until reviewed
+    # path('wcapi/keyword/', KeywordSearchView.as_view(), name='wcapi-keyword'),  # disabled until reviewed
 
     # path('wcapi/query-any/', QueryAnyView.as_view(), name='wcapi-query-any'),  # deprecated dynamic model access
     
+    # Keep introspection endpoints to help frontend structure UIs
     path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
     path('api/model-fields/', ModelFieldsView.as_view(), name='api-model-fields'),
-    path('wcapi/tables/', TableRegistryView.as_view(), name='wcapi-tables'),
+    # path('wcapi/tables/', TableRegistryView.as_view(), name='wcapi-tables'),  # disabled until reviewed
     path('wcapi/model_name/list/', ModelNameListView.as_view(), name='model-name-list'),
     path('wcapi/model_name/detail/', ModelNameDetailView.as_view(), name='model-name-detail'),
 
@@ -159,7 +158,7 @@ urlpatterns = [
     # Returns info for contacts, actions, and phones.
     
         # Contacts API endpoints (standardized)
-        path('contacts/', ContactApiListView.as_view(), name='contact-list'),
-        path('contacts/<int:pk>/', ContactApiDetailView.as_view(), name='contact-detail'),
-        path('contacts/search/', ContactApiSearchView.as_view(), name='contact-search'),
+    # path('contacts/', ContactApiListView.as_view(), name='contact-list'),  # disabled until reviewed
+    # path('contacts/<int:pk>/', ContactApiDetailView.as_view(), name='contact-detail'),  # disabled until reviewed
+    # path('contacts/search/', ContactApiSearchView.as_view(), name='contact-search'),  # disabled until reviewed
 ]

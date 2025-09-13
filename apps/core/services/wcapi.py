@@ -13,6 +13,8 @@ from django.db import models
 from typing import Sequence
 from collections import defaultdict
 import os
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
+from rest_framework import serializers
 try:
     # Enable Prometheus if env WCAPI_PROMETHEUS=1 (backward compat: WCAPI_METRICS_BACKEND=prom)
     PROM_ENABLED = os.getenv('WCAPI_PROMETHEUS', '0') == '1' or os.getenv('WCAPI_METRICS_BACKEND') == 'prom'
@@ -112,6 +114,29 @@ class WcapiView(LoginRequiredMixin, APIView):
         return model, None
 
     # GET: optional id for single record, else list
+    @extend_schema(
+        operation_id="wcapi_query_retrieve",
+        parameters=[
+            OpenApiParameter(name='model_name', description='Singular model code (e.g., item, contact)', required=True, type=str),
+            OpenApiParameter(name='id', description='Optional record id to fetch a single record', required=False, type=int),
+            OpenApiParameter(name='fields', description='Comma-separated projection of fields to include', required=False, type=str),
+            OpenApiParameter(name='limit', description='Page size (max 50)', required=False, type=int),
+            OpenApiParameter(name='offset', description='Pagination offset', required=False, type=int),
+        ],
+        responses={
+            200: inline_serializer(
+                name="WcapiListResponse",
+                fields={
+                    'model_name': serializers.CharField(),
+                    'results': serializers.ListField(child=serializers.DictField(), allow_empty=True),
+                    'total': serializers.IntegerField(required=False),
+                    'limit': serializers.IntegerField(required=False),
+                    'offset': serializers.IntegerField(required=False),
+                }
+            )
+        },
+        description="Generic read/query over whitelisted models with optional projection and pagination.",
+    )
     def get(self, request):
         # Auth: allow either session or JWT; optional strict mode via WCAPI_JWT_ONLY
         from django.conf import settings
@@ -190,6 +215,33 @@ class WcapiView(LoginRequiredMixin, APIView):
         return api_response(data={'model_name': singular, 'results': data, 'total': total, 'limit': limit, 'offset': offset})
 
     # POST: filtered list (exact match on allow-listed fields)
+    @extend_schema(
+        operation_id="wcapi_query_create",
+        request=inline_serializer(
+            name="WcapiQuery",
+            fields={
+                'model_name': serializers.CharField(),
+                'fields': serializers.ListField(child=serializers.CharField(), required=False),
+                'limit': serializers.IntegerField(required=False),
+                'offset': serializers.IntegerField(required=False),
+                'strict': serializers.BooleanField(required=False),
+                # additional filter fields are allow-listed and dynamic; documented textually
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="WcapiFilteredListResponse",
+                fields={
+                    'model_name': serializers.CharField(),
+                    'results': serializers.ListField(child=serializers.DictField(), allow_empty=True),
+                    'total': serializers.IntegerField(required=False),
+                    'limit': serializers.IntegerField(required=False),
+                    'offset': serializers.IntegerField(required=False),
+                }
+            )
+        },
+        description="Filtered list query with simple field-equals filters on an allow-list per model.",
+    )
     def post(self, request):
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
@@ -255,25 +307,35 @@ class WcapiView(LoginRequiredMixin, APIView):
     def delete(self, request):
         return api_response(success=False, status_code=405, message='DELETE not supported', error={'code': 'method_not_allowed', 'details': 'DELETE not supported'})
 
+    @extend_schema(exclude=True)
     def put(self, request):
         return api_response(success=False, status_code=405, message='PUT not supported', error={'code': 'method_not_allowed', 'details': 'PUT not supported'})
 
+    @extend_schema(exclude=True)
     def patch(self, request):
         return api_response(success=False, status_code=405, message='PATCH not supported', error={'code': 'method_not_allowed', 'details': 'PATCH not supported'})
 
+    @extend_schema(exclude=True)
     def head(self, request):
         return self.get(request)
 
+    @extend_schema(
+        operation_id="wcapi_query_options",
+        responses=inline_serializer(name='WcapiOptions', fields={'model_names': serializers.ListField(child=serializers.CharField())})
+    )
     def options(self, request):
         """Return the list of allowed model_names for discovery."""
         return api_response(data={'model_names': [to_model_name(t) for t in sorted(ALLOWED_TABLE_KEYS)]})
 
+    @extend_schema(exclude=True)
     def trace(self, request):
         return api_response(success=False, status_code=405, message='TRACE not supported', error={'code': 'method_not_allowed', 'details': 'TRACE not supported'})
 
+    @extend_schema(exclude=True)
     def connect(self, request):
         return api_response(success=False, status_code=405, message='CONNECT not supported', error={'code': 'method_not_allowed', 'details': 'CONNECT not supported'})
 
+    @extend_schema(exclude=True)
     def manage(self, request):
         return api_response(success=False, status_code=405, message='MANAGE not supported', error={'code': 'method_not_allowed', 'details': 'MANAGE not supported'})
 

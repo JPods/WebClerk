@@ -7,6 +7,8 @@ from apps.core.views.related_view import get_related_data
 from apps.core.services.view_edit_access import filter_record_for_role
 from common.api_responses import api_response
 from apps.core.services.wcapi_registry import normalize_table_key, get_model, to_model_name
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer, OpenApiExample
+from rest_framework import serializers
 
 """This view now resolves models via the registry; no app map needed."""
 
@@ -50,6 +52,172 @@ class WcapiGetView(APIView):
             return pk if pk is not None else str(value)
         return str(value)
 
+    @extend_schema(
+        operation_id="wcapi_get_retrieve",
+        parameters=[
+            OpenApiParameter(name='model_name', required=True, type=str),
+            OpenApiParameter(name='id', required=False, type=int),
+            OpenApiParameter(name='variants_of', required=False, type=int),
+            OpenApiParameter(name='project', required=False, type=str),
+        ],
+        responses={
+            200: inline_serializer(name='WcapiGetEnvelope', fields={
+                'status': serializers.CharField(),
+                'error': serializers.JSONField(required=False, allow_null=True),
+                'code': serializers.IntegerField(),
+                'message': serializers.CharField(allow_blank=True),
+                'data': inline_serializer(name='WcapiGetResponse', fields={
+                    'model_name': serializers.CharField(),
+                    'record': serializers.DictField(required=False),
+                    'results': serializers.ListField(child=serializers.DictField(), required=False),
+                    'total': serializers.IntegerField(required=False),
+                    'limit': serializers.IntegerField(required=False),
+                    'offset': serializers.IntegerField(required=False),
+                    'related': serializers.DictField(required=False),
+                    'related_errors': serializers.DictField(required=False),
+                }),
+            })
+        },
+        examples=[
+            OpenApiExample(
+                name="WcapiGetContactList",
+                description="Example GET /wcapi/get/?model_name=contact list response",
+                value={
+                    "status": "success",
+                    "error": None,
+                    "code": 200,
+                    "message": "",
+                    "data": {
+                        "model_name": "contact",
+                        "results": [
+                            {
+                                "id": 9,
+                                "uuid": None,
+                                "ida": "",
+                                "dt_created": 1757637369130,
+                                "dt_modified": 1757637369130,
+                                "version": 1,
+                                "security_level": 0,
+                                "is_deleted": False,
+                                "is_archived": False,
+                                "metadata": {"flags": {"schema_rev": 1}, "access": {"edit": [], "view": []}, "health": {"rating": 0, "accuracy": 0, "freshness": 0, "consistency": 0, "completeness": 0}, "history": {"synced": {"dt": 0, "contact_id": 0}, "created": {"dt": 1757637369130, "contact_id": 0}, "accessed": {"dt": 1757637369130, "contact_id": 0}, "modified": {"dt": 1757637369130, "contact_id": 0}, "verified": {"dt": 0, "contact_id": 0}}, "publish": "", "version": "1.0", "priority": "", "security": "", "undefined": {}, "versioning": {}},
+                                "refs": {"tags": [], "links": {"rep": [], "email": [], "items": [], "order": [], "phone": [], "domain": [], "vendor": [], "contact": [], "project": [], "contacts": [], "customer": [], "document": [], "location": [], "manufacturer": []}, "keywords": [], "categories": [], "related_ids": []},
+                                "prefs": {"userdefined": {}},
+                                "comments": {"notes": [], "public": "", "partner": "", "process": ""},
+                                "health_rating": 0,
+                                "password": "",
+                                "last_login": None,
+                                "is_superuser": False,
+                                "email": "",
+                                "name_first": "fred",
+                                "name_last": "",
+                                "name_middle": "",
+                                "name_prefix": "",
+                                "name_suffix": "",
+                                "company": "",
+                                "title": "",
+                                "department": "",
+                                "comment": "",
+                                "role": "user",
+                                "is_active": True,
+                                "is_staff": False,
+                                "date_joined": "2025-09-12T00:36:09.130497+00:00",
+                                "groups": [],
+                                "user_permissions": []
+                            }
+                        ],
+                        "total": 9,
+                        "limit": None,
+                        "offset": 0
+                    }
+                },
+                request_only=False,
+                response_only=True,
+            )
+            ,
+            OpenApiExample(
+                name="WcapiGetContactDetail",
+                description="Example GET /wcapi/get/?model_name=contact&id=1 detail response including related",
+                value={
+                    "status": "success",
+                    "error": None,
+                    "code": 200,
+                    "message": "",
+                    "data": {
+                        "model_name": "contact",
+                        "record": {
+                            "id": 1,
+                            "uuid": None,
+                            "ida": "contact_0",
+                            "dt_created": 1757535492500,
+                            "dt_modified": 1757535492500,
+                            "version": 1,
+                            "security_level": 0,
+                            "is_deleted": False,
+                            "is_archived": False,
+                            "metadata": {
+                                "flags": {"schema_rev": 1},
+                                "access": {"edit": [], "view": []},
+                                "health": {"rating": 0, "accuracy": 0, "freshness": 0, "consistency": 0, "completeness": 0},
+                                "history": {"synced": {"dt": 0, "contact_id": 0}, "created": {"dt": 1757535492500, "contact_id": 0}, "accessed": {"dt": 1757535492500, "contact_id": 0}, "modified": {"dt": 1757535492500, "contact_id": 0}, "verified": {"dt": 0, "contact_id": 0}},
+                                "publish": "", "version": "1.0", "priority": "", "security": "", "undefined": {}, "versioning": {}
+                            },
+                            "refs": {
+                                "tags": [],
+                                "links": {"emails": [2, 5], "phones": [4], "actions": [4], "domains": [5]},
+                                "keywords": [],
+                                "categories": [],
+                                "related_ids": []
+                            },
+                            "prefs": {"userdefined": {}},
+                            "comments": {"notes": [], "public": "", "partner": "", "process": ""},
+                            "health_rating": 0,
+                            "password": "contact_0",
+                            "last_login": "2025-09-10T20:18:12.500650+00:00",
+                            "is_superuser": False,
+                            "email": "contact_0",
+                            "name_first": "contact_0",
+                            "name_last": "contact_0",
+                            "name_middle": "contact_0",
+                            "name_prefix": "contact_0",
+                            "name_suffix": "contact_0",
+                            "company": "contact_0",
+                            "title": "contact_0",
+                            "department": "contact_0",
+                            "comment": "",
+                            "role": "user",
+                            "is_active": True,
+                            "is_staff": False,
+                            "date_joined": "2025-09-10T20:18:12.500783+00:00",
+                            "groups": [],
+                            "user_permissions": [20, 268, 40]
+                        },
+                        "related": {
+                            "emails": [
+                                {"id": 2, "ida": "email_1", "email": "email_1", "is_primary": False, "is_verified": False},
+                                {"id": 5, "ida": "email_4", "email": "email_4", "is_primary": False, "is_verified": False}
+                            ],
+                            "phones": [
+                                {"id": 4, "ida": "phone_3", "number": "phone_3", "opt_out": False}
+                            ],
+                            "locations": [
+                                {"id": 4, "ida": "location_3", "address1": "location_3", "city": "location_3"}
+                            ],
+                            "domains": [
+                                {"id": 5, "ida": "domain_4", "path": "domain_4", "status": "active"}
+                            ],
+                            "actions": [
+                                {"id": 4, "ida": "action_3", "action": "action_3", "status": "action_3"}
+                            ]
+                        }
+                    }
+                },
+                request_only=False,
+                response_only=True,
+            )
+        ],
+        description="List or retrieve records from the registry by model_name. Returns JSON envelope with results and basic pagination fields.",
+    )
     def get(self, request):  # noqa: C901 (simple flow)
         from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
