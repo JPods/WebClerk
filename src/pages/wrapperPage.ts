@@ -16,11 +16,15 @@ import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
 import BasicTables from "./Tables/BasicTables";
 import AdminWorkbench from "./admin/AdminWorkbench";
+import OrderDetailPage from "./transactions/OrderDetailPage";
+import InvoiceDetailPage from "./transactions/InvoiceDetailPage";
 
 export {  
   SignIn,
   SignUp,
-  NotFound,  
+  NotFound,
+  OrderDetailPage,
+  InvoiceDetailPage,
   Home,
   UserProfiles,
   ActionList,

@@ -1,107 +1,188 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getModelDetail, getRecords } from '../../api/wcapi';
-import { PageRoutes } from '../../routes/Routes';
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import ComponentCard from "../../components/common/ComponentCard";
+import DataTable, { TableColumn } from 'react-data-table-component';
+import { createTheme } from 'react-data-table-component';
+import { useEffect, useState } from "react";
+import { Contacts, deleteAction } from "../../api/userProfile";
+import { dynamicData } from "../../model/dynamicData";
+import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
+import { showToast } from "../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
+import { useTheme } from "../../context/ThemeContext";
+import { OrderDetailPage } from "../wrapperPage";
+import { get } from "react-hook-form";
+import { getOrdersData } from "../../api/orderDetails";
 
-const MODEL = 'sales_order';
 
-const OrdersListPage: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rows, setRows] = useState<any[]>([]);
-  const [columns, setColumns] = useState<string[]>([]);
-  const [q, setQ] = useState('');
+// Create the dark theme only once
+createTheme('tailwindDark', {
+  text: {
+    primary: '#d1d5db',
+    secondary: '#9ca3af',
+  },
+  background: {
+    default: '#111827',
+  },
+  context: {
+    background: '#1f2937',
+    text: '#d1d5db',
+  },
+  divider: {
+    default: '#374151',
+  },
+  button: {
+    default: '#1f2937',
+    hover: '#374151',
+    focus: '#6b7280',
+    disabled: '#4b5563',
+  },
+  sortFocus: {
+    default: '#d1d5db',
+  },
+  highlightOnHover: {
+    default: '#1e293b',
+    text: '#d1d5db',
+  },
+  striped: {
+    default: '#1f2937',
+    text: '#d1d5db',
+  },
+});
+
+export default function OrdersListPage() {
+  const { theme } = useTheme();
+  const [data, setData] = useState<dynamicData[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<dynamicData | null>(null);
+  const [formMode, setFormMode] = useState<'add' | 'edit' | 'view' | null>(null);
+  
+  const dispatch = useDispatch();
+
+  const fetchOrderData = async () => {
+    try {
+      const res = await getOrdersData();
+      if (res.status === 200) {
+        setData(res.data.data.results);
+      }
+    } catch (error) {
+      console.error("Failed to fetch contacts", error);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const [detail, list] = await Promise.all([
-          getModelDetail(MODEL),
-          getRecords(MODEL),
-        ]);
-        if (!mounted) return;
-        const cols = (detail?.model?.fields || []).map((f: any) => f.name);
-        setColumns(cols);
-        setRows(Array.isArray(list?.results) ? list.results : []);
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load orders');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      mounted = false;
-    };
+    fetchOrderData();
   }, []);
 
-  const filtered = useMemo(() => {
-    if (!q) return rows;
-    const needle = q.toLowerCase();
-    return rows.filter((r) =>
-      Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(needle))
-    );
-  }, [rows, q]);
+  const handleView = (row: dynamicData) => {
+    setSelectedOrder(row);
+    setFormMode('view');
+  };
+
+  const handleEdit = async (row: dynamicData) => {
+     const res = await Contacts(row.id);
+      if (res.status === 200) 
+        setSelectedOrder(res.data.data.record);
+      else
+        setSelectedOrder(row);
+    setFormMode('edit');
+  };
+
+  const handleAdd = () => {
+    setSelectedOrder(null);
+    setFormMode('add');
+  };
+
+  const handleDelete = async (row: dynamicData) => {
+    if (window.confirm(`Delete order ${row.name_first}?`)) {
+      try {
+        await deleteAction(row.id);
+        dispatch(showToast({ message: "Order deleted successfully", type: "success" }));
+        fetchOrderData(); // Refresh data
+        if (selectedOrder && selectedOrder.id === row.id) {
+          setFormMode(null);
+          setSelectedOrder(null);
+        }
+      } catch (error) {
+        dispatch(showToast({ message: "Failed to delete order", type: "error" }));
+      }
+    }
+  };
+
+  const handleFormSaved = () => {
+    fetchOrderData();
+    setFormMode(null);
+    setSelectedOrder(null);
+  };
+
+  const handleFormCancel = () => {
+    setFormMode(null);
+    setSelectedOrder(null);
+  };
+
+  const userColumns: TableColumn<dynamicData>[] = [
+    { name: 'First Name', selector: (row) => row.name_first, sortable: true },
+    { name: 'Last Name', selector: (row) => row.name_last, sortable: true },
+    { name: 'Company', selector: (row) => row.company, sortable: true },
+    {
+      name: 'Action',
+      cell: (row) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleView(row)} title="View">
+            <FaEye className="text-blue-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleEdit(row)} title="Edit">
+            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleDelete(row)} title="Delete">
+            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+  ];
 
   return (
-    <div className="p-4 space-y-4">
-      <nav className="text-sm text-gray-500">Home / Transactions / Orders</nav>
-      <div className="card p-4 border rounded">
-        <div className="flex items-center gap-3 mb-3">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search orders..."
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
+    <>
+      <PageBreadcrumb pageTitle="Order Details" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+          <ComponentCard>
+            <div className="flex justify-end mb-4">
+              <button 
+                onClick={handleAdd}
+                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
+              >
+                <FaPlus />
+                Add Orders
+              </button>
+            </div>
+            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
+              <DataTable
+                columns={userColumns}
+                data={data}
+                pagination
+                theme={theme === 'dark' ? 'tailwindDark' : 'default'}
+                highlightOnHover
+                pointerOnHover
+                onRowClicked={(row) => handleView(row)}
+              />
+            </div>
+          </ComponentCard>
         </div>
-        {loading ? (
-          <div className="text-sm text-gray-500">Loading...</div>
-        ) : error ? (
-          <div className="text-sm text-red-600">{error}</div>
-        ) : (
-          <div className="overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {columns.slice(0, 6).map((c) => (
-                    <th key={c} className="text-left px-3 py-2 font-semibold text-gray-700 border-b">{c}</th>
-                  ))}
-                  <th className="px-3 py-2 border-b">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r, idx) => (
-                  <tr key={idx} className="odd:bg-white even:bg-gray-50">
-                    {columns.slice(0, 6).map((c) => (
-                      <td key={c} className="px-3 py-2 border-b whitespace-nowrap">{String(r?.[c] ?? '')}</td>
-                    ))}
-                    <td className="px-3 py-2 border-b whitespace-nowrap">
-                      {r?.id != null ? (
-                        <Link className="text-brand-600 hover:underline" to={PageRoutes.transactionsOrders + '/' + r.id}>View</Link>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td className="px-3 py-4 text-center text-gray-500" colSpan={Math.max(2, columns.slice(0,6).length + 1)}>
-                      No orders found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {formMode && (
+          <div className="lg:col-span-2">
+            <OrderDetailPage
+              inline
+              modeProp={formMode}
+              dataProp={selectedOrder}
+              onSaved={handleFormSaved}
+              onCancelInline={handleFormCancel}
+            />
           </div>
         )}
       </div>
-    </div>
+    </>
   );
-};
-
-export default OrdersListPage;
+}

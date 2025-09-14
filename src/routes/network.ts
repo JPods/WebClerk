@@ -43,7 +43,7 @@ class PostLoginURL {
   static readonly addActions: string = "/actions/";
   static readonly updateProfile: string = "/profile/";   
 
-  static readonly allTypes: string = "get/?"; 
+  static readonly allTypes: string = "/wcapi/get/?"; 
     
 }
 
