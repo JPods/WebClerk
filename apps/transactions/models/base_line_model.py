@@ -1,9 +1,9 @@
 """Abstract base line model for transaction line items.
-
+Used by ProposalLine, SalesOrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseOrderLine.
 The goal is to keep a compact set of JSON fields that capture the rich
 state of a line (pricing, cost, quantities, taxes, metadata, workflow, etc.)
-without exploding the relational schema. Each JSON field has a structured
-default producer for clarity and forward compatibility.
+    without exploding the relational schema. Each JSON field has a structured
+    default producer for clarity and forward compatibility.
 
 Google Doc (design):
 https://docs.google.com/document/d/12C8LHt8x1Bl6spM_iHFC6DK01eIxQzD5_4-3cK9ybow/edit?tab=t.0
@@ -62,24 +62,30 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
         }
 
 def default_cost() -> Dict[str, Any]:
-    return {
-        "freight": None,
-        "unit": None,
-        "extended": None,
-        "is_fixed": False,
-        "precision": 2
-    }
+    """Firm cost schema with JSON-serializable numeric defaults.
 
-def default_price() -> Dict[str, Any]:
+    Note: Use floats for JSONField compatibility; any precision enforcement
+    happens during normalization.
+
+    - unit: per-unit cost
+    - freight: freight allocation cost
+    - extended: unit * quantity minus discounts (if any)
+    - is_fixed: whether cost is fixed (no auto recompute)
+    - precision: decimal places to display/quantize
+    """
     return {
-        "unit": None,
-        "discount_percent": None,
-        "discount_amount": None,
-        "extended": None,
-        "margins": None,
+        "unit": 0.0,
+        "freight": 0.0,
+        "extended": 0.0,
         "is_fixed": False,
         "precision": 2,
-        "manufacturer_suggested_retail": None
+    }
+
+def default_prefs() -> Dict[str, Any]:
+    return {
+        "currency": "",
+        "locale": "",
+        "terms": "",
     }
 
 def default_tax() -> Dict[str, Any]:
@@ -154,22 +160,89 @@ def default_refs() -> Dict[str, Any]:
         "depends_on": {},
     }
 
-def default_prefs() -> Dict[str, Any]:
-    return {"currency": "", "locale": "", "terms": ""}
+def default_price() -> Dict[str, Any]:
+    """Firm price schema per line (authoritative keys and defaults)."""
+    return {
+        "unit": Decimal("0.00"),
+        "discount_percent": Decimal("0.00"),
+        "discount_amount": Decimal("0.00"),
+        "extended": Decimal("0.00"),
+        "is_fixed": False,
+        "precision": 2,
+    }
+
+# --- Normalization helpers -------------------------------------------------
+def _to_decimal(val: Any, places: int = 2) -> Decimal:
+    try:
+        d = Decimal(str(val))
+    except Exception:
+        d = Decimal("0")
+    q = Decimal("1").scaleb(-places)  # 10^(-places)
+    try:
+        return d.quantize(q)
+    except Exception:
+        return d
+
+def normalize_price_map(p: Dict[str, Any] | None) -> Dict[str, Any]:
+    base = default_price()
+    data = dict(base)
+    if isinstance(p, dict):
+        if "unit" in p:
+            data["unit"] = _to_decimal(p.get("unit"), places=int(base["precision"]))
+        if "discount_percent" in p:
+            data["discount_percent"] = _to_decimal(p.get("discount_percent"), places=2)
+        if "discount_amount" in p:
+            data["discount_amount"] = _to_decimal(p.get("discount_amount"), places=int(base["precision"]))
+        if "extended" in p:
+            data["extended"] = _to_decimal(p.get("extended"), places=int(base["precision"]))
+        if "is_fixed" in p:
+            data["is_fixed"] = bool(p.get("is_fixed"))
+        if "precision" in p:
+            val = p.get("precision")
+            try:
+                data["precision"] = int(val) if val is not None else data["precision"]
+            except Exception:
+                pass
+    return data
+
+def normalize_cost_map(c: Dict[str, Any] | None) -> Dict[str, Any]:
+    """Normalize cost JSON to a firm, JSON-serializable shape (floats/ints only)."""
+    base = default_cost()
+    data = dict(base)
+    if isinstance(c, dict):
+        # ensure precision first for quantization
+        prec = base.get("precision", 2)
+        if "precision" in c:
+            try:
+                raw_prec = c.get("precision")
+                if raw_prec is not None:
+                    prec = int(raw_prec)
+            except Exception:
+                pass
+        data["precision"] = prec
+
+        for key in ("unit", "freight", "extended"):
+            if key in c:
+                try:
+                    # quantize using Decimal then cast to float for JSON
+                    data[key] = float(_to_decimal(c.get(key), places=int(prec)))
+                except Exception:
+                    data[key] = float(0)
+        if "is_fixed" in c:
+            data["is_fixed"] = bool(c.get("is_fixed"))
+    return data
 
 
 class BaseLineModel(BaseModel):
-    """Abstract transactional line base.
+    """Abstract base line model for transactional documents.
 
-    Concrete subclasses (e.g., ProposalLine, OrderLine, InvoiceLine) can add
-    relational FKs or specialized fields. JSON structures are initialized lazily
-    (or on first save) to ensure shape consistency without forcing migrations
-    for additive keys.
+    Note: The concrete line models must declare a ForeignKey named `parent` to their
+    header model (e.g., Invoice). Django will automatically provide a `parent_id`
+    attribute/column for fast filtering; we do not define a separate `parent_id`
+    field here to avoid column clashes.
     """
-
-    parent_ref_id = models.BigIntegerField(help_text="Parent transaction primary key (redundant copy of FK for fast filters)", db_index=True)
-    probability = models.IntegerField(blank=True, null=True, help_text="For proposals: 0-100 probability percent")
-    type_sale = models.CharField(max_length=50, blank=True, null=True)
+    # price selection level (retail, wholesale, distributor, sample, promo, etc.)
+    price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
     status = models.CharField(max_length=50, blank=True, null=True)
 
     # JSON field shells (populated via ensure_json_defaults)
@@ -183,17 +256,11 @@ class BaseLineModel(BaseModel):
     physical = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
-    # Extended / governance & linkage JSON clusters are inherited from BaseModel:
-    # - metadata (with history/resources)
-    # - refs (keywords/tags/links/depends_on)
-    # - prefs (user/system prefs)
-    # We seed line‑specific keys via ensure_json_defaults instead of redefining fields.
-    # comments is inherited from BaseModel as well.
 
     class Meta:
         abstract = True
         indexes = [
-            models.Index(fields=("parent_ref_id",), name="baseline_parent_ref_idx"),
+            models.Index(fields=("parent",), name="baseline_parent_idx"),
         ]
 
     # Mapping of attribute name -> default factory (callable)
@@ -216,6 +283,53 @@ class BaseLineModel(BaseModel):
         "refs": default_refs,
         "prefs": default_prefs,
     }
+
+    # --- Schema enforcement helpers -------------------------------------
+    @staticmethod
+    def _coerce_number(val: Any, precision: int = 2) -> int | float:
+        try:
+            # Use Decimal for rounding, then cast back to float/int for JSON
+            d = Decimal(str(val))
+            q = d.quantize(Decimal(10) ** -precision) if precision >= 0 else d
+            # Keep integers as int when precision is 0
+            return int(q) if precision == 0 else float(q)
+        except Exception:
+            return 0 if precision == 0 else float(0)
+
+    def _normalize_price_schema(self) -> None:
+        """Ensure price JSON has firm keys and normalized types/values.
+
+        Required keys: unit, discount_percent, discount_amount, extended, is_fixed, precision
+        Optional: margins, manufacturer_suggested_retail (left as-is if provided)
+        """
+        data = getattr(self, "price", None) or {}
+        if not isinstance(data, dict):
+            data = {}
+        precision = data.get("precision", 2)
+        try:
+            precision = int(precision)
+        except Exception:
+            precision = 2
+        normalized = {
+            "unit": self._coerce_number(data.get("unit", 0), precision),
+            "discount_percent": self._coerce_number(data.get("discount_percent", 0), 2),
+            "discount_amount": self._coerce_number(data.get("discount_amount", 0), precision),
+            "extended": self._coerce_number(data.get("extended", 0), precision),
+            "is_fixed": bool(data.get("is_fixed", False)),
+            "precision": precision,
+        }
+        # Preserve optional keys if present; otherwise keep None
+        if "margins" in data:
+            normalized["margins"] = data.get("margins")
+        else:
+            normalized["margins"] = None
+        if "manufacturer_suggested_retail" in data:
+            normalized["manufacturer_suggested_retail"] = data.get("manufacturer_suggested_retail")
+        else:
+            normalized["manufacturer_suggested_retail"] = None
+        # Only assign back if changed to avoid unnecessary writes
+        if data != normalized:
+            self.price = normalized  # type: ignore[assignment]
 
     def ensure_json_defaults(self) -> None:
         """Ensure each JSON field has a structured object instead of empty dict/None.
@@ -265,6 +379,13 @@ class BaseLineModel(BaseModel):
             pf.setdefault("terms", "")
             self.prefs = pf  # type: ignore[assignment]
 
+        # Final: normalize price/cost shapes strictly
+        self.price = normalize_price_map(getattr(self, "price", None))
+        self.cost = normalize_cost_map(getattr(self, "cost", None))
+
+        # Enforce firm schemas on certain JSON clusters
+        self._normalize_price_schema()
+
     # Backwards compatibility shim
     def populate_json_fields(self):  # pragma: no cover - retained for legacy calls
         self.ensure_json_defaults()
@@ -274,27 +395,25 @@ class BaseLineModel(BaseModel):
         ])
 
     def clean(self):  # Validation hook
-        if self.probability is not None and not (0 <= self.probability <= 100):
-            raise ValidationError({"probability": "Must be between 0 and 100."})
         super().clean()
 
     def save(self, *args, **kwargs):  # noqa: D401
         """Primary save override (JSON initialization + parent FK mirror)."""
         self.ensure_json_defaults()
-        parent_obj = getattr(self, "parent", None)
-        if parent_obj is not None and getattr(parent_obj, "pk", None):
-            # Always mirror (avoid stale copy) rather than only when empty
-            self.parent_ref_id = parent_obj.pk
+        # No explicit mirroring needed; Django maintains `parent_id` automatically.
         return super().save(*args, **kwargs)
 
     def to_compact_dict(self) -> Dict[str, Any]:
         """Lightweight serialization for logs or keyword extraction."""
         return {
             "id": getattr(self, "id", None),
-            "parent_ref_id": self.parent_ref_id,
+            # Keep both keys for a short deprecation window; native field is parent_id
+            "parent_id": getattr(self, "parent_id", None),
             "status": self.status,
-            "type_sale": self.type_sale,
-            "probability": self.probability,
+            # Back-compat export: keep type_sale key for now (mirrors price_level)
+            "type_sale": getattr(self, "price_level", None),
+            "price_level": getattr(self, "price_level", None),
+            # probability intentionally omitted (proposal-specific)
             "item": self.item,
             "quantity": self.quantity,
             "price": self.price,

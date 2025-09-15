@@ -37,7 +37,7 @@ def _cast_decimal(val) -> Decimal:
 DEFAULT_CACHE_TTL_SECONDS = getattr(settings, 'TX_AGGREGATE_TTL_SECONDS', 60)  # fallback if setting not provided
 
 @lru_cache(maxsize=4096)
-def _compute_line_aggregate_internal(parent_ref_id: int,
+def _compute_line_aggregate_internal(parent_id: int,
                                      model_key: Optional[str],
                                      window: int,
                                      include_breakdown: bool) -> Dict[str, Any]:
@@ -60,7 +60,7 @@ def _compute_line_aggregate_internal(parent_ref_id: int,
 
     breakdown: Dict[str, Dict[str, str | int]] = {}
     for model in models_to_scan:
-        qs = model.objects.filter(parent_ref_id=parent_ref_id)
+        qs = model.objects.filter(parent_id=parent_id)
         model_count = qs.count()
         total_lines += model_count
         price_sum = Decimal('0')
@@ -85,7 +85,7 @@ def _compute_line_aggregate_internal(parent_ref_id: int,
                 }
 
     result = {
-        'parent_ref_id': parent_ref_id,
+        'parent_id': parent_id,
         'total_lines': total_lines,
         'total_price_extended': str(total_price_extended),
         'total_cost_extended': str(total_cost_extended),
@@ -96,7 +96,7 @@ def _compute_line_aggregate_internal(parent_ref_id: int,
         result['breakdown'] = breakdown
     return result
 
-def compute_line_aggregate(parent_ref_id: int,
+def compute_line_aggregate(parent_id: int,
                            model_key: Optional[str] = None,
                            ttl_seconds: Optional[int] = None,
                            include_breakdown: bool = False) -> Dict[str, Any]:
@@ -105,7 +105,7 @@ def compute_line_aggregate(parent_ref_id: int,
     ttl = max(5, ttl_seconds or dynamic_default)  # guard against very low values
     now = int(time.time())
     window = now // ttl
-    data = _compute_line_aggregate_internal(parent_ref_id, model_key, window, include_breakdown)
+    data = _compute_line_aggregate_internal(parent_id, model_key, window, include_breakdown)
     data['ttl_seconds'] = ttl
     data['cache_window'] = window  # optional debugging / introspection
     return data

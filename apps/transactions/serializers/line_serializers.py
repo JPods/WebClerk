@@ -17,11 +17,11 @@ class BaseLineSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = [
-            'id', 'parent_ref_id', 'status', 'type_sale', 'probability',
+            'id', 'parent_id', 'status', 'type_sale', 'probability',
             'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source',
             'dt_created', 'dt_modified'
         ]
-    read_only_fields = ['id', 'parent_ref_id', 'dt_created', 'dt_modified']
+    read_only_fields = ['id', 'parent_id', 'dt_created', 'dt_modified']
 
     def _filter_representation(self, data: dict) -> dict:
         request = self.context.get('request')

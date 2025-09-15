@@ -187,7 +187,7 @@ GET /wcapi/work-orders/?status=planned&fields=id,work_no,status
 - List WorkOrderLines for a specific WorkOrder using the friendly key; mapped to `parent_ref_id` internally:
 
 ```http
-GET /wcapi/workorder-lines/?workorder_id=123&fields=id,parent_ref_id,status
+GET /wcapi/workorder-lines/?workorder_id=123&fields=id,parent_id,status
 ```
 
 - Strict mode to reject unknown filters (returns 400 with fail envelope):

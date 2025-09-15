@@ -739,26 +739,26 @@ GET/PUT    /tx/orders/{id}/
 Lines:
 
 ```text
-GET/POST   /tx/proposal-lines/?parent_ref_id={id}
+GET/POST   /tx/proposal-lines/?parent_id={id}
 GET/PUT    /tx/proposal-lines/{id}/
 ... (order-lines, invoice-lines, purchase-lines, workorder-lines, requisition-lines)
 ```
 
 Filtering / Searching / Ordering (lines):
 
-- Filter: `?parent_ref_id=123&status=open`
+- Filter: `?parent_id=123&status=open`
 - Search: `?search=widget`
-- Order: `?ordering=parent_ref_id` (prefix with `-` for descending)
+- Order: `?ordering=parent_id` (prefix with `-` for descending)
 
 Aggregation:
 
 ```text
-GET /tx/lines/aggregate/?parent_ref_id={id}[&model=proposal-line][&ttl=120][&include_breakdown=1]
+GET /tx/lines/aggregate/?parent_id={id}[&model=proposal-line][&ttl=120][&include_breakdown=1]
 ```
 
 Parameters:
 
-- parent_ref_id (required): Parent transaction id.
+- parent_id (required): Parent transaction id.
 - model (optional): Scope to single line model code (proposal-line, order-line, invoice-line, purchase-line, workorder-line, requisition-line).
 - ttl (optional int >=5): Override cache TTL seconds (default 60 or project setting).
 - include_breakdown (optional 0/1/true/false): When scoping to a single model include per-model breakdown (normally only returned when unscoped).

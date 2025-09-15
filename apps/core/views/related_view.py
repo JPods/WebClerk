@@ -6,13 +6,16 @@ from django.apps import apps
 from django.core.paginator import Paginator, EmptyPage
 import json
 from apps.core.services.view_edit_access import get_view_edit_fields
-from apps.core.services.wcapi_registry import normalize_table_key
+from apps.core.services.wcapi_registry import normalize_table_key, ALLOWED_TABLE_KEYS, to_model_name
 
 RELATED_TABLES: Dict[str, List[str]] = {
     # 'addresses' retained for backward compatibility (maps to Location model)
     'contacts': ['phones', 'emails', 'addresses', 'locations', 'actions', 'domains', 'sales_orders', 'orders', 'orgs'],
     'orgs': ['contacts', 'domains', 'locations'],  # basic reverse sets
-    'sales_orders': ['contacts', 'orgs', 'sales_order_lines'],  # canonical new naming
+    'sales_orders': ['contacts', 'orgs', 'customers', 'sales_order_lines'],  # canonical new naming
+    'invoices': ['contacts', 'orgs', 'customers', 'invoice_lines'],
+    'purchase_orders': ['contacts', 'orgs', 'vendors', 'purchase_order_lines'],
+    'proposals': ['contacts', 'orgs', 'customers', 'proposal_line'],
     'orders': ['contacts', 'orgs', 'orderlines'],  # legacy naming (mapped to same models)
 }
 
@@ -37,10 +40,17 @@ def get_related_data(
         'domains': ('communications', 'Domain'),
         'actions': ('core', 'Action'),
     'sales_orders': ('transactions', 'SalesOrder'),
+    'invoices': ('transactions', 'Invoice'),
+    'purchase_orders': ('transactions', 'PurchaseOrder'),
     'orders': ('transactions', 'SalesOrder'),  # legacy alias
         'orgs': ('orgs', 'OrgBase'),
+    'customers': ('orgs', 'CustomerOrg'),
+    'vendors': ('orgs', 'VendorOrg'),
         'contacts': ('core', 'Contact'),
     'sales_order_lines': ('transactions', 'SalesOrderLine'),
+    'invoice_lines': ('transactions', 'InvoiceLine'),
+    'purchase_order_lines': ('transactions', 'PurchaseOrderLine'),
+    'proposal_line': ('transactions', 'ProposalLine'),
     'orderlines': ('transactions', 'SalesOrderLine'),  # legacy alias
     }
 
@@ -49,12 +59,15 @@ def get_related_data(
     print(f"get_related_data called with model/table_key={table_key}, id={id}")
     print(f"related_tables_dict={related_tables_dict}, pagination={pagination}")
 
-    # Optional forward-ref hydrate (contacts & orders authoritative for some buckets):
-    if table_key in ('contacts', 'sales_orders', 'orders'):
+    # Optional forward-ref hydrate (headers and contacts authoritative for some buckets):
+    if table_key in ('contacts', 'sales_orders', 'orders', 'invoices', 'purchase_orders', 'proposals'):
         try:
             model_lookup = {
                 'contacts': ('core', 'Contact'),
                 'sales_orders': ('transactions', 'SalesOrder'),
+                'invoices': ('transactions', 'Invoice'),
+                'purchase_orders': ('transactions', 'PurchaseOrder'),
+                'proposals': ('transactions', 'Proposal'),
                 'orders': ('transactions', 'SalesOrder'),
             }
             app_label, model_name = model_lookup[table_key]
@@ -64,21 +77,75 @@ def get_related_data(
             base_obj = None
             errors[f'{table_key}_fetch'] = str(e)
         if base_obj and getattr(base_obj, 'refs', None):
-            links = (base_obj.refs or {}).get('links', {})  # type: ignore[attr-defined]
+            raw_links = (base_obj.refs or {}).get('links', {})  # type: ignore[attr-defined]
+            # Normalize singular/alias keys to canonical buckets for consistency
+            links = dict(raw_links)
+            # common singular to plural
+            if 'item' in raw_links and 'items' not in links:
+                links['items'] = raw_links['item']
+            if 'contact' in raw_links and 'contacts' not in links:
+                links['contacts'] = raw_links['contact']
+            if 'address' in raw_links and 'addresses' not in links:
+                links['addresses'] = raw_links['address']
+            if 'phone' in raw_links and 'phones' not in links:
+                links['phones'] = raw_links['phone']
+            if 'email' in raw_links and 'emails' not in links:
+                links['emails'] = raw_links['email']
+            if 'vendor' in raw_links and 'vendors' not in links:
+                links['vendors'] = raw_links['vendor']
+            # Line bucket aliases
+            if 'sales_order_line' in raw_links and 'sales_order_lines' not in links:
+                links['sales_order_lines'] = raw_links['sales_order_line']
+            if 'invoice_line' in raw_links and 'invoice_lines' not in links:
+                links['invoice_lines'] = raw_links['invoice_line']
+            if 'purchase_order_line' in raw_links and 'purchase_order_lines' not in links:
+                links['purchase_order_lines'] = raw_links['purchase_order_line']
+            if 'proposal_lin' in raw_links and 'proposal_line' not in links:
+                links['proposal_line'] = raw_links['proposal_lin']
             forward_models = {
                 'emails': ('communications', 'Email'),
                 'phones': ('communications', 'Phone'),
                 'locations': ('communications', 'Location'),
+                'addresses': ('communications', 'Location'),
                 'domains': ('communications', 'Domain'),
                 'actions': ('core', 'Action'),
                 'sales_orders': ('transactions', 'SalesOrder'),  # for a contact -> sales_orders
+                'invoices': ('transactions', 'Invoice'),
+                'purchase_orders': ('transactions', 'PurchaseOrder'),
+                'proposals': ('transactions', 'Proposal'),
                 'orders': ('transactions', 'SalesOrder'),  # legacy
                 'orgs': ('orgs', 'OrgBase'),
+                'customers': ('orgs', 'CustomerOrg'),
+                'vendors': ('orgs', 'VendorOrg'),
+                # Accept forward line links too (optional; reverse by parent_id already handled elsewhere)
+                'sales_order_lines': ('transactions', 'SalesOrderLine'),
+                'invoice_lines': ('transactions', 'InvoiceLine'),
+                'purchase_order_lines': ('transactions', 'PurchaseOrderLine'),
+                'proposal_line': ('transactions', 'ProposalLine'),
                 'contacts': ('core', 'Contact'),  # for an order -> contacts aggregated via seeding
             }
+            # Helper: flatten a heterogeneous list of ids or dicts into ordered id ints
+            def _flatten_ids(raw_list: Any) -> list[int]:
+                flat: list[int] = []
+                if not isinstance(raw_list, list):
+                    return flat
+                for elem in raw_list:
+                    if isinstance(elem, int):
+                        flat.append(elem)
+                    elif isinstance(elem, dict):
+                        # If elem has an 'id' key, prefer it; else take any int values
+                        if 'id' in elem and isinstance(elem['id'], int):
+                            flat.append(elem['id'])
+                        else:
+                            for v in elem.values():
+                                if isinstance(v, int):
+                                    flat.append(v)
+                    # silently ignore other types
+                return flat
             for bucket, (app_label, model_name) in forward_models.items():
-                id_list = links.get(bucket) or []
-                if not isinstance(id_list, list) or not id_list:
+                raw = links.get(bucket) or []
+                id_list = _flatten_ids(raw)
+                if not id_list:
                     continue
                 try:
                     model = apps.get_model(app_label, model_name)
@@ -96,6 +163,11 @@ def get_related_data(
             app_label, model_name = related_models[related_table]
             print(f"Using model: {app_label}.{model_name}")
             try:
+                # If this bucket was already hydrated via forward refs above,
+                # skip running a reciprocal queryset to avoid overwriting it.
+                if related_table in related:
+                    print(f"Skipping {related_table} - already hydrated via forward refs")
+                    continue
                 # Skip reciprocal query if we already hydrated via forward refs for this bucket
                 if table_key == 'contacts' and (related_table == 'addresses' and 'locations' in related or related_table in related):
                     continue
@@ -103,10 +175,16 @@ def get_related_data(
                 # Reciprocal filter logic:
                 if table_key == 'contacts':
                     queryset = model.objects.none()  # forward already hydrated
-                elif table_key in ('sales_orders', 'orders') and related_table in ('contacts', 'orgs'):
+                elif table_key in ('sales_orders', 'orders', 'invoices', 'purchase_orders') and related_table in ('contacts', 'orgs', 'customers', 'vendors'):
                     queryset = model.objects.none()  # forward already hydrated
                 elif table_key in ('sales_orders', 'orders') and related_table in ('sales_order_lines', 'orderlines'):
                     # child lines by parent id
+                    queryset = model.objects.filter(parent_id=id)
+                elif table_key == 'invoices' and related_table == 'invoice_lines':
+                    queryset = model.objects.filter(parent_id=id)
+                elif table_key == 'purchase_orders' and related_table == 'purchase_order_lines':
+                    queryset = model.objects.filter(parent_id=id)
+                elif table_key == 'proposals' and related_table == 'proposal_line':
                     queryset = model.objects.filter(parent_id=id)
                 elif table_key == 'orgs' and related_table == 'contacts':
                     # contacts forward links contain org ids in refs.links.orgs
@@ -164,6 +242,10 @@ class RelatedDataAdvancedView(View):
             record_id = body.get('id')
             related_tables_dict = body.get('related_tables_dict')  # Optional
             pagination = body.get('pagination')  # Optional
+            # Enforce singular model_name usage
+            if raw_name and raw_name.strip().lower() in ALLOWED_TABLE_KEYS:
+                expected = to_model_name(normalize_table_key(raw_name))
+                return JsonResponse({'success': False, 'error': f"Use singular model_name='{expected}'"}, status=400)
             if not table_key or not record_id:
                 return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
             result = get_related_data(
@@ -183,6 +265,10 @@ class RelatedDataAdvancedView(View):
         record_id = request.GET.get('id')
         related_tables_dict = request.GET.get('related_tables_dict')
         pagination = request.GET.get('pagination')
+        # Enforce singular model_name usage
+        if raw_name and raw_name.strip().lower() in ALLOWED_TABLE_KEYS:
+            expected = to_model_name(normalize_table_key(raw_name))
+            return JsonResponse({'success': False, 'error': f"Use singular model_name='{expected}'"}, status=400)
         if related_tables_dict:
             try:
                 related_tables_dict = json.loads(related_tables_dict)
@@ -212,6 +298,10 @@ class RelatedDataView(View):
         raw_name = request.GET.get('model_name')
         table_key = normalize_table_key(raw_name) if raw_name else None
         record_id = request.GET.get('id')
+        # Enforce singular model_name usage
+        if raw_name and raw_name.strip().lower() in ALLOWED_TABLE_KEYS:
+            expected = to_model_name(normalize_table_key(raw_name))
+            return JsonResponse({'success': False, 'error': f"Use singular model_name='{expected}'"}, status=400)
         if not table_key or not record_id:
             return JsonResponse({'success': False, 'error': 'model_name and id are required'}, status=400)
         try:

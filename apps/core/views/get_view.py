@@ -276,6 +276,7 @@ class WcapiGetView(APIView):
                     error={'code': 'not_found', 'details': 'Record not found'},
                 )
             record = model_to_dict(obj)  # type: ignore[arg-type]
+            record = _normalize_parent_fk(obj, record)
             filtered_record = filter_record_for_role(record, singular or '', user_role, 'view')
             related_result = get_related_data(model_key, int(record_id))
             safe_record = {k: self._sanitize(v) for k, v in filtered_record.items()}
@@ -322,10 +323,14 @@ class WcapiGetView(APIView):
                     for obj in queryset
                 ]
         else:
-            raw_records = [
-                filter_record_for_role(model_to_dict(obj), singular or '', user_role, 'view')
-                for obj in queryset
-            ]
+                def _build(obj):
+                    rec = model_to_dict(obj)
+                    rec = _normalize_parent_fk(obj, rec)
+                    return filter_record_for_role(rec, singular or '', user_role, 'view')
+                raw_records = [
+                    _build(obj)
+                    for obj in queryset
+                ]
 
         safe_records = [
             {k: self._sanitize(v) for k, v in rec.items()}
@@ -339,3 +344,17 @@ class WcapiGetView(APIView):
             'offset': 0,
         }
         return api_response(data=payload)
+def _normalize_parent_fk(obj, record: dict) -> dict:
+    """Ensure responses expose parent_id (int) and drop 'parent' key if present.
+
+    Applies to models with a ForeignKey named 'parent'. Safe no-op otherwise.
+    """
+    try:
+        if hasattr(obj, 'parent_id'):
+            record['parent_id'] = getattr(obj, 'parent_id', None)
+            # Remove legacy 'parent' key if model_to_dict included it
+            if 'parent' in record:
+                record.pop('parent', None)
+    except Exception:
+        pass
+    return record

@@ -40,7 +40,7 @@ def create_ledgers_for_invoice(sender, instance, created, **kwargs):  # pragma: 
     if total <= 0:
         # Optionally: compute from lines aggregation if available
         from apps.transactions.aggregation import compute_line_aggregate
-        agg = compute_line_aggregate(parent_ref_id=getattr(instance, 'id'), model_key='invoice-line')
+        agg = compute_line_aggregate(parent_id=getattr(instance, 'id'), model_key='invoice-line')
         total = Decimal(agg.get('total_price_extended', '0'))
         if total <= 0:
             return

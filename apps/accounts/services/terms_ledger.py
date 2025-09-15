@@ -166,7 +166,7 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
             total = D('0')
         if total <= 0:
             from apps.transactions.aggregation import compute_line_aggregate
-            agg = compute_line_aggregate(parent_ref_id=getattr(invoice, 'id'), model_key='invoice-line')
+            agg = compute_line_aggregate(parent_id=getattr(invoice, 'id'), model_key='invoice-line')
             total = D(agg.get('total_price_extended', '0'))
             if total <= 0:
                 return []

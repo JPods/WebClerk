@@ -1,23 +1,4 @@
-from .projects import Project
-from .project_links import ProjectAssociation
-from .line_variants import (
-	Proposal, ProposalLine,
-	SalesOrder, SalesOrderLine,
-	Invoice, InvoiceLine,
-	PurchaseOrder, PurchaseOrderLine,
-	Workorder, WorkorderLine,
-	Requisition, RequisitionLine,
-)
-from .purchase_receipt import PurchaseReceipt
+from .invoice import Invoice
+from .invoice_line import InvoiceLine
 
-__all__ = [
-	"Project",
-	"ProjectAssociation",
-	"Proposal", "ProposalLine",
-	"SalesOrder", "SalesOrderLine",
-	"Invoice", "InvoiceLine",
-	"PurchaseOrder", "PurchaseOrderLine",
-	"Workorder", "WorkorderLine",
-	"Requisition", "RequisitionLine",
-	"PurchaseReceipt",
-]
+__all__ = ["Invoice", "InvoiceLine"]

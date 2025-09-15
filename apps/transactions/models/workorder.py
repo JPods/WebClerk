@@ -2,8 +2,8 @@ from decimal import Decimal
 from django.db import models
 from .base_transaction_model import TransactionBaseModel
 
-class Requisition(TransactionBaseModel):
-    # Add any Requisition-specific fields or methods here
+class WorkOrder(TransactionBaseModel):
+    # Add any WorkOrder-specific fields or methods here
     BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
 
-__all__ = ["Requisition"]
+__all__ = ["WorkOrder"]

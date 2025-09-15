@@ -6,7 +6,10 @@ from apps.orgs.models import (
     OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg,
 )
 from apps.products.models import Item
-from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine, Workorder, WorkorderLine
+# Scope transactions to invoices only for current work; expand later
+from apps.transactions.models import (
+    Invoice, InvoiceLine,
+)
 
 MODEL_MAP = {
     'contacts': Contact,
@@ -23,11 +26,9 @@ MODEL_MAP = {
     'items': Item,
     # alias to support org_item naming used by introspection
     'org_items': Item,
-    # transactional documents (initial subset; add more as exposed)
-    'sales_orders': SalesOrder,
-    'sales_order_lines': SalesOrderLine,
-    'work_orders': Workorder,
-    'work_order_lines': WorkorderLine,
+    # transactional documents (scoped to invoices for now)
+    'invoices': Invoice,
+    'invoice_lines': InvoiceLine,
     # Unified organization entity + proxy filtered types
     'orgs': OrgBase,
     'customers': CustomerOrg,
@@ -62,6 +63,11 @@ _SINGULAR_ALIAS_TO_TABLE = {
     'org_item': 'items',  # accept org_item as canonical alias
     'sales_order': 'sales_orders',
     'sales_order_line': 'sales_order_lines',
+    'invoice': 'invoices',
+    'invoice_line': 'invoice_lines',
+    'purchase_order': 'purchase_orders',
+    'purchase_order_line': 'purchase_order_lines',
+    'proposal': 'proposals',
     'work_order': 'work_orders',
     'work_order_line': 'work_order_lines',
     'org': 'orgs',
@@ -88,11 +94,14 @@ _TABLE_TO_MODEL_NAME = {
     # transactional headers/lines (cover both explicit db_table names and defaults)
     'sales_orders': 'sales_order',
     'sales_order_lines': 'sales_order_line',
+    'invoices': 'invoice',
+    'invoice_lines': 'invoice_line',
     'purchase_orders': 'purchase_order',
     'purchase_order_lines': 'purchase_order_line',
     'work_orders': 'work_order',
     'work_order_lines': 'work_order_line',
     'proposal_line': 'proposal_line',
+    'proposals': 'proposal',
     'invoice_line': 'invoice_line',
     'requisition_line': 'requisition_line',
     # Default Django table names for headers without explicit db_table

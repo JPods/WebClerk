@@ -2,10 +2,23 @@ from decimal import Decimal
 from django.db import models
 from .base_line_model import BaseLineModel
 
-BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
+class ProposalLine(BaseLineModel):
+    parent_id = models.ForeignKey(Proposal, on_delete=models.CASCADE)
+    # ProposalLine-specific win probability (0-100)
+    probability = models.IntegerField(blank=True, null=True, help_text="0-100 percent likelihood")
 
-# Deprecated module: ProposalLine is defined in line_variants.
-# Re-export here for backward compatibility if anything imports apps.transactions.models.proposal_line.ProposalLine
-from .line_variants import ProposalLine  # noqa: F401
+    def __str__(self) -> str:  # pragma: no cover
+        return f"Proposal:{self.pk}:{self.name}" if self.pk else "Proposal:new"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.probability is not None and not (0 <= self.probability <= 100):
+            raise ValidationError({"probability": "Must be between 0 and 100."})
+        return super().clean()
+
+
+    class Meta:
+        db_table = "proposal_line"
+
 
 __all__ = ["ProposalLine"]

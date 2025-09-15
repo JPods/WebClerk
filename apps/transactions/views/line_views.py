@@ -3,13 +3,8 @@ from django.db.models import Sum, F
 from rest_framework import generics, permissions, response, views, status, pagination
 from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
-from apps.transactions.models.line_variants import (
-    Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+from apps.transactions.models import (
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
-    Workorder, WorkorderLine,
-    Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
@@ -48,16 +43,16 @@ class ProposalRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
 
 @extend_schema(
     summary="List/Create proposal lines",
-    parameters=[OpenApiParameter(name='parent_ref_id', description='Filter by parent_ref_id', required=False, type=int)],
+    parameters=[OpenApiParameter(name='parent_id', description='Filter by parent_id', required=False, type=int)],
 )
 class ProposalLineListCreate(generics.ListCreateAPIView):
     queryset = ProposalLine.objects.all().order_by('-id')
     serializer_class = ProposalLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_ref_id', 'status']
+    filterset_fields = ['parent_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_ref_id', 'status']
+    ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
 class ProposalLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
@@ -83,9 +78,9 @@ class SalesOrderLineListCreate(generics.ListCreateAPIView):
     serializer_class = SalesOrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_ref_id', 'status']
+    filterset_fields = ['parent_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_ref_id', 'status']
+    ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
 class SalesOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
@@ -111,9 +106,9 @@ class InvoiceLineListCreate(generics.ListCreateAPIView):
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_ref_id', 'status']
+    filterset_fields = ['parent_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_ref_id', 'status']
+    ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
 class InvoiceLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
@@ -139,9 +134,9 @@ class PurchaseOrderLineListCreate(generics.ListCreateAPIView):
     serializer_class = PurchaseOrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_ref_id', 'status']
+    filterset_fields = ['parent_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_ref_id', 'status']
+    ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
 class PurchaseOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
@@ -167,9 +162,9 @@ class WorkorderLineListCreate(generics.ListCreateAPIView):
     serializer_class = WorkorderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_ref_id', 'status']
+    filterset_fields = ['parent_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_ref_id', 'status']
+    ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
 class WorkorderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
@@ -195,16 +190,16 @@ class RequisitionLineListCreate(generics.ListCreateAPIView):
     serializer_class = RequisitionLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_ref_id', 'status']
+    filterset_fields = ['parent_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_ref_id', 'status']
+    ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
 
 @extend_schema(
     summary="Aggregate totals across line types for a parent (with optional model scope)",
     parameters=[
-        OpenApiParameter(name='parent_ref_id', description='Parent reference id', required=True, type=int),
+        OpenApiParameter(name='parent_id', description='Parent id', required=True, type=int),
     OpenApiParameter(name='model', description='Optional line model code to scope aggregation (e.g., proposal-line)', required=False, type=str,
               enum=['proposal-line','sales-order-line','invoice-line','purchase-order-line','workorder-line','requisition-line']),
         OpenApiParameter(name='ttl', description='Override cache TTL seconds (min 5). Default '+str(DEFAULT_CACHE_TTL_SECONDS), required=False, type=int),
@@ -218,16 +213,16 @@ class LineAggregateView(views.APIView):
 
     def get(self, request, *args, **kwargs):
         qp = request.query_params
-        parent_ref_id = qp.get('parent_ref_id')
-        if not parent_ref_id:
-            return response.Response({"detail": "parent_ref_id required"}, status=status.HTTP_400_BAD_REQUEST)
+        parent_id_val = qp.get('parent_id') or qp.get('parent_ref_id')
+        if not parent_id_val:
+            return response.Response({"detail": "parent_id required"}, status=status.HTTP_400_BAD_REQUEST)
         model_key = qp.get('model')
         ttl_param = qp.get('ttl')
         include_breakdown_param = qp.get('include_breakdown')
         try:
-            parent_ref_id_int = int(parent_ref_id)
+            parent_id_int = int(parent_id_val)
         except ValueError:
-            return response.Response({'detail': 'parent_ref_id invalid'}, status=400)
+            return response.Response({'detail': 'parent_id invalid'}, status=400)
         ttl_override = None
         if ttl_param is not None:
             try:
@@ -238,7 +233,7 @@ class LineAggregateView(views.APIView):
         if include_breakdown_param is not None:
             include_breakdown = include_breakdown_param in ('1','true','True','yes')
         try:
-            result = compute_line_aggregate(parent_ref_id_int, model_key, ttl_seconds=ttl_override, include_breakdown=include_breakdown)
+            result = compute_line_aggregate(parent_id_int, model_key, ttl_seconds=ttl_override, include_breakdown=include_breakdown)
         except ValueError:
             return response.Response({'detail': 'Invalid model parameter'}, status=400)
         return response.Response(result)

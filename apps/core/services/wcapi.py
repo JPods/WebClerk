@@ -39,7 +39,7 @@ Only models registered in wcapi_registry.py are accessible. Filtering is restric
 small allow-list to reduce risk of accidental heavy queries or probing internal structure.
 """
 
-SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status", "contact_id", "parent_ref_id"}
+SAFE_FILTER_FIELDS = {"email", "name_first", "name_last", "company", "action", "status", "contact_id", "parent_id"}
 STRICT_PARAM = 'strict'
 STRICT_HEADER = 'HTTP_WCAPI_STRICT'
 PROJECTION_PARAM = 'fields'
@@ -187,10 +187,14 @@ class WcapiView(LoginRequiredMixin, APIView):
         invalid_filters: list[str] = []
         # Build filter dict from query params
         params = {k: v for k, v in request.GET.items()}
-        # Convenience mapping: allow workorder_id to filter line models via parent_ref_id
-        if 'workorder_id' in params and hasattr(model, 'parent_ref_id'):
+        # Convenience mapping: allow workorder_id to filter line models via parent_id
+        if 'workorder_id' in params and hasattr(model, 'parent_id'):
             params = dict(params)
-            params['parent_ref_id'] = params.pop('workorder_id')
+            params['parent_id'] = params.pop('workorder_id')
+        # Back-compat: allow parent_ref_id as alias to parent_id
+        if 'parent_ref_id' in params and 'parent_id' not in params:
+            params = dict(params)
+            params['parent_id'] = params.pop('parent_ref_id')
         for k, v in list(params.items()):
             if k in (PROJECTION_PARAM, 'model_name', 'id', 'limit', 'offset', STRICT_PARAM):
                 continue
@@ -272,11 +276,18 @@ class WcapiView(LoginRequiredMixin, APIView):
         qs = model.objects.all()  # type: ignore[attr-defined]
         strict = self._strict_mode(request, payload)
         invalid_filters: list[str] = []
-        # Convenience mapping: allow workorder_id to filter line models via parent_ref_id
-        if isinstance(payload, dict) and 'workorder_id' in payload and hasattr(model, 'parent_ref_id'):
+        # Convenience mapping: allow workorder_id to filter line models via parent_id
+        if isinstance(payload, dict) and 'workorder_id' in payload and hasattr(model, 'parent_id'):
             try:
                 payload = dict(payload)  # shallow copy to avoid mutating caller
-                payload['parent_ref_id'] = payload.pop('workorder_id')
+                payload['parent_id'] = payload.pop('workorder_id')
+            except Exception:
+                pass
+        # Back-compat: allow parent_ref_id as alias to parent_id
+        if isinstance(payload, dict) and 'parent_ref_id' in payload and 'parent_id' not in payload:
+            try:
+                payload = dict(payload)
+                payload['parent_id'] = payload.pop('parent_ref_id')
             except Exception:
                 pass
         for k, v in payload.items():
