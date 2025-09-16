@@ -6,9 +6,11 @@ from apps.orgs.models import (
     OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg,
 )
 from apps.products.models import Item
-# Scope transactions to invoices only for current work; expand later
+# Initially scoped to invoices only; expanded to include work orders and sales orders.
 from apps.transactions.models import (
     Invoice, InvoiceLine,
+    Workorder, WorkorderLine,
+    SalesOrder, SalesOrderLine,
 )
 
 MODEL_MAP = {
@@ -29,6 +31,12 @@ MODEL_MAP = {
     # transactional documents (scoped to invoices for now)
     'invoices': Invoice,
     'invoice_lines': InvoiceLine,
+    # work orders
+    'work_orders': Workorder,
+    'work_order_lines': WorkorderLine,
+    # sales orders
+    'sales_orders': SalesOrder,
+    'sales_order_lines': SalesOrderLine,
     # Unified organization entity + proxy filtered types
     'orgs': OrgBase,
     'customers': CustomerOrg,

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import models
 from .base_line_model import BaseLineModel
+from .proposal import Proposal
 
 class ProposalLine(BaseLineModel):
     parent_id = models.ForeignKey(Proposal, on_delete=models.CASCADE)
@@ -8,7 +9,7 @@ class ProposalLine(BaseLineModel):
     probability = models.IntegerField(blank=True, null=True, help_text="0-100 percent likelihood")
 
     def __str__(self) -> str:  # pragma: no cover
-        return f"Proposal:{self.pk}:{self.name}" if self.pk else "Proposal:new"
+        return f"ProposalLine:{self.pk}" if self.pk else "ProposalLine:new"
 
     def clean(self):
         from django.core.exceptions import ValidationError

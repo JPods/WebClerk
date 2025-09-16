@@ -6,5 +6,4 @@ class Workorder(TransactionBaseModel):
     class Meta:
         db_table = "work_orders"
 
-
-__all__ = ["Work_Order"]
+__all__ = ["Workorder"]

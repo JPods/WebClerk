@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.apps import apps as dj_apps
+from django.db import transaction
 
 
 @receiver(post_save, sender=dj_apps.get_model('transactions', 'Invoice'))
@@ -47,3 +48,45 @@ def create_ledgers_for_invoice(sender, instance, created, **kwargs):  # pragma: 
 
     from apps.accounts.services.terms_ledger import create_ledger_records
     create_ledger_records(invoice=instance, total=total, term=term_obj, strategy='records')
+
+
+# --- Maintain header.refs.links collections for lines ----------------------
+
+def _ensure_link(list_obj, value: int):
+    try:
+        if isinstance(list_obj, list) and value not in list_obj:
+            list_obj.append(value)
+    except Exception:
+        pass
+
+
+@receiver(post_save, sender=dj_apps.get_model('transactions', 'InvoiceLine'))
+def maintain_invoice_links(sender, instance, created, **kwargs):  # pragma: no cover - simple list update
+    header = getattr(instance, 'parent', None)
+    if not header:
+        return
+    refs = getattr(header, 'refs', {}) or {}
+    links = refs.setdefault('links', {}) if isinstance(refs, dict) else {}
+    ilist = links.setdefault('invoice_line', []) if isinstance(links, dict) else []
+    line_id = getattr(instance, 'id', None)
+    if isinstance(line_id, int):
+        _ensure_link(ilist, line_id)
+    header.refs = refs
+    # Save minimally; avoid recursive signals on lines by saving header only
+    header.save(update_fields=['refs', 'dt_modified', 'version'])
+
+
+@receiver(post_save, sender=dj_apps.get_model('transactions', 'SalesOrderLine'))
+def maintain_sales_order_links(sender, instance, created, **kwargs):  # pragma: no cover
+    header = getattr(instance, 'parent', None)
+    if not header:
+        return
+    refs = getattr(header, 'refs', {}) or {}
+    links = refs.setdefault('links', {}) if isinstance(refs, dict) else {}
+    # Use model-name singular key
+    olist = links.setdefault('sales_order_line', []) if isinstance(links, dict) else []
+    line_id = getattr(instance, 'id', None)
+    if isinstance(line_id, int):
+        _ensure_link(olist, line_id)
+    header.refs = refs
+    header.save(update_fields=['refs', 'dt_modified', 'version'])

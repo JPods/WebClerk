@@ -97,9 +97,16 @@ def _ensure_email_id() -> int | None:
 def _line_payload(item_id: int, idx: int, tx_type: str) -> dict:
     qty = 1 + (idx % 3)
     unit_price = Decimal(10 + 5 * (idx % 4))
+    # Quantity shape: invoices use quantity.packed; orders include quantity.invoiced per new contract
+    if tx_type == "invoice":
+        quantity = {"packed": 0}
+    elif tx_type == "order":
+        quantity = {"placed": qty, "backlog": 0, "remaining": qty, "shipped": 0, "invoiced": 0, "is_fixed": False, "precision": 2}
+    else:
+        quantity = {"placed": qty, "backlog": 0, "remaining": qty, "is_fixed": False, "precision": 2}
     return {
         "item": {"id": item_id, "description": f"Line {idx} for item {item_id}", "unit_measure": "EA", "line_number": idx + 1},
-        "quantity": {"placed": qty, "backlog": 0, "remaining": qty, "is_fixed": False, "precision": 2} if tx_type not in ("invoice",) else {"packed": 0},
+        "quantity": quantity,
         "price": {"unit": float(unit_price), "extended": float(unit_price * qty), "precision": 2},
         "cost": {"unit": float(unit_price * Decimal("0.6")), "extended": float(unit_price * Decimal("0.6") * qty), "precision": 2},
         "tax": {"sales_rate": 0.0, "sales": 0.0},
@@ -183,7 +190,8 @@ class Command(DjangoBaseCommand):
             pr_line_ids: list[int] = []
             for li, item_id in enumerate(random.sample(item_ids, k=min(2, len(item_ids)))):
                 payload = _line_payload(item_id, li, tx_type="proposal")
-                line = ProposalLine(parent=p, parent_ref_id=p.id)
+                # ProposalLine uses a FK field named parent_id (legacy schema)
+                line = ProposalLine(parent_id=p.id, parent_ref_id=p.id)
                 line.item = payload["item"]
                 line.quantity = payload["quantity"]
                 line.price = payload["price"]
@@ -221,7 +229,8 @@ class Command(DjangoBaseCommand):
             # backfill refs.links
             so.refs = so.refs or {}
             lk = so.refs.get('links') or {}
-            lk['sales_order_lines'] = so_line_ids
+            # Use singular model name key
+            lk['sales_order_line'] = so_line_ids
             so.refs['links'] = lk
             so.save(update_fields=['refs'])
 

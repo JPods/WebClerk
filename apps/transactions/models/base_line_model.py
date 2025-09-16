@@ -39,18 +39,13 @@ def default_item() -> Dict[str, Any]:
 
 def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
     if transaction_type == "proposal":
-        return {
-            "is_blanket": False,
-            "increment": 0
-        }
+        return {"is_blanket": False, "increment": 0}
     elif transaction_type == "order":
-        return {
-            "shipped": 0
-        }
+        # Sales orders track fulfillment progress
+        return {"shipped": 0, "invoiced": 0}
     elif transaction_type == "invoice":
-        return {
-            "packed": 0
-        }
+        # Invoices track packing/ship confirmation at line-level
+        return {"packed": 0}
     else:
         # Default structure
         return {
@@ -58,7 +53,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "backlog": None,
             "remaining": None,
             "is_fixed": False,
-            "precision": 2
+            "precision": 2,
         }
 
 def default_cost() -> Dict[str, Any]:
@@ -85,7 +80,6 @@ def default_prefs() -> Dict[str, Any]:
     return {
         "currency": "",
         "locale": "",
-        "terms": "",
     }
 
 def default_tax() -> Dict[str, Any]:
@@ -153,8 +147,6 @@ def default_metadata() -> Dict[str, Any]:
 def default_refs() -> Dict[str, Any]:
     return {
         "serials": [],  # each: {id, serial_number, status, qty?, lot?}
-        "bill_to": {},
-        "ship_to": {},
         "links": {"linkage": []},  # list of linkage record ids (usually length 1 for flow lineage)
         # Optional execution dependencies
         "depends_on": {},
@@ -241,6 +233,9 @@ class BaseLineModel(BaseModel):
     attribute/column for fast filtering; we do not define a separate `parent_id`
     field here to avoid column clashes.
     """
+    # Mirror of parent FK for legacy compatibility (db column may be NOT NULL in some envs)
+    parent_id = models.BigIntegerField(blank=True, null=True, db_index=True)
+
     # price selection level (retail, wholesale, distributor, sample, promo, etc.)
     price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
     status = models.CharField(max_length=50, blank=True, null=True)
@@ -400,7 +395,13 @@ class BaseLineModel(BaseModel):
     def save(self, *args, **kwargs):  # noqa: D401
         """Primary save override (JSON initialization + parent FK mirror)."""
         self.ensure_json_defaults()
-        # No explicit mirroring needed; Django maintains `parent_id` automatically.
+        # Maintain parent_ref_id mirror for environments requiring the column
+        try:
+            pid = getattr(self, "parent_id", None)
+            if pid and getattr(self, "parent_ref_id", None) != pid:
+                self.parent_ref_id = pid  # type: ignore[assignment]
+        except Exception:
+            pass
         return super().save(*args, **kwargs)
 
     def to_compact_dict(self) -> Dict[str, Any]:
