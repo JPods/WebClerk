@@ -85,7 +85,7 @@ class Command(DjangoBaseCommand):
         if reset:
             Proposal.objects.filter(name__startswith="Stable Proposal ").delete()
             SalesOrder.objects.filter(order_no__startswith="SOST-").delete()
-            Invoice.objects.filter(invoice_no__startswith="INVST-").delete()
+            Invoice.objects.all().delete()
             PurchaseOrder.objects.filter(po_no__startswith="POST-").delete()
 
         created = {"proposals": [], "sales_orders": [], "invoices": [], "purchase_orders": []}
@@ -129,8 +129,7 @@ class Command(DjangoBaseCommand):
         # Invoices (INVST-2001..)
         base_inv = 2001
         for i in range(count):
-            inv_no = f"INVST-{base_inv + i}"
-            inv, _ = Invoice.objects.get_or_create(invoice_no=inv_no, defaults={"prefs": {"currency": "USD"}})
+            inv, _ = Invoice.objects.get_or_create(id=None, defaults={"prefs": {"currency": "USD"}})
             created["invoices"].append(int(inv.id))
             for li, item_id in enumerate(item_ids[:2]):
                 payload = _line_payload(item_id, li, tx_type="invoice")

@@ -14,7 +14,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     #'debug_toolbar',
-
+    # apps.transactions.apps.TransactionsConfig',
     'apps.accounts',
     'apps.communications',
     'apps.core',
@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.support',
     'apps.sync',
-    'apps.transactions',
+    "apps.transactions.apps.TransactionsConfig",
     'common',
     'corsheaders',
     'django.contrib.admin',
@@ -45,6 +45,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     #'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware', 
+    # Render DRF Responses early so later middleware (e.g., CommonMiddleware) can safely access content
+    'common.middleware.EnsureRenderedMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -52,14 +54,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # JSON-only API policy: the next three middleware ensure all API responses are JSON
-    # 1) EnsureRenderedMiddleware renders DRF Response objects early so later middleware can safely access content
-    # 2) ExceptionAsJsonMiddleware converts unhandled exceptions on API/JSON requests into JSON envelopes
-    # 3) AutoEnvelopeMiddleware standardizes all JSON responses into a unified {status, code, message, data} envelope
+    # JSON-only API policy helpers
     'common.middleware.RequestLogMiddleware',
-    'common.middleware.EnsureRenderedMiddleware',
     'common.middleware.ExceptionAsJsonMiddleware',
     'common.middleware.AutoEnvelopeMiddleware',
+    'common.middleware.WriteGateMiddleware',
 ]
 
 ROOT_URLCONF = 'webclerk3_api.urls'
@@ -263,6 +262,18 @@ HTML_EXEMPT_PATHS_EXACT = (
 )
 HTML_EXEMPT_PAGE_PREFIXES = (
     '/manage/', '/user/', '/manager/',
+)
+WRITE_GATE_ENABLED = True
+WRITE_GATE_EXACT_PATHS = (
+    '/wcapi/save/',
+    # Allow read-only filtered list via POST for wcapi query (tests and clients rely on this)
+    '/wcapi/query/',
+)
+WRITE_GATE_PREFIXES = (
+    # Save endpoints and auth/token flows
+    '/wcapi/save/', '/api/auth/', '/api/token/', '/wcapi/login/', '/wcapi/signup/',
+    # Admin operations (adjust as needed)
+    '/admin/', '/admin-django/',
 )
 
 

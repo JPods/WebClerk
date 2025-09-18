@@ -1,6 +1,5 @@
 # Work Orders: flow of goods through factory processes
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -22,7 +21,6 @@
 <!-- TOC END -->
 
 This proposal outlines a lightweight, ops-first way to manage manufacturing flow using two core entities:
-
 
 - WorkOrder: the order to produce/repair/inspect a parent item or assembly.
 - WorkOrderLine: process steps and material/operation breakdowns that move a WorkOrder from planned to complete.

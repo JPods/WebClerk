@@ -104,7 +104,8 @@ urlpatterns = [
     # create or full update
     # path('wcapi/post/', WcapiView.as_view(), name='post'),  # replaced by /wcapi/save/
     
-    # path('wcapi/query/', WcapiView.as_view(), name='query'),  # disabled until reviewed
+    # Registry-based query endpoint (read-only data access via GET/POST filters)
+    path('wcapi/query/', WcapiView.as_view(), name='query'),
     # path('wcapi/items/', ItemVariantsView.as_view(), name='wcapi-items'),  # disabled until reviewed
     # path('wcapi/metrics/', wcapi_metrics_response, name='wcapi-metrics'),  # disabled until reviewed
 

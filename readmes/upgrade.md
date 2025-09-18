@@ -2,7 +2,6 @@
 
 # Upgrade Roadmap (webClerk3)
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -10,56 +9,52 @@
 - [Upgrade Roadmap (webClerk3)](#upgrade-roadmap-webclerk3)
   - [Table of Contents](#table-of-contents)
   - [Changelog Consideration (Deferred)](#changelog-consideration-deferred)
-  - [[0.4.0] - 2025-09-15](#040-2025-09-15)
-    - [Added](#added)
-    - [Changed](#changed)
-    - [Fixed](#fixed)
   - [0. Legend](#0-legend)
-  - [1. Concurrency & Data Integrity](#1-concurrency-data-integrity)
-    - [1.1 Conditional Version Bump (P1 / M) [Concurrency]](#11-conditional-version-bump-p1-m-concurrency)
-    - [1.2 Batch Atomic JSON Ops (P2 / M) [Concurrency]](#12-batch-atomic-json-ops-p2-m-concurrency)
-    - [1.3 Change Hash Short-Circuit (P2 / S) [Concurrency]](#13-change-hash-short-circuit-p2-s-concurrency)
-    - [1.4 Retry Wrapper for Transient Conflicts (Optional) (P3 / S) [Concurrency]](#14-retry-wrapper-for-transient-conflicts-optional-p3-s-concurrency)
-  - [2. Validation & Schema Governance](#2-validation-schema-governance)
-    - [2.1 Pluggable JSON Schema Registry (P1 / M) [Validation]](#21-pluggable-json-schema-registry-p1-m-validation)
-    - [2.2 Normalization Layer (P2 / S) [Validation]](#22-normalization-layer-p2-s-validation)
-    - [2.3 Metadata Key Allow-List / Deprecation (P3 / S) [Validation]](#23-metadata-key-allow-list-deprecation-p3-s-validation)
-  - [3. Performance & Indexing](#3-performance-indexing)
-    - [3.1 Partial Indexes on Active Rows (P1 / S) [Perf]](#31-partial-indexes-on-active-rows-p1-s-perf)
-    - [3.2 Functional Contact Name Index (P2 / S) [Perf]](#32-functional-contact-name-index-p2-s-perf)
-    - [3.3 JSON Keywords GIN Optimization (P2 / M) [Search]](#33-json-keywords-gin-optimization-p2-m-search)
-    - [3.4 Lazy Keyword Regeneration (P2 / M) [Perf]](#34-lazy-keyword-regeneration-p2-m-perf)
-    - [3.5 Envelope Size Telemetry (P3 / S) [Observability]](#35-envelope-size-telemetry-p3-s-observability)
-  - [4. Search & Content](#4-search-content)
-    - [4.1 Async Keyword Refresh Queue (P1 / M) [Search]](#41-async-keyword-refresh-queue-p1-m-search)
-    - [4.2 Materialized Searchable Text Column (P2 / M) [Search]](#42-materialized-searchable-text-column-p2-m-search)
-  - [5. Caching & Projection](#5-caching-projection)
-    - [5.1 Projection LRU Cache (P2 / S) [Perf]](#51-projection-lru-cache-p2-s-perf)
-    - [5.2 ETag / Checksum Support (P2 / M) [API]](#52-etag-checksum-support-p2-m-api)
-  - [6. Observability & Auditing](#6-observability-auditing)
-    - [6.1 Structured Change Events (P1 / M) [Observability]](#61-structured-change-events-p1-m-observability)
-    - [6.2 Diff Log (Last N) (P2 / M) [Auditing]](#62-diff-log-last-n-p2-m-auditing)
-    - [6.3 Audit Table (Optional) (P3 / L) [Auditing]](#63-audit-table-optional-p3-l-auditing)
-  - [7. Comments & Notes Lifecycle](#7-comments-notes-lifecycle)
-    - [7.1 Note ID & Operations (P1 / S) [Data]](#71-note-id-operations-p1-s-data)
-    - [7.2 Note Pruning Task (P2 / S) [Data]](#72-note-pruning-task-p2-s-data)
-    - [7.3 Max Note Size Enforcement (P2 / S) [Validation]](#73-max-note-size-enforcement-p2-s-validation)
-  - [8. Security & Privacy](#8-security-privacy)
-    - [8.1 Encrypted JSON Paths (P2 / L) [Security]](#81-encrypted-json-paths-p2-l-security)
-    - [8.2 Redaction Layer in to_universal_dict (P2 / M) [Security]](#82-redaction-layer-in-touniversaldict-p2-m-security)
-  - [9. API & DX Enhancements](#9-api-dx-enhancements)
-    - [9.1 Bulk Save / Patch Endpoint (P1 / M) [API]](#91-bulk-save-patch-endpoint-p1-m-api)
-    - [9.2 No-Op PATCH 204 Response (P2 / S) [API]](#92-no-op-patch-204-response-p2-s-api)
-    - [9.3 Unified Error Codes (P2 / S) [DX]](#93-unified-error-codes-p2-s-dx)
-    - [9.4 Factory / Fixture Utilities (P2 / S) [DX]](#94-factory-fixture-utilities-p2-s-dx)
-    - [9.5 Snapshot Tests for Universal Dict (P3 / S) [DX]](#95-snapshot-tests-for-universal-dict-p3-s-dx)
-  - [10. Resilience & Housekeeping](#10-resilience-housekeeping)
-    - [10.1 Size Threshold Escalation (P2 / S) [Observability]](#101-size-threshold-escalation-p2-s-observability)
-    - [10.2 Soft Delete Retention Policy (P3 / M) [Data]](#102-soft-delete-retention-policy-p3-m-data)
-    - [10.3 Keyword Refresh Backpressure (P3 / M) [Perf]](#103-keyword-refresh-backpressure-p3-m-perf)
-  - [11. Multi-Tenancy (Future / Exploratory)](#11-multi-tenancy-future-exploratory)
-    - [11.1 Tenant Key Integration (P3 / L) [Architecture]](#111-tenant-key-integration-p3-l-architecture)
-    - [11.2 Tenant-Aware Index Strategy (P3 / M)](#112-tenant-aware-index-strategy-p3-m)
+  - [1. Concurrency & Data Integrity](#1-concurrency--data-integrity)
+    - [1.1 Conditional Version Bump (P1 / M) [Concurrency]](#11-conditional-version-bump-p1--m-concurrency)
+    - [1.2 Batch Atomic JSON Ops (P2 / M) [Concurrency]](#12-batch-atomic-json-ops-p2--m-concurrency)
+    - [1.3 Change Hash Short-Circuit (P2 / S) [Concurrency]](#13-change-hash-short-circuit-p2--s-concurrency)
+    - [1.4 Retry Wrapper for Transient Conflicts (Optional) (P3 / S) [Concurrency]](#14-retry-wrapper-for-transient-conflicts-optional-p3--s-concurrency)
+  - [2. Validation & Schema Governance](#2-validation--schema-governance)
+    - [2.1 Pluggable JSON Schema Registry (P1 / M) [Validation]](#21-pluggable-json-schema-registry-p1--m-validation)
+    - [2.2 Normalization Layer (P2 / S) [Validation]](#22-normalization-layer-p2--s-validation)
+    - [2.3 Metadata Key Allow-List / Deprecation (P3 / S) [Validation]](#23-metadata-key-allow-list--deprecation-p3--s-validation)
+  - [3. Performance & Indexing](#3-performance--indexing)
+    - [3.1 Partial Indexes on Active Rows (P1 / S) [Perf]](#31-partial-indexes-on-active-rows-p1--s-perf)
+    - [3.2 Functional Contact Name Index (P2 / S) [Perf]](#32-functional-contact-name-index-p2--s-perf)
+    - [3.3 JSON Keywords GIN Optimization (P2 / M) [Search]](#33-json-keywords-gin-optimization-p2--m-search)
+    - [3.4 Lazy Keyword Regeneration (P2 / M) [Perf]](#34-lazy-keyword-regeneration-p2--m-perf)
+    - [3.5 Envelope Size Telemetry (P3 / S) [Observability]](#35-envelope-size-telemetry-p3--s-observability)
+  - [4. Search & Content](#4-search--content)
+    - [4.1 Async Keyword Refresh Queue (P1 / M) [Search]](#41-async-keyword-refresh-queue-p1--m-search)
+    - [4.2 Materialized Searchable Text Column (P2 / M) [Search]](#42-materialized-searchable-text-column-p2--m-search)
+  - [5. Caching & Projection](#5-caching--projection)
+    - [5.1 Projection LRU Cache (P2 / S) [Perf]](#51-projection-lru-cache-p2--s-perf)
+    - [5.2 ETag / Checksum Support (P2 / M) [API]](#52-etag--checksum-support-p2--m-api)
+  - [6. Observability & Auditing](#6-observability--auditing)
+    - [6.1 Structured Change Events (P1 / M) [Observability]](#61-structured-change-events-p1--m-observability)
+    - [6.2 Diff Log (Last N) (P2 / M) [Auditing]](#62-diff-log-last-n-p2--m-auditing)
+    - [6.3 Audit Table (Optional) (P3 / L) [Auditing]](#63-audit-table-optional-p3--l-auditing)
+  - [7. Comments & Notes Lifecycle](#7-comments--notes-lifecycle)
+    - [7.1 Note ID & Operations (P1 / S) [Data]](#71-note-id--operations-p1--s-data)
+    - [7.2 Note Pruning Task (P2 / S) [Data]](#72-note-pruning-task-p2--s-data)
+    - [7.3 Max Note Size Enforcement (P2 / S) [Validation]](#73-max-note-size-enforcement-p2--s-validation)
+  - [8. Security & Privacy](#8-security--privacy)
+    - [8.1 Encrypted JSON Paths (P2 / L) [Security]](#81-encrypted-json-paths-p2--l-security)
+    - [8.2 Redaction Layer in to_universal_dict (P2 / M) [Security]](#82-redaction-layer-in-to_universal_dict-p2--m-security)
+  - [9. API & DX Enhancements](#9-api--dx-enhancements)
+    - [9.1 Bulk Save / Patch Endpoint (P1 / M) [API]](#91-bulk-save--patch-endpoint-p1--m-api)
+    - [9.2 No-Op PATCH 204 Response (P2 / S) [API]](#92-no-op-patch-204-response-p2--s-api)
+    - [9.3 Unified Error Codes (P2 / S) [DX]](#93-unified-error-codes-p2--s-dx)
+    - [9.4 Factory / Fixture Utilities (P2 / S) [DX]](#94-factory--fixture-utilities-p2--s-dx)
+    - [9.5 Snapshot Tests for Universal Dict (P3 / S) [DX]](#95-snapshot-tests-for-universal-dict-p3--s-dx)
+  - [10. Resilience & Housekeeping](#10-resilience--housekeeping)
+    - [10.1 Size Threshold Escalation (P2 / S) [Observability]](#101-size-threshold-escalation-p2--s-observability)
+    - [10.2 Soft Delete Retention Policy (P3 / M) [Data]](#102-soft-delete-retention-policy-p3--m-data)
+    - [10.3 Keyword Refresh Backpressure (P3 / M) [Perf]](#103-keyword-refresh-backpressure-p3--m-perf)
+  - [11. Multi-Tenancy (Future / Exploratory)](#11-multi-tenancy-future--exploratory)
+    - [11.1 Tenant Key Integration (P3 / L) [Architecture]](#111-tenant-key-integration-p3--l-architecture)
+    - [11.2 Tenant-Aware Index Strategy (P3 / M)](#112-tenant-aware-index-strategy-p3--m)
   - [12. Implementation Order (Recommended 3-Phase)](#12-implementation-order-recommended-3-phase)
   - [13. Cross-Cutting Guidelines](#13-cross-cutting-guidelines)
   - [14. Open Questions (Team Decision Needed)](#14-open-questions-team-decision-needed)
@@ -169,7 +164,7 @@ Acceptance:
 - Jitter added.
 
 ---
- 
+
 ## 2. Validation & Schema Governance
 
 ### 2.1 Pluggable JSON Schema Registry (P1 / M) [Validation]
@@ -202,7 +197,7 @@ Acceptance:
 - `metadata['flags']['deprecated_keys']` auto-populated for removed keys.
 
 ---
- 
+
 ## 3. Performance & Indexing
 
 ### 3.1 Partial Indexes on Active Rows (P1 / S) [Perf]
@@ -247,7 +242,7 @@ Acceptance:
 - Prometheus metrics: `wcapi_metadata_bytes{model=...}`.
 
 ---
- 
+
 ## 4. Search & Content
 
 ### 4.1 Async Keyword Refresh Queue (P1 / M) [Search]
@@ -267,7 +262,7 @@ Goal: Denormalized `search_text` (all key tokens) for cheap trigram/ILIKE.
 Acceptance: Column populated on keyword refresh; index added.
 
 ---
- 
+
 ## 5. Caching & Projection
 
 ### 5.1 Projection LRU Cache (P2 / S) [Perf]
@@ -287,7 +282,7 @@ Acceptance:
 - GET returns ETag header; If-None-Match yields 304.
 
 ---
- 
+
 ## 6. Observability & Auditing
 
 ### 6.1 Structured Change Events (P1 / M) [Observability]
@@ -309,7 +304,7 @@ Goal: Separate `model_audit` table for high-trust historical queries.
 Acceptance: Row per change; index on (model, pk).
 
 ---
- 
+
 ## 7. Comments & Notes Lifecycle
 
 ### 7.1 Note ID & Operations (P1 / S) [Data]
@@ -331,7 +326,7 @@ Goal: Truncate or reject notes > configured length.
 Acceptance: Oversized note raises ValidationError or truncates (document behavior).
 
 ---
- 
+
 ## 8. Security & Privacy
 
 ### 8.1 Encrypted JSON Paths (P2 / L) [Security]
@@ -347,7 +342,7 @@ Goal: Remove/redact sensitive keys by role.
 Acceptance: Provide `to_universal_dict(redact_for=user)`; tests for role differences.
 
 ---
- 
+
 ## 9. API & DX Enhancements
 
 ### 9.1 Bulk Save / Patch Endpoint (P1 / M) [API]
@@ -381,7 +376,7 @@ Goal: Guard against shape regressions of to_universal_dict.
 Acceptance: Failing diff on unexpected key changes.
 
 ---
- 
+
 ## 10. Resilience & Housekeeping
 
 ### 10.1 Size Threshold Escalation (P2 / S) [Observability]
@@ -403,7 +398,7 @@ Goal: Skip refresh if queue length > threshold; mark for retry.
 Acceptance: Simulated queue length test.
 
 ---
- 
+
 ## 11. Multi-Tenancy (Future / Exploratory)
 
 ### 11.1 Tenant Key Integration (P3 / L) [Architecture]
@@ -419,7 +414,7 @@ Goal: Covering indexes considering tenant distribution.
 Acceptance: Benchmarks confirm improved planner choices.
 
 ---
- 
+
 ## 12. Implementation Order (Recommended 3-Phase)
 
 Phase 1 (Stabilize Core): 1.1, 2.1, 3.1, 4.1, 6.1, 7.1, 9.1
@@ -427,7 +422,7 @@ Phase 2 (Optimize & Harden): 1.2, 3.3, 3.4, 5.2, 6.2, 7.2, 9.2, 10.1
 Phase 3 (Advanced & Optional): 1.3, 2.2, 3.2, 5.1, 6.3, 7.3, 8.x, 9.3–9.5, 10.2–10.3, 11.x
 
 ---
- 
+
 ## 13. Cross-Cutting Guidelines
 
 - Keep migrations granular (one logical concern each).
@@ -437,7 +432,7 @@ Phase 3 (Advanced & Optional): 1.3, 2.2, 3.2, 5.1, 6.3, 7.3, 8.x, 9.3–9.5, 10.
 - Maintain backward compatibility; deprecate with warnings before removal.
 
 ---
- 
+
 ## 14. Open Questions (Team Decision Needed)
 
 1. Should metadata-only history updates bump version? (Current behavior: yes.)
@@ -446,7 +441,7 @@ Phase 3 (Advanced & Optional): 1.3, 2.2, 3.2, 5.1, 6.3, 7.3, 8.x, 9.3–9.5, 10.
 4. Encryption scope: app-level or per-field policy object?
 
 ---
- 
+
 ## 15. Tracking Template (Copy For Each Ticket)
 
 ```markdown
@@ -465,7 +460,7 @@ Risk & Mitigation:
 ```
 
 ---
- 
+
 ## 16. Recently Completed (Reference)
 
 - Optimistic concurrency (412) + If-Match wildcard.

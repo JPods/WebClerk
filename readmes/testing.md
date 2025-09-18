@@ -2,25 +2,23 @@
 
 # Test & Verification Guide
 
-
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Test & Verification Guide](#test-verification-guide)
+- [Test & Verification Guide](#test--verification-guide)
   - [Table of Contents](#table-of-contents)
   - [1. Quick Start (most common)](#1-quick-start-most-common)
   - [2. Environment Assumptions](#2-environment-assumptions)
   - [3. Test Categories Overview](#3-test-categories-overview)
-  - [4. Size Telemetry & JSON Envelope Checks](#4-size-telemetry-json-envelope-checks)
-- [Example manipulations here](#example-manipulations-here)
-  - [5. Org Aspect Metrics & Validation](#5-org-aspect-metrics-validation)
+- [4. Size Telemetry & JSON Envelope Checks](#4-size-telemetry--json-envelope-checks)
+- [5. Org Aspect Metrics & Validation](#5-org-aspect-metrics--validation)
   - [6. Storage Load Report (Admin Telemetry)](#6-storage-load-report-admin-telemetry)
   - [7. Optimistic Concurrency Pattern](#7-optimistic-concurrency-pattern)
   - [8. Adding New Tests](#8-adding-new-tests)
-  - [9. (Planned) Postman / API Contract Suite](#9-planned-postman-api-contract-suite)
-  - [10. Markers & Layered CI Execution](#10-markers-layered-ci-execution)
-  - [11. Continuous Integration (Implemented & Next)](#11-continuous-integration-implemented-next)
+  - [9. Planned Postman and API Contract Suite](#9-planned-postman-and-api-contract-suite)
+  - [10. Markers & Layered CI Execution](#10-markers--layered-ci-execution)
+  - [11. Continuous Integration (Implemented & Next)](#11-continuous-integration-implemented--next)
   - [12. Troubleshooting](#12-troubleshooting)
   - [13. Fast Local Loop Tips](#13-fast-local-loop-tips)
   - [14. Guardrails Before Merge](#14-guardrails-before-merge)
@@ -69,30 +67,11 @@ coverage run -m pytest && coverage report -m
 ## 2. Environment Assumptions
 
 - Local virtualenv already activated via `source bin/activate` (repo ships a venv layout).
-- Test runs (when `PYTEST_CURRENT_TEST` is present) auto-switch to an in‑memory SQLite database for speed/isolation. This requires **no** local Postgres for unit tests.
-- Normal development runtime (`runserver`, management commands outside pytest) now defaults to **Postgres** to prevent data loss.
+- Test runs (when `PYTEST_CURRENT_TEST` is present) auto-switch to an in‑memory SQLite database for speed/isolation. This requires no local Postgres for unit tests.
+- Normal development runtime (`runserver`, management commands outside pytest) now defaults to Postgres to prevent data loss.
 - Ephemeral SQLite outside pytest: export `USE_SQLITE_TEST=1` (warning printed).
 - Force Postgres inside pytest: set `PYTEST_FORCE_DB=1`.
 - Redis / Celery only required if you explicitly run tasks tests.
-
-Environment variable summary:
-
-| Var | Values | Effect |
-|-----|--------|--------|
-| `PYTEST_CURRENT_TEST` | (auto) | Triggers in‑memory SQLite unless overridden |
-| `USE_SQLITE_TEST` | `1` / `0` | Force in‑memory SQLite outside pytest |
-| `PYTEST_FORCE_DB` | `1` | Force Postgres inside pytest run |
-
-Common scenarios:
-
-| Goal | Command |
-|------|---------|
-| Fast default unit tests (SQLite) | `./bin/pytest -q` |
-| Run tests against Postgres | `PYTEST_FORCE_DB=1 ./bin/pytest -q` |
-| Start dev server (Postgres) | `python manage.py runserver` |
-| Start dev server ephemeral | `USE_SQLITE_TEST=1 python manage.py runserver` |
-
-If you see `OperationalError: no such table: contacts` outside pytest, you likely used ephemeral DB or skipped migrations. Run `python manage.py migrate`.
 
 ## 3. Test Categories Overview
 
@@ -148,7 +127,7 @@ python manage.py storage_load_report --field metadata --limit 100
 - Favor focused unit tests; add integration only when necessary.
 - Keep envelope contract assertions up to date.
 
-## 9. (Planned) Postman / API Contract Suite
+## 9. Planned Postman and API Contract Suite
 
 Placeholder workflow for Newman automation; see future updates.
 

@@ -1,6 +1,6 @@
 import pytest
 from apps.docs.models.linkage import Linkage
-from apps.transactions.models.line_variants import Proposal, ProposalLine
+from apps.transactions.models import Proposal, ProposalLine
 from apps.core.models.setting import Setting
 
 @pytest.mark.django_db

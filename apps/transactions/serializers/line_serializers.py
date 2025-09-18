@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.core.permissions import get_role_field_rules
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
@@ -91,7 +91,7 @@ class SalesOrderLineSerializer(BaseLineSerializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
-        fields = ['id', 'invoice_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 

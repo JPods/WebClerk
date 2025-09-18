@@ -164,8 +164,7 @@ class Command(DjangoBaseCommand):
 
         # Invoices
         for i in range(count):
-            next_inv_num = 2000 + (Invoice.objects.count() or 0) + i
-            inv = Invoice.objects.create(invoice_no=f"INV-{next_inv_num}", refs=_header_links(), prefs={"currency": "USD"})
+            inv = Invoice.objects.create(refs=_header_links(), prefs={"currency": "USD"})
             created["invoices"].append(int(inv.id))
             line_ids: list[int] = []
             for li, item_id in enumerate(random.sample(item_ids, k=min(2, len(item_ids)))):

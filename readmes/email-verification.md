@@ -1,6 +1,5 @@
 # Email verification via sync connections
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -20,15 +19,15 @@ What you get:
 
 Quick start (stub mode, no external calls):
 
-1) Create a connection (via admin/API/fixtures):
+1. Create a connection (via admin/API/fixtures):
 
-   - type: `email_verification`
-   - name: `default`
-   - config: `{ "provider": "stub", "mode": "stub" }`
+- type: `email_verification`
+- name: `default`
+- config: `{ "provider": "stub", "mode": "stub" }`
 
-2) Trigger validation:
+1. Trigger validation:
 
-   - Call the Celery task `validate_email_format(email_id)` after creating an Email, or from the admin.
+- Call the Celery task `validate_email_format(email_id)` after creating an Email, or from the admin.
 
 Safety alert connection:
 
@@ -41,12 +40,13 @@ Result schema (normalized):
 ```
 
 How it works:
+
 - The task calls `apps.sync.services.email_verification.verify_email_via_connection(email)`, which:
 
-   - picks a `Connection` with `type='email_verification'` (by name if specified),
-   - performs a stubbed provider call (no network),
-   - creates an `Exchange` row with masked config and response,
-   - returns a normalized result for the task to persist on `Email`.
+  - picks a `Connection` with `type='email_verification'` (by name if specified),
+  - performs a stubbed provider call (no network),
+  - creates an `Exchange` row with masked config and response,
+  - returns a normalized result for the task to persist on `Email`.
 
 Going beyond stub mode:
 Additional steps for live providers:

@@ -3,9 +3,10 @@ from __future__ import annotations
 from rest_framework import status, response
 from typing import Any, Dict, cast
 from rest_framework.views import APIView
+from common.decorators import allow_write
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.transactions.models.line_variants import Proposal, SalesOrder, PurchaseOrder, Workorder, WorkorderLine
+from apps.transactions.models import Proposal, SalesOrder, PurchaseOrder, Workorder, WorkorderLine
 from apps.core.models.action import Action
 from apps.transactions.serializers.actions import (
     ConvertRequestSerializer,
@@ -77,6 +78,7 @@ def _check_dependencies(depends_on: dict | None) -> tuple[bool, str | None]:
     return True, None
 
 
+@allow_write
 class ProposalToSalesOrderView(APIView):
     permission_classes = [BasePermission]
     queryset = Proposal.objects.all()
@@ -91,6 +93,7 @@ class ProposalToSalesOrderView(APIView):
         return response.Response({'sales_order_id': so.id, 'order_no': so.order_no}, status=status.HTTP_201_CREATED)  # type: ignore[attr-defined]
 
 
+@allow_write
 class SalesOrderToInvoiceView(APIView):
     permission_classes = [BasePermission]
     queryset = SalesOrder.objects.all()
@@ -102,9 +105,10 @@ class SalesOrderToInvoiceView(APIView):
         if not so:
             return response.Response({'detail': 'Sales order not found'}, status=404)
         inv = sales_order_to_invoice(so)
-        return response.Response({'invoice_id': inv.id, 'invoice_no': inv.invoice_no}, status=status.HTTP_201_CREATED)  # type: ignore[attr-defined]
+        return response.Response({'invoice_id': inv.id, 'invoice_ida': getattr(inv, 'ida', '')}, status=status.HTTP_201_CREATED)
 
 
+@allow_write
 class SalesOrderToPurchaseOrderView(APIView):
     permission_classes = [BasePermission]
     queryset = SalesOrder.objects.all()
@@ -132,7 +136,7 @@ class LinkageCommentsAggregateView(APIView):
         # Aggregate comments across linked records (headers & lines) fetching their comments JSON if present
         aggregated: list[dict] = []
         links = (getattr(linkage, 'refs', {}) or {}).get('links', {})
-        from apps.transactions.models.line_variants import (
+        from apps.transactions.models import (
             ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine
         )
         line_models = [ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine]
@@ -173,6 +177,7 @@ class LinkageCommentsAggregateView(APIView):
         }, status=200)
 
 
+@allow_write
 class ReceivePurchaseOrderView(APIView):
     permission_classes = [BasePermission]
     queryset = PurchaseOrder.objects.all()
@@ -193,6 +198,7 @@ class ReceivePurchaseOrderView(APIView):
         return response.Response(summary, status=status.HTTP_201_CREATED)
 
 
+@allow_write
 class WorkorderTransitionView(APIView):
     permission_classes = [BasePermission]
     queryset = Workorder.objects.all()
@@ -274,6 +280,7 @@ class WorkorderTransitionView(APIView):
         return response.Response({'id': wo.id, 'status': wo.status, 'lines_audited': count, 'action_id': getattr(action_rec, 'id', None)}, status=200)
 
 
+@allow_write
 class WorkorderLineTransitionView(APIView):
     permission_classes = [BasePermission]
     queryset = WorkorderLine.objects.all()

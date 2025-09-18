@@ -1,15 +1,36 @@
+from typing import Dict, Any
 from django.db import models
 from .base_transaction_model import TransactionBaseModel
+from apps.transactions.services.sales_order_totals import compute_sales_order_sell_cost_totals
 
 
 class SalesOrder(TransactionBaseModel):
-    # Identifier (DB has NOT NULL constraint in some environments)
-    order_no = models.CharField(max_length=64, default="", db_index=True)
     class Meta:
         db_table = "sales_orders"
 
-    def __str__(self) -> str:  # pragma: no cover
-        return f"SO:{self.order_no or self.pk}"
+    def update_sell_cost_totals(self, persist: bool = False) -> Dict[str, Dict[str, float]]:
+        """Compute sell/cost/totals from lines. If persist=True and fields exist, save them."""
+        computed = compute_sales_order_sell_cost_totals(self)
+
+        if persist:
+            update_fields: list[str] = []
+            if hasattr(self, "sell"):
+                self.sell = computed["sell"]  # type: ignore[assignment]
+                update_fields.append("sell")
+            if hasattr(self, "cost"):
+                self.cost = computed["cost"]  # type: ignore[assignment]
+                update_fields.append("cost")
+            if hasattr(self, "totals"):
+                self.totals = computed["totals"]  # type: ignore[assignment]
+                update_fields.append("totals")
+            if update_fields:
+                update_fields += ["dt_modified", "version"]
+                self.save(update_fields=update_fields)
+
+        return computed
+
+    def __str__(self) -> str:
+        return f"SalesOrder #{self.id} ({self.ida or ''})"
 
 
 __all__ = ["SalesOrder"]

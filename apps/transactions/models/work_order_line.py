@@ -1,14 +1,13 @@
-from decimal import Decimal
 from django.db import models
-from .base_line_model import BaseLineModel
-from .work_order import Workorder
+from .base_line_model import BaseExecLineModel
 
 
-class WorkorderLine(BaseLineModel):
-    parent = models.ForeignKey(Workorder, related_name="lines", on_delete=models.CASCADE)
-
-    BASE_INT_DEFAULT = Decimal("0")
-    quantity_completed = models.DecimalField(max_digits=12, decimal_places=0, default=BASE_INT_DEFAULT)
+class WorkOrderLine(BaseExecLineModel):
+    parent = models.ForeignKey(
+        "transactions.WorkOrder",
+        related_name="lines",
+        on_delete=models.CASCADE,
+    )
 
     class Meta:
         db_table = "work_order_lines"

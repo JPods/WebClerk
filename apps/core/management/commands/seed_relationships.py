@@ -8,7 +8,7 @@ from apps.communications.models.phone import Phone  # type: ignore
 from apps.communications.models.location import Location  # type: ignore
 from apps.communications.models.domain import Domain  # type: ignore
 from apps.orgs.models.base_org_model import OrgBase  # type: ignore
-from apps.transactions.models.line_variants import SalesOrder, SalesOrderLine  # type: ignore
+from apps.transactions.models import SalesOrder, SalesOrderLine  # type: ignore
 
 SAFE_MAX = 5000
 

@@ -22,7 +22,7 @@ import random
 from decimal import Decimal
 
 from apps.transactions.models.projects import Project
-from apps.transactions.models.line_variants import SalesOrder
+from apps.transactions.models import SalesOrder
 from apps.transactions.services.project_seeding import create_sample_projects
 
 

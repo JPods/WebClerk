@@ -12,11 +12,11 @@ urlpatterns = [
 
     # Application routes
     path('', include('apps.core.urls')),
-    # Temporarily scope transactions to invoices-only while refactoring
-    path('tx/', include('apps.transactions.urls_invoices_only')),
+    # Transactions (full routes incl. actions & lines)
+    path('tx/', include('apps.transactions.urls')),
     path('docs/', include('apps.docs.urls')),
         # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
-        path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
+    path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
     path('sync/', include(('apps.sync.urls', 'sync'), namespace='sync')),
     path('products/', include(('apps.products.urls', 'products'), namespace='products')),
     # OpenAPI schema & interactive docs

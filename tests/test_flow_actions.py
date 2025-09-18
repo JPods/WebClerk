@@ -2,7 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.core.models.setting import Setting
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
     PurchaseOrder, PurchaseOrderLine,
@@ -60,7 +60,7 @@ def test_sales_order_to_invoice_action(django_user_model):
     body = resp.data  # type: ignore[attr-defined]
     payload = body.get('data') if isinstance(body, dict) else None
     assert isinstance(payload, dict)
-    assert 'invoice_id' in payload and 'invoice_no' in payload
+    assert 'invoice_id' in payload and 'invoice_ida' in payload
 
 
 @pytest.mark.django_db

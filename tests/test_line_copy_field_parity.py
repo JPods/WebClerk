@@ -1,7 +1,7 @@
 import inspect
 import pytest
 from apps.transactions.services import flow
-from apps.transactions.models.line_variants import SalesOrderLine
+from apps.transactions.models import SalesOrderLine
 
 @pytest.mark.django_db
 def test_line_copy_field_parity():

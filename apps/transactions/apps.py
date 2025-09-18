@@ -1,8 +1,9 @@
 from django.apps import AppConfig
 
-
 class TransactionsConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.transactions'
-    def ready(self):  # pragma: no cover
+    name = "apps.transactions"
+    label = "transactions"
+
+    def ready(self):
+        # Import signal handlers only after apps are loaded
         from . import signals  # noqa: F401

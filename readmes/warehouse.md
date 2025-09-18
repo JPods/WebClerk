@@ -1,6 +1,5 @@
 # Warehouse Model Overview
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -10,11 +9,11 @@
   - [Core Concepts](#core-concepts)
   - [`count` JSON Schema](#count-json-schema)
   - [Typical Usage](#typical-usage)
-  - [Non‑Goals](#nongoals)
-  - [Indexing & Query Patterns](#indexing-query-patterns)
+  - [Non‑Goals](#non-goals)
+  - [Indexing & Query Patterns](#indexing--query-patterns)
   - [Data Quality Guidelines](#data-quality-guidelines)
   - [Extensibility Considerations](#extensibility-considerations)
-  - [Migration / Legacy Notes](#migration-legacy-notes)
+  - [Migration / Legacy Notes](#migration--legacy-notes)
   - [Quick Example](#quick-example)
   - [Summary](#summary)
 
@@ -53,7 +52,7 @@ This snapshot lets an operator see the last verified on‑hand quantity and wher
 - Displaying last known verified quantity & time in UI detail panes.
 - Rapid reconciliation workflows: call `warehouse.update_count(value, user, deviation, aisle=..., bin=...)` then save.
 
-## Non‑Goals
+## Non-Goals
 
 - Not a multi‑period audit trail (avoid appending history here).
 - Not a replacement for item‑level location assignments if you later model racks/slots as separate entities.

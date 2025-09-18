@@ -1,6 +1,5 @@
 # Proposal Submission Flow
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -10,15 +9,15 @@
   - [Overview](#overview)
   - [Models](#models)
   - [Serializers](#serializers)
-  - [Views / Endpoints](#views-endpoints)
+  - [Views / Endpoints](#views--endpoints)
   - [Flow Service](#flow-service)
   - [URL Summary](#url-summary)
   - [Typical Client Sequence](#typical-client-sequence)
-  - [Field / Permission Considerations](#field-permission-considerations)
-  - [Error & Edge Cases](#error-edge-cases)
+  - [Field / Permission Considerations](#field--permission-considerations)
+  - [Error & Edge Cases](#error--edge-cases)
   - [Extension Points](#extension-points)
   - [Minimal Test Sketch](#minimal-test-sketch)
-  - [Data Linkage & Lineage](#data-linkage-lineage)
+  - [Data Linkage & Lineage](#data-linkage--lineage)
 
 <!-- TOC END -->
 
@@ -35,8 +34,8 @@ End-to-end flow for a contact/user associated with a customer creating a Proposa
 
 ## Models
 
-- `transactions.models.line_variants.Proposal` – minimal header (name, dt_created).
-- `transactions.models.line_variants.ProposalLine` – inherits from `BaseLineModel`, FK `parent` to Proposal (db_table `proposal_line`).
+- `transactions.models.Proposal` – minimal header (name, dt_created).
+- `transactions.models.ProposalLine` – inherits from `BaseLineModel`, FK `parent` to Proposal (db_table `proposal_line`).
 
 `BaseLineModel` supplies pricing, costing, quantity, refs/links JSON, probability (proposal‑specific), etc.
 

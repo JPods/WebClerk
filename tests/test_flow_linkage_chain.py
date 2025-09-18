@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 from apps.core.models.setting import Setting
-from apps.transactions.models.line_variants import Proposal, ProposalLine, SalesOrderLine, SalesOrder, InvoiceLine, Invoice, PurchaseOrderLine, PurchaseOrder
+from apps.transactions.models import Proposal, ProposalLine, SalesOrderLine, SalesOrder, InvoiceLine, Invoice, PurchaseOrderLine, PurchaseOrder
 
 
 def _auth(user):

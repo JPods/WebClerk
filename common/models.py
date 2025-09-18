@@ -38,6 +38,7 @@ from django.db.models import F, Value
 from django.db.models.expressions import Func
 from django.contrib.postgres.indexes import GinIndex
 from django.utils import timezone
+from django.db.models.fields.json import KeyTextTransform
 import logging
 import uuid
 import inspect
@@ -50,6 +51,7 @@ MAX_METADATA_SIZE = 128000  # bytes
 # larger data items should be driven into documents and linked
 MAX_REFS_SIZE = 64000
 MAX_PREFS_SIZE = 96000
+MAX_ACTIONS_SIZE = 32000  # actions JSON should remain small and query-friendly
 SIZE_WARN_FRACTION = 0.75  # warn once JSON envelope passes 75% of limit
 SIZE_ACTIVITY_FRACTIONS: tuple[float, ...] = (0.30, 0.60, 0.75)  # progressive telemetry thresholds
 logger = logging.getLogger(__name__)
@@ -159,6 +161,7 @@ if PydanticBaseModel:  # pragma: no cover
         refs: Dict[str, Any] | None = None
         prefs: Dict[str, Any] | None = None
         comments: Dict[str, Any] | None = None
+        actions: Dict[str, Any] | None = None
         health_rating: Optional[int] = 0
         dt_created: Optional[int] = None
         dt_modified: Optional[int] = None
@@ -211,6 +214,11 @@ def default_metadata() -> dict:
             "required": {},
             "allocated": {},
         },
+    # Cross-cutting operational context (lightweight, rarely indexed)
+    # Moved here to avoid schema churn and keep non-critical fields uniform across all models.
+    # Canonical keys; specific apps can mirror or promote to columns when needed for performance.
+    "flow": {},   # e.g., lineage hints, parent/child hops for reporting
+    "source": {}, # e.g., campaign/vendor/manufacturer attribution for analytics
         "history": {
             "created": {"dt": now_ms, "contact_id": 0},
             "modified": {"dt": now_ms, "contact_id": 0},
@@ -310,6 +318,14 @@ class CoreModel(models.Model):
             self.version = (self.version or 0) + 1
         self.dt_modified = now_ms
         super().save(*args, **kwargs)
+        # Ensure ida is populated once a primary key exists. Avoids an extra version bump.
+        try:
+            if hasattr(self, 'ida') and (not getattr(self, 'ida')) and self.pk:
+                # Set ida to string form of primary key by default; project policy can override per-model later.
+                type(self).objects.filter(pk=self.pk, ida="").update(ida=str(self.pk))
+                self.ida = str(self.pk)  # reflect locally
+        except Exception:  # pragma: no cover - never block save
+            logger.debug("ida autogeneration failed", exc_info=True)
         self._pydantic_cache = None
 
     # optimistic helpers
@@ -377,6 +393,12 @@ class MetadataMixin(models.Model):
         self.metadata.setdefault("history", default_metadata()["history"])
         self.metadata.setdefault("flags", {})
         self.metadata.setdefault("versioning", {})
+        # Ensure cross-cutting context containers exist (read/write without KeyError)
+        self.metadata.setdefault("flow", {})
+        self.metadata.setdefault("source", {})
+    # Note: actionable next-step data now lives in ActionsMixin.actions JSON
+    # to keep semantics clear and indexing straightforward.
+
         # Ensure resources planning scaffold exists
         res = self.metadata.setdefault("resources", {})
         if isinstance(res, dict):
@@ -414,6 +436,26 @@ class MetadataMixin(models.Model):
         for k in keys[:-1]:
             target = target.setdefault(k, {})
         target[keys[-1]] = value
+
+    # convenience accessors for common context blocks ---------------------
+    def get_flow(self) -> dict:
+        return self.metadata.get("flow", {}) if isinstance(self.metadata, dict) else {}
+
+    def set_flow(self, value: dict):
+        if not isinstance(self.metadata, dict):
+            self.metadata = default_metadata()
+        self.metadata["flow"] = value or {}
+
+    def get_source(self) -> dict:
+        return self.metadata.get("source", {}) if isinstance(self.metadata, dict) else {}
+
+    def set_source(self, value: dict):
+        if not isinstance(self.metadata, dict):
+            self.metadata = default_metadata()
+        self.metadata["source"] = value or {}
+
+ 
+
 
     def get_created_timestamp(self):
         return self.get_metadata_value("history.created.dt") or 0
@@ -459,6 +501,37 @@ class PrefsMixin(models.Model):
     class Meta:
         abstract = True
 
+class ActionsMixin(models.Model):
+
+    """Actionable flags & next-step metadata (frequently searched).
+
+    Semantics:
+    - Keep frequently queried fields near the root of actions for easy indexing, e.g.:
+        {
+          "required": true,
+          "status": "pending|done|blocked",
+          "who": 123,          # contact_id or username
+          "when": 1737052800000, # ms epoch for due/next
+          "what": "call vendor",
+          "kind": "followup|review|ship|approve",
+          "extra": { ... }     # free-form per domain
+        }
+    - Empty object {} means no action required.
+    - Prefer small payloads (<32KB) for performance.
+    """
+
+    feature_flags = {"actions"}
+    actions = models.JSONField(default=dict, blank=True, help_text="Next action metadata (searchable)")
+
+    class Meta:
+        abstract = True
+
+    # convenience accessors
+    def get_action(self) -> dict:
+        return self.actions or {}
+
+    def set_action(self, value: dict | None):
+        self.actions = value or {}
 
 class CommentsMixin(models.Model):
     """Structured comments & append-only notes list (audit assistance)."""
@@ -636,7 +709,7 @@ class AtomicJSONMixin(models.Model):
         create_missing: bool = True,
         expected_version: int | None = None,
     ):
-        if field not in {"metadata", "refs", "prefs", "comments"}:
+        if field not in {"metadata", "refs", "prefs", "comments", "actions"}:
             raise ValueError("field must be one of metadata, refs, prefs, comments")
         if not hasattr(cls, field):
             raise ValueError(f"Model {cls.__name__} has no field '{field}' for atomic update")
@@ -672,7 +745,7 @@ class AtomicJSONMixin(models.Model):
         max_length: int | None = None,
         expected_version: int | None = None,
     ):
-        if field not in {"metadata", "refs", "prefs", "comments"}:
+        if field not in {"metadata", "refs", "prefs", "comments", "actions"}:
             raise ValueError("field must be one of metadata, refs, prefs, comments")
         if not hasattr(cls, field):
             raise ValueError(f"Model {cls.__name__} has no field '{field}' for atomic update")
@@ -859,6 +932,8 @@ class UniversalDictMixin(models.Model):
         for opt in ("refs", "prefs", "comments", "health_rating"):
             if hasattr(self, opt):
                 base[opt] = getattr(self, opt)
+        if hasattr(self, "actions"):
+            base["actions"] = getattr(self, "actions")
         return base
 
     def as_pydantic(self, refresh: bool = False):
@@ -908,6 +983,7 @@ class UniversalDictMixin(models.Model):
 
 # ---------------- Full composition ----------------------------------------
 class BaseModel(
+    ActionsMixin,
     CoreModel,
     MetadataMixin,
     RefsMixin,
@@ -933,6 +1009,11 @@ class BaseModel(
         indexes = [
             GinIndex(fields=["refs"]),
             GinIndex(fields=["prefs"]),
+            GinIndex(fields=["actions"]),
+            models.Index(KeyTextTransform('status', 'actions'), name='idx_actions_status'),
+            models.Index(KeyTextTransform('required', 'actions'), name='idx_actions_required'),
+            models.Index(KeyTextTransform('who', 'actions'), name='idx_actions_who'),
+            models.Index(KeyTextTransform('when', 'actions'), name='idx_actions_when'),
         ]
 
     # QuerySet / Manager providing convenience filters for lifecycle + keyword flag
@@ -1082,6 +1163,8 @@ class BaseModel(
             check_size(self.refs, MAX_REFS_SIZE, "refs")  # type: ignore[attr-defined]
         if hasattr(self, "prefs"):
             check_size(self.prefs, MAX_PREFS_SIZE, "prefs")  # type: ignore[attr-defined]
+        if hasattr(self, "actions"):
+            check_size(self.actions, MAX_ACTIONS_SIZE, "actions")  # type: ignore[attr-defined]
 
         if isinstance(self, KeywordsMixin):
             self.mark_keywords_dirty()

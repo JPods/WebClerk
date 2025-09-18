@@ -4,7 +4,7 @@
 
 ## Table of Contents
 
-- [Terms ➜ Ledgers](#terms-ledgers)
+- [Terms ➜ Ledgers](#terms--ledgers)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Examples](#examples)

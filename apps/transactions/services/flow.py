@@ -7,7 +7,7 @@ from typing import Optional, Sequence
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
@@ -65,8 +65,6 @@ def _copy_common_line_fields(src: ProposalLine | SalesOrderLine | PurchaseOrderL
     """
     # Scalar fields
     dst.status = getattr(src, 'status', None)
-    dst.type_sale = getattr(src, 'type_sale', None)
-    dst.probability = getattr(src, 'probability', None)
 
     # JSON / dict fields (shallow clone to detach references)
     for field_name in LINE_JSON_FIELDS_TO_COPY:
@@ -178,7 +176,7 @@ def ensure_linkage_for_lines(lines) -> int:
             links = refs.setdefault('links', {"linkage": []})
             linkage_list = links.setdefault('linkage', [])
             if not linkage_list:
-                linkage_list.append(linkage_id)
+                linkage_list.append(linkage.id)
             setattr(ln, 'refs', refs)
             ln.save(update_fields=['refs', 'dt_modified', 'version'])  # type: ignore[attr-defined]
         except Exception:  # pragma: no cover
@@ -213,7 +211,8 @@ def proposal_to_sales_order(proposal: Proposal, order_no: Optional[str] = None) 
 
 @transaction.atomic
 def sales_order_to_invoice(so: SalesOrder, invoice_no: Optional[str] = None) -> Invoice:
-    inv = Invoice.objects.create(invoice_no=invoice_no or f"INV-{so.pk or 'new'}")
+    # invoice_no is deprecated; ida is auto-generated from id.
+    inv = Invoice.objects.create()
     src_lines = list(SalesOrderLine.objects.filter(parent=so).order_by('id'))
     linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
     for sol in src_lines:

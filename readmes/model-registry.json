@@ -266,7 +266,7 @@
   {
     "key": "invoice",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.Invoice",
+  "model": "apps.transactions.models.Invoice",
     "endpoint": "invoices",
     "kind": "header",
     "aliases": [
@@ -276,7 +276,7 @@
   {
     "key": "invoice_line",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.InvoiceLine",
+  "model": "apps.transactions.models.InvoiceLine",
     "endpoint": "invoice-lines",
     "kind": "line",
     "aliases": [
@@ -376,7 +376,7 @@
   {
     "key": "proposal",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.Proposal",
+  "model": "apps.transactions.models.Proposal",
     "endpoint": "proposals",
     "kind": "header",
     "aliases": [
@@ -386,7 +386,7 @@
   {
     "key": "proposal_line",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.ProposalLine",
+  "model": "apps.transactions.models.ProposalLine",
     "endpoint": "proposal-lines",
     "kind": "line",
     "aliases": [
@@ -396,7 +396,7 @@
   {
     "key": "purchase_order",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.PurchaseOrder",
+  "model": "apps.transactions.models.PurchaseOrder",
     "endpoint": "purchase-orders",
     "kind": "header",
     "aliases": [
@@ -406,7 +406,7 @@
   {
     "key": "purchase_order_line",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.PurchaseOrderLine",
+  "model": "apps.transactions.models.PurchaseOrderLine",
     "endpoint": "purchase-order-lines",
     "kind": "line",
     "aliases": [
@@ -436,7 +436,7 @@
   {
     "key": "requisition",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.Requisition",
+  "model": "apps.transactions.models.Requisition",
     "endpoint": "requisitions",
     "kind": "header",
     "aliases": [
@@ -446,7 +446,7 @@
   {
     "key": "requisition_line",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.RequisitionLine",
+  "model": "apps.transactions.models.RequisitionLine",
     "endpoint": "requisition-lines",
     "kind": "line",
     "aliases": [
@@ -456,7 +456,7 @@
   {
     "key": "sales_order",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.SalesOrder",
+  "model": "apps.transactions.models.SalesOrder",
     "endpoint": "sales-orders",
     "kind": "header",
     "aliases": [
@@ -466,7 +466,7 @@
   {
     "key": "sales_order_line",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.SalesOrderLine",
+  "model": "apps.transactions.models.SalesOrderLine",
     "endpoint": "sales-order-lines",
     "kind": "line",
     "aliases": [
@@ -546,7 +546,7 @@
   {
     "key": "work_order",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.Workorder",
+  "model": "apps.transactions.models.Workorder",
     "endpoint": "work-orders",
     "kind": "header",
     "aliases": [
@@ -556,7 +556,7 @@
   {
     "key": "work_order_line",
     "app": "transactions",
-    "model": "apps.transactions.models.line_variants.WorkorderLine",
+  "model": "apps.transactions.models.WorkorderLine",
     "endpoint": "workorder-lines",
     "kind": "line",
     "aliases": [

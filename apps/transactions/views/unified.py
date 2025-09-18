@@ -2,7 +2,7 @@ from typing import Tuple, Type, Optional
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, status
 from common.api_responses import api_response
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,

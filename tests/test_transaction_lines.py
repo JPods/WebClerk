@@ -3,7 +3,7 @@
 from decimal import Decimal
 import pytest
 from rest_framework.test import APIClient
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
@@ -87,7 +87,7 @@ def test_scoped_aggregation(django_user_model):
                            data={"USER": {"view": ["id"], "edit": []}})
     user = django_user_model.objects.create_user(email='scope@example.com', password='pass12345', role='USER')
     parent = Proposal.objects.create(name="P3")
-    inv_parent = Invoice.objects.create(invoice_no="I1")
+    inv_parent = Invoice.objects.create()
     ProposalLine.objects.create(parent=parent, parent_ref_id=parent.pk, status='OPEN', price={'extended': '3'}, cost={'extended': '1'})
     InvoiceLine.objects.create(parent=inv_parent, parent_ref_id=inv_parent.pk, status='OPEN', price={'extended': '7'}, cost={'extended': '2'})
     client = _auth(user)
@@ -109,7 +109,7 @@ def test_permissions_remaining_line_models(django_user_model):
         Setting.objects.create(purpose='view_edit', model_name=tbl, is_active=True,
                                data={"PUBLIC": {"view": ["id", "status"], "edit": []}})
     user = django_user_model.objects.create_user(email='puball@example.com', password='pass12345', role='GUEST')
-    inv = Invoice.objects.create(invoice_no='I2')
+    inv = Invoice.objects.create()
     pur = PurchaseOrder.objects.create(po_no='P1')
     wo = Workorder.objects.create(work_no='W1')
     req = Requisition.objects.create(req_no='R1')

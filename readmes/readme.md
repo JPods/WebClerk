@@ -79,6 +79,46 @@
     - [Extending To Another Model](#extending-to-another-model)
     - [Design Rationale](#design-rationale)
     - [Future Enhancements](#future-enhancements)
+
+## Write policy (SaveWcapiView + Write Gate)
+
+To ensure all model writes trigger consistent pre/post side effects (Celery tasks) and optimistic concurrency checks, we centralize mutations through `SaveWcapiView` and block ad‑hoc writes by default.
+
+Key points:
+
+- All POST/PUT/PATCH/DELETE requests are blocked unless explicitly allowlisted.
+- Default allowed endpoints include `/wcapi/save/` and auth/token paths. Admin paths are also allowed by default.
+- The write gate is implemented by `common.middleware.WriteGateMiddleware`.
+- Settings to control behavior:
+
+  - `WRITE_GATE_ENABLED` (bool, default True): master switch.
+  - `WRITE_GATE_EXACT_PATHS` (tuple[str]): exact path allowlist, default `('/wcapi/save/',)`.
+  - `WRITE_GATE_PREFIXES` (tuple[str]): prefix allowlist, includes `/wcapi/save/`, `/api/auth/`, `/api/token/`, `/wcapi/login/`, `/wcapi/signup/`, `/admin/`, `/admin-django/`.
+  - Env override `WRITE_GATE_DISABLED=1` disables the gate regardless of settings (dev convenience).
+
+Decorator for exceptions:
+
+- Use `@allow_write` (from `common.decorators`) to mark specific function‑ or class‑based views as allowed to write.
+- The middleware checks for `_allow_write` attribute on the resolved view or class and permits the request.
+
+Save endpoint behavior:
+
+- `POST /wcapi/save/` accepts a JSON payload with at least `model_name` and optional `id`.
+- Dict payloads for JSON fields (e.g., `refs`, `prefs`, `metadata`, `item`, `price`, `cost`) are deep‑merged into existing objects to avoid clobbering existing keys.
+- Unknown top‑level fields are captured into `prefs.userdefined` with a bounded size.
+- Pre/post Celery tasks `tasks.save_pre` and `tasks.save_post` are invoked (and an optional `save_post_async` is `.delay()`ed if available).
+
+Example: deep‑merge and unknown‑field capture
+
+- See test `tests/test_wcapi_save_deep_merge.py` for a minimal example that posts two saves: the first sets nested `prefs`, and the second updates `prefs.ui` while also sending an unknown top‑level field which is captured into `prefs.userdefined`.
+
+Concurrency:
+
+- The endpoint supports optimistic concurrency via the `If-Match` header (`*`, specific version), `version` in body, or legacy `expected_version`.
+
+Troubleshooting:
+
+- Receiving `405 Write blocked by policy` indicates the path isn’t allowlisted: route the write through `/wcapi/save/` or decorate the view with `@allow_write`.
   - [Modular BaseModel & CoreModel (Capability Composition)](#modular-basemodel-coremodel-capability-composition)
     - [Mixins & Capabilities](#mixins-capabilities)
     - [Choosing a Composition](#choosing-a-composition)
@@ -435,6 +475,7 @@ Full canonical spec, error code table, pagination meta rules, test guidance, and
 5. Log / surface `meta.request_id` when present for cross-service tracing.
 Provide a schema component in OpenAPI (spectacular) describing the envelope for reuse via `extend_schema(responses=...)` to cut duplication. (Planned)
 
+QQQ
 Usage Pattern (simple view):
 
 ```python

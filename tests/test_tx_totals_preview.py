@@ -2,7 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.core.models.setting import Setting
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
 )

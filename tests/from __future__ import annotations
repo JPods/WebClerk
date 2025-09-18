@@ -1,0 +1,386 @@
+from __future__ import annotations
+from typing import List, Optional, Dict, Any
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from apps.transactions.models import SalesOrder, SalesOrderLine, Invoice, InvoiceLine
+
+
+class OrderToInvoiceTransferError(Exception):
+    """Custom exception for order-to-invoice transfer errors."""
+    pass
+
+
+@transaction.atomic
+def transfer_order_to_invoice(
+    order: SalesOrder,
+    line_ids: Optional[List[int]] = None,
+    transfer_all: bool = True,
+    invoice_status: str = "pending",
+    preserve_order: bool = True,
+    invoice_type: str = "standard"
+) -> Dict[str, Any]:
+    """Transfer a sales order to an invoice.
+    
+    Args:
+        order: Source SalesOrder instance
+        line_ids: Optional list of SalesOrderLine IDs to transfer. If None, behavior depends on transfer_all
+        transfer_all: If True and line_ids is None, transfer all lines. If False, raise error
+        invoice_status: Status to set on the new invoice
+        preserve_order: If True, keep original order. If False, mark as invoiced/closed
+        invoice_type: Type of invoice to create (standard, partial, final)
+        
+    Returns:
+        Dict with transfer results including new invoice ID and line mapping
+        
+    Raises:
+        OrderToInvoiceTransferError: If validation fails or transfer cannot proceed
+        ValidationError: If model validation fails
+    """
+    # Validation
+    if not order:
+        raise OrderToInvoiceTransferError("Order is required")
+    
+    if not transfer_all and not line_ids:
+        raise OrderToInvoiceTransferError("Must specify line_ids when transfer_all=False")
+    
+    # Get lines to transfer
+    if transfer_all:
+        lines_to_transfer = order.lines.all()
+    else:
+        lines_to_transfer = order.lines.filter(id__in=line_ids)
+        if len(lines_to_transfer) != len(line_ids or []):
+            missing_ids = set(line_ids or []) - set(lines_to_transfer.values_list('id', flat=True))
+            raise OrderToInvoiceTransferError(f"Line IDs not found: {missing_ids}")
+    
+    if not lines_to_transfer.exists():
+        raise OrderToInvoiceTransferError("No lines to transfer")
+    
+    # Check for lines already fully invoiced
+    already_invoiced = []
+    for line in lines_to_transfer:
+        quantity_data = line.quantity or {}
+        remaining = quantity_data.get('remaining', 0)
+        if remaining <= 0:
+            already_invoiced.append(line.id)
+    
+    if already_invoiced and not transfer_all:
+        raise OrderToInvoiceTransferError(f"Lines already fully invoiced: {already_invoiced}")
+    
+    # Create new invoice
+    invoice_data = {
+        'status': invoice_status,
+        'party_id': order.party_id,
+        'refs': _prepare_invoice_refs(order, invoice_type),
+        'prefs': _prepare_invoice_prefs(order),
+        'metadata': _prepare_invoice_metadata(order, invoice_type),
+    }
+    
+    invoice = Invoice.objects.create(**invoice_data)
+    
+    # Transfer lines
+    line_mapping = {}
+    transferred_lines = []
+    
+    for order_line in lines_to_transfer:
+        # Skip if already fully invoiced in transfer_all mode
+        quantity_data = order_line.quantity or {}
+        remaining = quantity_data.get('remaining', 0)
+        if transfer_all and remaining <= 0:
+            continue
+            
+        invoice_line_data = {
+            'parent': invoice,
+            'status': order_line.status or 'pending',
+            'price_level': order_line.price_level,
+            'item': order_line.item,
+            'quantity': _convert_quantity_for_invoice(order_line.quantity),
+            'price': order_line.price,
+            'cost': order_line.cost,
+            'tax': order_line.tax,
+            'physical': order_line.physical,
+            'refs': _prepare_line_refs(order_line),
+            'prefs': _prepare_line_prefs(order_line),
+            'metadata': _prepare_line_metadata(order_line, order),
+        }
+        
+        invoice_line = InvoiceLine.objects.create(**invoice_line_data)
+        line_mapping[order_line.id] = invoice_line.id
+        transferred_lines.append(invoice_line)
+        
+        # Update order line quantity (mark as invoiced)
+        _update_order_line_quantity(order_line, remaining)
+    
+    # Update order status if not preserving or if fully invoiced
+    if not preserve_order:
+        order.status = 'invoiced'
+        order.save(update_fields=['status', 'dt_modified', 'version'])
+    elif transfer_all:
+        # Check if order is now fully invoiced
+        remaining_to_invoice = sum(
+            line.quantity.get('remaining', 0) for line in order.lines.all()
+        )
+        if remaining_to_invoice <= 0:
+            order.status = 'fulfilled'
+            order.save(update_fields=['status', 'dt_modified', 'version'])
+    
+    # Update invoice refs to link back to order
+    invoice_refs = invoice.refs or {}
+    invoice_refs.setdefault('source', {})['sales_order_id'] = order.id
+    invoice_refs.setdefault('source', {})['transfer_date'] = invoice.dt_created.isoformat()
+    invoice_refs.setdefault('source', {})['invoice_type'] = invoice_type
+    invoice.refs = invoice_refs
+    invoice.save(update_fields=['refs', 'dt_modified', 'version'])
+    
+    return {
+        'success': True,
+        'invoice_id': invoice.id,
+        'sales_order_id': order.id,
+        'lines_transferred': len(transferred_lines),
+        'line_mapping': line_mapping,  # order_line_id -> invoice_line_id
+        'order_preserved': preserve_order,
+        'invoice_status': invoice.status,
+        'invoice_type': invoice_type,
+    }
+
+
+def _prepare_invoice_refs(order: SalesOrder, invoice_type: str) -> Dict[str, Any]:
+    """Prepare refs for the new invoice based on order."""
+    refs = dict(order.refs or {})
+    refs.setdefault('source', {})['converted_from'] = 'sales_order'
+    refs.setdefault('source', {})['original_id'] = order.id
+    refs.setdefault('source', {})['invoice_type'] = invoice_type
+    refs.setdefault('links', {})  # Will be populated by signals
+    
+    # Preserve proposal lineage if it exists
+    if 'source' in refs and 'proposal_id' in refs['source']:
+        refs['source']['original_proposal_id'] = refs['source']['proposal_id']
+    
+    return refs
+
+
+def _prepare_invoice_prefs(order: SalesOrder) -> Dict[str, Any]:
+    """Prepare prefs for the new invoice based on order."""
+    return dict(order.prefs or {})
+
+
+def _prepare_invoice_metadata(order: SalesOrder, invoice_type: str) -> Dict[str, Any]:
+    """Prepare metadata for the new invoice based on order."""
+    metadata = dict(order.metadata or {})
+    metadata.setdefault('conversion', {})['from_sales_order'] = order.id
+    metadata.setdefault('conversion', {})['transfer_type'] = 'order_to_invoice'
+    metadata.setdefault('conversion', {})['invoice_type'] = invoice_type
+    
+    # Preserve proposal lineage if it exists
+    if 'conversion' in metadata and 'from_proposal' in metadata['conversion']:
+        metadata['conversion']['original_proposal'] = metadata['conversion']['from_proposal']
+    
+    return metadata
+
+
+def _prepare_line_refs(order_line: SalesOrderLine) -> Dict[str, Any]:
+    """Prepare refs for invoice line based on order line."""
+    refs = dict(order_line.refs or {})
+    refs.setdefault('source', {})['sales_order_line_id'] = order_line.id
+    
+    # Preserve proposal line lineage if it exists
+    if 'source' in refs and 'proposal_line_id' in refs['source']:
+        refs['source']['original_proposal_line_id'] = refs['source']['proposal_line_id']
+    
+    return refs
+
+
+def _prepare_line_prefs(order_line: SalesOrderLine) -> Dict[str, Any]:
+    """Prepare prefs for invoice line based on order line."""
+    return dict(order_line.prefs or {})
+
+
+def _prepare_line_metadata(order_line: SalesOrderLine, order: SalesOrder) -> Dict[str, Any]:
+    """Prepare metadata for invoice line based on order line."""
+    metadata = dict(order_line.metadata or {})
+    metadata.setdefault('conversion', {})['from_sales_order_line'] = order_line.id
+    metadata.setdefault('conversion', {})['from_sales_order'] = order.id
+    
+    # Preserve proposal lineage if it exists
+    if 'conversion' in metadata and 'from_proposal_line' in metadata['conversion']:
+        metadata['conversion']['original_proposal_line'] = metadata['conversion']['from_proposal_line']
+    
+    return metadata
+
+
+def _convert_quantity_for_invoice(order_quantity: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert order quantity structure to invoice quantity structure."""
+    quantity = dict(order_quantity or {})
+    
+    # Order quantity has: invoiced, remaining
+    # Invoice quantity needs: packed, remaining
+    
+    # Map order.remaining to invoice baseline
+    remaining = quantity.get('remaining', 0)
+    
+    return {
+        'packed': 0,  # No packing yet
+        'remaining': remaining,  # Full quantity remains to be packed/shipped
+        'precision': quantity.get('precision', 2),
+        'is_fixed': quantity.get('is_fixed', False),
+        # Preserve additional fields for audit
+        'converted_from_order': {
+            'invoiced': quantity.get('invoiced', 0),
+            'original_remaining': remaining,
+            'converted_from_proposal': quantity.get('converted_from_proposal'),
+        }
+    }
+
+
+def _update_order_line_quantity(order_line: SalesOrderLine, invoiced_qty: float) -> None:
+    """Update order line quantity to reflect invoicing."""
+    quantity = dict(order_line.quantity or {})
+    current_invoiced = quantity.get('invoiced', 0)
+    current_remaining = quantity.get('remaining', 0)
+    
+    # Update invoiced and remaining quantities
+    quantity['invoiced'] = current_invoiced + invoiced_qty
+    quantity['remaining'] = max(0, current_remaining - invoiced_qty)
+    
+    order_line.quantity = quantity
+    order_line.save(update_fields=['quantity', 'dt_modified', 'version'])
+
+
+@transaction.atomic
+def validate_order_for_invoicing(order: SalesOrder, line_ids: Optional[List[int]] = None) -> Dict[str, Any]:
+    """Validate if a sales order can be transferred to an invoice.
+    
+    Args:
+        order: SalesOrder to validate
+        line_ids: Optional specific line IDs to validate
+        
+    Returns:
+        Dict with validation results and any warnings/errors
+    """
+    results = {
+        'can_transfer': True,
+        'errors': [],
+        'warnings': [],
+        'line_count': 0,
+        'total_amount': 0.0,
+        'remaining_to_invoice': 0.0,
+    }
+    
+    if not order:
+        results['can_transfer'] = False
+        results['errors'].append('Order not found')
+        return results
+    
+    # Check order status
+    if order.status in ['cancelled', 'expired', 'invoiced', 'fulfilled']:
+        if order.status in ['cancelled', 'expired']:
+            results['can_transfer'] = False
+            results['errors'].append(f'Order status is {order.status}')
+        else:
+            results['warnings'].append(f'Order status is {order.status}')
+    
+    # Get lines to validate
+    if line_ids:
+        lines = order.lines.filter(id__in=line_ids)
+        if len(lines) != len(line_ids):
+            missing = set(line_ids) - set(lines.values_list('id', flat=True))
+            results['errors'].append(f'Line IDs not found: {missing}')
+            results['can_transfer'] = False
+    else:
+        lines = order.lines.all()
+    
+    if not lines.exists():
+        results['can_transfer'] = False
+        results['errors'].append('No lines to transfer')
+        return results
+    
+    # Validate lines
+    results['line_count'] = len(lines)
+    total_amount = 0.0
+    remaining_to_invoice = 0.0
+    
+    for line in lines:
+        # Check if line has required data
+        if not line.price or not line.price.get('extended'):
+            results['warnings'].append(f'Line {line.id} has no price.extended')
+        else:
+            total_amount += float(line.price.get('extended', 0))
+        
+        # Check remaining quantity
+        quantity_data = line.quantity or {}
+        remaining = quantity_data.get('remaining', 0)
+        remaining_to_invoice += remaining
+        
+        if remaining <= 0:
+            results['warnings'].append(f'Line {line.id} already fully invoiced')
+    
+    results['total_amount'] = total_amount
+    results['remaining_to_invoice'] = remaining_to_invoice
+    
+    if remaining_to_invoice <= 0:
+        results['warnings'].append('All selected lines are fully invoiced')
+    
+    return results
+
+
+def get_order_invoicing_summary(order: SalesOrder) -> Dict[str, Any]:
+    """Get summary of order's invoicing status.
+    
+    Args:
+        order: SalesOrder to summarize
+        
+    Returns:
+        Dict with invoicing status summary
+    """
+    if not order:
+        return {'error': 'Order not found'}
+    
+    lines = order.lines.all()
+    total_lines = len(lines)
+    
+    summary = {
+        'order_id': order.id,
+        'order_status': order.status,
+        'total_lines': total_lines,
+        'fully_invoiced_lines': 0,
+        'partially_invoiced_lines': 0,
+        'uninvoiced_lines': 0,
+        'total_ordered_amount': 0.0,
+        'total_invoiced_amount': 0.0,
+        'remaining_to_invoice_amount': 0.0,
+    }
+    
+    for line in lines:
+        quantity_data = line.quantity or {}
+        invoiced = quantity_data.get('invoiced', 0)
+        remaining = quantity_data.get('remaining', 0)
+        
+        price_data = line.price or {}
+        unit_price = price_data.get('unit', 0)
+        
+        # Calculate amounts
+        ordered_qty = invoiced + remaining
+        ordered_amount = ordered_qty * unit_price
+        invoiced_amount = invoiced * unit_price
+        remaining_amount = remaining * unit_price
+        
+        summary['total_ordered_amount'] += ordered_amount
+        summary['total_invoiced_amount'] += invoiced_amount
+        summary['remaining_to_invoice_amount'] += remaining_amount
+        
+        # Categorize line
+        if remaining <= 0:
+            summary['fully_invoiced_lines'] += 1
+        elif invoiced > 0:
+            summary['partially_invoiced_lines'] += 1
+        else:
+            summary['uninvoiced_lines'] += 1
+    
+    # Calculate percentages
+    if summary['total_ordered_amount'] > 0:
+        summary['percent_invoiced'] = round(
+            (summary['total_invoiced_amount'] / summary['total_ordered_amount']) * 100, 2
+        )
+    else:
+        summary['percent_invoiced'] = 0.0
+    
+    return summary

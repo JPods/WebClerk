@@ -15,6 +15,7 @@ from collections import defaultdict
 import os
 from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 from rest_framework import serializers
+from common.decorators import allow_write
 try:
     # Enable Prometheus if env WCAPI_PROMETHEUS=1 (backward compat: WCAPI_METRICS_BACKEND=prom)
     PROM_ENABLED = os.getenv('WCAPI_PROMETHEUS', '0') == '1' or os.getenv('WCAPI_METRICS_BACKEND') == 'prom'
@@ -95,6 +96,7 @@ def _pagination_params(request):
     return limit, offset
 
 @method_decorator(csrf_exempt, name='dispatch')
+@allow_write
 class WcapiView(LoginRequiredMixin, APIView):
     """Supports GET (single/list) and POST (filtered list). Other verbs 405."""
 
@@ -103,9 +105,45 @@ class WcapiView(LoginRequiredMixin, APIView):
     def _serialize_queryset(self, qs, limit, offset):
         sliced = qs[offset: offset + limit]
         fields = getattr(self, '_requested_fields', None)
+        # Replace alias fields with real DB fields for the values() call
         if fields:
-            return list(sliced.values(*fields))
-        return list(sliced.values())
+            effective_fields = []
+            alias_parent_ref_requested = False
+            for f in fields:
+                if f == 'parent_ref_id':
+                    alias_parent_ref_requested = True
+                    # ensure we fetch parent_id so we can alias it later
+                    if 'parent_id' not in effective_fields:
+                        effective_fields.append('parent_id')
+                else:
+                    effective_fields.append(f)
+            rows = list(sliced.values(*effective_fields))
+        else:
+            rows = list(sliced.values())
+        # Projection alias: expose parent_ref_id as alias to parent_id for line models if requested
+        try:
+            model = qs.model  # type: ignore[attr-defined]
+            is_line_model = False
+            if hasattr(model, '_meta'):
+                for f in model._meta.get_fields():
+                    try:
+                        if isinstance(f, models.ForeignKey) and getattr(f, 'name', '') == 'parent':
+                            is_line_model = True
+                            break
+                    except Exception:
+                        continue
+            if is_line_model:
+                want_parent_ref = (fields is None) or ('parent_ref_id' in (fields or ()))
+                if want_parent_ref:
+                    for r in rows:
+                        if 'parent_id' in r:
+                            r['parent_ref_id'] = r['parent_id']
+                            # If parent_id was not explicitly requested, drop it
+                            if fields and 'parent_id' not in fields:
+                                r.pop('parent_id', None)
+        except Exception:
+            pass
+        return rows
 
     def _model_or_400(self, table_key):
         model = get_model(table_key)
@@ -378,7 +416,11 @@ class WcapiView(LoginRequiredMixin, APIView):
             cached = {f.name for f in model._meta.get_fields() if isinstance(f, models.Field)}
             self._model_field_cache[model] = cached
         model_fields = cached
-        invalid = [f for f in fields if f not in model_fields]
+        # Allow alias parent_ref_id for line models that have implicit parent_id
+        alias_ok = set()
+        if 'parent_ref_id' in fields:
+            alias_ok.add('parent_ref_id')
+        invalid = [f for f in fields if (f not in model_fields and f not in alias_ok)]
         if invalid:
             return api_response(success=False, status_code=400, message='Invalid field(s)', error={'code':'invalid_fields','details':invalid})
         # prevent empty

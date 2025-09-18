@@ -1,17 +1,13 @@
 # Developer Setup & Requirements
 
-
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Developer Setup & Requirements](#developer-setup-requirements)
+- [Developer Setup & Requirements](#developer-setup--requirements)
   - [Table of Contents](#table-of-contents)
   - [Quick Start (TL;DR)](#quick-start-tldr)
-- [From repo root](#from-repo-root)
-- [Install pre-commit hooks (recommended)](#install-pre-commit-hooks-recommended)
-- [Fast tests](#fast-tests)
-  - [Python & Virtual Environment](#python-virtual-environment)
+  - [Python & Virtual Environment](#python--virtual-environment)
   - [Install Dependencies](#install-dependencies)
   - [Pre-commit Hooks](#pre-commit-hooks)
   - [Running Tests](#running-tests)

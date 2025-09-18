@@ -20,7 +20,7 @@ This command creates a small, predictable set of transactional data for developm
 
 - After running, check via wcapi endpoints (requires auth):
   - GET /wcapi/get/?model_name=sales_order&query={"order_no":"SOST-1001"}
-  - GET /wcapi/get/?model_name=invoice&query={"invoice_no":"INVST-2001"}
+  - GET /wcapi/get/?model_name=invoice&query={"ida":"2001"}
   - GET /wcapi/get/?model_name=purchase_order&query={"po_no":"POST-3001"}
 
 ## Notes

@@ -246,3 +246,53 @@ class EnsureRenderedMiddleware(MiddlewareMixin):
         except Exception:
             pass
         return response
+
+
+class WriteGateMiddleware(MiddlewareMixin):
+    """Block write methods unless path/view is explicitly allowlisted.
+
+    Goal: Centralize all mutation via SaveWcapiView so pre/post Celery hooks run.
+
+    Behavior:
+    - Always allow SAFE methods (GET/HEAD/OPTIONS).
+    - Allow when WRITE_GATE_ENABLED is False or overridden via env WRITE_GATE_DISABLED=1.
+    - Allow OPTION preflights.
+    - Allow if request._write_gate_bypass is set by a view/decorator.
+    - Allow if path matches settings.WRITE_GATE_EXACT_PATHS or startswith any settings.WRITE_GATE_PREFIXES.
+    - Otherwise, return 405 with JSON envelope.
+    """
+    def process_request(self, request):  # pragma: no cover (integration semantics)
+        try:
+            from django.conf import settings
+            method = request.method.upper()
+            if method in ("GET", "HEAD", "OPTIONS"):
+                return None
+            # env override to disable gate quickly
+            if os.environ.get('WRITE_GATE_DISABLED') == '1':
+                return None
+            enabled = bool(getattr(settings, 'WRITE_GATE_ENABLED', True))
+            if not enabled:
+                return None
+            if getattr(request, '_write_gate_bypass', False):
+                return None
+            # If view has @allow_write decorator, set bypass
+            try:
+                from django.urls import resolve
+                match = resolve(request.path)
+                view_func = getattr(match, 'func', None)
+                if view_func is not None:
+                    # DRF CBV: view_func.cls or view_class
+                    view_cls = getattr(view_func, 'view_class', None) or getattr(view_func, 'cls', None)
+                    if getattr(view_func, '_allow_write', False) or (view_cls and getattr(view_cls, '_allow_write', False)):
+                        return None
+            except Exception:
+                pass
+            path = getattr(request, 'path', '') or ''
+            exact = set(getattr(settings, 'WRITE_GATE_EXACT_PATHS', ('/wcapi/save/',)))
+            prefixes = tuple(getattr(settings, 'WRITE_GATE_PREFIXES', ('/wcapi/save/', '/api/auth/', '/api/token/', '/wcapi/login/', '/wcapi/signup/', '/admin/', '/admin-django/')))
+            if path in exact or any(path.startswith(p) for p in prefixes):
+                return None
+            # Deny by default
+            return api_response(success=False, status_code=405, message='Write blocked by policy', error={'code': 'write_blocked', 'details': path})
+        except Exception:
+            return None

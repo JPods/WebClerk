@@ -6,6 +6,6 @@ class RequisitionLine(BaseLineModel):
     # Add any RequisitionLine-specific fields or methods here
     BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
 
- class Meta:
+    class Meta:
         db_table = "requisition_lines"
   

@@ -1,7 +1,7 @@
 import json
 from django.test import TestCase, Client, RequestFactory
 from django.contrib.auth import get_user_model
-from apps.transactions.models.line_variants import Workorder, WorkorderLine
+from apps.transactions.models import Workorder, WorkorderLine
 from .utils import assert_envelope
 from django.contrib import admin
 from apps.transactions.admin import WorkorderLineAdmin

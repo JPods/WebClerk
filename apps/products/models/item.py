@@ -769,15 +769,20 @@ class Item(StatsMixin, BaseModel):
         if not isinstance(vrefs, dict) or not isinstance(vmeta, dict):
             return None
         attrs = vrefs.get('attrs') or {}
-        set_uuid = vmeta.get('set_uuid')
-        if not set_uuid:
+        set_uuid_val = vmeta.get('set_uuid')
+        su: uuid.UUID | str | None = None
+        if isinstance(set_uuid_val, (uuid.UUID, str)):
+            su = set_uuid_val
+        if su is None:
             try:
                 if getattr(self, 'uuid', None):
-                    set_uuid = str(derive_variant_set_uuid(str(self.uuid)))
+                    su = derive_variant_set_uuid(str(self.uuid))
             except Exception:
                 return None
+        if su is None:
+            return None
         try:
-            vu = derive_variant_uuid(set_uuid, attrs)
+            vu = derive_variant_uuid(su, attrs)
             return str(vu)
         except Exception:
             return None

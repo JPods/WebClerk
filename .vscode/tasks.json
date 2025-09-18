@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "makemigrations",
+			"type": "shell",
+			"command": "./bin/python manage.py makemigrations transactions -v 1"
+		},
+		{
+			"label": "makemigrations",
+			"type": "shell",
+			"command": "./bin/python manage.py makemigrations transactions -v 1"
+		}
+	]
+}

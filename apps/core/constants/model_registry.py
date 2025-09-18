@@ -92,21 +92,21 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'sync_exchange': ModelMeta('sync_exchange', 'apps.sync.models.exchange.Exchange', 'Sync Exchange', 'Sync Exchanges', 'sync-exchanges', kind='support', aliases=['exchanges_sync']),
 
     # --- transactions --- (A->Z by key)
-    'invoice': ModelMeta('invoice', 'apps.transactions.models.line_variants.Invoice', 'Invoice', 'Invoices', 'invoices', kind='header', aliases=['invoices']),
-    'invoice_line': ModelMeta('invoice_line', 'apps.transactions.models.line_variants.InvoiceLine', 'Invoice Line', 'Invoice Lines', 'invoice-lines', kind='line', aliases=['invoice_lines']),
+    'invoice': ModelMeta('invoice', 'apps.transactions.models.Invoice', 'Invoice', 'Invoices', 'invoices', kind='header', aliases=['invoices']),
+    'invoice_line': ModelMeta('invoice_line', 'apps.transactions.models.InvoiceLine', 'Invoice Line', 'Invoice Lines', 'invoice-lines', kind='line', aliases=['invoice_lines']),
     'project': ModelMeta('project', 'apps.transactions.models.projects.Project', 'Project', 'Projects', 'projects', kind='support', aliases=['projects']),
     'project_association': ModelMeta('project_association', 'apps.transactions.models.project_links.ProjectAssociation', 'Project Association', 'Project Associations', 'project-associations', kind='support', aliases=['project_associations']),
-    'proposal': ModelMeta('proposal', 'apps.transactions.models.line_variants.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals']),
-    'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.line_variants.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines']),
-    'purchase_order': ModelMeta('purchase_order', 'apps.transactions.models.line_variants.PurchaseOrder', 'Purchase Order', 'Purchase Orders', 'purchase-orders', kind='header', aliases=['purchase_orders']),
-    'purchase_order_line': ModelMeta('purchase_order_line', 'apps.transactions.models.line_variants.PurchaseOrderLine', 'Purchase Order Line', 'Purchase Order Lines', 'purchase-order-lines', kind='line', aliases=['purchase_order_lines']),
+    'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals']),
+    'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines']),
+    'purchase_order': ModelMeta('purchase_order', 'apps.transactions.models.PurchaseOrder', 'Purchase Order', 'Purchase Orders', 'purchase-orders', kind='header', aliases=['purchase_orders']),
+    'purchase_order_line': ModelMeta('purchase_order_line', 'apps.transactions.models.PurchaseOrderLine', 'Purchase Order Line', 'Purchase Order Lines', 'purchase-order-lines', kind='line', aliases=['purchase_order_lines']),
     'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),
-    'requisition': ModelMeta('requisition', 'apps.transactions.models.line_variants.Requisition', 'Requisition', 'Requisitions', 'requisitions', kind='header', aliases=['requisitions']),
-    'requisition_line': ModelMeta('requisition_line', 'apps.transactions.models.line_variants.RequisitionLine', 'Requisition Line', 'Requisition Lines', 'requisition-lines', kind='line', aliases=['requisition_lines']),
-    'sales_order': ModelMeta('sales_order', 'apps.transactions.models.line_variants.SalesOrder', 'Sales Order', 'Sales Orders', 'sales-orders', kind='header', aliases=['sales_orders']),
-    'sales_order_line': ModelMeta('sales_order_line', 'apps.transactions.models.line_variants.SalesOrderLine', 'Sales Order Line', 'Sales Order Lines', 'sales-order-lines', kind='line', aliases=['sales_order_lines']),
-    'work_order': ModelMeta('work_order', 'apps.transactions.models.line_variants.Workorder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
-    'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.line_variants.WorkorderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
+    'requisition': ModelMeta('requisition', 'apps.transactions.models.Requisition', 'Requisition', 'Requisitions', 'requisitions', kind='header', aliases=['requisitions']),
+    'requisition_line': ModelMeta('requisition_line', 'apps.transactions.models.RequisitionLine', 'Requisition Line', 'Requisition Lines', 'requisition-lines', kind='line', aliases=['requisition_lines']),
+    'sales_order': ModelMeta('sales_order', 'apps.transactions.models.SalesOrder', 'Sales Order', 'Sales Orders', 'sales-orders', kind='header', aliases=['sales_orders']),
+    'sales_order_line': ModelMeta('sales_order_line', 'apps.transactions.models.SalesOrderLine', 'Sales Order Line', 'Sales Order Lines', 'sales-order-lines', kind='line', aliases=['sales_order_lines']),
+    'work_order': ModelMeta('work_order', 'apps.transactions.models.Workorder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
+    'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkorderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
 }
 
 

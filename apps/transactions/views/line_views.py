@@ -4,7 +4,12 @@ from rest_framework import generics, permissions, response, views, status, pagin
 from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from apps.transactions.models import (
+    Proposal, ProposalLine,
+    SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
+    PurchaseOrder, PurchaseOrderLine,
+    Workorder, WorkorderLine,
+    Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,

@@ -23,9 +23,11 @@ from common.api_responses import api_response
 #         - Calls pre-save and post-save asynchronous tasks.
 #         - Returns a JSON response indicating success or failure, including error messages for field size violations or integrity errors.
 from django.views import View
+from django.db import models
 from rest_framework.views import APIView  # type: ignore
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from common.decorators import allow_write
 from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
 import json
 from apps.core import tasks
@@ -55,17 +57,30 @@ def check_field_size(field_value, max_size, field_name):
     if size > max_size:
         raise ValueError(f"{field_name} exceeds maximum size of {max_size} bytes")
 
+
+def deep_merge_dict(a: dict, b: dict) -> dict:
+    """Recursively merge dict b into dict a (in place) and return a.
+    - protects dictionary structures
+    - If a[key] and b[key] are both dicts, merge recursively.
+    - Otherwise, b[key] overwrites a[key].
+    """
+    for k, v in (b or {}).items():
+        if isinstance(v, dict) and isinstance(a.get(k), dict):
+            deep_merge_dict(a[k], v)
+        else:
+            a[k] = v
+    return a
+
 # Deprecated: dynamic model discovery replaced by explicit allow-list registry (see wcapi_registry.py)
 # def find_model_for_table(model_name: str):
 #     QQQ confirm no remaining callers, then fully remove
 #     ...
 
 @method_decorator(csrf_exempt, name='dispatch')
+@allow_write
 class SaveWcapiView(APIView):
     # apply exempt to CSRF for save view actions
     # already passed CSRF protection
-    # QQQ frontends must pass CSRF token, so exemption is not needed
-    #@csrf_exempt
     #def dispatch(self, *args, **kwargs):
         #return super().dispatch(*args, **kwargs)
     
@@ -192,8 +207,7 @@ class SaveWcapiView(APIView):
         record_id = data.get('id')
         print(f"record_id: {record_id} -- {data}")
         #QQQ what what happens when we send id=0  
-        # Antor and Riju resolve  
-        nested_fields = ['refs', 'prefs', 'metadata']
+        # Antor and Riju resolve
 
         # Create or update
         is_update = bool(record_id)
@@ -208,6 +222,19 @@ class SaveWcapiView(APIView):
                     return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
         else:
             obj = model()
+
+    # We'll deep-merge incoming dicts into existing JSON fields to avoid clobbering
+    # previously populated structures (e.g., refs, prefs, metadata, and other JSONField fields).
+    # Note: metadata now includes flow/source containers universally. Actions moved to root actions JSON.
+    # Clients can PATCH {"metadata": {"flow": {...}, "source": {...}}} and/or {"actions": {...}} without loss.
+        nested_fields = ['refs', 'prefs', 'metadata', 'actions']  # include actions for deep-merge
+        try:
+            json_field_names = {
+                f.name for f in obj._meta.get_fields()
+                if hasattr(f, 'attname') and isinstance(f, models.JSONField)
+            }
+        except Exception:
+            json_field_names = set()
 
         # Pre-save hook or task
         pre_hook = getattr(obj, 'pre_save_hook', None)
@@ -256,31 +283,54 @@ class SaveWcapiView(APIView):
                 continue
             if field in ('model_name', 'id', 'version', 'expected_version'):
                 continue
-            if field in nested_fields and hasattr(obj, field):
-                allowed_keys = ALLOWED_NESTED_KEYS.get(field, set())
-                current = getattr(obj, field) or {}
-                if isinstance(current, str):
-                    try:
-                        current = json.loads(current)
-                    except json.JSONDecodeError:
+            if hasattr(obj, field):
+                # If field appears to be JSON-like, deep-merge dicts instead of overwrite
+                current = getattr(obj, field)
+                is_json_field = field in json_field_names or isinstance(current, dict)
+                if isinstance(value, dict) and is_json_field:
+                    if isinstance(current, str):
+                        try:
+                            current = json.loads(current)
+                        except json.JSONDecodeError:
+                            current = {}
+                    if not isinstance(current, dict):
                         current = {}
-                if isinstance(value, dict):
-                    for k, v in value.items():
-                        if k in allowed_keys:
-                            try:
-                                check_field_size(v, MAX_FIELD_SIZE, f"{field}.{k}")
-                                current[k] = v
-                            except ValueError as e:
-                                field_size_errors.append(str(e))
+                    merged = deep_merge_dict(current, value)
+                    try:
+                        check_field_size(merged, MAX_FIELD_SIZE, field)
+                        setattr(obj, field, merged)
+                    except ValueError as e:
+                        field_size_errors.append(str(e))
+                else:
+                    try:
+                        check_field_size(value, MAX_FIELD_SIZE, field)
+                        setattr(obj, field, value)
+                    except ValueError as e:
+                        field_size_errors.append(str(e))
+            else:
+                # Unknown field: capture into prefs.userdefined without overwriting existing keys
                 try:
-                    check_field_size(current, MAX_FIELD_SIZE, field)
-                    setattr(obj, field, current)
-                except ValueError as e:
-                    field_size_errors.append(str(e))
-            elif hasattr(obj, field):
-                try:
-                    check_field_size(value, MAX_FIELD_SIZE, field)
-                    setattr(obj, field, value)
+                    prefs = getattr(obj, 'prefs', {}) or {}
+                    if isinstance(prefs, str):
+                        try:
+                            prefs = json.loads(prefs)
+                        except json.JSONDecodeError:
+                            prefs = {}
+                    userdefined = prefs.setdefault('userdefined', {})
+                    # Prepare a storable value (truncate long strings; keep JSON if small enough)
+                    storable = value
+                    # If not JSON-serializable, fall back to string
+                    try:
+                        raw_json = json.dumps(storable)
+                        # Enforce overall field size limit; if too big, store truncated string
+                        if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
+                            storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
+                    except Exception:
+                        storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
+                    userdefined[field] = storable
+                    # Size check on prefs after capture
+                    check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
+                    setattr(obj, 'prefs', prefs)
                 except ValueError as e:
                     field_size_errors.append(str(e))
 

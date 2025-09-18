@@ -12,7 +12,6 @@
   - [2. What Happens Under The Hood](#2-what-happens-under-the-hood)
   - [3. Usage Cheatsheet](#3-usage-cheatsheet)
     - [3.1. Quick reseed-only (no DB drop)](#31-quick-reseed-only-no-db-drop)
-- [or by DB table](#or-by-db-table)
   - [4. Programmatic Invocation](#4-programmatic-invocation)
   - [5. Environment Guards and Safety](#5-environment-guards-and-safety)
   - [6. Post-Reset Checklist](#6-post-reset-checklist)
@@ -25,7 +24,6 @@
   - [13. Quick Reference](#13-quick-reference)
     - [Safety alert Connection](#safety-alert-connection)
     - [Targeted reseeds (per model)](#targeted-reseeds-per-model)
-- [or by db table name](#or-by-db-table-name)
 
 <!-- TOC END -->
 
@@ -274,6 +272,3 @@ python manage.py test_alert_connection --event assault_detected --severity warni
 ---
 
 End of reset guide.
-
-
-

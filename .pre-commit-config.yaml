@@ -6,7 +6,7 @@ repos:
         entry: bin/python tools/openapi_sync.py
         language: system
         pass_filenames: false
-        files: ^(openapi\.yaml|openapi\.json|tools/openapi_sync\.py)$repos:
+        files: ^(openapi\.yaml|openapi\.json|tools/openapi_sync\.py)$
   - repo: local
     hooks:
       - id: forbid-root-docs

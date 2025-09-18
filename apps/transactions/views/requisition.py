@@ -1,10 +1,12 @@
 from common.base_views import BaseListCreateView, BaseOptimisticDetailView
+from common.decorators import allow_write
 from rest_framework import pagination
 from common.search_mixins import PrefixAndSearchView
 from rest_framework.permissions import IsAuthenticated
 from apps.transactions.models.requisition import RequisitionStd
 from apps.transactions.serializers.requisition import RequisitionSerializer
 
+@allow_write
 class RequisitionListView(BaseListCreateView):
     queryset = RequisitionStd.objects.all()
     serializer_class = RequisitionSerializer
@@ -17,6 +19,7 @@ class RequisitionListView(BaseListCreateView):
         max_page_size = 500
     pagination_class = Pagination
 
+@allow_write
 class RequisitionDetailView(BaseOptimisticDetailView):
     queryset = RequisitionStd.objects.all()
     serializer_class = RequisitionSerializer

@@ -3,7 +3,7 @@ from functools import lru_cache
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any, List
 from django.conf import settings
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine, WorkorderLine, RequisitionLine
 )
 from django.db.models.signals import post_save, post_delete

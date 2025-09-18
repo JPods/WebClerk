@@ -2,20 +2,19 @@
 
 # Development & Debug Configuration Overview
 
-
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Development & Debug Configuration Overview](#development-debug-configuration-overview)
+- [Development & Debug Configuration Overview](#development--debug-configuration-overview)
   - [Table of Contents](#table-of-contents)
   - [1. Core Environment Flags](#1-core-environment-flags)
-  - [2. Field Access & Bypass Mechanics](#2-field-access-bypass-mechanics)
+  - [2. Field Access & Bypass Mechanics](#2-field-access--bypass-mechanics)
   - [3. Authentication Endpoints](#3-authentication-endpoints)
   - [4. Serialization Sanitization](#4-serialization-sanitization)
   - [5. Data Seeding Strategy](#5-data-seeding-strategy)
-  - [6. Stats & Periodic Tasks](#6-stats-periodic-tasks)
-  - [7. Removed / Deferred Concepts](#7-removed-deferred-concepts)
+  - [6. Stats & Periodic Tasks](#6-stats--periodic-tasks)
+  - [7. Removed / Deferred Concepts](#7-removed--deferred-concepts)
   - [8. Secure Mode Switch](#8-secure-mode-switch)
   - [9. Quick Debug Commands](#9-quick-debug-commands)
   - [10. Future Cleanup Targets](#10-future-cleanup-targets)

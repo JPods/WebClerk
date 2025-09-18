@@ -1,6 +1,5 @@
 # Flow vs Inventory Domain
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -57,6 +56,9 @@ Linking strategy (if/when needed):
 - Add a nullable FK `inventory_check` on `DeliveryVisit` **or** a small reference block in `InventoryCheck.data` (e.g., `{ "related_visit_id": 123 }`) once correlation is required by reporting.
 - Prefer soft linking (IDs in JSON) until a hard relational need emerges, to avoid migration churn.
 
+<!-- markdownlint-disable-next-line MD033 -->
+<a id="variance-adjustment-workflow-future"></a>
+
 ## Variance → Adjustment Workflow (Future)
 
 1. InventoryCheck completes.
@@ -92,7 +94,7 @@ The following write-once actions convert headers along the sales flow and are pa
 
 - POST `/transactions/sales-orders/<pk>/convert-to-invoice/`
   - Body: `{ "confirm": true }` (optional)
-  - 201 Response: `{ "invoice_id": <int>, "invoice_no": "INV-..." }`
+  - 201 Response: `{ "invoice_id": <int>, "invoice_ida": "<stringified id>" }`
 
 Notes
 

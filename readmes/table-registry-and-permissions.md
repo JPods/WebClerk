@@ -1,11 +1,10 @@
 # Table Registry & Permissions Refactor
 
-
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Table Registry & Permissions Refactor](#table-registry-permissions-refactor)
+- [Table Registry & Permissions Refactor](#table-registry--permissions-refactor)
   - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
   - [Motivations](#motivations)
@@ -15,7 +14,7 @@
     - [Permissions](#permissions)
     - [Registry API Endpoint](#registry-api-endpoint)
     - [Purge Utility](#purge-utility)
-  - [Migration / Reset Approach](#migration-reset-approach)
+  - [Migration / Reset Approach](#migration--reset-approach)
   - [Test Additions](#test-additions)
   - [Extension Points](#extension-points)
   - [Quick Usage](#quick-usage)
@@ -87,7 +86,6 @@ Field metadata includes:
 }
 ```
 
-
 ### Purge Utility
 
 Command: `python manage.py purge_legacy_model_names [--apply] [--purpose view_edit]`
@@ -141,7 +139,6 @@ Examples:
 curl -s 'http://localhost:8000/wcapi/tables/?table=work_order&include_fields=1' | jq '.data.table'
 curl -s 'http://localhost:8000/wcapi/tables/?table=work_order_line&include_fields=1' | jq '.data.table'
 ```
-
 
 ## Gotchas
 

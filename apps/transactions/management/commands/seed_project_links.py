@@ -19,7 +19,7 @@ import random
 
 from apps.transactions.models.projects import Project
 from apps.transactions.models.project_links import ProjectAssociation, LINK_MODEL_CHOICES
-from apps.transactions.models.line_variants import (
+from apps.transactions.models import (
     Proposal,
     SalesOrder as Order,          # alias to maintain legacy model_code 'order'
     Invoice,

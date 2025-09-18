@@ -11,6 +11,7 @@ from apps.transactions.models import (
     Invoice, InvoiceLine,
     Workorder, WorkorderLine,
     SalesOrder, SalesOrderLine,
+    PurchaseOrder, PurchaseOrderLine,
 )
 
 MODEL_MAP = {
@@ -34,6 +35,8 @@ MODEL_MAP = {
     # work orders
     'work_orders': Workorder,
     'work_order_lines': WorkorderLine,
+    'purchase_orders': PurchaseOrder,
+    'purchase_order_lines': PurchaseOrderLine,
     # sales orders
     'sales_orders': SalesOrder,
     'sales_order_lines': SalesOrderLine,
@@ -78,6 +81,8 @@ _SINGULAR_ALIAS_TO_TABLE = {
     'proposal': 'proposals',
     'work_order': 'work_orders',
     'work_order_line': 'work_order_lines',
+    'purchase_order': 'purchase_orders',
+    'purchase_order_line': 'purchase_order_lines',
     'org': 'orgs',
     'customer': 'customers',
     'vendor': 'vendors',
@@ -116,6 +121,9 @@ _TABLE_TO_MODEL_NAME = {
     'transactions_proposal': 'proposal',
     'transactions_invoice': 'invoice',
     'transactions_requisition': 'requisition',
+    'transactions_purchaseorder': 'purchase_order',
+    'transactions_salesorder': 'sales_order',
+    'transactions_workorder': 'work_order',
     'orgs': 'org',
     'customers': 'customer',
     'vendors': 'vendor',
