@@ -18,13 +18,13 @@
 We explicitly separate three concerns:
 
 - Synchronization exchanges with external systems (what we did/received).
-- Foreign-exchange rate history (reference data used for conversions).
-- Monetary exchange transactions (settlements with amounts/fees), future.
+- Foreign-bundle rate history (reference data used for conversions).
+- Monetary bundle transactions (settlements with amounts/fees), future.
 
 ## Models and Responsibilities
 
-- `sync.Connection` and `sync.Exchange`
-  - Purpose: integration/sync. `Connection` defines an external provider or partner; `Exchange` logs each exchange (direction, payload, mappings, responses).
+- `sync.Connection` and `sync.Bundle`
+  - Purpose: integration/sync. `Connection` defines an external provider or partner; `Bundle` logs each bundle (direction, payload, mappings, responses).
   - Table: `connections`, `exchanges` (sync app).
   - Usage: Tracks exchanges for Items, Currencies, etc.; not FX rates.
 
@@ -34,17 +34,17 @@ We explicitly separate three concerns:
   - `ExchangeRate` stores base→target, `rate`, `dt_start`/`dt_end`, and `connection` provenance.
   - Table: `acct_currencies`, `acct_exchange_rates` (accounts app).
 
-- `accounts.Exchange` (planned future shape)
-  - Purpose: monetary exchange/settlement transaction (amounts_in/out, fees, references, currencies).
+- `accounts.Bundle` (planned future shape)
+  - Purpose: monetary bundle/settlement transaction (amounts_in/out, fees, references, currencies).
   - Note: rate history lives in `ExchangeRate` and should not be conflated with transactions.
 
 ## Update and Logging Flows
 
 - FX updates: `python manage.py update_currencies` creates/updates `accounts.ExchangeRate` records using provider behind `Currency.connection`.
-- Sync logging: calls through `sync.Connection` create `sync.Exchange` rows for operational audit, independent of FX rates.
+- Sync logging: calls through `sync.Connection` create `sync.Bundle` rows for operational audit, independent of FX rates.
 
 ## Notes and Future Work
 
-- Consider renaming `accounts.Exchange` to `ExchangeTransaction` to avoid ambiguity.
-- Add admin/serializers for `ExchangeRate` and later for `Exchange` transactions.
+- Consider renaming `accounts.Bundle` to `ExchangeTransaction` to avoid ambiguity.
+- Add admin/serializers for `ExchangeRate` and later for `Bundle` transactions.
 - Introduce periodic tasks to refresh FX rates for active currencies.

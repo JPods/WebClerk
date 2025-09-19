@@ -1,6 +1,6 @@
 """Incident signaling helpers.
 
-Creates Exchanges using the seeded safety alert Connection (name='alert', type='safety_alert')
+Creates Bundles using the seeded safety alert Connection (name='alert', type='safety_alert')
 to notify webclerk.com (or equivalent) of local assaults/incidents. Review/ack flow applies.
 """
 
@@ -15,12 +15,12 @@ from .standards import normalize_severity, alert_category_for_event, ALERT_CATEG
 
 
 def trigger_safety_alert(event_type: str, details: Dict[str, Any] | None = None, severity: str = "info") -> Dict[str, Any]:
-    """Create an Exchange using the alert Connection with a pending review response.
+    """Create an Bundle using the alert Connection with a pending review response.
 
-    Returns { ok, exchange_id, error? }.
+    Returns { ok, bundle_id, error? }.
     """
     Connection = apps.get_model("sync", "Connection")
-    Exchange = apps.get_model("sync", "Exchange")
+    Bundle = apps.get_model("sync", "Bundle")
 
     conn = Connection.objects.filter(name="alert", type="safety_alert").first()
     if not conn:
@@ -44,7 +44,7 @@ def trigger_safety_alert(event_type: str, details: Dict[str, Any] | None = None,
         "review": {"status": "pending"},
     }
     try:
-        ex = Exchange.objects.create(
+        ex = Bundle.objects.create(
             connection_id=conn,
             direction="outbound",
             config=masked_cfg,
@@ -54,6 +54,6 @@ def trigger_safety_alert(event_type: str, details: Dict[str, Any] | None = None,
             payload=payload,
             size=len(str(payload)),
         )
-        return {"ok": True, "exchange_id": getattr(ex, "id", None)}
+        return {"ok": True, "bundle_id": getattr(ex, "id", None)}
     except Exception as e:
         return {"ok": False, "error": str(e)}

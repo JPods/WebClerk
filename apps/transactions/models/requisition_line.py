@@ -1,11 +1,13 @@
 from decimal import Decimal
 from django.db import models
-from .base_line_model import BaseLineModel
+from .base_line_model import BaseExecLineModel
 
-class RequisitionLine(BaseLineModel):
-    # Add any RequisitionLine-specific fields or methods here
-    BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
+class RequisitionLine(BaseExecLineModel):
+    parent = models.ForeignKey(
+        "transactions.Requisition",  # string ref avoids circular import
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
 
     class Meta:
         db_table = "requisition_lines"
-  

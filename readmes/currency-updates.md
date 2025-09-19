@@ -34,4 +34,4 @@ python manage.py update_currencies --provider stub --limit 50
 ## Notes
 
 - Provider adapters are stubbed; production integrations can be added behind connection config.
-- Exchange records are additive and constrained by a uniqueness window.
+- Bundle records are additive and constrained by a uniqueness window.

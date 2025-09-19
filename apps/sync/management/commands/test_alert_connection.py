@@ -3,7 +3,7 @@ from apps.sync.services.incidents import trigger_safety_alert
 
 
 class Command(BaseCommand):
-    help = "Smoke-test: trigger the seeded safety alert Connection by creating an Exchange."
+    help = "Smoke-test: trigger the seeded safety alert Connection by creating a Bundle."
 
     def add_arguments(self, parser):
         parser.add_argument('--event', default='assault_detected', help='Event type to record')
@@ -14,6 +14,6 @@ class Command(BaseCommand):
         severity = options['severity']
         res = trigger_safety_alert(event, {"source": "test_alert_connection"}, severity)
         if res.get('ok'):
-            self.stdout.write(self.style.SUCCESS(f"Alert exchange created: id={res.get('exchange_id')}"))
+            self.stdout.write(self.style.SUCCESS(f"Alert bundle created: id={res.get('bundle_id')}"))
         else:
-            self.stdout.write(self.style.ERROR(f"Failed to create alert exchange: {res.get('error')}"))
+            self.stdout.write(self.style.ERROR(f"Failed to create alert bundle: {res.get('error')}"))

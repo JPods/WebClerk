@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import Dict, Any, cast
-from decimal import Decimal
-from apps.transactions.models import PurchaseOrder
+from typing import TYPE_CHECKING, Dict, Any
+
+# Do NOT import models at module scope to avoid cycles with model files.
+if TYPE_CHECKING:  # pragma: no cover
+    from apps.transactions.models.purchase_order import PurchaseOrder
 
 def compute_purchase_order_cost_totals(po: "PurchaseOrder") -> Dict[str, Any]:
     """Aggregate per-line cost fields into PurchaseOrder header totals.

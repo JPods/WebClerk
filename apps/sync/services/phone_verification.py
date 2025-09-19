@@ -1,12 +1,12 @@
 """Provider-agnostic Phone Verification service (stub).
 
 Similar to email verification, this resolves a Connection configured for
-phone verification and records an Exchange with a normalized response.
+phone verification and records a Bundle with a normalized response.
 
 Connection expectations:
 - Connection.type == 'phone_verification'
 
-Exchange payload example:
+Bundle payload example:
   { "phone": "+15551234567" }
 """
 
@@ -39,7 +39,7 @@ def get_verification_connection(name: str | None = None):
 
 
 def verify_phone_via_connection(phone: str, connection_name: str | None = None) -> Dict[str, Any]:
-    Exchange = apps.get_model("sync", "Exchange")
+    Bundle = apps.get_model("sync", "Bundle")
 
     conn = get_verification_connection(connection_name)
     if not conn:
@@ -62,9 +62,9 @@ def verify_phone_via_connection(phone: str, connection_name: str | None = None) 
 
     duration_ms = int((time.perf_counter() - started) * 1000)
 
-    exchange_id = None
+    bundle_id = None
     try:
-        e = Exchange.objects.create(
+        e = Bundle.objects.create(
             connection_id=cast(Any, conn),
             direction="outbound",
             config=masked_cfg,
@@ -74,8 +74,8 @@ def verify_phone_via_connection(phone: str, connection_name: str | None = None) 
             payload=payload,
             size=len(str(payload)) + len(str(normalized)),
         )
-        exchange_id = getattr(e, "id", None)
+        bundle_id = getattr(e, "id", None)
     except Exception:
         pass
 
-    return {"ok": True, "result": normalized, "exchange_id": exchange_id}
+    return {"ok": True, "result": normalized, "bundle_id": bundle_id}

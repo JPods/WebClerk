@@ -12,6 +12,7 @@ from apps.transactions.models import (
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
+    WorkOrder, WorkOrderLine
 )
 from apps.docs.models.linkage import Linkage
 from apps.docs.models.linkage_index import LinkageIndex
@@ -64,7 +65,8 @@ def _copy_common_line_fields(src: ProposalLine | SalesOrderLine | PurchaseOrderL
     Parent relationships (parent_ref_id) handled in model save().
     """
     # Scalar fields
-    dst.status = getattr(src, 'status', None)
+    if hasattr(dst, 'status'):
+        dst.status = getattr(src, 'status', None)  # type: ignore[attr-defined]
 
     # JSON / dict fields (shallow clone to detach references)
     for field_name in LINE_JSON_FIELDS_TO_COPY:

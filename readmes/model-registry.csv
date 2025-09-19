@@ -1,8 +1,8 @@
 key,app,model,endpoint,kind,aliases
-account_exchange,accounts,apps.accounts.models.exchange.Exchange,account-exchanges,support,exchanges_account
 action,core,apps.core.models.action.Action,actions,support,actions
 audit,accounts,apps.accounts.models.audit.Audit,audits,support,audits
 bill_of_material,products,apps.products.models.bill_of_material.BillOfMaterial,bills-of-material,support,"bill_of_materials,bill_of_material"
+bundle,sync,apps.sync.models.bundle.Bundle,sync-eundles,support,eundles_sync
 catalog,products,apps.products.models.catalog.Catalog,catalogs,support,catalogs
 connection,sync,apps.sync.models.connection.Connection,connections,support,connections
 contact,core,apps.core.models.contact.Contact,contacts,support,contacts
@@ -48,7 +48,6 @@ sales_order,transactions,apps.transactions.models.SalesOrder,sales-orders,header
 sales_order_line,transactions,apps.transactions.models.SalesOrderLine,sales-order-lines,line,sales_order_lines
 serial_log,products,apps.products.models.serial.SerialLog,serial-logs,support,serial_logs
 setting,core,apps.core.models.setting.Setting,settings,support,settings
-sync_exchange,sync,apps.sync.models.exchange.Exchange,sync-exchanges,support,exchanges_sync
 tax_jurisdiction,accounts,apps.accounts.models.tax_jurisdiction.TaxJurisdiction,tax-jurisdictions,support,tax_jurisdictions
 template,core,apps.core.models.template.Template,templates,support,templates
 term,accounts,apps.accounts.models.term.Term,terms,support,terms

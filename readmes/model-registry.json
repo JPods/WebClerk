@@ -1,15 +1,5 @@
 [
   {
-    "key": "account_exchange",
-    "app": "accounts",
-    "model": "apps.accounts.models.exchange.Exchange",
-    "endpoint": "account-exchanges",
-    "kind": "support",
-    "aliases": [
-      "exchanges_account"
-    ]
-  },
-  {
     "key": "action",
     "app": "core",
     "model": "apps.core.models.action.Action",
@@ -494,13 +484,13 @@
     ]
   },
   {
-    "key": "sync_exchange",
+    "key": "bundle",
     "app": "sync",
-    "model": "apps.sync.models.exchange.Exchange",
-    "endpoint": "sync-exchanges",
+    "model": "apps.sync.models.Bundle",
+    "endpoint": "bundles",
     "kind": "support",
     "aliases": [
-      "exchanges_sync"
+      "bundles_sync"
     ]
   },
   {

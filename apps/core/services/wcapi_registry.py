@@ -31,7 +31,7 @@ MODEL_MAP = {
     # account
     'currencies': Currency,
     'exchange_rates': ExchangeRate, 
-    #'exchanges': Exchange, 
+    #'exchange_transaction': ExchangeTransaction,  --- IGNORE ---
     #'gl_accounts': GlAccount, 
     #'gl_journals': GLJournal,
     #'ledgers': Ledger,

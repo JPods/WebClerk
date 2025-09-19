@@ -322,6 +322,7 @@ python manage.py runserver
 ```bash
 source ./bin/activate
 psql -U an7or -d postgres
+psql -U williamjames -d postgres
 SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'commerce_expert' AND pid <> pg_backend_pid();
 DROP DATABASE IF EXISTS commerce_expert;
 CREATE DATABASE commerce_expert;

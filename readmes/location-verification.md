@@ -16,7 +16,7 @@
 
 ## Overview
 
-Locations are verified via `sync.Connection` with type `location_verification`. By default we stub an OSM-like result, creating an auditable `sync.Exchange` with `review.status=pending`.
+Locations are verified via `sync.Connection` with type `location_verification`. By default we stub an OSM-like result, creating an auditable `sync.Bundle` with `review.status=pending`.
 
 ## Connection
 
@@ -31,7 +31,7 @@ Locations are verified via `sync.Connection` with type `location_verification`. 
 
 - `location.queue_verification('osm')` enqueues `validate_location_osm`.
 - Task uses `apps.sync.services.location_verification.verify_location_via_connection({address1,...})`.
-- Exchange captures masked `config`, normalized `result` (status/match_score), and `payload.location`.
+- Bundle captures masked `config`, normalized `result` (status/match_score), and `payload.location`.
 
 ## Review and apply
 

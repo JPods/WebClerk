@@ -3,8 +3,8 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models.connection import Connection
-from .models.bundle import Exchange
-from .services.decisions import accept_email_verification, reject_exchange
+from .models.bundle import Bundle
+from .services.decisions import accept_email_verification, reject_bundle
 
 
 @admin.register(Connection)
@@ -14,8 +14,8 @@ class ConnectionAdmin(admin.ModelAdmin):
 	readonly_fields = ()
 
 
-@admin.register(Exchange)
-class ExchangeAdmin(admin.ModelAdmin):
+@admin.register(Bundle)
+class BundleAdmin(admin.ModelAdmin):
 	list_display = ("id", "connection_link", "direction", "status", "duration")
 	search_fields = ("id", "status", "direction")
 	actions = ("accept_selected", "reject_selected")
@@ -31,12 +31,12 @@ class ExchangeAdmin(admin.ModelAdmin):
 			res = accept_email_verification(ex.id, actor_id=getattr(request.user, "id", 0))
 			if res.get("ok"):
 				count += 1
-		self.message_user(request, f"Accepted {count} exchange(s)")
+		self.message_user(request, f"Accepted {count} bundle(s)")
 
 	def reject_selected(self, request, queryset):  # pragma: no cover - admin action
 		count = 0
 		for ex in queryset:
-			res = reject_exchange(ex.id, reason="admin_reject", actor_id=getattr(request.user, "id", 0))
+			res = reject_bundle(ex.id, reason="admin_reject", actor_id=getattr(request.user, "id", 0))
 			if res.get("ok"):
 				count += 1
-		self.message_user(request, f"Rejected {count} exchange(s)")
+		self.message_user(request, f"Rejected {count} bundle(s)")

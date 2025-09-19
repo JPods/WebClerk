@@ -14,7 +14,7 @@ This project supports a provider-agnostic email verification flow that uses the 
 What you get:
 
 - Store provider settings and secrets in `sync.Connection` (type `email_verification`).
-- Each verification attempt logs a `sync.Exchange` with masked config, payload, normalized response, and duration.
+- Each verification attempt logs a `sync.Bundle` with masked config, payload, normalized response, and duration.
 - Communications tasks update `Email.metadata.versioning.validation` and set `Email.is_verified` based on the normalized result.
 
 Quick start (stub mode, no external calls):
@@ -31,7 +31,7 @@ Quick start (stub mode, no external calls):
 
 Safety alert connection:
 
-- The `reseed --full` command auto-seeds a `sync.Connection` with `name="alert"`, `type="safety_alert"`, `purpose="webclerk.com"`, and `status="safe"`. This is reserved for incident signaling; if the local system detects an assault, it can trigger an Exchange via this connection to notify webclerk.com for verification and coordinated communication.
+- The `reseed --full` command auto-seeds a `sync.Connection` with `name="alert"`, `type="safety_alert"`, `purpose="webclerk.com"`, and `status="safe"`. This is reserved for incident signaling; if the local system detects an assault, it can trigger an Bundle via this connection to notify webclerk.com for verification and coordinated communication.
 
 Result schema (normalized):
 
@@ -45,7 +45,7 @@ How it works:
 
   - picks a `Connection` with `type='email_verification'` (by name if specified),
   - performs a stubbed provider call (no network),
-  - creates an `Exchange` row with masked config and response,
+  - creates an `Bundle` row with masked config and response,
   - returns a normalized result for the task to persist on `Email`.
 
 Going beyond stub mode:
@@ -53,10 +53,10 @@ Additional steps for live providers:
 
 - Add real provider calls inside `email_verification.verify_email_via_connection()`.
 - Normalize provider responses to `{provider, status, deliverability, reason}`.
-- Keep secrets in `Connection.config` and they will be masked when logged to `Exchange.config`.
+- Keep secrets in `Connection.config` and they will be masked when logged to `Bundle.config`.
 
 Notes:
 Notes:
 
 - This flow does not make external requests by default. It is safe to enable in local/dev and can be toggled to live providers later.
-- Exchanges are lightweight audit logs; they do not store raw provider payloads unless added explicitly.
+- Bundles are lightweight audit logs; they do not store raw provider payloads unless added explicitly.

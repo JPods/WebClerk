@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+import re
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,6 @@ class ModelMeta:
 # Canonical registry (keyed by singular code)
 MODEL_REGISTRY: Dict[str, ModelMeta] = {
     # --- accounts --- (A->Z by key)
-    'account_exchange': ModelMeta('account_exchange', 'apps.accounts.models.exchange.Exchange', 'Account Exchange', 'Account Exchanges', 'account-exchanges', kind='support', aliases=['exchanges_account']),
     'audit': ModelMeta('audit', 'apps.accounts.models.audit.Audit', 'Audit', 'Audits', 'audits', kind='support', aliases=['audits']),
     'currency': ModelMeta('currency', 'apps.accounts.models.currency.Currency', 'Currency', 'Currencies', 'currencies', kind='support', aliases=['currencies']),
     'exchange_rate': ModelMeta('exchange_rate', 'apps.accounts.models.exchange_rate.ExchangeRate', 'Exchange Rate', 'Exchange Rates', 'exchange-rates', kind='support', aliases=['exchange_rates']),
@@ -89,7 +89,7 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
 
     # --- sync --- (A->Z by key)
     'connection': ModelMeta('connection', 'apps.sync.models.connection.Connection', 'Connection', 'Connections', 'connections', kind='support', aliases=['connections']),
-    'sync_exchange': ModelMeta('sync_exchange', 'apps.sync.models.exchange.Exchange', 'Sync Exchange', 'Sync Exchanges', 'sync-exchanges', kind='support', aliases=['exchanges_sync']),
+    'bundle': ModelMeta('sync_bundle', 'apps.sync.models.bundle.Bundle', 'Sync Bundle', 'Sync Bundles', 'sync-bundles', kind='support', aliases=['bundles_sync']),
 
     # --- transactions --- (A->Z by key)
     'invoice': ModelMeta('invoice', 'apps.transactions.models.Invoice', 'Invoice', 'Invoices', 'invoices', kind='header', aliases=['invoices']),
@@ -101,8 +101,24 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'purchase_order': ModelMeta('purchase_order', 'apps.transactions.models.PurchaseOrder', 'Purchase Order', 'Purchase Orders', 'purchase-orders', kind='header', aliases=['purchase_orders']),
     'purchase_order_line': ModelMeta('purchase_order_line', 'apps.transactions.models.PurchaseOrderLine', 'Purchase Order Line', 'Purchase Order Lines', 'purchase-order-lines', kind='line', aliases=['purchase_order_lines']),
     'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),
-    'requisition': ModelMeta('requisition', 'apps.transactions.models.Requisition', 'Requisition', 'Requisitions', 'requisitions', kind='header', aliases=['requisitions']),
-    'requisition_line': ModelMeta('requisition_line', 'apps.transactions.models.RequisitionLine', 'Requisition Line', 'Requisition Lines', 'requisition-lines', kind='line', aliases=['requisition_lines']),
+    'requisition': ModelMeta(
+        'requisition',
+        'apps.transactions.models.Requisition',
+        'Requisition',
+        'Requisitions',
+        'requisitions',
+        kind='header',
+        aliases=['requisitions']  # TitleCase no longer needed; resolver normalizes it
+    ),
+    'requisition_line': ModelMeta(
+        'requisition_line',
+        'apps.transactions.models.RequisitionLine',
+        'Requisition Line',
+        'Requisition Lines',
+        'requisition-lines',
+        kind='line',
+        aliases=['requisition_lines', 'requisition-line', 'requisition-lines']  # minimal; rest auto-derived
+    ),
     'sales_order': ModelMeta('sales_order', 'apps.transactions.models.SalesOrder', 'Sales Order', 'Sales Orders', 'sales-orders', kind='header', aliases=['sales_orders']),
     'sales_order_line': ModelMeta('sales_order_line', 'apps.transactions.models.SalesOrderLine', 'Sales Order Line', 'Sales Order Lines', 'sales-order-lines', kind='line', aliases=['sales_order_lines']),
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
@@ -110,47 +126,60 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
 }
 
 
-# Indexes for fast resolution
-_ENDPOINT_INDEX: Dict[str, str] = {m.endpoint: m.key for m in MODEL_REGISTRY.values()}
-_ALIAS_INDEX: Dict[str, str] = {}
-for key, meta in MODEL_REGISTRY.items():
-    # register canonical and provided aliases
-    _ALIAS_INDEX[key] = key
-    for a in meta.aliases:
-        _ALIAS_INDEX[a] = key
-    # naively add trailing 's' plural when helpful
-    if not key.endswith('s'):
-        _ALIAS_INDEX[f"{key}s"] = key
-
+# --- Normalization & resolution (consolidation) ---
 
 def _normalize_token(token: str) -> str:
-    return token.strip().lower()
+    """Normalize a user-supplied token to canonical snake_case."""
+    if not token:
+        return ''
+    s = token.strip()
+    # Insert underscore between lower/digit and upper (CamelCase -> snake_case)
+    s = re.sub(r'(?<=[a-z0-9])([A-Z])', r'_\1', s)
+    s = s.lower()
+    # Replace any run of non-alphanumerics with single underscore
+    s = re.sub(r'[^a-z0-9]+', '_', s)
+    # Collapse duplicates, trim edges
+    s = re.sub(r'_+', '_', s).strip('_')
+    return s
+
+
+# Build indexes once
+_ENDPOINT_INDEX: Dict[str, str] = {}
+_ALIAS_INDEX: Dict[str, str] = {}
+
+for key, meta in MODEL_REGISTRY.items():
+    # Canonical key
+    _ALIAS_INDEX[_normalize_token(key)] = key
+    # Endpoint
+    _ENDPOINT_INDEX[_normalize_token(meta.endpoint)] = key
+    # Provided aliases
+    for a in meta.aliases:
+        _ALIAS_INDEX[_normalize_token(a)] = key
+    # Human labels
+    _ALIAS_INDEX[_normalize_token(meta.singular)] = key
+    _ALIAS_INDEX[_normalize_token(meta.plural)] = key
+    # Simple plural of canonical (best-effort)
+    if not key.endswith('s'):
+        _ALIAS_INDEX[_normalize_token(f'{key}s')] = key
 
 
 def get_model_meta(name: str) -> Optional[ModelMeta]:
-    """Resolve a model by canonical name, alias, endpoint, or simple plural.
-
-    Accepts hyphen/underscore variants.
-    """
+    """Resolve by canonical key, alias, endpoint, or simple plural."""
     if not name:
         return None
-    raw = _normalize_token(name)
-    # direct matches
-    if raw in MODEL_REGISTRY:
-        return MODEL_REGISTRY[raw]
-    if raw in _ENDPOINT_INDEX:
-        return MODEL_REGISTRY[_ENDPOINT_INDEX[raw]]
-    if raw in _ALIAS_INDEX:
-        return MODEL_REGISTRY[_ALIAS_INDEX[raw]]
-    # normalize hyphens to underscores
-    norm = raw.replace('-', '_')
+    norm = _normalize_token(name)
     if norm in MODEL_REGISTRY:
         return MODEL_REGISTRY[norm]
+    if norm in _ENDPOINT_INDEX:
+        return MODEL_REGISTRY[_ENDPOINT_INDEX[norm]]
     if norm in _ALIAS_INDEX:
         return MODEL_REGISTRY[_ALIAS_INDEX[norm]]
-    # try removing a single trailing 's'
-    if norm.endswith('s') and norm[:-1] in MODEL_REGISTRY:
-        return MODEL_REGISTRY[norm[:-1]]
+    if norm.endswith('s'):
+        base = norm[:-1]
+        if base in MODEL_REGISTRY:
+            return MODEL_REGISTRY[base]
+        if base in _ALIAS_INDEX:
+            return MODEL_REGISTRY[_ALIAS_INDEX[base]]
     return None
 
 
@@ -159,14 +188,17 @@ def get_model_meta_by_endpoint(endpoint: str) -> Optional[ModelMeta]:
     return MODEL_REGISTRY.get(key) if key else None
 
 
-def is_valid_model_name(name: str) -> bool:
-    return get_model_meta(name) is not None
+def import_model(name: str):
+    """Import a Django model class from any accepted variant."""
+    meta = get_model_meta(name)
+    return meta.import_model() if meta else None
 
 
 VALID_MODEL_NAMES: List[str] = list(MODEL_REGISTRY.keys())
 
-
+# Re-export helpers
 __all__ = [
-    'ModelMeta', 'MODEL_REGISTRY', 'VALID_MODEL_NAMES',
-    'is_valid_model_name', 'get_model_meta', 'get_model_meta_by_endpoint'
+    'ModelMeta', 'MODEL_REGISTRY',
+    'get_model_meta', 'get_model_meta_by_endpoint', 'import_model',
+    'VALID_MODEL_NAMES',
 ]

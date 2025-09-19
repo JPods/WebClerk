@@ -2,7 +2,7 @@
 
 This module resolves a Connection configured for email verification, performs
 the verification (stubbed by default; no external I/O), and records an
-Exchange containing request/response metadata.
+Bundle containing request/response metadata.
 
 Connection expectations:
 - Connection.type == 'email_verification'
@@ -15,7 +15,7 @@ Connection expectations:
       "mode": "stub"              # forces no network I/O
     }
 
-Exchange fields recorded:
+Bundle fields recorded:
 - direction: 'outbound'
 - payload: { "email": <email> }
 - config: shallow copy of Connection.config with secrets masked
@@ -63,14 +63,14 @@ def get_verification_connection(name: str | None = None):
 def verify_email_via_connection(email: str, connection_name: str | None = None) -> Dict[str, Any]:
     """Verify an email address via the configured Connection.
 
-    No network calls are made in stub mode. An Exchange row is recorded with
+    No network calls are made in stub mode. An Bundle row is recorded with
     payload, masked config, response, status, and duration.
     """
-    Exchange = apps.get_model("sync", "Exchange")
+    Bundle = apps.get_model("sync", "Bundle")
 
     conn = get_verification_connection(connection_name)
     if not conn:
-        # Record a synthetic exchange so the attempt is visible
+        # Record a synthetic bundle so the attempt is visible
         return {
             "ok": False,
             "error": "no_connection",
@@ -91,9 +91,9 @@ def verify_email_via_connection(email: str, connection_name: str | None = None) 
 
     duration_ms = int((time.perf_counter() - started) * 1000)
 
-    exchange_id = None
+    bundle_id = None
     try:
-        e = Exchange.objects.create(
+        e = Bundle.objects.create(
             connection_id=cast(Any, conn),
             direction="outbound",
             config=masked_cfg,
@@ -103,9 +103,9 @@ def verify_email_via_connection(email: str, connection_name: str | None = None) 
             payload=payload,
             size=len(str(payload)) + len(str(normalized)),
         )
-        exchange_id = getattr(e, "id", None)
+        bundle_id = getattr(e, "id", None)
     except Exception:
         # Do not fail the call if logging fails
         pass
 
-    return {"ok": True, "result": normalized, "exchange_id": exchange_id}
+    return {"ok": True, "result": normalized, "bundle_id": bundle_id}

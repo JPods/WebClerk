@@ -128,7 +128,7 @@
       "mode",
       "safety",
       "config",
-      "exchange",
+      "bundle",
       "json",
       "review",
       "sync",
@@ -633,14 +633,14 @@
     ]
   },
   {
-    "slug": "exchange-review",
-    "title": "Exchange review and acknowledgement",
+    "slug": "bundle-review",
+    "title": "Bundle review and acknowledgement",
     "headings": [
       "Table of Contents"
     ],
-    "path": "readmes/exchange-review.md",
+    "path": "readmes/bundle-review.md",
     "tags": [
-      "exchange",
+      "bundle",
       "review",
       "accept",
       "email",

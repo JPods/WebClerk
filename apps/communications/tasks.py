@@ -31,10 +31,10 @@ def user_id_is_superuser(user_id):
 # -------- Validation / cleanup stubs ---------------------------------------
 @shared_task
 def validate_location_osm(location_id: int, connection_name: str | None = None) -> Dict[str, Any]:
-    """Location verification via Connection/Exchange (stubbed provider).
+    """Location verification via Connection/Bundle (stubbed provider).
 
     Builds a minimal location payload and verifies through a Connection of
-    type 'location_verification'. Records review pending exchange in metadata.
+    type 'location_verification'. Records review pending bundle in metadata.
     """
     Location = apps.get_model('communications', 'Location')
     loc = Location.objects.filter(pk=location_id).first()
@@ -50,7 +50,7 @@ def validate_location_osm(location_id: int, connection_name: str | None = None) 
     }
     res = verify_location_via_connection(payload, connection_name)
     result = res.get("result") or {}
-    exchange_id = res.get("exchange_id")
+    bundle_id = res.get("bundle_id")
 
     try:
         obj = cast(Any, loc)
@@ -60,10 +60,10 @@ def validate_location_osm(location_id: int, connection_name: str | None = None) 
         meta = getattr(obj, "metadata", {}) or {}
         ver = meta.setdefault("versioning", {}).setdefault("validation", {})
         rev = ver.setdefault("review", {})
-        rev.update({"status": "pending", "exchange_id": exchange_id})
+        rev.update({"status": "pending", "bundle_id": bundle_id})
         obj.metadata = meta
         obj.save(update_fields=["metadata", "dt_modified", "version"])  # type: ignore[attr-defined]
-        return {"ok": True, "applied": True, "exchange_id": exchange_id}
+        return {"ok": True, "applied": True, "bundle_id": bundle_id}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -75,7 +75,7 @@ def validate_email_format(email_id: int) -> Dict[str, Any]:
     obj = Email.objects.filter(pk=email_id).first()
     if not obj:
         return {"ok": False, "error": "not_found"}
-    # Use provider-agnostic verification via sync Connection/Exchange.
+    # Use provider-agnostic verification via sync Connection/Bundle.
     email_addr = getattr(obj, "email", "")
     res = verify_email_via_connection(email_addr)
     meta = getattr(obj, "metadata", {}) or {}
@@ -86,7 +86,7 @@ def validate_email_format(email_id: int) -> Dict[str, Any]:
         "status": result.get('status', 'stubbed'),
         "deliverability": result.get('deliverability', 'unknown'),
         "reason": result.get('reason', ''),
-        "review": {"status": "pending", "exchange_id": res.get('exchange_id')},
+        "review": {"status": "pending", "bundle_id": res.get('bundle_id')},
     })
     obj.metadata = meta  # type: ignore[attr-defined]
     # Defer flipping is_verified until review acceptance.
@@ -96,9 +96,9 @@ def validate_email_format(email_id: int) -> Dict[str, Any]:
 
 @shared_task
 def validate_phone_basic(phone_id: int) -> Dict[str, Any]:
-    """Phone verification via Connection/Exchange (stubbed).
+    """Phone verification via Connection/Bundle (stubbed).
 
-    Records review-pending exchange_id in metadata.
+    Records review-pending bundle_id in metadata.
     """
     Phone = apps.get_model('communications', 'Phone')
     obj = Phone.objects.filter(pk=phone_id).first()
@@ -107,7 +107,7 @@ def validate_phone_basic(phone_id: int) -> Dict[str, Any]:
     number = getattr(obj, "number", "")
     res = verify_phone_via_connection(number)
     result = res.get("result") or {}
-    exchange_id = res.get("exchange_id")
+    bundle_id = res.get("bundle_id")
 
     meta = getattr(obj, "metadata", {}) or {}
     ver = meta.setdefault('versioning', {}).setdefault('validation', {})
@@ -116,7 +116,7 @@ def validate_phone_basic(phone_id: int) -> Dict[str, Any]:
         "status": result.get('status', 'stubbed'),
         "valid": result.get('valid', None),
         "reason": result.get('reason', ''),
-        "review": {"status": "pending", "exchange_id": exchange_id},
+        "review": {"status": "pending", "bundle_id": bundle_id},
     })
     obj.metadata = meta  # type: ignore[attr-defined]
     obj.save(update_fields=['metadata', 'dt_modified', 'version'])  # type: ignore[attr-defined]
@@ -125,7 +125,7 @@ def validate_phone_basic(phone_id: int) -> Dict[str, Any]:
 
 @shared_task
 def validate_domain_basic(domain_id: int) -> Dict[str, Any]:
-    """Domain verification via Connection/Exchange (stubbed)."""
+    """Domain verification via Connection/Bundle (stubbed)."""
     Domain = apps.get_model('communications', 'Domain')
     obj = Domain.objects.filter(pk=domain_id).first()
     if not obj:
@@ -133,7 +133,7 @@ def validate_domain_basic(domain_id: int) -> Dict[str, Any]:
     path = getattr(obj, "path", "")
     res = verify_domain_via_connection(path)
     result = res.get("result") or {}
-    exchange_id = res.get("exchange_id")
+    bundle_id = res.get("bundle_id")
 
     meta = getattr(obj, "metadata", {}) or {}
     ver = meta.setdefault('versioning', {}).setdefault('validation', {})
@@ -142,7 +142,7 @@ def validate_domain_basic(domain_id: int) -> Dict[str, Any]:
         "status": result.get('status', 'stubbed'),
         "reachable": result.get('reachable', None),
         "reason": result.get('reason', ''),
-        "review": {"status": "pending", "exchange_id": exchange_id},
+        "review": {"status": "pending", "bundle_id": bundle_id},
     })
     obj.metadata = meta  # type: ignore[attr-defined]
     obj.save(update_fields=['metadata', 'dt_modified', 'version'])  # type: ignore[attr-defined]

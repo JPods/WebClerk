@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 from apps.core.models import Contact
-from apps.transactions.models.requisition import RequisitionStd
+from apps.transactions.models import Requisition
 
 @pytest.fixture
 def user(db):
@@ -26,7 +26,7 @@ def test_requisition_list_create_and_pagination(auth_client):
     assert resp.status_code in (200,201)
     # seed more
     for i in range(3):
-        RequisitionStd.objects.create(name=f"Req {i}", purpose='ops', status='draft')
+        Requisition.objects.create(name=f"Req {i}", purpose='ops', status='draft')
     resp = auth_client.get(url)
     assert resp.status_code == 200
     assert 'data' in resp.data and 'results' in resp.data['data']
@@ -34,7 +34,7 @@ def test_requisition_list_create_and_pagination(auth_client):
 
 @pytest.mark.django_db
 def test_requisition_detail_and_atomic_patch(auth_client):
-    r = RequisitionStd.objects.create(name='PatchMe', purpose='ops', status='draft')
+    r = Requisition.objects.create(name='PatchMe', purpose='ops', status='draft')
     detail = reverse('requisition2-detail', args=[r.id])
     get_resp = auth_client.get(detail)
     version = get_resp.data['data']['version']
@@ -48,8 +48,8 @@ def test_requisition_detail_and_atomic_patch(auth_client):
 
 @pytest.mark.django_db
 def test_requisition_search(auth_client):
-    RequisitionStd.objects.create(name='Alpha', purpose='ops', status='draft')
-    RequisitionStd.objects.create(name='Beta', purpose='ops', status='draft')
+    Requisition.objects.create(name='Alpha', purpose='ops', status='draft')
+    Requisition.objects.create(name='Beta', purpose='ops', status='draft')
     url = reverse('requisition2-search') + '?q=Al'
     resp = auth_client.get(url)
     assert resp.status_code == 200

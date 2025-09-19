@@ -16,7 +16,7 @@
 
 ## Overview
 
-Domains/handles (e.g., websites, social) are verified with `sync.Connection` type `domain_verification`. Attempts record a `sync.Exchange` with a normalized result and pending review.
+Domains/handles (e.g., websites, social) are verified with `sync.Connection` type `domain_verification`. Attempts record a `sync.Bundle` with a normalized result and pending review.
 
 ## Connection
 

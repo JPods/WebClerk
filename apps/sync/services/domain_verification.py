@@ -1,6 +1,6 @@
 """Provider-agnostic Domain Verification service (stub).
 
-Resolves a Connection of type 'domain_verification' and records an Exchange
+Resolves a Connection of type 'domain_verification' and records an Bundle
 with a normalized response. No network I/O in stub mode.
 """
 
@@ -32,7 +32,7 @@ def get_verification_connection(name: str | None = None):
 
 
 def verify_domain_via_connection(path: str, connection_name: str | None = None) -> Dict[str, Any]:
-    Exchange = apps.get_model("sync", "Exchange")
+    Bundle = apps.get_model("sync", "Bundle")
 
     conn = get_verification_connection(connection_name)
     if not conn:
@@ -55,9 +55,9 @@ def verify_domain_via_connection(path: str, connection_name: str | None = None) 
 
     duration_ms = int((time.perf_counter() - started) * 1000)
 
-    exchange_id = None
+    bundle_id = None
     try:
-        e = Exchange.objects.create(
+        e = Bundle.objects.create(
             connection_id=cast(Any, conn),
             direction="outbound",
             config=masked_cfg,
@@ -67,8 +67,8 @@ def verify_domain_via_connection(path: str, connection_name: str | None = None) 
             payload=payload,
             size=len(str(payload)) + len(str(normalized)),
         )
-        exchange_id = getattr(e, "id", None)
+        bundle_id = getattr(e, "id", None)
     except Exception:
         pass
 
-    return {"ok": True, "result": normalized, "exchange_id": exchange_id}
+    return {"ok": True, "result": normalized, "bundle_id": bundle_id}

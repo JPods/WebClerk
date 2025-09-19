@@ -1,16 +1,20 @@
 import os
 import pytest
-from django.conf import settings
 
-# Force lightweight SQLite for tests unless explicitly disabled
-@pytest.fixture(scope='session', autouse=True)
-def _configure_test_db():
+@pytest.fixture(autouse=True)
+def _configure_test_db(request, settings):
     if 'PYTEST_KEEP_DB' in os.environ:
+        return
+    needs_db = (
+        request.node.get_closest_marker("django_db")
+        or request.node.get_closest_marker("transactional_db")
+    )
+    if not needs_db:
         return
     settings.DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
-    'ATOMIC_REQUESTS': False,
+        'ATOMIC_REQUESTS': False,
     }
 
 

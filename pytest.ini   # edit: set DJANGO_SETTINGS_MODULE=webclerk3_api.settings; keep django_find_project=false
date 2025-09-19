@@ -1,0 +1,2 @@
+DJANGO_SETTINGS_MODULE = webclerk3_api.settings
+django_find_project = false

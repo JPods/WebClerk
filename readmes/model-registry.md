@@ -61,7 +61,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - sales_order_line — app: `transactions`, endpoint: [`/wcapi/sales-order-lines/`](/wcapi/sales-order-lines/), kind: `line`, aliases: sales_order_lines
 - serial_log — app: `products`, endpoint: [`/wcapi/serial-logs/`](/wcapi/serial-logs/), kind: `support`, aliases: serial_logs
 - setting — app: `core`, endpoint: [`/wcapi/settings/`](/wcapi/settings/), kind: `support`, aliases: settings
-- sync_exchange — app: `sync`, endpoint: [`/wcapi/sync-exchanges/`](/wcapi/sync-exchanges/), kind: `support`, aliases: exchanges_sync
+- Bundle — app: `sync`, endpoint: [`/wcapi/sync-exchanges/`](/wcapi/sync-exchanges/), kind: `support`, aliases: exchanges_sync
 - tax_jurisdiction — app: `accounts`, endpoint: [`/wcapi/tax-jurisdictions/`](/wcapi/tax-jurisdictions/), kind: `support`, aliases: tax_jurisdictions
 - template — app: `core`, endpoint: [`/wcapi/templates/`](/wcapi/templates/), kind: `support`, aliases: templates
 - term — app: `accounts`, endpoint: [`/wcapi/terms/`](/wcapi/terms/), kind: `support`, aliases: terms
@@ -128,7 +128,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 ### sync (2)
 
 - connection — endpoint: [`/wcapi/connections/`](/wcapi/connections/), kind: `support`, aliases: connections
-- sync_exchange — endpoint: [`/wcapi/sync-exchanges/`](/wcapi/sync-exchanges/), kind: `support`, aliases: exchanges_sync
+- bundle — endpoint: [`/wcapi/sync-exchanges/`](/wcapi/sync-exchanges/), kind: `support`, aliases: exchanges_sync
 
 ### transactions (15)
 
@@ -310,9 +310,9 @@ flowchart LR
     connection["connection"]
     app_sync --> connection
     class connection support
-    sync_exchange["sync_exchange"]
-    app_sync --> sync_exchange
-    class sync_exchange support
+    bundle["Bundle"]
+    app_sync --> Bundle
+    class Bundle support
   end
   subgraph Transactions
     direction TB

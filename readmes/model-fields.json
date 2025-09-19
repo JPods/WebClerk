@@ -658,7 +658,7 @@
         "choices": null
       },
       {
-        "name": "exchange",
+        "name": "bundle",
         "type": "JSONField",
         "null": true,
         "blank": true,
@@ -11944,7 +11944,7 @@
   },
   {
     "app": "sync",
-    "model": "sync.Exchange",
+    "model": "sync.Bundle",
     "db_table": "exchanges",
     "fields": [
       {

@@ -16,7 +16,7 @@
 
 ## Overview
 
-Phone numbers are verified through provider-agnostic `sync.Connection` records. Each attempt creates a `sync.Exchange` with masked config and a normalized `response`, initially `response.review.status=pending`.
+Phone numbers are verified through provider-agnostic `sync.Connection` records. Each attempt creates a `sync.Bundle` with masked config and a normalized `response`, initially `response.review.status=pending`.
 
 ## Connection
 
@@ -31,11 +31,11 @@ Phone numbers are verified through provider-agnostic `sync.Connection` records. 
 
 - Model helper: `phone.queue_verification()` enqueues `validate_phone_basic`.
 - Task calls `apps.sync.services.phone_verification.verify_phone_via_connection(number)`.
-- An Exchange is created with `payload.phone`, masked `config`, and normalized `result` (status/valid/reason).
+- An Bundle is created with `payload.phone`, masked `config`, and normalized `result` (status/valid/reason).
 
 ## Review and apply
 
-- Use Exchanges admin to inspect and accept/reject.
+- Use Bundles admin to inspect and accept/reject.
 - A future decision service can set metadata flags or derived fields (e.g., normalized E.164) upon acceptance.
 
 ## Next steps

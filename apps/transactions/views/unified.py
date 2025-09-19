@@ -1,4 +1,5 @@
 from typing import Tuple, Type, Optional
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, status
 from common.api_responses import api_response
@@ -21,6 +22,7 @@ from apps.transactions.serializers.line_serializers import (
 from apps.transactions.views.line_views import BasePermission, DefaultPagination
 from apps.transactions.aggregation import compute_line_aggregate
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from apps.core.constants.model_registry import get_model_meta, import_model
 
 
 # Mapping helpers -----------------------------------------------------------
@@ -31,6 +33,13 @@ HEADER_MAP = {
     'purchase-order': (PurchaseOrder, PurchaseOrderSerializer, PurchaseOrderLine, PurchaseOrderLineSerializer),
     'workorder': (WorkOrder, WorkOrderSerializer, WorkOrderLine, WorkOrderLineSerializer),
     'requisition': (Requisition, RequisitionSerializer, RequisitionLine, RequisitionLineSerializer),
+}
+
+# Replace hard-coded variant keys with canonical keys
+MODEL_MAP = {
+    # canonical keys only
+    'requisition': (Requisition, RequisitionSerializer, RequisitionLine, RequisitionLineSerializer),
+    # add other models here using canonical snake_case keys...
 }
 
 
@@ -204,3 +213,24 @@ class TransactionTotalsPreview(_KindMixin, generics.GenericAPIView):
         except ValueError:
             return response.Response({'detail': 'Invalid kind'}, status=status.HTTP_400_BAD_REQUEST)
         return api_response(data=data)
+
+
+def _resolve_models(token: str):
+    """
+    Accept any variant (TitleCase, kebab, underscore, plural), resolve to canonical key,
+    and return model + serializer tuple from MODEL_MAP.
+    """
+    meta = get_model_meta(token)
+    if not meta:
+        raise Http404(f'Unknown model: {token}')
+    key = meta.key  # canonical snake_case
+    try:
+        return MODEL_MAP[key]
+    except KeyError:
+        raise Http404(f'Unsupported model in this endpoint: {key}')
+
+# Example usage inside a view handling ?model=...
+# def get(...):
+#     token = self.request.query_params.get('model')
+#     header_cls, header_ser, line_cls, line_ser = _resolve_models(token)
+#     # ... use classes ...

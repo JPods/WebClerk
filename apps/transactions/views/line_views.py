@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F
+from django.http import Http404
 from rest_framework import generics, permissions, response, views, status, pagination
 from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
@@ -24,6 +25,7 @@ from rest_framework.views import APIView
 from apps.core.permissions import get_role_field_rules
 from apps.transactions.aggregation import compute_line_aggregate, DEFAULT_CACHE_TTL_SECONDS
 from apps.transactions.models.projects import Project
+from apps.core.constants.model_registry import get_model_meta, import_model
 
 class BasePermission(ViewEditPermission):
     """Combines auth + view_edit rule enforcement (ViewEditPermission already checks auth)."""
@@ -355,3 +357,17 @@ class ProjectRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+# If you previously had dicts like:
+# MODEL_BY_NAME = {'requisition-line': RequisitionLine, 'requisition': Requisition, ...}
+# Replace with a resolver function:
+def resolve_model(token: str):
+    cls = import_model(token)
+    if cls is None:
+        raise Http404(f'Unknown model: {token}')
+    return cls
+
+# Example usage where a model name comes from a query param/path:
+# model_token = self.request.query_params.get('model') or self.kwargs.get('model')
+# model_cls = resolve_model(model_token)
+# queryset = model_cls.objects.all()
