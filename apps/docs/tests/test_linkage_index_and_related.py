@@ -42,11 +42,11 @@ def test_related_actions_endpoint_lists_action_for_linkage(client, django_user_m
     user = django_user_model.objects.create_user(email='u2@example.com', password='p', name_first='U2', name_last='Admin', role='admin')
     client.force_login(user)
     lk = Linkage.objects.create(purpose='test')
-    # Index mapping for model=doc_linkage record_id=lk.id
+    # Index mapping for model=linkage record_id=lk.id
     LinkageIndex.objects.create(linkage=lk, table_name='linkages', record_id=lk.id)
     # Create an action linked via linkage id
     act = Action.objects.create(action='test', status='done', refs={'links': {'linkage': [lk.id]}})
-    url = f"/docs/doc_linkage/{lk.id}/actions/"
+    url = f"/docs/linkage/{lk.id}/actions/"
     res = client.get(url)
     assert res.status_code == 200
     data = res.json()
@@ -64,7 +64,7 @@ def test_related_documents_endpoint_lists_documents_for_linkage(client, django_u
     doc = Document.objects.create(name='Doc A')
     lk = Linkage.objects.create(purpose='test', refs={'links': {'documents': [doc.id]}})
     LinkageIndex.objects.create(linkage=lk, table_name='linkages', record_id=lk.id)
-    url = f"/docs/doc_linkage/{lk.id}/documents/"
+    url = f"/docs/linkage/{lk.id}/documents/"
     res = client.get(url)
     assert res.status_code == 200
     data = res.json()

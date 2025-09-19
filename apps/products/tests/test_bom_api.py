@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 from apps.products.models.item import Item
-from apps.products.models.bom import BillOfMaterial
+from apps.products.models.bill_of_material import BillOfMaterial
 from django.contrib.auth import get_user_model
 from apps.core.models.contact import Contact
 
@@ -16,7 +16,7 @@ def test_bom_list_create(client):
     client.force_login(user)
     parent = Item.objects.create(name='Parent Widget')
     component = Item.objects.create(name='Component Screw')
-    url = reverse('products:bom-list-create', args=[parent.id])
+    url = reverse('products:bill_of_material-list-create', args=[parent.id])
     # list empty
     resp = client.get(url)
     assert resp.status_code == 200

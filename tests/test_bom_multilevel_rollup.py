@@ -1,14 +1,14 @@
 import pytest
 from decimal import Decimal
 from apps.products.models import Item
-from apps.products.models.bom import BillOfMaterial
+from apps.products.models.bill_of_material import BillOfMaterial
 
 pytestmark = pytest.mark.django_db
 
 def make_item(name: str):
     return Item.objects.create(name=name, kind=Item.KIND_PHYSICAL)
 
-@pytest.mark.bom
+@pytest.mark.bill_of_material
 @pytest.mark.fast
 def test_multilevel_bom_rollup():
     # Structure: Parent -> Mid (qty2), Parent -> LeafA (qty1)

@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.test import TestCase
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack, PendingInventoryAdjustment
+from apps.products.models.inventory_layer import InventoryLayer, PendingInventoryAdjustment
 from apps.products.services.inventory_adjustment_processor import (
     process_pending_inventory,
     process_pending_for_stack,
@@ -17,7 +17,7 @@ class PendingInventoryTests(TestCase):
         self.wh = Warehouse.objects.create(name='Main', code='MAIN')
 
     def _make_stack(self, received=100, locked=False):
-        return InventoryStack.objects.create(
+        return InventoryLayer.objects.create(
             item=self.item,
             warehouse=self.wh,
             quantity={'received': received},

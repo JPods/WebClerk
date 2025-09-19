@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 
 
 class APISchemaAndInventoryCommitFailureTests(TestCase):
@@ -32,7 +32,7 @@ class APISchemaAndInventoryCommitFailureTests(TestCase):
     def test_reservation_commit_after_external_issue(self):
         item = Item.objects.create(name='CommitFailItem')
         wh = Warehouse.objects.create(name='CFWH', code='CFWH')
-        stack = InventoryStack.objects.create(item=item, warehouse=wh, quantity={'received': 5})
+        stack = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={'received': 5})
         # create reservation for 5
         res = self.client.post('/products/inventory/reservations/', {
             'stack_id': stack.id,

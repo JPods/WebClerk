@@ -15,7 +15,7 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - account_exchange — app: `accounts`, endpoint: [`/wcapi/account-exchanges/`](/wcapi/account-exchanges/), kind: `support`, aliases: exchanges_account
 - action — app: `core`, endpoint: [`/wcapi/actions/`](/wcapi/actions/), kind: `support`, aliases: actions
 - audit — app: `accounts`, endpoint: [`/wcapi/audits/`](/wcapi/audits/), kind: `support`, aliases: audits
-- bill_of_material — app: `products`, endpoint: [`/wcapi/bills-of-material/`](/wcapi/bills-of-material/), kind: `support`, aliases: bill_of_materials, bom
+- bill_of_material — app: `products`, endpoint: [`/wcapi/bills-of-material/`](/wcapi/bills-of-material/), kind: `support`, aliases: bill_of_materials, bill_of_material
 - catalog — app: `products`, endpoint: [`/wcapi/catalogs/`](/wcapi/catalogs/), kind: `support`, aliases: catalogs
 - connection — app: `sync`, endpoint: [`/wcapi/connections/`](/wcapi/connections/), kind: `support`, aliases: connections
 - contact — app: `core`, endpoint: [`/wcapi/contacts/`](/wcapi/contacts/), kind: `support`, aliases: contacts
@@ -23,9 +23,9 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 - delivery_line — app: `products`, endpoint: [`/wcapi/delivery-lines/`](/wcapi/delivery-lines/), kind: `support`, aliases: delivery_lines
 - delivery_visit — app: `products`, endpoint: [`/wcapi/delivery-visits/`](/wcapi/delivery-visits/), kind: `support`, aliases: delivery_visits
 - doc — app: `docs`, endpoint: [`/wcapi/docs/`](/wcapi/docs/), kind: `support`, aliases: docs, document, documents
-- doc_linkage — app: `docs`, endpoint: [`/wcapi/doc-linkages/`](/wcapi/doc-linkages/), kind: `support`, aliases: linkages
-- doc_qa — app: `docs`, endpoint: [`/wcapi/doc-qas/`](/wcapi/doc-qas/), kind: `support`, aliases: qa
-- doc_tag — app: `docs`, endpoint: [`/wcapi/doc-tags/`](/wcapi/doc-tags/), kind: `support`, aliases: tags
+- linkage — app: `docs`, endpoint: [`/wcapi/doc-linkages/`](/wcapi/doc-linkages/), kind: `support`, aliases: linkages
+- question_answer — app: `docs`, endpoint: [`/wcapi/doc-qas/`](/wcapi/doc-qas/), kind: `support`, aliases: question_answer
+- tag — app: `docs`, endpoint: [`/wcapi/doc-tags/`](/wcapi/doc-tags/), kind: `support`, aliases: tags
 - document — app: `docs`, endpoint: [`/wcapi/documents/`](/wcapi/documents/), kind: `support`, aliases: doc, documents
 - domain — app: `communications`, endpoint: [`/wcapi/domains/`](/wcapi/domains/), kind: `support`, aliases: domains
 - email — app: `communications`, endpoint: [`/wcapi/emails/`](/wcapi/emails/), kind: `support`, aliases: emails
@@ -103,14 +103,14 @@ Do not edit by hand; run `bin/python Scripts/gen_model_registry_readme.py` to re
 ### docs (5)
 
 - doc — endpoint: [`/wcapi/docs/`](/wcapi/docs/), kind: `support`, aliases: docs, document, documents
-- doc_linkage — endpoint: [`/wcapi/doc-linkages/`](/wcapi/doc-linkages/), kind: `support`, aliases: linkages
-- doc_qa — endpoint: [`/wcapi/doc-qas/`](/wcapi/doc-qas/), kind: `support`, aliases: qa
-- doc_tag — endpoint: [`/wcapi/doc-tags/`](/wcapi/doc-tags/), kind: `support`, aliases: tags
+- linkage — endpoint: [`/wcapi/doc-linkages/`](/wcapi/doc-linkages/), kind: `support`, aliases: linkages
+- question_answer — endpoint: [`/wcapi/doc-qas/`](/wcapi/doc-qas/), kind: `support`, aliases: question_answer
+- tag — endpoint: [`/wcapi/doc-tags/`](/wcapi/doc-tags/), kind: `support`, aliases: tags
 - document — endpoint: [`/wcapi/documents/`](/wcapi/documents/), kind: `support`, aliases: doc, documents
 
 ### products (14)
 
-- bill_of_material — endpoint: [`/wcapi/bills-of-material/`](/wcapi/bills-of-material/), kind: `support`, aliases: bill_of_materials, bom
+- bill_of_material — endpoint: [`/wcapi/bills-of-material/`](/wcapi/bills-of-material/), kind: `support`, aliases: bill_of_materials, bill_of_material
 - catalog — endpoint: [`/wcapi/catalogs/`](/wcapi/catalogs/), kind: `support`, aliases: catalogs
 - delivery_line — endpoint: [`/wcapi/delivery-lines/`](/wcapi/delivery-lines/), kind: `support`, aliases: delivery_lines
 - delivery_visit — endpoint: [`/wcapi/delivery-visits/`](/wcapi/delivery-visits/), kind: `support`, aliases: delivery_visits
@@ -243,15 +243,15 @@ flowchart LR
     doc["doc"]
     app_docs --> doc
     class doc support
-    doc_linkage["doc_linkage"]
-    app_docs --> doc_linkage
-    class doc_linkage support
-    doc_qa["doc_qa"]
-    app_docs --> doc_qa
-    class doc_qa support
-    doc_tag["doc_tag"]
-    app_docs --> doc_tag
-    class doc_tag support
+    linkage["linkage"]
+    app_docs --> linkage
+    class linkage support
+    question_answer["question_answer"]
+    app_docs --> question_answer
+    class question_answer support
+    tag["tag"]
+    app_docs --> tag
+    class tag support
     document["document"]
     app_docs --> document
     class document support

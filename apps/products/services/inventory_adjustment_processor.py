@@ -17,7 +17,7 @@ from django.db import transaction, models
 from django.utils import timezone
 
 from apps.products.models.inventory_layer import (
-    PendingInventoryAdjustment, InventoryStack,
+    PendingInventoryAdjustment, InventoryLayer,
 )
 from apps.products.models.processor_runs import InventoryAdjustmentProcessorRun
 

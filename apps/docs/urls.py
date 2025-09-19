@@ -47,10 +47,10 @@ urlpatterns = [
     # Generic related endpoints
     path('<str:model>/<int:pk>/documents/', RelatedDocumentsView.as_view(), name='model-related-documents'),
     path('<str:model>/<int:pk>/actions/', RelatedActionsView.as_view(), name='model-related-actions'),
-    # QA
-    path('qas/', QAListCreateView.as_view(), name='qa-list'),
-    path('qas/<int:pk>/', QARetrieveUpdateView.as_view(), name='qa-detail'),
-    path('qas/search/', QASearchView.as_view(), name='qa-search'),
+    # QuestionAnswer
+    path('qas/', QAListCreateView.as_view(), name='question_answer-list'),
+    path('qas/<int:pk>/', QARetrieveUpdateView.as_view(), name='question_answer-detail'),
+    path('qas/search/', QASearchView.as_view(), name='question_answer-search'),
     # Tags
     path('tags/', TagListCreateView.as_view(), name='tag-list'),
     path('tags/<int:pk>/', TagRetrieveUpdateView.as_view(), name='tag-detail'),

@@ -11,7 +11,7 @@ from decimal import Decimal
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 
-from apps.products.models.inventory_layer import InventoryStack, PendingInventoryAdjustment
+from apps.products.models.inventory_layer import InventoryLayer, PendingInventoryAdjustment
 from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.models.metrics import InventoryMetricsSnapshot
 from apps.products.models.processor_runs import InventoryAdjustmentProcessorRun
@@ -38,7 +38,7 @@ def summarize_inventory_metrics(include_samples: bool = False, sample_limit: int
     padj_insufficient_pending = padj_qs.filter(reason='insufficient_issue', state=PendingInventoryAdjustment.STATE_PENDING).count()
 
     # Stack level aggregates
-    stacks = InventoryStack.objects.all()
+    stacks = InventoryLayer.objects.all()
     stack_count = stacks.count()
     remaining_agg = Decimal('0')
     received_agg = Decimal('0')

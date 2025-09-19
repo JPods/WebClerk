@@ -67,13 +67,13 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
 
     # --- docs --- (A->Z by key)
     'doc': ModelMeta('doc', 'apps.docs.models.document.Document', 'Document', 'Documents', 'docs', kind='support', aliases=['documents', 'document', 'docs']),
-    'doc_linkage': ModelMeta('doc_linkage', 'apps.docs.models.linkage.Linkage', 'Doc Linkage', 'Doc Linkages', 'doc-linkages', kind='support', aliases=['linkages']),
-    'doc_qa': ModelMeta('doc_qa', 'apps.docs.models.qa.Qa', 'Doc QA', 'Doc QAs', 'doc-qas', kind='support', aliases=['qa']),
-    'doc_tag': ModelMeta('doc_tag', 'apps.docs.models.tag.Tag', 'Doc Tag', 'Doc Tags', 'doc-tags', kind='support', aliases=['tags']),
+    'linkage': ModelMeta('linkage', 'apps.docs.models.linkage.Linkage', 'Doc Linkage', 'Doc Linkages', 'doc-linkages', kind='support', aliases=['linkages']),
+    'question_answer': ModelMeta('question_answer', 'apps.docs.models.question_answer.QuestionAnswer', 'Doc QuestionAnswer', 'Doc QAs', 'doc-qas', kind='support', aliases=['question_answer']),
+    'tag': ModelMeta('tag', 'apps.docs.models.tag.Tag', 'Doc Tag', 'Doc Tags', 'doc-tags', kind='support', aliases=['tags']),
 
     # --- products --- (A->Z by key)
     'item': ModelMeta('item', 'apps.products.models.item.Item', 'Item', 'Items', 'items', kind='support', aliases=['items']),
-    'bill_of_material': ModelMeta('bill_of_material', 'apps.products.models.bom.BillOfMaterial', 'Bill Of Material', 'Bill Of Materials', 'bills-of-material', kind='support', aliases=['bill_of_materials', 'bom']),
+    'bill_of_material': ModelMeta('bill_of_material', 'apps.products.models.bill_of_material.BillOfMaterial', 'Bill Of Material', 'Bill Of Materials', 'bills-of-material', kind='support', aliases=['bill_of_materials', 'bill_of_material']),
     'catalog': ModelMeta('catalog', 'apps.products.models.catalog.Catalog', 'Catalog', 'Catalogs', 'catalogs', kind='support', aliases=['catalogs']),
     'delivery_line': ModelMeta('delivery_line', 'apps.products.models.flow.DeliveryLine', 'Delivery Line', 'Delivery Lines', 'delivery-lines', kind='support', aliases=['delivery_lines']),
     'delivery_visit': ModelMeta('delivery_visit', 'apps.products.models.flow.DeliveryVisit', 'Delivery Visit', 'Delivery Visits', 'delivery-visits', kind='support', aliases=['delivery_visits']),
@@ -105,8 +105,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'requisition_line': ModelMeta('requisition_line', 'apps.transactions.models.RequisitionLine', 'Requisition Line', 'Requisition Lines', 'requisition-lines', kind='line', aliases=['requisition_lines']),
     'sales_order': ModelMeta('sales_order', 'apps.transactions.models.SalesOrder', 'Sales Order', 'Sales Orders', 'sales-orders', kind='header', aliases=['sales_orders']),
     'sales_order_line': ModelMeta('sales_order_line', 'apps.transactions.models.SalesOrderLine', 'Sales Order Line', 'Sales Order Lines', 'sales-order-lines', kind='line', aliases=['sales_order_lines']),
-    'work_order': ModelMeta('work_order', 'apps.transactions.models.Workorder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
-    'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkorderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
+    'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
+    'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
 }
 
 

@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models.connection import Connection
-from .models.exchange import Exchange
+from .models.bundle import Exchange
 from .services.decisions import accept_email_verification, reject_exchange
 
 

@@ -39,19 +39,20 @@ def get_related_data(
         'locations': ('communications', 'Location'),
         'domains': ('communications', 'Domain'),
         'actions': ('core', 'Action'),
-    'sales_orders': ('transactions', 'SalesOrder'),
-    'invoices': ('transactions', 'Invoice'),
-    'purchase_orders': ('transactions', 'PurchaseOrder'),
-    'orders': ('transactions', 'SalesOrder'),  # legacy alias
+        'sales_orders': ('transactions', 'SalesOrder'),
+        'sales_order_lines': ('transactions', 'SalesOrderLine'),
+        'orders': ('transactions', 'SalesOrder'),  # legacy alias
         'orgs': ('orgs', 'OrgBase'),
-    'customers': ('orgs', 'CustomerOrg'),
-    'vendors': ('orgs', 'VendorOrg'),
+        'customers': ('orgs', 'Customer'),
+        'vendors': ('orgs', 'Vendor'),
         'contacts': ('core', 'Contact'),
-    'sales_order_lines': ('transactions', 'SalesOrderLine'),
-    'invoice_lines': ('transactions', 'InvoiceLine'),
-    'purchase_order_lines': ('transactions', 'PurchaseOrderLine'),
-    'proposal_line': ('transactions', 'ProposalLine'),
-    'orderlines': ('transactions', 'SalesOrderLine'),  # legacy alias
+        'invoices': ('transactions', 'Invoice'),
+        'invoice_lines': ('transactions', 'InvoiceLine'),
+        'purchase_orders': ('transactions', 'PurchaseOrder'),
+        'purchase_order_lines': ('transactions', 'PurchaseOrderLine'),
+        'proposal_line': ('transactions', 'ProposalLine'),
+        'proposals': ('transactions', 'Proposal'),
+
     }
 
     tables_dict = related_tables_dict if related_tables_dict is not None else RELATED_TABLES
@@ -115,8 +116,8 @@ def get_related_data(
                 'proposals': ('transactions', 'Proposal'),
                 'orders': ('transactions', 'SalesOrder'),  # legacy
                 'orgs': ('orgs', 'OrgBase'),
-                'customers': ('orgs', 'CustomerOrg'),
-                'vendors': ('orgs', 'VendorOrg'),
+                'customers': ('orgs', 'Customer'),
+                'vendors': ('orgs', 'Vendor'),
                 # Accept forward line links too (optional; reverse by parent_id already handled elsewhere)
                 'sales_order_lines': ('transactions', 'SalesOrderLine'),
                 'invoice_lines': ('transactions', 'InvoiceLine'),

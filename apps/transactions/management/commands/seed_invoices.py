@@ -40,10 +40,10 @@ def _pick_contact_id() -> int | None:
 
 def _pick_customer_org_id() -> int | None:
     try:
-        CustomerOrg = apps.get_model('orgs', 'CustomerOrg')
+        Customer = apps.get_model('orgs', 'Customer')
     except LookupError:
         return None
-    oid = CustomerOrg.objects.values_list('id', flat=True).first()
+    oid = Customer.objects.values_list('id', flat=True).first()
     if oid:
         return int(oid)
     # Create a minimal customer org using the underlying OrgBase concrete model

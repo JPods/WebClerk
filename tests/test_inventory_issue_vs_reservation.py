@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack, PendingInventoryAdjustment
+from apps.products.models.inventory_layer import InventoryLayer, PendingInventoryAdjustment
 from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.services.inventory_reservations import create_reservation, release_expired
 
@@ -16,7 +16,7 @@ class IssueVsReservationTests(TestCase):
         self.user = User.objects.create_user(email='ivr@example.com', password='pass', name_first='I', name_last='VR', username='ivr')
         self.item = Item.objects.create(name='IVRItem')
         self.wh = Warehouse.objects.create(name='IVRWH', code='IVR')
-        self.stack = InventoryStack.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 10})
+        self.stack = InventoryLayer.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 10})
 
     def test_issue_respects_reservations(self):
         # Create reservation for 6

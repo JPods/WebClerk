@@ -18,7 +18,7 @@ A focused backlog for Work Orders and Universal API integration. Keep items smal
 
 ## P1 — Next Up
 
-- [ ] WorkorderLine status choices + transitions
+- [ ] WorkOrderLine status choices + transitions
   - Define strict choices (likely: planned → released → in_progress → done; cancel allowed from planned/released).
   - Enforce allowed transitions in model `save()` with clear `ValidationError` messages.
   - Add completion guard at line-level where relevant (e.g., prevent reverting `done` without admin override).

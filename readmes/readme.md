@@ -33,7 +33,7 @@
     - [Create New Action](#create-new-action)
     - [API Data Retrieval](#api-data-retrieval)
     - [Key Features](#key-features)
-    - [New: Bill of Material (BOM) API (Experimental)](#new-bill-of-material-bom-api-experimental)
+    - [New: Bill of Material (BOM) API (Experimental)](#new-bill-of-material-bill_of_material-api-experimental)
     - [Unified Response Envelope](#unified-response-envelope)
     - [Operational Headers](#operational-headers)
     - [Client Migration Checklist](#client-migration-checklist)
@@ -434,16 +434,16 @@ Source: `webclerk3/core/urls.py`
 
 Lightweight REST endpoints expose BOM lines for bundle/assembly style items:
 
-Base path: `/products/bom/`
+Base path: `/products/bill_of_material/`
 
 Endpoints:
 
-- `GET /products/bom/<parent_id>/` – List BOM lines for parent item (ordered by sequence then id). Optional query params: `revision=<rev>` and `as_of=YYYY-MM-DD` (future enrichment for effective windows).
-- `POST /products/bom/<parent_id>/` – Create a BOM line for parent. Required fields: `component_id`, `quantity`. Optional: `scrap_factor`, `sequence`, `is_alternate`, `alternate_group`, `is_optional`, `revision`, `effective_from`, `effective_to`, `change_reason`, `op_data`.
-- `GET /products/bom/line/<id>/` – Retrieve a single BOM line.
-- `PATCH /products/bom/line/<id>/` – Partial update of a line (same writable fields as create).
-- `DELETE /products/bom/line/<id>/` – Remove a BOM line.
-- `POST /products/bom/<parent_id>/recalc/` – Recompute and persist parent cost component snapshot aggregate (writes to `item.cost.components.snapshot_total` or `default_cost`).
+- `GET /products/bill_of_material/<parent_id>/` – List BOM lines for parent item (ordered by sequence then id). Optional query params: `revision=<rev>` and `as_of=YYYY-MM-DD` (future enrichment for effective windows).
+- `POST /products/bill_of_material/<parent_id>/` – Create a BOM line for parent. Required fields: `component_id`, `quantity`. Optional: `scrap_factor`, `sequence`, `is_alternate`, `alternate_group`, `is_optional`, `revision`, `effective_from`, `effective_to`, `change_reason`, `op_data`.
+- `GET /products/bill_of_material/line/<id>/` – Retrieve a single BOM line.
+- `PATCH /products/bill_of_material/line/<id>/` – Partial update of a line (same writable fields as create).
+- `DELETE /products/bill_of_material/line/<id>/` – Remove a BOM line.
+- `POST /products/bill_of_material/<parent_id>/recalc/` – Recompute and persist parent cost component snapshot aggregate (writes to `item.cost.components.snapshot_total` or `default_cost`).
 
 Serializer returns: `id, parent, component, revision, effective_from, effective_to, quantity, scrap_factor, yield_pct, sequence, is_alternate, alternate_group, is_optional, cost_snapshot, op_data, change_reason, dt_last_recalc, dt_created, dt_modified, is_active`.
 

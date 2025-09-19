@@ -1,8 +1,8 @@
 from .item import Item
 from .item_xref import ItemXRef
-from .bom import BillOfMaterial
+from .bill_of_material import BillOfMaterial
 from .warehouse import Warehouse
-from .inventory_layer import InventoryStack, SiteInventory, InventoryMovement
+from .inventory_layer import InventoryLayer, SiteInventory, InventoryMovement
 from .org_item import OrgItem
 from .serial import Serial, SerialLog
 from .catalog import Catalog, CatalogLine
@@ -19,7 +19,7 @@ __all__ = [
 	"ItemXRef",
 	"BillOfMaterial",
 	"Warehouse",
-	"InventoryStack",
+	"InventoryLayer",
 	"SiteInventory",
 	"InventoryMovement",
 	"OrgItem",

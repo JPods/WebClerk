@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.support',
     'apps.sync',
-    "apps.transactions.apps.TransactionsConfig",
+    'apps.transactions.apps.TransactionsConfig',
     'common',
     'corsheaders',
     'django.contrib.admin',

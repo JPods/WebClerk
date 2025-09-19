@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
 
-# The purpose of qa record is to store a question 
+# The purpose of question_answer record is to store a question 
 # and the user's answer for inspections, checklists, 
 # howto, etc... The question are stored in setting 
 # records where purpose = questions and name = the name 
@@ -14,7 +14,7 @@ from django.contrib.postgres.indexes import GinIndex
 # its history is in .metadata.history
 
 
-class Qa(BaseModel):
+class QuestionAnswer(BaseModel):
     """Question/Answer instance captured for inspections, checklists, how-to flows.
 
     Questions are defined in Setting records (purpose='questions', name=<inspection name>).
@@ -43,7 +43,7 @@ class Qa(BaseModel):
         ]
 
     def __str__(self):
-        return self.question or f"Qa {self.id}"
+        return self.question or f"QuestionAnswer {self.id}"
 
     # --- helpers ---------------------------------------------------------
     def increment_access(self, by: int = 1, update_history: bool = True):
@@ -75,10 +75,10 @@ class Qa(BaseModel):
 
 
 
-# Implemented full QA feature set and improved the model. Summary:
+# Implemented full QuestionAnswer feature set and improved the model. Summary:
 
 # Checklist
-# Improve Qa model (fields, FKs, indexes, search vector, access counter): Done
+# Improve QuestionAnswer model (fields, FKs, indexes, search vector, access counter): Done
 # Pagination class & applied to list endpoint: Done (QAPagination)
 # Views & endpoints (list/create, retrieve/update with access increment, search): Done (qas/, qas/<id>/, qas/search/)
 # Tests in tests folder: Done (test_qa_endpoints.py)
@@ -87,15 +87,15 @@ class Qa(BaseModel):
 # Ordering/filter params (status, security_level): Done (ordering filter backend + query params)
 # Highlight snippet + test for presence: Done (SearchHeadline on answer, test asserts <mark>)
 # Actions Taken
-# Rewrote Qa model: added question/answer, FK to core.Setting (question source), FK to core.Contact (answered_by_contact), status, security_level, sequence, count_accessed, is_active, Postgres SearchVectorField, GIN + supporting indexes, helper methods (increment_access, rebuild_search_vector).
+# Rewrote QuestionAnswer model: added question/answer, FK to core.Setting (question source), FK to core.Contact (answered_by_contact), status, security_level, sequence, count_accessed, is_active, Postgres SearchVectorField, GIN + supporting indexes, helper methods (increment_access, rebuild_search_vector).
 # Added serializers: QASerializer, QASearchSerializer (with highlight_snippet).
 # Added views: QAListCreateView, QARetrieveUpdateView, QASearchView (mirrors Document search logic).
 # Added pagination class QAPagination.
-# Extended urls.py with QA routes.
+# Extended urls.py with QuestionAnswer routes.
 # Created tests covering create/list pagination, search with filters, highlight snippet, ordering.
-# Generated and applied migration (0003_...) including Qa and Linkage (Linkage auto-added in same migration).
+# Generated and applied migration (0003_...) including QuestionAnswer and Linkage (Linkage auto-added in same migration).
 # Fixed existing tests (document & linkage) to remove unsupported username arg for custom user model.
-# Verified tests: QA (2), Document search (3), Linkage (2) all passing.
+# Verified tests: QuestionAnswer (2), Document search (3), Linkage (2) all passing.
 # Quality Gates
 # Migrations: Applied successfully.
 # Tests: All new and adjusted tests pass (spot-checked suites).
@@ -108,11 +108,11 @@ class Qa(BaseModel):
 # Expose additional filters (e.g., ?q_status=open,published multi-value) via a custom filter backend if needed.
 # Add soft-deactivate logic to exclude is_active=False by default in queryset.
 # Optional: track answer edits in metadata.history (append diff snapshots).
-# Add a management command to rebuild all QA search vectors for backfill jobs.
+# Add a management command to rebuild all QuestionAnswer search vectors for backfill jobs.
 # How to Use (Quick)
 # GET /docs/qas/?ordering=sequence&status=published&level=1
 # GET /docs/qas/search/?q=architecture plan&level=2
 # Retrieve increments access counter; search increments counters for hits.
 
 # Completion
-# QA model enhanced, endpoints & pagination added, advanced search with highlight implemented, access counting & ordering/filters in place, and tests verifying functionality are passing. Let me know if you’d like weighted search, DRF schema annotations, or bulk operations next.
+# QuestionAnswer model enhanced, endpoints & pagination added, advanced search with highlight implemented, access counting & ordering/filters in place, and tests verifying functionality are passing. Let me know if you’d like weighted search, DRF schema annotations, or bulk operations next.

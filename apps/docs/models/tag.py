@@ -121,7 +121,7 @@ class Tag(BaseModel):
 # Status:
 
 # Tag tests: pass.
-# Existing QA, Document, Linkage tests previously green 
+# Existing QuestionAnswer, Document, Linkage tests previously green 
 # (unchanged by fix).
 # No migration generated (fields already compatible 
 # or prior migration may be needed later if DB schema 

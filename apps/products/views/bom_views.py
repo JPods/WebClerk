@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
-from apps.products.models.bom import BillOfMaterial
+from apps.products.models.bill_of_material import BillOfMaterial
 from apps.products.models.item import Item
 from apps.products.serializers.bom_serializers import BillOfMaterialSerializer
 from apps.products.services import bom_services

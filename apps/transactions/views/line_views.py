@@ -8,7 +8,7 @@ from apps.transactions.models import (
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
-    Workorder, WorkorderLine,
+    WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
@@ -16,7 +16,7 @@ from apps.transactions.serializers.line_serializers import (
     SalesOrderSerializer, SalesOrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
     PurchaseOrderSerializer, PurchaseOrderLineSerializer,
-    WorkorderSerializer, WorkorderLineSerializer,
+    WorkOrderSerializer, WorkOrderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
     ProjectSerializer,
 )
@@ -149,22 +149,22 @@ class PurchaseOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PurchaseOrderLineSerializer
     permission_classes = [BasePermission]
 
-# Workorder
-class WorkorderListCreate(generics.ListCreateAPIView):
-    queryset = Workorder.objects.all().order_by('-id')
-    serializer_class = WorkorderSerializer
+# WorkOrder
+class WorkOrderListCreate(generics.ListCreateAPIView):
+    queryset = WorkOrder.objects.all().order_by('-id')
+    serializer_class = WorkOrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class WorkorderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Workorder.objects.all()
-    serializer_class = WorkorderSerializer
+class WorkOrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = WorkOrder.objects.all()
+    serializer_class = WorkOrderSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create workorder lines")
-class WorkorderLineListCreate(generics.ListCreateAPIView):
-    queryset = WorkorderLine.objects.all().order_by('-id')
-    serializer_class = WorkorderLineSerializer
+class WorkOrderLineListCreate(generics.ListCreateAPIView):
+    queryset = WorkOrderLine.objects.all().order_by('-id')
+    serializer_class = WorkOrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
     filterset_fields = ['parent_id', 'status']
@@ -172,9 +172,9 @@ class WorkorderLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class WorkorderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
-    queryset = WorkorderLine.objects.all()
-    serializer_class = WorkorderLineSerializer
+class WorkOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+    queryset = WorkOrderLine.objects.all()
+    serializer_class = WorkOrderLineSerializer
     permission_classes = [BasePermission]
 
 # Requisition
@@ -262,13 +262,13 @@ class FieldAuthMatrixView(APIView):
     'sales-order-line': SalesOrderLine,
     'invoice-line': InvoiceLine,
     'purchase-order-line': PurchaseOrderLine,
-        'workorder-line': WorkorderLine,
+        'workorder-line': WorkOrderLine,
         'requisition-line': RequisitionLine,
         'proposal': Proposal,
     'sales-order': SalesOrder,
     'invoice': Invoice,
     'purchase-order': PurchaseOrder,
-        'workorder': Workorder,
+        'workorder': WorkOrder,
         'requisition': Requisition,
     }
 

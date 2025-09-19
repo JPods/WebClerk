@@ -5,7 +5,7 @@ from apps.transactions.models import (
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
-    Workorder, WorkorderLine,
+    WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.models.projects import Project
@@ -118,18 +118,18 @@ class PurchaseOrderLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class WorkorderSerializer(serializers.ModelSerializer):
+class WorkOrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Workorder
+        model = WorkOrder
         fields = ['id', 'work_no', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
-class WorkorderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Workorder.objects.all())
+class WorkOrderLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = WorkorderLine
+        model = WorkOrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 

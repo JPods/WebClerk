@@ -1,5 +1,5 @@
 import pytest
-from apps.orgs.models import OrgBase, CustomerOrg, OrgType
+from apps.orgs.models import OrgBase, Customer, OrgType
 
 @pytest.mark.django_db
 def test_create_orgbase_and_proxy():
@@ -7,7 +7,7 @@ def test_create_orgbase_and_proxy():
     assert org.pk is not None
     assert org.org_type == OrgType.CUSTOMER
     # proxy manager should see it
-    assert CustomerOrg.objects.count() == 1
+    assert Customer.objects.count() == 1
 
 @pytest.mark.django_db
 def test_add_contact_helper_marks_keywords_dirty():

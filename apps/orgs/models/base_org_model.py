@@ -13,7 +13,7 @@ Design goals:
    display_name, status, is_active). Everything sparse / volatile lives in
 	aspect JSONBs (contacts, locations, phones, emails, domains, relations,
 	financial, docs, connections, data, metrics, gl_accounts) to minimize schema churn.
-3. Permit optional lightweight proxy subclasses (CustomerOrg, VendorOrg, ...)
+3. Permit optional lightweight proxy subclasses (Customer, Vendor, ...)
    for ergonomic filtered querysets WITHOUT creating separate physical tables.
 4. Reuse existing size telemetry & potential future offload mechanism; each
    aspect field stays below ~64–128 KB practical caps (enforced via global
@@ -357,7 +357,7 @@ class _TypeFilteredManager(models.Manager):
 		return super().get_queryset().filter(org_type=self._org_type)
 
 
-class CustomerOrg(OrgBase):
+class Customer(OrgBase):
 	class Meta:
 		proxy = True
 		verbose_name = "Customer"
@@ -366,7 +366,7 @@ class CustomerOrg(OrgBase):
 	objects = _TypeFilteredManager(OrgType.CUSTOMER)
 
 
-class VendorOrg(OrgBase):
+class Vendor(OrgBase):
 	class Meta:
 		proxy = True
 		verbose_name = "Vendor"
@@ -375,7 +375,7 @@ class VendorOrg(OrgBase):
 	objects = _TypeFilteredManager(OrgType.VENDOR)
 
 
-class RepOrg(OrgBase):
+class Rep(OrgBase):
 	class Meta:
 		proxy = True
 		verbose_name = "Rep"
@@ -384,7 +384,7 @@ class RepOrg(OrgBase):
 	objects = _TypeFilteredManager(OrgType.REP)
 
 
-class EmployeeOrg(OrgBase):
+class Employee(OrgBase):
 	class Meta:
 		proxy = True
 		verbose_name = "Employee"
@@ -393,7 +393,7 @@ class EmployeeOrg(OrgBase):
 	objects = _TypeFilteredManager(OrgType.EMPLOYEE)
 
 
-class ManufacturerOrg(OrgBase):
+class Manufacturer(OrgBase):
 	class Meta:
 		proxy = True
 		verbose_name = "Manufacturer"
@@ -405,10 +405,10 @@ class ManufacturerOrg(OrgBase):
 __all__ = [
 	"OrgType",
 	"OrgBase",
-	"CustomerOrg",
-	"VendorOrg",
-	"RepOrg",
-	"EmployeeOrg",
-	"ManufacturerOrg",
+	"Customer",
+	"Vendor",
+	"Rep",
+	"Employee",
+	"Manufacturer",
 ]
 

@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.services.inventory_reservations import (
     create_reservation,
@@ -18,7 +18,7 @@ class InventoryReservationTests(TestCase):
     def setUp(self):
         self.item = Item.objects.create(name='ResvItem')
         self.wh = Warehouse.objects.create(name='RSV', code='RSV')
-        self.stack = InventoryStack.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 40})
+        self.stack = InventoryLayer.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 40})
 
     def test_create_and_commit(self):
         r = create_reservation(self.stack, 5)

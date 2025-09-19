@@ -133,7 +133,7 @@ Placeholder workflow for Newman automation; see future updates.
 
 ## 10. Markers & Layered CI Execution
 
-Markers create feedback loops: `smoke`, `fast`, `bom`, full. Use `-m` and `-k` to scope.
+Markers create feedback loops: `smoke`, `fast`, `bill_of_material`, full. Use `-m` and `-k` to scope.
 
 ## 11. Continuous Integration (Implemented & Next)
 

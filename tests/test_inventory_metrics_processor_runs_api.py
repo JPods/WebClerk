@@ -2,7 +2,7 @@ import pytest
 from decimal import Decimal
 from django.urls import reverse
 from django.test import override_settings
-from apps.products.models import InventoryStack
+from apps.products.models import InventoryLayer
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
 from apps.products.models.inventory_layer import PendingInventoryAdjustment
@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db
 def make_stack(qty=10):
     item = Item.objects.create(name="Metrics Item")
     wh = Warehouse.objects.create(name="WH", code=f"W{item.id}")
-    return InventoryStack.objects.create(item=item, warehouse=wh, quantity={"received": float(qty), "issued": 0})
+    return InventoryLayer.objects.create(item=item, warehouse=wh, quantity={"received": float(qty), "issued": 0})
 
 
 def test_metrics_api_includes_processor_runs(client, django_user_model):

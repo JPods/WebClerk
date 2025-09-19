@@ -3,7 +3,7 @@ from common.models import BaseModel
 
 # build up predefined metadata and refs and prefs
 
-class Gl_journal(BaseModel):
+class GlJournal(BaseModel):
     account = models.CharField(max_length=255, blank=True, null=True)
     
     credit = models.FloatField(blank=True, null=True)
@@ -13,8 +13,7 @@ class Gl_journal(BaseModel):
 
 
     class Meta:
-        db_table = 'gl_accounts'
+        db_table = 'gl_journals'
 
     def __str__(self):
-        return f"{self.account or 'Gl_account'} ({self.id})"
-    
+        return f"{self.account or 'GlJournal'} ({self.id})"

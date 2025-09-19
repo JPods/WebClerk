@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.services.inventory_reservations import create_reservation
 
 
@@ -17,7 +17,7 @@ class InventoryMetricsAPITests(TestCase):
         )
         self.item = Item.objects.create(name='MetricsItem')
         self.wh = Warehouse.objects.create(name='MetricsWH', code='MET')
-        self.stack = InventoryStack.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 40})
+        self.stack = InventoryLayer.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 40})
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 

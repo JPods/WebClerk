@@ -16,7 +16,7 @@ This document catalogs the canonical purposes for rows in the `settings` table a
 Applies to model: `apps.core.models.Setting` (db_table=`settings`). Fields of note:
 
 - `purpose`: categorizes the setting entry
-- `model_name` (optional): scope to a specific model/table (e.g., `transactions_proposalline`)
+- `model_name` (optional): scope to a specific model/table (e.g., `proposalline`)
 - `role` (optional): role-specific variant (e.g., `USER`, `ADMIN`, `PUBLIC`)
 - `data` (JSON): payload; shape depends on `purpose`
 

@@ -1,8 +1,8 @@
 import json
 import pytest
 from django.test import RequestFactory, override_settings
-from apps.transactions.models import Workorder, WorkorderLine
-from apps.transactions.serializers.workorder_serializers import WorkorderLineSerializer
+from apps.transactions.models import WorkOrder, WorkOrderLine
+from apps.transactions.serializers.workorder_serializers import WorkOrderLineSerializer
 from apps.core.views.get_view import WcapiGetView
 
 
@@ -11,11 +11,11 @@ from apps.core.views.get_view import WcapiGetView
 @pytest.mark.smoke
 @pytest.mark.django_db
 def test_workorder_line_serializer_parent_id_create():
-    wo = Workorder.objects.create()
-    ser = WorkorderLineSerializer(data={"parent_id": wo.id})
+    wo = WorkOrder.objects.create()
+    ser = WorkOrderLineSerializer(data={"parent_id": wo.id})
     assert ser.is_valid(), ser.errors
     obj = ser.save()
-    assert isinstance(obj, WorkorderLine)
+    assert isinstance(obj, WorkOrderLine)
     assert getattr(obj, 'parent_id') == wo.id
 
 
@@ -25,8 +25,8 @@ def test_workorder_line_serializer_parent_id_create():
 @pytest.mark.django_db
 @override_settings(WCAPI_OPEN_READ=True)
 def test_wcapi_get_workorder_line_has_parent_id():
-    wo = Workorder.objects.create()
-    line = WorkorderLine.objects.create(parent=wo)
+    wo = WorkOrder.objects.create()
+    line = WorkOrderLine.objects.create(parent=wo)
 
     rf = RequestFactory()
     req = rf.get("/wcapi/get/", {"model_name": "work_order_line", "id": line.id})

@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import cast
 
 from common.api_responses import api_response
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.services.inventory_reservations import (
     availability_for_stack, create_reservation,
@@ -49,7 +49,7 @@ class InventoryAvailabilityView(APIView):
 
     def get(self, request, stack_id: int):
         raw_flag = request.query_params.get('raw') == '1'
-        stack = get_object_or_404(InventoryStack, pk=stack_id)
+        stack = get_object_or_404(InventoryLayer, pk=stack_id)
         available = availability_for_stack(stack)
         # Related FK ids (item_id / warehouse_id) may not be annotated on instance if custom manager; access via related objects for safety.
         payload = {
@@ -102,7 +102,7 @@ class InventoryReservationCreateView(APIView):
                 return Response(serializer.errors, status=400)
             return api_response(success=False, status_code=400, message='Validation error', error={'fields': serializer.errors}, raw=raw_flag)
         data = cast(dict, serializer.validated_data)
-        stack = get_object_or_404(InventoryStack, pk=data['stack_id'])
+        stack = get_object_or_404(InventoryLayer, pk=data['stack_id'])
         try:
             reservation = create_reservation(
                 stack,

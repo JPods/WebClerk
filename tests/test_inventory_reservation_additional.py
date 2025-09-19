@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
 from apps.products.services.inventory_reservations import release_expired
 
@@ -22,7 +22,7 @@ class InventoryReservationAdditionalTests(TestCase):
         self.client.force_authenticate(user=self.user)
         self.item = Item.objects.create(name='MoreItem')
         self.wh = Warehouse.objects.create(name='MoreWH', code='MWH')
-        self.stack = InventoryStack.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 10})
+        self.stack = InventoryLayer.objects.create(item=self.item, warehouse=self.wh, quantity={'received': 10})
 
     def test_expiration_flow(self):
         # Create reservation (manually backdate to expire)

@@ -7,7 +7,7 @@ LINK_MODEL_CHOICES = [
     ("order", "Order"),
     ("invoice", "Invoice"),
     ("purchase", "Purchase"),
-    ("workorder", "Workorder"),
+    ("workorder", "WorkOrder"),
     ("requisition", "Requisition"),
 ]
 

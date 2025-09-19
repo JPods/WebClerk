@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             field=models.JSONField(default=dict, help_text='Next action metadata (searchable)'),
         ),
         migrations.AddField(
-            model_name='qa',
+            model_name='question_answer',
             name='actions',
             field=models.JSONField(default=dict, help_text='Next action metadata (searchable)'),
         ),

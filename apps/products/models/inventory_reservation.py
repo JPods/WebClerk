@@ -4,7 +4,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from decimal import Decimal
 
-from .inventory_layer import InventoryStack
+from .inventory_layer import InventoryLayer
 from .item import Item
 from .warehouse import Warehouse
 
@@ -40,7 +40,7 @@ class InventoryReservation(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations')
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')
-    stack = models.ForeignKey(InventoryStack, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
+    stack = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     qty = models.DecimalField(max_digits=14, decimal_places=4)
     state = models.CharField(max_length=20, choices=STATES, default=STATE_PENDING, db_index=True)
     expires_at = models.DateTimeField(db_index=True)

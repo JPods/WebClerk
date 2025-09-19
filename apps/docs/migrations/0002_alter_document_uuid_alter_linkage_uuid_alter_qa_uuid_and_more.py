@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             field=models.UUIDField(blank=True, editable=False, null=True, unique=True),
         ),
         migrations.AlterField(
-            model_name='qa',
+            model_name='question_answer',
             name='uuid',
             field=models.UUIDField(blank=True, editable=False, null=True, unique=True),
         ),

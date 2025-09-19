@@ -32,12 +32,12 @@
   {
     "key": "bill_of_material",
     "app": "products",
-    "model": "apps.products.models.bom.BillOfMaterial",
+    "model": "apps.products.models.bill_of_material.BillOfMaterial",
     "endpoint": "bills-of-material",
     "kind": "support",
     "aliases": [
       "bill_of_materials",
-      "bom"
+      "bill_of_material"
     ]
   },
   {
@@ -113,7 +113,7 @@
     ]
   },
   {
-    "key": "doc_linkage",
+    "key": "linkage",
     "app": "docs",
     "model": "apps.docs.models.linkage.Linkage",
     "endpoint": "doc-linkages",
@@ -123,17 +123,17 @@
     ]
   },
   {
-    "key": "doc_qa",
+    "key": "question_answer",
     "app": "docs",
-    "model": "apps.docs.models.qa.Qa",
+    "model": "apps.docs.models.question_answer.QuestionAnswer",
     "endpoint": "doc-qas",
     "kind": "support",
     "aliases": [
-      "qa"
+      "question_answer"
     ]
   },
   {
-    "key": "doc_tag",
+    "key": "tag",
     "app": "docs",
     "model": "apps.docs.models.tag.Tag",
     "endpoint": "doc-tags",
@@ -546,7 +546,7 @@
   {
     "key": "work_order",
     "app": "transactions",
-  "model": "apps.transactions.models.Workorder",
+  "model": "apps.transactions.models.WorkOrder",
     "endpoint": "work-orders",
     "kind": "header",
     "aliases": [
@@ -556,7 +556,7 @@
   {
     "key": "work_order_line",
     "app": "transactions",
-  "model": "apps.transactions.models.WorkorderLine",
+  "model": "apps.transactions.models.WorkOrderLine",
     "endpoint": "workorder-lines",
     "kind": "line",
     "aliases": [

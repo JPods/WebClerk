@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 
 from .models import (
     Invoice, InvoiceLine,
-	WorkorderLine,
+	WorkOrderLine,
 )
 
 
@@ -39,8 +39,8 @@ class InvoiceLineAdmin(admin.ModelAdmin):
 ##
 
 
-@admin.register(WorkorderLine)
-class WorkorderLineAdmin(admin.ModelAdmin):
+@admin.register(WorkOrderLine)
+class WorkOrderLineAdmin(admin.ModelAdmin):
 	list_display = ("id", "parent_id", "status")
 	list_filter = ("status",)
 

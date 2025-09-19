@@ -15,7 +15,7 @@ class Serial(ItemLinkedBase):
     status = models.CharField(max_length=40, blank=True, db_index=True)
     # Current location / warehouse / inventory stack
     site = models.JSONField(default=dict, blank=True, help_text="Lightweight site/location snapshot (geo codes, address refs)")
-    inventory_stack = models.ForeignKey('products.InventoryStack', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
+    inventory_stack = models.ForeignKey('products.InventoryLayer', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
     data = models.JSONField(default=dict, blank=True)
     qr_code = models.CharField(max_length=255, blank=True, db_index=True)
     # Access the parent item's primary key via `serial.item_id` (Django auto FK _id attribute).

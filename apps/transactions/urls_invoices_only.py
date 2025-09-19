@@ -1,11 +1,11 @@
 from django.urls import path
 from rest_framework import generics, permissions
-from apps.transactions.models import Invoice, InvoiceLine, Workorder, WorkorderLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import Invoice, InvoiceLine, WorkOrder, WorkOrderLine, SalesOrder, SalesOrderLine
 from apps.transactions.serializers.invoice_serializers import (
     InvoiceSerializer, InvoiceLineSerializer,
 )
 from apps.transactions.serializers.workorder_serializers import (
-    WorkorderSerializer, WorkorderLineSerializer,
+    WorkOrderSerializer, WorkOrderLineSerializer,
 )
 from apps.transactions.serializers.sales_order_serializers import (
     SalesOrderSerializer, SalesOrderLineSerializer,
@@ -81,35 +81,35 @@ urlpatterns = [
     path('invoices/<int:pk>/', InvoiceRetrieveUpdate.as_view(), name='invoice-detail'),
     path('invoice-lines/', InvoiceLineListCreate.as_view(), name='invoice-line-list'),
     path('invoice-lines/<int:pk>/', InvoiceLineRetrieveUpdate.as_view(), name='invoice-line-detail'),
-    # Workorders
+    # WorkOrders
     path('work-orders/',
          generics.ListCreateAPIView.as_view(
-             queryset=Workorder.objects.all().order_by('-id'),
-             serializer_class=WorkorderSerializer,
+             queryset=WorkOrder.objects.all().order_by('-id'),
+             serializer_class=WorkOrderSerializer,
              permission_classes=[BasePermission]
          ),
          name='workorder-list'
     ),
     path('work-orders/<int:pk>/',
          generics.RetrieveUpdateDestroyAPIView.as_view(
-             queryset=Workorder.objects.all(),
-             serializer_class=WorkorderSerializer,
+             queryset=WorkOrder.objects.all(),
+             serializer_class=WorkOrderSerializer,
              permission_classes=[BasePermission]
          ),
          name='workorder-detail'
     ),
     path('work-order-lines/',
          generics.ListCreateAPIView.as_view(
-             queryset=WorkorderLine.objects.all().order_by('-id'),
-             serializer_class=WorkorderLineSerializer,
+             queryset=WorkOrderLine.objects.all().order_by('-id'),
+             serializer_class=WorkOrderLineSerializer,
              permission_classes=[BasePermission]
          ),
          name='workorder-line-list'
     ),
     path('work-order-lines/<int:pk>/',
          generics.RetrieveUpdateDestroyAPIView.as_view(
-             queryset=WorkorderLine.objects.all(),
-             serializer_class=WorkorderLineSerializer,
+             queryset=WorkOrderLine.objects.all(),
+             serializer_class=WorkOrderLineSerializer,
              permission_classes=[BasePermission]
          ),
          name='workorder-line-detail'

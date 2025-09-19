@@ -12,7 +12,7 @@
 #warehouses
 #inventory_adjustments
 #inventory_transfers
-#inventory_stacks
+#inventory_layers
 #items
 #item_variants
 #item_locations

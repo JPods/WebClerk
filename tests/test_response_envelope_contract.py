@@ -51,7 +51,7 @@ def test_envelope_presence_core_endpoints(api_client):
     # Create a parent/component items for BOM list
     parent = Item.objects.create(name='ContractParent')
     component = Item.objects.create(name='ContractComponent')
-    bom_url = reverse('products:bom-list-create', args=[parent.id])
+    bom_url = reverse('products:bill_of_material-list-create', args=[parent.id])
     # List (empty)
     bom_list = api_client.get(bom_url)
     assert bom_list.status_code == 200

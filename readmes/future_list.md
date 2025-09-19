@@ -23,7 +23,7 @@ Action: introduce models for routing, operation, work_center, calendars; add BOM
 
 inventory & warehouse
 Warehouse topology: zones/aisles/bins; directed putaway/picking; location-level quantities.
-Lot/batch tracking: you have serial logs; add lots with expiry and QA holds.
+Lot/batch tracking: you have serial logs; add lots with expiry and QuestionAnswer holds.
 Inventory valuation: layers (FIFO/LIFO/Moving Avg) appear hinted; ensure posting rules are consistent and auditable.
 Cycle count process: count tasks, variances, approvals; adjustment reason codes.
 Action: add warehouse_location hierarchy + lot model; define valuation policy and layer posting; cycle count entities.

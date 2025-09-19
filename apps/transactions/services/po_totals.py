@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Any
+from typing import Dict, Any, cast
 from decimal import Decimal
 from apps.transactions.models import PurchaseOrder
 
@@ -25,7 +25,7 @@ def compute_purchase_order_cost_totals(po: "PurchaseOrder") -> Dict[str, Any]:
         "commissions": Decimal(0),
     }
 
-    for ln in po.lines.all():
+    for ln in cast(Any, po).lines.all():
         c = ln.cost or {}
         sums["line_sum_goods"] += Decimal(str(c.get("extended", 0) or 0))
         sums["line_sum_tax"] += Decimal(str(c.get("tax", 0) or 0))

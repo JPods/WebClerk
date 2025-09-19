@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 from decimal import Decimal
 from rest_framework import serializers
-from apps.transactions.models import Workorder, WorkorderLine
+from apps.transactions.models import WorkOrder, WorkOrderLine
 
 
 class ConvertRequestSerializer(serializers.Serializer):
@@ -40,10 +40,10 @@ class TransitionRequestSerializer(serializers.Serializer):
         value = value.strip().lower()
         ctx = self.context or {}
         model = ctx.get('model')
-        if model is Workorder:
-            valid = {k for k, _ in Workorder.STATUS_CHOICES}
-        elif model is WorkorderLine:
-            # WorkorderLine currently inherits generic BaseLineModel without fixed STATUS_CHOICES;
+        if model is WorkOrder:
+            valid = {k for k, _ in WorkOrder.STATUS_CHOICES}
+        elif model is WorkOrderLine:
+            # WorkOrderLine currently inherits generic BaseLineModel without fixed STATUS_CHOICES;
             # accept any non-empty target for lines, or validate against header choices if provided in context.
             valid = set()
         else:

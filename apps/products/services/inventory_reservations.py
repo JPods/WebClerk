@@ -5,11 +5,11 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db import transaction
 
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
 
 
-def create_reservation(stack: InventoryStack, qty, ttl_seconds: int = 900, reason: str = '', context: dict | None = None) -> InventoryReservation:
+def create_reservation(stack: InventoryLayer, qty, ttl_seconds: int = 900, reason: str = '', context: dict | None = None) -> InventoryReservation:
     """Create a reservation if sufficient remaining (excluding other active reservations)."""
     qty_dec = Decimal(str(qty))
     if qty_dec <= 0:
@@ -46,7 +46,7 @@ def release_expired(batch: int = 500):
     return {'expired': count}
 
 
-def availability_for_stack(stack: InventoryStack):
+def availability_for_stack(stack: InventoryLayer):
     now = timezone.now()
     active_reserved = (InventoryReservation.objects
                        .filter(stack=stack, state=InventoryReservation.STATE_PENDING, expires_at__gt=now)

@@ -1,2 +1,2 @@
 from .connection import Connection  # noqa: F401
-from .exchange import *  # noqa
+from .bundle import *  # noqa

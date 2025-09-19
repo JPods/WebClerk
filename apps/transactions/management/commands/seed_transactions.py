@@ -44,16 +44,16 @@ def _pick_contact_id() -> int | None:
     return int(cid) if cid else None
 
 def _pick_customer_org_id() -> int | None:
-    """Return an existing CustomerOrg id or create a minimal one.
+    """Return an existing Customer id or create a minimal one.
 
-    Uses the OrgBase table via the CustomerOrg proxy. Ensures at least one
+    Uses the OrgBase table via the Customer proxy. Ensures at least one
     customer org exists so headers can link to customers for forward hydration.
     """
     try:
-        CustomerOrg = apps.get_model('orgs', 'CustomerOrg')
+        Customer = apps.get_model('orgs', 'Customer')
     except LookupError:
         return None
-    oid = CustomerOrg.objects.values_list('id', flat=True).first()
+    oid = Customer.objects.values_list('id', flat=True).first()
     if oid:
         return int(oid)
     # Create a minimal customer org using the underlying OrgBase concrete model
@@ -130,10 +130,10 @@ class Command(DjangoBaseCommand):
         # Ensure a vendor org for POs
         def _pick_vendor_org_id() -> int | None:
             try:
-                VendorOrg = apps.get_model('orgs', 'VendorOrg')
+                Vendor = apps.get_model('orgs', 'Vendor')
             except LookupError:
                 return None
-            vid = VendorOrg.objects.values_list('id', flat=True).first()
+            vid = Vendor.objects.values_list('id', flat=True).first()
             if vid:
                 return int(vid)
             try:

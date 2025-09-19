@@ -1,20 +1,20 @@
 from .base_org_model import (
 	OrgType,
 	OrgBase,
-	CustomerOrg,
-	VendorOrg,
-	RepOrg,
-	EmployeeOrg,
-	ManufacturerOrg,
+	Customer,
+	Vendor,
+	Rep,
+	Employee,
+	Manufacturer,
 )
 
 __all__ = [
 	"OrgType",
 	"OrgBase",
-	"CustomerOrg",
-	"VendorOrg",
-	"RepOrg",
-	"EmployeeOrg",
-	"ManufacturerOrg",
+	"Customer",
+	"Vendor",
+	"Rep",
+	"Employee",
+	"Manufacturer",
 ]
 

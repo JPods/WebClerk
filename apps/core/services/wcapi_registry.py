@@ -1,53 +1,111 @@
-# Central registry for Universal API accessible models.
+#i Central registry foro Universal API accessiblen models.
 # Limits exposure surface and provides a single whitelist for query/save endpoints.
-from apps.core.models import Contact, Action, Setting, Template, Pending
+from apps.accounts.models import (
+    Currency, ExchangeRate, Exchange, GlAccount,
+    GLJournal, Ledger, TaxJurisdiction, Term
+)
+from apps.core.models import Contact, Action, Setting, Template, Pending, Notifications, Report
 from apps.communications.models import Phone, Domain, Email, Location
 from apps.orgs.models import (
-    OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg,
+    OrgBase, Customer, Vendor, Rep, Employee, Manufacturer,
+)  #QQQ
+from apps.docs.models import Document, Linkage, QuestionAnswer, Tag
+from apps.products.models import (
+    Item, OrgItem, ItemXRef, Serial, SerialLog,
+    Service, Specification, Variant, Warehouse,
+    Usage, InventoryLayer,  #InventoryReservation,
+    #Flow, DeliveryVisit, DeliveryLine,
+    BillOfMaterial, Catalog,
 )
-from apps.products.models import Item
 # Initially scoped to invoices only; expanded to include work orders and sales orders.
 from apps.transactions.models import (
     Invoice, InvoiceLine,
-    Workorder, WorkorderLine,
+    WorkOrder, WorkOrderLine,
     SalesOrder, SalesOrderLine,
     PurchaseOrder, PurchaseOrderLine,
+    Proposal, ProposalLine,
 )
 
 MODEL_MAP = {
-    'contacts': Contact,
+    # account
+    'currencies': Currency,
+    'exchange_rates': ExchangeRate, 
+    'exchanges': Exchange, 
+    'gl_accounts': GlAccount, 
+    'gl_journals': GLJournal,
+    'ledgers': Ledger,
+    'tax_jurisdictions': TaxJurisdiction,
+    'terms': Term,
+
+    # core
     'actions': Action,
+    'contacts': Contact,
+    'notifications': Notifications,
+    'pendings': Pending,
+    'reports': Report,
     'settings': Setting,
     'templates': Template,
-    'pending': Pending,
-    'phones': Phone,
+
+    # communications
     'domains': Domain,
     'emails': Email,
     'locations': Location,
-    'addresses': Location,  # alias for backward compatibility
-    # products
+    'phones': Phone,
+
+    # docs
+    'documents': Document,
+    'likages': Linkage,
+    'qas': QuestionAnswer,
+    'tags': Tag,
+
+    # organization entity
+    'customers': Customer,
+    'vendors': Vendor,
+    'reps': Rep,
+    'employees': Employee,
+    'manufacturers': Manufacturer,
+
+    # products / inventory
+    'boms': BillOfMaterial,  
+    'catalogs': Catalog,
+    # 'flows': Flow, DeliveryVisit, DeliveryLine
+    'inventory_layers': InventoryLayer,
+    'item_xrefs': ItemReference,
     'items': Item,
-    # alias to support org_item naming used by introspection
-    'org_items': Item,
-    # transactional documents (scoped to invoices for now)
+    'org_items': OrgItem,
+    'serials': Serial,
+    'serial_logs': SerialLog,
+    'services': Service,
+    'specifications': Specification,
+    'usages': Usage,
+    'variants': Variant,
+    'warehouses': Warehouse,
+    #'inventory_reservations': InventoryReservation,
+
+    # support
+    'campaigns': Campaign,
+
+    # sync
+    'connections': Connection,
+    'bundles': Bundle,
+
+    # transactional documents
     'invoices': Invoice,
     'invoice_lines': InvoiceLine,
-    # work orders
-    'work_orders': Workorder,
-    'work_order_lines': WorkorderLine,
+    'work_orders': WorkOrder,
+    'work_order_lines': WorkOrderLine,
     'purchase_orders': PurchaseOrder,
     'purchase_order_lines': PurchaseOrderLine,
-    # sales orders
     'sales_orders': SalesOrder,
     'sales_order_lines': SalesOrderLine,
-    # Unified organization entity + proxy filtered types
-    'orgs': OrgBase,
-    'customers': CustomerOrg,
-    'vendors': VendorOrg,
-    'reps': RepOrg,
-    'employees': EmployeeOrg,
-    'manufacturers': ManufacturerOrg,
+    'proposals': Proposal,
+    'proposal_lines': ProposalLine,
+    #'projects': Project,
+    #'project_lines': ProjectLine,
+    #'requisitions': Requisition,
+    #'requisition_lines': RequisitionLine,
 }
+
 
 ALLOWED_TABLE_KEYS = set(MODEL_MAP.keys())
 
@@ -64,26 +122,23 @@ _SINGULAR_ALIAS_TO_TABLE = {
     'action': 'actions',
     'setting': 'settings',
     'template': 'templates',
-    'pending': 'pending',
+    'pending': 'pendings',
     'phone': 'phones',
     'domain': 'domains',
     'email': 'emails',
     'location': 'locations',
     'address': 'locations',  # force to locations
     'item': 'items',
-    'org_item': 'items',  # accept org_item as canonical alias
+    'org_item': 'org_items',  # accept org_item as canonical alias
     'sales_order': 'sales_orders',
     'sales_order_line': 'sales_order_lines',
     'invoice': 'invoices',
     'invoice_line': 'invoice_lines',
-    'purchase_order': 'purchase_orders',
-    'purchase_order_line': 'purchase_order_lines',
     'proposal': 'proposals',
     'work_order': 'work_orders',
     'work_order_line': 'work_order_lines',
     'purchase_order': 'purchase_orders',
     'purchase_order_line': 'purchase_order_lines',
-    'org': 'orgs',
     'customer': 'customers',
     'vendor': 'vendors',
     'rep': 'reps',
@@ -97,13 +152,14 @@ _TABLE_TO_MODEL_NAME = {
     'actions': 'action',
     'settings': 'setting',
     'templates': 'template',
-    'pending': 'pending',
+    'pendings': 'pending',
     'phones': 'phone',
     'domains': 'domain',
     'emails': 'email',
     'locations': 'location',
     'addresses': 'location',
     'items': 'item',
+    'org_items': 'org_item',
     # transactional headers/lines (cover both explicit db_table names and defaults)
     'sales_orders': 'sales_order',
     'sales_order_lines': 'sales_order_line',
@@ -113,18 +169,11 @@ _TABLE_TO_MODEL_NAME = {
     'purchase_order_lines': 'purchase_order_line',
     'work_orders': 'work_order',
     'work_order_lines': 'work_order_line',
-    'proposal_line': 'proposal_line',
     'proposals': 'proposal',
-    'invoice_line': 'invoice_line',
-    'requisition_line': 'requisition_line',
+    'proposal_lines': 'proposal_line',
+    'requisitions': 'requisition',
+    'requisition_lines': 'requisition_line',
     # Default Django table names for headers without explicit db_table
-    'transactions_proposal': 'proposal',
-    'transactions_invoice': 'invoice',
-    'transactions_requisition': 'requisition',
-    'transactions_purchaseorder': 'purchase_order',
-    'transactions_salesorder': 'sales_order',
-    'transactions_workorder': 'work_order',
-    'orgs': 'org',
     'customers': 'customer',
     'vendors': 'vendor',
     'reps': 'rep',

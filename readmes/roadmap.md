@@ -47,7 +47,7 @@ Purpose: Track removal / consolidation tasks that surfaced during refactors (Org
 | Naming | Flags cluster (`is_linked`, `is_not_tracked`, `is_tally_by_type`, `is_pacing`) | Audit usage counts; collapse or namespace in `flags` JSON | Reduce field sprawl | ❓ | M |
 | Migrations | Legacy stubbed migrations (overrides) | Schedule real deletion once all active branches rebased to squash baseline | Repo hygiene | ⏳ | M |
 | Docs | Ensure each complex model group has README: (OrgItem/Catalog ✅, Inventory ✅, Reservations ✅ inline section, Delivery/Checks partial) | Add `delivery-workflow.md` & `inventory-health.md` | Onboarding | ⏳ | M |
-| Automation | Health management command for catalog/orgitem/inventory invariants | Implement `python manage.py system_health --section=products` | Faster QA | ⏳ | H |
+| Automation | Health management command for catalog/orgitem/inventory invariants | Implement `python manage.py system_health --section=products` | Faster QuestionAnswer | ⏳ | H |
 
 ## Recently Completed
 

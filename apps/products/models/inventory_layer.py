@@ -8,7 +8,7 @@ from .warehouse import Warehouse
 
 """Inventory layer (stack) cost schema helpers.
 
-We standardize the JSON shape stored in InventoryStack.cost so downstream
+We standardize the JSON shape stored in InventoryLayer.cost so downstream
 code (pricing, valuation, reporting) can rely on consistent keys. All
 monetary values are per-unit unless otherwise documented.
 
@@ -50,10 +50,10 @@ def default_cost() -> dict:
 STANDARD_COST_KEYS = tuple(default_cost().keys())  # Exportable reference
 
 
-class InventoryStack(ItemLinkedBase):
+class InventoryLayer(ItemLinkedBase):
     """Received quantity at a specific unit cost (lot/stack)."""
 
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_stacks")
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_layers")
     source = models.JSONField(default=dict, blank=True)
     # dt_s in metadata.history
     #dt_received = models.BigIntegerField(db_index=True)
@@ -238,7 +238,7 @@ class InventoryMovement(ItemLinkedBase):
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES, db_index=True)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_movements")
     source_stack = models.ForeignKey(
-        InventoryStack, on_delete=models.SET_NULL, null=True, blank=True, related_name="movements"
+        InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name="movements"
     )
     site_code = models.CharField(max_length=40, db_index=True, blank=True)
     quantity = models.DecimalField(max_digits=14, decimal_places=4)
@@ -268,7 +268,7 @@ class PendingInventoryAdjustment(models.Model):
         (STATE_APPLIED, "Applied"),
         (STATE_CANCELED, "Canceled"),
     ]
-    stack = models.ForeignKey(InventoryStack, on_delete=models.CASCADE, related_name="pending_adjustments")
+    stack = models.ForeignKey(InventoryLayer, on_delete=models.CASCADE, related_name="pending_adjustments")
     qty = models.DecimalField(max_digits=14, decimal_places=4)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
     reason = models.CharField(max_length=80, blank=True)

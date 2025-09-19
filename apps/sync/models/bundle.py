@@ -5,8 +5,8 @@ from .connection import Connection  # Relative import
 # poppups, question, constants, integrations, notifications,
 #
     
-class Exchange(BaseModel):
-    connection_id = models.ForeignKey(Connection, on_delete=models.CASCADE, related_name='exchanges')
+class Bundle(BaseModel):
+    connection_id = models.ForeignKey(Connection, on_delete=models.CASCADE, related_name='bundles')
     direction = models.CharField(max_length=255)
     config = models.JSONField()
     status = models.CharField(max_length=255, blank=True, null=True)
@@ -15,14 +15,14 @@ class Exchange(BaseModel):
     duration = models.BigIntegerField(default=0)
     payload = models.JSONField(blank=True, null=True)
     size = models.BigIntegerField(default=0)
-    #at the time of the exchange
+    #at the time of the bundle
     maps = models.JSONField(blank=True, null=True)
     encryption = models.JSONField(blank=True, null=True)
     rules = models.JSONField(blank=True, null=True)
     conflicts = models.JSONField(blank=True, null=True)
 
     class Meta:
-        db_table = 'exchanges'
+        db_table = 'bundles'
 
     def __str__(self):
-        return f"Exchange {self.id} for connection {self.connection_id.id}"
+        return f"Bundle {self.id} for connection {self.connection_id.id}"

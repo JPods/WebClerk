@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Workorder',
+            name='WorkOrder',
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('uuid', models.UUIDField(blank=True, editable=False, null=True, unique=True)),
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='WorkorderLine',
+            name='WorkOrderLine',
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('uuid', models.UUIDField(blank=True, editable=False, null=True, unique=True)),

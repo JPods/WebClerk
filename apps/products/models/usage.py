@@ -13,7 +13,7 @@ METRIC_DEFAULTS: Dict[str, Any] = {
     "turns.target": 0,
     "adjustment.quantity": 0,
     "adjustment.value": 0,
-    "bom.quantity.actual": 0,
+    "bill_of_material.quantity.actual": 0,
     "capacity.value": 0,
     "cost.actual": 0,
     "cost.plan": 0,

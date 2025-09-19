@@ -8,7 +8,7 @@ from apps.transactions.models import (
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
-    Workorder, WorkorderLine,
+    WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
 from apps.core.models.setting import Setting
@@ -111,11 +111,11 @@ def test_permissions_remaining_line_models(django_user_model):
     user = django_user_model.objects.create_user(email='puball@example.com', password='pass12345', role='GUEST')
     inv = Invoice.objects.create()
     pur = PurchaseOrder.objects.create(po_no='P1')
-    wo = Workorder.objects.create(work_no='W1')
+    wo = WorkOrder.objects.create(work_no='W1')
     req = Requisition.objects.create(req_no='R1')
     InvoiceLine.objects.create(parent=inv, parent_ref_id=inv.pk, status='SENT')
     PurchaseOrderLine.objects.create(parent=pur, parent_ref_id=pur.pk, status='OPEN')
-    WorkorderLine.objects.create(parent=wo, parent_ref_id=wo.pk, status='OPEN')
+    WorkOrderLine.objects.create(parent=wo, parent_ref_id=wo.pk, status='OPEN')
     RequisitionLine.objects.create(parent=req, parent_ref_id=req.pk, status='OPEN')
     client = _auth(user)
     for endpoint in ['invoice-lines','purchase-order-lines','workorder-lines','requisition-lines']:

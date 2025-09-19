@@ -17,7 +17,7 @@ from apps.docs.models.linkage import Linkage
 from apps.docs.models.linkage_index import LinkageIndex
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 
 # ---------------------------------------------------------------------------
 # Central review list of JSON-esque line attributes we expect to deep-copy
@@ -294,7 +294,7 @@ def receive_purchase_order(po: PurchaseOrder,
         except Warehouse.DoesNotExist:
             raise ValidationError({'lines': f'Warehouse code {rl.warehouse_code} not found'})
 
-        stack = InventoryStack.objects.create(
+        stack = InventoryLayer.objects.create(
             item=item,
             warehouse=wh,
             quantity={'received': float(rl.qty), 'issued': 0, 'scrapped': 0},

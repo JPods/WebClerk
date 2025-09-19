@@ -7,7 +7,7 @@ from apps.transactions.models import (
     SalesOrder, SalesOrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
-    Workorder, WorkorderLine,
+    WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
@@ -15,7 +15,7 @@ from apps.transactions.serializers.line_serializers import (
     SalesOrderSerializer, SalesOrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
     PurchaseOrderSerializer, PurchaseOrderLineSerializer,
-    WorkorderSerializer, WorkorderLineSerializer,
+    WorkOrderSerializer, WorkOrderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
 )
 from apps.transactions.views.line_views import BasePermission, DefaultPagination
@@ -29,7 +29,7 @@ HEADER_MAP = {
     'sales-order': (SalesOrder, SalesOrderSerializer, SalesOrderLine, SalesOrderLineSerializer),
     'invoice': (Invoice, InvoiceSerializer, InvoiceLine, InvoiceLineSerializer),
     'purchase-order': (PurchaseOrder, PurchaseOrderSerializer, PurchaseOrderLine, PurchaseOrderLineSerializer),
-    'workorder': (Workorder, WorkorderSerializer, WorkorderLine, WorkorderLineSerializer),
+    'workorder': (WorkOrder, WorkOrderSerializer, WorkOrderLine, WorkOrderLineSerializer),
     'requisition': (Requisition, RequisitionSerializer, RequisitionLine, RequisitionLineSerializer),
 }
 

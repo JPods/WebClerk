@@ -17,7 +17,7 @@ except AttributeError:  # Fallback
             options = f"StartSel={start_sel}, StopSel={stop_sel}"
             super().__init__(Value('english'), expr, query, Value(options), output_field=self.output_field, **extra)
 from django.db.models import F
-from apps.docs.models.qa import Qa
+from apps.docs.models.question_answer import QuestionAnswer
 from apps.docs.serializers.qa_serializers import QASerializer, QASearchSerializer
 
 class QAPagination(pagination.PageNumberPagination):
@@ -34,7 +34,7 @@ class QAListCreateView(generics.ListCreateAPIView):
     ordering = ['-dt_modified']
 
     def get_queryset(self):
-        qs = Qa.objects.all()
+        qs = QuestionAnswer.objects.all()
         status_val = self.request.GET.get('status')
         level = self.request.GET.get('security_level') or self.request.GET.get('level')
         if status_val:
@@ -51,13 +51,13 @@ class QAListCreateView(generics.ListCreateAPIView):
         instance.rebuild_search_vector(commit=False)
 
 class QARetrieveUpdateView(generics.RetrieveUpdateAPIView):
-    queryset = Qa.objects.all()
+    queryset = QuestionAnswer.objects.all()
     serializer_class = QASerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         response = super().retrieve(request, *args, **kwargs)
-        obj: Qa = self.get_object()
+        obj: QuestionAnswer = self.get_object()
         obj.increment_access(by=1, update_history=False)
         return response
 
@@ -81,7 +81,7 @@ class QASearchView(APIView):
         for term in terms:
             qobj = SearchQuery(term + ':*', search_type='raw')
             combined_query = qobj if combined_query is None else combined_query & qobj
-        base_qs = Qa.objects.all()
+        base_qs = QuestionAnswer.objects.all()
         if status_val:
             base_qs = base_qs.filter(status=status_val)
         if level is not None:
@@ -95,7 +95,7 @@ class QASearchView(APIView):
             rank=SearchRank(F('search_vector'), combined_query),
             highlight_snippet=SearchHeadline('answer', combined_query, start_sel='<mark>', stop_sel='</mark>')
         ).filter(search_vector=combined_query).order_by('-rank')[:100]
-        for qa in qs:
-            qa.increment_access(by=1, update_history=False)
+        for question_answer in qs:
+            question_answer.increment_access(by=1, update_history=False)
         data = QASearchSerializer(qs, many=True).data
         return Response({'results': data, 'count': len(data), 'q': raw_q, 'terms': terms})

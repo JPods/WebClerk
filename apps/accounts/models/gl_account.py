@@ -1,7 +1,7 @@
 from django.db import models
 from common.models import BaseModel
 
-class Gl_account(BaseModel):
+class GlAccount(BaseModel):
     account_credit = models.CharField(max_length=255, blank=True, null=True)
     account_debit = models.CharField(max_length=255, blank=True, null=True)
     category = models.CharField(max_length=255, blank=True, null=True)
@@ -14,5 +14,5 @@ class Gl_account(BaseModel):
         db_table = 'gl_accounts'
 
     def __str__(self):
-        return f"{self.name or 'Gl_account'} ({self.id})"
+        return f"{self.name or 'GlAccount'} ({self.id})"
     

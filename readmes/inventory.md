@@ -9,8 +9,8 @@
   - [Table of Contents](#table-of-contents)
   - [TL;DR](#tldr)
   - [Concepts](#concepts)
-  - [InventoryStack.quantity Schema](#inventorystackquantity-schema)
-  - [InventoryStack.cost Schema](#inventorystackcost-schema)
+  - [InventoryLayer.quantity Schema](#inventorystackquantity-schema)
+  - [InventoryLayer.cost Schema](#inventorystackcost-schema)
   - [Locking & Deferred Issues](#locking--deferred-issues)
   - [Reservations (Soft Holds)](#reservations-soft-holds)
     - [Reservation REST Endpoints](#reservation-rest-endpoints)
@@ -33,17 +33,17 @@
 
 ## TL;DR
 
-InventoryStack holds per‑receipt quantity & cost JSON. If a stack is locked or insufficient, issues enqueue as PendingInventoryAdjustment. Unlock or periodic processor drains queue FIFO, applying issues. Use `process_pending_inventory` (global) or `process_pending_for_stack` (single) or rely on automatic unlock signal. Cost JSON has stable keys (unit_po, landed, moving_avg, etc.) for downstream valuation and reporting.
+InventoryLayer holds per‑receipt quantity & cost JSON. If a stack is locked or insufficient, issues enqueue as PendingInventoryAdjustment. Unlock or periodic processor drains queue FIFO, applying issues. Use `process_pending_inventory` (global) or `process_pending_for_stack` (single) or rely on automatic unlock signal. Cost JSON has stable keys (unit_po, landed, moving_avg, etc.) for downstream valuation and reporting.
 
 This document describes the inventory layering model, cost JSON schema, and the pending adjustment (deferred issue) processor recently added.
 
 ## Concepts
 
-- InventoryStack: A received quantity "layer" for an Item at a Warehouse (lot/serial group). Tracks received, issued, scrapped quantities in a JSON `quantity` field and a standardized per‑unit costing JSON `cost`.
+- InventoryLayer: A received quantity "layer" for an Item at a Warehouse (lot/serial group). Tracks received, issued, scrapped quantities in a JSON `quantity` field and a standardized per‑unit costing JSON `cost`.
 - SiteInventory: Lightweight roll‑up bucket per (Item, site_code) for fast availability queries (future use; currently scaffold).
 - PendingInventoryAdjustment: Queue record for deferred inventory issues when a stack is locked (`is_locked=True`) or temporarily insufficient.
 
-## InventoryStack.quantity Schema
+## InventoryLayer.quantity Schema
 
 ```json
 {
@@ -55,7 +55,7 @@ This document describes the inventory layering model, cost JSON schema, and the 
 
 Remaining = received - issued - scrapped.
 
-## InventoryStack.cost Schema
+## InventoryLayer.cost Schema
 
 Per‑unit unless noted.
 
@@ -138,7 +138,7 @@ Celery beat entries:
 Commit only issues inventory if sufficient remaining when commit occurs; otherwise commit attempts can be retried after upstream replenishment.
 
 
-Some operations (adjustment, recount, cost revaluation) set `InventoryStack.is_locked=True` to prevent direct quantity mutation. During a lock, attempts to issue stock call `stack.issue_or_enqueue(qty)`:
+Some operations (adjustment, recount, cost revaluation) set `InventoryLayer.is_locked=True` to prevent direct quantity mutation. During a lock, attempts to issue stock call `stack.issue_or_enqueue(qty)`:
 
 1. If locked OR insufficient remaining, a `PendingInventoryAdjustment` row is created (state `pending`).
 2. If unlocked and sufficient, quantity is applied immediately (no queue record).
@@ -157,7 +157,7 @@ Celery task: `products.tasks.process_pending_inventory` (optionally schedule via
 
 | Field | Notes |
 |-------|-------|
-| stack | FK to InventoryStack |
+| stack | FK to InventoryLayer |
 | qty | Decimal quantity to issue |
 | state | pending / applied / canceled |
 | reason | Short code (e.g. `issue`, `insufficient_issue`) |
@@ -195,8 +195,8 @@ Processor summary now includes: `reserved_conflict_skipped`.
 ### Example (Programmatic)
 
 ```python
-from apps.products.models.inventory_layer import InventoryStack
-stack = InventoryStack.objects.get(pk=123)
+from apps.products.models.inventory_layer import InventoryLayer
+stack = InventoryLayer.objects.get(pk=123)
 # Queue an issue while locked
 stack.is_locked = True; stack.save(update_fields=["is_locked"])
 stack.issue_or_enqueue(5, reason="pick")
@@ -207,14 +207,14 @@ stack.is_locked = False; stack.save(update_fields=["is_locked"])
 ### Smoke Test Pattern
 
 ```bash
-python manage.py shell -c "from apps.products.models.inventory_layer import InventoryStack, PendingInventoryAdjustment; from apps.products.models.item import Item; from apps.products.models.warehouse import Warehouse; from decimal import Decimal; i=Item.objects.create(name='DocItem'); w=Warehouse.objects.create(name='Main', code='MAIN'); s=InventoryStack.objects.create(item=i, warehouse=w, quantity={'received':50}); s.is_locked=True; s.save(); s.issue_or_enqueue(Decimal('10')); s.is_locked=False; s.save(); print(list(PendingInventoryAdjustment.objects.filter(stack=s).values_list('state', flat=True)))"
+python manage.py shell -c "from apps.products.models.inventory_layer import InventoryLayer, PendingInventoryAdjustment; from apps.products.models.item import Item; from apps.products.models.warehouse import Warehouse; from decimal import Decimal; i=Item.objects.create(name='DocItem'); w=Warehouse.objects.create(name='Main', code='MAIN'); s=InventoryLayer.objects.create(item=i, warehouse=w, quantity={'received':50}); s.is_locked=True; s.save(); s.issue_or_enqueue(Decimal('10')); s.is_locked=False; s.save(); print(list(PendingInventoryAdjustment.objects.filter(stack=s).values_list('state', flat=True)))"
 ```
 
 Expected: `['applied']` and remaining qty 40.
 
 ## Cost Update Helper
 
-`InventoryStack.update_cost_after_receipt(unit_po, freight=0, duty=0, handling=0, vat=0, prior_moving_avg=None, trend_baseline=None)` populates/adjusts cost JSON. Caller provides weighted moving average math externally (function does not currently compute weighted average).
+`InventoryLayer.update_cost_after_receipt(unit_po, freight=0, duty=0, handling=0, vat=0, prior_moving_avg=None, trend_baseline=None)` populates/adjusts cost JSON. Caller provides weighted moving average math externally (function does not currently compute weighted average).
 
 ## Roadmap / Next Steps
 
@@ -328,7 +328,7 @@ inventory_processor_global_duration_bucket{le="0.25"} 1
 |--------|------|
 | Management command | `process_pending_inventory` |
 | Celery task | `products.tasks.process_pending_inventory` |
-| Signal auto-run | InventoryStack post-save (unlock) |
+| Signal auto-run | InventoryLayer post-save (unlock) |
 | Single stack processor | `process_pending_for_stack` |
 | Global processor | `process_pending_inventory` |
 
@@ -369,11 +369,11 @@ Behavior
 - Validates the Purchase Order header (`<pk>`) and that each `po_line_id` belongs to it.
 - Resolves the Item from the PO line JSON `item.id_num` (fallback: `id` / `item_id`).
 - Looks up `Warehouse` by `warehouse_code`.
-- Creates one `InventoryStack` per received line with:
+- Creates one `InventoryLayer` per received line with:
   - `quantity`: `{ "received": qty, "issued": 0, "scrapped": 0 }`
   - `source_doc_type`: `"purchase_receipt"`
   - `source_doc_id`: the created `PurchaseReceipt.id`
-- Updates cost via `InventoryStack.update_cost_after_receipt(unit_cost)`; if `unit_cost` omitted, uses the PO line `cost.unit` when present.
+- Updates cost via `InventoryLayer.update_cost_after_receipt(unit_cost)`; if `unit_cost` omitted, uses the PO line `cost.unit` when present.
 - Increments a `received` hint inside the PO line `quantity` JSON when available.
 
 Error modes (400)

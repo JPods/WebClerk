@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OrgBase, CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg
+from .models import OrgBase, Customer, Vendor, Rep, Employee, Manufacturer
 
 
 @admin.register(OrgBase)
@@ -22,7 +22,7 @@ def _proxy_admin(model, base: type[OrgBaseAdmin]):  # helper to clone config
 			return qs.filter(org_type=model.objects.model.org_type if hasattr(model.objects.model, 'org_type') else model.__name__.replace('Org','').lower())
 	return ProxyAdmin
 
-for proxy_model in (CustomerOrg, VendorOrg, RepOrg, EmployeeOrg, ManufacturerOrg):
+for proxy_model in (Customer, Vendor, Rep, Employee, Manufacturer):
 	try:
 		admin.site.register(proxy_model, _proxy_admin(proxy_model, OrgBaseAdmin))
 	except admin.sites.AlreadyRegistered:  # pragma: no cover

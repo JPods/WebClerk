@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
-from apps.products.models.inventory_layer import InventoryStack
+from apps.products.models.inventory_layer import InventoryLayer
 
 
 class InventoryReservationAPITests(TestCase):
@@ -15,7 +15,7 @@ class InventoryReservationAPITests(TestCase):
         )
         self.item = Item.objects.create(name='APIItem')
         self.wh = Warehouse.objects.create(name='APIWH', code='APIWH')
-        self.stack = InventoryStack.objects.create(
+        self.stack = InventoryLayer.objects.create(
             item=self.item, warehouse=self.wh, quantity={'received': 25}
         )
         self.client = APIClient()

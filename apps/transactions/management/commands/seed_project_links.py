@@ -24,7 +24,7 @@ from apps.transactions.models import (
     SalesOrder as Order,          # alias to maintain legacy model_code 'order'
     Invoice,
     PurchaseOrder as Purchase,    # alias to maintain legacy model_code 'purchase'
-    Workorder,
+    WorkOrder,
     Requisition,
 )
 
@@ -33,7 +33,7 @@ MODEL_MAP = {
     'order': Order,
     'invoice': Invoice,
     'purchase': Purchase,
-    'workorder': Workorder,
+    'workorder': WorkOrder,
     'requisition': Requisition,
 }
 

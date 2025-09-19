@@ -71,7 +71,7 @@ Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es
 Notes:
 
 - The "table key" is the Universal API registry key. For most models, db_table equals the key. Some line tables (e.g., `invoice_line`) are singular by convention.
-- If a model doesn’t set `db_table`, Django will default to `<app_label>_<model>` (e.g., `transactions_proposal`). Use model_name in Settings and permissions; clients send `model_name` (singular) to APIs.
+- If a model doesn’t set `db_table`, Django will default to `<app_label>_<model>` (e.g., `proposal`). Use model_name in Settings and permissions; clients send `model_name` (singular) to APIs.
 
 ## Display metadata conventions
 

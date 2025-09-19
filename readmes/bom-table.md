@@ -5,7 +5,7 @@
 
 ## Table of Contents
 
-- [Bill of Material (BOM) Table README](#bill-of-material-bom-table-readme)
+- [Bill of Material (BOM) Table README](#bill-of-material-bill_of_material-table-readme)
   - [Table of Contents](#table-of-contents)
   - [Core Fields](#core-fields)
   - [Constraints & Indexes](#constraints-indexes)

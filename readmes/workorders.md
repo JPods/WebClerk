@@ -9,7 +9,7 @@
   - [Why this shape](#why-this-shape)
   - [Canonical fields (initial)](#canonical-fields-initial)
   - [Status flow (suggested)](#status-flow-suggested)
-  - [QA and traceability](#qa-and-traceability)
+  - [QuestionAnswer and traceability](#question_answer-and-traceability)
   - [JSON envelope examples](#json-envelope-examples)
     - [GET filtering examples](#get-filtering-examples)
   - [Implementation phases](#implementation-phases)
@@ -25,14 +25,14 @@ This proposal outlines a lightweight, ops-first way to manage manufacturing flow
 - WorkOrder: the order to produce/repair/inspect a parent item or assembly.
 - WorkOrderLine: process steps and material/operation breakdowns that move a WorkOrder from planned to complete.
 
-Both should be linkable to QA inspections and to Documents and Linkages for traceability and actions.
+Both should be linkable to QuestionAnswer inspections and to Documents and Linkages for traceability and actions.
 
 ## Why this shape
 
 - Clear separation of the header (WorkOrder) and the steps/consumption (WorkOrderLine)
 - Works with the existing JSON envelope pattern (metadata, refs, prefs, comments)
 - Compatible with existing universal API and search semantics
-- Seamless cross-linking to QA, Linkage, and Document models without schema churn
+- Seamless cross-linking to QuestionAnswer, Linkage, and Document models without schema churn
 
 ## Canonical fields (initial)
 
@@ -85,14 +85,14 @@ WorkOrderLine:
 
 Enforced in code:
 
-- Workorder: transitions validated in model save() with a completion guard that requires all lines to be `done` before the header can move to `complete`.
-- WorkorderLine: transitions validated in model save(); empty/None status defaults to `planned`.
+- WorkOrder: transitions validated in model save() with a completion guard that requires all lines to be `done` before the header can move to `complete`.
+- WorkOrderLine: transitions validated in model save(); empty/None status defaults to `planned`.
 
 These can be enforced initially in code (validators/clean methods) and refined later.
 
-## QA and traceability
+## QuestionAnswer and traceability
 
-- QA: Attach QA records at either the header or line via refs.qa_ids. Use the existing QA endpoints.
+- QuestionAnswer: Attach QuestionAnswer records at either the header or line via refs.qa_ids. Use the existing QuestionAnswer endpoints.
 - Linkage: Connect related transactions (e.g., requisitions, POs for components, service vouchers) via the Linkage model.
 - Documents: Attach instructions, SOPs, checklists via the Document model. Store doc_ids in refs; search indexes pick these up.
 
@@ -148,7 +148,7 @@ Create WorkOrderLines:
 }
 ```
 
-Attach QA to a line (or header):
+Attach QuestionAnswer to a line (or header):
 
 ```json
 {
@@ -200,7 +200,7 @@ Phase 1 (no schema risk):
 
 - Add registry entries (model registry) for workorder and workorder_line as JSON-first models using the standard envelope shapes.
 - Expose via universal wcapi endpoints with search and projection parity.
-- Use existing linkage, document and qa endpoints for attachments.
+- Use existing linkage, document and question_answer endpoints for attachments.
 
 Phase 2 (performance/clarity):
 
@@ -209,7 +209,7 @@ Phase 2 (performance/clarity):
 
 Phase 3 (ops niceties):
 
-- Add convenience endpoints: release, start, hold, complete; bulk issue/return materials; QA gate checks.
+- Add convenience endpoints: release, start, hold, complete; bulk issue/return materials; QuestionAnswer gate checks.
 - Dashboards: WIP by station, bottlenecks, lead-time stats.
 
 ## Minimal DB model sketch (later)
@@ -236,7 +236,7 @@ WorkOrderLine:
 ## Open questions
 
 - Material backflush strategy per line vs at header?
-- Granularity of QA gates (per operation vs per WO)?
+- Granularity of QuestionAnswer gates (per operation vs per WO)?
 - Partial completions and split/merge WOs?
 
 ## Next steps

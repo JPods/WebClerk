@@ -2,7 +2,7 @@ import pytest
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from apps.products.models import Item
-from apps.products.models.bom import BillOfMaterial
+from apps.products.models.bill_of_material import BillOfMaterial
 
 pytestmark = pytest.mark.django_db
 
@@ -11,7 +11,7 @@ def make_item(name: str, **kwargs):
     return Item.objects.create(name=name, kind=Item.KIND_PHYSICAL, **kwargs)
 
 
-@pytest.mark.bom
+@pytest.mark.bill_of_material
 @pytest.mark.fast
 def test_bom_cycle_prevention():
     parent = make_item('Parent')
@@ -26,7 +26,7 @@ def test_bom_cycle_prevention():
         cyc.full_clean()
 
 
-@pytest.mark.bom
+@pytest.mark.bill_of_material
 @pytest.mark.fast
 def test_bom_cost_rollup_simple():
     # parent with one component cost populated in JSON (avg preferred)
@@ -42,7 +42,7 @@ def test_bom_cost_rollup_simple():
     assert parent.cost['components'].get('snapshot_total') in (10.0, 10.0000)
 
 
-@pytest.mark.bom
+@pytest.mark.bill_of_material
 @pytest.mark.fast
 def test_bom_rollup_fallback_when_snapshot_missing():
     parent = make_item('P3')
@@ -58,7 +58,7 @@ def test_bom_rollup_fallback_when_snapshot_missing():
     assert abs(parent.cost['components']['snapshot_total'] - 7.5) < 1e-9
 
 
-@pytest.mark.bom
+@pytest.mark.bill_of_material
 @pytest.mark.fast
 def test_bom_rollup_rounding_quantize():
     parent = make_item('P4')

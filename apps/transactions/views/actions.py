@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from common.decorators import allow_write
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.transactions.models import Proposal, SalesOrder, PurchaseOrder, Workorder, WorkorderLine
+from apps.transactions.models import Proposal, SalesOrder, PurchaseOrder, WorkOrder, WorkOrderLine
 from apps.core.models.action import Action
 from apps.transactions.serializers.actions import (
     ConvertRequestSerializer,
@@ -57,18 +57,18 @@ def _check_dependencies(depends_on: dict | None) -> tuple[bool, str | None]:
         pending = [str(aid) for aid in action_ids if isinstance(aid, int) and aid not in done_ids]
         if pending:
             missing.append(f"actions[{', '.join(pending)}]")
-    # Workorder dependencies -> require completed
+    # WorkOrder dependencies -> require completed
     wo_ids = deps.get('work_order') or []
     if isinstance(wo_ids, list) and wo_ids:
-        wos = Workorder.objects.filter(pk__in=[i for i in wo_ids if isinstance(i, int)])
+        wos = WorkOrder.objects.filter(pk__in=[i for i in wo_ids if isinstance(i, int)])
         done = {w.pk for w in wos if (w.status or '').lower() in {'completed', 'complete', 'done'}}
         pend_wo = [str(i) for i in wo_ids if isinstance(i, int) and i not in done]
         if pend_wo:
             missing.append(f"work_orders[{', '.join(pend_wo)}]")
-    # Workorder line dependencies -> require done
+    # WorkOrder line dependencies -> require done
     wol_ids = deps.get('work_order_line') or []
     if isinstance(wol_ids, list) and wol_ids:
-        lines = WorkorderLine.objects.filter(pk__in=[i for i in wol_ids if isinstance(i, int)])
+        lines = WorkOrderLine.objects.filter(pk__in=[i for i in wol_ids if isinstance(i, int)])
         done_lines = {l.pk for l in lines if (l.status or '').lower() in {'done'}}
         pend_lines = [str(i) for i in wol_ids if isinstance(i, int) and i not in done_lines]
         if pend_lines:
@@ -199,22 +199,22 @@ class ReceivePurchaseOrderView(APIView):
 
 
 @allow_write
-class WorkorderTransitionView(APIView):
+class WorkOrderTransitionView(APIView):
     permission_classes = [BasePermission]
-    queryset = Workorder.objects.all()
+    queryset = WorkOrder.objects.all()
 
-    @extend_schema(request=TransitionRequestSerializer, responses={200: OpenApiResponse(description="Workorder transitioned")})
+    @extend_schema(request=TransitionRequestSerializer, responses={200: OpenApiResponse(description="WorkOrder transitioned")})
     def post(self, request, *args, **kwargs):
         wo_id = kwargs.get('pk')
-        wo = Workorder.objects.filter(pk=wo_id).first()
+        wo = WorkOrder.objects.filter(pk=wo_id).first()
         if not wo:
-            return response.Response({'detail': 'Workorder not found'}, status=404)
+            return response.Response({'detail': 'WorkOrder not found'}, status=404)
         # Validate dependencies from payload (if any)
         depends_on = request.data.get('depends_on') if isinstance(request.data, dict) else None
         ok, msg = _check_dependencies(depends_on)
         if not ok:
             return response.Response({'detail': msg}, status=409)
-        ser = TransitionRequestSerializer(data=request.data, context={'model': Workorder})
+        ser = TransitionRequestSerializer(data=request.data, context={'model': WorkOrder})
         ser.is_valid(raise_exception=True)
         vd = cast(dict, ser.validated_data)
         to = cast(str, vd.get('to'))
@@ -260,7 +260,7 @@ class WorkorderTransitionView(APIView):
                     meta['idempotency_key'] = idem_key
                     action_rec.metadata = meta
                     action_rec.save()
-                # We avoid mutating Workorder.refs because Workorder doesn't carry refs json
+                # We avoid mutating WorkOrder.refs because WorkOrder doesn't carry refs json
             except Exception:
                 action_rec = None  # non-fatal: continue without action record
             # Minimal audit: stamp metadata.history.action on lines for visibility, include action id
@@ -281,21 +281,21 @@ class WorkorderTransitionView(APIView):
 
 
 @allow_write
-class WorkorderLineTransitionView(APIView):
+class WorkOrderLineTransitionView(APIView):
     permission_classes = [BasePermission]
-    queryset = WorkorderLine.objects.all()
+    queryset = WorkOrderLine.objects.all()
 
-    @extend_schema(request=TransitionRequestSerializer, responses={200: OpenApiResponse(description="Workorder line transitioned")})
+    @extend_schema(request=TransitionRequestSerializer, responses={200: OpenApiResponse(description="WorkOrder line transitioned")})
     def post(self, request, *args, **kwargs):
         line_id = kwargs.get('pk')
-        ln = WorkorderLine.objects.filter(pk=line_id).first()
+        ln = WorkOrderLine.objects.filter(pk=line_id).first()
         if not ln:
-            return response.Response({'detail': 'Workorder line not found'}, status=404)
+            return response.Response({'detail': 'WorkOrder line not found'}, status=404)
         depends_on = request.data.get('depends_on') if isinstance(request.data, dict) else None
         ok, msg = _check_dependencies(depends_on)
         if not ok:
             return response.Response({'detail': msg}, status=409)
-        ser = TransitionRequestSerializer(data=request.data, context={'model': WorkorderLine})
+        ser = TransitionRequestSerializer(data=request.data, context={'model': WorkOrderLine})
         ser.is_valid(raise_exception=True)
         vd = cast(dict, ser.validated_data)
         to = cast(str, vd.get('to'))

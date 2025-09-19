@@ -1,6 +1,6 @@
 import pytest
 from decimal import Decimal
-from apps.products.models import InventoryStack, InventoryAdjustmentProcessorRun
+from apps.products.models import InventoryLayer, InventoryAdjustmentProcessorRun
 from apps.products.models.inventory_layer import PendingInventoryAdjustment
 from apps.products.models.item import Item
 from apps.products.models.warehouse import Warehouse
@@ -11,7 +11,7 @@ pytestmark = pytest.mark.django_db
 def make_stack(qty=10):
     item = Item.objects.create(name="Test Item", sku=None)
     wh = Warehouse.objects.create(name="Main WH", code=f"WH{item.id}")
-    stack = InventoryStack.objects.create(item=item, warehouse=wh, quantity={"received": float(qty), "issued": 0})
+    stack = InventoryLayer.objects.create(item=item, warehouse=wh, quantity={"received": float(qty), "issued": 0})
     return stack
 
 

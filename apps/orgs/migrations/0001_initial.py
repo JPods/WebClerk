@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='CustomerOrg',
+            name='Customer',
             fields=[
             ],
             options={
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
             bases=('orgs.orgbase',),
         ),
         migrations.CreateModel(
-            name='EmployeeOrg',
+            name='Employee',
             fields=[
             ],
             options={
@@ -87,7 +87,7 @@ class Migration(migrations.Migration):
             bases=('orgs.orgbase',),
         ),
         migrations.CreateModel(
-            name='ManufacturerOrg',
+            name='Manufacturer',
             fields=[
             ],
             options={
@@ -100,7 +100,7 @@ class Migration(migrations.Migration):
             bases=('orgs.orgbase',),
         ),
         migrations.CreateModel(
-            name='RepOrg',
+            name='Rep',
             fields=[
             ],
             options={
@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
             bases=('orgs.orgbase',),
         ),
         migrations.CreateModel(
-            name='VendorOrg',
+            name='Vendor',
             fields=[
             ],
             options={

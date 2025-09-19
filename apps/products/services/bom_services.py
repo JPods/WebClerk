@@ -8,7 +8,7 @@ from datetime import date
 from typing import Iterable
 from django.db import transaction
 from django.db.models import Q
-from apps.products.models.bom import BillOfMaterial
+from apps.products.models.bill_of_material import BillOfMaterial
 
 
 def list_bom_lines(parent_id: int, *, as_of: date | None = None, revision: str | None = None) -> Iterable[BillOfMaterial]:

@@ -10,8 +10,8 @@ from apps.transactions.views.actions import (
     SalesOrderToPurchaseOrderView,
     ReceivePurchaseOrderView,
     LinkageCommentsAggregateView,
-    WorkorderTransitionView,
-    WorkorderLineTransitionView,
+    WorkOrderTransitionView,
+    WorkOrderLineTransitionView,
 )
 
 urlpatterns = [
@@ -39,11 +39,11 @@ urlpatterns = [
     path('purchase-order-lines/', views.PurchaseOrderLineListCreate.as_view(), name='purchase-order-line-list'),
     path('purchase-order-lines/<int:pk>/', views.PurchaseOrderLineRetrieveUpdate.as_view(), name='purchase-order-line-detail'),
 
-    # Workorder
-    path('workorders/', views.WorkorderListCreate.as_view(), name='workorder-list'),
-    path('workorders/<int:pk>/', views.WorkorderRetrieveUpdate.as_view(), name='workorder-detail'),
-    path('workorder-lines/', views.WorkorderLineListCreate.as_view(), name='workorder-line-list'),
-    path('workorder-lines/<int:pk>/', views.WorkorderLineRetrieveUpdate.as_view(), name='workorder-line-detail'),
+    # WorkOrder
+    path('workorders/', views.WorkOrderListCreate.as_view(), name='workorder-list'),
+    path('workorders/<int:pk>/', views.WorkOrderRetrieveUpdate.as_view(), name='workorder-detail'),
+    path('workorder-lines/', views.WorkOrderLineListCreate.as_view(), name='workorder-line-list'),
+    path('workorder-lines/<int:pk>/', views.WorkOrderLineRetrieveUpdate.as_view(), name='workorder-line-detail'),
 
     # Requisition
     path('requisitions/', views.RequisitionListCreate.as_view(), name='requisition-list'),
@@ -79,7 +79,7 @@ urlpatterns = [
     path('sales-orders/<int:pk>/convert-to-purchase-order/', SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),
     path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
     path('linkages/<int:linkage_id>/comments/', LinkageCommentsAggregateView.as_view(), name='linkage-comments'),
-    # Workorder transitions
-    path('workorders/<int:pk>/transition/', WorkorderTransitionView.as_view(), name='workorder-transition'),
-    path('workorder-lines/<int:pk>/transition/', WorkorderLineTransitionView.as_view(), name='workorder-line-transition'),
+    # WorkOrder transitions
+    path('workorders/<int:pk>/transition/', WorkOrderTransitionView.as_view(), name='workorder-transition'),
+    path('workorder-lines/<int:pk>/transition/', WorkOrderLineTransitionView.as_view(), name='workorder-line-transition'),
 ]

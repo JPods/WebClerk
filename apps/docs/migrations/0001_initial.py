@@ -121,7 +121,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Qa',
+            name='QuestionAnswer',
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('uuid', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),

@@ -3790,7 +3790,7 @@
   },
   {
     "app": "docs",
-    "model": "docs.Qa",
+    "model": "docs.QuestionAnswer",
     "db_table": "qas",
     "fields": [
       {
@@ -4289,7 +4289,7 @@
   },
   {
     "app": "orgs",
-    "model": "orgs.CustomerOrg",
+    "model": "orgs.Customer",
     "db_table": "orgs_orgbase",
     "fields": [
       {
@@ -4629,7 +4629,7 @@
   },
   {
     "app": "orgs",
-    "model": "orgs.EmployeeOrg",
+    "model": "orgs.Employee",
     "db_table": "orgs_orgbase",
     "fields": [
       {
@@ -4969,7 +4969,7 @@
   },
   {
     "app": "orgs",
-    "model": "orgs.ManufacturerOrg",
+    "model": "orgs.Manufacturer",
     "db_table": "orgs_orgbase",
     "fields": [
       {
@@ -5649,7 +5649,7 @@
   },
   {
     "app": "orgs",
-    "model": "orgs.RepOrg",
+    "model": "orgs.Rep",
     "db_table": "orgs_orgbase",
     "fields": [
       {
@@ -5989,7 +5989,7 @@
   },
   {
     "app": "orgs",
-    "model": "orgs.VendorOrg",
+    "model": "orgs.Vendor",
     "db_table": "orgs_orgbase",
     "fields": [
       {
@@ -8617,7 +8617,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "products.InventoryStack"
+        "related_model": "products.InventoryLayer"
       },
       {
         "name": "site_code",
@@ -8723,7 +8723,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "products.InventoryStack"
+        "related_model": "products.InventoryLayer"
       },
       {
         "name": "qty",
@@ -8829,7 +8829,7 @@
   },
   {
     "app": "products",
-    "model": "products.InventoryStack",
+    "model": "products.InventoryLayer",
     "db_table": "products_inventorystack",
     "fields": [
       {
@@ -10270,7 +10270,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "products.InventoryStack"
+        "related_model": "products.InventoryLayer"
       },
       {
         "name": "qty",
@@ -10584,7 +10584,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "products.InventoryStack"
+        "related_model": "products.InventoryLayer"
       },
       {
         "name": "data",
@@ -12238,8 +12238,8 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.Invoice",
-    "db_table": "transactions_invoice",
+    "model": "Invoice",
+    "db_table": "invoices",
     "fields": [
       {
         "name": "id",
@@ -12409,8 +12409,8 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.InvoiceLine",
-    "db_table": "invoice_line",
+    "model": "InvoiceLine",
+    "db_table": "invoice_lines",
     "fields": [
       {
         "name": "id",
@@ -12705,14 +12705,14 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.Invoice"
+        "related_model": "Invoice"
       }
     ],
     "field_count": 29
   },
   {
     "app": "transactions",
-    "model": "transactions.Project",
+    "model": "Project",
     "db_table": "projects",
     "fields": [
       {
@@ -13041,7 +13041,7 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.ProjectAssociation",
+    "model": "ProjectAssociation",
     "db_table": "project_associations",
     "fields": [
       {
@@ -13205,7 +13205,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.Project"
+        "related_model": "Project"
       },
       {
         "name": "model_code",
@@ -13240,8 +13240,8 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.Proposal",
-    "db_table": "transactions_proposal",
+    "model": "Proposal",
+    "db_table": "proposals",
     "fields": [
       {
         "name": "id",
@@ -13411,8 +13411,8 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.ProposalLine",
-    "db_table": "proposal_line",
+    "model": "ProposalLine",
+    "db_table": "proposal_lines",
     "fields": [
       {
         "name": "id",
@@ -13707,14 +13707,14 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.Proposal"
+        "related_model": "Proposal"
       }
     ],
     "field_count": 29
   },
   {
     "app": "transactions",
-    "model": "transactions.PurchaseOrder",
+    "model": "PurchaseOrder",
     "db_table": "purchase_orders",
     "fields": [
       {
@@ -13885,7 +13885,7 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.PurchaseOrderLine",
+    "model": "PurchaseOrderLine",
     "db_table": "purchase_order_lines",
     "fields": [
       {
@@ -14181,14 +14181,14 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.PurchaseOrder"
+        "related_model": "PurchaseOrder"
       }
     ],
     "field_count": 29
   },
   {
     "app": "transactions",
-    "model": "transactions.PurchaseReceipt",
+    "model": "PurchaseReceipt",
     "db_table": "purchase_receipts",
     "fields": [
       {
@@ -14369,8 +14369,8 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.Requisition",
-    "db_table": "transactions_requisition",
+    "model": "Requisition",
+    "db_table": "requisitions",
     "fields": [
       {
         "name": "id",
@@ -14540,8 +14540,8 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.RequisitionLine",
-    "db_table": "requisition_line",
+    "model": "RequisitionLine",
+    "db_table": "requisition_lines",
     "fields": [
       {
         "name": "id",
@@ -14836,267 +14836,14 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.Requisition"
+        "related_model": "Requisition"
       }
     ],
     "field_count": 29
   },
   {
     "app": "transactions",
-    "model": "transactions.RequisitionStd",
-    "db_table": "requisitions_std",
-    "fields": [
-      {
-        "name": "id",
-        "type": "BigAutoField",
-        "null": false,
-        "blank": true,
-        "primary_key": true,
-        "unique": true,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "uuid",
-        "type": "UUIDField",
-        "null": true,
-        "blank": true,
-        "primary_key": false,
-        "unique": true,
-        "db_index": false,
-        "choices": null,
-        "max_length": 32
-      },
-      {
-        "name": "ida",
-        "type": "CharField",
-        "null": false,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null,
-        "max_length": 40
-      },
-      {
-        "name": "dt_created",
-        "type": "BigIntegerField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null
-      },
-      {
-        "name": "dt_modified",
-        "type": "BigIntegerField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null
-      },
-      {
-        "name": "version",
-        "type": "PositiveIntegerField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "is_active",
-        "type": "BooleanField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null
-      },
-      {
-        "name": "security_level",
-        "type": "IntegerField",
-        "null": false,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null
-      },
-      {
-        "name": "is_deleted",
-        "type": "BooleanField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null
-      },
-      {
-        "name": "is_archived",
-        "type": "BooleanField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null
-      },
-      {
-        "name": "metadata",
-        "type": "JSONField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "refs",
-        "type": "JSONField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "prefs",
-        "type": "JSONField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "comments",
-        "type": "JSONField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "health_rating",
-        "type": "IntegerField",
-        "null": false,
-        "blank": false,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "name",
-        "type": "CharField",
-        "null": false,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null,
-        "max_length": 255
-      },
-      {
-        "name": "purpose",
-        "type": "CharField",
-        "null": false,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null,
-        "max_length": 255
-      },
-      {
-        "name": "status",
-        "type": "CharField",
-        "null": false,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": true,
-        "choices": null,
-        "max_length": 64
-      },
-      {
-        "name": "description",
-        "type": "TextField",
-        "null": false,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "cost",
-        "type": "FloatField",
-        "null": true,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "cost_extended",
-        "type": "FloatField",
-        "null": true,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "lead_days",
-        "type": "IntegerField",
-        "null": true,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "quantity",
-        "type": "FloatField",
-        "null": true,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      },
-      {
-        "name": "quantity_extended",
-        "type": "FloatField",
-        "null": true,
-        "blank": true,
-        "primary_key": false,
-        "unique": false,
-        "db_index": false,
-        "choices": null
-      }
-    ],
-    "field_count": 24
-  },
-  {
-    "app": "transactions",
-    "model": "transactions.SalesOrder",
+    "model": "SalesOrder",
     "db_table": "sales_orders",
     "fields": [
       {
@@ -15267,7 +15014,7 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.SalesOrderLine",
+    "model": "SalesOrderLine",
     "db_table": "sales_order_lines",
     "fields": [
       {
@@ -15563,14 +15310,14 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.SalesOrder"
+        "related_model": "SalesOrder"
       }
     ],
     "field_count": 29
   },
   {
     "app": "transactions",
-    "model": "transactions.Workorder",
+    "model": "WorkOrder",
     "db_table": "work_orders",
     "fields": [
       {
@@ -15759,7 +15506,7 @@
   },
   {
     "app": "transactions",
-    "model": "transactions.WorkorderLine",
+    "model": "WorkOrderLine",
     "db_table": "work_order_lines",
     "fields": [
       {
@@ -16055,7 +15802,7 @@
         "unique": false,
         "db_index": true,
         "choices": null,
-        "related_model": "transactions.Workorder"
+        "related_model": "WorkOrder"
       }
     ],
     "field_count": 29

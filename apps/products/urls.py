@@ -8,9 +8,9 @@ from apps.products.views.inventory_views import (
 app_name = 'products'
 
 urlpatterns = [
-    path('bom/<int:parent_id>/', BOMListCreateView.as_view(), name='bom-list-create'),
-    path('bom/line/<int:pk>/', BOMDetailView.as_view(), name='bom-detail'),
-    path('bom/<int:parent_id>/recalc/', BOMRecalcCostView.as_view(), name='bom-recalc'),
+    path('bill_of_material/<int:parent_id>/', BOMListCreateView.as_view(), name='bill_of_material-list-create'),
+    path('bill_of_material/line/<int:pk>/', BOMDetailView.as_view(), name='bill_of_material-detail'),
+    path('bill_of_material/<int:parent_id>/recalc/', BOMRecalcCostView.as_view(), name='bill_of_material-recalc'),
     # Inventory availability & reservations
     path('inventory/availability/<int:stack_id>/', InventoryAvailabilityView.as_view(), name='inventory-availability'),
     path('inventory/reservations/', InventoryReservationCreateView.as_view(), name='inventory-reservation-create'),

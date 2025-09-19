@@ -78,7 +78,7 @@ class Command(BaseCommand):
         if not dry_run:
             try:
                 from apps.products.models import Item
-                from apps.products.models.bom import BillOfMaterial
+                from apps.products.models.bill_of_material import BillOfMaterial
                 all_item_ids = list(Item.objects.values_list('id', flat=True).order_by('id'))  # type: ignore
             except Exception:
                 all_item_ids = []
