@@ -1,11 +1,10 @@
 from django.db import models
-from .base_line_model import BaseExecLineModel
 
-class PurchaseOrderLine(BaseExecLineModel):
+class PurchaseOrderLine(models.Model):
     parent = models.ForeignKey(
         "transactions.PurchaseOrder",
-        related_name="lines",
         on_delete=models.CASCADE,
+        related_name="lines",
     )
 
     class Meta:

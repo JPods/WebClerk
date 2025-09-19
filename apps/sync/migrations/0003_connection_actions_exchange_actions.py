@@ -15,9 +15,4 @@ class Migration(migrations.Migration):
             name='actions',
             field=models.JSONField(default=dict, help_text='Next action metadata (searchable)'),
         ),
-        migrations.AddField(
-            model_name='exchange',
-            name='actions',
-            field=models.JSONField(default=dict, help_text='Next action metadata (searchable)'),
-        ),
     ]

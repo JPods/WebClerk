@@ -15,9 +15,5 @@ class Migration(migrations.Migration):
             name='uuid',
             field=models.UUIDField(blank=True, editable=False, null=True, unique=True),
         ),
-        migrations.AlterField(
-            model_name='exchange',
-            name='uuid',
-            field=models.UUIDField(blank=True, editable=False, null=True, unique=True),
-        ),
+
     ]

@@ -33,4 +33,4 @@ class ExchangeTransaction(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.name or 'Exchange'} ({self.id})"
+        return f"{self.name or 'ExchangeEvent'} ({self.id})"

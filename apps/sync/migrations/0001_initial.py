@@ -50,41 +50,6 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'connections',
             },
-        ),
-        migrations.CreateModel(
-            name='Exchange',
-            fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('uuid', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),
-                ('ida', models.CharField(blank=True, db_index=True, max_length=40)),
-                ('dt_created', models.BigIntegerField(db_index=True, default=0)),
-                ('dt_modified', models.BigIntegerField(db_index=True, default=0)),
-                ('version', models.PositiveIntegerField(default=1)),
-                ('is_active', models.BooleanField(db_index=True, default=True, help_text='Record is logically active')),
-                ('security_level', models.IntegerField(blank=True, db_index=True, default=0, help_text='Security level or classification')),
-                ('is_deleted', models.BooleanField(db_index=True, default=False)),
-                ('is_archived', models.BooleanField(db_index=True, default=False)),
-                ('metadata', models.JSONField(default=common.models.default_metadata, help_text='Universal metadata envelope')),
-                ('refs', models.JSONField(default=common.models.default_refs, help_text='Keywords / tags / lightweight links')),
-                ('prefs', models.JSONField(default=common.models.default_prefs, help_text='User preferences / settings')),
-                ('comments', models.JSONField(default=common.models.default_comments, help_text='Threaded notes / comment fields')),
-                ('health_rating', models.IntegerField(default=0, help_text='Data quality rating (0-100)')),
-                ('direction', models.CharField(max_length=255)),
-                ('config', models.JSONField()),
-                ('status', models.CharField(blank=True, max_length=255, null=True)),
-                ('alert', models.CharField(blank=True, max_length=255, null=True)),
-                ('response', models.JSONField(blank=True, null=True)),
-                ('duration', models.BigIntegerField(default=0)),
-                ('payload', models.JSONField(blank=True, null=True)),
-                ('size', models.BigIntegerField(default=0)),
-                ('maps', models.JSONField(blank=True, null=True)),
-                ('encryption', models.JSONField(blank=True, null=True)),
-                ('rules', models.JSONField(blank=True, null=True)),
-                ('conflicts', models.JSONField(blank=True, null=True)),
-                ('connection_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='exchanges', to='sync.connection')),
-            ],
-            options={
-                'db_table': 'exchanges',
-            },
-        ),
+        )
+          
     ]

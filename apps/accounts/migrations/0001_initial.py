@@ -133,7 +133,6 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(default=True)),
                 ('dt_start', models.DateTimeField(blank=True, null=True)),
                 ('dt_end', models.DateTimeField(blank=True, null=True)),
-                ('exchange', models.JSONField(blank=True, default=dict, null=True)),
                 ('currency_base', models.CharField(default='USD', max_length=10)),
                 ('currency_target', models.CharField(default='USD', max_length=10)),
                 ('rate', models.DecimalField(decimal_places=6, default=Decimal('1'), max_digits=20)),

@@ -9,6 +9,14 @@ class PurchaseOrder(TransactionBaseModel):
     po_no = models.CharField(max_length=64, default="", db_index=True)
     BASE_INT_DEFAULT = Decimal("0")  # Define a default value for quantity
 
+    # Use string refs for FKs/M2Ms to avoid import cycles
+    sales_order = models.ForeignKey(
+        "transactions.SalesOrder",  # app_label.ModelName
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="purchase_orders",
+    )
+
     class Meta:
         db_table = "purchase_orders"
 

@@ -1,10 +1,11 @@
 #i Central registry foro Universal API accessiblen models.
 # Limits exposure surface and provides a single whitelist for query/save endpoints.
 from apps.accounts.models import (
-    Currency, ExchangeRate, Exchange, GlAccount,
-    GLJournal, Ledger, TaxJurisdiction, Term
+    Currency, ExchangeRate, Term, 
+    # GlAccount,GLJournal, Ledger, TaxJurisdiction, 
 )
-from apps.core.models import Contact, Action, Setting, Template, Pending, Notifications, Report
+from apps.core.models import Contact, Action, Setting, Template, Pending
+#Notifications, Report
 from apps.communications.models import Phone, Domain, Email, Location
 from apps.orgs.models import (
     OrgBase, Customer, Vendor, Rep, Employee, Manufacturer,
@@ -12,9 +13,9 @@ from apps.orgs.models import (
 from apps.docs.models import Document, Linkage, QuestionAnswer, Tag
 from apps.products.models import (
     Item, OrgItem, ItemXRef, Serial, SerialLog,
-    Service, Specification, Variant, Warehouse,
-    Usage, InventoryLayer,  #InventoryReservation,
-    #Flow, DeliveryVisit, DeliveryLine,
+    Service, Variant, Warehouse, InventoryLayer,  #InventoryReservation,
+    #Flow, DeliveryVisit, DeliveryLine, 
+    # Specification, Usage
     BillOfMaterial, Catalog,
 )
 # Initially scoped to invoices only; expanded to include work orders and sales orders.
@@ -30,19 +31,19 @@ MODEL_MAP = {
     # account
     'currencies': Currency,
     'exchange_rates': ExchangeRate, 
-    'exchanges': Exchange, 
-    'gl_accounts': GlAccount, 
-    'gl_journals': GLJournal,
-    'ledgers': Ledger,
-    'tax_jurisdictions': TaxJurisdiction,
+    #'exchanges': Exchange, 
+    #'gl_accounts': GlAccount, 
+    #'gl_journals': GLJournal,
+    #'ledgers': Ledger,
+    #'tax_jurisdictions': TaxJurisdiction,
     'terms': Term,
 
     # core
     'actions': Action,
     'contacts': Contact,
-    'notifications': Notifications,
+    #'notifications': Notifications,
     'pendings': Pending,
-    'reports': Report,
+    #'reports': Report,
     'settings': Setting,
     'templates': Template,
 
@@ -70,24 +71,24 @@ MODEL_MAP = {
     'catalogs': Catalog,
     # 'flows': Flow, DeliveryVisit, DeliveryLine
     'inventory_layers': InventoryLayer,
-    'item_xrefs': ItemReference,
+    'item_xrefs': ItemXRef,
     'items': Item,
     'org_items': OrgItem,
     'serials': Serial,
     'serial_logs': SerialLog,
     'services': Service,
-    'specifications': Specification,
-    'usages': Usage,
+    #'specifications': Specification,
+    #'usages': Usage,
     'variants': Variant,
     'warehouses': Warehouse,
     #'inventory_reservations': InventoryReservation,
 
     # support
-    'campaigns': Campaign,
+    #'campaigns': Campaign,
 
     # sync
-    'connections': Connection,
-    'bundles': Bundle,
+    #'connections': Connection,
+    #'bundles': Bundle,
 
     # transactional documents
     'invoices': Invoice,
