@@ -4,15 +4,12 @@ from apps.transactions.views import unified as unified_views
 from apps.transactions.views.requisition import (
     RequisitionListView, RequisitionDetailView, RequisitionSearchView
 )
-from apps.transactions.views.actions import (
+from apps.transactions.views.proposal_views import (
+    ProposalActionView,
     ProposalToSalesOrderView,
-    SalesOrderToInvoiceView,
-    SalesOrderToPurchaseOrderView,
-    ReceivePurchaseOrderView,
-    LinkageCommentsAggregateView,
-    WorkOrderTransitionView,
-    WorkOrderLineTransitionView,
 )
+from apps.transactions.views.sales_order_views import SalesOrderToInvoiceView
+from apps.transactions.views.purchase_order_views import ReceivePurchaseOrderView
 
 urlpatterns = [
     # Proposal
@@ -64,22 +61,18 @@ urlpatterns = [
     # Projects
     path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
     path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
-
     # Unified endpoints (experimental consolidated schema)
-    path('tx/<str:kind>/', unified_views.TransactionHeaderListCreate.as_view(), name='tx-header-list-create'),
-    path('tx/<str:kind>/<int:pk>/', unified_views.TransactionHeaderDetail.as_view(), name='tx-header-detail'),
-    path('tx/<str:kind>/<int:pk>/lines/', unified_views.TransactionLineListCreate.as_view(), name='tx-line-list-create'),
-    path('tx/<str:kind>/<int:pk>/lines/<int:line_pk>/', unified_views.TransactionLineDetail.as_view(), name='tx-line-detail'),
-    # Friendly shorter path used by tests (mounted under /tx/ at project level)
-    path('<str:kind>/<int:pk>/preview-totals/', unified_views.TransactionTotalsPreview.as_view(), name='tx-totals-preview'),
-
     # Flow actions
-    path('proposals/<int:pk>/convert-to-sales-order/', ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
+    # Flow actions
+    # Flow actions
     path('sales-orders/<int:pk>/convert-to-invoice/', SalesOrderToInvoiceView.as_view(), name='so-to-invoice'),
-    path('sales-orders/<int:pk>/convert-to-purchase-order/', SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),
-    path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
-    path('linkages/<int:linkage_id>/comments/', LinkageCommentsAggregateView.as_view(), name='linkage-comments'),
+    # path('sales-orders/<int:pk>/convert-to-purchase-order/', views.SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),  # Disabled: view not found in line_views
     # WorkOrder transitions
-    path('workorders/<int:pk>/transition/', WorkOrderTransitionView.as_view(), name='workorder-transition'),
-    path('workorder-lines/<int:pk>/transition/', WorkOrderLineTransitionView.as_view(), name='workorder-line-transition'),
+    # WorkOrder transitions
+    # WorkOrder transitions
+    path("proposals/<int:pk>/convert-to-sales-order/", ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
+
+    # Proposal Action
+    path("proposals/action/", ProposalActionView.as_view(), name="proposal-action"),
+    path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
 ]

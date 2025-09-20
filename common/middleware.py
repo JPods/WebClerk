@@ -1,11 +1,11 @@
 import time, uuid, logging, os
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
-from typing import Any, Dict
 from django.http import JsonResponse
 from django.utils.functional import Promise
 from common.api_responses import api_response
 from django.utils.encoding import force_str
+from typing import Any  # ensure this import exists
 
 # Read exemptions from settings with safe defaults.
 EXEMPT_PATH_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PATH_PREFIXES', ('/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/')))
@@ -13,7 +13,6 @@ HTML_PAGE_PATHS_EXACT: set[str] = set(getattr(settings, 'HTML_EXEMPT_PATHS_EXACT
 HTML_PAGE_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PAGE_PREFIXES', ('/manage/', '/user/', '/manager/')))
 
 def _allow_raw_query() -> bool:
-    """Return True if ?raw=1 bypass is allowed (env gated)."""
     return os.environ.get('API_ENVELOPE_ALLOW_RAW', '0') == '1'
 
 # In-test (pytest) registry of envelope skips for reporting. Bounded to avoid memory blow-up.
@@ -248,51 +247,39 @@ class EnsureRenderedMiddleware(MiddlewareMixin):
         return response
 
 
+WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
 class WriteGateMiddleware(MiddlewareMixin):
-    """Block write methods unless path/view is explicitly allowlisted.
-
-    Goal: Centralize all mutation via SaveWcapiView so pre/post Celery hooks run.
-
-    Behavior:
-    - Always allow SAFE methods (GET/HEAD/OPTIONS).
-    - Allow when WRITE_GATE_ENABLED is False or overridden via env WRITE_GATE_DISABLED=1.
-    - Allow OPTION preflights.
-    - Allow if request._write_gate_bypass is set by a view/decorator.
-    - Allow if path matches settings.WRITE_GATE_EXACT_PATHS or startswith any settings.WRITE_GATE_PREFIXES.
-    - Otherwise, return 405 with JSON envelope.
     """
-    def process_request(self, request):  # pragma: no cover (integration semantics)
-        try:
-            from django.conf import settings
-            method = request.method.upper()
-            if method in ("GET", "HEAD", "OPTIONS"):
-                return None
-            # env override to disable gate quickly
-            if os.environ.get('WRITE_GATE_DISABLED') == '1':
-                return None
-            enabled = bool(getattr(settings, 'WRITE_GATE_ENABLED', True))
-            if not enabled:
-                return None
-            if getattr(request, '_write_gate_bypass', False):
-                return None
-            # If view has @allow_write decorator, set bypass
-            try:
-                from django.urls import resolve
-                match = resolve(request.path)
-                view_func = getattr(match, 'func', None)
-                if view_func is not None:
-                    # DRF CBV: view_func.cls or view_class
-                    view_cls = getattr(view_func, 'view_class', None) or getattr(view_func, 'cls', None)
-                    if getattr(view_func, '_allow_write', False) or (view_cls and getattr(view_cls, '_allow_write', False)):
-                        return None
-            except Exception:
-                pass
-            path = getattr(request, 'path', '') or ''
-            exact = set(getattr(settings, 'WRITE_GATE_EXACT_PATHS', ('/wcapi/save/',)))
-            prefixes = tuple(getattr(settings, 'WRITE_GATE_PREFIXES', ('/wcapi/save/', '/api/auth/', '/api/token/', '/wcapi/login/', '/wcapi/signup/', '/admin/', '/admin-django/')))
-            if path in exact or any(path.startswith(p) for p in prefixes):
-                return None
-            # Deny by default
-            return api_response(success=False, status_code=405, message='Write blocked by policy', error={'code': 'write_blocked', 'details': path})
-        except Exception:
+    Block unsafe HTTP methods unless authenticated, with path and view-class exemptions.
+    Runs before DRF auth; use exemptions or _allow_write on view to permit writes.
+    """
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        if not getattr(settings, "WRITE_GATE_ENABLED", True):
             return None
+
+        if request.method not in WRITE_METHODS:
+            return None
+
+        path = getattr(request, "path", "") or ""
+        # Global exemptions
+        exact = tuple(getattr(settings, "WRITE_GATE_EXACT_PATHS", ()))
+        prefixes = tuple(getattr(settings, "WRITE_GATE_PREFIXES", ()))
+        exempt_prefixes = tuple(getattr(settings, "WRITE_GATE_EXEMPT_PREFIXES", ()))
+
+        if path in exact:
+            return None
+        if any(path.startswith(p) for p in exempt_prefixes):
+            return None
+
+        # View-level allow flag: set _allow_write = True on view class
+        view_class = getattr(view_func, "view_class", None)
+        if view_class and getattr(view_class, "_allow_write", False):
+            return None
+
+        # Allow writes for authenticated users
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            return None
+
+        # Default: block
+        return JsonResponse({"detail": "Write operations require authentication."}, status=405)

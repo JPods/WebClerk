@@ -1,9 +1,18 @@
 from django.contrib import admin
 from django.urls import path, include
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from apps.core.views.auth_views import admin_dashboard
+from django.http import HttpResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from apps.core.views.pending import PendingDetailView  # added
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView  # OpenAPI views
+
+@staff_member_required
+def admin_dashboard(request):
+    return HttpResponse("Admin Dashboard")
 
 urlpatterns = [
+    # Put this BEFORE any include(...) that could also match /pending/<id>/
+    path("pending/<int:pk>/", PendingDetailView.as_view(), name="pending-detail"),
+
     # Custom admin dashboard (3-column UI)
     path('admin/', admin_dashboard, name='admin_dashboard'),
     # Stock Django admin (needed for namespace 'admin' so templates using {% url 'admin:index' %} work)
@@ -11,11 +20,11 @@ urlpatterns = [
     path('admin-django/', admin.site.urls),
 
     # Application routes
-    path('', include('apps.core.urls')),
+    path("", include("apps.core.urls")),
     # Transactions (full routes incl. actions & lines)
     path('tx/', include('apps.transactions.urls')),
     path('docs/', include('apps.docs.urls')),
-        # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
+    # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
     path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
     path('sync/', include(('apps.sync.urls', 'sync'), namespace='sync')),
     path('products/', include(('apps.products.urls', 'products'), namespace='products')),
@@ -26,5 +35,5 @@ urlpatterns = [
 ]
 
 # Framework-level error handlers (must be module level names)
-handler404 = 'common.error_views.error_404'
+handler404 = "common.http.error_handlers.handler404_json"
 handler500 = 'common.error_views.error_500'

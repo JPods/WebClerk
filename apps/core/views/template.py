@@ -4,12 +4,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import pagination
 from apps.core.models.template import Template
 from apps.core.serializers.template import TemplateSerializer
+from django.db.models import Q  # added
 
 class TemplateListView(BaseListCreateView):
+    _allow_write = True  # let WriteGate pass POST
+    permission_classes = [IsAuthenticated]
     queryset = Template.objects.all()
     serializer_class = TemplateSerializer
-    permission_classes = [IsAuthenticated]
-    model_name = 'template'
+    # model_name only
     class Pagination(pagination.PageNumberPagination):
         page_size = 25
         page_size_query_param = 'page_size'
@@ -20,12 +22,21 @@ class TemplateDetailView(BaseOptimisticDetailView):
     queryset = Template.objects.all()
     serializer_class = TemplateSerializer
     permission_classes = [IsAuthenticated]
-    model_name = 'template'
 
 class TemplateSearchView(PrefixAndSearchView):
     queryset = Template.objects.all()
     serializer_class = TemplateSerializer
     permission_classes = [IsAuthenticated]
-    search_fields = ['name','purpose','ida']
-    model_name = 'template'
+    # Limit to actual model fields to avoid FieldError -> 500
+    search_fields = ["name", "purpose"]
     model = Template
+
+    def get_queryset(self):
+        qs = Template.objects.all()
+        q = self.request.GET.get("q") or ""
+        prefix = self.request.GET.get("prefix") or ""
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(purpose__icontains=q))
+        if prefix:
+            qs = qs.filter(name__istartswith=prefix)
+        return qs

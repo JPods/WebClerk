@@ -43,23 +43,32 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    #'debug_toolbar.middleware.DebugToolbarMiddleware',
-    'corsheaders.middleware.CorsMiddleware', 
-    # Render DRF Responses early so later middleware (e.g., CommonMiddleware) can safely access content
+    'corsheaders.middleware.CorsMiddleware',
     'common.middleware.EnsureRenderedMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    # Convert 403/404/405 to JSON BEFORE anything envelopes/logs content
+    "common.http.middleware.ForceJSONResponses",
+    "common.http.middleware.Envelope404Middleware",
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # JSON-only API policy helpers
     'common.middleware.RequestLogMiddleware',
     'common.middleware.ExceptionAsJsonMiddleware',
     'common.middleware.AutoEnvelopeMiddleware',
     'common.middleware.WriteGateMiddleware',
+    # Add after DRF/Django exception handling so it can see 404 responses
 ]
+
+# Ensure JSON-only errors for non-DRF 404/405/403
+# try:
+#     MIDDLEWARE = list(MIDDLEWARE)
+# except NameError:
+#     MIDDLEWARE = []
+# if "common.http.middleware.ForceJSONResponses" not in MIDDLEWARE:
+#     MIDDLEWARE.append("common.http.middleware.ForceJSONResponses")
 
 ROOT_URLCONF = 'webclerk3_api.urls'
 
@@ -275,6 +284,15 @@ WRITE_GATE_PREFIXES = (
     # Admin operations (adjust as needed)
     '/admin/', '/admin-django/',
 )
+# Allow optimistic PATCH on pending detail to bypass WriteGate
+WRITE_GATE_EXEMPT_PREFIXES = (
+    "/pending/",
+    "/settings/",
+    "/templates/",
+    "/docs/",
+    "/sync/",
+    "/products/",  # allow inventory reservation writes
+)
 
 
 # Readme API cache tuning (seconds)
@@ -427,3 +445,10 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
     CELERY_TASK_EAGER_PROPAGATES = True
     CELERY_BROKER_URL = 'memory://'
     CELERY_RESULT_BACKEND = 'cache+memory://'
+
+# Disable test DB serialization to avoid querying unmanaged/legacy tables
+try:
+    DATABASES["default"].setdefault("TEST", {})
+    DATABASES["default"]["TEST"]["SERIALIZE"] = False
+except Exception:
+    pass

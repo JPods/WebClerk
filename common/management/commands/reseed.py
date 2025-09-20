@@ -21,10 +21,21 @@ def _ensure_demo_superusers():
         qs = User.objects
         # Prefer lookup by email if the field exists
         if hasattr(User, "email"):
-            exists = qs.filter(email=email).exists()
+            found = list(qs.filter(email=email)[:1])
         else:
-            exists = qs.filter(username=email).exists()
-        if exists:
+            found = list(qs.filter(username=email)[:1])
+        if found:
+            # Upgrade flags if the user exists but isn't staff/superuser yet
+            u = found[0]
+            changed = False
+            if hasattr(u, "is_staff") and not u.is_staff:
+                u.is_staff = True
+                changed = True
+            if hasattr(u, "is_superuser") and not u.is_superuser:
+                u.is_superuser = True
+                changed = True
+            if changed:
+                u.save()
             continue
         kwargs = {}
         if hasattr(User, "email"):

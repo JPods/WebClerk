@@ -11,3 +11,12 @@ class SalesOrderLine(BaseSellLineModel):
 
     class Meta:
         db_table = "sales_order_lines"
+
+    @property
+    def parent_ref_id(self):
+        # Mirror FK id for test helpers
+        return getattr(self, "parent_id", None)
+
+    @parent_ref_id.setter
+    def parent_ref_id(self, value):
+        self.parent_id = value

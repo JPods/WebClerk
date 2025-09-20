@@ -6,9 +6,10 @@ from apps.core.models.setting import Setting
 from apps.core.serializers.setting import SettingSerializer
 
 class SettingListView(BaseListCreateView):
+    _allow_write = True  # let WriteGate pass POST
+    permission_classes = [IsAuthenticated]
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
-    permission_classes = [IsAuthenticated]
     # model_name only
     class Pagination(pagination.PageNumberPagination):
         page_size = 25

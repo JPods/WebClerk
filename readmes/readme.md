@@ -208,9 +208,9 @@ python manage.py seed_minimal_if_empty.py
 ```bash
 python -m venv .
 Mac
-source ./bin/activate 
+source ./bin/activate
 
-PC: 
+PC:
 .\Scripts\activate.bat
 bash common/management/commands/reset_dev.sh
 use git bash for run this command
@@ -1044,14 +1044,6 @@ python manage.py test
 
 ## Production Deployment (Placeholder)
 
-
-
-
-
-
-
-
-
 ## Optimistic Concurrency & Atomic JSON PATCH (Universal API)
 
 We provide a consistent, versioned PATCH mechanism for all `BaseModel` descendants using:
@@ -1328,13 +1320,4 @@ Deviation Policy
 
 - Only deviate for performance-critical endpoints (bulk ingest, streaming) and document rationale adjacent to code.
 
-
-
-
-
-
-
-
-
-
-
+  
