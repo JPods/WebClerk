@@ -39,7 +39,8 @@ from apps.products.models.inventory_layer import InventoryLayer
 # transaction models, not lines). Keep this strictly for line-level fields.
 # ---------------------------------------------------------------------------
 LINE_JSON_FIELDS_TO_COPY = (
-    'item', 'quantity', 'cost', 'price', 'tax', 'action', 'physical', 'flow', 'source',
+    'item', 'quantity', 'cost', 'price', 'tax',
+    'actions', 'physical',
     # Extended / newer additions (may be no-ops until fields are present):
     'metadata', 'refs', 'prefs', 'comments'
 )

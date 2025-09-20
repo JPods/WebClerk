@@ -1,17 +1,19 @@
 from django.urls import path
+from typing import Any
 from apps.transactions.views import line_views as views
 from apps.transactions.views import unified as unified_views
 from apps.transactions.views.requisition import (
     RequisitionListView, RequisitionDetailView, RequisitionSearchView
 )
-from apps.transactions.views.proposal_views import (
-    ProposalActionView,
-    ProposalToSalesOrderView,
-)
-from apps.transactions.views.sales_order_views import SalesOrderToInvoiceView
+from apps.transactions.views.proposal_views import ProposalActionView, ProposalToSalesOrderView
+from apps.transactions.views.sales_order_views import SalesOrderToInvoiceView, SalesOrderToPurchaseOrderView
 from apps.transactions.views.purchase_order_views import ReceivePurchaseOrderView
+from apps.transactions.views.project_views import ProjectListView
 
-urlpatterns = [
+# Define urlpatterns explicitly for type checkers and Django
+urlpatterns: list[Any] = []
+
+urlpatterns += [
     # Proposal
     path('proposals/', views.ProposalListCreate.as_view(), name='proposal-list'),
     path('proposals/<int:pk>/', views.ProposalRetrieveUpdate.as_view(), name='proposal-detail'),
@@ -63,16 +65,16 @@ urlpatterns = [
     path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
     # Unified endpoints (experimental consolidated schema)
     # Flow actions
-    # Flow actions
-    # Flow actions
+    path('proposals/<int:pk>/convert-to-sales-order/', ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
+    path('proposals/action/', ProposalActionView.as_view(), name='proposal-action'),
     path('sales-orders/<int:pk>/convert-to-invoice/', SalesOrderToInvoiceView.as_view(), name='so-to-invoice'),
-    # path('sales-orders/<int:pk>/convert-to-purchase-order/', views.SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),  # Disabled: view not found in line_views
-    # WorkOrder transitions
-    # WorkOrder transitions
-    # WorkOrder transitions
-    path("proposals/<int:pk>/convert-to-sales-order/", ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
-
-    # Proposal Action
-    path("proposals/action/", ProposalActionView.as_view(), name="proposal-action"),
+    path('sales-orders/<int:pk>/convert-to-purchase-order/', SalesOrderToPurchaseOrderView.as_view(), name='so-to-po'),
     path('purchase-orders/<int:pk>/receive/', ReceivePurchaseOrderView.as_view(), name='po-receive'),
+    path('linkages/<int:linkage_id>/comments/', unified_views.LinkageCommentsView.as_view(), name='linkage-comments'),
 ]
+
+# Ensure the Projects endpoints are defined first (avoid earlier patterns shadowing them)
+urlpatterns = [
+    path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
+    path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
+] + urlpatterns

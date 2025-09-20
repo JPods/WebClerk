@@ -1,8 +1,33 @@
-from typing import Tuple, Type, Optional
+from typing import Tuple, Type, Optional, Any, Dict, List
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, status
-from common.api_responses import api_response
+from django.apps import apps
+
+# Prefer project helpers; fall back to DRF if not available or invalid
+try:
+    from apps.core.views import BaseJSONAPIView as _ProjectBaseJSONAPIView, api_response  # type: ignore
+except ImportError:
+    _ProjectBaseJSONAPIView = None  # type: ignore
+    api_response = None  # type: ignore
+
+if _ProjectBaseJSONAPIView is not None and isinstance(_ProjectBaseJSONAPIView, type):
+    BaseJSONAPIView = _ProjectBaseJSONAPIView
+else:
+    from rest_framework.views import APIView as BaseJSONAPIView
+    # Only define a fallback api_response if not provided by project helpers
+    if 'api_response' not in globals() or not callable(api_response):  # type: ignore[name-defined]
+        from rest_framework import response as _drf_response
+        def api_response(data=None, status_code=200, success=True, message=None):
+            payload = {}
+            if success is not None:
+                payload["success"] = success
+            if message is not None:
+                payload["message"] = message
+            if data is not None:
+                payload["data"] = data
+            return _drf_response.Response(payload, status=status_code)
+
 from apps.transactions.models import (
     Proposal, ProposalLine,
     SalesOrder, SalesOrderLine,
@@ -229,8 +254,90 @@ def _resolve_models(token: str):
     except KeyError:
         raise Http404(f'Unsupported model in this endpoint: {key}')
 
-# Example usage inside a view handling ?model=...
-# def get(...):
-#     token = self.request.query_params.get('model')
-#     header_cls, header_ser, line_cls, line_ser = _resolve_models(token)
-#     # ... use classes ...
+
+class LinkageCommentsView(generics.GenericAPIView):
+    """
+    GET /tx/linkages/<linkage_id>/comments/
+    Returns: { data: { items: [ {source_model, source_id, text} ] } }
+    """
+    http_method_names = ["get", "options", "head"]
+
+    def get(self, request, linkage_id: int, *args, **kwargs):
+        try:
+            lid = int(linkage_id)
+        except Exception:
+            return api_response(success=False, status_code=400, message="invalid_linkage_id")
+
+        # Models to scan for linkage refs and comments
+        model_names = [
+            ("transactions", "ProposalLine"),
+            ("transactions", "SalesOrderLine"),
+            ("transactions", "InvoiceLine"),
+            ("transactions", "PurchaseOrderLine"),
+        ]
+        items: List[Dict[str, Any]] = []
+
+        for app_label, model_name in model_names:
+            try:
+                Model = apps.get_model(app_label, model_name)
+            except Exception:
+                continue
+            # Only fetch relevant JSON fields if present
+            fields = ["id"]
+            for f in ("refs", "comments"):
+                try:
+                    Model._meta.get_field(f)  # type: ignore[attr-defined]
+                    fields.append(f)
+                except Exception:
+                    pass
+
+            qs = Model.objects.all()
+            if len(fields) > 1:
+                try:
+                    qs = qs.only(*fields)
+                except Exception:
+                    pass
+
+            for obj in qs:
+                refs = getattr(obj, "refs", None) or {}
+                try:
+                    linkage_list = (refs.get("links") or {}).get("linkage") or []
+                except Exception:
+                    linkage_list = []
+                has_linkage = False
+                try:
+                    has_linkage = lid in linkage_list
+                except Exception:
+                    # fallback if stored as strings
+                    try:
+                        has_linkage = str(lid) in [str(x) for x in linkage_list]
+                    except Exception:
+                        has_linkage = False
+                if not has_linkage:
+                    continue
+
+                cm = getattr(obj, "comments", None) or {}
+                # support both dict {'public': '...'} and plain string
+                if isinstance(cm, dict):
+                    comments_payload = cm
+                else:
+                    comments_payload = {"public": str(cm)} if cm else {}
+
+                items.append({
+                    "source_model": model_name,
+                    "source_id": getattr(obj, "id", None),
+                    "comments": comments_payload,
+                })
+
+        # Aggregate root comments (e.g., collect all public comments)
+        comments_root: Dict[str, Any] = {"general": {}}
+        public_comments = [
+             it.get("comments", {}).get("public")
+             for it in items
+             if isinstance(it.get("comments"), dict) and it.get("comments", {}).get("public")
+         ]
+        # Always expose 'general.public' key for clients/tests
+        comments_root["general"]["public"] = public_comments
+
+        # Return raw payload; envelope middleware will set {"data": {...}}
+        return response.Response({"items": items, "comments": comments_root}, status=status.HTTP_200_OK)

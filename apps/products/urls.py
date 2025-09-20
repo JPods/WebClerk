@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.products.views.bom_views import BOMListCreateView, BOMDetailView, BOMRecalcCostView
-from apps.products.views.inventory import ReservationListView, ReservationDetailView
+from apps.products.views.inventory import ReservationListView, ReservationDetailView, ReservationCommitView, ReservationActionView
 from apps.products.views.inventory_views import (
     InventoryAvailabilityView, InventoryReservationCreateView, InventoryReservationActionView, InventoryMetricsView,
     InventoryPrometheusMetricsView,
@@ -14,9 +14,10 @@ urlpatterns = [
     path('bill_of_material/<int:parent_id>/recalc/', BOMRecalcCostView.as_view(), name='bill_of_material-recalc'),
     # Inventory availability & reservations
     path('inventory/availability/<int:stack_id>/', InventoryAvailabilityView.as_view(), name='inventory-availability'),
-    path('inventory/reservations/', ReservationListView.as_view(), name='inventory-reservation-list'),
-    path('inventory/reservations/<int:pk>/', ReservationDetailView.as_view(), name='inventory-reservation-detail'),
-    path('inventory/reservations/action/', InventoryReservationActionView.as_view(), name='inventory-reservation-action'),
+    path('inventory/reservations/', ReservationListView.as_view(), name='reservation-list'),
+    path('inventory/reservations/<int:pk>/', ReservationDetailView.as_view(), name='reservation-detail'),
+    path('inventory/reservations/<int:pk>/commit/', ReservationCommitView.as_view(), name='reservation-commit'),
+    path('inventory/reservations/action/', ReservationActionView.as_view(), name='reservation-action'),
     path('inventory/metrics/', InventoryMetricsView.as_view(), name='inventory-metrics'),
     path('inventory/metrics/prometheus', InventoryPrometheusMetricsView.as_view(), name='inventory-metrics-prom'),
 ]

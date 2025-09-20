@@ -1,7 +1,11 @@
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F
 from django.http import Http404
-from rest_framework import generics, permissions, response, views, status, pagination
+from django.apps import apps
+from rest_framework.response import Response
+from rest_framework import status, generics, permissions, views, pagination
+from rest_framework.response import Response
+
 from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from apps.transactions.models import (
@@ -351,7 +355,18 @@ class ProjectListCreate(generics.ListCreateAPIView):
     filterset_fields = ['status', 'priority', 'attention', 'category', 'contact_id']
     search_fields = ['situation', 'intent', 'objective']
     ordering_fields = ['id', 'priority', 'status', 'attention', 'burndown', 'profit', 'dt_modified']
+    # Allow POST for creation
+    http_method_names = ["get", "post", "options", "head"]
 
+    def post(self, request, *args, **kwargs):
+        Project = apps.get_model("transactions", "Project")
+        payload = request.data or {}
+
+        allowed = ["situation", "objective", "priority", "status", "attention", "intent", "category"]
+        create_kwargs = {k: payload.get(k) for k in allowed if payload.get(k) is not None}
+
+        obj = Project.objects.create(**create_kwargs)
+        return Response({"id": obj.id}, status=status.HTTP_201_CREATED)
 
 class ProjectRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.all()
