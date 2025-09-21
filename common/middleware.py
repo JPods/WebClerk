@@ -1,4 +1,4 @@
-import time, uuid, logging, os
+import time, uuid, logging, os, re
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse
@@ -249,37 +249,50 @@ class EnsureRenderedMiddleware(MiddlewareMixin):
 
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
-class WriteGateMiddleware(MiddlewareMixin):
+class WriteGateMiddleware:
     """
     Block unsafe HTTP methods unless authenticated, with path and view-class exemptions.
     Runs before DRF auth; use exemptions or _allow_write on view to permit writes.
     """
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        if not getattr(settings, "WRITE_GATE_ENABLED", True):
-            return None
+    def __init__(self, get_response):
+        self.get_response = get_response
+        patterns = getattr(settings, 'WRITE_GATE_ALLOWED_REGEX', ()) or ()
+        self._allow_regex = [re.compile(p) for p in patterns]
 
-        if request.method not in WRITE_METHODS:
-            return None
+    def __call__(self, request):
+        if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+            path = request.path or '/'
+            exact_ok = path in getattr(settings, 'WRITE_GATE_EXACT_PATHS', ())
+            prefix_ok = any(path.startswith(p) for p in getattr(settings, 'WRITE_GATE_PREFIXES', ()))
+            regex_ok = any(rx.match(path) for rx in self._allow_regex)
+            if getattr(settings, 'WRITE_GATE_ENABLED', True) and not (exact_ok or prefix_ok or regex_ok):
+                from django.http import JsonResponse
+                return JsonResponse({'detail': 'WriteGate: path not allowed'}, status=405)
+        return self.get_response(request)
 
-        path = getattr(request, "path", "") or ""
-        # Global exemptions
-        exact = tuple(getattr(settings, "WRITE_GATE_EXACT_PATHS", ()))
-        prefixes = tuple(getattr(settings, "WRITE_GATE_PREFIXES", ()))
-        exempt_prefixes = tuple(getattr(settings, "WRITE_GATE_EXEMPT_PREFIXES", ()))
 
-        if path in exact:
-            return None
-        if any(path.startswith(p) for p in exempt_prefixes):
-            return None
+class WCAPISearchGuardMiddleware:
+    """
+    Enforce: only staff can use ?q=... on list endpoints:
+      GET /<model>/?q=...
+    Applies only to blessed wcapi models.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self._re = re.compile(r'^/([a-z0-9_]+)/?$')
 
-        # View-level allow flag: set _allow_write = True on view class
-        view_class = getattr(view_func, "view_class", None)
-        if view_class and getattr(view_class, "_allow_write", False):
-            return None
-
-        # Allow writes for authenticated users
-        if getattr(request, "user", None) and request.user.is_authenticated:
-            return None
-
-        # Default: block
-        return JsonResponse({"detail": "Write operations require authentication."}, status=405)
+    def __call__(self, request):
+        if request.method == 'GET':
+            path = request.path or '/'
+            m = self._re.match(path)
+            if m and 'q' in request.GET:
+                model_key = m.group(1)
+                try:
+                    from apps.core.wcapi.registry import resolve
+                    is_blessed = resolve(model_key) is not None
+                except Exception:
+                    is_blessed = False
+                if is_blessed and not getattr(request.user, 'is_staff', False):
+                    from django.http import JsonResponse
+                    return JsonResponse({'detail': 'forbidden'}, status=403)
+        return self.get_response(request)

@@ -48,17 +48,14 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # Convert 403/404/405 to JSON BEFORE anything envelopes/logs content
-    "common.http.middleware.ForceJSONResponses",
-    "common.http.middleware.Envelope404Middleware",
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',  # keep this before any auth-dependent logic
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'common.middleware.WCAPISearchGuardMiddleware',  # REMOVE: view enforces q access
+    'common.middleware.WriteGateMiddleware',
     'common.middleware.RequestLogMiddleware',
     'common.middleware.ExceptionAsJsonMiddleware',
     'common.middleware.AutoEnvelopeMiddleware',
-    'common.middleware.WriteGateMiddleware',
     # Add after DRF/Django exception handling so it can see 404 responses
 ]
 
@@ -274,74 +271,34 @@ HTML_EXEMPT_PAGE_PREFIXES = (
 )
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (
-    '/wcapi/save/',
-    # Allow read-only filtered list via POST for wcapi query (tests and clients rely on this)
-    '/wcapi/query/',
+    '/wcapi/save', '/wcapi/save/',
+    '/wcapi/query', '/wcapi/query/',
+    '/wcapi/delete', '/wcapi/delete/',
 )
 WRITE_GATE_PREFIXES = (
-    # Save endpoints and auth/token flows
-    '/wcapi/save/', '/api/auth/', '/api/token/', '/wcapi/login/', '/wcapi/signup/',
-    # Admin operations (adjust as needed)
+    '/wcapi/',
+    '/api/auth/', '/api/token/', '/wcapi/login/', '/wcapi/signup/',
     '/admin/', '/admin-django/',
 )
-# Allow optimistic PATCH on pending detail to bypass WriteGate
-WRITE_GATE_EXEMPT_PREFIXES = (
-    "/pending/",
-    "/settings/",
-    "/templates/",
-    "/docs/",
-    "/sync/",
-    "/products/",  # allow inventory reservation writes
+WRITE_GATE_ALLOWED_REGEX = (
+    r'^/[a-z0-9_]+/\d+/?$',    # /<model>/<id>  (POST update, DELETE single)
+    r'^/[a-z0-9_]+/?$',        # /<model>       (DELETE batch by body)
 )
 
-
-# Readme API cache tuning (seconds)
-README_CACHE_SECONDS = int(os.getenv('README_CACHE_SECONDS', '60'))
-README_INDEX_CACHE_SECONDS = int(os.getenv('README_INDEX_CACHE_SECONDS', '120'))
-
-
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'WEBCLERK 3.0 API',
-    'DESCRIPTION': 'API for managing full ERP system with role-based access, email verification, and JWT authentication.',
-    'VERSION': '3.0.0',
-    'SERVE_INCLUDE_SCHEMA': True,
-    'SECURITY': [
-        {
-            'BearerAuth': {
-                'type': 'http',
-                'scheme': 'bearer',
-                'bearerFormat': 'JWT',
-            },
-        },
-    ],
-    'PREPROCESSING_HOOKS': [
-        'common.schema_hooks.whitelist_preprocessor',
-    ],
+# WCAPI blessed models (present in your project)
+WCAPI_BLESSED_MODELS = {
+    "contact": "core.Contact",
+    "domain": "communications.Domain",
+    "document": "docs.Document",
+    "linkage": "docs.Linkage",
+    "action": "core.Action",
+    "qa": "docs.QuestionAnswer",  # alias key for QA if present
+    "tag": "docs.Tag",            # enable /tag/ endpoints
 }
-
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For development only; restrict in production
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-CORS_ALLOW_CREDENTIALS = True  # Allow cookies/JWT in cross-origin requests
+# Enable canonical routes for Tag if not already set
+if 'WCAPI_BLESSED_MODELS' not in globals():
+    WCAPI_BLESSED_MODELS = {}
+WCAPI_BLESSED_MODELS.setdefault("tag", "docs.Tag")
 
 # Add this at the bottom
 INTERNAL_IPS = [
@@ -436,6 +393,9 @@ LANGUAGES = [
 # wcapi read endpoints are permitted and treated as role PUBLIC. Writes still require auth.
 WCAPI_OPEN_READ = os.getenv('WCAPI_OPEN_READ', '0') == '1'
 WCAPI_JWT_ONLY = os.getenv('WCAPI_JWT_ONLY', '0') == '1'
+WCAPI_OPT_IN_ONLY = True           # prod: only models explicitly enabled
+WCAPI_WHITELIST_APPS = None        # e.g., ("transactions","accounts")
+WCAPI_ENFORCE_WRITES = True        # all writes via wcapi/save in views/tests/clients
 
 # --- Test Environment Overrides (Celery eager, in‑memory broker) ---
 import os as _os  # local alias to avoid shadowing

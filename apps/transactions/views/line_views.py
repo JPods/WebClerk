@@ -2,9 +2,9 @@ from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, F
 from django.http import Http404
 from django.apps import apps
-from rest_framework.response import Response
-from rest_framework import status, generics, permissions, views, pagination
-from rest_framework.response import Response
+from rest_framework.response import Response  # added
+from rest_framework import status  # added
+from rest_framework import generics, permissions, views, pagination, response
 
 from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
@@ -355,16 +355,18 @@ class ProjectListCreate(generics.ListCreateAPIView):
     filterset_fields = ['status', 'priority', 'attention', 'category', 'contact_id']
     search_fields = ['situation', 'intent', 'objective']
     ordering_fields = ['id', 'priority', 'status', 'attention', 'burndown', 'profit', 'dt_modified']
-    # Allow POST for creation
+    # Ensure POST allowed on list endpoint
     http_method_names = ["get", "post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
+        """
+        Create a Project from provided JSON and return new id.
+        Accepts keys: situation, objective, priority, status, attention, intent, category.
+        """
         Project = apps.get_model("transactions", "Project")
-        payload = request.data or {}
-
+        data = request.data or {}
         allowed = ["situation", "objective", "priority", "status", "attention", "intent", "category"]
-        create_kwargs = {k: payload.get(k) for k in allowed if payload.get(k) is not None}
-
+        create_kwargs = {k: data.get(k) for k in allowed if data.get(k) is not None}
         obj = Project.objects.create(**create_kwargs)
         return Response({"id": obj.id}, status=status.HTTP_201_CREATED)
 

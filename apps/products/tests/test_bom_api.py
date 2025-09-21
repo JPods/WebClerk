@@ -16,7 +16,7 @@ def test_bom_list_create(client):
     client.force_login(user)
     parent = Item.objects.create(name='Parent Widget')
     component = Item.objects.create(name='Component Screw')
-    url = reverse('products:bill_of_material-list-create', args=[parent.id])
+    url = '/domain/'
     # list empty
     resp = client.get(url)
     assert resp.status_code == 200

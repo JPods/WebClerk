@@ -1,39 +1,34 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
-from django.contrib.admin.views.decorators import staff_member_required
-from apps.core.views.pending import PendingDetailView  # added
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView  # OpenAPI views
 
-@staff_member_required
-def admin_dashboard(request):
-    return HttpResponse("Admin Dashboard")
+import apps.core.wcapi.views as wcapi_views
+from apps.core.wcapi.views import RESTModelRouterView
+from apps.docs.views_tag import TagHierarchyView  # add import
 
 urlpatterns = [
-    # Put this BEFORE any include(...) that could also match /pending/<id>/
-    path("pending/<int:pk>/", PendingDetailView.as_view(), name="pending-detail"),
-
-    # Custom admin dashboard (3-column UI)
-    path('admin/', admin_dashboard, name='admin_dashboard'),
-    # Stock Django admin (needed for namespace 'admin' so templates using {% url 'admin:index' %} work)
-    # Mount under alternate path to avoid clobbering custom dashboard while restoring reverse('admin:index').
+    # Admin
+    path('admin/', lambda r: HttpResponse("Admin Dashboard"), name='admin_dashboard'),
     path('admin-django/', admin.site.urls),
 
-    # Application routes
-    path("", include("apps.core.urls")),
-    # Transactions (full routes incl. actions & lines)
-    path('tx/', include('apps.transactions.urls')),
-    path('docs/', include('apps.docs.urls')),
-    # path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
-    path('comm/', include(('apps.communications.urls', 'communications'), namespace='communications')),
-    path('sync/', include(('apps.sync.urls', 'sync'), namespace='sync')),
-    path('products/', include(('apps.products.urls', 'products'), namespace='products')),
-    # OpenAPI schema & interactive docs
-    path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
-    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-swagger'),
-    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
-]
+    # Docs app routes (place before generic router)
+    path('', include('apps.docs.urls')),
 
-# Framework-level error handlers (must be module level names)
-handler404 = "common.http.error_handlers.handler404_json"
-handler500 = 'common.error_views.error_500'
+    # Ensure hierarchy routes are matched before any generic/action routers
+    path("tag/<int:pk>/hierarchy", TagHierarchyView.as_view(), name="tag-hierarchy"),
+    path("tag/<int:pk>/hierarchy/", TagHierarchyView.as_view(), name="tag-hierarchy-slash"),
+
+    # Core app bundles
+    path('', include('apps.core.urls')),
+    path('', include('apps.transactions.urls')),
+
+    # WCAPI endpoints
+    path('wcapi/get', wcapi_views.WCAPIGetView.as_view(), name='wcapi-get'),
+    path('wcapi/query', wcapi_views.WCAPIQueryView.as_view(), name='wcapi-query'),
+    path('wcapi/save', wcapi_views.WCAPISaveView.as_view(), name='wcapi-save'),
+    path('wcapi/delete', wcapi_views.WCAPIDeleteView.as_view(), name='wcapi-delete'),
+
+    # Canonical RESTful router (keep last)
+    path('<slug:model>/<int:pk>/', wcapi_views.RESTModelRouterView.as_view(), name='model-detail-router'),
+    path('<slug:model>/', wcapi_views.RESTModelRouterView.as_view(), name='model-list-router'),
+]

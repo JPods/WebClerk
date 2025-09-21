@@ -1,7 +1,7 @@
 from typing import Tuple, Type, Optional, Any, Dict, List
 from django.http import Http404
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, response, status
+from rest_framework import generics, response, status, views
 from django.apps import apps
 
 # Prefer project helpers; fall back to DRF if not available or invalid
@@ -341,3 +341,25 @@ class LinkageCommentsView(generics.GenericAPIView):
 
         # Return raw payload; envelope middleware will set {"data": {...}}
         return response.Response({"items": items, "comments": comments_root}, status=status.HTTP_200_OK)
+
+
+class WCAIPSaveView(views.APIView):
+    """
+    POST /tx/wcaip/save
+    { "entity": "project", "data": { ...fields... } }
+    """
+    http_method_names = ["post", "options", "head"]
+
+    def post(self, request, *args, **kwargs):
+        body: Dict[str, Any] = request.data or {}
+        entity = (body.get("entity") or "").strip().lower()
+        data: Dict[str, Any] = body.get("data") or {}
+
+        if entity == "project":
+            Project = apps.get_model("transactions", "Project")
+            allowed = ["situation", "objective", "priority", "status", "attention", "intent", "category", "contact_id"]
+            create_kwargs = {k: data.get(k) for k in allowed if data.get(k) is not None}
+            obj = Project.objects.create(**create_kwargs)
+            return response.Response({"id": obj.pk}, status=status.HTTP_201_CREATED)
+
+        return response.Response({"detail": "unsupported entity"}, status=status.HTTP_400_BAD_REQUEST)

@@ -10,9 +10,13 @@ from apps.transactions.views.sales_order_views import SalesOrderToInvoiceView, S
 from apps.transactions.views.purchase_order_views import ReceivePurchaseOrderView
 from apps.transactions.views.project_views import ProjectListView
 
-# Define urlpatterns explicitly for type checkers and Django
-urlpatterns: list[Any] = []
+# Define Projects routes first so POST is allowed
+urlpatterns = [
+    path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
+    path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
+]
 
+# Append the rest of the routes
 urlpatterns += [
     # Proposal
     path('proposals/', views.ProposalListCreate.as_view(), name='proposal-list'),
@@ -60,11 +64,7 @@ urlpatterns += [
     path('auth/fields/', views.FieldAuthMatrixView.as_view(), name='line-field-auth'),
     path('auth/fields/batch/', views.FieldAuthMatrixBatchView.as_view(), name='line-field-auth-batch'),
 
-    # Projects
-    path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
-    path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
     # Unified endpoints (experimental consolidated schema)
-    # Flow actions
     path('proposals/<int:pk>/convert-to-sales-order/', ProposalToSalesOrderView.as_view(), name='proposal-to-so'),
     path('proposals/action/', ProposalActionView.as_view(), name='proposal-action'),
     path('sales-orders/<int:pk>/convert-to-invoice/', SalesOrderToInvoiceView.as_view(), name='so-to-invoice'),
@@ -73,8 +73,4 @@ urlpatterns += [
     path('linkages/<int:linkage_id>/comments/', unified_views.LinkageCommentsView.as_view(), name='linkage-comments'),
 ]
 
-# Ensure the Projects endpoints are defined first (avoid earlier patterns shadowing them)
-urlpatterns = [
-    path('projects/', views.ProjectListCreate.as_view(), name='project-list'),
-    path('projects/<int:pk>/', views.ProjectRetrieveUpdate.as_view(), name='project-detail'),
-] + urlpatterns
+# Remove any 'wcapi/*' patterns defined here to avoid duplicates; use core.wcapi mounted at top-level.

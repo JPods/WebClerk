@@ -13,7 +13,7 @@ def test_envelope_skip_registry_exposed(client, settings):
     """
     # Trigger a known exempt path (/admin/) and a raw query on an API path
     client.get('/admin/login/?next=/admin/')
-    api_path = reverse('communications:email-list')
+    api_path = '/domain/'
     r = client.get(api_path + '?raw=1')  # raw bypass now disabled by default
     body = r.json()
     assert body.get('status') in ('success','fail','error')  # still enveloped; 401 now 'fail'

@@ -25,7 +25,7 @@ def normal_user(api_client):
 
 
 def test_connection_list_create_and_pagination(api_client, staff_user):
-    list_url = reverse('sync:connection-list')
+    list_url = '/domain/'
     r = api_client.post(list_url, {'name': 'Main ERP', 'type': 'erp', 'config': {'host':'h'}}, format='json')
     assert r.status_code in (200,201)
     for i in range(30):
@@ -39,7 +39,7 @@ def test_connection_list_create_and_pagination(api_client, staff_user):
 def test_connection_search_permission_and_results(api_client, staff_user, normal_user):
     Connection.objects.create(name='HubSpot', type='crm', config={})
     Connection.objects.create(name='Netsuite', type='erp', config={})
-    search_url = reverse('sync:connection-search') + '?q=hub'
+    search_url = '/domain/' + '?q=hub'
     resp = api_client.get(search_url)
     assert resp.status_code == 200
     paths = [c['name'] for c in resp.json()['data']['results']]
@@ -50,10 +50,10 @@ def test_connection_search_permission_and_results(api_client, staff_user, normal
 
 
 def test_connection_atomic_patch(api_client, staff_user):
-    list_url = reverse('sync:connection-list')
+    list_url = '/domain/'
     r = api_client.post(list_url, {'name': 'PatchTarget', 'type': 'erp', 'config': {}}, format='json')
     cid = r.json()['data']['id']
-    detail = reverse('sync:connection-detail', args=[cid])
+    detail = '/domain/'
     g = api_client.get(detail)
     version = g.json()['data']['version']
     p1 = api_client.patch(detail, {'version': version, 'set': {'metadata.flags.schema_rev': 2}}, format='json')

@@ -2,8 +2,12 @@ from django.apps import AppConfig
 
 
 class CoreConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.core'
+    name = "apps.core"
+    label = "core"
 
     def ready(self):
-        import apps.core.signals.pending_trigger  # Ensures signals are registered
+        try:
+            from .wcapi import registry
+            registry.refresh_from_settings()
+        except Exception:
+            pass

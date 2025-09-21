@@ -18,7 +18,7 @@ def test_validation_error_enveloped(client, django_user_model):
     user = django_user_model.objects.create_user(email='vtest@example.com', password='pw', name_first='V', name_last='Test')
     client.force_login(user)
     # Use domain create without required field 'path' to trigger validation error
-    create_url = reverse('communications:domain-list')
+    create_url = '/domain/'
     r = client.post(create_url, {'type': 'website'})
     assert r.status_code in (400, 403)  # if permission denies, still enveloped
     body = r.json()

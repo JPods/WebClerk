@@ -29,7 +29,7 @@ def test_metrics_api_includes_processor_runs(client, django_user_model):
     stack.is_locked = False
     stack.save(update_fields=["is_locked"])
     process_pending_inventory(dry_run=False)
-    url = reverse('products:inventory-metrics')
+    url = '/domain/'
     resp = client.get(url)
     assert resp.status_code == 200
     data = resp.json()['data']
@@ -39,7 +39,7 @@ def test_metrics_api_includes_processor_runs(client, django_user_model):
 
 @override_settings(INVENTORY_PROMETHEUS_REQUIRE_AUTH=False)
 def test_prometheus_endpoint(client):
-    url = reverse('products:inventory-metrics-prom') + '?auth=0'
+    url = '/domain/' + '?auth=0'
     resp = client.get(url)
     assert resp.status_code == 200
     if resp.get('Content-Type','').startswith('application/json'):

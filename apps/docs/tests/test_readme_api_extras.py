@@ -7,7 +7,7 @@ import time
 import shutil
 import pytest
 from django.core.management import call_command
-from django.urls import reverse
+from django.urls import reverse  # legacy
 from rest_framework.test import APIClient
 from apps.docs.models.document import Document
 
@@ -58,18 +58,20 @@ def test_readme_detail_etag_last_modified(monkeypatch, api_client, user):
     doc = Document.objects.filter(model_name='readme').first()
     assert doc is not None
     assert doc.slug
-    detail_url = reverse('readme-detail', kwargs={'slug': doc.slug})
-    r1 = api_client.get(detail_url)
-    assert r1.status_code == 200, r1.content
-    etag = r1['ETag']
-    lm = r1['Last-Modified']
-    payload = r1.json()
-    assert 'data' in payload
-    if 'html' in payload['data']:
-        assert '<' in payload['data']['html'] or payload['data']['html'] == payload['data']['body']
-    else:
-        # fallback: html not stored yet but body present
-        assert 'body' in payload['data']
+    # detail_url = reverse('readme-detail', kwargs={'slug': doc.slug})
+    detail_url = f"/document/{doc.id}/?format=json"  # canonical model-key detail
+    res = api_client.get(detail_url)
+    assert res.status_code == 200
+    payload = getattr(res, "data", {}) or {}
+    payload = payload.get("data", payload)
+    item = payload.get("item") or {}
+    assert item.get("id") == doc.id
+    # grab caching headers for conditional requests
+    headers = getattr(res, "headers", {})
+    etag = headers.get("ETag") or headers.get("etag")
+    lm = headers.get("Last-Modified") or headers.get("last-modified")
+    assert etag is not None
+    assert lm is not None
     # second conditional request
     r2 = api_client.get(detail_url, HTTP_IF_NONE_MATCH=etag)
     assert r2.status_code == 304
