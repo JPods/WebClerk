@@ -1,5 +1,4 @@
 from django.urls import path
-from apps.core.wcapi.views import RESTModelRouterView
 from apps.docs.views_tag import TagHierarchyView
 from apps.docs.views_readme import (
     ReadmeSearchIndexView,
@@ -9,10 +8,6 @@ from apps.docs.views_readme import (
 )
 
 urlpatterns = [
-    # Tag CRUD via canonical router
-    path("tag/", RESTModelRouterView.as_view(), {"model": "tag"}, name="tag-list"),
-    path("tag/<int:pk>/", RESTModelRouterView.as_view(), {"model": "tag"}, name="tag-detail"),
-
     # Tag hierarchy (support both with and without trailing slash)
     path("tag/<int:pk>/hierarchy", TagHierarchyView.as_view(), name="tag-hierarchy"),
     path("tag/<int:pk>/hierarchy/", TagHierarchyView.as_view(), name="tag-hierarchy-slash"),

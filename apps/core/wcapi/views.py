@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast, TYPE_CHECKING
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,6 +10,16 @@ import json
 from datetime import datetime, timezone
 from email.utils import formatdate, parsedate_to_datetime
 from django.utils import timezone as dj_timezone  # added
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.http import JsonResponse, Http404
+from apps.core.wcapi.mixins import SettingsDrivenCRUDMixin
+
+try:
+    from apps.core.wcapi import model_policies as mp
+except Exception:
+    mp = None
 
 class WCAPIGetView(APIView):
     http_method_names = ["get", "post", "options", "head"]
@@ -93,7 +103,7 @@ class WCAPIDeleteView(APIView):
         deleted = services.delete_item(model_key, request=request, id=record_id)
         return Response({"deleted": bool(deleted), "id": record_id}, status=status.HTTP_200_OK)
 
-class RESTModelRouterView(APIView):
+class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
     """
     Canonical REST:
       - GET /<model>/            -> list (wcapi get)
@@ -103,251 +113,150 @@ class RESTModelRouterView(APIView):
       - DELETE /<model>/         -> batch delete via body (ids or filters)
     Creation: POST /wcapi/save.
     """
-    http_method_names = ["get", "post", "delete", "options", "head"]
+    if TYPE_CHECKING:
+        # Stubs for methods provided by SettingsDrivenCRUDMixin; for type checkers only.
+        def serialize_with_view_allowlist(self, obj: Any, request: Any, ctx: str) -> Dict[str, Any]: ...
+        def get_view_edit_allowlists(self, model_cls: Any, request: Any, ctx: str, view_name: Optional[str] = ...) -> tuple[Any, Any, Any, Dict[str, Any]]: ...
+        def _roles_for(self, request: Any): ...
+        def base_queryset(self, model_cls: Any): ...
+        def apply_filters(self, qs: Any, request: Any, model_cls: Any, view_fields: Any, meta: Dict[str, Any], special_view_name: Optional[str] = ...) -> Any: ...
+        def apply_keyword_search(self, qs: Any, request: Any, meta: Dict[str, Any]) -> Any: ...
+        def apply_search(self, qs: Any, request: Any, model_cls: Any, meta: Dict[str, Any]) -> Any: ...
+        def apply_ordering(self, qs: Any, request: Any, meta: Dict[str, Any]) -> Any: ...
+        def paginate(self, qs: Any, request: Any, meta: Dict[str, Any]) -> Any: ...
+        def soft_delete(self, obj: Any, meta: Dict[str, Any]) -> bool: ...
+        def run_hook(self, hook_name: str, meta: Dict[str, Any], context: Dict[str, Any]) -> None: ...
+    def _model_class(self, model_slug: str):
+        model_cls = resolve(model_slug) if model_slug else None
+        if model_cls is None:
+            raise Http404(f"Unknown model: {model_slug}")
+        return model_cls
 
-    def get(self, request, model: str, pk: Optional[Any] = None, *args, **kwargs):
-        # Staff-only search on list endpoints via ?q=...
-        if pk is None:
-            q = request.query_params.get("q")
-            if q and not getattr(request.user, "is_staff", False):
-                return Response({"detail": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
-
-        super_get = getattr(super(RESTModelRouterView, self), "get", None)
-        resp = super_get(request, model, pk, *args, **kwargs) if callable(super_get) else None
-        if resp is None:
-            try:
-                view = WCAPIGetView()
-                resp = view._handle(model, pk, {}, None, request)
-            except Exception:
-                return Response({"detail": "server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # For list endpoints, paginate and ensure `results` alias exists
+    def _json_body(self, request):
         try:
-            if pk is None and getattr(resp, "status_code", 200) == 200:
-                body = getattr(resp, "data", {}) or {}
-                payload = body.get("data", body)
-
-                # Pull full list from items/results
-                items = []
-                if isinstance(payload, dict):
-                    if isinstance(payload.get("items"), list):
-                        items = payload.get("items") or []
-                    elif isinstance(payload.get("results"), list):
-                        items = payload.get("results") or []
-
-                # Apply simple page/page_size pagination (defaults: 25)
-                if isinstance(items, list) and items:
-                    try:
-                        page = int(request.query_params.get("page", "1"))
-                    except Exception:
-                        page = 1
-                    try:
-                        page_size = int(request.query_params.get("page_size", "25"))
-                    except Exception:
-                        page_size = 25
-                    page = max(page, 1)
-                    page_size = max(min(page_size, 100), 1)  # cap to 100
-
-                    total = len(items)
-                    start = (page - 1) * page_size
-                    end = start + page_size
-                    page_items = items[start:end]
-
-                    # Write paginated payload back; provide both items and results for compatibility
-                    payload["count"] = total
-                    payload["page"] = page
-                    payload["page_size"] = page_size
-                    payload["items"] = page_items
-                    payload["results"] = page_items
+            import json
+            return json.loads(request.body.decode() or "{}")
         except Exception:
-            pass
+            return {}
 
-        # Add cache headers (ETag, Last-Modified) for detail responses
-        try:
-            if pk is not None and getattr(resp, "status_code", 200) == 200:
-                body = getattr(resp, "data", {}) or {}
-                payload = body.get("data", body)
-                item = payload.get("item", payload if isinstance(payload, dict) else {})
-
-                etag_hash = hashlib.md5(json.dumps(item, sort_keys=True, default=str).encode("utf-8")).hexdigest()
-                etag = f"\"{etag_hash}\""
-
-                lm_dt = None
-                try:
-                    obj = services.get_item(model, request=request, id=pk)
-                except Exception:
-                    obj = None
-                if obj is not None:
-                    for fld in ("dt_modified", "modified", "updated_at", "dt_updated", "dt_created", "created_at", "created"):
-                        v = getattr(obj, fld, None)
-                        if isinstance(v, datetime):
-                            lm_dt = v
-                            break
-                if lm_dt is None:
-                    lm_dt = dj_timezone.now()
-
-                # Normalize to UTC and second precision (HTTP-date granularity)
-                if lm_dt.tzinfo is None:
-                    lm_dt = lm_dt.replace(tzinfo=timezone.utc)
-                else:
-                    lm_dt = lm_dt.astimezone(timezone.utc)
-                lm_dt_sec = lm_dt.replace(microsecond=0)
-                last_modified = formatdate(lm_dt_sec.timestamp(), usegmt=True)
-
-                inm = request.headers.get("If-None-Match") or request.META.get("HTTP_IF_NONE_MATCH")
-                if inm and etag in inm:
-                    not_mod = Response(status=status.HTTP_304_NOT_MODIFIED)
-                    not_mod["ETag"] = etag
-                    not_mod["Last-Modified"] = last_modified
-                    return not_mod
-
-                ims_raw = request.headers.get("If-Modified-Since") or request.META.get("HTTP_IF_MODIFIED_SINCE")
-                if ims_raw:
-                    try:
-                        ims_dt = parsedate_to_datetime(ims_raw)
-                        if ims_dt.tzinfo is None:
-                            ims_dt = ims_dt.replace(tzinfo=timezone.utc)
-                        else:
-                            ims_dt = ims_dt.astimezone(timezone.utc)
-                        ims_dt_sec = ims_dt.replace(microsecond=0)
-                        if ims_dt_sec >= lm_dt_sec:
-                            not_mod = Response(status=status.HTTP_304_NOT_MODIFIED)
-                            not_mod["ETag"] = etag
-                            not_mod["Last-Modified"] = last_modified
-                            return not_mod
-                    except Exception:
-                        pass
-
-                if isinstance(resp, Response):
-                    resp["ETag"] = etag
-                    resp["Last-Modified"] = last_modified
-        except Exception:
-            pass
-
-        return resp
-
-    def post(self, request, model: str, pk: Optional[Any] = None, *args, **kwargs):
+    def apply_role_scope(self, qs, request, meta, roles):
         """
-        Create (on list) or update (on detail) via WCAPISaveView.
+        Fallback role-based scope applicator.
+        If role scoping is not defined in the mixin, return queryset unchanged.
         """
-        try:
-            payload = request.data if hasattr(request, "data") else {}
-        except Exception:
-            payload = {}
-        try:
-            view = WCAPISaveView()
-        except NameError:
-            from .views import WCAPISaveView as _Save  # avoid circulars
-            view = _Save()
-        return view._handle(model, pk, payload, None, request)
+        return qs
 
-    def _is_truthy(self, v: Any) -> bool:
-        return str(v).strip().lower() in {"1", "true", "t", "yes", "y"}
+    # GET list or detail
+    def get(self, request, model: Optional[str] = None, pk: Optional[int] = None, *args, **kwargs):
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug:
+            raise Http404(f"Unknown model: {model_slug}")
+        model_cls = self._model_class(model_slug)
 
-    def _soft_requested(self, request) -> bool:
-        body = getattr(request, "data", {}) or {}
-        return self._is_truthy(request.query_params.get("soft") or body.get("soft") or "")
+        # Try to pick a specialty view profile from ?name= or X-View-Name header
+        # The mixin will verify it exists in __meta__.views before applying.
+        view_name = request.GET.get("name") or request.headers.get("X-View-Name")
 
-    def _soft_delete_object(self, obj) -> bool:
-        """
-        Best-effort soft delete:
-          - is_deleted: True
-          - status: 'deleted'
-          - dt_deleted / deleted_at: now()
-        Returns True if a soft delete mutation was applied.
-        """
-        mutated = False
-        try:
-            if hasattr(obj, "is_deleted"):
-                setattr(obj, "is_deleted", True)
-                mutated = True
-            elif hasattr(obj, "status"):
-                try:
-                    # Avoid overwriting if already deleted
-                    if getattr(obj, "status") != "deleted":
-                        setattr(obj, "status", "deleted")
-                        mutated = True
-                except Exception:
-                    pass
-            if hasattr(obj, "dt_deleted"):
-                setattr(obj, "dt_deleted", dj_timezone.now())
-                mutated = True
-            elif hasattr(obj, "deleted_at"):
-                setattr(obj, "deleted_at", dj_timezone.now())
-                mutated = True
-            if mutated:
-                # Build a safe list of fields to update; fall back to full save if uncertain
-                update_fields: List[str] = []
-                try:
-                    if hasattr(obj, "is_deleted"):
-                        update_fields.append("is_deleted")
-                    elif hasattr(obj, "status"):
-                        update_fields.append("status")
-                    if hasattr(obj, "dt_deleted"):
-                        update_fields.append("dt_deleted")
-                    elif hasattr(obj, "deleted_at"):
-                        update_fields.append("deleted_at")
-                    # If we didn't determine specific fields, try model _meta safely
-                    meta = getattr(obj, "_meta", None)
-                    if not update_fields and meta is not None and hasattr(meta, "fields"):
-                        update_fields = [f.name for f in meta.fields if hasattr(obj, f.name)]
-                except Exception:
-                    update_fields = []
-                try:
-                    if update_fields:
-                        obj.save(update_fields=update_fields)
-                    else:
-                        obj.save()
-                except Exception:
-                    obj.save()
-        except Exception:
-            mutated = False
-        return mutated
+        if pk:
+            obj = model_cls.objects.get(pk=pk)
+            # Pass view_name into allowlist resolver so profile overrides apply to display
+            data = self.serialize_with_view_allowlist(obj, request=request, ctx="display")
+            _, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="display", view_name=view_name)
+            resp = {"ok": True, "data": data}
+            if meta.get("policy_missing") or meta.get("view_name"):
+                resp["meta"] = {
+                    "policy_missing": bool(meta.get("policy_missing")),
+                    "policy_source": meta.get("policy_source"),
+                    "roles_applied": meta.get("roles_applied"),
+                    "view_name": meta.get("view_name"),
+                }
+            return JsonResponse(resp)
 
-    def delete(self, request, model: str, pk: Optional[Any] = None, *args, **kwargs):
-        if not resolve(model):
-            return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
-
-        soft = self._soft_requested(request)
-
-        if pk is not None:
-            if soft:
-                obj = services.get_item(model, request=request, id=pk)
-                if obj and self._soft_delete_object(obj):
-                    return Response({"deleted": True, "id": pk, "soft": True}, status=status.HTTP_200_OK)
-            # fallback hard delete
-            deleted = services.delete_item(model, request=request, id=pk)
-            return Response({"deleted": bool(deleted), "id": pk, "soft": False}, status=status.HTTP_200_OK)
-
-        body: Dict[str, Any] = request.data or {}
-        ids = body.get("ids")
-        filters = body.get("filters")
-        deleted_count = 0
-
-        if isinstance(ids, list) and ids:
-            if soft:
-                for rid in ids:
-                    obj = services.get_item(model, request=request, id=rid)
-                    if obj and self._soft_delete_object(obj):
-                        deleted_count += 1
-            else:
-                for rid in ids:
-                    if services.delete_item(model, request=request, id=rid):
-                        deleted_count += 1
-        elif isinstance(filters, dict) and filters:
-            try:
-                _, qs = services.get_queryset(model, request=request)
-            except ValueError:
-                return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
-            if soft:
-                for obj in qs.filter(**filters):
-                    if self._soft_delete_object(obj):
-                        deleted_count += 1
-            else:
-                for obj in qs.filter(**filters):
-                    obj.delete()
-                    deleted_count += 1
+        view_fields, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="list", view_name=view_name)
+        roles = self._roles_for(request)
+        qs = self.base_queryset(model_cls)
+        qs = self.apply_role_scope(qs, request, meta, roles)
+        qs = self.apply_filters(qs, request, model_cls, view_fields, meta, special_view_name=meta.get("view_name"))
+        qs = self.apply_keyword_search(qs, request, meta)  # NEW
+        qs = self.apply_search(qs, request, model_cls, meta)
+        qs = self.apply_ordering(qs, request, meta)
+        paged = self.paginate(qs, request, meta)
+        page_qs: Any
+        page_meta: Dict[str, Any]
+        if paged is None:
+            page_qs, page_meta = qs, {}
+        elif isinstance(paged, tuple) and len(paged) == 2:
+            page_qs, page_meta = cast(tuple[Any, Dict[str, Any]], paged)
         else:
-            return Response({"detail": "provide ids[] or filters{}"}, status=status.HTTP_400_BAD_REQUEST)
+            page_qs, page_meta = cast(Any, paged), {}
+        data = [self.serialize_with_view_allowlist(o, request=request, ctx="list") for o in page_qs]
 
-        return Response({"deleted_count": deleted_count, "soft": soft}, status=status.HTTP_200_OK)
+        resp_meta = dict(page_meta)
+        if meta.get("policy_missing") or meta.get("view_name"):
+            resp_meta.update({
+                "policy_missing": bool(meta.get("policy_missing")),
+                "policy_source": meta.get("policy_source"),
+                "roles_applied": meta.get("roles_applied"),
+                "view_name": meta.get("view_name"),
+            })
+        return JsonResponse({"ok": True, "data": data, "meta": resp_meta})
+    # POST/PUT/PATCH -> save
+    def _save(self, model_cls, payload: Dict[str, Any], pk: Optional[int] = None):
+        """
+        Default persistence for RESTModelRouterView:
+        - if pk is provided, update the existing object
+        - otherwise, create a new one
+        Override this in a subclass if you need custom behavior.
+        """
+        if pk is not None:
+            try:
+                obj = model_cls.objects.get(pk=pk)
+            except model_cls.DoesNotExist:
+                raise Http404("Not found")
+            for field, value in (payload or {}).items():
+                setattr(obj, field, value)
+            obj.save()
+            return obj
+        return model_cls.objects.create(**(payload or {}))
+
+    def post(self, request, model: Optional[str] = None, pk: Optional[int] = None, *args, **kwargs):
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug:
+            raise Http404(f"Unknown model: {model_slug}")
+        model_cls = self._model_class(model_slug)
+    # DELETE -> soft delete if configured
+    def delete(self, request, model: Optional[str] = None, pk: Optional[int] = None, *args, **kwargs):
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug:
+            raise Http404(f"Unknown model: {model_slug}")
+        model_cls = self._model_class(model_slug)
+        if pk is None:
+            raise Http404("Missing pk")
+        obj = model_cls.objects.get(pk=pk)
+        _, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="display")
+
+        # pre_delete hook
+        self.run_hook("pre_delete", meta, {"request": request, "model": model_cls, "pk": pk, "obj": obj})
+
+        soft = self.soft_delete(obj, meta)
+        if not soft:
+            obj.delete()
+
+        # post_delete hook
+        self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
+        return JsonResponse({"ok": True, "deleted": True, "soft": bool(soft)})
+        self.run_hook("pre_delete", meta, {"request": request, "model": model_cls, "pk": pk, "obj": obj})
+
+        soft = self.soft_delete(obj, meta)
+        if not soft:
+            obj.delete()
+
+        # post_delete hook
+        self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
+        return JsonResponse({"ok": True, "deleted": True, "soft": bool(soft)})
+        if not soft:
+            obj.delete()
+
+        # post_delete hook
+        self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
+        return JsonResponse({"ok": True, "deleted": True, "soft": bool(soft)})

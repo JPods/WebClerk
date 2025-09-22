@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "View/Edit Policy",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["is_active", "purpose", "model_name", "data"],
+    "properties": {
+      "is_active": { "type": "boolean" },
+      "name": { "type": "string" },
+      "purpose": { "const": "view_edit" },
+      "role": { "type": "string" },
+      "model_name": { "type": "string" },
+      "comment": { "type": "string" },
+      "data": {
+        "type": "object",
+        "properties": {
+          "__meta__": {
+            "type": "object",
+            "properties": {
+              "search": {
+                "type": "object",
+                "properties": {
+                  "fields": { "type": "array", "items": { "type": "string" } },
+                  "keywords": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string", "enum": ["array", "text"] },
+                      "field": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "query": {
+                "type": "object",
+                "properties": {
+                  "allow_fields": { "type": "array", "items": { "type": "string" } },
+                  "allow_ops": { "type": "array", "items": { "type": "string" } },
+                  "allow_joins": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "max_depth": { "type": "integer", "minimum": 1 },
+                  "max_rows": { "type": "integer", "minimum": 1 }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

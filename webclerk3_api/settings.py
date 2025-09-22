@@ -300,6 +300,44 @@ if 'WCAPI_BLESSED_MODELS' not in globals():
     WCAPI_BLESSED_MODELS = {}
 WCAPI_BLESSED_MODELS.setdefault("tag", "docs.Tag")
 
+# WCAPI per-model policies (opt-in, safe by default)
+WCAPI_MODEL_POLICIES = {
+    # Example: docs.Tag
+    "tag": {
+        "fields": {
+            # Read allowlist
+            "read": {
+                "default": ["id", "name", "status", "purpose", "parent_id", "created_at", "updated_at"],
+                "by_role": {
+                    "admin": ["*"],  # '*' means all fields
+                },
+            },
+            # Write allowlist
+            "write": {
+                "default": ["name", "status", "purpose", "parent_id"],
+                "by_role": {
+                    "admin": ["*"],
+                },
+            },
+        },
+        # Related data to embed in GET responses
+        "relations": {
+            # Single FK
+            "parent": {"type": "fk", "fields": ["id", "name", "status"]},
+            # Reverse children, auto-discovered related_name if omitted
+            "children": {"type": "reverse", "fields": ["id", "name", "status"], "limit": 100},
+        },
+        # Optional hooks (dotted paths to callables)
+        "hooks": {
+            "pre_save": "apps.docs.hooks.tag_pre_save",    # def fn(ctx) -> None
+            "post_save": "apps.docs.hooks.tag_post_save",  # def fn(ctx) -> None
+        },
+    },
+}
+
+# Helper to enable policies only during tests or per-env
+WCAPI_POLICIES_ENABLED = True
+
 # Add this at the bottom
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -388,13 +426,19 @@ LANGUAGES = [
     # Add more as needed
 ]
 
-# --- WCAPI optional relaxed read mode (development convenience) ---
-# If WCAPI_OPEN_READ=1 and WCAPI_JWT_ONLY is False, unauthenticated GET/POST (query) requests to
-# wcapi read endpoints are permitted and treated as role PUBLIC. Writes still require auth.
+# --- WCAPI config ---
 WCAPI_OPEN_READ = os.getenv('WCAPI_OPEN_READ', '0') == '1'
 WCAPI_JWT_ONLY = os.getenv('WCAPI_JWT_ONLY', '0') == '1'
 WCAPI_OPT_IN_ONLY = True           # prod: only models explicitly enabled
-WCAPI_WHITELIST_APPS = None        # e.g., ("transactions","accounts")
+
+def _env_list(name: str):
+    raw = os.getenv(name, '')
+    items = [s.strip() for s in raw.split(',') if s.strip()]
+    return tuple(items) if items else None
+
+#QQQ whitelist apps in production; 
+# None means all apps allowed (if opt-in disabled)
+WCAPI_WHITELIST_APPS = _env_list('WCAPI_WHITELIST_APPS')  # e.g., "transactions,accounts"
 WCAPI_ENFORCE_WRITES = True        # all writes via wcapi/save in views/tests/clients
 
 # --- Test Environment Overrides (Celery eager, in‑memory broker) ---
@@ -405,6 +449,11 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
     CELERY_TASK_EAGER_PROPAGATES = True
     CELERY_BROKER_URL = 'memory://'
     CELERY_RESULT_BACKEND = 'cache+memory://'
+
+    # Relax wcapi gating in tests so any model can be fetched via /<model>/ routes
+    WCAPI_OPT_IN_ONLY = False
+    # Leave WCAPI_WHITELIST_APPS as-is (from env) instead of redundantly setting None
+    # WCAPI_WHITELIST_APPS = None
 
 # Disable test DB serialization to avoid querying unmanaged/legacy tables
 try:

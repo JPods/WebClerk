@@ -6,38 +6,58 @@
     "role": "all",
     "model_name": "contact",
     "data": {
-      "SUPER": {
-        "view": ["id", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"],
-        "edit": ["id", "email", "opt_out", "password", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment", "verification_code", "verification_code_expiry"]
+      "__meta__": {
+        "search": {
+          "fields": ["name_first", "name_last", "email", "company"],
+          "keywords": { "type": "array", "field": "refs__keywords" }  // ArrayField/JSON list
+        },
+        "query": {
+          "allow_fields": ["id","email","company","name_first","name_last","is_active","date_joined","role"],
+          "allow_ops": ["eq","ne","lt","lte","gt","gte","icontains","contains","in","isnull","startswith","istartswith"],
+          "allow_joins": { "emails": "emails", "phones": "phones" },
+          "max_depth": 1,
+          "max_rows": 200
+        },
+        "relations": {
+          "emails": { "type": "reverse", "fields": ["id", "email"], "limit": 10 },
+          "phones": { "type": "reverse", "fields": ["id", "number"], "limit": 10 }
+        },
+        "ordering": ["-date_joined"],
+        "filters": { "allow": ["company", "is_active", "role"] },
+        "pagination": { "page_size": 25, "max_page_size": 200 },
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 },
+        "hooks": {
+          "pre_save": "apps.accounts.hooks.contact_pre_save",
+          "post_save": "apps.accounts.hooks.contact_post_save"
+        },
+        "views": {
+          "compact": {
+            "ctx": "list",
+            "relations": {},                      // no embedded relations
+            "pagination": { "page_size": 5, "max_page_size": 5 },
+            "fields": { "view": ["id", "email", "name_first", "name_last"] }
+          },
+          "audit": {
+            "ctx": "display",
+            "ordering": ["-date_joined"],
+            "relations": { "emails": { "type": "reverse", "fields": ["id", "email"], "limit": 3 } }
+          }
+        }
       },
-      "ADMIN": {
-        "view": ["id", "email", "opt_out", "role", "role_default", "is_email_verified", "is_active", "is_staff", "last_login", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined", "comment"],
-        "edit": ["email", "opt_out", "role", "role_default", "is_email_verified", "is_active", "is_staff", "attention", "comment_alert", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "comment"]
-      },
-      "SALE": {
-        "view": ["id", "email", "role", "role_default", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank", "date_joined"],
-        "edit": ["company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
-      },
-      "REP": {
-        "view": ["id", "email", "role", "role_default", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation", "publish", "rank"],
-        "edit": ["company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
-      },
-      "VENDOR": {
-        "view": ["id", "email", "company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"],
-        "edit": ["company", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
-      },
-      "CUSTOMER": {
-        "view": ["id", "email", "name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"],
-        "edit": ["name_first", "name_last", "name_middle", "prefix", "suffix", "salutation"]
-      },
-      "USER": {
-        "view": ["id", "email", "name_first", "name_last"],
-        "edit": ["name_first", "name_last"]
-      },
-      "PUBLIC": {
-        "view": ["name_first", "name_last", "company"],
-        "edit": []
-      }
+      "SUPER": { "view": ["id","email","opt_out","password","role","role_default","is_email_verified","is_active","is_staff","last_login","attention","comment_alert","company","name_first","name_last","name_middle","prefix","suffix","salutation","publish","rank","date_joined","comment","verification_code","verification_code_expiry"],
+                 "edit": ["id","email","opt_out","password","role","role_default","is_email_verified","is_active","is_staff","last_login","attention","comment_alert","company","name_first","name_last","name_middle","prefix","suffix","salutation","publish","rank","date_joined","comment","verification_code","verification_code_expiry"] },
+      "ADMIN": { "view": ["id","email","opt_out","role","role_default","is_email_verified","is_active","is_staff","last_login","attention","comment_alert","company","name_first","name_last","name_middle","prefix","suffix","salutation","publish","rank","date_joined","comment"],
+                 "edit": ["email","opt_out","role","role_default","is_email_verified","is_active","is_staff","attention","comment_alert","company","name_first","name_last","name_middle","prefix","suffix","salutation","publish","rank","comment"] },
+      "SALE":  { "view": ["id","email","role","role_default","company","name_first","name_last","name_middle","prefix","suffix","salutation","publish","rank","date_joined"],
+                 "edit": ["company","name_first","name_last","name_middle","prefix","suffix","salutation"] },
+      "REP":   { "view": ["id","email","role","role_default","company","name_first","name_last","name_middle","prefix","suffix","salutation","publish","rank"],
+                 "edit": ["company","name_first","name_last","name_middle","prefix","suffix","salutation"] },
+      "VENDOR":{ "view": ["id","email","company","name_first","name_last","name_middle","prefix","suffix","salutation"],
+                 "edit": ["company","name_first","name_last","name_middle","prefix","suffix","salutation"] },
+      "CUSTOMER": { "view": ["id","email","name_first","name_last","name_middle","prefix","suffix","salutation"],
+                    "edit": ["name_first","name_last","name_middle","prefix","suffix","salutation"] },
+      "USER":  { "view": ["id","email","name_first","name_last"], "edit": ["name_first","name_last"] },
+      "PUBLIC":{ "view": ["name_first","name_last","company"], "edit": [] }
     },
     "comment": ""
   },
@@ -48,6 +68,9 @@
     "role": "all",
     "model_name": "action",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"],
         "edit": ["id", "action", "action_by", "priority", "difficulty", "hours", "percent", "status", "quality", "description", "dt_action", "dt_completed", "dt_due", "dt_updated", "comment"]
@@ -127,6 +150,9 @@
     "role": "all",
     "model_name": "setting",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "is_active", "name", "purpose", "role", "model_name", "comment"],
         "edit": ["id", "is_active", "name", "purpose", "role", "model_name", "comment"]
@@ -169,6 +195,9 @@
     "role": "all",
     "model_name": "template",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "name", "purpose", "model_name", "comment"],
         "edit": ["id", "name", "purpose", "model_name", "comment"]
@@ -211,6 +240,9 @@
     "role": "all",
     "model_name": "location",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"],
         "edit": ["id", "address1", "address2", "address_type", "city", "country", "instructions", "latitude", "longitude", "state", "zip", "full", "comment"]
@@ -253,6 +285,9 @@
     "role": "all",
     "model_name": "domain",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "path", "type", "comment"],
         "edit": ["id", "path", "type", "comment"]
@@ -295,6 +330,9 @@
     "role": "all",
     "model_name": "email",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "email", "attention", "name", "opt_out", "comment"],
         "edit": ["id", "email", "attention", "name", "opt_out", "comment"]
@@ -337,6 +375,9 @@
     "role": "all",
     "model_name": "phone",
     "data": {
+      "__meta__": {
+        "soft_delete": { "enabled": true, "field": "is_active", "false_value": false, "retention_days": 60 }
+      },
       "SUPER": {
         "view": ["id", "attention", "country_code", "format", "name", "number", "opt_out", "comment"],
         "edit": ["id", "attention", "country_code", "format", "name", "number", "opt_out", "comment"]
