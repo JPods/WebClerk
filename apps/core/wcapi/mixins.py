@@ -35,6 +35,11 @@ def _import_callable(path: str):
         raise TypeError(f"Imported object '{path}' is not callable")
     return obj
 
+try:
+    from apps.core.models import SoftDeleteLedger  # type: ignore
+except Exception:
+    SoftDeleteLedger = None  # type: ignore
+
 class SettingsDrivenCRUDMixin:
     """
     Centralized CRUD policies driven by Setting(purpose='view_edit') or JSON fallback.
@@ -373,7 +378,7 @@ class SettingsDrivenCRUDMixin:
         except Exception:
             return
 
-    def soft_delete(self, obj: Model, meta: dict) -> bool:
+    def soft_delete(self, obj, meta: dict) -> bool:
         sd = (meta.get("soft_delete") or {}) if isinstance(meta, dict) else {}
         if not sd.get("enabled"):
             return False
@@ -383,7 +388,6 @@ class SettingsDrivenCRUDMixin:
 
         changed = False
         try:
-            # Best-effort: flip soft-delete field if present
             if hasattr(obj, field):
                 setattr(obj, field, false_val)
                 obj.save(update_fields=[field])
@@ -391,16 +395,12 @@ class SettingsDrivenCRUDMixin:
         except Exception:
             pass
 
-        # Always schedule purge
-        try:
-            # Import lazily to avoid circular imports and undefined name
-            from apps.core.models import SoftDeleteLedger as _SoftDeleteLedger  # type: ignore
-            if hasattr(_SoftDeleteLedger, "schedule"):
-                _SoftDeleteLedger.schedule(obj, retention_days=retention_days)
+        if SoftDeleteLedger:
+            try:
+                SoftDeleteLedger.schedule(obj, retention_days=retention_days)
                 return True
-        except Exception:
-            pass
-        # If scheduling fails but field flipped, still consider soft-deleted
+            except Exception:
+                return changed
         return changed
 
     def apply_keyword_search(self, qs: QuerySet, request, meta: dict) -> QuerySet:

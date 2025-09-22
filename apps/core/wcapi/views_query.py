@@ -1,10 +1,14 @@
 from django.http import JsonResponse, HttpResponseBadRequest, Http404, HttpResponseForbidden
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
 from django.views import View
 from django.forms.models import model_to_dict
 from apps.core.wcapi.mixins import SettingsDrivenCRUDMixin
 from typing import Optional, cast, Any
 
-class RESTOpenQueryView(SettingsDrivenCRUDMixin, View):
+class RESTOpenQueryView(SettingsDrivenCRUDMixin, APIView):
     """
     POST /wcapi/<model>/_query
       Body: { where, order_by, joins, limit, offset, saved?: <id|name> }
@@ -24,22 +28,11 @@ class RESTOpenQueryView(SettingsDrivenCRUDMixin, View):
         except Exception:
             return {}
 
-    def serialize_with_view_allowlist(self, obj, request=None, ctx="list"):
-        model_cls = obj.__class__
-        view_fields, _, _, _ = self.get_view_edit_allowlists(model_cls, request=request, ctx=ctx)
-        try:
-            if view_fields:
-                return model_to_dict(obj, fields=view_fields)
-            return model_to_dict(obj)
-        except Exception:
-            return model_to_dict(obj)
-
     def post(self, request, model: Optional[str] = None, *args, **kwargs):
-        action = kwargs.get("action")  # None or "save"
-        model_slug_val = (model or kwargs.get("model"))
-        if not isinstance(model_slug_val, str) or not model_slug_val:
-            return HttpResponseBadRequest("model required")
-        model_slug = cast(str, model_slug_val)
+        action = kwargs.get("action")
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug.strip():
+            return Response({"detail": "model required"}, status=status.HTTP_400_BAD_REQUEST)
         model_cls = self._model_class(model_slug)
 
         if action == "save":
@@ -50,48 +43,38 @@ class RESTOpenQueryView(SettingsDrivenCRUDMixin, View):
             labels = body.get("labels") or []
             comment = body.get("comment") or ""
             if not name or not isinstance(dsl, dict) or not isinstance(scope, dict):
-                return HttpResponseBadRequest("name, dsl, scope required")
-            try:
-                from apps.core.models import Setting
-            except Exception:
-                return HttpResponseBadRequest("Setting model unavailable")
-            # owner metadata
+                return Response({"detail": "name, dsl, scope required"}, status=status.HTTP_400_BAD_REQUEST)
+            from apps.core.models import Setting
             owner_id = getattr(getattr(request, "user", None), "id", None)
-            data = {
-                "dsl": dsl,
-                "scope": scope,
-                "labels": labels,
-                "owner_id": owner_id,
-            }
             row = Setting.objects.create(
                 is_active=True,
                 name=name,
                 purpose="saved_query",
                 role=scope.get("type", "all"),
                 model_name=model_slug,
-                data=data,
+                data={"dsl": dsl, "scope": scope, "labels": labels, "owner_id": owner_id},
                 comment=comment,
             )
-            return JsonResponse({"ok": True, "id": row.id, "name": row.name})
-        else:
-            # Run query (body or saved)
-            view_fields, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="list")
-            body = self._json_body(request)
-            saved_ident = (body.get("saved") or request.GET.get("saved") or "").strip()
-            if saved_ident:
-                try:
-                    row = self._load_saved_query_setting(request, model_slug, saved_ident)
-                except Http404:
-                    return JsonResponse({"ok": True, "data": [], "meta": {"error": "saved query not found"}}, status=404)
+            return Response({"ok": True, "id": row.id, "name": row.name}, status=status.HTTP_200_OK)
+
+        # run query (optionally from saved)
+        view_fields, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="list")
+        body = self._json_body(request)
+        saved_ident = (body.get("saved") or request.GET.get("saved") or "").strip()
+        if saved_ident:
+            try:
+                row = self._load_saved_query_setting(request, model_slug, saved_ident)
                 body = (getattr(row, "data", {}) or {}).get("dsl") or {}
-            qs, paging = self.evaluate_open_query(model_cls, request, meta)
-            # allow saved set filter via ?set=
-            qs = self.filter_by_saved_set(qs, request, model_cls, meta)
-            data = [self.serialize_with_view_allowlist(o, request=request, ctx="list") for o in qs]
-            return JsonResponse({"ok": True, "data": data, "meta": paging})
+            except Exception:
+                return Response({"ok": True, "data": [], "items": [], "meta": {"error": "saved query not found"}}, status=404)
+
+        qs, paging = self.evaluate_open_query(model_cls, request, meta)
+        qs = self.filter_by_saved_set(qs, request, model_cls, meta)
+        data = [self.serialize_with_view_allowlist(o, request=request, ctx="list") for o in qs]
+        return Response({"ok": True, "data": data, "items": data, "meta": paging}, status=status.HTTP_200_OK)
 
 
-class RESTSavedSetView(SettingsDrivenCRUDMixin, View):
+class RESTSavedSetView(SettingsDrivenCRUDMixin, APIView):
     """
     Manage saved record id sets for a model via Setting(purpose='saved_set').
 
@@ -117,73 +100,41 @@ class RESTSavedSetView(SettingsDrivenCRUDMixin, View):
         except Exception:
             return {}
 
-    def serialize_with_view_allowlist(self, obj, request=None, ctx="list"):
-        model_cls = obj.__class__
-        view_fields, _, _, _ = self.get_view_edit_allowlists(model_cls, request=request, ctx=ctx)
-        try:
-            if view_fields:
-                return model_to_dict(obj, fields=view_fields)
-            return model_to_dict(obj)
-        except Exception:
-            return model_to_dict(obj)
-
     def post(self, request, model: Optional[str] = None, *args, **kwargs):
-        try:
-            from apps.core.models import Setting
-        except Exception:
-            return HttpResponseBadRequest("Setting model unavailable")
-
-        model_slug_val = (model or kwargs.get("model"))
-        if not isinstance(model_slug_val, str) or not model_slug_val:
-            return HttpResponseBadRequest("model required")
-        model_slug = cast(str, model_slug_val)
+        from apps.core.models import Setting
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug.strip():
+            return Response({"detail": "model required"}, status=status.HTTP_400_BAD_REQUEST)
         body = self._json_body(request)
-
         name = (body.get("name") or "").strip()
         ids = list(body.get("ids") or [])
         scope = body.get("scope") or {}
         labels = body.get("labels") or []
         comment = body.get("comment") or ""
         if not name or not isinstance(ids, list) or not isinstance(scope, dict):
-            return HttpResponseBadRequest("name, ids, scope required")
-
+            return Response({"detail": "name, ids, scope required"}, status=status.HTTP_400_BAD_REQUEST)
         owner_id = getattr(getattr(request, "user", None), "id", None)
-        data = {
-            "ids": ids,
-            "scope": scope,
-            "labels": labels,
-            "owner_id": owner_id,
-        }
         row = Setting.objects.create(
             is_active=True,
             name=name,
             purpose="saved_set",
             role=scope.get("type", "all"),
             model_name=model_slug,
-            data=data,
+            data={"ids": ids, "scope": scope, "labels": labels, "owner_id": owner_id},
             comment=comment,
         )
-        return JsonResponse({"ok": True, "id": row.id, "count": len(ids)})
+        return Response({"ok": True, "id": row.id, "name": row.name}, status=status.HTTP_200_OK)
 
     def patch(self, request, model: Optional[str] = None, ident: Optional[str] = None, *args, **kwargs):
-        try:
-            from apps.core.models import Setting
-        except Exception:
-            return HttpResponseBadRequest("Setting model unavailable")
-
-        model_slug_val = (model or kwargs.get("model"))
-        if not isinstance(model_slug_val, str) or not model_slug_val:
-            return HttpResponseBadRequest("model required")
-        model_slug = cast(str, model_slug_val)
-
-        ident_val = ident or kwargs.get("ident")
-        if ident_val is None or (isinstance(ident_val, str) and not ident_val.strip()):
-            return HttpResponseBadRequest("ident required")
-        ident_str = str(ident_val)
-
-        row = self._load_saved_set_setting(request, model_slug, ident_str)
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug.strip():
+            return Response({"detail": "model required"}, status=status.HTTP_400_BAD_REQUEST)
+        ident_val = ident if ident is not None else kwargs.get("ident")
+        if not isinstance(ident_val, str) or not ident_val.strip():
+            return Response({"detail": "ident required"}, status=status.HTTP_400_BAD_REQUEST)
+        row = self._load_saved_set_setting(request, model_slug, ident_val)
         if not self._can_access_saved_setting(request, row):
-            return HttpResponseForbidden("forbidden")
+            return Response({"detail": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
         body = self._json_body(request)
         op = (body.get("op") or "").lower()
@@ -196,65 +147,44 @@ class RESTSavedSetView(SettingsDrivenCRUDMixin, View):
         elif op == "remove":
             new_ids = [i for i in current if i not in set(ids)]
         elif op == "replace":
-            new_ids = list(ids)
+            new_ids = ids
         elif op == "clear":
             new_ids = []
         else:
-            return HttpResponseBadRequest("op must be one of add|remove|replace|clear")
+            return Response({"detail": "op must be add|remove|replace|clear"}, status=status.HTTP_400_BAD_REQUEST)
 
         data["ids"] = new_ids
-        row.data = cast(Any, data)
+        row.data = data
         row.save(update_fields=["data"])
-        return JsonResponse({"ok": True, "id": row.id, "count": len(new_ids)})
+        return Response({"ok": True, "ids": new_ids}, status=status.HTTP_200_OK)
 
     def get(self, request, model: Optional[str] = None, ident: Optional[str] = None, *args, **kwargs):
-        model_slug_val = (model or kwargs.get("model"))
-        if not isinstance(model_slug_val, str) or not model_slug_val:
-            return HttpResponseBadRequest("model required")
-        model_slug = cast(str, model_slug_val)
-
-        ident_val = ident or kwargs.get("ident")
-        if ident_val is None or (isinstance(ident_val, str) and not ident_val.strip()):
-            return HttpResponseBadRequest("ident required")
-        ident_str = str(ident_val)
-
-        row = self._load_saved_set_setting(request, model_slug, ident_str)
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug.strip():
+            return Response({"detail": "model required"}, status=status.HTTP_400_BAD_REQUEST)
+        ident_val = ident if ident is not None else kwargs.get("ident")
+        if not isinstance(ident_val, str) or not ident_val.strip():
+            return Response({"detail": "ident required"}, status=status.HTTP_400_BAD_REQUEST)
+        row = self._load_saved_set_setting(request, model_slug, ident_val)
         model_cls = self._model_class(model_slug)
-
-        data_dict = getattr(row, "data", {}) or {}
-        ids = list(data_dict.get("ids") or [])
+        view_fields, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="list")
+        ids = list(((getattr(row, "data", {}) or {}).get("ids") or []))
+        qs = self.base_queryset(model_cls)
+        qs = self.apply_role_scope(qs, request, meta, self._roles_for(request))
         if ids:
-            qs = model_cls._default_manager.filter(pk__in=ids)
-        else:
-            qs = model_cls._default_manager.none()
-
-        def _serialize(o):
-            try:
-                return self.serialize_with_view_allowlist(o, request=request, ctx="list")
-            except Exception:
-                return model_to_dict(o)
-
-        data = [_serialize(o) for o in qs]
-        return JsonResponse({"ok": True, "data": data, "meta": {"count": len(data)}})
+            qs = qs.filter(id__in=ids)
+        data = [self.serialize_with_view_allowlist(o, request=request, ctx="list") for o in qs]
+        return Response({"ok": True, "data": data, "items": data, "count": len(data)}, status=status.HTTP_200_OK)
 
     def delete(self, request, model: Optional[str] = None, ident: Optional[str] = None, *args, **kwargs):
-        try:
-            from apps.core.models import Setting
-        except Exception:
-            return HttpResponseBadRequest("Setting model unavailable")
-
-        model_slug_val = (model or kwargs.get("model"))
-        if not isinstance(model_slug_val, str) or not model_slug_val:
-            return HttpResponseBadRequest("model required")
-        model_slug = cast(str, model_slug_val)
-
-        ident_val = ident or kwargs.get("ident")
-        if ident_val is None or (isinstance(ident_val, str) and not ident_val.strip()):
-            return HttpResponseBadRequest("ident required")
-        ident_str = str(ident_val)
-
-        row = self._load_saved_set_setting(request, model_slug, ident_str)
+        model_slug = model if isinstance(model, str) else kwargs.get("model")
+        if not isinstance(model_slug, str) or not model_slug.strip():
+            return Response({"detail": "model required"}, status=status.HTTP_400_BAD_REQUEST)
+        ident_val = ident if ident is not None else kwargs.get("ident")
+        if not isinstance(ident_val, str) or not ident_val.strip():
+            return Response({"detail": "ident required"}, status=status.HTTP_400_BAD_REQUEST)
+        row = self._load_saved_set_setting(request, model_slug, ident_val)
         if not self._can_access_saved_setting(request, row):
-            return HttpResponseForbidden("forbidden")
+            return Response({"detail": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
         row.delete()
-        return JsonResponse({"ok": True, "deleted": True})
+        return Response({"ok": True, "deleted": True}, status=status.HTTP_200_OK)

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 class SoftDeleteLedger(models.Model):
     """
-    Tracks soft-deleted objects and when to hard-delete.
+    Tracks soft-deleted objects and when to hard-delete them.
     """
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, related_name="soft_delete_entries")
     object_id = models.PositiveIntegerField()
@@ -24,10 +24,10 @@ class SoftDeleteLedger(models.Model):
     @classmethod
     def schedule(cls, obj, retention_days: int = 60):
         ct = ContentType.objects.get_for_model(obj.__class__)
-        purge_at = timezone.now() + timezone.timedelta(days=int(retention_days or 60))
+        when = timezone.now() + timezone.timedelta(days=int(retention_days or 60))
         entry, _ = cls.objects.update_or_create(
             content_type=ct,
             object_id=obj.pk,
-            defaults={"purge_at": purge_at},
+            defaults={"purge_at": when},
         )
         return entry

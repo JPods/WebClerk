@@ -9,7 +9,7 @@
       "__meta__": {
         "search": {
           "fields": ["name_first", "name_last", "email", "company"],
-          "keywords": { "type": "array", "field": "refs__keywords" }  // ArrayField/JSON list
+          "keywords": { "type": "array", "field": "refs__keywords" } 
         },
         "query": {
           "allow_fields": ["id","email","company","name_first","name_last","is_active","date_joined","role"],
@@ -33,7 +33,7 @@
         "views": {
           "compact": {
             "ctx": "list",
-            "relations": {},                      // no embedded relations
+            "relations": {},                      
             "pagination": { "page_size": 5, "max_page_size": 5 },
             "fields": { "view": ["id", "email", "name_first", "name_last"] }
           },

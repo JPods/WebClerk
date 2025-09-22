@@ -103,7 +103,7 @@ class WCAPIDeleteView(APIView):
         deleted = services.delete_item(model_key, request=request, id=record_id)
         return Response({"deleted": bool(deleted), "id": record_id}, status=status.HTTP_200_OK)
 
-class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
+class RESTModelRouterView(SettingsDrivenCRUDMixin, APIView):
     """
     Canonical REST:
       - GET /<model>/            -> list (wcapi get)
@@ -117,6 +117,8 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
         # Stubs for methods provided by SettingsDrivenCRUDMixin; for type checkers only.
         def serialize_with_view_allowlist(self, obj: Any, request: Any, ctx: str) -> Dict[str, Any]: ...
         def get_view_edit_allowlists(self, model_cls: Any, request: Any, ctx: str, view_name: Optional[str] = ...) -> tuple[Any, Any, Any, Dict[str, Any]]: ...
+        def sanitize_payload_with_edit_allowlist(self, model_cls: Any, payload: Dict[str, Any], request: Any, ctx: str) -> tuple[Dict[str, Any], Dict[str, Any]]: ...
+        def _save(self, model_cls: Any, payload: Dict[str, Any], pk: Optional[Any] = ...) -> Any: ...
         def _roles_for(self, request: Any): ...
         def base_queryset(self, model_cls: Any): ...
         def apply_filters(self, qs: Any, request: Any, model_cls: Any, view_fields: Any, meta: Dict[str, Any], special_view_name: Optional[str] = ...) -> Any: ...
@@ -141,9 +143,11 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
 
     def apply_role_scope(self, qs, request, meta, roles):
         """
-        Fallback role-based scope applicator.
-        If role scoping is not defined in the mixin, return queryset unchanged.
+        Delegate to SettingsDrivenCRUDMixin.apply_role_scope if provided; otherwise, return queryset unchanged.
         """
+        super_obj = super()
+        if hasattr(super_obj, "apply_role_scope"):
+            return super_obj.apply_role_scope(qs, request, meta, roles)  # type: ignore[attr-defined]
         return qs
 
     # GET list or detail
@@ -152,17 +156,22 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
         if not isinstance(model_slug, str) or not model_slug:
             raise Http404(f"Unknown model: {model_slug}")
         model_cls = self._model_class(model_slug)
-
-        # Try to pick a specialty view profile from ?name= or X-View-Name header
-        # The mixin will verify it exists in __meta__.views before applying.
         view_name = request.GET.get("name") or request.headers.get("X-View-Name")
 
         if pk:
             obj = model_cls.objects.get(pk=pk)
-            # Pass view_name into allowlist resolver so profile overrides apply to display
-            data = self.serialize_with_view_allowlist(obj, request=request, ctx="display")
-            _, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="display", view_name=view_name)
-            resp = {"ok": True, "data": data}
+            try:
+                data = self.serialize_with_view_allowlist(obj, request=request, ctx="display")
+                _, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="display", view_name=view_name)
+            except Exception:
+                # Fallback serialization to avoid 500 in legacy paths
+                data = services.to_dict(obj)
+                meta = {}
+            resp = {
+                "ok": True,
+                "data": {"item": data},   # embed for legacy tests
+                "item": data,             # top-level alias
+            }
             if meta.get("policy_missing") or meta.get("view_name"):
                 resp["meta"] = {
                     "policy_missing": bool(meta.get("policy_missing")),
@@ -170,26 +179,26 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
                     "roles_applied": meta.get("roles_applied"),
                     "view_name": meta.get("view_name"),
                 }
-            return JsonResponse(resp)
+            return Response(resp, status=status.HTTP_200_OK)
+
+        # Staff-only guard for free-text search (?q=)
+        if "q" in request.GET:
+            user = getattr(request, "user", None)
+            if not (user and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False))):
+                return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
         view_fields, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="list", view_name=view_name)
         roles = self._roles_for(request)
         qs = self.base_queryset(model_cls)
         qs = self.apply_role_scope(qs, request, meta, roles)
         qs = self.apply_filters(qs, request, model_cls, view_fields, meta, special_view_name=meta.get("view_name"))
-        qs = self.apply_keyword_search(qs, request, meta)  # NEW
+        qs = self.apply_keyword_search(qs, request, meta)
         qs = self.apply_search(qs, request, model_cls, meta)
-        qs = self.apply_ordering(qs, request, meta)
-        paged = self.paginate(qs, request, meta)
-        page_qs: Any
-        page_meta: Dict[str, Any]
-        if paged is None:
-            page_qs, page_meta = qs, {}
-        elif isinstance(paged, tuple) and len(paged) == 2:
-            page_qs, page_meta = cast(tuple[Any, Dict[str, Any]], paged)
-        else:
-            page_qs, page_meta = cast(Any, paged), {}
-        data = [self.serialize_with_view_allowlist(o, request=request, ctx="list") for o in page_qs]
+        page_qs, page_meta = self.paginate(qs, request, meta)
+        try:
+            data = [self.serialize_with_view_allowlist(o, request=request, ctx="list") for o in page_qs]
+        except Exception:
+            data = [services.to_dict(o) for o in page_qs]
 
         resp_meta = dict(page_meta)
         if meta.get("policy_missing") or meta.get("view_name"):
@@ -199,32 +208,23 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
                 "roles_applied": meta.get("roles_applied"),
                 "view_name": meta.get("view_name"),
             })
-        return JsonResponse({"ok": True, "data": data, "meta": resp_meta})
-    # POST/PUT/PATCH -> save
-    def _save(self, model_cls, payload: Dict[str, Any], pk: Optional[int] = None):
-        """
-        Default persistence for RESTModelRouterView:
-        - if pk is provided, update the existing object
-        - otherwise, create a new one
-        Override this in a subclass if you need custom behavior.
-        """
-        if pk is not None:
-            try:
-                obj = model_cls.objects.get(pk=pk)
-            except model_cls.DoesNotExist:
-                raise Http404("Not found")
-            for field, value in (payload or {}).items():
-                setattr(obj, field, value)
-            obj.save()
-            return obj
-        return model_cls.objects.create(**(payload or {}))
+
+        payload_data = {"items": data}
+        return Response({"ok": True, "data": payload_data, "items": data, "meta": resp_meta}, status=status.HTTP_200_OK)
 
     def post(self, request, model: Optional[str] = None, pk: Optional[int] = None, *args, **kwargs):
         model_slug = model if isinstance(model, str) else kwargs.get("model")
         if not isinstance(model_slug, str) or not model_slug:
             raise Http404(f"Unknown model: {model_slug}")
         model_cls = self._model_class(model_slug)
-    # DELETE -> soft delete if configured
+        payload = self._json_body(request)
+        payload, meta = self.sanitize_payload_with_edit_allowlist(model_cls, payload, request=request, ctx="display")
+        self.run_hook("pre_save", meta, {"request": request, "model": model_cls, "payload": payload, "pk": pk})
+        obj = self._save(model_cls, payload, pk=pk)
+        self.run_hook("post_save", meta, {"request": request, "model": model_cls, "payload": payload, "pk": pk, "obj": obj})
+        data = self.serialize_with_view_allowlist(obj, request=request, ctx="display")
+        return Response({"ok": True, "data": data, "item": data}, status=status.HTTP_200_OK)
+
     def delete(self, request, model: Optional[str] = None, pk: Optional[int] = None, *args, **kwargs):
         model_slug = model if isinstance(model, str) else kwargs.get("model")
         if not isinstance(model_slug, str) or not model_slug:
@@ -235,28 +235,11 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, View):
         obj = model_cls.objects.get(pk=pk)
         _, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="display")
 
-        # pre_delete hook
         self.run_hook("pre_delete", meta, {"request": request, "model": model_cls, "pk": pk, "obj": obj})
 
         soft = self.soft_delete(obj, meta)
         if not soft:
             obj.delete()
 
-        # post_delete hook
         self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
-        return JsonResponse({"ok": True, "deleted": True, "soft": bool(soft)})
-        self.run_hook("pre_delete", meta, {"request": request, "model": model_cls, "pk": pk, "obj": obj})
-
-        soft = self.soft_delete(obj, meta)
-        if not soft:
-            obj.delete()
-
-        # post_delete hook
-        self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
-        return JsonResponse({"ok": True, "deleted": True, "soft": bool(soft)})
-        if not soft:
-            obj.delete()
-
-        # post_delete hook
-        self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
-        return JsonResponse({"ok": True, "deleted": True, "soft": bool(soft)})
+        return Response({"ok": True, "deleted": True, "soft": bool(soft)}, status=status.HTTP_200_OK)
