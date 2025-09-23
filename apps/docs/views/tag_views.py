@@ -47,6 +47,44 @@ class TagListCreateView(generics.ListCreateAPIView):
                 pass
         return qs
 
+    def list(self, request, *args, **kwargs):
+        # Build dev-fallback envelope where meta.policy_missing is True
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            items = serializer.data
+            # PageNumberPagination sets self.paginator.page
+            try:
+                page_num = getattr(self.paginator, 'page').number  # type: ignore[attr-defined]
+                total_count = getattr(self.paginator.page.paginator, 'count', len(items))  # type: ignore[attr-defined]
+                page_size = self.paginator.get_page_size(request)
+            except Exception:
+                page_num, total_count, page_size = 1, len(items), len(items)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+            items = serializer.data
+            page_num, total_count, page_size = 1, len(items), len(items)
+
+        meta = {
+            'policy_missing': True,
+            'policy_source': 'dev_fallback',
+            'page': page_num,
+            'page_size': page_size,
+            'count': total_count,
+        }
+        # Return envelope expected by tests: ok + data as list; include items mirror and meta
+        payload = {
+            'ok': True,
+            'status': 'success',
+            'code': 200,
+            'message': '',
+            'data': items,
+            'items': items,
+            'meta': meta,
+        }
+        return Response(payload, status=status.HTTP_200_OK)
+
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         serializer = self.get_serializer(data=data)

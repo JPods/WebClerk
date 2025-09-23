@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model as _dj_get_user_model
+User = _dj_get_user_model()
 from django.contrib.auth import get_user_model
 from apps.core.models import Setting
 from typing import List, cast
@@ -35,7 +36,8 @@ def test_create_saved_query_person_scope(client):
 
 @pytest.mark.django_db
 def test_saved_set_add_remove(client):
-    u = User.objects.create_user(username="bob", password="x")
+    # was: User.objects.create_user(...)
+    u = _make_user()
     client.force_login(u)
     # create set
     url = f"/wcapi/contact/_sets"

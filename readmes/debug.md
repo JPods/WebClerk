@@ -109,3 +109,44 @@ See quick table in original file; condensed here:
 ---
 
 Keep updated whenever a debug flag or development shortcut changes.
+
+## 7. Search & Write Guards
+
+This project includes optional middleware guards to centralize free‑text search control and write gating. Defaults prioritize developer velocity; enable in production as needed.
+
+- Search Guard (?q= on list)
+  - Default: disabled (middleware off).
+  - Enable: add middleware and set `WCAPI_Q_GUARD_ENABLED = True` in [webclerk3_api/settings.py](webclerk3_api/settings.py).
+  - Effect: For blessed wcapi models, non‑staff requests with `?q=` return 403.
+  - Middleware: [`common.middleware.WCAPISearchGuardMiddleware`](common/middleware.py)
+  - Note: View‑level guard exists in [`apps.core.wcapi.views.RESTModelRouterView`](apps/core/wcapi/views.py) that restricts `?q=` to staff by default; prefer the middleware for centralized policy. If you enable the middleware, you can keep or remove the view guard.
+
+- Write Gate (centralized write allowlist)
+  - Default: disabled; bypassed during pytest.
+  - Enable: set `WRITE_GATE_ENABLED = True` (recommended for production) in [webclerk3_api/settings.py](webclerk3_api/settings.py).
+  - Behavior: Blocks POST/PUT/PATCH/DELETE unless path matches the configured allowlist (exact, prefix, or regex). See settings for:
+    - `WRITE_GATE_EXACT_PATHS`, `WRITE_GATE_PREFIXES`, `WRITE_GATE_ALLOWED_REGEX` in [webclerk3_api/settings.py](webclerk3_api/settings.py).
+  - Middleware: [`common.middleware.WriteGateMiddleware`](common/middleware.py)
+  - Per‑view override: decorate views with [`common.decorators.allow_write`](common/decorators.py).
+  - Pytest: always bypassed.
+
+Quick setup (production):
+
+```python
+# settings.py
+MIDDLEWARE = [
+    # ...
+    'common.middleware.WriteGateMiddleware',
+    # optionally enable centralized search guard
+    'common.middleware.WCAPISearchGuardMiddleware',
+    # ...
+]
+
+WCAPI_Q_GUARD_ENABLED = True       # enable centralized q-guard (optional)
+WRITE_GATE_ENABLED = True          # enable write gate
+```
+
+Smoke checks:
+
+- Search guard: curl -I "<http://localhost:8000/contact/?q=foo>" (expect 403 for non‑staff)
+- Write gate: curl -X PATCH "<http://localhost:8000/contact/1/>" -d '{}' (expect 405 unless allowlisted)

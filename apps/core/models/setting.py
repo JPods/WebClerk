@@ -47,6 +47,17 @@ class Setting(BaseModel):
             raise
         return super().save(*args, **kwargs)
     
+    # Treat "comment" as a virtual field backed by data["comment"]
+    @property
+    def comment(self) -> str:
+        d = getattr(self, "data", {}) or {}
+        return str(d.get("comment") or "")
+
+    @comment.setter
+    def comment(self, value: str) -> None:
+        d = dict(getattr(self, "data", {}) or {})
+        d["comment"] = "" if value is None else str(value)
+        self.data = d
 
 #QQQ look at documents as a model
 # we have settings record for each table that

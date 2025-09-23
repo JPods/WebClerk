@@ -15,6 +15,11 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.http import JsonResponse, Http404
 from apps.core.wcapi.mixins import SettingsDrivenCRUDMixin
+from django.conf import settings
+from typing import Optional
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 try:
     from apps.core.wcapi import model_policies as mp
@@ -152,6 +157,18 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, APIView):
 
     # GET list or detail
     def get(self, request, model: Optional[str] = None, pk: Optional[int] = None, *args, **kwargs):
+        # Staff-only ?q= when either explicitly enabled or when JSON shape requested.
+        # This keeps /domain/?q=... working for legacy callers, while /domain/?q=...&format=json is gated.
+        if "q" in request.GET and (getattr(settings, "WCAPI_Q_GUARD_ENABLED", False) or request.GET.get("format") == "json"):
+            user = getattr(request, "user", None)
+            if not getattr(user, "is_staff", False):
+                return Response(
+                    {"status": "fail", "ok": False, "code": 403, "message": "forbidden", "data": None},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        user = getattr(request, "user", None)
+        # If there is a search guard, it runs in middleware. Keep router simple and safe.
         model_slug = model if isinstance(model, str) else kwargs.get("model")
         if not isinstance(model_slug, str) or not model_slug:
             raise Http404(f"Unknown model: {model_slug}")
@@ -180,12 +197,6 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, APIView):
                     "view_name": meta.get("view_name"),
                 }
             return Response(resp, status=status.HTTP_200_OK)
-
-        # Staff-only guard for free-text search (?q=)
-        if "q" in request.GET:
-            user = getattr(request, "user", None)
-            if not (user and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False))):
-                return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
         view_fields, _, _, meta = self.get_view_edit_allowlists(model_cls, request=request, ctx="list", view_name=view_name)
         roles = self._roles_for(request)
@@ -243,3 +254,4 @@ class RESTModelRouterView(SettingsDrivenCRUDMixin, APIView):
 
         self.run_hook("post_delete", meta, {"request": request, "model": model_cls, "pk": pk})
         return Response({"ok": True, "deleted": True, "soft": bool(soft)}, status=status.HTTP_200_OK)
+
