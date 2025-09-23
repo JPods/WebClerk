@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils.functional import Promise
 from common.api_responses import api_response
 from django.utils.encoding import force_str
-from typing import Any  # ensure this import exists
+from typing import Any
 
 # Read exemptions from settings with safe defaults.
 EXEMPT_PATH_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PATH_PREFIXES', ('/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/')))
@@ -123,7 +123,7 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
                             message = http.client.responses.get(status_code, '')  # type: ignore[attr-defined]
                         except Exception:
                             message = ''
-                    envelope: Dict[str, Any] = {
+                    envelope: dict[str, Any] = {
                         'status': status_val,
                         'error': {'code': 'http_error', 'details': None},
                         'code': status_code,
@@ -151,7 +151,7 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
                 payload_data = {k: _force(v) for k, v in data.items()}
             else:
                 payload_data = data
-            envelope: Dict[str, Any] = {
+            envelope: dict[str, Any] = {
                 'status': status_val,
                 'error': None,
                 'code': status_code,
@@ -296,3 +296,37 @@ class WCAPISearchGuardMiddleware:
                     from django.http import JsonResponse
                     return JsonResponse({'detail': 'forbidden'}, status=403)
         return self.get_response(request)
+
+def _should_skip_envelope(request, response) -> bool:
+    try:
+        # Response attributes or headers
+        if getattr(response, "_skip_envelope", False) or getattr(response, "skip_envelope", False):
+            return True
+        hdrs = {k.lower(): v for k, v in getattr(response, "headers", {}).items()} if hasattr(response, "headers") else {}
+        if response.get("X-Skip-Envelope") == "skip" or hdrs.get("x-skip-envelope") == "skip":
+            return True
+        # Request headers
+        meta = getattr(request, "META", {}) or {}
+        if meta.get("HTTP_X_SKIP_ENVELOPE") == "skip" or meta.get("HTTP_X_ENVELOPE") == "skip":
+            return True
+        # Optional per-view opt-out
+        if getattr(request, "skip_envelope", False):
+            return True
+    except Exception:
+        pass
+    return False
+
+class EnvelopeMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        try:
+            # Skip if flagged
+            if _should_skip_envelope(request, response):
+                return response
+        except Exception:
+            pass
+        # Standardize JSON envelope logic here
+        return response

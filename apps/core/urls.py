@@ -1,5 +1,5 @@
 # path: apps/core/urls.py
-from django.urls import path
+from django.urls import include, path
 
 from apps.core.views import (
     HomeView, AboutView,
@@ -162,5 +162,10 @@ urlpatterns = [
     # path('contacts/', ContactApiListView.as_view(), name='contact-list'),  # disabled until reviewed
     # path('contacts/<int:pk>/', ContactApiDetailView.as_view(), name='contact-detail'),  # disabled until reviewed
     # path('contacts/search/', ContactApiSearchView.as_view(), name='contact-search'),  # disabled until reviewed
+]
+
+# WCAPI: open-query + saved sets
+urlpatterns += [
+    path("", include("apps.core.wcapi.urls")),
 ]
 
