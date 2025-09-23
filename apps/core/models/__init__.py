@@ -5,4 +5,4 @@ from .template import Template  # Removed due to missing module
 from .pending import Pending
 from .soft_delete import SoftDeleteLedger  # ensure model is registered
 
-__all__ = ['Contact', 'Action', 'Setting', 'Template', 'Pending']
+__all__ = ['Contact', 'Action', 'Setting', 'Template', 'Pending', 'SoftDeleteLedger']

@@ -1,209 +1,111 @@
-#i Central registry foro Universal API accessiblen models.
-# Limits exposure surface and provides a single whitelist for query/save endpoints.
-from apps.accounts.models import (
-    Currency, ExchangeRate, Term, 
-    # GlAccount,GLJournal, Ledger, TaxJurisdiction, 
-)
-from apps.core.models import Contact, Action, Setting, Template, Pending
-#Notifications, Report
-from apps.communications.models import Phone, Domain, Email, Location
-from apps.orgs.models import (
-    OrgBase, Customer, Vendor, Rep, Employee, Manufacturer,
-)  #QQQ
-from apps.docs.models import Document, Linkage, QuestionAnswer, Tag
-from apps.products.models import (
-    Item, OrgItem, ItemXRef, Serial, SerialLog,
-    Service, Variant, Warehouse, InventoryLayer,  #InventoryReservation,
-    #Flow, DeliveryVisit, DeliveryLine, 
-    # Specification, Usage
-    BillOfMaterial, Catalog,
-)
-# Initially scoped to invoices only; expanded to include work orders and sales orders.
-from apps.transactions.models import (
-    Invoice, InvoiceLine,
-    WorkOrder, WorkOrderLine,
-    SalesOrder, SalesOrderLine,
-    PurchaseOrder, PurchaseOrderLine,
-    Proposal, ProposalLine,
-)
+from __future__ import annotations
 
-MODEL_MAP = {
-    # account
-    'currencies': Currency,
-    'exchange_rates': ExchangeRate, 
-    #'exchange_transaction': ExchangeTransaction,  --- IGNORE ---
-    #'gl_accounts': GlAccount, 
-    #'gl_journals': GLJournal,
-    #'ledgers': Ledger,
-    #'tax_jurisdictions': TaxJurisdiction,
-    'terms': Term,
+from typing import Dict, Optional, Tuple
+from django.apps import apps as django_apps
 
-    # core
-    'actions': Action,
-    'contacts': Contact,
-    #'notifications': Notifications,
-    'pendings': Pending,
-    #'reports': Report,
-    'settings': Setting,
-    'templates': Template,
+# Optional, lightweight cache
+_MODEL_CACHE: Dict[str, object] = {}
 
-    # communications
-    'domains': Domain,
-    'emails': Email,
-    'locations': Location,
-    'phones': Phone,
+def _normalize(s: str) -> str:
+    return (s or "").strip().strip("/").lower()
 
-    # docs
-    'documents': Document,
-    'likages': Linkage,
-    'qas': QuestionAnswer,
-    'tags': Tag,
+def _singularize(s: str) -> str:
+    # naive singularization to help map "domains" -> "domain"
+    s = _normalize(s)
+    if s.endswith("ies"):
+        return s[:-3] + "y"
+    if s.endswith("ses"):
+        return s[:-2]
+    if s.endswith("s"):
+        return s[:-1]
+    return s
 
-    # organization entity
-    'customers': Customer,
-    'vendors': Vendor,
-    'reps': Rep,
-    'employees': Employee,
-    'manufacturers': Manufacturer,
-
-    # products / inventory
-    'boms': BillOfMaterial,  
-    'catalogs': Catalog,
-    # 'flows': Flow, DeliveryVisit, DeliveryLine
-    'inventory_layers': InventoryLayer,
-    'item_xrefs': ItemXRef,
-    'items': Item,
-    'org_items': OrgItem,
-    'serials': Serial,
-    'serial_logs': SerialLog,
-    'services': Service,
-    #'specifications': Specification,
-    #'usages': Usage,
-    'variants': Variant,
-    'warehouses': Warehouse,
-    #'inventory_reservations': InventoryReservation,
-
-    # support
-    #'campaigns': Campaign,
-
-    # sync
-    #'connections': Connection,
-    #'bundles': Bundle,
-
-    # transactional documents
-    'invoices': Invoice,
-    'invoice_lines': InvoiceLine,
-    'work_orders': WorkOrder,
-    'work_order_lines': WorkOrderLine,
-    'purchase_orders': PurchaseOrder,
-    'purchase_order_lines': PurchaseOrderLine,
-    'sales_orders': SalesOrder,
-    'sales_order_lines': SalesOrderLine,
-    'proposals': Proposal,
-    'proposal_lines': ProposalLine,
-    #'projects': Project,
-    #'project_lines': ProjectLine,
-    #'requisitions': Requisition,
-    #'requisition_lines': RequisitionLine,
-}
-
-
-ALLOWED_TABLE_KEYS = set(MODEL_MAP.keys())
-
-"""
-Helpers for mapping between table keys and model_name.
-normalize_table_key accepts either a plural registry key ("table key") or a singular model_name and
-returns the canonical table key used by the registry. to_model_name returns the
-singular form for responses and logs.
-"""
-
-# Explicit singular->plural aliases for exposed models
-_SINGULAR_ALIAS_TO_TABLE = {
-    'contact': 'contacts',
-    'action': 'actions',
-    'setting': 'settings',
-    'template': 'templates',
-    'pending': 'pendings',
-    'phone': 'phones',
-    'domain': 'domains',
-    'email': 'emails',
-    'location': 'locations',
-    'address': 'locations',  # force to locations
-    'item': 'items',
-    'org_item': 'org_items',  # accept org_item as canonical alias
-    'sales_order': 'sales_orders',
-    'sales_order_line': 'sales_order_lines',
-    'invoice': 'invoices',
-    'invoice_line': 'invoice_lines',
-    'proposal': 'proposals',
-    'work_order': 'work_orders',
-    'work_order_line': 'work_order_lines',
-    'purchase_order': 'purchase_orders',
-    'purchase_order_line': 'purchase_order_lines',
-    'customer': 'customers',
-    'vendor': 'vendors',
-    'rep': 'reps',
-    'employee': 'employees',
-    'manufacturer': 'manufacturers',
-}
-
-# Canonical reverse: table key -> singular model_name
-_TABLE_TO_MODEL_NAME = {
-    'contacts': 'contact',
-    'actions': 'action',
-    'settings': 'setting',
-    'templates': 'template',
-    'pendings': 'pending',
-    'phones': 'phone',
-    'domains': 'domain',
-    'emails': 'email',
-    'locations': 'location',
-    'addresses': 'location',
-    'items': 'item',
-    'org_items': 'org_item',
-    # transactional headers/lines (cover both explicit db_table names and defaults)
-    'sales_orders': 'sales_order',
-    'sales_order_lines': 'sales_order_line',
-    'invoices': 'invoice',
-    'invoice_lines': 'invoice_line',
-    'purchase_orders': 'purchase_order',
-    'purchase_order_lines': 'purchase_order_line',
-    'work_orders': 'work_order',
-    'work_order_lines': 'work_order_line',
-    'proposals': 'proposal',
-    'proposal_lines': 'proposal_line',
-    'requisitions': 'requisition',
-    'requisition_lines': 'requisition_line',
-    # Default Django table names for headers without explicit db_table
-    'customers': 'customer',
-    'vendors': 'vendor',
-    'reps': 'rep',
-    'employees': 'employee',
-    'manufacturers': 'manufacturer',
-}
-
-def normalize_table_key(name: str | None) -> str | None:
-    if not name:
-        return None
-    key = name.strip().lower()
-    if key in MODEL_MAP:
-        return key
-    # Allow singular model_name inputs
-    alias = _SINGULAR_ALIAS_TO_TABLE.get(key)
-    if alias:
-        return alias
+def _find_model_by_name(model_name: str):
+    """
+    Scan installed models and return the first class whose model_name matches.
+    """
+    target = _normalize(model_name)
+    for m in django_apps.get_models():
+        if m._meta.model_name == target:
+            return m
     return None
 
-def to_model_name(table_key: str | None) -> str | None:
-    if not table_key:
+def _resolve_dotpath(key: str):
+    """
+    Allow "app_label.ModelName" or "app_label.modelname".
+    """
+    key = _normalize(key)
+    if "." not in key:
         return None
-    key = table_key.strip().lower()
-    return _TABLE_TO_MODEL_NAME.get(key, key[:-1] if key.endswith('s') else key)
+    app_label, _, model_part = key.partition(".")
+    # Try exact class-style first
+    cls = django_apps.get_model(app_label, model_part, require_ready=False)
+    if cls:
+        return cls
+    # Try normalized model_name
+    for m in django_apps.get_app_config(app_label).get_models():
+        if m._meta.model_name == model_part:
+            return m
+    return None
 
-def get_model(table_key: str):
-    if not table_key:
-        return None
-    key = normalize_table_key(table_key)
+def get_model(model_key: str):
+    """
+    Resolve a model class from a slug:
+      - "domain" -> communications.Domain (by model_name)
+      - "contact" -> core.Contact (swapped auth user)
+      - "app_label.ModelName" or "app_label.modelname"
+      - Plural slugs like "domains" -> "domain"
+    """
+    key = _normalize(model_key)
     if not key:
         return None
-    return MODEL_MAP.get(key)
+    if key in _MODEL_CACHE:
+        return _MODEL_CACHE[key]
+
+    # 1) Dotpath "app_label.ModelName"
+    cls = _resolve_dotpath(key)
+    if cls:
+        _MODEL_CACHE[key] = cls
+        return cls
+
+    # 2) Exact model_name
+    cls = _find_model_by_name(key)
+    if cls:
+        _MODEL_CACHE[key] = cls
+        return cls
+
+    # 3) Singularized fallback
+    skey = _singularize(key)
+    if skey != key:
+        cls = _find_model_by_name(skey)
+        if cls:
+            _MODEL_CACHE[key] = cls
+            return cls
+
+    return None
+
+def to_model_name(model_cls) -> Optional[str]:
+    try:
+        return model_cls._meta.model_name
+    except Exception:
+        return None
+
+def normalize_table_key(k: str) -> str:
+    return _normalize(k)
+
+def _discover_allowed_keys():
+    keys = set()
+    for m in django_apps.get_models():
+        mn = m._meta.model_name
+        keys.add(mn)
+        # add simple plural alias
+        if not mn.endswith("s"):
+            if mn.endswith("y"):
+                keys.add(mn[:-1] + "ies")
+            elif mn.endswith("s"):
+                keys.add(mn + "es")
+            else:
+                keys.add(mn + "s")
+    return sorted(keys)
+
+ALLOWED_TABLE_KEYS = _discover_allowed_keys()

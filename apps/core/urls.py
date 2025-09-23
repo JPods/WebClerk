@@ -163,3 +163,4 @@ urlpatterns = [
     # path('contacts/<int:pk>/', ContactApiDetailView.as_view(), name='contact-detail'),  # disabled until reviewed
     # path('contacts/search/', ContactApiSearchView.as_view(), name='contact-search'),  # disabled until reviewed
 ]
+
