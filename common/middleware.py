@@ -13,7 +13,25 @@ from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import Promise
 from django.utils.encoding import force_str
 from django.utils.dateparse import parse_datetime
-from django.utils.http import http_date, parse_http_date_safe
+from django.utils.http import http_date  # keep http_date from Django
+from email.utils import parsedate_to_datetime
+# Add safe parser (with fallback)
+try:
+    from django.utils.http import parse_http_date_safe  # type: ignore
+except Exception:
+    from typing import Optional
+    def parse_http_date_safe(value: str) -> Optional[int]:
+        try:
+            dt = parsedate_to_datetime(value)
+            if dt is None:
+                return None
+            # Make aware if naive
+            from django.utils import timezone
+            if getattr(dt, 'tzinfo', None) is None:
+                dt = timezone.make_aware(dt, timezone=timezone.utc)  # type: ignore[arg-type]
+            return int(dt.timestamp())
+        except Exception:
+            return None
 from django.utils import timezone
 
 # Stable Last-Modified cache keyed by ETag

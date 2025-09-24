@@ -1,15 +1,18 @@
 from __future__ import annotations
+
 import json
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Type, Iterable, Sequence
-from django.http import Http404, HttpResponseForbidden
-from django.conf import settings
 from functools import cached_property
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Protocol, cast
+
+from django.conf import settings
+from django.http import Http404
 from django.db.models import Q, QuerySet, Model
 from rest_framework.request import Request
 
 from .registry import get as get_cfg
+
 
 def _import_callable(path: str):
     """
@@ -18,17 +21,14 @@ def _import_callable(path: str):
     if not path:
         raise ValueError("Empty import path")
     try:
-        # Try Django helper for dotted import paths
         from django.utils.module_loading import import_string  # type: ignore
         obj = import_string(path)
     except Exception:
-        # Support colon syntax explicitly
         if ":" in path:
             mod, func = path.split(":", 1)
             module = import_module(mod)
             obj = getattr(module, func)
         else:
-            # Fallback: split by last dot
             mod, _, attr = path.rpartition(".")
             if not mod or not attr:
                 raise
@@ -38,10 +38,12 @@ def _import_callable(path: str):
         raise TypeError(f"Imported object '{path}' is not callable")
     return obj
 
+
 try:
     from apps.core.models import SoftDeleteLedger  # type: ignore
 except Exception:
     SoftDeleteLedger = None  # type: ignore
+
 
 class SettingsDrivenCRUDMixin:
     """
@@ -83,7 +85,6 @@ class SettingsDrivenCRUDMixin:
             if not path.exists():
                 return {}
             raw_text = path.read_text()
-            # Support JSON with // comments
             lines = [ln for ln in raw_text.splitlines() if not ln.strip().startswith("//")]
             data = json.loads("\n".join(lines))
             out: Dict[str, dict] = {}
@@ -175,7 +176,6 @@ class SettingsDrivenCRUDMixin:
         try:
             names: List[str] = []
             for f in model._meta.get_fields():
-                # Include concrete fields and FK/O2O; skip reverse mgrs in base list
                 if getattr(f, "concrete", False) or getattr(f, "many_to_one", False) or getattr(f, "one_to_one", False):
                     names.append(f.name)
             return names
@@ -185,9 +185,6 @@ class SettingsDrivenCRUDMixin:
     # ---------- View-name (specialty behaviors)
 
     def _extract_view_name(self, request, meta: dict) -> Optional[str]:
-        """
-        Resolve specialty view-name from request if it matches a defined profile in __meta__.views.
-        """
         views = (meta.get("views") or {}) if isinstance(meta, dict) else {}
         if not isinstance(views, dict) or not views:
             return None
@@ -197,16 +194,11 @@ class SettingsDrivenCRUDMixin:
         return candidate if candidate in views else None
 
     def _apply_view_profile_overrides(self, base_meta: dict, view_profile: dict) -> dict:
-        """
-        Merge view-profile fields into meta. Shallow merge is fine for typical knobs
-        (relations, ordering, search, filters, pagination, hooks, scopes).
-        """
         if not isinstance(view_profile, dict):
             return base_meta
         merged = dict(base_meta or {})
         for k, v in view_profile.items():
             if k == "fields":
-                # handled separately by get_view_edit_allowlists
                 continue
             merged[k] = v
         return merged
@@ -214,12 +206,6 @@ class SettingsDrivenCRUDMixin:
     def get_view_edit_allowlists(
         self, model: Type[Model], request=None, ctx: Optional[str] = None, view_name: Optional[str] = None
     ) -> Tuple[Optional[List[str]], Optional[List[str]], dict, dict]:
-        """
-        Returns (view_fields, edit_fields, role_block, meta)
-        meta includes: policy_source, roles_applied, and if applicable policy_missing, view_name.
-        If a view_name is specified and exists in __meta__.views, its overrides are merged.
-        Optionally, a profile can override fields via fields.view / fields.edit.
-        """
         model_key = self._model_key(model)
         rec, source = self._setting_for(model_key)
         roles = self._roles_for(request)
@@ -241,7 +227,6 @@ class SettingsDrivenCRUDMixin:
         if role_meta:
             meta.update(role_meta)
 
-        # If client didn’t pass a view_name explicitly, see if one is present in request
         view_name = view_name or self._extract_view_name(request, meta)
         profile = None
         if view_name:
@@ -250,7 +235,6 @@ class SettingsDrivenCRUDMixin:
                 meta = self._apply_view_profile_overrides(meta, profile)
                 meta["view_name"] = view_name
 
-        # Determine fields (allow profile to override via fields.view / fields.edit)
         view_fields = (ctx_block.get("view") if isinstance(ctx_block, dict) else None) or role_block.get("view")
         edit_fields = (ctx_block.get("edit") if isinstance(ctx_block, dict) else None) or role_block.get("edit")
 
@@ -260,10 +244,8 @@ class SettingsDrivenCRUDMixin:
                 view_fields = fields_override.get("view", view_fields)
                 edit_fields = fields_override.get("edit", edit_fields)
 
-            # A profile can also force a different ctx (e.g., ctx="list")
             prof_ctx = profile.get("ctx")
             if prof_ctx in ("list", "display"):
-                # re-resolve ctx block with the forced ctx
                 ctx_block = self._resolve_ctx_block(role_block, prof_ctx)
                 view_fields = (ctx_block.get("view") if isinstance(ctx_block, dict) else None) or view_fields
                 edit_fields = (ctx_block.get("edit") if isinstance(ctx_block, dict) else None) or edit_fields
@@ -274,9 +256,6 @@ class SettingsDrivenCRUDMixin:
     # ---------- Query building
 
     def base_queryset(self, model: Type[Model]) -> QuerySet:
-        """
-        Default queryset for the given model; override in subclasses to apply domain-specific scoping.
-        """
         try:
             return model._default_manager.all()
         except Exception:
@@ -297,7 +276,6 @@ class SettingsDrivenCRUDMixin:
         for k, v in params.items():
             if k in {"page", "page_size", "ordering", "q"}:
                 continue
-            # If "name" was used as a special view selector, do not treat it as a filter
             if k == "name" and special_view_name:
                 continue
             if k in allowed:
@@ -407,12 +385,6 @@ class SettingsDrivenCRUDMixin:
         return changed
 
     def apply_keyword_search(self, qs: QuerySet, request, meta: dict) -> QuerySet:
-        """
-        kw=word1,word2 or kw=space separated.
-        If __meta__.search.keywords is configured:
-          - when type=='array' and field is an ArrayField/JSON list: uses overlap
-          - otherwise falls back to icontains across configured fields
-        """
         raw = (request.GET.get("kw") or "").strip()
         if not raw:
             return qs
@@ -428,12 +400,10 @@ class SettingsDrivenCRUDMixin:
 
         try:
             if typ == "array" and field:
-                # Postgres ArrayField or JSON list: overlap
                 return qs.filter(**{f"{field}__overlap": words})
         except Exception:
             pass
 
-        # Fallback: OR across text fields
         cond = Q()
         for w in words:
             for f in fields:
@@ -451,13 +421,12 @@ class SettingsDrivenCRUDMixin:
         return {
             "allow_fields": set(q.get("allow_fields") or []),
             "allow_ops": set(q.get("allow_ops") or self.DEFAULT_ALLOWED_OPS),
-            "allow_joins": (q.get("allow_joins") or {}),  # alias -> path
+            "allow_joins": (q.get("allow_joins") or {}),
             "max_depth": int(q.get("max_depth") or 1),
             "max_rows": int(q.get("max_rows") or 500),
         }
 
     def _validate_field(self, f: str, policy: dict) -> bool:
-        # Permit nested via allowed joins (alias.field) if the alias is allowed
         if "." in f:
             alias, _, tail = f.partition(".")
             path = (policy["allow_joins"] or {}).get(alias)
@@ -471,18 +440,12 @@ class SettingsDrivenCRUDMixin:
             return f"{f}__{op}"
         if op == "in": return f"{f}__in"
         if op == "isnull": return f"{f}__isnull"
-        return f  # default
+        return f
 
     def _json_body(self, request) -> dict:
-        """
-        Best-effort JSON body parser that works with Django HttpRequest and DRF Request.
-        Returns a dict, or {} when no/invalid JSON is present.
-        """
-        # Prefer DRF's parsed data when available
         data = getattr(request, "data", None)
         if isinstance(data, dict):
             return data
-        # Handle QueryDict (e.g., DRF form or Django request.POST)
         try:
             from django.http import QueryDict  # type: ignore
             if isinstance(data, QueryDict):
@@ -490,7 +453,6 @@ class SettingsDrivenCRUDMixin:
         except Exception:
             pass
 
-        # Fallback to raw body
         raw = getattr(request, "body", b"")
         try:
             if isinstance(raw, bytes):
@@ -506,11 +468,6 @@ class SettingsDrivenCRUDMixin:
             return {}
 
     def evaluate_open_query(self, model: Type[Model], request, meta: dict) -> Tuple[QuerySet, dict]:
-        """
-        Accepts JSON body:
-          { select?: [fields], where?: [{field, op, value}], any?: true, order_by?: ["-field"], joins?: ["alias"], limit?, offset? }
-        Enforces policy from __meta__.query.
-        """
         policy = self._query_policy(meta)
         try:
             body = self._json_body(request)
@@ -525,12 +482,10 @@ class SettingsDrivenCRUDMixin:
 
         qs = self.base_queryset(model)
 
-        # Apply joins (only allowed aliases)
         for alias in join_aliases:
             path = (policy["allow_joins"] or {}).get(alias)
             if not path:
                 continue
-            # Prefer prefetch_related for reverse/m2m; select_related for FK/O2O is safe to use via select_related
             try:
                 qs = qs.prefetch_related(path)
             except Exception:
@@ -539,9 +494,8 @@ class SettingsDrivenCRUDMixin:
                 except Exception:
                     pass
 
-        # Build conditions
-        AND = []
-        EXCLUDE = []
+        AND: List[Dict[str, Any]] = []
+        EXCLUDE: List[Dict[str, Any]] = []
         conds = where if isinstance(where, list) else []
         for c in conds:
             if not isinstance(c, dict):  continue
@@ -549,7 +503,6 @@ class SettingsDrivenCRUDMixin:
             if not f or op not in policy["allow_ops"]:  continue
             if not self._validate_field(f, policy):      continue
 
-            # Map alias.field to real lookup if present
             if "." in f:
                 alias, _, tail = f.partition(".")
                 path = (policy["allow_joins"] or {}).get(alias)
@@ -561,7 +514,6 @@ class SettingsDrivenCRUDMixin:
             else:
                 AND.append({self._lookup_for(f, op): val})
 
-        # Apply where
         try:
             if AND:
                 for filt in AND:
@@ -572,114 +524,22 @@ class SettingsDrivenCRUDMixin:
         except Exception:
             pass
 
-        # Ordering
         if isinstance(order_by, list) and order_by:
             try:
                 qs = qs.order_by(*order_by)
             except Exception:
                 pass
 
-        # Caps
         if limit <= 0 or limit > policy["max_rows"]:
             limit = policy["max_rows"]
         if offset < 0:
             offset = 0
         return qs[offset: offset + limit], {"limit": limit, "offset": offset}
 
-    # ----- Saved queries and sets (persisted in DB Setting)
 
-    def _user_is_admin(self, request) -> bool:
-        user = getattr(request, "user", None)
-        return bool(user and (getattr(user, "is_superuser", False) or getattr(user, "is_staff", False)))
+class _HasRegistryConfig(Protocol):
+    def get_registry_config(self) -> Any: ...
 
-    def _can_access_saved_setting(self, request, setting_row) -> bool:
-        """
-        Enforce access to Setting rows with purpose in {'saved_query','saved_set'}.
-        Rules:
-          - Admins: full access.
-          - scope.type == 'person': allowed if owner_id == request.user.id
-          - scope.type == 'role': allowed if scope.value is in roles_applied
-          - scope.type == 'job': allowed if request.GET['job'] or header X-Job matches scope.value
-        """
-        if self._user_is_admin(request):
-            return True
-        data = getattr(setting_row, "data", {}) or {}
-        scope = (data.get("scope") or {}) if isinstance(data, dict) else {}
-        owner_id = data.get("owner_id")
-        typ = (scope.get("type") or "").lower()
-        val = (scope.get("value") or "") if scope else ""
-        user = getattr(request, "user", None)
-        if typ == "person":
-            try:
-                return bool(user and getattr(user, "is_authenticated", False) and int(owner_id or 0) == int(getattr(user, "id", 0)))
-            except Exception:
-                return False
-        if typ == "role":
-            roles = self._roles_for(request)
-            return val in roles
-        if typ == "job":
-            job = request.GET.get("job") or request.headers.get("X-Job")
-            return bool(job and val and str(job) == str(val))
-        # default: private owner check if present
-        if owner_id:
-            try:
-                return bool(user and getattr(user, "is_authenticated", False) and int(owner_id) == int(getattr(user, "id", 0)))
-            except Exception:
-                return False
-        return False
-
-    def _load_saved_query_setting(self, request, model_slug: str, ident: str):
-        """
-        ident may be numeric id or name (unique per owner scope).
-        """
-        try:
-            from apps.core.models import Setting  # local import to avoid cycles
-        except Exception:
-            raise Http404("saved_query storage unavailable")
-
-        qs = Setting.objects.filter(is_active=True, purpose="saved_query", model_name=model_slug)
-        if ident.isdigit():
-            row = qs.filter(pk=int(ident)).first()
-        else:
-            row = qs.filter(name=ident).order_by("-id").first()
-        if not row or not self._can_access_saved_setting(request, row):
-            raise Http404("saved_query not found")
-        return row
-
-    def _load_saved_set_setting(self, request, model_slug: str, ident: str):
-        try:
-            from apps.core.models import Setting
-        except Exception:
-            raise Http404("saved_set storage unavailable")
-
-        qs = Setting.objects.filter(is_active=True, purpose="saved_set", model_name=model_slug)
-        if ident.isdigit():
-            row = qs.filter(pk=int(ident)).first()
-        else:
-            row = qs.filter(name=ident).order_by("-id").first()
-        if not row or not self._can_access_saved_setting(request, row):
-            raise Http404("saved_set not found")
-        return row
-
-    def filter_by_saved_set(self, qs: QuerySet, request, model: Type[Model], meta: dict) -> QuerySet:
-        """
-        If request has ?set=<id|name>, restrict queryset to that saved id list.
-        Soft-deleted rows are already excluded by apply_role_scope when configured.
-        """
-        ident = (request.GET.get("set") or "").strip()
-        if not ident:
-            return qs
-        try:
-            row = self._load_saved_set_setting(request, self._model_key(model), ident)
-        except Http404:
-            return qs.none()
-        ids = list(((getattr(row, "data", {}) or {}).get("ids") or []))
-        if not ids:
-            return qs.none()
-        try:
-            return qs.filter(pk__in=ids)
-        except Exception:
-            return qs
 
 class RegistryQuerysetMixin:
     model_key: str
@@ -696,12 +556,13 @@ class RegistryQuerysetMixin:
             return cfg.queryset.all()
         return cfg.model._default_manager.all()  # type: ignore[attr-defined]
 
-class QSearchMixin(RegistryQuerysetMixin):
+
+class QSearchMixin:
     def apply_q_search(self, qs: QuerySet, request: Request, extra_fields: Optional[Sequence[str]] = None) -> QuerySet:
         raw_q = (request.GET.get("q") or "").strip()
         if not raw_q:
             return qs
-        cfg = self.get_registry_config()
+        cfg = cast(_HasRegistryConfig, self).get_registry_config()
         fields = list(cfg.search_fields or [])
         if extra_fields:
             fields.extend(extra_fields)
@@ -715,9 +576,11 @@ class QSearchMixin(RegistryQuerysetMixin):
             qs = qs.filter(or_q)
         return qs
 
+
 class DevFallbackMetaMixin:
     def add_dev_fallback_meta(self, meta: dict) -> dict:
-        if self.get_registry_config().dev_fallback:
+        cfg = cast(_HasRegistryConfig, self).get_registry_config()
+        if cfg.dev_fallback:
             meta.setdefault("policy_missing", True)
             meta.setdefault("policy_source", "dev_fallback")
         return meta
