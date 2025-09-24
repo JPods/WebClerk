@@ -33,7 +33,7 @@ Compliance scan
   - `# WCAPI-NONCOMPLIANT owner=alice reason=temporary shim`
   - `# wcapi exempt responsible=bob@example.com reason=3rd-party callback`
 
-# WCAPI Notes
+## WCAPI Notes
 
 ## Search & Write Guards
 

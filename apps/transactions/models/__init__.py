@@ -47,6 +47,10 @@ def __dir__():
 # Keep dynamic exports; use a typed tuple for better analyzer compatibility
 __all__: Tuple[str, ...] = tuple(_MAPPING.keys())
 
-# Optional: bind for type checkers or when explicitly requested
-if TYPE_CHECKING or os.getenv("TRANSACTIONS_EAGER_IMPORT") == "1":
-    _eager_bind_all()
+# Eagerly import and bind all mapped models so Django can resolve string FK targets
+# like "transactions.Proposal" during system checks.
+try:
+    _eager_bind_all()  # defined above in this module
+except Exception:
+    # Tolerate optional models missing in some environments
+    pass

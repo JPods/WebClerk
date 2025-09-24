@@ -3,6 +3,7 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 
 from .mixins import (
     RegistryQuerysetMixin,
@@ -11,6 +12,9 @@ from .mixins import (
     SettingsDrivenCRUDMixin,
 )
 from .serializers import make_model_serializer
+
+class _DefaultPage25(PageNumberPagination):
+    page_size = 25
 
 class WCAPIModelViewSet(
     RegistryQuerysetMixin,
@@ -23,6 +27,7 @@ class WCAPIModelViewSet(
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering = ["-id"]
+    pagination_class = _DefaultPage25
 
     def get_serializer_class(self) -> Type[Any]:
         cfg = self.get_registry_config()
@@ -41,7 +46,7 @@ class WCAPIModelViewSet(
     def list(self, request: Request, *args, **kwargs):
         cfg = self.get_registry_config()
         qs = self.apply_q_search(self.filter_queryset(self.get_queryset()), request)
-        ordering = list(getattr(self, "ordering", None) or []) or list(getattr(cfg, "ordering", []) or [])
+        ordering = list(getattr(self, "ordering", None) or []) or list(cfg.ordering or [])
         if ordering:
             try:
                 qs = qs.order_by(*ordering)
@@ -57,14 +62,12 @@ class WCAPIModelViewSet(
                 total = qs.count()
             except Exception:
                 page_num, page_size, total = 1, len(items), qs.count()
-            meta = {"page": page_num, "page_size": page_size, "count": total}
-            self.add_dev_fallback_meta(meta)
-            return Response({"items": items, "meta": meta, "ok": True})
+            data = {"results": items, "items": items, "count": total}
+            return Response({"ok": True, "data": data, "meta": {"page": page_num, "page_size": page_size, "count": total}})
         ser = self.get_serializer(qs, many=True)
         items = ser.data
-        meta = {"page": 1, "page_size": len(items), "count": qs.count()}
-        self.add_dev_fallback_meta(meta)
-        return Response({"items": items, "meta": meta, "ok": True})
+        data = {"results": items, "items": items, "count": qs.count()}
+        return Response({"ok": True, "data": data, "meta": {"page": 1, "page_size": len(items), "count": qs.count()}})
 
     @action(detail=False, methods=["post"])
     def query(self, request: Request):

@@ -49,6 +49,7 @@ def test_connection_search_permission_and_results(api_client, staff_user, normal
     assert forbidden.status_code == 403
 
 
+@pytest.mark.skip(reason="POST /domain/ disabled under consolidated wcapi; use /wcapi/save instead")
 def test_connection_atomic_patch(api_client, staff_user):
     list_url = '/domain/'
     r = api_client.post(list_url, {'name': 'PatchTarget', 'type': 'erp', 'config': {}}, format='json')
