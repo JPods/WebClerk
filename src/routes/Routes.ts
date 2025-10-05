@@ -25,6 +25,8 @@ export class PageRoutes {
   static readonly adminWorkbench: string = "/admin-wb";
   static readonly whitelist: string = "/whitelist";
   static readonly docs: string = "/docs";
+  static readonly notionTracker: string = "/notion-tracker";
+  static readonly kanbanBoard: string = "/kanban-board";
 
   // Products & Transactions
   static readonly products: string = "/products";

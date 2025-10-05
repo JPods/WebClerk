@@ -1,5 +1,11 @@
-import apiClient from "./axios"; // unified protected API client
-import { PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
+import apiClient, { notionClient } from "./axios"; // unified protected API client
+import { IntegrationURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
+import {
+  NotionModule,
+  NotionModuleUpdatePayload,
+  NotionProgressResponse,
+  NotionAuthStatus,
+} from "../type/notion";
 
 export const patchUserProfile = async (data:any) => {
   try {
@@ -189,4 +195,43 @@ export const Domains = async () => {
   catch (error: any) { 
     return error.response?.data || error.message   
   }  
+};
+
+// --------------------
+// Notion integration
+// --------------------
+
+const normalizeEnvelope = <T>(response: any): T => {
+  if (!response) return {} as T;
+  if (response?.data && response.data.data) return response.data.data as T;
+  if (response?.data) return response.data as T;
+  return response as T;
+};
+
+export const fetchNotionAuthStatus = async (): Promise<NotionAuthStatus> => {
+  const res = await notionClient.get(IntegrationURL.notionStatus);
+  return normalizeEnvelope<NotionAuthStatus>(res);
+};
+
+export const startNotionLogin = async (): Promise<{ url?: string }> => {
+  const res = await notionClient.post(IntegrationURL.notionLogin);
+  return normalizeEnvelope<{ url?: string }>(res);
+};
+
+export const fetchNotionProgress = async (): Promise<NotionProgressResponse> => {
+  const res = await notionClient.get(IntegrationURL.notionProgress);
+  return normalizeEnvelope<NotionProgressResponse>(res);
+};
+
+export const triggerNotionSync = async (): Promise<{ message: string }> => {
+  const res = await notionClient.post(IntegrationURL.notionSync);
+  return normalizeEnvelope<{ message: string }>(res);
+};
+
+export const updateNotionModule = async (
+  moduleId: string,
+  payload: NotionModuleUpdatePayload
+): Promise<NotionModule> => {
+  const res = await notionClient.patch(`${IntegrationURL.notionProgress}${moduleId}/`, payload);
+  return normalizeEnvelope<NotionModule>(res);
 };

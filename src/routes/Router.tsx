@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
-import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, KanbanBoardPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
 import AdminWorkbench from '../pages/admin/AdminWorkbench';
 import WhitelistTester from '../pages/tools/WhitelistTester';
 import ProductsPage from '../pages/items/ProductsPage';
@@ -45,6 +45,8 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
               <Route path={PageRoutes.domainList} element={<DomainList />} /> 
               <Route path={PageRoutes.domainAdd} element={<DomainAdd />} />
+              <Route path={PageRoutes.notionTracker} element={<NotionTrackerPage />} />
+              <Route path={PageRoutes.kanbanBoard} element={<KanbanBoardPage />} />
     
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />

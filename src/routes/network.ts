@@ -4,16 +4,24 @@
 // Normalize env flags that may mistakenly include quotes in .env files
 const ENV = String(import.meta.env.VITE_ENV || 'DEV').replace(/['"]/g, '');
 
+const withFallback = (value: string | undefined, fallback = ""): string =>
+  typeof value === "string" && value.trim() ? value : fallback;
+
 class NetworkInfo {
   static readonly API_URL: string =
     ENV === "DEV"
-      ? import.meta.env.VITE_API_URL
-      : import.meta.env.VITE_API_URL_PROD;
+      ? withFallback(import.meta.env.VITE_API_URL)
+      : withFallback(import.meta.env.VITE_API_URL_PROD);
 
   static readonly AUTH_URL: string =
     ENV === "DEV"
-      ? (import.meta.env.VITE_AUTH_API_URL || import.meta.env.VITE_API_URL) // fallback
-      : (import.meta.env.VITE_AUTH_API_URL_PROD || import.meta.env.VITE_API_URL_PROD);
+      ? withFallback(import.meta.env.VITE_AUTH_API_URL, withFallback(import.meta.env.VITE_API_URL)) // fallback
+      : withFallback(import.meta.env.VITE_AUTH_API_URL_PROD, withFallback(import.meta.env.VITE_API_URL_PROD));
+
+  static readonly NOTION_URL: string =
+    ENV === "DEV"
+      ? withFallback(import.meta.env.VITE_NOTION_API_URL, withFallback(import.meta.env.VITE_API_URL))
+      : withFallback(import.meta.env.VITE_NOTION_API_URL_PROD, withFallback(import.meta.env.VITE_API_URL_PROD));
 }
 
 class HTTPMethod {
@@ -47,4 +55,11 @@ class PostLoginURL {
     
 }
 
-export { NetworkInfo, AuthURL, PostLoginURL, HTTPMethod };
+class IntegrationURL {
+  static readonly notionProgress: string = "/integrations/notion/progress/";
+  static readonly notionSync: string = "/integrations/notion/sync/";
+  static readonly notionLogin: string = "/integrations/notion/login/";
+  static readonly notionStatus: string = "/integrations/notion/status/";
+}
+
+export { NetworkInfo, AuthURL, PostLoginURL, IntegrationURL, HTTPMethod };
