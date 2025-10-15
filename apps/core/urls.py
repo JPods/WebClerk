@@ -132,8 +132,8 @@ urlpatterns = [
     path('wcapi/models/', ModelInfoView.as_view(), name='wcapi-models'),
     path('api/model-fields/', ModelFieldsView.as_view(), name='api-model-fields'),
     # path('wcapi/tables/', TableRegistryView.as_view(), name='wcapi-tables'),  # disabled until reviewed
-    path('wcapi/model_name/list/', ModelNameListView.as_view(), name='model-name-list'),
-    path('wcapi/model_name/detail/', ModelNameDetailView.as_view(), name='model-name-detail'),
+    path('wcapi/model-name/list/', ModelNameListView.as_view(), name='model-name-list'),
+    path('wcapi/model-name/detail/', ModelNameDetailView.as_view(), name='model-name-detail'),
 
     # Standardized Pending endpoints (List/Create, Detail with optimistic PATCH, Search)
     path('pending/', PendingListView.as_view(), name='pending-list'),
