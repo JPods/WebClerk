@@ -17,6 +17,9 @@ class Action(BaseModel):
     dt_completed = models.DateTimeField(null=True, blank=True)
     dt_due = models.DateTimeField(null=True, blank=True)
     dt_updated = models.DateTimeField(null=True, blank=True)
+    dt_expected = models.DateTimeField(null=True, blank=True)
+    # Kanban board information must be denormalized to record data
+    kanban = models.JSONField(blank=True, null=True)
     
 
     class Meta:
@@ -26,71 +29,7 @@ class Action(BaseModel):
         return f"{self.action or 'Action'} ({self.id})"
     
 # insert into metadata
-# {
-#   "parent": {
-#   "zzz":"id of the parent action",
-#     "id": "YOUR_DATABASE_ID"
-#   },
-#   "properties": {
-#     "lang":["en","ab","bn"],
-    
-#     "Name": {
-#       "title": {"en":{
-#           "text": {
-#             "content": "My New Page Title"
-#           }
-#         },
-#         "ab":{
-#           "text": {
-#             "content": "My New Page Title"
-#           }
-#         },
-#         "bn":{
-#           "text": {
-#             "content": "My New Page Title"
-#           }
-#         }
-#       }
-#     },
-#     "zzzCollumn":"only one of Backlog, Planning, InProcess, Review, Complete",
-#     "Collumn": "InProgress",
-#     "zzzImportance":"only one of Immediate, High, Medium, Low",
-#     "Importance":"Immediate",
-#     "zzzPriority":"do  we need this",
-#     "Priority": 1,
-#     "zzzDifficulty":"only one of 100, 50, 15, 10, 4, 1",
-#     "Difficulty": 50,
-#     "Date": {
-#       "zzzdatetime":"these are datetimes",
-#       "start": "456343453453452345",
-#        "end": null
-#       }
-#     },
-#     "Assigned To": {
-#       "people": [
-#         {
-#           "id": "USER_ID_1",
-#           "name": "name"
-#         }
-#       ]
-#     },
-#     "Linkage":25,
-#     "Description": {
-#       "rich_text": [
-#         {
-#           "text": {
-#             "content": "This is a detailed description of the new page."
-#           }
-#         }
-#       ]
-#     },
-# "children": [
-#     {"id":19,
-#     "name":"some name"},
-#     {"id":20,
-#     "name":"other name"}
-#   ]
-# }
+
 
 #     Take care of this in Actions
 # CREATE TABLE IF NOT EXISTS "services" (

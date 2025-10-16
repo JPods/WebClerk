@@ -1,0 +1,26 @@
+We need to update or rewrite our motor control software.
+
+The network is defined by switches (unique by id) with track segments (unique by id). There are two types of switches,
+1. 2 input tracks with 1 output track
+2. 1 input track with 2 output tracks
+
+There is a router computer that provides each vehicle with its trip instructions with an array of track segments and switchs it will pass through on its trip.
+
+Communications is by mosquito mqtt server
+
+Each vehicle will be able to navigate the route autonomously. Each vehicle uses its wheel encoders to report its track id and millimeters along that track. 
+
+Each vehicle has a camera that can read an april tag and its height to reset its track id and wheel encoder counter.
+
+Vehicle approaching the same switch id will adjust their speed +or- 10% so as to space themselves through the intersecting switch. They must account for the angle of the intersecting switch and length of their vehicle.
+
+We have 4 variations vehicle and motors:
+
+1. tt dc 6 volt motors driving, where there are 2 motors inline that always move with the same power applied.
+
+2. tt dc 6 volt motors driving, where there are 4 motors, two on each side. We can control the power and direction to each wheel individually using DFRobot BLE board. We use a R
+
+3. 90 watt dc motors driving 2 motors, one on each side. We can control the power and direction to each wheel individually using Duel 
+
+4. 5kw dc motor motors driving 2 motors, one on each side. one controller per wheel using serial or i2c communications.
+
