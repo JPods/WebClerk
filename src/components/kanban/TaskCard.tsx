@@ -29,9 +29,10 @@ interface TaskCardProps {
   columnId: string;
   index: number;
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
+  isSubtask?: boolean;
 }
 
-const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd }) => {
+const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, isSubtask = false }) => {
   const ref = useRef<HTMLDivElement | null>(null);
 
   const [{ isDragging }, drag] = useDrag(
@@ -78,19 +79,42 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
     <div
       ref={ref}
       className={clsx(
-        "group relative rounded-xl border border-transparent bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:bg-white/5",
+        "group relative rounded-xl border border-transparent p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
         {
           "opacity-60": isDragging,
           "ring-2 ring-indigo-400": isOver && canDrop,
+          // Subtask styling
+          "bg-indigo-50/80 border-indigo-100 dark:bg-indigo-500/5 dark:border-indigo-500/20": isSubtask,
+          // Regular task styling
+          "bg-white/80 dark:bg-white/5": !isSubtask,
         }
       )}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title}</p>
-          {task.description && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-300 line-clamp-2">{task.description}</p>
+        <div className="flex items-start gap-2">
+          {isSubtask && (
+            <div className="mt-1 flex-shrink-0">
+              <svg 
+                className="h-3 w-3 text-indigo-400 dark:text-indigo-300" 
+                viewBox="0 0 12 12" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M3 6h6M6 3v6" 
+                  stroke="currentColor" 
+                  strokeWidth={1.5} 
+                  strokeLinecap="round" 
+                />
+              </svg>
+            </div>
           )}
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title}</p>
+            {task.description && (
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-300 line-clamp-2">{task.description}</p>
+            )}
+          </div>
         </div>
         <span className={clsx("rounded-full px-3 py-1 text-xs font-semibold", priorityClass)}>{priorityText}</span>
       </div>

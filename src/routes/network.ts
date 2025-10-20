@@ -51,6 +51,9 @@ class PostLoginURL {
   static readonly addActions: string = "/actions/";
   static readonly updateProfile: string = "/profile/";   
 
+  static readonly kanbanTasks: string = "/kanban/tasks/";
+  static readonly kanbanOrder: string = "/kanban/order/";
+
   static readonly allTypes: string = "/wcapi/get/?"; 
     
 }

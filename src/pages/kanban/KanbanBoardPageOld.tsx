@@ -19,30 +19,6 @@ const seedBoard: BoardData = {
       dueDate: new Date().toISOString(),
       tags: ["Discovery", "Research"],
       progress: 35,
-      children: [
-        { id: "task-1-1", name: "Conduct user interviews" },
-        { id: "task-1-2", name: "Create persona templates" }
-      ]
-    },
-    "task-1-1": {
-      id: "task-1-1",
-      title: "Conduct user interviews",
-      description: "Schedule and conduct interviews with 5-8 target users",
-      priority: "medium",
-      assignee: "Maya Patel",
-      dueDate: new Date().toISOString(),
-      tags: ["Research"],
-      progress: 80,
-    },
-    "task-1-2": {
-      id: "task-1-2",
-      title: "Create persona templates",
-      description: "Design reusable persona templates based on research findings",
-      priority: "medium",
-      assignee: "Maya Patel",
-      dueDate: new Date().toISOString(),
-      tags: ["Design"],
-      progress: 20,
     },
     "task-2": {
       id: "task-2",
@@ -114,7 +90,7 @@ const seedBoard: BoardData = {
     "column-planning": {
       id: "column-planning",
       title: "Planning",
-      taskIds: ["task-1", "task-1-1", "task-1-2", "task-2"],
+      taskIds: ["task-1", "task-2"],
       wipLimit: 4,
     },
     "column-in-progress": {

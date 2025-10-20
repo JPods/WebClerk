@@ -5,12 +5,60 @@ import type { KanbanColumn as KanbanColumnType, KanbanTask } from "../../type/ka
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 import { TaskCard } from "./TaskCard";
 
+interface TaskWithIndent {
+  task: KanbanTask;
+  indent: number;
+  isSubtask: boolean;
+}
+
 interface KanbanColumnProps {
   column: KanbanColumnType;
   tasks: KanbanTask[];
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
   className?: string;
 }
+
+const organizeTasksHierarchically = (tasks: KanbanTask[]): TaskWithIndent[] => {
+  const organized: TaskWithIndent[] = [];
+  const taskMap = new Map(tasks.map(task => [task.id, task]));
+  
+  // Find all parent tasks (tasks that have children but are not children themselves)
+  const parentTasks = tasks.filter(task => 
+    task.children && task.children.length > 0 && 
+    !tasks.some(otherTask => 
+      otherTask.children?.some(child => child.id === task.id)
+    )
+  );
+  
+  // Find all standalone tasks (no children and not a child of any task)
+  const standaloneTasks = tasks.filter(task => 
+    (!task.children || task.children.length === 0) &&
+    !tasks.some(otherTask => 
+      otherTask.children?.some(child => child.id === task.id)
+    )
+  );
+  
+  // Add standalone tasks first
+  standaloneTasks.forEach(task => {
+    organized.push({ task, indent: 0, isSubtask: false });
+  });
+  
+  // Add parent tasks and their children
+  parentTasks.forEach(parentTask => {
+    // Add parent task
+    organized.push({ task: parentTask, indent: 0, isSubtask: false });
+    
+    // Add children with indentation
+    parentTask.children?.forEach(child => {
+      const childTask = taskMap.get(child.id.toString());
+      if (childTask) {
+        organized.push({ task: childTask, indent: 1, isSubtask: true });
+      }
+    });
+  });
+  
+  return organized;
+};
 
 const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onDragEnd, className }) => {
   const columnRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +90,8 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
     return Math.round(total / withProgress.length);
   }, [tasks]);
 
+  const organizedTasks = useMemo(() => organizeTasksHierarchically(tasks), [tasks]);
+
   return (
     <section
       ref={columnRef}
@@ -72,8 +122,25 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
       </header>
 
       <div className="flex-1 space-y-3">
-        {tasks.map((task, index) => (
-          <TaskCard key={task.id} task={task} columnId={column.id} index={index} onDragEnd={onDragEnd} />
+        {organizedTasks.map(({ task, isSubtask }, index) => (
+          <div
+            key={task.id}
+            className={clsx(
+              "transition-all duration-200",
+              {
+                "ml-4 border-l-2 border-l-indigo-200 pl-3 dark:border-l-indigo-800": isSubtask,
+              }
+            )}
+          >
+            <TaskCard 
+              key={task.id} 
+              task={task} 
+              columnId={column.id} 
+              index={index} 
+              onDragEnd={onDragEnd}
+              isSubtask={isSubtask}
+            />
+          </div>
         ))}
         {tasks.length === 0 && (
           <div className="flex h-full min-h-[140px] items-center justify-center rounded-xl border border-dashed border-gray-300 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
