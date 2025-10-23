@@ -5,8 +5,9 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from apps.core.fixtures import get_seeders
+DEFAULT_PASSWORD = "1111pass"
 
-DEFAULT_PASSWORD = "1"
+"""Compatibility shim; prefer apps.core.fixtures.seed.seed_all."""
 
 def ensure_superusers(emails: Iterable[str], password: str = DEFAULT_PASSWORD) -> List[int]:
     User = get_user_model()

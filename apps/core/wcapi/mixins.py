@@ -69,7 +69,7 @@ class SettingsDrivenCRUDMixin:
     def _model_key(self, model: Type[Model]) -> str:
         return getattr(model._meta, "model_name", model.__name__).lower()
 
-    def _json_path(self) -> Path:
+    def _json_path(self) -> Path: 
         p = getattr(settings, "VIEW_EDIT_JSON_PATH", None)
         if p:
             return Path(p)

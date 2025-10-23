@@ -1,44 +1,30 @@
 # Copilot Instructions for AI Coding Agents
 
-## Project Overview
-- **webClerk3** is a multi-app Python backend, likely Django-based, with custom modules under `apps/` and shared logic in `common/` and `core/`.
-- **React2025** is a separate frontend project using React 19, TypeScript, and Tailwind CSS. It integrates with webClerk3 via API calls (see `src/api/` and `integrations/webclerk/sdk/`).
+## Project Snapshot
+- **webClerk3** is a Django 5 backend (`webclerk3_api/settings.py`) with domain-specific apps under `apps/` and shared utilities in `common/` and `core/`.
+- Service workers live in `celery_app.py`; Celery tasks are declared inside their owning app modules.
+- Extensive design docs and runbooks are in `readmes/`; start with `readmes/architecture-actions-documents.md` and `readmes/dev-setup.md`.
 
-## Architecture & Key Patterns
-- **Apps Structure:** Each subfolder in `apps/` is a distinct domain (e.g., `accounts`, `products`, `support`). Shared code lives in `common/` and `core/`.
-- **API:** OpenAPI spec in `openapi.json` defines backend endpoints. Use this for API contract reference.
-- **Celery:** Background tasks are managed via `celery_app.py`.
-- **Testing:** Pytest is configured (`pytest.ini`, `conftest.py`). Tests are in `tests/` and possibly within each app's folder.
-- **Dev Scripts:** Use `run.sh` to start the backend, `reset_dev.sh` to reset dev data. Activate the Python venv with `bin/activate`.
-- **Data:** Database dumps (`backup_pre_reset.dump`, `dump.rdb`) are for local dev resets.
+## Local Environment
+- Always invoke Django via the project venv: `./bin/python manage.py ...` (guards in reset scripts assume this path).
+- Default entry points: `./run.sh` boots the API + Celery, `scripts/` holds ad-hoc helpers, and `schema.sh` rebuilds the OpenAPI schema.
 
-## Developer Workflows
-- **Backend:**
-  - Activate venv: `source bin/activate`
-  - Run server: `./run.sh`
-  - Reset dev DB: `./reset_dev.sh`
-  - Run tests: `pytest`
-- **Frontend:**
-  - Install deps: `npm install`
-  - Start dev server: `npm run dev`
+## Database Reset & Seeding
+- The authoritative seeding API is `apps/core/fixtures/seed.seed_all(per_model=..., superuser_emails=...)`.
+- `get_seeders()` / `register_seeder()` in `apps/core/fixtures/__init__.py` expose app-specific seeders; pass context with `{"superusers": [...]}` when invoking.
+- Legacy reseed helpers (`apps/core/fixtures/reseed.py`, `common/rebuild/*`, scattered `seed_*` commands) are being collapsed into a single call chain around `seed.seed_all`. Treat them as deprecated and route new code through `seed_all`.
+- Dev reset workflows described in `readmes/reset.md`; align new automation with that document (e.g., patterned superusers, connection bootstrap).
 
-## Conventions & Integration
-- **Docs:** Most module docs are centralized in `readmes/` (see `readmes/support.md`).
-- **External APIs:** Currency conversion uses Frankfurter API for demos (see `readmes/support.md`).
-- **API Testing:** Postman collections in `api_tests/` for smoke and local environment tests.
-- **Frontend-Backend Integration:** API calls from React2025 use endpoints defined in webClerk3's OpenAPI spec.
+## Testing & QA
+- Pytest is configured via `pytest.ini`; run `./bin/python -m pytest`.
+- API smoke/bulk tests live in `api_tests/` (Postman collections) and `frontend-endpoint-explorer/` for manual exercises.
 
-## Examples
-- To add a new domain, create a folder in `apps/`, add models/views, and update `openapi.json`.
-- For background jobs, register tasks in `celery_app.py`.
-- For support module details, see `readmes/support.md` and linked Google Doc.
+## Conventions
+- Apps follow Django app boundaries listed in `project_structure.txt`; keep shared mixins/utilities inside `common/` to avoid circular imports.
+- Docs and fixtures often use CSV/JSON registries (`readmes/model-registry.*`, `apps/*/fixtures/`); update those alongside code changes.
+- Keep management commands under `common/management/commands/` for cross-app utilities; app-specific commands stay in each app’s `management/commands/`.
 
 ## References
-- Backend API: `openapi.json`
-- Centralized docs: `readmes/`
-- Frontend API usage: `src/api/` in React2025
-- Postman tests: `api_tests/`
-
----
-
-**Feedback:** Please review and suggest additions for any unclear or missing sections, especially around custom workflows or integration points.
+- Architecture and workflow primers: `readmes/dev-db-strategy.md`, `readmes/debug.md`, `readmes/reset.md`.
+- Data contracts: `openapi.yaml`/`openapi.json` plus `docs_index.json` for doc search.
+- When unsure about domain rules, check the matching `readmes/*.md` file; many flows (transactions, exchanges, verifications) have dedicated guides.
