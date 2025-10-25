@@ -1,2 +1,0 @@
-DJANGO_SETTINGS_MODULE = "your_project_name.settings"
-django_find_project = false
