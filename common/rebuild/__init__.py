@@ -14,7 +14,7 @@ from typing import Sequence
 from django.conf import settings
 from django.db import connection
 from django.core.management import call_command
-from apps.core.fixtures.seed import seed_all, DEFAULT_SUPERUSER_EMAILS
+from apps.core.fixtures import seed_all, DEFAULT_SUPERUSER_EMAILS
 
 @dataclass
 class ResetResult:

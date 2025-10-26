@@ -1,6 +1,6 @@
 from __future__ import annotations
 from django.core.management.base import BaseCommand
-from apps.core.fixtures.seed import seed_all
+from apps.core.fixtures import seed_all
 
 
 class Command(BaseCommand):

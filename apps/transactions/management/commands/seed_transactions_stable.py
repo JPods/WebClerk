@@ -11,11 +11,11 @@ Usage:
   python manage.py seed_transactions_stable --count 3 --reset
 """
 
-from typing import Any, List
+from typing import List
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand as DjangoBaseCommand
-from django.db import transaction
+from django.db import connection, transaction
 from django.apps import apps
 
 from apps.transactions.models import (
@@ -80,85 +80,261 @@ class Command(DjangoBaseCommand):
         reset = bool(options['reset'])
 
         item_ids = _ensure_min_items(max(3, count))
+        existing_tables = set(connection.introspection.table_names())
+        warned_labels: set[str] = set()
 
-        # Optional: clear existing (only headers created by this command heuristically)
+        def table_exists(model_class) -> bool:
+            return getattr(model_class._meta, "db_table", None) in existing_tables
+
+        def warn_skip(label: str) -> None:
+            if label not in warned_labels:
+                warned_labels.add(label)
+                self.stdout.write(self.style.WARNING(f"Skipping {label}: table missing."))
+
+        proposal_table = table_exists(Proposal)
+        proposal_line_table = table_exists(ProposalLine)
+        sales_order_table = table_exists(SalesOrder)
+        sales_order_line_table = table_exists(SalesOrderLine)
+        invoice_table = table_exists(Invoice)
+        invoice_line_table = table_exists(InvoiceLine)
+        purchase_order_table = table_exists(PurchaseOrder)
+        purchase_order_line_table = table_exists(PurchaseOrderLine)
+
         if reset:
-            Proposal.objects.filter(name__startswith="Stable Proposal ").delete()
-            SalesOrder.objects.filter(order_no__startswith="SOST-").delete()
-            Invoice.objects.all().delete()
-            PurchaseOrder.objects.filter(po_no__startswith="POST-").delete()
+            if proposal_table:
+                Proposal.objects.filter(ida__startswith="stable-proposal-").delete()
+            else:
+                warn_skip("proposals (reset)")
+            if sales_order_table:
+                SalesOrder.objects.filter(ida__startswith="stable-sales-order-").delete()
+            else:
+                warn_skip("sales orders (reset)")
+            if invoice_table:
+                Invoice.objects.filter(ida__startswith="stable-invoice-").delete()
+            else:
+                warn_skip("invoices (reset)")
+            if purchase_order_table:
+                PurchaseOrder.objects.filter(ida__startswith="stable-purchase-order-").delete()
+            else:
+                warn_skip("purchase orders (reset)")
 
         created = {"proposals": [], "sales_orders": [], "invoices": [], "purchase_orders": []}
 
         # Proposals (Stable Proposal 1..N)
-        for i in range(count):
-            name = f"Stable Proposal {i+1}"
-            p, _ = Proposal.objects.get_or_create(name=name, defaults={"prefs": {"currency": "USD"}})
-            created["proposals"].append(int(p.id))
-            # lines (2 per header, idempotent by line_number)
-            for li, item_id in enumerate(item_ids[:2]):
-                payload = _line_payload(item_id, li, tx_type="proposal")
-                line, _ = ProposalLine.objects.get_or_create(parent=p, parent_ref_id=p.id, item={"id": item_id, "line_number": li+1}, defaults={})
-                line.item = payload["item"]
-                line.quantity = payload["quantity"]
-                line.price = payload["price"]
-                line.cost = payload["cost"]
-                line.tax = payload["tax"]
-                line.prefs = payload["prefs"]
-                line.comments = payload["comments"]
-                line.save()
+        if not proposal_table:
+            warn_skip("proposals")
+        else:
+            if not proposal_line_table:
+                warn_skip("proposal lines")
+            for i in range(count):
+                ida_value = f"stable-proposal-{i+1:02d}"
+                p, _ = Proposal.objects.get_or_create(
+                    ida=ida_value,
+                    defaults={"prefs": {"currency": "USD"}},
+                )
+                created["proposals"].append(int(p.id))
+                if not proposal_line_table:
+                    continue
+                for li, item_id in enumerate(item_ids[:2]):
+                    payload = _line_payload(item_id, li, tx_type="proposal")
+                    line_ida = f"{ida_value}-line-{li+1:02d}"
+                    line, _ = ProposalLine.objects.get_or_create(
+                        ida=line_ida,
+                        defaults={"parent": p},
+                    )
+                    line.parent = p
+                    line.item = payload["item"]
+                    line.quantity = payload["quantity"]
+                    line.price = payload["price"]
+                    line.cost = payload["cost"]
+                    line.tax = payload["tax"]
+                    line.prefs = payload["prefs"]
+                    line.comments = payload["comments"]
+                    line.metadata = {**(line.metadata or {}), "seed": "stable", "position": li + 1}
+                    line.save()
 
         # Sales Orders (SOST-1001..)
-        base_so = 1001
-        for i in range(count):
-            so_no = f"SOST-{base_so + i}"
-            so, _ = SalesOrder.objects.get_or_create(order_no=so_no, defaults={"prefs": {"currency": "USD"}})
-            created["sales_orders"].append(int(so.id))
-            for li, item_id in enumerate(item_ids[:3]):
-                payload = _line_payload(item_id, li, tx_type="order")
-                line, _ = SalesOrderLine.objects.get_or_create(parent=so, parent_ref_id=so.id, item={"id": item_id, "line_number": li+1}, defaults={})
-                line.item = payload["item"]
-                line.quantity = payload["quantity"]
-                line.price = payload["price"]
-                line.cost = payload["cost"]
-                line.tax = payload["tax"]
-                line.prefs = payload["prefs"]
-                line.comments = payload["comments"]
-                line.save()
+        if not sales_order_table:
+            warn_skip("sales orders")
+        else:
+            if not sales_order_line_table:
+                warn_skip("sales order lines")
+            for i in range(count):
+                ida_value = f"stable-sales-order-{i+1:02d}"
+                so, _ = SalesOrder.objects.get_or_create(
+                    ida=ida_value,
+                    defaults={"prefs": {"currency": "USD"}},
+                )
+                current_metadata = dict(so.metadata or {})
+                updated_metadata = {**current_metadata, "order_no": f"SOST-{1001 + i}", "seed": "stable"}
+                if updated_metadata != current_metadata:
+                    so.metadata = updated_metadata
+                    so.save(update_fields=["metadata"])
+                created["sales_orders"].append(int(so.id))
+                if not sales_order_line_table:
+                    continue
+                for li, item_id in enumerate(item_ids[:3]):
+                    payload = _line_payload(item_id, li, tx_type="order")
+                    line_ida = f"{ida_value}-line-{li+1:02d}"
+                    line, _ = SalesOrderLine.objects.get_or_create(
+                        ida=line_ida,
+                        defaults={"parent": so},
+                    )
+                    line.parent = so
+                    line.item = payload["item"]
+                    line.quantity = payload["quantity"]
+                    line.price = payload["price"]
+                    line.cost = payload["cost"]
+                    line.tax = payload["tax"]
+                    line.prefs = payload["prefs"]
+                    line.comments = payload["comments"]
+                    line.metadata = {**(line.metadata or {}), "seed": "stable", "position": li + 1}
+                    line.save()
 
         # Invoices (INVST-2001..)
-        base_inv = 2001
-        for i in range(count):
-            inv, _ = Invoice.objects.get_or_create(id=None, defaults={"prefs": {"currency": "USD"}})
-            created["invoices"].append(int(inv.id))
-            for li, item_id in enumerate(item_ids[:2]):
-                payload = _line_payload(item_id, li, tx_type="invoice")
-                line, _ = InvoiceLine.objects.get_or_create(parent=inv, parent_ref_id=inv.id, item={"id": item_id, "line_number": li+1}, defaults={})
-                line.item = payload["item"]
-                line.quantity = payload["quantity"]
-                line.price = payload["price"]
-                line.cost = payload["cost"]
-                line.tax = payload["tax"]
-                line.prefs = payload["prefs"]
-                line.comments = payload["comments"]
-                line.save()
+        if not invoice_table:
+            warn_skip("invoices")
+        else:
+            if not invoice_line_table:
+                warn_skip("invoice lines")
+            for i in range(count):
+                ida_value = f"stable-invoice-{i+1:02d}"
+                inv, _ = Invoice.objects.get_or_create(
+                    ida=ida_value,
+                    defaults={"prefs": {"currency": "USD"}},
+                )
+                created["invoices"].append(int(inv.id))
+                if not invoice_line_table:
+                    continue
+                for li, item_id in enumerate(item_ids[:2]):
+                    payload = _line_payload(item_id, li, tx_type="invoice")
+                    line_ida = f"{ida_value}-line-{li+1:02d}"
+                    line, _ = InvoiceLine.objects.get_or_create(
+                        ida=line_ida,
+                        defaults={"parent": inv},
+                    )
+                    line.parent = inv
+                    line.item = payload["item"]
+                    line.quantity = payload["quantity"]
+                    line.price = payload["price"]
+                    line.cost = payload["cost"]
+                    line.tax = payload["tax"]
+                    line.prefs = payload["prefs"]
+                    line.comments = payload["comments"]
+                    line.metadata = {**(line.metadata or {}), "seed": "stable", "position": li + 1}
+                    line.save()
 
         # Purchase Orders (POST-3001..)
-        base_po = 3001
-        for i in range(count):
-            po_no = f"POST-{base_po + i}"
-            po, _ = PurchaseOrder.objects.get_or_create(po_no=po_no, defaults={"prefs": {"currency": "USD"}})
-            created["purchase_orders"].append(int(po.id))
-            for li, item_id in enumerate(item_ids[:2]):
-                payload = _line_payload(item_id, li, tx_type="order")
-                line, _ = PurchaseOrderLine.objects.get_or_create(parent=po, parent_ref_id=po.id, item={"id": item_id, "line_number": li+1}, defaults={})
-                line.item = payload["item"]
-                line.quantity = payload["quantity"]
-                line.price = payload["price"]
-                line.cost = payload["cost"]
-                line.tax = payload["tax"]
-                line.prefs = payload["prefs"]
-                line.comments = payload["comments"]
-                line.save()
+        if not purchase_order_table:
+            warn_skip("purchase orders")
+        else:
+            if not purchase_order_line_table:
+                warn_skip("purchase order lines")
+            for i in range(count):
+                ida_value = f"stable-purchase-order-{i+1:02d}"
+                po, _ = PurchaseOrder.objects.get_or_create(
+                    ida=ida_value,
+                    defaults={"prefs": {"currency": "USD"}},
+                )
+                current_metadata = dict(po.metadata or {})
+                updated_metadata = {**current_metadata, "po_no": f"POST-{3001 + i}", "seed": "stable"}
+                if updated_metadata != current_metadata:
+                    po.metadata = updated_metadata
+                    po.save(update_fields=["metadata"])
+                created["purchase_orders"].append(int(po.id))
+                if not purchase_order_line_table:
+                    continue
+                for li, item_id in enumerate(item_ids[:2]):
+                    payload = _line_payload(item_id, li, tx_type="order")
+                    line_ida = f"{ida_value}-line-{li+1:02d}"
+                    line, _ = PurchaseOrderLine.objects.get_or_create(
+                        ida=line_ida,
+                        defaults={"parent": po},
+                    )
+                    line.parent = po
+                    line.item = payload["item"]
+                    line.quantity = payload["quantity"]
+                    line.price = payload["price"]
+                    line.cost = payload["cost"]
+                    line.tax = payload["tax"]
+                    line.prefs = payload["prefs"]
+                    line.comments = payload["comments"]
+                    line.metadata = {**(line.metadata or {}), "seed": "stable", "position": li + 1}
+                    line.save()
 
         self.stdout.write(self.style.SUCCESS(f"Stable seed complete: {created}"))
+
+
+MODEL_LINKS = {
+    # Org ↔ communications (populate refs.links)
+    "orgs.OrgBase": [
+        {"model": "communications.Location", "link_key": "locations", "mode": "refs_links", "count": 3},
+        {"model": "communications.Email",    "link_key": "emails",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Phone",    "link_key": "phones",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Domain",   "link_key": "domains",   "mode": "refs_links", "count": 3},
+    ],
+    "orgs.Customer": [
+        {"model": "communications.Location", "link_key": "locations", "mode": "refs_links", "count": 3},
+        {"model": "communications.Email",    "link_key": "emails",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Phone",    "link_key": "phones",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Domain",   "link_key": "domains",   "mode": "refs_links", "count": 3},
+    ],
+    "orgs.Vendor": [
+        {"model": "communications.Location", "link_key": "locations", "mode": "refs_links", "count": 3},
+        {"model": "communications.Email",    "link_key": "emails",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Phone",    "link_key": "phones",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Domain",   "link_key": "domains",   "mode": "refs_links", "count": 3},
+    ],
+    "orgs.Rep": [
+        {"model": "communications.Location", "link_key": "locations", "mode": "refs_links", "count": 2},
+        {"model": "communications.Email",    "link_key": "emails",    "mode": "refs_links", "count": 2},
+        {"model": "communications.Phone",    "link_key": "phones",    "mode": "refs_links", "count": 2},
+        {"model": "communications.Domain",   "link_key": "domains",   "mode": "refs_links", "count": 2},
+    ],
+    "orgs.Employee": [
+        {"model": "communications.Location", "link_key": "locations", "mode": "refs_links", "count": 2},
+        {"model": "communications.Email",    "link_key": "emails",    "mode": "refs_links", "count": 2},
+        {"model": "communications.Phone",    "link_key": "phones",    "mode": "refs_links", "count": 2},
+        {"model": "communications.Domain",   "link_key": "domains",   "mode": "refs_links", "count": 2},
+    ],
+    "orgs.Manufacturer": [
+        {"model": "communications.Location", "link_key": "locations", "mode": "refs_links", "count": 3},
+        {"model": "communications.Email",    "link_key": "emails",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Phone",    "link_key": "phones",    "mode": "refs_links", "count": 3},
+        {"model": "communications.Domain",   "link_key": "domains",   "mode": "refs_links", "count": 3},
+    ],
+
+    # Header ↔ line FK relationships (creates child rows)
+    "transactions.Proposal": [
+        {"model": "transactions.ProposalLine", "fk_field": "parent", "mode": "create_children", "count": 3},
+    ],
+    "transactions.SalesOrder": [
+        {"model": "transactions.SalesOrderLine", "fk_field": "parent", "mode": "create_children", "count": 3},
+    ],
+    "transactions.PurchaseOrder": [
+        {"model": "transactions.PurchaseOrderLine", "fk_field": "parent", "mode": "create_children", "count": 3},
+    ],
+    "transactions.Invoice": [
+        {"model": "transactions.InvoiceLine", "fk_field": "parent", "mode": "create_children", "count": 3},
+    ],
+    "transactions.WorkOrder": [
+        {"model": "transactions.WorkOrderLine", "fk_field": "parent", "mode": "create_children", "count": 3},
+    ],
+
+    # Line ↔ item (each line needs one item)
+    "transactions.ProposalLine": [
+        {"model": "products.Item", "fk_field": "item_id", "mode": "assign_fk", "count": 1},
+    ],
+    "transactions.SalesOrderLine": [
+        {"model": "products.Item", "fk_field": "item_id", "mode": "assign_fk", "count": 1},
+    ],
+    "transactions.PurchaseOrderLine": [
+        {"model": "products.Item", "fk_field": "item_id", "mode": "assign_fk", "count": 1},
+    ],
+    "transactions.InvoiceLine": [
+        {"model": "products.Item", "fk_field": "item_id", "mode": "assign_fk", "count": 1},
+    ],
+    "transactions.WorkOrderLine": [
+        {"model": "products.Item", "fk_field": "item_id", "mode": "assign_fk", "count": 1},
+    ],
+}

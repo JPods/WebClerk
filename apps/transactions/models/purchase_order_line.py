@@ -14,7 +14,6 @@ class PurchaseOrderLine(BaseSellLineModel):
 
     class Meta:
         db_table = "purchase_order_lines"
-        managed = False  # Skip serialization/migration against legacy schema
 
     @property
     def parent_ref_id(self):

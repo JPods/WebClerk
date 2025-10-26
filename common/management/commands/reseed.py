@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Optional
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-from apps.core.fixtures.seed import seed_all, DEFAULT_SUPERUSER_EMAILS
+from apps.core.fixtures import seed_all, DEFAULT_SUPERUSER_EMAILS
 
 def _emails_from_count(n: Optional[int]) -> List[str]:
     if not n or n <= 0:

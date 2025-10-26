@@ -12,6 +12,19 @@ SECRET_KEY = config('SECRET_KEY', default='insecure-dev-test-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+
+CORS_ALLOWED_ORIGINS = (
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+)
+CORS_ALLOW_CREDENTIALS = True
+
+# Required by Django when making cookie-authenticated requests from the Vite origin.
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+]
+
 INSTALLED_APPS = [
     #'debug_toolbar',
     # apps.transactions.apps.TransactionsConfig',

@@ -420,6 +420,14 @@ Source: `webclerk3/core/urls.py`
 
 `http://localhost:8000/wcapi/get/?model_name=contact&id=123`
 
+### WCAPI Consolidation Snapshot (Oct 2025)
+
+- Central router + endpoints live in `apps/core/wcapi/urls.py`. `DefaultRouter` wires every registered key to `WCAPIModelViewSet`, while fallbacks cover unregistered models via `_find_model_by_key`.
+- Registry-backed keys today: see `apps/core/wcapi/register_builtin.py` (`tag`, `domain`, `actions/std`, `products/inventory/reservations`). Additional keys resolve automatically when their models exist and are not skip-listed (`WCAPI_SKIP_KEYS`).
+- Generic helpers are colocated: `SaveView` (`/wcapi/save`), `WCAPIQueryView` (`/wcapi/query`), `WCAPIGetView` (read-only), saved-set storage, and open-query adapters. Guards (`common.middleware.WriteGateMiddleware`, `common.middleware.WCAPISearchGuardMiddleware`) remain the levers for deployments needing stricter policies.
+- Compliance gate stays `./bin/python manage.py wcapi_lint [--json]`; exemptions require owner+reason comments immediately above the path, matching `apps/core/wcapi/README.md` guidance.
+- Pending-specific search is stubbed at `/pending/search` and resolves against the slim `Pending` model when queues need manual inspection.
+
 ### Key Features
 
 ✅ **Universal API** – One pattern for all tables
@@ -726,13 +734,14 @@ If you see warnings like `Inspect method ... failed`, it usually means there are
 
 ## Keyword Refresh System (Universal API Search Index)
 
-We defer expensive keyword extraction for BaseModel derivatives to keep write latency low.
+We defer expensive keyword extraction for `BaseModel` descendants to keep writes fast.
 
-Flow:
+Flow (Oct 2025 status):
 
-1. On each save, `metadata.flags.keywords_pending` is set True.
-2. A periodic Celery task `common.tasks.refresh_keywords_task` (every 10 minutes) processes pending rows, updates `refs.keywords`, clears the flag.
-3. Manual runs:
+1. `BaseModel.save()` calls `mark_keywords_dirty()` (via `KeywordsMixin`) which flips `metadata.flags.keywords_pending=True`.
+2. `CommonConfig.ready()` (see `common/__init__.py`) ensures a Celery Beat entry for `common.tasks.refresh_keywords_task`. The task iterates every `BaseModel` subclass exposing `.objects.keyword_pending()`, regenerates `refs.keywords`, and clears the flag.
+3. The lightweight `apps/core/models/pending.Pending` table is used by select models (for example `apps/docs/models/document.Document`) to record “keyword work” metadata. A dedicated Celery consumer (`apps/core/tasks/pending_tasks.py`) still contains placeholders and is **not** part of the active pipeline.
+4. Manual runs remain available:
 
 ```bash
 python manage.py refresh_keywords --dry-run
@@ -740,13 +749,13 @@ python manage.py refresh_keywords --limit 500
 python manage.py audit_base_models --limit 5
 ```
 
-Force immediate refresh of all pending rows:
+Force immediate refresh of all flagged rows:
 
 ```bash
 python manage.py refresh_keywords --limit 0
 ```
 
-Relevant code: `common/models.py`, commands in `common/management/commands/`, task `common/tasks.py`, scheduling in `common/__init__.py`.
+Relevant code: `common/models.py`, commands in `common/management/commands/`, tasks in `common/tasks.py`, scheduling in `common/__init__.py`, optional queue helpers in `apps/core/models/pending.py` + `apps/core/signals/pending_trigger.py`.
 
 Planned enhancements:
 
@@ -863,6 +872,7 @@ OpenAPI generation (drf-spectacular) will include summaries for these endpoints.
 
 - GET `/tx/<kind>/<id>/preview-totals/?include_breakdown=1` returns cached totals for the header’s lines (scoped to `<kind>-line`).
 - Always enveloped (`status`, `code`, `message`, `data`).
+
 ## Lineage & Serial Tracking
 
 Flow conversions (proposal -> sales order -> invoice, etc.) enrich each new line with:
@@ -1169,11 +1179,12 @@ We decomposed the former monolithic `BaseModel` into a small `CoreModel` plus op
 | CoreModel | id, uuid, ida, dt_created, dt_modified, version | optimistic_save/assert_version | core | Minimal high‑churn tables, queues |
 | MetadataMixin | metadata | history access, set/get metadata value | metadata | Lifecycle, audit, versioned schemas |
 | RefsMixin | refs | add_keyword/add_tag | refs | Keyword/tag search, soft links |
-| PrefsMixin | prefs | (none yet) | prefs | Per-record user configuration |
-| CommentsMixin | comments | add_note | comments | Collaboration, notes, discussions |
+| PrefsMixin | prefs | record_submission_snapshot | prefs | Per-record user configuration + submission snapshots |
+| CommentsMixin | comments | add_comment/add_note | comments | Collaboration, notes, discussions |
 | HealthMixin | health_rating | (none yet) | health | Data quality scoring |
 | KeywordsMixin | (relies on refs+metadata) | mark_keywords_dirty, update_keywords | keywords | Async keyword extraction pipeline |
 | LifecycleMixin | is_deleted, is_archived | soft_delete/restore/archive | lifecycle | Soft delete & archival controls |
+| ActionsMixin | actions | get_action/set_action | actions | Structured next-step/task metadata |
 | AtomicJSONMixin | (no fields) | atomic_json_set / atomic_list_append | atomic_json | JSONB atomic patch operations |
 | UniversalDictMixin | (no fields) | to_universal_dict / as_pydantic | universal_dict | Uniform API serialization |
 
@@ -1181,14 +1192,32 @@ We decomposed the former monolithic `BaseModel` into a small `CoreModel` plus op
 
 
 ```python
-class BaseModel(MetadataMixin, RefsMixin, PrefsMixin, CommentsMixin,
-        HealthMixin, KeywordsMixin, LifecycleMixin,
-        CoreModel, UniversalDictMixin, AtomicJSONMixin):
+class BaseModel(
+  ActionsMixin,
+  CoreModel,
+  MetadataMixin,
+  RefsMixin,
+  PrefsMixin,
+  CommentsMixin,
+  HealthMixin,
+  KeywordsMixin,
+  LifecycleMixin,
+  UniversalDictMixin,
+  AtomicJSONMixin,
+):
   pass
 ```
 
+BaseModel layers in the full JSON envelope (`metadata`, `refs`, `prefs`, `comments`, `actions`), optimistic concurrency via `version`, changed-field tracking recorded under `metadata.versioning.changed_fields`, JSON size telemetry with warnings when envelopes near their caps, a keyword dirtiness flag for async refresh, atomic JSON helpers, and a queryset manager (`BaseModel.FullManager`) exposing helpers like `.active()` / `.keyword_pending()`.
+
 
 `CoreModel` (a.k.a previously slim) = minimal identity + version only.
+
+### Envelope Coverage Check (Oct 2025)
+
+- `rg "class .*CoreModel" apps` confirms only `apps/core/models/pending.Pending` intentionally uses `CoreModel`. Every other first-class table inherits `common.BaseModel`, so `.metadata`, `.refs`, `.prefs`, `.comments`, `.actions`, and atomic helpers are present by default.
+- `apps/docs/models/document.Document` remains our canonical example: it exercises BaseModel hooks, enqueues keyword work (see `Pending` notes below), and shows how to layer search vectors and business helpers on top of the envelope.
+- When adding new tables, default to `BaseModel` unless the record is intentionally ephemeral/high churn (queue, temp, audit staging). In those cases document the reduced mixin surface in both code and model registry entries.
 
 ### Choosing a Composition
 
@@ -1203,6 +1232,7 @@ Decision checklist (add mixins until all requirements satisfied):
 | Attach threaded notes / comments | CommentsMixin |
 | Score or surface health/quality metrics | HealthMixin |
 | Soft delete / archive states | LifecycleMixin |
+| Represent next-action/task metadata | ActionsMixin |
 | Atomic JSON path set / list append | AtomicJSONMixin (requires relevant JSON field) |
 | Uniform serialization (generic endpoints) | UniversalDictMixin |
 
