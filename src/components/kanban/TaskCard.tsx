@@ -29,10 +29,11 @@ interface TaskCardProps {
   columnId: string;
   index: number;
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
+  onTaskClick?: (task: KanbanTask) => void;
   isSubtask?: boolean;
 }
 
-const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, isSubtask = false }) => {
+const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false }) => {
   const ref = useRef<HTMLDivElement | null>(null);
 
   const [{ isDragging }, drag] = useDrag(
@@ -78,8 +79,9 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
   return (
     <div
       ref={ref}
+      onClick={() => onTaskClick?.(task)}
       className={clsx(
-        "group relative rounded-xl border border-transparent p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
+        "group relative rounded-xl border border-transparent p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer",
         {
           "opacity-60": isDragging,
           "ring-2 ring-indigo-400": isOver && canDrop,

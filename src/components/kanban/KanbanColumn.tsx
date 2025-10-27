@@ -15,6 +15,7 @@ interface KanbanColumnProps {
   column: KanbanColumnType;
   tasks: KanbanTask[];
   onDragEnd: (item: DragItem, dropResult: DropResult | null) => void;
+  onTaskClick?: (task: KanbanTask) => void;
   className?: string;
 }
 
@@ -60,7 +61,7 @@ const organizeTasksHierarchically = (tasks: KanbanTask[]): TaskWithIndent[] => {
   return organized;
 };
 
-const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onDragEnd, className }) => {
+const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onDragEnd, onTaskClick, className }) => {
   const columnRef = useRef<HTMLDivElement | null>(null);
 
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
@@ -138,6 +139,7 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
               columnId={column.id} 
               index={index} 
               onDragEnd={onDragEnd}
+              onTaskClick={onTaskClick}
               isSubtask={isSubtask}
             />
           </div>

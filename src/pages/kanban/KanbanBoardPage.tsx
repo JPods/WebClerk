@@ -229,8 +229,18 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => seedBoard);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
   const defaultColumnId = seedBoard.columnOrder[0] ?? "column-backlog";
   const [createTaskState, setCreateTaskState] = useState<CreateTaskFormState>({
+    title: "",
+    description: "",
+    columnId: defaultColumnId,
+    priority: "medium",
+    dueDate: "",
+    assignee: "",
+  });
+  const [editTaskState, setEditTaskState] = useState<CreateTaskFormState>({
     title: "",
     description: "",
     columnId: defaultColumnId,
@@ -308,8 +318,36 @@ const KanbanBoardPage: React.FC = () => {
     setIsCreateModalOpen(false);
   };
 
+  const handleOpenEditModal = (task: KanbanTask) => {
+    setEditingTask(task);
+    
+    // Find the column that contains this task
+    const taskColumn = Object.values(board.columns).find(column => 
+      column.taskIds.includes(task.id)
+    );
+    
+    setEditTaskState({
+      title: task.title,
+      description: task.description || "",
+      columnId: taskColumn?.id || defaultColumnId,
+      priority: task.priority,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "",
+      assignee: task.assignee || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+  };
+
   const handleCreateTaskChange = (field: keyof CreateTaskFormState, value: string) => {
     setCreateTaskState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditTaskChange = (field: keyof CreateTaskFormState, value: string) => {
+    setEditTaskState((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCreateTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -351,6 +389,61 @@ const KanbanBoardPage: React.FC = () => {
     });
 
     handleCloseCreateModal();
+  };
+
+  const handleEditTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedTitle = editTaskState.title.trim();
+    if (!trimmedTitle || !editingTask) {
+      return;
+    }
+
+    setBoard((prev) => {
+      const currentColumn = Object.values(prev.columns).find(column => 
+        column.taskIds.includes(editingTask.id)
+      );
+      const newColumn = prev.columns[editTaskState.columnId];
+      
+      if (!currentColumn || !newColumn) return prev;
+
+      // Update task data
+      const updatedTask: KanbanTask = {
+        ...editingTask,
+        title: trimmedTitle,
+        description: editTaskState.description.trim() || undefined,
+        priority: editTaskState.priority,
+        assignee: editTaskState.assignee.trim() || undefined,
+        dueDate: editTaskState.dueDate || undefined,
+      };
+
+      // Handle column change if needed
+      let updatedColumns = { ...prev.columns };
+      
+      if (currentColumn.id !== newColumn.id) {
+        // Remove from current column
+        updatedColumns[currentColumn.id] = {
+          ...currentColumn,
+          taskIds: currentColumn.taskIds.filter(id => id !== editingTask.id)
+        };
+        
+        // Add to new column
+        updatedColumns[newColumn.id] = {
+          ...newColumn,
+          taskIds: [...newColumn.taskIds, editingTask.id]
+        };
+      }
+
+      return {
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [editingTask.id]: updatedTask,
+        },
+        columns: updatedColumns
+      };
+    });
+
+    handleCloseEditModal();
   };
 
   const gridStyle = useMemo<CSSProperties>(() => ({
@@ -440,6 +533,7 @@ const KanbanBoardPage: React.FC = () => {
                 column={column}
                 tasks={tasks}
                 onDragEnd={handleDragEnd}
+                onTaskClick={handleOpenEditModal}
                 className="h-full"
               />
             );
@@ -554,6 +648,138 @@ const KanbanBoardPage: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                 >
                   Add task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {isEditModalOpen && editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit task</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Update task details and move between columns.</p>
+              </div>
+              <button
+                onClick={handleCloseEditModal}
+                className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleEditTaskSubmit}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Task title</label>
+                <input
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  value={editTaskState.title}
+                  onChange={(event) => handleEditTaskChange("title", event.target.value)}
+                  placeholder="e.g. Finalize onboarding flow"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                <textarea
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  rows={3}
+                  value={editTaskState.description}
+                  onChange={(event) => handleEditTaskChange("description", event.target.value)}
+                  placeholder="Context, acceptance criteria, or notes"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Column</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.columnId}
+                    onChange={(event) => handleEditTaskChange("columnId", event.target.value)}
+                  >
+                    {columnOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.priority}
+                    onChange={(event) => handleEditTaskChange("priority", event.target.value as TaskPriority)}
+                  >
+                    {priorityOptions.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.dueDate}
+                    onChange={(event) => handleEditTaskChange("dueDate", event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.assignee}
+                    onChange={(event) => handleEditTaskChange("assignee", event.target.value)}
+                    placeholder="Who owns this?"
+                  />
+                </div>
+              </div>
+
+              {/* Current Task Info */}
+              <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Task Status</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Progress:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Tags:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">
+                      {editingTask.tags?.join(", ") || "None"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                >
+                  Update task
                 </button>
               </div>
             </form>
