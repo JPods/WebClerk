@@ -37,10 +37,10 @@ except Exception:
 try:
     Action = apps.get_model('core', 'Action')
     register(ModelConfig(
-        key='actions/std',
+        key='action',
         model=Action,
-        search_fields=('action', 'status', 'priority', 'who', 'notes'),
-        ordering=('-id',),
+        search_fields=('action_en', 'description_en', 'status'),
+        ordering=('-dt_created',),
         permission_classes=(permissions.IsAuthenticated,),
         basename='action2',
         dev_fallback=False,

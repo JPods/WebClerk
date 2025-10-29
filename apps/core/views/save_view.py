@@ -182,7 +182,7 @@ class SaveWcapiView(APIView):
         model = get_model(norm_key)
         if not model:
             return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})  #chaned from t_n
-        model_key = to_model_name(norm_key) or raw_model_name
+        model_key = to_model_name(model) or raw_model_name
 
         # Concurrency: If-Match header > body.version > expected_version (deprecated)
         header_if_match = request.META.get('HTTP_IF_MATCH')

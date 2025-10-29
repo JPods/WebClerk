@@ -21,10 +21,8 @@ DIFFICULTY_LEVELS = [
 ]
 
 class Action(BaseModel):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
     # Parent-child relationship
-    parent = models.ForeignKey('self', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
+    parent = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
     
     # Multilingual titles
     action_en = models.CharField(max_length=255, blank=True, null=True)
@@ -48,13 +46,13 @@ class Action(BaseModel):
     status = models.CharField(max_length=100, blank=True, null=True)
 
     # Date fields with detailed meta info
-    dt_created = models.DateTimeField(default=timezone.now)
-    dt_updated = models.DateTimeField(auto_now=True)
-    dt_expected = models.DateTimeField(blank=True, null=True)
-    dt_due = models.DateTimeField(blank=True, null=True)
-    dt_completed = models.DateTimeField(blank=True, null=True)
-    dt_start = models.DateTimeField(blank=True, null=True)
-    dt_end = models.DateTimeField(blank=True, null=True)
+    dt_created = models.BigIntegerField(default=0, db_index=True)
+    dt_updated = models.BigIntegerField(default=0, db_index=True)
+    dt_expected = models.BigIntegerField(blank=True, null=True)
+    dt_due = models.BigIntegerField(blank=True, null=True)
+    dt_completed = models.BigIntegerField(blank=True, null=True)
+    dt_start = models.BigIntegerField(blank=True, null=True)
+    dt_end = models.BigIntegerField(blank=True, null=True)
 
     # Audit info: who created / updated etc.
     created_by = models.JSONField(blank=True, null=True)

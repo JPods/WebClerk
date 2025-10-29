@@ -10,7 +10,9 @@ from rest_framework import permissions, status
 from rest_framework.pagination import PageNumberPagination
 from django.utils.crypto import get_random_string
 from rest_framework import viewsets  # needed for FallbackVS(viewsets.ModelViewSet)
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView  # add JWT views
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from apps.core.views.save_view import SaveWcapiView  # add JWT views
 from .auth_views import AuthLoginView, AuthLogoutView, AuthMeView    
 
 from .viewsets import WCAPIModelViewSet
@@ -644,7 +646,7 @@ urlpatterns = [
     path("requisitions/std/<int:pk>/", RequisitionV2DetailView.as_view(), name="requisition2-detail"),
     path("products/inventory/reservations/", InventoryReservationsView.as_view(), name="inventory-reservations"),
     path("products/inventory/reservations/action/", InventoryReservationsActionView.as_view(), name="inventory-reservations-action"),
-    path("wcapi/save", SaveView.as_view(), name="wcapi-save"),
+    path("wcapi/save/", SaveWcapiView.as_view(), name="wcapi-save"),
     path("wcapi/query", WCAPIQueryView.as_view(), name="wcapi-query"),
     path("wcapi/get", WCAPIGetView.as_view(), name="wcapi-get"),       # no trailing slash
     path("wcapi/get/", WCAPIGetView.as_view(), name="wcapi-get-slash"),# with trailing slash
