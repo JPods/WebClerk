@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 """
 Import CSV → Action model
-Fixed: BOM, timezone.utc, Django shadowing
 """
 
 import csv
 import os
 import sys
 from pathlib import Path
-from datetime import datetime, timezone  # timezone.utc from datetime
+from datetime import datetime, timezone
 from typing import List, Dict
 
 # === Django Setup ===
@@ -21,11 +20,6 @@ django.setup()
 
 # === Models ===
 from apps.core.models import Action
-
-# === DO NOT import `from django.utils import timezone` ===
-# Use alias to avoid conflict
-from django.utils import timezone as dj_timezone  # only for .now()
-
 
 # === Constants ===
 KANBAN_COLUMNS = [
@@ -48,11 +42,20 @@ EFFORT_TO_DIFFICULTY = {label.lower(): value for value, label in DIFFICULTY_LEVE
 def parse_date(date_str: str):
     if not date_str or not date_str.strip():
         return None
+    date_str = date_str.strip()
     try:
-        dt = datetime.strptime(date_str.strip(), "%d/%m/%Y")
-        return dt.replace(tzinfo=timezone.utc)  # Correct
-    except ValueError as e:
-        print(f"Warning: Invalid date '{date_str}': {e}")
+        dt = datetime.fromisoformat(date_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except (ValueError, TypeError):
+        pass
+    try:
+        dt = datetime.strptime(date_str, "%d/%m/%Y")
+        dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except ValueError:
+        print(f"Warning: Invalid date '{date_str}'")
         return None
 
 
@@ -86,9 +89,8 @@ def import_csv_to_actions(csv_file_path: str):
 
     actions_to_create = []
 
-    with open(csv_file_path, mode='r', encoding='utf-8-sig') as file:  # BOM-safe
+    with open(csv_file_path, mode='r', encoding='utf-8-sig') as file:
         reader = csv.DictReader(file)
-        # Clean headers
         reader.fieldnames = [field.strip().replace('\ufeff', '') for field in reader.fieldnames]
         print(f"Cleaned CSV columns: {reader.fieldnames}")
 
@@ -118,7 +120,9 @@ def import_csv_to_actions(csv_file_path: str):
             actions_to_create.append(action)
 
     print(f"Importing {len(actions_to_create)} actions...")
-    Action.objects.bulk_create(actions_to_create, batch_size=100)
+    for action in actions_to_create:
+        action.id = None  # Ensure id is None so Django auto-generates it
+        action.save()
     print("Import completed successfully!")
 
 
