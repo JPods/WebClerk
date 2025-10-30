@@ -20,6 +20,7 @@ import OrderDetailPage from "./transactions/OrderDetailPage";
 import InvoiceDetailPage from "./transactions/InvoiceDetailPage";
 import NotionTrackerPage from "./notion/NotionTrackerPage.tsx";
 import KanbanBoardPage from "./kanban/KanbanBoardPage";
+import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
 import KanbanGanttPage from "./kanban/KanbanGanttPage";
 
 export {  
@@ -45,5 +46,6 @@ export {
   , AdminWorkbench
   , NotionTrackerPage
   , KanbanBoardPage
+  , KanbanBoardDataPage
   , KanbanGanttPage
 };

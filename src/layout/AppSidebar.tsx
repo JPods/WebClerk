@@ -51,6 +51,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: <GridIcon />,
+    name: "Kanban API",
+    path: "/kanban-board-data",
+  },
+  {
+    icon: <GridIcon />,
     name: "Admin Workbench",
     path: "/admin-wb",
   },

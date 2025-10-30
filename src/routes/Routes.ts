@@ -27,6 +27,7 @@ export class PageRoutes {
   static readonly docs: string = "/docs";
   static readonly notionTracker: string = "/notion-tracker";
   static readonly kanbanBoard: string = "/kanban-board";
+  static readonly kanbanBoardData: string = "/kanban-board-data";
   static readonly kanbanGantt: string = "/kanban-gantt";
 
   // Products & Transactions
