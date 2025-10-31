@@ -194,6 +194,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+
+
 import os
 STATICFILES_DIRS = [
     # Project-level static assets
