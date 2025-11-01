@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Provide fallback secret for local/dev or test runs if not supplied via env
 SECRET_KEY = config('SECRET_KEY', default='insecure-dev-test-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '85.31.234.194']
 
 
 CORS_ALLOWED_ORIGINS = (
@@ -194,7 +194,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 import os
 STATICFILES_DIRS = [
