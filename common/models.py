@@ -546,6 +546,7 @@ class CommentsMixin(models.Model):
     def _ensure_comment_root(self):  # pragma: no cover trivial
         if not isinstance(self.comments, dict):
             self.comments = {}
+        # QQQ general is about the records
         self.comments.setdefault('general', {})
         self.comments.setdefault('records', {})
         for ch in ('public', 'process', 'foreign'):
@@ -655,7 +656,7 @@ class HealthMixin(models.Model):
     class Meta:
         abstract = True
 
-
+# QQQ 
 class KeywordsMixin(models.Model):
     """Derives a capped keyword set from model text fields into refs.keywords."""
 
@@ -675,9 +676,10 @@ class KeywordsMixin(models.Model):
     def update_keywords(self):  # requires refs + metadata if present
         if not hasattr(self, "refs"):
             return
+        sensitive_fields = {'password'}  # exclude sensitive fields like password
         keywords_set: set[str] = set()
         for field in self._meta.fields:  # type: ignore[attr-defined]
-            if isinstance(field, (models.CharField, models.TextField)):
+            if isinstance(field, (models.CharField, models.TextField)) and field.name not in sensitive_fields:
                 val = getattr(self, field.name, "")
                 if val:
                     for raw in str(val).lower().split():
@@ -986,14 +988,18 @@ class BaseModel(
     ActionsMixin,
     CoreModel,
     MetadataMixin,
+
     RefsMixin,
+    KeywordsMixin, # QQQ
+
     PrefsMixin,
     CommentsMixin,
+
     HealthMixin,
-    KeywordsMixin,
-    LifecycleMixin,
-    UniversalDictMixin,
-    AtomicJSONMixin,
+    LifecycleMixin,  # QQQ should be these combined
+
+    UniversalDictMixin,  # QQQ is that already covered by CoreModel?
+    AtomicJSONMixin,  # QQQ where this used and why
 ):
     """Full capability base: adds JSON envelopes, search keywords, lifecycle & atomic ops.
 

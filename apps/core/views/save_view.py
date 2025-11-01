@@ -31,6 +31,7 @@ from common.decorators import allow_write
 from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
 import json
 from apps.core import tasks
+from apps.core.tasks import perform_save_operation, update_keywords_task
 from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
@@ -170,7 +171,7 @@ class SaveWcapiView(APIView):
         except json.JSONDecodeError as e:
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
 
-    # Required: model_name (singular)
+        # Required: model_name (singular)
         raw_model_name = data.get('model_name')
         if not raw_model_name:
             return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})
@@ -178,10 +179,10 @@ class SaveWcapiView(APIView):
         # Normalize and resolve model
         norm_key = normalize_table_key(raw_model_name)
         if not norm_key:
-            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})  #chaned from t_n
+            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
         model = get_model(norm_key)
         if not model:
-            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})  #chaned from t_n
+            return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
         model_key = to_model_name(model) or raw_model_name
 
         # Concurrency: If-Match header > body.version > expected_version (deprecated)
@@ -205,41 +206,11 @@ class SaveWcapiView(APIView):
             deprecation_flag = True
 
         record_id = data.get('id')
-        print(f"record_id: {record_id} -- {data}")
-        #QQQ what what happens when we send id=0  
-        # Antor and Riju resolve
 
-        # Create or update
+        # Pre-save hook or task (run synchronously for validation)
         is_update = bool(record_id)
-        if is_update:
-            try:
-                obj = model.objects.get(id=record_id)
-            except model.DoesNotExist:
-                return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-            if expected_version is not None:
-                current_version = getattr(obj, 'version', None)
-                if current_version != expected_version:
-                    return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
-        else:
-            obj = model()
-
-    # We'll deep-merge incoming dicts into existing JSON fields to avoid clobbering
-    # previously populated structures (e.g., refs, prefs, metadata, and other JSONField fields).
-    # Note: metadata now includes flow/source containers universally. Actions moved to root actions JSON.
-    # Clients can PATCH {"metadata": {"flow": {...}, "source": {...}}} and/or {"actions": {...}} without loss.
-        nested_fields = ['refs', 'prefs', 'metadata', 'actions']  # include actions for deep-merge
-        try:
-            json_field_names = {
-                f.name for f in obj._meta.get_fields()
-                if hasattr(f, 'attname') and isinstance(f, models.JSONField)
-            }
-        except Exception:
-            json_field_names = set()
-
-        # Pre-save hook or task
-        pre_hook = getattr(obj, 'pre_save_hook', None)
+        pre_hook = getattr(model(), 'pre_save_hook', None)  # instantiate to check
         if callable(pre_hook):
-            # Try flexible signatures: (data, is_update, context) -> (data, is_update) -> (data)
             context = {
                 'model_name': model_key,
                 'is_update': is_update,
@@ -247,15 +218,14 @@ class SaveWcapiView(APIView):
             }
             try:
                 try:
-                    result = pre_hook(data, is_update, context)  # type: ignore[misc]
+                    result = pre_hook(data, is_update, context)
                 except TypeError:
                     try:
-                        result = pre_hook(data, is_update)  # type: ignore[misc]
+                        result = pre_hook(data, is_update)
                     except TypeError:
-                        result = pre_hook(data)  # type: ignore[misc]
+                        result = pre_hook(data)
             except Exception as e:
                 return api_response(success=False, status_code=400, message='Pre-save validation failed', error={'code':'validation_exception','details': str(e)})
-            # Interpret result: None means OK; tuple (ok, msg?) supported; any other non-None treated as error message
             if result is not None:
                 if isinstance(result, tuple):
                     ok = bool(result[0])
@@ -274,81 +244,15 @@ class SaveWcapiView(APIView):
                 except Exception:
                     pass
 
-        # Assign fields
-        field_size_errors = []
-        raw_password = None
-        for field, value in data.items():
-            if field == 'password':
-                raw_password = value
-                continue
-            if field in ('model_name', 'id', 'version', 'expected_version'):
-                continue
-            if hasattr(obj, field):
-                # If field appears to be JSON-like, deep-merge dicts instead of overwrite
-                current = getattr(obj, field)
-                is_json_field = field in json_field_names or isinstance(current, dict)
-                if isinstance(value, dict) and is_json_field:
-                    if isinstance(current, str):
-                        try:
-                            current = json.loads(current)
-                        except json.JSONDecodeError:
-                            current = {}
-                    if not isinstance(current, dict):
-                        current = {}
-                    merged = deep_merge_dict(current, value)
-                    try:
-                        check_field_size(merged, MAX_FIELD_SIZE, field)
-                        setattr(obj, field, merged)
-                    except ValueError as e:
-                        field_size_errors.append(str(e))
-                else:
-                    try:
-                        check_field_size(value, MAX_FIELD_SIZE, field)
-                        setattr(obj, field, value)
-                    except ValueError as e:
-                        field_size_errors.append(str(e))
-            else:
-                # Unknown field: capture into prefs.userdefined without overwriting existing keys
-                try:
-                    prefs = getattr(obj, 'prefs', {}) or {}
-                    if isinstance(prefs, str):
-                        try:
-                            prefs = json.loads(prefs)
-                        except json.JSONDecodeError:
-                            prefs = {}
-                    userdefined = prefs.setdefault('userdefined', {})
-                    # Prepare a storable value (truncate long strings; keep JSON if small enough)
-                    storable = value
-                    # If not JSON-serializable, fall back to string
-                    try:
-                        raw_json = json.dumps(storable)
-                        # Enforce overall field size limit; if too big, store truncated string
-                        if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
-                            storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                    except Exception:
-                        storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                    userdefined[field] = storable
-                    # Size check on prefs after capture
-                    check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
-                    setattr(obj, 'prefs', prefs)
-                except ValueError as e:
-                    field_size_errors.append(str(e))
-
-        if raw_password is not None and hasattr(obj, 'set_password'):
-            try:
-                obj.set_password(raw_password)  # type: ignore[attr-defined]
-            except Exception as e:
-                return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
-
         # Optional model-level payload validation
         try:
             universal_flag = getattr(settings, 'UNIVERSAL_API_VALIDATE', False)
         except Exception:
             universal_flag = False
         apply_validation = universal_flag or (norm_key == 'orgs' and getattr(settings, 'ORGS_VALIDATE_API', False))
-        if apply_validation and hasattr(obj, 'api_validate_payload'):
+        if apply_validation and hasattr(model, 'api_validate_payload'):
             try:
-                ok, errors = obj.api_validate_payload(data, is_update)  # type: ignore[attr-defined]
+                ok, errors = model().api_validate_payload(data, is_update)
             except Exception as e:
                 logging.getLogger(__name__).warning(
                     "validation_exception model=%s class=%s error=%s", model_key, model.__name__, e
@@ -360,65 +264,20 @@ class SaveWcapiView(APIView):
                 )
                 return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_failed','details': errors})
 
-        # Save
-        try:
-            obj.save()
-        except IntegrityError as e:
-            return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
-        except Exception as e:
-            return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
+        # Call Celery task for save operation asynchronously
+        perform_save_operation.delay(model_key, data, record_id=record_id, expected_version=expected_version, user_id=getattr(request.user, 'id', None))
 
-        # Post-save hook or task
-        post_hook_note = None
-        post_hook = getattr(obj, 'post_save_hook', None)
-        if callable(post_hook):
-            try:
-                context = {
-                    'model_name': model_key,
-                    'is_update': is_update,
-                    'user_id': getattr(request.user, 'id', None),
-                }
-                try:
-                    post_hook_note = post_hook(data, is_update, context)  # type: ignore[misc]
-                except TypeError:
-                    try:
-                        post_hook_note = post_hook(data, is_update)  # type: ignore[misc]
-                    except TypeError:
-                        post_hook_note = post_hook(data)  # type: ignore[misc]
-            except Exception as e:
-                post_hook_note = f'post_save_hook error: {e}'
-        else:
-            try:
-                tasks.save_post.apply(args=[model_key, data])
-            except Exception:
-                try:
-                    tasks.save_post(model_key, data)
-                except Exception:
-                    pass
-        try:
-            task_async = getattr(tasks, 'save_post_async', None)
-            if task_async is not None:
-                task_async.delay(model_key, obj.id, getattr(obj, 'version', None))
-        except Exception:
-            pass
+        # Call Celery task for updating keywords asynchronously
+        if record_id:
+            update_keywords_task.delay(model_key, record_id)
 
-        # Response
-        try:
-            safe_fields = [f.name for f in obj._meta.concrete_fields]
-            record = model_to_dict(obj, fields=safe_fields)
-        except Exception:
-            record = {'id': getattr(obj, 'id', None)}
+        # Respond instantly with success message
         payload = {
-            'id': obj.id,
-            'record': record,
+            'id': record_id,
             'model_name': model_key,
-            'version': getattr(obj, 'version', None)
+            'message': 'Save operation initiated. Processing in background.'
         }
         messages = []
-        if field_size_errors:
-            messages.extend(field_size_errors)
-        if post_hook_note:
-            messages.append(post_hook_note)
         if deprecation_flag:
             messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
             logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", model_key)
