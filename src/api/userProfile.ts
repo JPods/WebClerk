@@ -122,15 +122,7 @@ export const getAction = async (id:any = '') => {
   }  
 };
 
-export const patchAction = async (id:any,data:any) => {
-  try {
-  const res = await apiClient.patch(PostLoginURL.addActions + id +'/', {...data});
-    return res;
-  }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
-};
+
 
 export const deleteAction = async (id:any) => {
   try {
@@ -154,7 +146,17 @@ export const Contacts = async (id:any = '') => {
 
 export const Actions = async () => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=actions' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=action' );
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+export const patchAction = async (data:any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.allSave, {...data});
     return res;
   }
   catch (error: any) { 

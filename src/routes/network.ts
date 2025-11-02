@@ -55,6 +55,7 @@ class PostLoginURL {
   static readonly kanbanOrder: string = "/kanban/order/";
 
   static readonly allTypes: string = "/wcapi/get/?"; 
+  static readonly allSave: string = "/wcapi/save/"; 
     
 }
 
