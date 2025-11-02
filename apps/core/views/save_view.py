@@ -38,6 +38,9 @@ import logging
 from django.conf import settings
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
+import time
+import traceback
+from pathlib import Path
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -236,12 +239,17 @@ class SaveWcapiView(APIView):
                 else:
                     return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
         else:
+            # Prefer running the task function locally to avoid broker/setup overhead
+            # which can add latency to the synchronous save path (avoid task.apply).
             try:
-                tasks.save_pre.apply(args=[model_key, data])
+                # Call the underlying task implementation directly (synchronous local call)
+                tasks.save_pre.run(model_key, data)
             except Exception:
                 try:
+                    # Fallback: call the task callable (may execute synchronously)
                     tasks.save_pre(model_key, data)
                 except Exception:
+                    # Swallow to avoid failing the save due to background hook issues
                     pass
 
         # Optional model-level payload validation
