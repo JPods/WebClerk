@@ -37,6 +37,9 @@ import logging
 from django.conf import settings
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
+import time
+import traceback
+from pathlib import Path
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -266,12 +269,17 @@ class SaveWcapiView(APIView):
                 else:
                     return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
         else:
+            # Prefer running the task function locally to avoid broker/setup overhead
+            # which can add latency to the synchronous save path (avoid task.apply).
             try:
-                tasks.save_pre.apply(args=[model_key, data])
+                # Call the underlying task implementation directly (synchronous local call)
+                tasks.save_pre.run(model_key, data)
             except Exception:
                 try:
+                    # Fallback: call the task callable (may execute synchronously)
                     tasks.save_pre(model_key, data)
                 except Exception:
+                    # Swallow to avoid failing the save due to background hook issues
                     pass
 
         # Assign fields
@@ -388,8 +396,10 @@ class SaveWcapiView(APIView):
             except Exception as e:
                 post_hook_note = f'post_save_hook error: {e}'
         else:
+            # As with pre-save, run post-save logic locally where possible to avoid
+            # broker connection latency impacting the user-facing save API.
             try:
-                tasks.save_post.apply(args=[model_key, data])
+                tasks.save_post.run(model_key, data)
             except Exception:
                 try:
                     tasks.save_post(model_key, data)
@@ -398,9 +408,43 @@ class SaveWcapiView(APIView):
         try:
             task_async = getattr(tasks, 'save_post_async', None)
             if task_async is not None:
-                task_async.delay(model_key, obj.id, getattr(obj, 'version', None))
+                # Time the .delay() call because broker connection setup can block the request
+                start = time.time()
+                exc = None
+                try:
+                    task_async.delay(model_key, obj.id, getattr(obj, 'version', None))
+                except Exception as e:
+                    exc = e
+                end = time.time()
+                duration = end - start
+                # Threshold for logging (seconds). Keep small to catch noticeable delays.
+                THRESHOLD = getattr(settings, 'SAVE_POST_ASYNC_DELAY_LOG_THRESHOLD', 0.1)
+                if exc is not None or duration >= THRESHOLD:
+                    # Build notification record (JSONL) and log via Django logger
+                    try:
+                        log_dir = Path(settings.BASE_DIR) / '.local' / 'logs'
+                        log_dir.mkdir(parents=True, exist_ok=True)
+                        out_path = log_dir / 'delay_notifications.jsonl'
+                        likely_cause = 'broker_connection_latency' if exc is None else 'broker_exception'
+                        record = {
+                            'ts': time.time(),
+                            'api': '/wcapi/save/',
+                            'model': model_key,
+                            'id': getattr(obj, 'id', None),
+                            'duration': duration,
+                            'exception': repr(exc) if exc else None,
+                            'trace': traceback.format_exc() if exc else None,
+                            'likely_cause': likely_cause,
+                        }
+                        with open(out_path, 'a', encoding='utf-8') as fh:
+                            fh.write(json.dumps(record) + '\n')
+                    except Exception:
+                        logging.getLogger(__name__).exception('Failed to write delay notification record')
+                    # Also emit a logger warning for alerting/monitoring
+                    logging.getLogger(__name__).warning('save_post_async delayed/errored table=%s id=%s duration=%.3fs exc=%s', model_key, getattr(obj, 'id', None), duration, exc)
         except Exception:
-            pass
+            # If measuring/logging fails, never let it break the save response
+            logging.getLogger(__name__).exception('Unexpected error measuring save_post_async')
 
         # Response
         try:
