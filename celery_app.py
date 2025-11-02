@@ -1,12 +1,15 @@
-# Each Celery worker process will execute the code 
-# in celery_app.py when it starts, 
+# Each Celery worker process will execute the code
+# in celery_app.py when it starts,
 # so the single import and call is sufficient for every worker.
 import os
+import django
 from celery import Celery
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webClerk3.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 
-app = Celery('webClerk3')
+django.setup()
+
+app = Celery('webclerk3_api')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 

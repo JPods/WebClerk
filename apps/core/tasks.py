@@ -69,6 +69,7 @@ def contact_save_post(data):
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
 def perform_save_operation(self, model_key, data, record_id=None, expected_version=None, user_id=None):
     """Celery task to perform the save operation asynchronously."""
+    logger.info("Starting perform_save_operation for model_key=%s, record_id=%s", model_key, record_id)
     try:
         # Normalize and resolve model
         norm_key = normalize_table_key(model_key)
@@ -91,10 +92,13 @@ def perform_save_operation(self, model_key, data, record_id=None, expected_versi
 
         # Assign fields (similar to SaveWcapiView logic)
         nested_fields = ['refs', 'prefs', 'metadata', 'actions']
-        json_field_names = {
-            f.name for f in obj._meta.get_fields()
-            if hasattr(f, 'attname') and isinstance(f, model._meta.pk.__class__.__bases__[0].__subclasshook__(type('JSONField', (), {})))  # rough check
-        }
+        json_field_names = set()
+        for f in obj._meta.get_fields():
+            if hasattr(f, 'attname'):
+                # Check if it's a JSONField by looking at the field type
+                field_type = str(type(f)).lower()
+                if 'json' in field_type or f.name in nested_fields:
+                    json_field_names.add(f.name)
 
         raw_password = None
         for field, value in data.items():
@@ -131,15 +135,18 @@ def perform_save_operation(self, model_key, data, record_id=None, expected_versi
             obj.set_password(raw_password)
 
         # Save
+        logger.info("Saving object for model_key=%s, record_id=%s", model_key, record_id)
         obj.save()
+        logger.info("Object saved successfully, id=%s, version=%s", obj.id, getattr(obj, 'version', None))
 
         # Post-save async task
         try:
             task_async = getattr(self, 'save_post_async', None)
             if task_async is not None:
+                logger.info("Dispatching save_post_async for model_key=%s, id=%s", model_key, obj.id)
                 task_async.delay(model_key, obj.id, getattr(obj, 'version', None))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("Failed to dispatch save_post_async: %s", e)
 
         return {'success': True, 'id': obj.id, 'version': getattr(obj, 'version', None)}
 
@@ -151,6 +158,7 @@ def perform_save_operation(self, model_key, data, record_id=None, expected_versi
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, max_retries=3)
 def update_keywords_task(self, model_key, record_id):
     """Celery task to update keywords for a record."""
+    logger.info("Starting update_keywords_task for model_key=%s, record_id=%s", model_key, record_id)
     try:
         norm_key = normalize_table_key(model_key)
         if not norm_key:
@@ -160,9 +168,14 @@ def update_keywords_task(self, model_key, record_id):
             raise ValueError(f'Unknown model: {model_key}')
 
         obj = model.objects.get(id=record_id)
+        logger.info("Found object id=%s for keywords update", record_id)
         if hasattr(obj, 'update_keywords'):
+            logger.info("Calling update_keywords on object id=%s", record_id)
             obj.update_keywords()
             obj.save(update_fields=['refs', 'metadata'])
+            logger.info("Keywords updated and saved for object id=%s", record_id)
+        else:
+            logger.warning("Object id=%s does not have update_keywords method", record_id)
         return {'success': True}
     except Exception as e:
         raise ValueError(f'Failed to update keywords: {str(e)}')

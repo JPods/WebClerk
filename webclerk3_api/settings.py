@@ -448,6 +448,66 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
     # Leave WCAPI_WHITELIST_APPS as-is (from env) instead of redundantly setting None
     # WCAPI_WHITELIST_APPS = None
 
+# Force Celery to use solo pool to avoid fork issues on macOS
+CELERY_WORKER_POOL = 'solo'
+
+# Auto-start Celery worker when running Django development server
+if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.join(sys.argv):
+    import subprocess
+    import atexit
+    import signal
+    import threading
+
+    # Use a more robust check to prevent multiple starts
+    _celery_started_flag = os.path.join(BASE_DIR, '.celery_started')
+    if not os.path.exists(_celery_started_flag):
+        try:
+            with open(_celery_started_flag, 'w') as f:
+                f.write(str(os.getpid()))
+
+            _celery_process = None
+
+            def _start_celery_worker():
+                global _celery_process
+                try:
+                    # Start Celery worker in background
+                    _celery_process = subprocess.Popen(
+                        ['celery', '-A', 'celery_app', 'worker', '--loglevel=info', '--concurrency=1'],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        cwd=os.path.dirname(os.path.dirname(__file__))
+                    )
+                    print("Celery worker started automatically (PID: %s)" % _celery_process.pid)
+                except Exception as e:
+                    print("Failed to start Celery worker: %s" % e)
+
+            def _stop_celery_worker():
+                global _celery_process
+                if _celery_process:
+                    try:
+                        _celery_process.terminate()
+                        _celery_process.wait(timeout=5)
+                        print("Celery worker stopped")
+                    except subprocess.TimeoutExpired:
+                        _celery_process.kill()
+                        print("Celery worker killed")
+                # Clean up flag file
+                try:
+                    os.remove(_celery_started_flag)
+                except:
+                    pass
+
+            # Register cleanup function
+            atexit.register(_stop_celery_worker)
+
+            # Start Celery worker in a separate thread
+            threading.Thread(target=_start_celery_worker, daemon=True).start()
+
+        except Exception as e:
+            print("Failed to initialize Celery worker: %s" % e)
+    else:
+        print("Celery worker already started (flag file exists)")
+
 # Disable test DB serialization to avoid querying unmanaged/legacy tables
 try:
     DATABASES["default"].setdefault("TEST", {})
