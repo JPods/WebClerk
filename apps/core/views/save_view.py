@@ -31,7 +31,6 @@ from common.decorators import allow_write
 from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
 import json
 from apps.core import tasks
-from apps.core.tasks import perform_save_operation, update_keywords_task
 from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
@@ -41,6 +40,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExamp
 import time
 import traceback
 from pathlib import Path
+from typing import Type, cast
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -186,7 +186,8 @@ class SaveWcapiView(APIView):
         model = get_model(norm_key)
         if not model:
             return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
-        model_key = to_model_name(model) or raw_model_name
+        model_cls = cast(Type[models.Model], model)
+        model_key = to_model_name(model_cls) or raw_model_name
 
         # Concurrency: If-Match header > body.version > expected_version (deprecated)
         header_if_match = request.META.get('HTTP_IF_MATCH')
@@ -210,9 +211,32 @@ class SaveWcapiView(APIView):
 
         record_id = data.get('id')
 
-        # Pre-save hook or task (run synchronously for validation)
+        # Create or update
         is_update = bool(record_id)
-        pre_hook = getattr(model(), 'pre_save_hook', None)  # instantiate to check
+        if is_update:
+            try:
+                obj = model_cls.objects.get(id=record_id)
+            except model_cls.DoesNotExist:  # type: ignore[attr-defined]
+                return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
+            if expected_version is not None:
+                current_version = getattr(obj, 'version', None)
+                if current_version != expected_version:
+                    return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
+        else:
+            obj = model_cls()
+
+        # We'll deep-merge incoming dicts into existing JSON fields to avoid clobbering
+        nested_fields = ['refs', 'prefs', 'metadata', 'actions']
+        try:
+            json_field_names = {
+                f.name for f in obj._meta.get_fields()
+                if hasattr(f, 'attname') and isinstance(f, models.JSONField)
+            }
+        except Exception:
+            json_field_names = set()
+
+        # Pre-save hook or task (run synchronously for validation)
+        pre_hook = getattr(obj, 'pre_save_hook', None)
         if callable(pre_hook):
             context = {
                 'model_name': model_key,
@@ -239,18 +263,73 @@ class SaveWcapiView(APIView):
                 else:
                     return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
         else:
-            # Prefer running the task function locally to avoid broker/setup overhead
-            # which can add latency to the synchronous save path (avoid task.apply).
             try:
-                # Call the underlying task implementation directly (synchronous local call)
                 tasks.save_pre.run(model_key, data)
             except Exception:
                 try:
-                    # Fallback: call the task callable (may execute synchronously)
                     tasks.save_pre(model_key, data)
                 except Exception:
-                    # Swallow to avoid failing the save due to background hook issues
                     pass
+
+        # Assign fields
+        field_size_errors = []
+        raw_password = None
+        for field, value in data.items():
+            if field == 'password':
+                raw_password = value
+                continue
+            if field in ('model_name', 'id', 'version', 'expected_version'):
+                continue
+            if hasattr(obj, field):
+                current = getattr(obj, field)
+                is_json_field = field in json_field_names or isinstance(current, dict)
+                if isinstance(value, dict) and is_json_field:
+                    if isinstance(current, str):
+                        try:
+                            current = json.loads(current)
+                        except json.JSONDecodeError:
+                            current = {}
+                    if not isinstance(current, dict):
+                        current = {}
+                    merged = deep_merge_dict(current, value)
+                    try:
+                        check_field_size(merged, MAX_FIELD_SIZE, field)
+                        setattr(obj, field, merged)
+                    except ValueError as e:
+                        field_size_errors.append(str(e))
+                else:
+                    try:
+                        check_field_size(value, MAX_FIELD_SIZE, field)
+                        setattr(obj, field, value)
+                    except ValueError as e:
+                        field_size_errors.append(str(e))
+            else:
+                try:
+                    prefs = getattr(obj, 'prefs', {}) or {}
+                    if isinstance(prefs, str):
+                        try:
+                            prefs = json.loads(prefs)
+                        except json.JSONDecodeError:
+                            prefs = {}
+                    userdefined = prefs.setdefault('userdefined', {})
+                    storable = value
+                    try:
+                        raw_json = json.dumps(storable)
+                        if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
+                            storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
+                    except Exception:
+                        storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
+                    userdefined[field] = storable
+                    check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
+                    setattr(obj, 'prefs', prefs)
+                except ValueError as e:
+                    field_size_errors.append(str(e))
+
+        if raw_password is not None and hasattr(obj, 'set_password'):
+            try:
+                obj.set_password(raw_password)  # type: ignore[attr-defined]
+            except Exception as e:
+                return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
 
         # Optional model-level payload validation
         try:
@@ -258,34 +337,123 @@ class SaveWcapiView(APIView):
         except Exception:
             universal_flag = False
         apply_validation = universal_flag or (norm_key == 'orgs' and getattr(settings, 'ORGS_VALIDATE_API', False))
-        if apply_validation and hasattr(model, 'api_validate_payload'):
+        if apply_validation and hasattr(obj, 'api_validate_payload'):
             try:
-                ok, errors = model().api_validate_payload(data, is_update)
+                ok, errors = obj.api_validate_payload(data, is_update)  # type: ignore[attr-defined]
             except Exception as e:
                 logging.getLogger(__name__).warning(
-                    "validation_exception model=%s class=%s error=%s", model_key, model.__name__, e
+                    "validation_exception model=%s class=%s error=%s", model_key, model_cls.__name__, e
                 )
                 return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_exception','details': [str(e)]})
             if not ok:
                 logging.getLogger(__name__).info(
-                    "validation_failed model=%s class=%s errors=%s", model_key, model.__name__, errors
+                    "validation_failed model=%s class=%s errors=%s", model_key, model_cls.__name__, errors
                 )
                 return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_failed','details': errors})
 
-        # Call Celery task for save operation asynchronously
-        perform_save_operation.delay(model_key, data, record_id=record_id, expected_version=expected_version, user_id=getattr(request.user, 'id', None))
+        # Save
+        try:
+            obj.save()
+        except IntegrityError as e:
+            return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
+        except Exception as e:
+            return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-        # Call Celery task for updating keywords asynchronously
-        if record_id:
-            update_keywords_task.delay(model_key, record_id)
+        obj_id = getattr(obj, 'id', None)
 
-        # Respond instantly with success message
+        # Post-save hook or task
+        post_hook_note = None
+        post_hook = getattr(obj, 'post_save_hook', None)
+        if callable(post_hook):
+            try:
+                context = {
+                    'model_name': model_key,
+                    'is_update': is_update,
+                    'user_id': getattr(request.user, 'id', None),
+                }
+                try:
+                    post_hook_note = post_hook(data, is_update, context)  # type: ignore[misc]
+                except TypeError:
+                    try:
+                        post_hook_note = post_hook(data, is_update)  # type: ignore[misc]
+                    except TypeError:
+                        post_hook_note = post_hook(data)  # type: ignore[misc]
+            except Exception as e:
+                post_hook_note = f'post_save_hook error: {e}'
+        else:
+            try:
+                tasks.save_post.run(model_key, data)
+            except Exception:
+                try:
+                    tasks.save_post(model_key, data)
+                except Exception:
+                    pass
+        try:
+            task_async = getattr(tasks, 'save_post_async', None)
+            if task_async is not None:
+                start = time.time()
+                exc = None
+                try:
+                    task_async.delay(model_key, obj_id, getattr(obj, 'version', None))
+                except Exception as e:
+                    exc = e
+                end = time.time()
+                duration = end - start
+                THRESHOLD = getattr(settings, 'SAVE_POST_ASYNC_DELAY_LOG_THRESHOLD', 0.1)
+                if exc is not None or duration >= THRESHOLD:
+                    try:
+                        log_dir = Path(settings.BASE_DIR) / '.local' / 'logs'
+                        log_dir.mkdir(parents=True, exist_ok=True)
+                        out_path = log_dir / 'delay_notifications.jsonl'
+                        likely_cause = 'broker_connection_latency' if exc is None else 'broker_exception'
+                        record = {
+                            'ts': time.time(),
+                            'api': '/wcapi/save/',
+                            'model': model_key,
+                            'id': getattr(obj, 'id', None),
+                            'duration': duration,
+                            'exception': repr(exc) if exc else None,
+                            'trace': traceback.format_exc() if exc else None,
+                            'likely_cause': likely_cause,
+                        }
+                        with open(out_path, 'a', encoding='utf-8') as fh:
+                            fh.write(json.dumps(record) + '\n')
+                    except Exception:
+                        logging.getLogger(__name__).exception('Failed to write delay notification record')
+                    logging.getLogger(__name__).warning('save_post_async delayed/errored table=%s id=%s duration=%.3fs exc=%s', model_key, obj_id, duration, exc)
+        except Exception:
+            logging.getLogger(__name__).exception('Unexpected error measuring save_post_async')
+
+        # Kick keyword rebuild in background (best-effort)
+        try:
+            kw_task = getattr(tasks, 'update_keywords_task', None)
+            if kw_task is not None and obj_id:
+                try:
+                    kw_task.delay(model_key, obj_id)
+                except Exception:
+                    try:
+                        kw_task.run(model_key, obj_id)
+                    except Exception:
+                        logging.getLogger(__name__).exception('Failed to update keywords for %s id=%s', model_key, obj_id)
+        except Exception:
+            logging.getLogger(__name__).exception('Unexpected error dispatching keyword rebuild')
+
+        try:
+            safe_fields = [f.name for f in obj._meta.concrete_fields]
+            record = model_to_dict(obj, fields=safe_fields)
+        except Exception:
+            record = {'id': getattr(obj, 'id', None)}
         payload = {
-            'id': record_id,
+            'id': obj_id,
+            'record': record,
             'model_name': model_key,
-            'message': 'Save operation initiated. Processing in background.'
+            'version': getattr(obj, 'version', None)
         }
         messages = []
+        if field_size_errors:
+            messages.extend(field_size_errors)
+        if post_hook_note:
+            messages.append(post_hook_note)
         if deprecation_flag:
             messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
             logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", model_key)
