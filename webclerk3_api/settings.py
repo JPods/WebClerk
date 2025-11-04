@@ -341,6 +341,7 @@ INTERNAL_IPS = [
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or use RabbitMQ if you prefer
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_WORKER_LOGLEVEL = 'WARNING'  # Reduce Celery worker log verbosity
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {
     # Lightweight periodic normalization of stats structures
@@ -452,7 +453,7 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
 CELERY_WORKER_POOL = 'solo'
 
 # Auto-start Celery worker when running Django development server
-if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.join(sys.argv):
+if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.join(sys.argv) and os.environ.get('RUN_MAIN') == 'true':
     import subprocess
     import atexit
     import signal
@@ -460,7 +461,34 @@ if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.jo
 
     # Use a more robust check to prevent multiple starts
     _celery_started_flag = os.path.join(BASE_DIR, '.celery_started')
-    if not os.path.exists(_celery_started_flag):
+    _should_start_celery = True
+
+    if os.path.exists(_celery_started_flag):
+        try:
+            with open(_celery_started_flag, 'r') as f:
+                _stored_pid = int(f.read().strip())
+            # Check if the stored PID is still running and is a celery process
+            if _stored_pid > 0:
+                try:
+                    os.kill(_stored_pid, 0)  # Signal 0 just checks if process exists
+                    # Additional check: verify it's actually a celery process
+                    result = subprocess.run(['ps', '-p', str(_stored_pid), '-o', 'comm='], capture_output=True, text=True)
+                    if result.returncode == 0 and 'celery' in result.stdout.lower():
+                        _should_start_celery = False
+                        print("Celery worker already running (PID: %s)" % _stored_pid)
+                    else:
+                        # Process exists but not celery, remove stale flag
+                        os.remove(_celery_started_flag)
+                        print("Removed stale Celery flag file (PID %s not a celery process)" % _stored_pid)
+                except OSError:
+                    # Process is dead, remove stale flag
+                    os.remove(_celery_started_flag)
+                    print("Removed stale Celery flag file (PID %s not running)" % _stored_pid)
+        except (ValueError, IOError):
+            # Invalid flag file, remove it
+            os.remove(_celery_started_flag)
+
+    if _should_start_celery:
         try:
             with open(_celery_started_flag, 'w') as f:
                 f.write(str(os.getpid()))
@@ -472,7 +500,7 @@ if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.jo
                 try:
                     # Start Celery worker in background
                     _celery_process = subprocess.Popen(
-                        ['celery', '-A', 'celery_app', 'worker', '--loglevel=info', '--concurrency=1'],
+                        ['celery', '-A', 'celery_app', 'worker'],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         cwd=os.path.dirname(os.path.dirname(__file__))
@@ -505,8 +533,6 @@ if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.jo
 
         except Exception as e:
             print("Failed to initialize Celery worker: %s" % e)
-    else:
-        print("Celery worker already started (flag file exists)")
 
 # Disable test DB serialization to avoid querying unmanaged/legacy tables
 try:
