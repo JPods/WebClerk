@@ -1,12 +1,10 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { KanbanTask, TaskPriority } from "../../type/kanban";
 import clsx from "clsx";
-import { Actions } from "../../api/userProfile";
-import { createBoardDataFromApi, extractKanbanItems } from "./kanbanDataMapper";
 
-// Sample data used as a fallback when the API is unavailable
-const FALLBACK_GANTT_TASKS: KanbanTask[] = [
+// Sample data for Gantt chart based on Kanban tasks
+const ganttTasks: KanbanTask[] = [
   {
     id: "task-1",
     title: "Persona maps & discovery notes",
@@ -232,67 +230,10 @@ const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange }) => {
 };
 
 const KanbanGanttPage: React.FC = () => {
-  const [tasks, setTasks] = useState<KanbanTask[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [usingFallback, setUsingFallback] = useState<boolean>(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState<'week' | 'month' | 'quarter'>('month');
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'gantt' | 'timeline'>('gantt');
   const [showCompletedTasks, setShowCompletedTasks] = useState<boolean>(true);
-
-  const fetchGanttTasks = useCallback(async () => {
-    setIsLoading(true);
-    setFetchError(null);
-    try {
-      const response = await Actions();
-      if (!response || response.status !== 200) {
-        throw new Error("Request failed");
-      }
-
-      const items = extractKanbanItems(response);
-      if (items.length === 0) {
-        setTasks([]);
-        setUsingFallback(false);
-        return;
-      }
-      
-      const boardData = createBoardDataFromApi(items);
-      const mappedTasks = Object.values(boardData.tasks);
-      const sortedTasks = [...mappedTasks].sort((a, b) => {
-        const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
-        const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
-        if (aDue !== bDue) {
-          return aDue - bDue;
-        }
-        return a.title.localeCompare(b.title);
-      });
-
-      setTasks(sortedTasks);
-      setUsingFallback(false);
-    } catch (error) {
-      console.error("Failed to fetch gantt tasks", error);
-      setFetchError("Unable to load tasks from the API. Showing sample data.");
-      setTasks(FALLBACK_GANTT_TASKS);
-      setUsingFallback(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchGanttTasks();
-  }, [fetchGanttTasks]);
-
-  useEffect(() => {
-    if (!selectedTask) {
-      return;
-    }
-    const exists = tasks.some((task) => task.id === selectedTask);
-    if (!exists) {
-      setSelectedTask(null);
-    }
-  }, [tasks, selectedTask]);
 
   const dateRange = useMemo((): GanttDateRange => {
     const start = new Date();
@@ -315,38 +256,39 @@ const KanbanGanttPage: React.FC = () => {
 
   const organizedTasks = useMemo(() => {
     const result: Array<{ task: KanbanTask; isSubtask: boolean }> = [];
-    const taskMap = new Map(tasks.map((task) => [task.id, task]));
+    const taskMap = new Map(ganttTasks.map(task => [task.id, task]));
     
     // Filter tasks based on completion status
-    const filteredTasks = showCompletedTasks
-      ? tasks
-      : tasks.filter((task) => (task.progress || 0) < 100);
+    const filteredTasks = showCompletedTasks 
+      ? ganttTasks 
+      : ganttTasks.filter(task => (task.progress || 0) < 100);
     
     // Find parent tasks
-    const parentTasks = filteredTasks.filter((task) =>
+    const parentTasks = filteredTasks.filter(task => 
       task.children && task.children.length > 0 && 
-      !filteredTasks.some((otherTask) =>
-        otherTask.children?.some((child) => child.id === task.id)
+      !filteredTasks.some(otherTask => 
+        otherTask.children?.some(child => child.id === task.id)
       )
     );
-
-    const standaloneTasks = filteredTasks.filter((task) =>
+    
+    // Find standalone tasks
+    const standaloneTasks = filteredTasks.filter(task => 
       (!task.children || task.children.length === 0) &&
-      !filteredTasks.some((otherTask) =>
-        otherTask.children?.some((child) => child.id === task.id)
+      !filteredTasks.some(otherTask => 
+        otherTask.children?.some(child => child.id === task.id)
       )
     );
     
     // Add standalone tasks
-    standaloneTasks.forEach((task) => {
+    standaloneTasks.forEach(task => {
       result.push({ task, isSubtask: false });
     });
     
     // Add parent tasks and their children
-    parentTasks.forEach((parentTask) => {
+    parentTasks.forEach(parentTask => {
       result.push({ task: parentTask, isSubtask: false });
       
-      parentTask.children?.forEach((child) => {
+      parentTask.children?.forEach(child => {
         const childTask = taskMap.get(child.id.toString());
         if (childTask && (showCompletedTasks || (childTask.progress || 0) < 100)) {
           result.push({ task: childTask, isSubtask: true });
@@ -355,22 +297,20 @@ const KanbanGanttPage: React.FC = () => {
     });
     
     return result;
-  }, [showCompletedTasks, tasks]);
-
-  const hasOrganizedTasks = organizedTasks.length > 0;
+  }, [showCompletedTasks]);
 
   const handleTaskClick = useCallback((taskId: string) => {
     setSelectedTask(selectedTask === taskId ? null : taskId);
   }, [selectedTask]);
 
   const taskStats = useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter((task) => (task.progress || 0) >= 100).length;
-    const inProgress = tasks.filter((task) => (task.progress || 0) > 0 && (task.progress || 0) < 100).length;
-    const notStarted = tasks.filter((task) => (task.progress || 0) === 0).length;
-
+    const total = ganttTasks.length;
+    const completed = ganttTasks.filter(task => (task.progress || 0) >= 100).length;
+    const inProgress = ganttTasks.filter(task => (task.progress || 0) > 0 && (task.progress || 0) < 100).length;
+    const notStarted = ganttTasks.filter(task => (task.progress || 0) === 0).length;
+    
     return { total, completed, inProgress, notStarted };
-  }, [tasks]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -445,28 +385,8 @@ const KanbanGanttPage: React.FC = () => {
             </svg>
             Export
           </button>
-          <button
-            type="button"
-            onClick={fetchGanttTasks}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition disabled:cursor-not-allowed disabled:opacity-60 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 4v5h5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M20 20v-5h-5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M5.64 18.36A9 9 0 1018.36 5.64" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {isLoading ? "Refreshing…" : "Refresh"}
-          </button>
         </div>
       </div>
-
-      {fetchError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-100">
-          {fetchError}
-          {usingFallback && <span className="ml-2 font-semibold">Loaded fallback data.</span>}
-        </div>
-      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -583,72 +503,64 @@ const KanbanGanttPage: React.FC = () => {
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tasks</h3>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {isLoading ? (
-                <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">Loading tasks…</div>
-              ) : !hasOrganizedTasks ? (
-                <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-                  {usingFallback ? "Sample tasks are unavailable." : "No tasks available yet."}
-                </div>
-              ) : (
-                organizedTasks.map(({ task, isSubtask }) => (
-                  <div
-                    key={task.id}
-                    onClick={() => handleTaskClick(task.id)}
-                    className={clsx(
-                      "cursor-pointer px-4 py-6 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50",
-                      {
-                        "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
-                        "pl-8 py-4": isSubtask,
-                      }
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      {isSubtask && (
-                        <div className="mt-1 flex-shrink-0">
-                          <div className="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className={clsx(
-                          "font-semibold truncate leading-tight",
-                          isSubtask ? "text-sm text-gray-600 dark:text-gray-400" : "text-base text-gray-900 dark:text-white"
-                        )}>
-                          {task.title}
-                        </h4>
-                        <div className="mt-2 flex items-center gap-3">
-                          <span className={clsx(
-                            "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
-                            priorityBgColors[task.priority]
-                          )}>
-                            {task.priority.toUpperCase()}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <div className="w-16 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                              <div
-                                className={clsx("h-1.5 rounded-full transition-all", priorityColors[task.priority])}
-                                style={{ width: `${task.progress || 0}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                              {task.progress || 0}%
-                            </span>
-                          </div>
-                        </div>
-                        {task.assignee && (
-                          <p className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                            👤 {task.assignee}
-                          </p>
-                        )}
-                        {task.dueDate && (
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            📅 Due: {new Date(task.dueDate).toLocaleDateString()}
-                          </p>
-                        )}
+              {organizedTasks.map(({ task, isSubtask }) => (
+                <div
+                  key={task.id}
+                  onClick={() => handleTaskClick(task.id)}
+                  className={clsx(
+                    "cursor-pointer px-4 py-6 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                    {
+                      "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
+                      "pl-8 py-4": isSubtask,
+                    }
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    {isSubtask && (
+                      <div className="mt-1 flex-shrink-0">
+                        <div className="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600" />
                       </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className={clsx(
+                        "font-semibold truncate leading-tight",
+                        isSubtask ? "text-sm text-gray-600 dark:text-gray-400" : "text-base text-gray-900 dark:text-white"
+                      )}>
+                        {task.title}
+                      </h4>
+                      <div className="mt-2 flex items-center gap-3">
+                        <span className={clsx(
+                          "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
+                          priorityBgColors[task.priority]
+                        )}>
+                          {task.priority.toUpperCase()}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <div className="w-16 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                            <div 
+                              className={clsx("h-1.5 rounded-full transition-all", priorityColors[task.priority])}
+                              style={{ width: `${task.progress || 0}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {task.progress || 0}%
+                          </span>
+                        </div>
+                      </div>
+                      {task.assignee && (
+                        <p className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                          👤 {task.assignee}
+                        </p>
+                      )}
+                      {task.dueDate && (
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -657,30 +569,20 @@ const KanbanGanttPage: React.FC = () => {
             <TimelineHeader dateRange={dateRange} />
             
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {isLoading ? (
-                <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
-                  Loading timeline…
+              {organizedTasks.map(({ task, isSubtask }) => (
+                <div
+                  key={task.id}
+                  className={clsx(
+                    "relative h-20 flex items-center px-4",
+                    {
+                      "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
+                      "h-16": isSubtask,
+                    }
+                  )}
+                >
+                  <GanttBar task={task} dateRange={dateRange} isSubtask={isSubtask} />
                 </div>
-              ) : !hasOrganizedTasks ? (
-                <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
-                  {usingFallback ? "No timeline data in sample set." : "Add tasks to view the timeline."}
-                </div>
-              ) : (
-                organizedTasks.map(({ task, isSubtask }) => (
-                  <div
-                    key={task.id}
-                    className={clsx(
-                      "relative h-20 flex items-center px-4",
-                      {
-                        "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
-                        "h-16": isSubtask,
-                      }
-                    )}
-                  >
-                    <GanttBar task={task} dateRange={dateRange} isSubtask={isSubtask} />
-                  </div>
-                ))
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -690,7 +592,7 @@ const KanbanGanttPage: React.FC = () => {
       {selectedTask && (
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
           {(() => {
-            const task = tasks.find((t) => t.id === selectedTask);
+            const task = ganttTasks.find(t => t.id === selectedTask);
             if (!task) return null;
             
             return (
