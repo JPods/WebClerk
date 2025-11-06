@@ -1,77 +1,78 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import type { BoardData } from "../../type/kanban";
 import { KanbanTask, TaskPriority } from "../../type/kanban";
 import clsx from "clsx";
-import { Actions } from "../../api/userProfile";
-import { createBoardDataFromApi, extractKanbanItems } from "./kanbanDataMapper";
+import { Actions, patchAction } from "../../api/userProfile";
+import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 
 // Sample data used as a fallback when the API is unavailable
-const FALLBACK_GANTT_TASKS: KanbanTask[] = [
-  {
-    id: "task-1",
-    title: "Persona maps & discovery notes",
-    description: "Synthesize user interviews into actionable personas for the growth epic.",
-    priority: "high",
-    assignee: "Maya Patel",
-    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-    tags: ["Discovery", "Research"],
-    progress: 35,
-    children: [
-      { id: "task-1-1", name: "Conduct user interviews" },
-      { id: "task-1-2", name: "Create persona templates" }
-    ]
-  },
-  {
-    id: "task-1-1",
-    title: "Conduct user interviews",
-    description: "Schedule and conduct interviews with 5-8 target users",
-    priority: "medium",
-    assignee: "Maya Patel",
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    tags: ["Research"],
-    progress: 80,
-  },
-  {
-    id: "task-1-2",
-    title: "Create persona templates",
-    description: "Design reusable persona templates based on research findings",
-    priority: "medium",
-    assignee: "Maya Patel",
-    dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-    tags: ["Design"],
-    progress: 20,
-  },
-  {
-    id: "task-2",
-    title: "Backend contract for v2 API",
-    description: "Define request/response schema and agree on pagination strategy with backend team.",
-    priority: "critical",
-    assignee: "Colin Rivera",
-    dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
-    tags: ["API", "Backend"],
-    progress: 10,
-  },
-  {
-    id: "task-3",
-    title: "Visual design refresh",
-    description: "Update typography scale and audit existing color usage to match new design tokens.",
-    priority: "medium",
-    assignee: "Akari Watanabe",
-    dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
-    tags: ["Design", "UI"],
-    progress: 55,
-  },
-  {
-    id: "task-4",
-    title: "QA regression suite",
-    description: "Automate the top ten revenue-critical flows in Playwright.",
-    priority: "high",
-    assignee: "Enzo García",
-    dueDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
-    tags: ["QA", "Automation"],
-    progress: 20,
-  }
-];
+// const FALLBACK_GANTT_TASKS: KanbanTask[] = [
+//   {
+//     id: "task-1",
+//     title: "Persona maps & discovery notes",
+//     description: "Synthesize user interviews into actionable personas for the growth epic.",
+//     priority: "high",
+//     assignee: "Maya Patel",
+//     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+//     tags: ["Discovery", "Research"],
+//     progress: 35,
+//     children: [
+//       { id: "task-1-1", name: "Conduct user interviews" },
+//       { id: "task-1-2", name: "Create persona templates" }
+//     ]
+//   },
+//   {
+//     id: "task-1-1",
+//     title: "Conduct user interviews",
+//     description: "Schedule and conduct interviews with 5-8 target users",
+//     priority: "medium",
+//     assignee: "Maya Patel",
+//     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+//     tags: ["Research"],
+//     progress: 80,
+//   },
+//   {
+//     id: "task-1-2",
+//     title: "Create persona templates",
+//     description: "Design reusable persona templates based on research findings",
+//     priority: "medium",
+//     assignee: "Maya Patel",
+//     dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+//     tags: ["Design"],
+//     progress: 20,
+//   },
+//   {
+//     id: "task-2",
+//     title: "Backend contract for v2 API",
+//     description: "Define request/response schema and agree on pagination strategy with backend team.",
+//     priority: "critical",
+//     assignee: "Colin Rivera",
+//     dueDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+//     tags: ["API", "Backend"],
+//     progress: 10,
+//   },
+//   {
+//     id: "task-3",
+//     title: "Visual design refresh",
+//     description: "Update typography scale and audit existing color usage to match new design tokens.",
+//     priority: "medium",
+//     assignee: "Akari Watanabe",
+//     dueDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
+//     tags: ["Design", "UI"],
+//     progress: 55,
+//   },
+//   {
+//     id: "task-4",
+//     title: "QA regression suite",
+//     description: "Automate the top ten revenue-critical flows in Playwright.",
+//     priority: "high",
+//     assignee: "Enzo García",
+//     dueDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
+//     tags: ["QA", "Automation"],
+//     progress: 20,
+//   }
+// ];
 
 const priorityColors: Record<TaskPriority, string> = {
   low: "bg-emerald-500",
@@ -86,6 +87,126 @@ const priorityBgColors: Record<TaskPriority, string> = {
   high: "bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20",
   critical: "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20",
 };
+
+const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
+
+const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
+
+const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  ar: "Arabic",
+  bn: "Bengali",
+  es: "Spanish",
+};
+
+const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
+
+const createLocalId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
+type TranslationFormEntry = {
+  id: string;
+  language: string;
+  title: string;
+  description: string;
+};
+
+type TaskFormState = {
+  translations: TranslationFormEntry[];
+  columnId: string;
+  priority: TaskPriority;
+  dueDate: string;
+  assignee: string;
+};
+
+const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
+
+const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
+  id: createLocalId(),
+  language,
+  title,
+  description,
+});
+
+const createInitialTaskFormState = (columnId: string): TaskFormState => ({
+  translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
+  columnId,
+  priority: "medium",
+  dueDate: "",
+  assignee: "",
+});
+
+const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
+  for (const code of DEFAULT_LANGUAGE_ORDER) {
+    if (!used.has(code)) {
+      return code;
+    }
+  }
+  for (const option of options) {
+    if (!used.has(option.value)) {
+      return option.value;
+    }
+  }
+  return "";
+};
+
+const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
+  const languages = new Set<string>();
+  task.languageCodes?.forEach((code) => languages.add(normalizeLanguageCode(code)));
+  Object.keys(task.titleTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
+  Object.keys(task.descriptionTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
+
+  if (languages.size === 0) {
+    languages.add("en");
+  }
+
+  const orderedLanguages = Array.from(languages).sort((a, b) => {
+    const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
+    const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  return orderedLanguages.map((language) => {
+    const fallbackTitle = language === "en" ? task.title : "";
+    const fallbackDescription = language === "en" ? task.description ?? "" : "";
+    return createTranslationEntry(
+      language,
+      task.titleTranslations?.[language] ?? fallbackTitle,
+      task.descriptionTranslations?.[language] ?? fallbackDescription
+    );
+  });
+};
+
+const FALLBACK_COLUMN_ID = "column-uncategorized";
+
+const createFallbackBoardFromTasks = (tasks: KanbanTask[]): BoardData => ({
+  tasks: tasks.reduce<Record<string, KanbanTask>>((accumulator, task) => {
+    accumulator[task.id] = task;
+    return accumulator;
+  }, {}),
+  columns: {
+    [FALLBACK_COLUMN_ID]: {
+      id: FALLBACK_COLUMN_ID,
+      title: "Uncategorized",
+      taskIds: tasks.map((task) => task.id),
+    },
+  },
+  columnOrder: [FALLBACK_COLUMN_ID],
+});
 
 interface GanttDateRange {
   start: Date;
@@ -232,6 +353,7 @@ const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange }) => {
 };
 
 const KanbanGanttPage: React.FC = () => {
+  const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -240,6 +362,20 @@ const KanbanGanttPage: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'gantt' | 'timeline'>('gantt');
   const [showCompletedTasks, setShowCompletedTasks] = useState<boolean>(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
+  const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+  const [editLanguagePickerOpen, setEditLanguagePickerOpen] = useState<boolean>(false);
+  const [editLanguageSelection, setEditLanguageSelection] = useState<string>("");
+  const [editCustomLanguage, setEditCustomLanguage] = useState<string>("");
+  const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
+
+  const resolveDefaultColumnId = useCallback(
+    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
+    [board.columnOrder]
+  );
 
   const fetchGanttTasks = useCallback(async () => {
     setIsLoading(true);
@@ -253,6 +389,7 @@ const KanbanGanttPage: React.FC = () => {
       const items = extractKanbanItems(response);
       if (items.length === 0) {
         setTasks([]);
+        setBoard(createEmptyBoardData());
         setUsingFallback(false);
         return;
       }
@@ -268,12 +405,14 @@ const KanbanGanttPage: React.FC = () => {
         return a.title.localeCompare(b.title);
       });
 
+      setBoard(boardData);
       setTasks(sortedTasks);
       setUsingFallback(false);
     } catch (error) {
       console.error("Failed to fetch gantt tasks", error);
       setFetchError("Unable to load tasks from the API. Showing sample data.");
-      setTasks(FALLBACK_GANTT_TASKS);
+      //setTasks(FALLBACK_GANTT_TASKS);
+      //setBoard(createFallbackBoardFromTasks(FALLBACK_GANTT_TASKS));
       setUsingFallback(true);
     } finally {
       setIsLoading(false);
@@ -293,6 +432,267 @@ const KanbanGanttPage: React.FC = () => {
       setSelectedTask(null);
     }
   }, [tasks, selectedTask]);
+
+    const columnOptions = useMemo(() =>
+      board.columnOrder
+        .map((columnId) => board.columns[columnId])
+        .filter((column): column is NonNullable<(typeof board.columns)[string]> => Boolean(column))
+        .map((column) => ({ id: column.id, title: column.title })),
+      [board]
+    );
+
+    const languageOptions = useMemo(() => {
+      const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
+      Object.values(board.tasks).forEach((task) => {
+        task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
+        Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+        Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      });
+
+      const orderedCodes = Array.from(codes).sort((a, b) => {
+        const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
+        const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
+        if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
+
+      return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
+    }, [board]);
+
+    const updateEditTranslations = (
+      updater: (current: TranslationFormEntry[]) => TranslationFormEntry[]
+    ) => {
+      setEditTaskState((prev) => ({
+        ...prev,
+        translations: updater(prev.translations),
+      }));
+    };
+
+    const handleEditTranslationFieldChange = (
+      entryId: string,
+      field: "language" | "title" | "description",
+      value: string
+    ) => {
+      updateEditTranslations((current) =>
+        current.map((entry) => {
+          if (entry.id !== entryId) {
+            return entry;
+          }
+
+          if (field === "language") {
+            const normalized = normalizeLanguageCode(value);
+            if (!normalized) {
+              return { ...entry, language: normalized };
+            }
+            const duplicate = current.some(
+              (other) => other.id !== entryId && normalizeLanguageCode(other.language) === normalized
+            );
+            if (duplicate) {
+              return entry;
+            }
+            return { ...entry, language: normalized };
+          }
+
+          return { ...entry, [field]: value };
+        })
+      );
+    };
+
+    const handleAddEditTranslation = (
+      explicitLanguage?: string
+    ): { success: boolean; error?: string } => {
+      const used = new Set<string>(
+        editTaskState.translations
+          .map((translation) => normalizeLanguageCode(translation.language))
+          .filter(Boolean)
+      );
+
+      let languageToUse = explicitLanguage ? normalizeLanguageCode(explicitLanguage) : "";
+      if (languageToUse && used.has(languageToUse)) {
+        return { success: false, error: "Language already added." };
+      }
+
+      if (!languageToUse) {
+        languageToUse = findNextLanguageCode(used, languageOptions);
+      }
+
+      updateEditTranslations((current) => [...current, createTranslationEntry(languageToUse)]);
+      return { success: true };
+    };
+
+    const handleRemoveEditTranslation = (entryId: string) => {
+      if (editTaskState.translations.length <= 1) {
+        return;
+      }
+      updateEditTranslations((current) => current.filter((entry) => entry.id !== entryId));
+    };
+
+    const availableEditLanguages = useMemo(() => {
+      const used = new Set(
+        editTaskState.translations
+          .map((translation) => normalizeLanguageCode(translation.language))
+          .filter(Boolean)
+      );
+      return languageOptions.filter((option) => !used.has(option.value));
+    }, [editTaskState.translations, languageOptions]);
+
+    const handleEditTaskChange = (field: keyof Omit<TaskFormState, "translations">, value: string) => {
+      setEditTaskState((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const buildEditActionPayload = (
+      state: TaskFormState,
+      baseTask: KanbanTask | null
+    ): { payload: Record<string, unknown> } | { error: string } => {
+      if (!baseTask) {
+        return { error: "No task selected for editing." };
+      }
+
+      const normalized = new Map<string, { title: string; description: string }>();
+
+      state.translations.forEach((entry) => {
+        const language = normalizeLanguageCode(entry.language);
+        if (!language) {
+          return;
+        }
+        const current = normalized.get(language) ?? { title: "", description: "" };
+        const title = entry.title.trim();
+        const description = entry.description.trim();
+        normalized.set(language, {
+          title: title || current.title,
+          description: description || current.description,
+        });
+      });
+
+      const hasTitle = Array.from(normalized.values()).some((value) => value.title.length > 0);
+      if (!hasTitle) {
+        return { error: "Add at least one language with a title." };
+      }
+
+      const translationFields: Record<string, string | null> = {};
+      normalized.forEach((value, language) => {
+        translationFields[`action_${language}`] = value.title || "";
+        translationFields[`description_${language}`] = value.description || "";
+      });
+
+      const languages = Array.from(normalized.keys());
+
+      const removalTokens: string[] = [];
+      const originalLanguages = new Set<string>();
+      baseTask.languageCodes?.forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+
+      originalLanguages.forEach((language) => {
+        if (language && !normalized.has(language)) {
+          removalTokens.push(`action_${language}`);
+          removalTokens.push(`description_${language}`);
+        }
+      });
+
+      const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
+      const columnTitle = column?.title ?? "Uncategorized";
+      const assignedTo = state.assignee
+        ? [{ name: state.assignee }]
+        : baseTask.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+
+      const payloadItem: Record<string, unknown> = {
+        model_name: "action",
+        ...translationFields,
+        languages,
+        needtoremove: removalTokens.join(","),
+        kanban_column: columnTitle,
+        kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
+        priority: PRIORITY_TO_VALUE[state.priority],
+        difficulty: baseTask.difficulty ?? PRIORITY_TO_VALUE[state.priority],
+        status: baseTask.status ?? "In progress",
+        dt_due: state.dueDate ? new Date(state.dueDate).toISOString() : null,
+        assigned_to: assignedTo,
+        id: baseTask.id,
+      };
+
+      if (!state.assignee && assignedTo.length === 0) {
+        delete payloadItem.assigned_to;
+      }
+
+      if (!removalTokens.length) {
+        payloadItem.needtoremove = "";
+      }
+
+      return { payload: payloadItem };
+    };
+
+    const handleOpenEditModal = useCallback(
+      (task: KanbanTask) => {
+        setEditingTask(task);
+        const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
+
+        setEditTaskState({
+          translations: createTranslationEntriesFromTask(task),
+          columnId: taskColumn?.id ?? resolveDefaultColumnId(),
+          priority: task.priority,
+          dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
+          assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+        });
+        setEditModalError(null);
+        setEditLanguagePickerOpen(false);
+        setEditLanguageSelection("");
+        setEditCustomLanguage("");
+        setEditLanguagePickerError(null);
+        setIsEditModalOpen(true);
+      },
+      [board.columns, resolveDefaultColumnId]
+    );
+
+    const handleCloseEditModal = useCallback(() => {
+      setIsEditModalOpen(false);
+      setEditingTask(null);
+      setEditModalError(null);
+      setEditLanguagePickerOpen(false);
+      setEditLanguageSelection("");
+      setEditCustomLanguage("");
+      setEditLanguagePickerError(null);
+      setEditTaskState(createInitialTaskFormState(resolveDefaultColumnId()));
+    }, [resolveDefaultColumnId]);
+
+    const handleEditTaskSubmit = useCallback(
+      async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!editingTask || isSavingEdit) {
+          return;
+        }
+
+        setEditModalError(null);
+        const result = buildEditActionPayload(editTaskState, editingTask);
+
+        if ("error" in result) {
+          setEditModalError(result.error);
+          return;
+        }
+
+        try {
+          setIsSavingEdit(true);
+          const response = await patchAction(result.payload);
+          if (response?.status !== 200 && response?.status !== 201) {
+            throw new Error("Failed to update task.");
+          }
+          await fetchGanttTasks();
+          handleCloseEditModal();
+        } catch (error) {
+          console.error("Failed to update kanban task", error);
+          const message =
+            (error as any)?.response?.data?.message ||
+            (error as any)?.message ||
+            "Unable to update task. Please try again.";
+          setEditModalError(message);
+        } finally {
+          setIsSavingEdit(false);
+        }
+      },
+      [editingTask, editTaskState, fetchGanttTasks, handleCloseEditModal, isSavingEdit]
+    );
 
   const dateRange = useMemo((): GanttDateRange => {
     const start = new Date();
@@ -609,12 +1009,25 @@ const KanbanGanttPage: React.FC = () => {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h4 className={clsx(
-                          "font-semibold truncate leading-tight",
-                          isSubtask ? "text-sm text-gray-600 dark:text-gray-400" : "text-base text-gray-900 dark:text-white"
-                        )}>
-                          {task.title}
-                        </h4>
+                        <div className="flex items-start justify-between gap-3">
+                          <h4 className={clsx(
+                            "font-semibold truncate leading-tight",
+                            isSubtask ? "text-sm text-gray-600 dark:text-gray-400" : "text-base text-gray-900 dark:text-white"
+                          )}>
+                            {task.title}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenEditModal(task);
+                            }}
+                            disabled={usingFallback}
+                            className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          >
+                            Edit
+                          </button>
+                        </div>
                         <div className="mt-2 flex items-center gap-3">
                           <span className={clsx(
                             "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
@@ -695,19 +1108,29 @@ const KanbanGanttPage: React.FC = () => {
             
             return (
               <div>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{task.title}</h3>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{task.description}</p>
                   </div>
-                  <button
-                    onClick={() => setSelectedTask(null)}
-                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                  >
-                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(task)}
+                      disabled={usingFallback}
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                      Edit Task
+                    </button>
+                    <button
+                      onClick={() => setSelectedTask(null)}
+                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                    >
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -757,6 +1180,343 @@ const KanbanGanttPage: React.FC = () => {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {isEditModalOpen && editingTask && (
+        <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-xl no-scrollbar dark:border-gray-800 dark:bg-gray-900">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit task</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Update task details and move between columns.</p>
+              </div>
+              <button
+                onClick={handleCloseEditModal}
+                className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+
+            <form className="space-y-5" onSubmit={handleEditTaskSubmit}>
+              {editModalError && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
+                  {editModalError}
+                </div>
+              )}
+
+              <datalist id="language-options-edit">
+                {languageOptions.map((option) => (
+                  <option key={option.value} value={option.value} label={option.label} />
+                ))}
+              </datalist>
+
+              <div className="space-y-4">
+                {editTaskState.translations.map((translation, index) => {
+                  const canRemove = editTaskState.translations.length > 1;
+                  return (
+                    <div
+                      key={translation.id}
+                      className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-800/40"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">Language {index + 1}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {translation.language ? getLanguageLabel(translation.language) : "Set the language code"}
+                          </p>
+                        </div>
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            {translation.language || "—"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditTranslation(translation.id)}
+                            disabled={!canRemove || isSavingEdit}
+                            className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Language code
+                          </label>
+                          <input
+                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            value={translation.language}
+                            onChange={(event) =>
+                              handleEditTranslationFieldChange(translation.id, "language", event.target.value)
+                            }
+                            placeholder="e.g. en"
+                            list="language-options-edit"
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Title
+                          </label>
+                          <input
+                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            value={translation.title}
+                            onChange={(event) =>
+                              handleEditTranslationFieldChange(translation.id, "title", event.target.value)
+                            }
+                            placeholder="Localized task title"
+                            required={index === 0}
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Description
+                          </label>
+                          <textarea
+                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            rows={3}
+                            value={translation.description}
+                            onChange={(event) =>
+                              handleEditTranslationFieldChange(translation.id, "description", event.target.value)
+                            }
+                            placeholder="Localized context, acceptance criteria, or notes"
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isSavingEdit) return;
+                    setEditLanguagePickerError(null);
+                    setEditLanguagePickerOpen((prev) => {
+                      const next = !prev;
+                      if (next) {
+                        if (availableEditLanguages.length > 0) {
+                          setEditLanguageSelection("");
+                          setEditCustomLanguage("");
+                        } else {
+                          setEditLanguageSelection("__custom");
+                          setEditCustomLanguage("");
+                        }
+                      }
+                      return next;
+                    });
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
+                  disabled={isSavingEdit}
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 4v12m6-6H4" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {editLanguagePickerOpen ? "Hide language picker" : "Add language"}
+                </button>
+
+                {editLanguagePickerOpen && (
+                  <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Select language
+                        </label>
+                        <select
+                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-black dark:text-white"
+                          value={editLanguageSelection}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setEditLanguageSelection(value);
+                            if (value !== "__custom") {
+                              setEditCustomLanguage("");
+                            }
+                            setEditLanguagePickerError(null);
+                          }}
+                          disabled={isSavingEdit}
+                        >
+                          <option value="">Select a language…</option>
+                          {availableEditLanguages.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                          <option value="__custom">Custom code…</option>
+                        </select>
+                      </div>
+
+                      {editLanguageSelection === "__custom" && (
+                        <div className="flex-1 space-y-1">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Custom code
+                          </label>
+                          <input
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            value={editCustomLanguage}
+                            onChange={(event) => {
+                              setEditCustomLanguage(event.target.value);
+                              setEditLanguagePickerError(null);
+                            }}
+                            placeholder="e.g. fr"
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const selected =
+                              editLanguageSelection === "__custom"
+                                ? editCustomLanguage.trim()
+                                : editLanguageSelection;
+                            if (!selected) {
+                              setEditLanguagePickerError("Choose a language before adding.");
+                              return;
+                            }
+                            const result = handleAddEditTranslation(selected);
+                            if (!result.success) {
+                              setEditLanguagePickerError(result.error ?? "Unable to add language.");
+                              return;
+                            }
+                            setEditLanguagePickerOpen(false);
+                            setEditLanguageSelection("");
+                            setEditCustomLanguage("");
+                          }}
+                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
+                          disabled={isSavingEdit}
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditLanguagePickerOpen(false);
+                            setEditLanguageSelection("");
+                            setEditCustomLanguage("");
+                            setEditLanguagePickerError(null);
+                          }}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          disabled={isSavingEdit}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                    {editLanguagePickerError && (
+                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                        {editLanguagePickerError}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Column</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.columnId}
+                    onChange={(event) => handleEditTaskChange("columnId", event.target.value)}
+                    disabled={isSavingEdit}
+                  >
+                    {columnOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.priority}
+                    onChange={(event) => handleEditTaskChange("priority", event.target.value as TaskPriority)}
+                    disabled={isSavingEdit}
+                  >
+                    {priorityOptions.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.dueDate}
+                    onChange={(event) => handleEditTaskChange("dueDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.assignee}
+                    onChange={(event) => handleEditTaskChange("assignee", event.target.value)}
+                    placeholder="Who owns this?"
+                    disabled={isSavingEdit}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
+                <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Progress:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Tags:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">
+                      {editingTask.tags?.join(", ") || "None"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  disabled={isSavingEdit}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
+                >
+                  {isSavingEdit ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
