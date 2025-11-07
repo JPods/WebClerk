@@ -1,6 +1,6 @@
 # path: apps/core/views/save_view.py
-from django.http import JsonResponse
 from common.api_responses import api_response
+from django.conf import settings
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
 # Classes:
 #     WcapiView(View): Handles POST requests to save or update records for a specified table/model.
@@ -52,9 +52,9 @@ ALLOWED_NESTED_KEYS = {
 #    'some_special_table': custom_save_function,
     # ...
 #}
-
+# YYY 2026-02-15
 MAX_FIELD_SIZE = 15000  # bytes, example
-UNKNOWN_FIELD_MAX_CHARS = 120  # max len for unknown field values captured into prefs.userdefined
+UNKNOWN_FIELD_MAX_CHARS = 256  # max len for unknown field values captured into prefs.userdefined
 
 def check_field_size(field_value, max_size, field_name):
     size = len(json.dumps(field_value).encode('utf-8'))
@@ -88,6 +88,7 @@ class SaveWcapiView(APIView):
     #def dispatch(self, *args, **kwargs):
         #return super().dispatch(*args, **kwargs)
     
+    #This is documentation and not executed code
     @extend_schema(
         operation_id="wcapi_save_create_update",
         request=inline_serializer(
@@ -158,14 +159,15 @@ class SaveWcapiView(APIView):
         ],
         description="Create or update a record by model_name. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
     )
+
     def post(self, request):
         # Auth: allow session or JWT; env flag WCAPI_JWT_ONLY can enforce JWT-only.
-        from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
             return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
         if require_jwt and not is_jwt:
+            # QQQ Check for expired token?
             return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
 
         # Parse JSON body
