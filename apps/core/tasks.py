@@ -13,6 +13,7 @@ def celery_startup_task():
     view_edit_access.reload_access_data()
     print("Access rules loaded in Celery worker.")
 
+# QQQ define pre and post save functions in global, and function name must follow: <model_key>_save_pre(data)
 @shared_task
 def save_pre(model_key, data):
     # Dynamically call a model-specific pre-save task if it exists

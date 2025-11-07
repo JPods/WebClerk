@@ -1,5 +1,4 @@
 # path: apps/core/views/save_view.py
-from django.http import JsonResponse
 from common.api_responses import api_response
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
 # Classes:
@@ -22,7 +21,6 @@ from common.api_responses import api_response
 #         - Validates field sizes and allowed nested keys.
 #         - Calls pre-save and post-save asynchronous tasks.
 #         - Returns a JSON response indicating success or failure, including error messages for field size violations or integrity errors.
-from django.views import View
 from django.db import models
 from rest_framework.views import APIView  # type: ignore
 from django.utils.decorators import method_decorator
@@ -34,7 +32,6 @@ from apps.core import tasks
 from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
-from django.conf import settings
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 import time
@@ -54,7 +51,7 @@ ALLOWED_NESTED_KEYS = {
 #}
 
 MAX_FIELD_SIZE = 15000  # bytes, example
-UNKNOWN_FIELD_MAX_CHARS = 120  # max len for unknown field values captured into prefs.userdefined
+UNKNOWN_FIELD_MAX_CHARS = 256  # max len for unknown field values captured into prefs.userdefined
 
 def check_field_size(field_value, max_size, field_name):
     size = len(json.dumps(field_value).encode('utf-8'))
@@ -180,9 +177,10 @@ class SaveWcapiView(APIView):
             return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})
 
         # Normalize and resolve model
-        norm_key = normalize_table_key(raw_model_name)
+        norm_key = normalize_table_key(raw_model_name) # to make is singular form
         if not norm_key:
             return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
+        # this will get the real data object from our models folder
         model = get_model(norm_key)
         if not model:
             return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
@@ -227,6 +225,7 @@ class SaveWcapiView(APIView):
 
         # We'll deep-merge incoming dicts into existing JSON fields to avoid clobbering
         nested_fields = ['refs', 'prefs', 'metadata', 'actions']
+        # QQQ where nested_fields is used?
         try:
             json_field_names = {
                 f.name for f in obj._meta.get_fields()
@@ -243,6 +242,7 @@ class SaveWcapiView(APIView):
                 'is_update': is_update,
                 'user_id': getattr(request.user, 'id', None),
             }
+            ### QQQ why three time nested?
             try:
                 try:
                     result = pre_hook(data, is_update, context)
@@ -275,6 +275,7 @@ class SaveWcapiView(APIView):
         field_size_errors = []
         raw_password = None
         for field, value in data.items():
+            # ignore these fields
             if field == 'password':
                 raw_password = value
                 continue
@@ -304,6 +305,7 @@ class SaveWcapiView(APIView):
                     except ValueError as e:
                         field_size_errors.append(str(e))
             else:
+                # handle unknown or undefined properties move to prefs.undefined
                 try:
                     prefs = getattr(obj, 'prefs', {}) or {}
                     if isinstance(prefs, str):
@@ -331,6 +333,7 @@ class SaveWcapiView(APIView):
             except Exception as e:
                 return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
 
+        ### QQQ what is this?
         # Optional model-level payload validation
         try:
             universal_flag = getattr(settings, 'UNIVERSAL_API_VALIDATE', False)
@@ -388,6 +391,7 @@ class SaveWcapiView(APIView):
                     tasks.save_post(model_key, data)
                 except Exception:
                     pass
+        ### QQQ we review this next week, 2026-02-15
         try:
             task_async = getattr(tasks, 'save_post_async', None)
             if task_async is not None:
@@ -438,6 +442,7 @@ class SaveWcapiView(APIView):
         except Exception:
             logging.getLogger(__name__).exception('Unexpected error dispatching keyword rebuild')
 
+        # this is needed to pass out to id of a new record
         try:
             safe_fields = [f.name for f in obj._meta.concrete_fields]
             record = model_to_dict(obj, fields=safe_fields)
