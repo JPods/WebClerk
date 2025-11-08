@@ -181,6 +181,10 @@ When running `python manage.py runserver`:
 [INIT] Constants ready: 6 categories, 35 constants
 ```
 
+**Note**: When constants are created during `runserver`, they are marked with metadata flags:
+- `metadata.health.forced = true` - Indicates automatic creation
+- `metadata.history.created.forced = true` - Tracks forced initialization
+
 **Note**: The development server runs with `verbose=False` to keep startup output clean. Use `python manage.py ensure_constants` for detailed status information.
 
 This ensures constants are **always available** regardless of environment or deployment method.

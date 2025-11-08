@@ -130,6 +130,13 @@ def ensure_mandatory_constants_exist(verbose: bool = True) -> Dict[str, Any]:
         if created_flag:
             if verbose:
                 print(f"[CONSTANTS] Created {category} with {len(constants)} constants")
+
+            # Add forced creation metadata
+            if hasattr(setting, 'metadata') and setting.metadata:
+                setting.metadata.setdefault('health', {})['forced'] = True
+                setting.metadata.setdefault('history', {}).setdefault('created', {})['forced'] = True
+                setting.save(update_fields=['metadata'])
+
         else:
             if verbose:
                 print(f"[CONSTANTS] Found existing {category} setting")
