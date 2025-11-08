@@ -2,7 +2,7 @@
 # AppConfig’s ready() method and cache the result.
 
 from apps.core.models.setting import Setting
-from django.core.cache import cache
+from apps.core.services.cache_service import cache_service
 from django.db import connection
 
 def load_keyword_requirements():
@@ -18,10 +18,11 @@ def load_keyword_requirements():
 
 def get_keyword_requirements():
     try:
-        requirements = cache.get('keyword_requirements')
+        cache_key = cache_service.make_key('keywords', 'requirements')
+        requirements = cache_service.get(cache_key)
         if requirements is None:
             requirements = load_keyword_requirements()
-            cache.set('keyword_requirements', requirements, timeout=3600)
+            cache_service.set(cache_key, requirements, ttl=3600)
         return requirements
     except Exception as e:
         # If the settings or django_content_type table does not exist, return empty dict

@@ -386,6 +386,27 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 3 * 24 * 60 * 60,  # every 3 days
         'options': {'expires': 2 * 24 * 60 * 60},
     },
+    # Cache management tasks
+    'update-access-cache-5m': {
+        'task': 'apps.core.tasks.cache_tasks.update_access_fields_cache',
+        'schedule': 5 * 60,  # every 5 minutes
+        'options': {'expires': 4 * 60},
+    },
+    'update-keywords-cache-10m': {
+        'task': 'apps.core.tasks.cache_tasks.update_keyword_requirements_cache',
+        'schedule': 10 * 60,  # every 10 minutes
+        'options': {'expires': 9 * 60},
+    },
+    'update-registry-cache-daily': {
+        'task': 'apps.core.tasks.cache_tasks.update_model_registry_cache',
+        'schedule': 24 * 60 * 60,  # daily
+        'options': {'expires': 23 * 60 * 60},
+    },
+    'update-constants-cache-30m': {
+        'task': 'apps.core.tasks.cache_tasks.update_constants_cache',
+        'schedule': 30 * 60,  # every 30 minutes
+        'options': {'expires': 25 * 60},
+    },
 }
 
 GRAPH_MODELS = {
@@ -451,6 +472,21 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
 
 # Force Celery to use solo pool to avoid fork issues on macOS
 CELERY_WORKER_POOL = 'solo'
+
+# Ensure mandatory constants exist when running development server
+if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.join(sys.argv) and os.environ.get('RUN_MAIN') == 'true':
+    try:
+        # Import Django settings to ensure apps are loaded
+        import django
+        from django.conf import settings as django_settings
+        if not django_settings.configured:
+            django.setup()
+
+        from apps.core.constants.mandatory_constants import ensure_mandatory_constants_exist
+        result = ensure_mandatory_constants_exist(verbose=False)  # Less verbose for runserver
+        print(f"[INIT] Constants ready: {result['total_categories']} categories, {result['total_constants']} constants")
+    except Exception as e:
+        print(f"[INIT] Warning: Failed to initialize mandatory constants: {e}")
 
 # Auto-start Celery worker when running Django development server
 if DEBUG and not os.environ.get('PYTEST_CURRENT_TEST') and 'runserver' in ' '.join(sys.argv) and os.environ.get('RUN_MAIN') == 'true':
