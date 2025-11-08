@@ -93,6 +93,39 @@ print(f"Contact {instance.email} saved successfully")
 )
 ```
 
+### Simple Metadata Assignment
+
+For basic metadata assignment (like your action example):
+
+```python
+Setting.objects.create(
+    purpose='save_pre_post',
+    model_name='action',
+    name='action_tracking',
+    data={
+        'save_pre': "instance.metadata['save_pre'] = 'pre-works'",
+        'save_post': "instance.metadata['save_post'] = 'post-works'"
+    },
+    is_active=True
+)
+```
+
+**Important**: Use dictionary access `instance.metadata['key']` instead of attribute access `instance.metadata.key` for reliable assignment. Your original syntax `instance.metadata.save_pre='pre-works'` won't work because `save_pre` is not a valid Python identifier (contains hyphen).
+
+### Corrected Syntax Examples
+
+**❌ Won't work:**
+```python
+"save_pre": "instance.metadata.save_pre='pre-works'"  # Invalid identifier
+"save_pre": "action.metadata.save_pre='pre-works'"    # Wrong variable name
+```
+
+**✅ Will work:**
+```python
+"save_pre": "instance.metadata['save_pre'] = 'pre-works'"
+"save_post": "instance.metadata['save_post'] = 'post-works'"
+```
+
 ### Getting Hooks
 
 ```python
@@ -288,13 +321,59 @@ print(f"AUDIT: {audit_log}")
 1. Check if Setting record is `is_active=True`
 2. Verify `purpose='save_pre_post'` and correct `model_name`
 3. Clear cache: `python manage.py manage_save_hooks --invalidate-cache`
+4. Check debug logs for hook discovery and execution messages
 
 ### Script Errors
 1. Check application logs for error details
 2. Validate script syntax with `validate_save_hook_script()`
 3. Test script in isolation before deployment
+4. Look for detailed debug output showing script execution
+
+### Debug Logging
+Enable detailed hook execution logging by checking for messages like:
+```
+[HOOK DEBUG] Found X hooks for model_name hook_type
+[HOOK DEBUG] Executing hook_type hook 'hook_name' for model_name
+[HOOK DEBUG] Script: your_script_content
+[HOOK DEBUG] Instance metadata before/after execution
+```
+
+### Common Issues
+- **Wrong model name**: Use singular form (e.g., `"contact"` not `"contacts"`)
+- **Inactive hooks**: Ensure `is_active=True` on Setting record
+- **Cache staleness**: Clear cache after creating/updating hooks
+- **Syntax errors**: Scripts must be valid Python code
+- **Import restrictions**: Scripts run in restricted environment without imports
 
 ### Performance Issues
 1. Keep scripts lightweight - avoid database queries
 2. Use caching for expensive operations
 3. Monitor execution times in logs
+4. Consider async processing for heavy operations
+
+### Testing Hooks
+1. Create test Setting record with simple script
+2. Save a record of the target model
+3. Check debug logs for execution confirmation
+4. Verify expected changes occurred
+5. Remove test record and deploy production hooks
+
+### Example Debug Output
+When hooks execute successfully, you'll see:
+```
+[HOOK DEBUG] Found 1 hooks for action save_pre
+[HOOK DEBUG] Processing hook 'test_hook' with save_pre script
+[HOOK DEBUG] Executing save_pre hook 'test_hook' for action
+[HOOK DEBUG] Script: instance.metadata.save_pre='pre-works'
+[HOOK DEBUG] Instance metadata before execution: {}
+[HOOK DEBUG] Successfully executed save_pre hook 'test_hook'
+[HOOK DEBUG] Instance metadata after execution: {'save_pre': 'pre-works'}
+```
+
+### Hook Execution Order
+Hooks execute in this sequence during save operations:
+1. **Pre-save hooks** (can prevent save with exceptions)
+2. **Model validation** and field processing
+3. **Database save** operation
+4. **Post-save hooks** (side effects and notifications)
+5. **Async tasks** (legacy Celery tasks)
