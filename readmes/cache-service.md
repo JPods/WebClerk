@@ -260,6 +260,18 @@ This enables live updates without code deployments, perfect for:
 - A/B testing of constant values
 - Emergency configuration changes
 
+## Related Systems
+
+### Mandatory Constants
+For application constants management, see: [`readmes/mandatory-constants.md`](mandatory-constants.md)
+
+Mandatory constants provide default values for core application settings, automatically created during system initialization.
+
+### Save Hooks
+For custom save logic, see: [`readmes/save-hooks.md`](save-hooks.md)
+
+Save hooks enable administrators to define custom pre/post-save scripts stored in Setting records.
+
 ## Future Enhancements
 
 - Cache warming on startup

@@ -65,6 +65,14 @@ def invalidate_setting_caches(sender, instance, **kwargs):
         except ImportError:
             pass  # Graceful degradation
 
+    elif instance.purpose == 'save_pre_post':
+        # Invalidate save hooks cache for the affected model
+        try:
+            from apps.core.constants.save_hooks import invalidate_save_hooks_cache
+            invalidate_save_hooks_cache(instance.model_name)
+        except ImportError:
+            pass  # Graceful degradation
+
 
 @receiver(post_save)
 def invalidate_model_caches(sender, instance, **kwargs):

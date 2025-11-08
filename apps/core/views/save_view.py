@@ -265,6 +265,15 @@ class SaveWcapiView(APIView):
                 else:
                     return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
         else:
+            # Execute save hooks from Setting records
+            try:
+                from apps.core.constants.save_hooks import execute_save_hook
+                hook_result = execute_save_hook(model_key, 'save_pre', obj, data)
+                if not hook_result['success']:
+                    return api_response(success=False, status_code=400, message='Pre-save hook failed', error={'code':'hook_failed','details': hook_result['errors']})
+            except ImportError:
+                pass  # Graceful degradation if save_hooks module not available
+
             try:
                 tasks.save_pre.run(model_key, data)
             except Exception:
@@ -383,6 +392,15 @@ class SaveWcapiView(APIView):
             except Exception as e:
                 post_hook_note = f'post_save_hook error: {e}'
         else:
+            # Execute save hooks from Setting records
+            try:
+                from apps.core.constants.save_hooks import execute_save_hook
+                hook_result = execute_save_hook(model_key, 'save_post', obj, data)
+                if not hook_result['success']:
+                    post_hook_note = f'Post-save hook failed: {hook_result["errors"]}'
+            except ImportError:
+                pass  # Graceful degradation if save_hooks module not available
+
             try:
                 tasks.save_post.run(model_key, data)
             except Exception:

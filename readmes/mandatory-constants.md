@@ -120,7 +120,7 @@ print(f"Existing: {result['existing']}")
 
 Mandatory constants are stored as Setting records with:
 - `purpose`: 'constant_init'
-- `model_name`: Category name (e.g., 'system_defaults')
+- `name`: Category name (e.g., 'system_defaults')
 - `data`: JSON object containing the constants
 - `is_active`: true
 
@@ -128,16 +128,27 @@ Example Setting record:
 ```json
 {
     "purpose": "constant_init",
-    "model_name": "system_defaults",
+    "name": "system_defaults",
     "data": {
         "default_currency": "USD",
         "default_timezone": "UTC",
         "max_upload_size_mb": 10
     },
-    "is_active": true,
-    "description": "Mandatory constants for system defaults"
+    "is_active": true
 }
 ```
+
+## Related Systems
+
+### Save Hooks
+For custom pre/post-save logic, see: [`readmes/save-hooks.md`](save-hooks.md)
+
+Save hooks allow administrators to define custom Python scripts that execute before or after model saves, stored as Setting records with `purpose='save_pre_post'`.
+
+### Cache Service
+For caching implementation details, see: [`readmes/cache-service.md`](cache-service.md)
+
+The centralized cache service provides Redis-backed caching for all application data including constants and save hooks.
 
 ## Remote Updates
 
