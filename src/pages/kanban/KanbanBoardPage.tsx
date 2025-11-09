@@ -54,6 +54,8 @@ type TaskFormState = {
   columnId: string;
   priority: TaskPriority;
   dueDate: string;
+  startDate: string;
+  endDate: string;
   assignee: string;
 };
 
@@ -73,6 +75,8 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   columnId,
   priority: "medium",
   dueDate: "",
+  startDate: "",
+  endDate: "",
   assignee: "",
 });
 
@@ -361,6 +365,8 @@ const KanbanBoardPage: React.FC = () => {
       columnId: taskColumn?.id || resolveDefaultColumnId(),
       priority: task.priority,
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
+      startDate: task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : "",
+      endDate: task.endDate ? new Date(task.endDate).toISOString().split("T")[0] : "",
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
     });
     setEditModalError(null);
@@ -551,6 +557,8 @@ const KanbanBoardPage: React.FC = () => {
       difficulty: baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority],
       status: baseTask?.status ?? "In progress",
       dt_due: state.dueDate ? new Date(state.dueDate).toISOString() : null,
+      dt_start: state.startDate ? new Date(state.startDate).toISOString() : null,
+      dt_end: state.endDate ? new Date(state.endDate).toISOString() : null,
       assigned_to: assignedTo,
     };
 
@@ -1040,6 +1048,26 @@ const KanbanBoardPage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={createTaskState.startDate}
+                    onChange={(event) => handleCreateTaskChange("startDate", event.target.value)}
+                    disabled={isSavingCreate}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={createTaskState.endDate}
+                    onChange={(event) => handleCreateTaskChange("endDate", event.target.value)}
+                    disabled={isSavingCreate}
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
                   <input
                     type="date"
@@ -1361,6 +1389,26 @@ const KanbanBoardPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.startDate}
+                    onChange={(event) => handleEditTaskChange("startDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.endDate}
+                    onChange={(event) => handleEditTaskChange("endDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
                   <input

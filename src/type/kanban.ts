@@ -22,6 +22,8 @@ export interface KanbanTask {
   assignee?: string;
   assigneeAvatarUrl?: string;
   dueDate?: string;
+  startDate?: string;
+  endDate?: string;
   tags?: string[];
   progress?: number;
   backendId?: string;

@@ -1,13 +1,18 @@
 import * as z from "zod";
 
 export const actionSchema = z.object({
-  priority: z.string().min(1,"Priority is required"),
-  difficulty: z.string().min(1,"Difficulty is required"),
-  hours: z.coerce.number().min(1,"Hours is required"),
-  percent: z.coerce.number().min(1,"Percent is required"),
+  action_en: z.string().min(1, "Title is required"),
+  description_en: z.string().optional(),
+  kanban_column: z.string().min(1, "Column is required"),
+  priority: z.enum(["low", "medium", "high", "critical"], {
+    errorMap: () => ({ message: "Select a priority" }),
+  }),
+  difficulty: z.coerce.number().min(1, "Difficulty is required"),
   status: z.string().optional(),
-  quality: z.string().optional(),
-  description: z.string().optional(),
+  assignee: z.string().optional(),
+  dt_start: z.string().optional(),
+  dt_end: z.string().optional(),
+  dt_due: z.string().optional(),
 });
 
 export const contactSchema = z.object({

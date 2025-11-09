@@ -127,6 +127,8 @@ type TaskFormState = {
   columnId: string;
   priority: TaskPriority;
   dueDate: string;
+  startDate: string;
+  endDate: string;
   assignee: string;
 };
 
@@ -144,6 +146,8 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   columnId,
   priority: "medium",
   dueDate: "",
+  startDate: "",
+  endDate: "",
   assignee: "",
 });
 
@@ -267,7 +271,8 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false 
         
         {/* Task title overlay */}
         <div className="absolute inset-0 flex items-center justify-between px-3">
-          <span className={clsx(
+          <span 
+          className={clsx(
             "text-sm font-medium truncate flex-1",
             task.progress && task.progress > 50 ? "text-white" : "text-gray-700 dark:text-gray-300",
             isSubtask && "text-xs"
@@ -609,6 +614,8 @@ const KanbanGanttPage: React.FC = () => {
         difficulty: baseTask.difficulty ?? PRIORITY_TO_VALUE[state.priority],
         status: baseTask.status ?? "In progress",
         dt_due: state.dueDate ? new Date(state.dueDate).toISOString() : null,
+        dt_start: state.startDate ? new Date(state.startDate).toISOString() : null,
+        dt_end: state.endDate ? new Date(state.endDate).toISOString() : null,
         assigned_to: assignedTo,
         id: baseTask.id,
       };
@@ -634,6 +641,8 @@ const KanbanGanttPage: React.FC = () => {
           columnId: taskColumn?.id ?? resolveDefaultColumnId(),
           priority: task.priority,
           dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
+          startDate: task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : "",
+          endDate: task.endDate ? new Date(task.endDate).toISOString().split("T")[0] : "",
           assignee: task.assignee || task.assignedTo?.[0]?.name || "",
         });
         setEditModalError(null);
@@ -1010,12 +1019,24 @@ const KanbanGanttPage: React.FC = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
-                          <h4 className={clsx(
-                            "font-semibold truncate leading-tight",
-                            isSubtask ? "text-sm text-gray-600 dark:text-gray-400" : "text-base text-gray-900 dark:text-white"
-                          )}>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (!usingFallback) {
+                                handleOpenEditModal(task);
+                              }
+                            }}
+                            disabled={usingFallback}
+                            className={clsx(
+                              "font-semibold truncate leading-tight text-left transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 disabled:cursor-not-allowed",
+                              isSubtask
+                                ? "text-sm text-gray-600 dark:text-gray-400"
+                                : "text-base text-gray-900 dark:text-white"
+                            )}
+                          >
                             {task.title}
-                          </h4>
+                          </button>
                           <button
                             type="button"
                             onClick={(event) => {
@@ -1110,7 +1131,18 @@ const KanbanGanttPage: React.FC = () => {
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{task.title}</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!usingFallback) {
+                          handleOpenEditModal(task);
+                        }
+                      }}
+                      disabled={usingFallback}
+                      className="text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 disabled:cursor-not-allowed dark:text-white"
+                    >
+                      {task.title}
+                    </button>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{task.description}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1460,6 +1492,26 @@ const KanbanGanttPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.startDate}
+                    onChange={(event) => handleEditTaskChange("startDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date</label>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.endDate}
+                    onChange={(event) => handleEditTaskChange("endDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
                   <input

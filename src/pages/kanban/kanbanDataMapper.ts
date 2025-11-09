@@ -154,6 +154,8 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       difficulty: item.difficulty ?? undefined,
       status: item.status ?? undefined,
       dueDate: item.dt_due ?? undefined,
+  startDate: item.dt_start ?? undefined,
+  endDate: item.dt_end ?? undefined,
       assignee: assignedToRecords[0]?.name,
       assignedTo: assignedToRecords.length ? assignedToRecords : undefined,
       languageCodes: item.languages && item.languages.length ? item.languages : undefined,
