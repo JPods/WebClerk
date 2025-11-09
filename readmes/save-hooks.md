@@ -47,8 +47,9 @@ Save hooks are stored as Setting records with the following structure:
     "model_name": "contact",
     "name": "contact_validation",
     "data": {
-        "save_pre": "Python script to execute before save",
-        "save_post": "Python script to execute after save"
+        "save_pre": "Python script to execute before save (synchronous)",
+        "save_post": "Python script to execute after save (synchronous)",
+        "save_async": "Python script to execute asynchronously after save via Celery"
     },
     "is_active": true
 }
@@ -87,6 +88,16 @@ if instance.phone and not instance.phone.startswith('+'):
         'save_post': '''
 # Log successful save
 print(f"Contact {instance.email} saved successfully")
+''',
+        'save_async': '''
+# Send welcome email asynchronously
+from django.core.mail import send_mail
+send_mail(
+    'Welcome!',
+    f'Welcome {instance.email}!',
+    'noreply@example.com',
+    [instance.email]
+)
 '''
     },
     is_active=True
@@ -376,4 +387,5 @@ Hooks execute in this sequence during save operations:
 2. **Model validation** and field processing
 3. **Database save** operation
 4. **Post-save hooks** (side effects and notifications)
-5. **Async tasks** (legacy Celery tasks)
+5. **Async hooks dispatch** (save_async hooks sent to Celery)
+6. **Legacy async tasks** (existing Celery tasks)

@@ -230,6 +230,7 @@ class SaveWcapiView(APIView):
         # We'll deep-merge incoming dicts into existing JSON fields to avoid clobbering
         nested_fields = ['refs', 'prefs', 'metadata', 'actions']
         try:
+            #QQQ explain why we have this
             json_field_names = {
                 f.name for f in obj._meta.get_fields()
                 if hasattr(f, 'attname') and isinstance(f, models.JSONField)
@@ -398,6 +399,25 @@ class SaveWcapiView(APIView):
                 hook_result = execute_save_hook(model_key, 'save_post', obj, data)
                 if not hook_result['success']:
                     post_hook_note = f'Post-save hook failed: {hook_result["errors"]}'
+            except ImportError:
+                pass  # Graceful degradation if save_hooks module not available
+
+            # Execute save_async hooks asynchronously
+            try:
+                from apps.core.constants.save_hooks import get_save_hooks
+                async_hooks = get_save_hooks(model_key)
+                async_hook_found = False
+                for hook_name, hook_data in async_hooks.items():
+                    if 'save_async' in hook_data and hook_data['save_async']:
+                        async_hook_found = True
+                        break
+
+                if async_hook_found:
+                    try:
+                        from apps.core.tasks.cache_tasks import execute_save_async_hooks
+                        execute_save_async_hooks.delay(model_key, obj_id, data)
+                    except ImportError:
+                        pass  # Graceful degradation if tasks module not available
             except ImportError:
                 pass  # Graceful degradation if save_hooks module not available
 

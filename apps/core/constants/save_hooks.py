@@ -9,8 +9,9 @@ Setting record structure:
 - model_name: The model name this hook applies to (e.g., 'contact', 'proposal')
 - name: Descriptive name (e.g., 'contact_validation', 'audit_trail')
 - data: {
-    'save_pre': 'Python script to execute before save',
-    'save_post': 'Python script to execute after save'
+    'save_pre': 'Python script to execute before save (synchronous)',
+    'save_post': 'Python script to execute after save (synchronous)',
+    'save_async': 'Python script to execute asynchronously after save'
   }
 - is_active: true/false
 
@@ -48,11 +49,18 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
             }
         }
     """
+    print(f"[HOOK DEBUG] get_save_hooks called for model '{model_name}'")
+
     cache_key = cache_service.make_key('save_hooks', model_name)
     cached_data = cache_service.get(cache_key)
 
+    print(f"[HOOK DEBUG] Cache key: {cache_key}")
+    print(f"[HOOK DEBUG] Cached data found: {cached_data is not None}")
+
     if cached_data is None:
         # Load from database
+        print(f"[HOOK DEBUG] Loading hooks from database for model '{model_name}'")
+
         hooks = {}
         settings_qs = Setting.objects.filter(
             purpose='save_pre_post',
@@ -60,15 +68,21 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
             is_active=True
         ).only('name', 'data')
 
+        print(f"[HOOK DEBUG] Found {settings_qs.count()} setting records")
+
         for setting in settings_qs:
             hook_name = setting.name
+            print(f"[HOOK DEBUG] Processing setting: name='{hook_name}', data keys={list(setting.data.keys()) if setting.data else 'None'}")
             if hook_name and setting.data:
                 hooks[hook_name] = setting.data
+
+        print(f"[HOOK DEBUG] Loaded {len(hooks)} hooks: {list(hooks.keys())}")
 
         # Cache the result
         cache_service.set(cache_key, hooks, ttl=3600)  # 1 hour cache
         cached_data = hooks
 
+    print(f"[HOOK DEBUG] Returning {len(cached_data)} hooks")
     return cached_data
 
 
@@ -78,14 +92,14 @@ def execute_save_hook(model_name: str, hook_type: str, instance, data: Optional[
 
     Args:
         model_name: The model name
-        hook_type: 'save_pre' or 'save_post'
+        hook_type: 'save_pre', 'save_post', or 'save_async'
         instance: The model instance being saved
         data: Additional context data
 
     Returns:
         Dictionary with execution results
     """
-    if hook_type not in ['save_pre', 'save_post']:
+    if hook_type not in ['save_pre', 'save_post', 'save_async']:
         return {'success': False, 'error': f'Invalid hook type: {hook_type}'}
 
     hooks = get_save_hooks(model_name)
@@ -97,7 +111,10 @@ def execute_save_hook(model_name: str, hook_type: str, instance, data: Optional[
         'scripts_executed': []  # Track actual scripts for debugging
     }
 
-    print(f"[HOOK DEBUG] Found {len(hooks)} hooks for {model_name} {hook_type}")
+    print(f"[HOOK DEBUG] Looking for hooks for model '{model_name}' and type '{hook_type}'")
+
+    hooks = get_save_hooks(model_name)
+    print(f"[HOOK DEBUG] Found {len(hooks)} hooks for {model_name}")
 
     for hook_name, hook_data in hooks.items():
         script = hook_data.get(hook_type)

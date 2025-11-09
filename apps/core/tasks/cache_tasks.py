@@ -2,6 +2,7 @@ from celery import shared_task
 from apps.core.services.cache_service import cache_service
 from apps.core.utils import access_utils
 from apps.core.constants import keyword_requirements, constants_init
+from typing import Dict, Any
 from apps.core.services.wcapi_registry import ALLOWED_TABLE_KEYS
 from django.apps import apps
 
@@ -66,5 +67,31 @@ def invalidate_cache_namespace(namespace: str):
     try:
         cache_service.invalidate_namespace(namespace)
         return {'status': 'completed', 'namespace': namespace}
+    except Exception as e:
+        return {'status': 'error', 'error': str(e)}
+
+
+@shared_task(name='apps.core.tasks.cache_tasks.execute_save_async_hooks')
+def execute_save_async_hooks(model_name: str, record_id: int, hook_data: Dict[str, Any]):
+    """Execute save_async hooks asynchronously after save completes."""
+    try:
+        from apps.core.constants.save_hooks import execute_save_hook
+        from django.apps import apps
+
+        # Get the model and instance
+        try:
+            model = apps.get_model('core', model_name)  # Adjust app label as needed
+            instance = model.objects.get(id=record_id)
+        except Exception as e:
+            return {'status': 'error', 'error': f'Could not load instance: {e}'}
+
+        # Execute async hooks
+        result = execute_save_hook(model_name.lower(), 'save_async', instance, hook_data)
+
+        return {
+            'status': 'completed' if result['success'] else 'failed',
+            'executed': result.get('executed', []),
+            'errors': result.get('errors', [])
+        }
     except Exception as e:
         return {'status': 'error', 'error': str(e)}
