@@ -48,7 +48,7 @@ def invalidate_setting_caches(sender, instance, **kwargs):
             # Graceful degradation: nothing to do, task module missing or task failed
             pass
 
-    elif instance.purpose == 'keywords_from':
+    elif instance.purpose == 'refs_setup':
         # Invalidate keyword caches
         cache_service.invalidate_namespace('keywords')
         # Trigger async update of keyword requirements (or sync fallback)

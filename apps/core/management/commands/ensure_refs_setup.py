@@ -17,9 +17,21 @@ class Command(BaseCommand):
             action='store_true',
             help='Suppress verbose output',
         )
+        parser.add_argument(
+            '--rebuild',
+            action='store_true',
+            help='Delete existing refs_setup settings and recreate them',
+        )
 
     def handle(self, *args, **options):
         verbose = not options['quiet']
+        rebuild = options['rebuild']
+
+        if rebuild:
+            # Delete all existing refs_setup settings
+            deleted_count = Setting.objects.filter(purpose='refs_setup').delete()[0]
+            if verbose:
+                self.stdout.write(f'Deleted {deleted_count} existing refs_setup settings')
 
         if verbose:
             self.stdout.write('Ensuring refs_setup settings exist for all models...')
@@ -85,8 +97,8 @@ class Command(BaseCommand):
 
             # Create default data structure
             data = {
-                'fields': char_fields,
-                'priority_order': []  # Will be populated based on common patterns
+                'model_name': model_key,
+                'priority_order': priority_order  # Will be populated based on common patterns
             }
 
             # Create the setting

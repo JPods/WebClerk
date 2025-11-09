@@ -36,7 +36,7 @@ Each model can have a `refs_setup` setting that controls how data is denormalize
 
 ```json
 {
-  "fields": ["name_first", "name_last", "company", "email", "description"],
+  "model_name": "contact",
   "priority_order": [
     {"model_name": "contact", "field_name": "name_first", "priority": 10},
     {"model_name": "contact", "field_name": "name_last", "priority": 9},
@@ -45,12 +45,12 @@ Each model can have a `refs_setup` setting that controls how data is denormalize
 }
 ```
 
-- **`fields`**: List of character field names to include in keywords
-- **`priority_order`**: Ordered list of field priorities for keyword weighting
+- **`model_name`**: The canonical model key this configuration applies to
+- **`priority_order`**: Ordered list of field priorities for keyword weighting from related models
 
 ### Priority Weighting
 
-Fields are prioritized based on common naming patterns:
+Fields from related models are prioritized based on common naming patterns:
 - `name_first` (10)
 - `name_last` (9)
 - `company` (8)
@@ -60,6 +60,8 @@ Fields are prioritized based on common naming patterns:
 - `email` (4)
 - `phone` (3)
 - `address` (2)
+
+When building keywords, the system loops through `refs.links` to get denormalized data from related records (contacts, customers, vendors, etc.) and applies these priorities.
 
 ## Management Command
 
@@ -72,12 +74,13 @@ python manage.py ensure_refs_setup
 This command:
 1. Iterates through all models in the model registry
 2. Checks if a refs_setup setting exists for each model
-3. Creates default settings with all character fields and priority ordering
+3. Creates default settings with model_name and priority ordering for related model fields
 4. Reports creation statistics
 
 ### Options
 
 - `--quiet`: Suppress verbose output
+- `--rebuild`: Delete existing refs_setup settings and recreate them
 
 ### Example Output
 
@@ -97,7 +100,7 @@ setting = Setting(
     purpose='refs_setup',
     model_name='contact',
     data={
-        'fields': ['name_first', 'name_last', 'email'],
+        'model_name': 'contact',
         'priority_order': [
             {'model_name': 'contact', 'field_name': 'name_first', 'priority': 10},
             {'model_name': 'contact', 'field_name': 'name_last', 'priority': 9}
@@ -119,13 +122,15 @@ setting = Setting.objects.filter(
 ).first()
 
 if setting:
-    fields = setting.data.get('fields', [])
+    model_name = setting.data.get('model_name')
     priority_order = setting.data.get('priority_order', [])
 ```
 
 ## Integration with Search
 
-The `.refs.keywords` field is used for full-text search indexing. The priority ordering ensures that more important fields (like names) are weighted higher in search results.
+The `.refs.keywords` field is used for full-text search indexing. When keywords are built, the system loops through `refs.links` to get denormalized data from related records. The priority ordering ensures that more important fields (like names) from related models are weighted higher in search results.
+
+For example, action records can include phone and email data from contacts, customers, vendors, etc. that are linked via `refs.links`.
 
 ## Future Enhancements
 
