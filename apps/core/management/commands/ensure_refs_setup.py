@@ -7,6 +7,39 @@ from django.apps import apps
 from apps.core.models.setting import Setting
 from apps.core.constants.model_registry import MODEL_REGISTRY
 
+# Define related models that should be denormalized for each model type
+RELATED_MODELS_MAP = {
+    # Core entities that link to communications
+    'contact': ['email', 'phone', 'location', 'domain'],
+    'customer': ['contact', 'email', 'phone', 'location', 'domain'],
+    'vendor': ['contact', 'email', 'phone', 'location', 'domain'],
+    'org': ['contact', 'email', 'phone', 'location', 'domain'],
+
+    # Transaction headers that link to parties and communications
+    'invoice': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+    'sales_order': ['contact', 'customer', 'email', 'phone', 'location'],
+    'purchase_order': ['contact', 'vendor', 'email', 'phone', 'location'],
+    'proposal': ['contact', 'customer', 'email', 'phone', 'location'],
+    'requisition': ['contact', 'customer', 'email', 'phone', 'location'],
+    'work_order': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+
+    # Transaction lines that inherit from headers
+    'invoice_line': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+    'sales_order_line': ['contact', 'customer', 'email', 'phone', 'location'],
+    'purchase_order_line': ['contact', 'vendor', 'email', 'phone', 'location'],
+    'proposal_line': ['contact', 'customer', 'email', 'phone', 'location'],
+    'requisition_line': ['contact', 'customer', 'email', 'phone', 'location'],
+    'work_order_line': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+
+    # Actions and documents
+    'action': ['contact', 'customer', 'vendor', 'email', 'phone', 'location', 'domain'],
+    'document': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+
+    # Support entities
+    'project': ['contact', 'customer', 'email', 'phone', 'location'],
+    'notification': ['contact', 'email', 'phone'],
+}
+
 
 class Command(BaseCommand):
     help = 'Ensure refs_setup settings exist for all models'
@@ -61,7 +94,7 @@ class Command(BaseCommand):
                 )
                 continue
 
-            # Get character fields
+            # Get character fields for this model
             char_fields = []
             for field in model_class._meta.get_fields():
                 if hasattr(field, 'get_internal_type'):
@@ -69,7 +102,7 @@ class Command(BaseCommand):
                     if field_type in ['CharField', 'TextField', 'EmailField', 'URLField']:
                         char_fields.append(field.name)
 
-            # Create priority order based on common naming patterns
+            # Create priority order for this model's fields
             priority_order = []
             priority_patterns = [
                 ('name_first', 10),
@@ -92,6 +125,40 @@ class Command(BaseCommand):
                             'priority': priority
                         })
                         break
+
+            # Add priority orders for related models that should be denormalized
+            related_models = RELATED_MODELS_MAP.get(model_key, [])
+            for related_model_key in related_models:
+                if related_model_key in MODEL_REGISTRY:
+                    try:
+                        related_model_class = MODEL_REGISTRY[related_model_key].import_model()
+
+                        # Get character fields from related model
+                        related_char_fields = []
+                        for field in related_model_class._meta.get_fields():
+                            if hasattr(field, 'get_internal_type'):
+                                field_type = field.get_internal_type()
+                                if field_type in ['CharField', 'TextField', 'EmailField', 'URLField']:
+                                    related_char_fields.append(field.name)
+
+                        # Add fields from related model with lower priority (offset by 20)
+                        for field_name in related_char_fields:
+                            for pattern, base_priority in priority_patterns:
+                                if pattern in field_name.lower():
+                                    priority_order.append({
+                                        'model_name': related_model_key,
+                                        'field_name': field_name,
+                                        'priority': base_priority - 20  # Lower priority for related models
+                                    })
+                                    break
+
+                    except Exception as e:
+                        if verbose:
+                            self.stdout.write(
+                                self.style.WARNING(f'  - {model_key}: failed to import related model {related_model_key} - {e}')
+                            )
+                        continue
+
             # Sort by priority descending
             priority_order.sort(key=lambda x: x['priority'], reverse=True)
 
