@@ -191,6 +191,156 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
 
 const FALLBACK_COLUMN_ID = "column-uncategorized";
 
+const padTwo = (value: number) => value.toString().padStart(2, "0");
+
+const formatDateTimeLocalString = (date: Date) =>
+  `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())}T${padTwo(date.getHours())}:${padTwo(
+    date.getMinutes()
+  )}`;
+
+const parseDateTimeInputValue = (value?: string): Date | null => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const coerceDateFromUnknown = (value: unknown): Date | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (/^\d+$/.test(trimmed)) {
+      const numeric = Number(trimmed);
+      const date = trimmed.length <= 10 ? new Date(numeric * 1000) : new Date(numeric);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+};
+
+const normalizeIncomingDateValue = (value: unknown): string => {
+  const date = coerceDateFromUnknown(value);
+  return date ? formatDateTimeLocalString(date) : "";
+};
+
+const ensureEndAfterStart = (start: string, candidate: string): string => {
+  const startDate = parseDateTimeInputValue(start);
+
+  if (!candidate) {
+    if (!startDate) {
+      return "";
+    }
+    const adjusted = new Date(startDate.getTime());
+    adjusted.setHours(adjusted.getHours() + 1);
+    return formatDateTimeLocalString(adjusted);
+  }
+
+  const candidateDate = parseDateTimeInputValue(candidate);
+  if (!startDate || !candidateDate) {
+    return candidateDate ? formatDateTimeLocalString(candidateDate) : "";
+  }
+  if (candidateDate.getTime() <= startDate.getTime()) {
+    const adjusted = new Date(startDate.getTime());
+    adjusted.setHours(adjusted.getHours() + 1);
+    return formatDateTimeLocalString(adjusted);
+  }
+  return formatDateTimeLocalString(candidateDate);
+};
+
+const calculateDueDate = (start: string, end: string): string => {
+  const endDate = parseDateTimeInputValue(end);
+  if (endDate) {
+    return formatDateTimeLocalString(endDate);
+  }
+  const startDate = parseDateTimeInputValue(start);
+  if (startDate) {
+    const due = new Date(startDate.getTime());
+    due.setDate(due.getDate() + 1);
+    return formatDateTimeLocalString(due);
+  }
+  return "";
+};
+
+const toTimestampMilliseconds = (value: string): number | null => {
+  const date = parseDateTimeInputValue(value);
+  return date ? date.getTime() : null;
+};
+
+const updateTaskFormState = (
+  prev: TaskFormState,
+  field: TaskFormEditableField,
+  value: string
+): TaskFormState => {
+  if (field === "startDate") {
+    const next: TaskFormState = { ...prev, startDate: value };
+    next.endDate = ensureEndAfterStart(value, prev.endDate);
+    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+    return next;
+  }
+
+  if (field === "endDate") {
+    const nextEnd = ensureEndAfterStart(prev.startDate, value);
+    const next: TaskFormState = { ...prev, endDate: nextEnd };
+    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+    return next;
+  }
+
+  if (field === "dueDate") {
+    if (!value) {
+      return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.endDate) };
+    }
+
+    const parsedDue = parseDateTimeInputValue(value);
+    if (!parsedDue) {
+      return prev;
+    }
+
+    const endDate = parseDateTimeInputValue(prev.endDate);
+    if (endDate && parsedDue.getTime() < endDate.getTime()) {
+      return { ...prev, dueDate: formatDateTimeLocalString(endDate) };
+    }
+
+    const startDate = parseDateTimeInputValue(prev.startDate);
+    if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
+      return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
+    }
+
+    return { ...prev, dueDate: formatDateTimeLocalString(parsedDue) };
+  }
+
+  if (field === "priority") {
+    return { ...prev, priority: value as TaskPriority };
+  }
+
+  if (field === "columnId") {
+    return { ...prev, columnId: value };
+  }
+
+  if (field === "assignee") {
+    return { ...prev, assignee: value };
+  }
+
+  return prev;
+};
+
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -360,13 +510,17 @@ const KanbanBoardPage: React.FC = () => {
 
     const taskColumn = Object.values(board.columns).find((column) => column.taskIds.includes(task.id));
 
+    const normalizedStart = normalizeIncomingDateValue(task.startDate);
+    const normalizedEnd = normalizeIncomingDateValue(task.endDate);
+    const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
       priority: task.priority,
-      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
-      startDate: task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : "",
-      endDate: task.endDate ? new Date(task.endDate).toISOString().split("T")[0] : "",
+      dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+      startDate: normalizedStart,
+      endDate: normalizedEnd,
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
     });
     setEditModalError(null);
@@ -388,11 +542,11 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
-    setCreateTaskState((prev: TaskFormState) => ({ ...prev, [field]: value }));
+    setCreateTaskState((prev: TaskFormState) => updateTaskFormState(prev, field, value));
   };
 
   const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
-    setEditTaskState((prev: TaskFormState) => ({ ...prev, [field]: value }));
+    setEditTaskState((prev: TaskFormState) => updateTaskFormState(prev, field, value));
   };
 
   const updateTranslations = (
@@ -546,6 +700,18 @@ const KanbanBoardPage: React.FC = () => {
       ? [{ name: state.assignee }]
       : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
+    const startTimestamp = toTimestampMilliseconds(state.startDate);
+    const endTimestamp = toTimestampMilliseconds(state.endDate);
+    const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+
+    if (startTimestamp !== null && endTimestamp !== null && endTimestamp <= startTimestamp) {
+      return { error: "End date must be after start date." };
+    }
+
+    if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
+      return { error: "Due date must be on or after end date." };
+    }
+
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
       ...translationFields,
@@ -556,9 +722,9 @@ const KanbanBoardPage: React.FC = () => {
       priority: PRIORITY_TO_VALUE[state.priority],
       difficulty: baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority],
       status: baseTask?.status ?? "In progress",
-      dt_due: state.dueDate ? new Date(state.dueDate).toISOString() : null,
-      dt_start: state.startDate ? new Date(state.startDate).toISOString() : null,
-      dt_end: state.endDate ? new Date(state.endDate).toISOString() : null,
+      dt_due: dueTimestamp,
+      dt_start: startTimestamp,
+      dt_end: endTimestamp,
       assigned_to: assignedTo,
     };
 
@@ -1048,9 +1214,10 @@ const KanbanBoardPage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date &amp; time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
+                    step={60}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={createTaskState.startDate}
                     onChange={(event) => handleCreateTaskChange("startDate", event.target.value)}
@@ -1058,9 +1225,11 @@ const KanbanBoardPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date &amp; time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
+                    step={60}
+                    min={createTaskState.startDate || undefined}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={createTaskState.endDate}
                     onChange={(event) => handleCreateTaskChange("endDate", event.target.value)}
@@ -1068,9 +1237,11 @@ const KanbanBoardPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date &amp; time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
+                    step={60}
+                    min={createTaskState.endDate || createTaskState.startDate || undefined}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={createTaskState.dueDate}
                     onChange={(event) => handleCreateTaskChange("dueDate", event.target.value)}
@@ -1390,9 +1561,10 @@ const KanbanBoardPage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date &amp; time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
+                    step={60}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={editTaskState.startDate}
                     onChange={(event) => handleEditTaskChange("startDate", event.target.value)}
@@ -1400,9 +1572,11 @@ const KanbanBoardPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date &amp; time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
+                    step={60}
+                    min={editTaskState.startDate || undefined}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={editTaskState.endDate}
                     onChange={(event) => handleEditTaskChange("endDate", event.target.value)}
@@ -1410,9 +1584,11 @@ const KanbanBoardPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date &amp; time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
+                    step={60}
+                    min={editTaskState.endDate || editTaskState.startDate || undefined}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={editTaskState.dueDate}
                     onChange={(event) => handleEditTaskChange("dueDate", event.target.value)}
