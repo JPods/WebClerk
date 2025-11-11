@@ -73,6 +73,68 @@ def deep_merge_dict(a: dict, b: dict) -> dict:
             a[k] = v
     return a
 
+
+def get_nested_value(obj, path: str):
+    """Get a nested value from object using dot notation."""
+    parts = path.split('.')
+    current = obj
+    for part in parts:
+        if hasattr(current, part):
+            current = getattr(current, part)
+        elif isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return None
+    return current
+
+
+def set_nested_value(obj, path: str, value):
+    """Set a nested value on object using dot notation."""
+    parts = path.split('.')
+    current = obj
+    for part in parts[:-1]:
+        if hasattr(current, part):
+            next_obj = getattr(current, part)
+            if not isinstance(next_obj, (dict, list)):
+                setattr(current, part, {})
+                next_obj = getattr(current, part)
+            current = next_obj
+        elif isinstance(current, dict):
+            if part not in current or not isinstance(current[part], dict):
+                current[part] = {}
+            current = current[part]
+        else:
+            return False
+    last = parts[-1]
+    if hasattr(current, last):
+        setattr(current, last, value)
+    elif isinstance(current, dict):
+        current[last] = value
+    else:
+        return False
+    return True
+
+
+def delete_nested_value(obj, path: str):
+    """Delete a nested value on object using dot notation."""
+    parts = path.split('.')
+    current = obj
+    for part in parts[:-1]:
+        if hasattr(current, part):
+            current = getattr(current, part)
+        elif isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return False
+    last = parts[-1]
+    if hasattr(current, last):
+        setattr(current, last, None)
+    elif isinstance(current, dict) and last in current:
+        del current[last]
+    else:
+        return False
+    return True
+
 # Deprecated: dynamic model discovery replaced by explicit allow-list registry (see wcapi_registry.py)
 # def find_model_for_table(model_name: str):
 #     QQQ confirm no remaining callers, then fully remove
@@ -126,13 +188,42 @@ class SaveWcapiView(APIView):
         examples=[
             OpenApiExample(
                 name="UpdateContact",
-                description="Update existing contact id=1; unknown fields are ignored or captured in prefs.userdefined",
+                description="Update existing contact id=1 using new mode/value structure",
                 value={
                     "model_name": "contact",
                     "id": 1,
-                    "name_first": "fred",
-                    "user1": "test of undefined",
-                    "needtoremove": "find a way"
+                    "name_first": {"mode": "update", "value": "fred"},
+                    "user1": {"mode": "update", "value": "test of undefined"}
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                name="InsertContact",
+                description="Create new contact without id",
+                value={
+                    "model_name": "contact",
+                    "name_first": {"mode": "insert", "value": "john"},
+                    "email": {"mode": "insert", "value": "john@example.com"}
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                name="DeleteField",
+                description="Delete a field from existing record",
+                value={
+                    "model_name": "contact",
+                    "id": 1,
+                    "obsolete_field": {"mode": "delete"}
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                name="NestedUpdate",
+                description="Update nested properties using dot notation",
+                value={
+                    "model_name": "action",
+                    "id": 107,
+                    "comments.notes": {"mode": "update", "value": "new notes"}
                 },
                 request_only=True,
             ),
@@ -155,7 +246,7 @@ class SaveWcapiView(APIView):
                 response_only=True,
             ),
         ],
-        description="Create or update a record by model_name. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
+        description="Create or update a record by model_name using universal field operations. Each field must specify a mode ('update', 'insert', 'delete') with optional value. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
     )
 
     def post(self, request):
@@ -287,58 +378,95 @@ class SaveWcapiView(APIView):
         # Assign fields
         field_size_errors = []
         raw_password = None
-        for field, value in data.items():
+        for field, field_data in data.items():
             # ignore these fields
             if field == 'password':
-                raw_password = value
+                if isinstance(field_data, dict) and 'value' in field_data:
+                    raw_password = field_data['value']
+                else:
+                    raw_password = field_data
                 continue
             if field in ('model_name', 'id', 'version', 'expected_version'):
                 continue
-            if hasattr(obj, field):
-                current = getattr(obj, field)
-                is_json_field = field in json_field_names or isinstance(current, dict)
-                if isinstance(value, dict) and is_json_field:
-                    if isinstance(current, str):
-                        try:
-                            current = json.loads(current)
-                        except json.JSONDecodeError:
-                            current = {}
-                    if not isinstance(current, dict):
-                        current = {}
-                    merged = deep_merge_dict(current, value)
-                    try:
-                        check_field_size(merged, MAX_FIELD_SIZE, field)
-                        setattr(obj, field, merged)
-                    except ValueError as e:
-                        field_size_errors.append(str(e))
-                else:
-                    try:
-                        check_field_size(value, MAX_FIELD_SIZE, field)
-                        setattr(obj, field, value)
-                    except ValueError as e:
-                        field_size_errors.append(str(e))
+
+            # Require new structure: field_data must be {"mode|task": "update|insert|delete", "value": ...} or {"mode|task": "delete"}
+            if not isinstance(field_data, dict) or ('mode' not in field_data and 'task' not in field_data):
+                return api_response(success=False, status_code=400, message=f'Invalid field format for {field}', error={'code':'invalid_field_format','details':f'Field {field} must be an object with "mode" or "task" key'})
+
+            # Extract mode from 'mode' or 'task' key
+            if 'mode' in field_data:
+                mode = field_data['mode']
+            elif 'task' in field_data:
+                mode = field_data['task']
             else:
-                # handle unknown or undefined properties move to prefs.undefined
-                try:
-                    prefs = getattr(obj, 'prefs', {}) or {}
-                    if isinstance(prefs, str):
-                        try:
-                            prefs = json.loads(prefs)
-                        except json.JSONDecodeError:
-                            prefs = {}
-                    userdefined = prefs.setdefault('userdefined', {})
-                    storable = value
+                mode = 'update'
+            value = field_data.get('value')
+
+            if mode not in ('update', 'insert', 'delete'):
+                continue  # Invalid mode, skip
+
+            if mode == 'delete':
+                # Delete the field
+                if '.' in field:
+                    delete_nested_value(obj, field)
+                else:
+                    if hasattr(obj, field):
+                        setattr(obj, field, None)
+                continue
+
+            # For update/insert, set the value
+            if value is None:
+                continue
+
+            # Check size
+            try:
+                check_field_size(value, MAX_FIELD_SIZE, field)
+            except ValueError as e:
+                field_size_errors.append(str(e))
+                continue
+
+            if '.' in field:
+                # Nested field
+                set_nested_value(obj, field, value)
+            else:
+                # Regular field
+                if hasattr(obj, field):
+                    current = getattr(obj, field)
+                    is_json_field = field in json_field_names or isinstance(current, dict)
+                    if isinstance(value, dict) and is_json_field:
+                        if isinstance(current, str):
+                            try:
+                                current = json.loads(current)
+                            except json.JSONDecodeError:
+                                current = {}
+                        if not isinstance(current, dict):
+                            current = {}
+                        merged = deep_merge_dict(current, value)
+                        setattr(obj, field, merged)
+                    else:
+                        setattr(obj, field, value)
+                else:
+                    # Unknown field, move to prefs.userdefined
                     try:
-                        raw_json = json.dumps(storable)
-                        if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
+                        prefs = getattr(obj, 'prefs', {}) or {}
+                        if isinstance(prefs, str):
+                            try:
+                                prefs = json.loads(prefs)
+                            except json.JSONDecodeError:
+                                prefs = {}
+                        userdefined = prefs.setdefault('userdefined', {})
+                        storable = value
+                        try:
+                            raw_json = json.dumps(storable)
+                            if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
+                                storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
+                        except Exception:
                             storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                    except Exception:
-                        storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                    userdefined[field] = storable
-                    check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
-                    setattr(obj, 'prefs', prefs)
-                except ValueError as e:
-                    field_size_errors.append(str(e))
+                        userdefined[field] = storable
+                        check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
+                        setattr(obj, 'prefs', prefs)
+                    except ValueError as e:
+                        field_size_errors.append(str(e))
 
         if raw_password is not None and hasattr(obj, 'set_password'):
             try:
