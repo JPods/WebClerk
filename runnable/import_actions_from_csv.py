@@ -107,8 +107,8 @@ def import_csv_to_actions(csv_file_path: str):
             status = row.get('Status', 'Not started')
 
             action = Action(
-                action_en=task_name,
-                description_en=description,
+                action={'en': task_name},
+                description={'en': description} if description else {},
                 assigned_to=parse_assignees(assignee_str),
                 dt_due=parse_date(due_date_str),
                 difficulty=map_effort_to_difficulty(effort_level),

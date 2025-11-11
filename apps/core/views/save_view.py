@@ -317,11 +317,9 @@ class SaveWcapiView(APIView):
         else:
             obj = model_cls()
 
-        # We'll deep-merge incoming dicts into existing JSON fields to avoid clobbering
-        nested_fields = ['refs', 'prefs', 'metadata', 'actions']
-        # QQQ where nested_fields is used?
         try:
             #QQQ explain why we have this
+            # list all flatten fields of the model
             json_field_names = {
                 f.name for f in obj._meta.get_fields()
                 if hasattr(f, 'attname') and isinstance(f, models.JSONField)

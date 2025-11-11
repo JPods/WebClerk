@@ -24,17 +24,9 @@ class Action(BaseModel):
     # Parent-child relationship
     parent = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
     
-    # Multilingual titles
-    action_en = models.CharField(max_length=255, blank=True, null=True)
-    action_ar = models.CharField(max_length=255, blank=True, null=True)
-    action_bn = models.CharField(max_length=255, blank=True, null=True)
-    action_es = models.CharField(max_length=255, blank=True, null=True)
-
-    # Multilingual descriptions
-    description_en = models.TextField(blank=True, null=True)
-    description_ar = models.TextField(blank=True, null=True)
-    description_bn = models.TextField(blank=True, null=True)
-    description_es = models.TextField(blank=True, null=True)
+    # Multilingual titles and descriptions
+    action = models.JSONField(default=dict, blank=True, null=True)
+    description = models.JSONField(default=dict, blank=True, null=True)
     
     # Supported languages for this task
     languages = models.JSONField(default=list, blank=True, null=True)
@@ -82,4 +74,5 @@ class Action(BaseModel):
         verbose_name_plural = "Actions"
 
     def __str__(self):
-        return f"{self.action_en or self.action_bn or self.action_ar or 'Untitled'} ({self.kanban_column})"
+        action_text = self.action.get('en') or self.action.get('bn') or self.action.get('ar') or 'Untitled'
+        return f"{action_text} ({self.kanban_column})"

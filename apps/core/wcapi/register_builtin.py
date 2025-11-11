@@ -39,7 +39,7 @@ try:
     register(ModelConfig(
         key='action',
         model=Action,
-        search_fields=('action_en', 'description_en', 'status'),
+        search_fields=('action', 'description', 'status'),
         ordering=('-dt_created',),
         permission_classes=(permissions.IsAuthenticated,),
         basename='action2',
