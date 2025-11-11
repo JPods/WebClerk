@@ -28,5 +28,5 @@ class ActionSearchView(PrefixAndSearchView):
     model = Action
     serializer_class = ActionSerializer
     permission_classes = [IsAuthenticated]
-    search_fields = ['action','status','action_by','priority','ida']
+    search_fields = ['action','status','action_by','priority','ida','project_name','project_id']
     role_set = {'staff','admin'}

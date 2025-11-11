@@ -39,6 +39,10 @@ class Action(BaseModel):
     # Supported languages for this task
     languages = models.JSONField(default=list, blank=True, null=True)
 
+    # Project information
+    project_name = models.CharField(max_length=255, blank=True, null=True)
+    project_id = models.CharField(max_length=255, blank=True, null=True)
+
     # Kanban board and workflow management
     kanban_column = models.CharField(max_length=50, choices=KANBAN_COLUMNS, default='Backlog')
     priority = models.PositiveIntegerField(default=1)
@@ -69,8 +73,8 @@ class Action(BaseModel):
     # Linkage or weighting to other systems/tasks
     linkage = models.PositiveIntegerField(default=0)
 
-    # Additional Kanban data (can store child names, meta, or history)
-    kanban_meta = models.JSONField(blank=True, null=True)
+    # Additional project data (can store child names, meta, or history)
+    project_metadata = models.JSONField(blank=True, null=True)
 
     class Meta:
         db_table = 'actions'

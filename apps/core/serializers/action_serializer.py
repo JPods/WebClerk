@@ -13,7 +13,7 @@ class ActionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'uuid', 'action', 'action_by', 'priority', 'difficulty', 'hours', 'percent',
             'status', 'quality', 'description', 'dt_action', 'dt_completed', 'dt_due',
-            'dt_updated', 'comment', 'refs', 'prefs', 'metadata'
+            'dt_updated', 'comment', 'refs', 'prefs', 'metadata', 'project_name', 'project_id'
         ]
         read_only_fields = ['id', 'uuid', 'dt_action', 'dt_updated']
 
