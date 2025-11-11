@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/services/view_edit_access.py
-# hypothesis_version: 6.138.7
-
-['GET', 'POST', 'PUBLIC', 'PUT', 'data', 'false', 'include_related', 'related', 'role', 'true', 'view', 'view_edit']

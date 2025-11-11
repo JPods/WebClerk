@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/models/email.py
-# hypothesis_version: 6.138.7
-
-[100, 254, 'Active', 'Bounced', 'Email Address', 'Email Addresses', 'Email address', 'Invalid', 'Opted Out', 'Spam Complaint', 'bounced', 'email', 'emails', 'invalid', 'is_primary', 'opt_out', 'opted_out', 'spam_complaint']

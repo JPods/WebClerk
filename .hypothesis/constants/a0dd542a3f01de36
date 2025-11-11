@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/migrations/0004_tag.py
-# hypothesis_version: 6.138.7
-
-[100, 255, 'ID in source table', 'Tag', 'comment', 'comments', 'count_accessed', 'created_dt', 'data', 'db_table', 'docs', 'health_rating', 'id', 'ida', 'indexes', 'is_active', 'is_archived', 'is_deleted', 'metadata', 'modified_dt', 'name', 'prefs', 'purpose', 'record_id', 'refs', 'security_level', 'sequence', 'status', 'table_name', 'tag_purpose_idx', 'tag_sec_level_idx', 'tag_status_idx', 'tag_table_record_idx', 'tags', 'uuid', 'version']

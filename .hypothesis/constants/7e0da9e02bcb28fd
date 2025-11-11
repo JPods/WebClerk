@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/migrations/0003_rename_requisition_purpose_126bf1_idx_requisition_purpose_227b42_idx_and_more.py
-# hypothesis_version: 6.138.7
-
-['0002_requisitionstd', 'requisitions_std', 'requisitionstd', 'transactions']

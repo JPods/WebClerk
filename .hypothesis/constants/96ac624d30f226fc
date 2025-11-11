@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/serializers/phone.py
-# hypothesis_version: 6.138.7
-
-['PATCH', 'POST', 'PUT', 'Preferences', 'References and links', 'attention', 'comment', 'country_code', 'dt_verified', 'edit', 'format', 'id', 'metadata', 'name', 'number', 'opt_out', 'phones', 'prefs', 'refs', 'request', 'user', 'uuid', 'view']

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/views/auth_views.py
-# hypothesis_version: 6.138.7
-
-['/', '/contact/', '/user/', 'admin/admin3.html', 'app_list', 'core', 'email', 'fields', 'id', 'label', 'login.html', 'metadata', 'model', 'model_list', 'models', 'name', 'name_first', 'name_last', 'next', 'object_name', 'password', 'password_confirm', 'selected_model', 'selected_record', 'signup.html', 'value']

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/migrations/0003_alter_document_comments_alter_document_id_and_more.py
-# hypothesis_version: 6.138.7
-
-[100, 255, 500, '0001_initial', '0002_delete_document', 'Linkage', 'Qa', 'answer', 'answered_by_contact', 'answered_by_name', 'comment', 'comments', 'core', 'core.setting', 'count_accessed', 'created_dt', 'db_table', 'docs', 'document', 'health_rating', 'id', 'ida', 'indexes', 'is_active', 'is_archived', 'is_deleted', 'linkage_name_idx', 'linkage_purpose_idx', 'linkages', 'metadata', 'modified_dt', 'name', 'prefs', 'purpose', 'qa_answers', 'qa_question_idx', 'qa_questions', 'qa_search_gin', 'qa_sec_level_idx', 'qa_status_idx', 'qas', 'question', 'question_setting', 'refs', 'search_vector', 'security_level', 'sequence', 'status', 'uuid', 'version']

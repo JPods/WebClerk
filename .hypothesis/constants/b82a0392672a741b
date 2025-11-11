@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/projects.py
-# hypothesis_version: 6.138.7
-
-[0.0, 100, 128, 180, 255, '0.00', 'Active', 'Blocked', 'Canceled', 'Critical', 'Done', 'Draft', 'High', 'Low', 'Normal', 'On Hold', 'active', 'attention', 'blocked', 'budget', 'burndown', 'canceled', 'category', 'completed', 'contact_id', 'critical', 'deadline', 'definition', 'done', 'draft', 'high', 'id', 'in', 'items', 'low', 'metrics', 'normal', 'onhold', 'out', 'priority', 'project_category_idx', 'project_contact_idx', 'project_priority_idx', 'project_slug_idx', 'project_status_idx', 'projects', 'resources', 'scope', 'security_level', 'slug', 'status', 'success', 'summary', 'timezone', 'title', 'total', 'weight', 'weight_completed', 'weight_total']

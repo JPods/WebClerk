@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/serializers/email.py
-# hypothesis_version: 6.138.7
-
-['PATCH', 'POST', 'PUT', 'Preferences', 'References and links', 'attention', 'comment', 'dt_bounced', 'dt_verified', 'edit', 'email', 'emails', 'id', 'is_active', 'is_primary', 'is_verified', 'metadata', 'name', 'opt_out', 'prefs', 'refs', 'request', 'status_display', 'user', 'uuid', 'view']

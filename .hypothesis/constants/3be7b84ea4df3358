@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/migrations/0002_pending_comments_pending_created_dt_and_more.py
-# hypothesis_version: 6.138.7
-
-[255, '0001_initial', 'comments', 'core', 'created_dt', 'data', 'dt_processed', 'health_rating', 'ida', 'is_archived', 'is_deleted', 'metadata', 'modified_dt', 'pending', 'prefs', 'record_id', 'refs', 'table_name', 'uuid', 'version']

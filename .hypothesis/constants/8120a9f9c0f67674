@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/views/requisition.py
-# hypothesis_version: 6.138.7
-
-[500, 'admin', 'ida', 'name', 'page_size', 'purpose', 'requisitions', 'staff', 'status']

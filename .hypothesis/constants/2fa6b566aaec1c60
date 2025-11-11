@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/orgs/admin.py
-# hypothesis_version: 6.138.7
-
-['Aspects', 'Org', 'Versioning', 'access', 'classes', 'collapse', 'contacts', 'created_dt', 'data', 'display_name', 'docs', 'domains', 'emails', 'fields', 'financial', 'gl_accounts', 'id', 'is_active', 'locations', 'metrics', 'modified_dt', 'org_type', 'phones', 'relations', 'status', 'version']

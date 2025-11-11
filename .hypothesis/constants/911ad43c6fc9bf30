@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/celery_app.py
-# hypothesis_version: 6.138.7
-
-['CELERY', 'django.conf:settings', 'webclerk3_api']

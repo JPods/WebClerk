@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/middleware.py
-# hypothesis_version: 6.138.7
-
-[1000, '-', 'X-Request-ID', '_req_start', 'id', 'request', 'request_id', 'user']

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/serializers/document_serializers.py
-# hypothesis_version: 6.138.7
-
-['body', 'checksum', 'comment', 'confidential', 'copyright', 'count_accessed', 'created_dt', 'data', 'description', 'highlight_snippet', 'id', 'is_active', 'mime_type', 'modified_dt', 'name', 'path', 'retention_period', 'security_level', 'sequence', 'size_bytes', 'status', 'table_name', 'uuid', 'version']

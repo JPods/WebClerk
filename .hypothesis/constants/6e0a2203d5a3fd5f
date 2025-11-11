@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/serializers/pending.py
-# hypothesis_version: 6.138.7
-
-['created_dt', 'data', 'dt_processed', 'id', 'ida', 'modified_dt', 'record_id', 'table_name', 'uuid', 'version']

@@ -25,3 +25,4 @@ google-credentials*.json
 # Export snapshots (keep if you want to version them: comment out to track)
 common/management/commands/all_tables_export.json
 .celery_started
+/Scripts

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/base_serializers.py
-# hypothesis_version: 6.138.7
-
-['Meta', 'PATCH', 'POST', 'PUT', 'admin', 'edit', 'id', 'is_superuser', 'model', 'request', 'role', 'staff', 'user', 'uuid', 'view']

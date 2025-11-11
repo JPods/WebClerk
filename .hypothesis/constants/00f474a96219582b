@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/webclerk3_api/urls.py
-# hypothesis_version: 6.138.7
-
-['admin-django/', 'admin/', 'admin_dashboard', 'api-redoc', 'api-schema', 'api-swagger', 'api/docs/redoc/', 'api/docs/swagger/', 'api/schema/', 'apps.core.urls', 'apps.docs.urls', 'apps.sync.urls', 'comm/', 'communications', 'docs/', 'sync', 'sync/', 'tx/']

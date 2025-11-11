@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/models/document.py
-# hypothesis_version: 6.138.7
-
-[255, 1000, ',', 'Document', 'accessed', 'body', 'contact_id', 'count_accessed', 'description', 'doc_name_idx', 'doc_search_gin', 'doc_sec_level_idx', 'doc_status_idx', 'doc_table_name_idx', 'documents', 'dt', 'field_list', 'fields', 'history', 'keywords', 'model', 'name', 'reason', 'search_vector', 'security_level', 'status', 'table_name', 'tracked_fields', 'utf-8']

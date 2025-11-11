@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/urls.py
-# hypothesis_version: 6.138.7
-
-['document-detail', 'document-list', 'document-search', 'documents/', 'documents/<int:pk>/', 'documents/search/', 'linkage-detail', 'linkage-links', 'linkage-list', 'linkages/', 'linkages/<int:pk>/', 'qa-detail', 'qa-list', 'qa-search', 'qas/', 'qas/<int:pk>/', 'qas/search/', 'tag-detail', 'tag-hierarchy', 'tag-list', 'tag-search', 'tags/', 'tags/<int:pk>/', 'tags/search/']

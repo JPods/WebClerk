@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/migrations/0001_initial.py
-# hypothesis_version: 6.138.7
-
-[100, 254, 255, 'Active', 'Bounced', 'Domain', 'Email', 'Email Address', 'Email Addresses', 'Email address', 'Invalid', 'Location', 'Opted Out', 'Phone', 'Phone Number', 'Phone Numbers', 'Phone number', 'Spam Complaint', 'address1', 'address2', 'address_type', 'attention', 'bounced', 'city', 'comment', 'comments', 'country', 'country_code', 'created_dt', 'db_table', 'domains', 'email', 'emails', 'format', 'full', 'health_rating', 'id', 'ida', 'indexes', 'instructions', 'invalid', 'is_archived', 'is_deleted', 'is_primary', 'is_verified', 'latitude', 'locations', 'longitude', 'metadata', 'modified_dt', 'name', 'number', 'opt_out', 'opted_out', 'path', 'phones', 'prefs', 'refs', 'spam_complaint', 'state', 'type', 'uuid', 'verbose_name', 'verbose_name_plural', 'version', 'zip']

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/migrations/0003_remove_pending_comments_remove_pending_health_rating_and_more.py
-# hypothesis_version: 6.138.7
-
-[255, 'comments', 'core', 'created_dt', 'data', 'dt_processed', 'health_rating', 'ida', 'is_archived', 'is_deleted', 'metadata', 'modified_dt', 'pending', 'prefs', 'record_id', 'refs', 'table_name', 'version']

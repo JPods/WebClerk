@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/serializers/domain.py
-# hypothesis_version: 6.138.7
-
-['Preferences', 'References and links', 'comment', 'count_accessed', 'created_dt', 'domains', 'id', 'is_active', 'metadata', 'modified_dt', 'path', 'prefs', 'refs', 'security_level', 'sequence', 'status', 'type', 'uuid', 'version']

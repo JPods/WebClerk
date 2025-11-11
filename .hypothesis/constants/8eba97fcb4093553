@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/models/contact.py
-# hypothesis_version: 6.138.7
-
-[100, 200, '@', 'Administrator', 'Company name', 'Contact', 'Contacts', 'Department', 'First name', 'Guest', 'Job title', 'Last name', 'Manager', 'Middle name', 'Post-save logic here', 'Pre-save logic here', 'Staff', 'User', 'User role in system', 'addresses', 'admin', 'contacts', 'domains', 'email', 'emails', 'first_name', 'guest', 'is_staff', 'is_superuser', 'last_name', 'manager', 'name_first', 'name_last', 'phones', 'role', 'staff', 'user']

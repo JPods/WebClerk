@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/admin.py
-# hypothesis_version: 6.138.7
-
-['Additional Info', 'Geolocation', 'Status', 'address1', 'address2', 'address_type', 'attention', 'city', 'comment', 'country', 'country_code', 'email', 'fields', 'format', 'full', 'id', 'instructions', 'is_primary', 'is_verified', 'latitude', 'longitude', 'mark_as_primary', 'mark_as_verified', 'metadata', 'name', 'number', 'opt_out', 'path', 'prefs', 'refs', 'state', 'type', 'zip']

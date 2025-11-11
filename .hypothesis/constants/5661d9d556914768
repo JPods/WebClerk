@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/urls.py
-# hypothesis_version: 6.138.7
-
-['about', 'about/', 'action2-detail', 'action2-list', 'action2-search', 'actions/std/', 'actions/std/search/', 'allowed-fields', 'api/token/', 'api/token/refresh/', 'get', 'home', 'login', 'login/', 'logout', 'logout/', 'manage-actions', 'manage/actions/', 'manage_actions.html', 'manager', 'manager.html', 'manager/', 'pending-detail', 'pending-list', 'pending-search', 'pending/', 'pending/<int:pk>/', 'pending/search/', 'query', 'related', 'signup', 'signup/', 'token_obtain_pair', 'token_refresh', 'user', 'user.html', 'user/', 'wcapi-keyword', 'wcapi-metrics', 'wcapi-models', 'wcapi/get/', 'wcapi/keyword/', 'wcapi/metrics/', 'wcapi/models/', 'wcapi/query/', 'wcapi/related/', 'wcapi/save/', 'wcapi_save']

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/models/tag.py
-# hypothesis_version: 6.138.7
-
-[100, 255, 1000, 'ID in source table', 'accessed', 'children', 'contact_id', 'count_accessed', 'dt', 'history', 'parent_id', 'purpose', 'record_id', 'security_level', 'status', 'table_name', 'tag_purpose_idx', 'tag_sec_level_idx', 'tag_status_idx', 'tag_table_record_idx', 'tags']

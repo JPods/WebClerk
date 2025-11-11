@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/sync/urls.py
-# hypothesis_version: 6.138.7
-
-['connection-detail', 'connection-list', 'connection-search', 'connections/', 'connections/search/', 'sync']

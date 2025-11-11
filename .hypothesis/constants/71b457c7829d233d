@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/requisition.py
-# hypothesis_version: 6.138.7
-
-[255, 'draft', 'name', 'purpose', 'requisitions_std', 'status']

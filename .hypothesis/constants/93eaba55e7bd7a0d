@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/serializers/line_serializers.py
-# hypothesis_version: 6.138.7
-
-['GET', 'HEAD', 'OPTIONS', 'action', 'cost', 'created_dt', 'detail', 'edit', 'flow', 'id', 'invoice_no', 'item', 'model', 'modified_dt', 'name', 'order_no', 'parent', 'parent_ref_id', 'physical', 'po_no', 'price', 'probability', 'quantity', 'req_no', 'request', 'role', 'source', 'status', 'tax', 'type_sale', 'view', 'work_no']

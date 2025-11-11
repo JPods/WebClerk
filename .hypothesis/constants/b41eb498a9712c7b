@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/management/commands/list_model_hooks.py
-# hypothesis_version: 6.138.7
-
-['-', '--app', '--json', 'BaseModel.', '__qualname__', 'api_validate_payload', 'app', 'custom', 'default', 'json', 'missing', 'model', 'post_save_hook', 'pre_save_hook', 'store_true']

@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/views/get_view.py
-# hypothesis_version: 6.138.7
-
-[400, 401, 404, 'Location', 'Missing table_name', 'PUBLIC', 'Record not found', 'actions', 'addresses', 'auth', 'communications', 'contacts', 'core', 'data', 'domains', 'emails', 'error', 'errors', 'id', 'locations', 'phones', 'related', 'role', 's', 'success', 'table_name', 'view']

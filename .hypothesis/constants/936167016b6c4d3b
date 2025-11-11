@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/views/address.py
-# hypothesis_version: 6.138.7
-
-[200, 201, 204, 400, 401, 403, 404, 500, 'Create Location', 'Delete Location', 'Forbidden', 'Get Location', 'Invalid data', 'List Locationes', 'Not found', 'Successfully deleted', 'Unauthorized', 'Update Location', 'addresses', 'contacts', 'detail', 'edit', 'links', 'page_size', 'view']

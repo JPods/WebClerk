@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/views/save_view.py
-# hypothesis_version: 6.138.7
-
-[400, 404, 412, 500, 15000, '*', 'HTTP_IF_MATCH', 'ORGS_VALIDATE_API', 'Record not found', 'Validation failed', 'api_validate_payload', 'error', 'errors', 'expected_version', 'id', 'lang', 'message', 'messages', 'metadata', 'notes', 'orgs', 'post_save_hook', 'pre_save_hook', 'prefs', 'record', 'refs', 'save_post_async', 'status', 'success', 'table_name', 'tags', 'theme', 'utf-8', 'version']

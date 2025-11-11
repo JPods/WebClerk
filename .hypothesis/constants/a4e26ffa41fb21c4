@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/serializers/action.py
-# hypothesis_version: 6.138.7
-
-['__all__', 'actions', 'created_dt', 'id', 'modified_dt', 'uuid', 'version']

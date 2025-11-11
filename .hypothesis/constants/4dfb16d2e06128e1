@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/services/wcapi_registry.py
-# hypothesis_version: 6.138.7
-
-['actions', 'addresses', 'contacts', 'domains', 'emails', 'phones']

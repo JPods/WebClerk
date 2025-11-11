@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/search_mixins.py
-# hypothesis_version: 6.138.7
-
-[100, 403, '-modified_dt', 'Forbidden', 'count', 'detail', 'is_superuser', 'q', 'request', 'results', 'role', 'terms']

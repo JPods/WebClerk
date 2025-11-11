@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/serializers/api_auth_serializers.py
-# hypothesis_version: 6.138.7
-
-['email', 'name_first', 'name_last', 'password', 'role', 'user']

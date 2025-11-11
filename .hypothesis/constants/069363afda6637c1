@@ -1,4 +1,0 @@
-# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/services/wcapi.py
-# hypothesis_version: 6.138.7
-
-['HTTP_TABLE_NAME', 'Help page for wcapi', 'Invalid table_name', 'No id provided', '_state', 'actions', 'addresses', 'contacts', 'data', 'domains', 'emails', 'id', 'message', 'phones', 'success', 'table_name', 'template_name']
