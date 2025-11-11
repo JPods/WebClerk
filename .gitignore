@@ -26,3 +26,4 @@ google-credentials*.json
 common/management/commands/all_tables_export.json
 .celery_started
 /Scripts
+*.rdb
