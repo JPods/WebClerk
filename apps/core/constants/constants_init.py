@@ -32,6 +32,9 @@ from typing import Dict, Any, Optional, Union
 from apps.core.services.cache_service import cache_service
 from apps.core.models.setting import Setting
 
+# Flag to ensure mandatory constants are created only once
+_mandatory_constants_ensured = False
+
 
 def load_constants_from_settings() -> Dict[str, Dict[str, Any]]:
     """
@@ -44,9 +47,19 @@ def load_constants_from_settings() -> Dict[str, Dict[str, Any]]:
             'ui_defaults': {'theme': 'dark', 'language': 'en'}
         }
     """
+    global _mandatory_constants_ensured
+
     constants = {}
 
     try:
+        # Ensure mandatory constants exist before loading
+        if not _mandatory_constants_ensured:
+            from .mandatory_constants import ensure_mandatory_constants_exist
+            result = ensure_mandatory_constants_exist(verbose=False)
+            if result['created']:
+                print(f"Created mandatory constants: {', '.join(result['created'])}")
+            _mandatory_constants_ensured = True
+
         # Query all active constant_init settings
         setting_qs = Setting.objects.filter(
             purpose='constant_init',
