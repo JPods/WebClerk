@@ -221,7 +221,7 @@ class SaveWcapiView(APIView):
                 name="NestedUpdate",
                 description="Update nested properties using dot notation",
                 value={
-                    "model_name": "action",
+                    "model_name": "action", 
                     "id": 107,
                     "comments.notes": {"mode": "update", "value": "new notes"}
                 },
