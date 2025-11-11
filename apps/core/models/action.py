@@ -49,6 +49,8 @@ class Action(BaseModel):
     dt_completed = models.BigIntegerField(blank=True, null=True)
     dt_start = models.BigIntegerField(blank=True, null=True)
     dt_end = models.BigIntegerField(blank=True, null=True)
+    #days
+    duration = models.IntegerField(blank=True, null=True)
 
     # Audit info: who created / updated etc.
     created_by = models.JSONField(blank=True, null=True)
