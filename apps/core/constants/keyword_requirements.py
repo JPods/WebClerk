@@ -2,14 +2,14 @@
 # AppConfig’s ready() method and cache the result.
 
 from apps.core.models.setting import Setting
-from django.core.cache import cache
+from apps.core.services.cache_service import cache_service
 from django.db import connection
 
 def load_keyword_requirements():
     # Load all active keyword requirements once at startup
     # Select only columns we need to avoid referencing columns that may not exist in early migrations
     requirements = {}
-    qs = Setting.objects.filter(purpose="keywords_from", is_active=True).only("model_name", "data")
+    qs = Setting.objects.filter(purpose="refs_setup", is_active=True).only("model_name", "data")
     for setting in qs:
         key = getattr(setting, 'model_name', None)
         if key:
@@ -18,10 +18,11 @@ def load_keyword_requirements():
 
 def get_keyword_requirements():
     try:
-        requirements = cache.get('keyword_requirements')
+        cache_key = cache_service.make_key('keywords', 'requirements')
+        requirements = cache_service.get(cache_key)
         if requirements is None:
             requirements = load_keyword_requirements()
-            cache.set('keyword_requirements', requirements, timeout=3600)
+            cache_service.set(cache_key, requirements, ttl=3600)
         return requirements
     except Exception as e:
         # If the settings or django_content_type table does not exist, return empty dict

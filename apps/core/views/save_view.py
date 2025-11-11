@@ -1,5 +1,6 @@
 # path: apps/core/views/save_view.py
 from common.api_responses import api_response
+from django.conf import settings
 # This module provides a Django view for saving (creating or updating) records in a database table via a POST request with JSON payload.
 # Classes:
 #     WcapiView(View): Handles POST requests to save or update records for a specified table/model.
@@ -49,7 +50,7 @@ ALLOWED_NESTED_KEYS = {
 #    'some_special_table': custom_save_function,
     # ...
 #}
-
+# YYY 2026-02-15
 MAX_FIELD_SIZE = 15000  # bytes, example
 UNKNOWN_FIELD_MAX_CHARS = 256  # max len for unknown field values captured into prefs.userdefined
 
@@ -85,6 +86,7 @@ class SaveWcapiView(APIView):
     #def dispatch(self, *args, **kwargs):
         #return super().dispatch(*args, **kwargs)
     
+    #This is documentation and not executed code
     @extend_schema(
         operation_id="wcapi_save_create_update",
         request=inline_serializer(
@@ -155,14 +157,15 @@ class SaveWcapiView(APIView):
         ],
         description="Create or update a record by model_name. If id is provided, updates that record; otherwise creates a new record. Returns JSON envelope with saved record and messages."
     )
+
     def post(self, request):
         # Auth: allow session or JWT; env flag WCAPI_JWT_ONLY can enforce JWT-only.
-        from django.conf import settings
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
         is_jwt = request.META.get('HTTP_AUTHORIZATION', '').startswith('Bearer ')
         if not request.user.is_authenticated:
             return api_response(success=False, status_code=401, message='Authentication required', error={'code':'not_authenticated','details':'Authentication required'})
         if require_jwt and not is_jwt:
+            # QQQ Check for expired token?
             return api_response(success=False, status_code=401, message='JWT Bearer token required', error={'code':'jwt_required','details':'JWT Bearer token required'})
 
         # Parse JSON body
@@ -227,6 +230,7 @@ class SaveWcapiView(APIView):
         nested_fields = ['refs', 'prefs', 'metadata', 'actions']
         # QQQ where nested_fields is used?
         try:
+            #QQQ explain why we have this
             json_field_names = {
                 f.name for f in obj._meta.get_fields()
                 if hasattr(f, 'attname') and isinstance(f, models.JSONField)
@@ -263,6 +267,15 @@ class SaveWcapiView(APIView):
                 else:
                     return api_response(success=False, status_code=400, message=str(result), error={'code':'validation','details': str(result)})
         else:
+            # Execute save hooks from Setting records
+            try:
+                from apps.core.constants.save_hooks import execute_save_hook
+                hook_result = execute_save_hook(model_key, 'save_pre', obj, data)
+                if not hook_result['success']:
+                    return api_response(success=False, status_code=400, message='Pre-save hook failed', error={'code':'hook_failed','details': hook_result['errors']})
+            except ImportError:
+                pass  # Graceful degradation if save_hooks module not available
+
             try:
                 tasks.save_pre.run(model_key, data)
             except Exception:
@@ -384,6 +397,34 @@ class SaveWcapiView(APIView):
             except Exception as e:
                 post_hook_note = f'post_save_hook error: {e}'
         else:
+            # Execute save hooks from Setting records
+            try:
+                from apps.core.constants.save_hooks import execute_save_hook
+                hook_result = execute_save_hook(model_key, 'save_post', obj, data)
+                if not hook_result['success']:
+                    post_hook_note = f'Post-save hook failed: {hook_result["errors"]}'
+            except ImportError:
+                pass  # Graceful degradation if save_hooks module not available
+
+            # Execute save_async hooks asynchronously
+            try:
+                from apps.core.constants.save_hooks import get_save_hooks
+                async_hooks = get_save_hooks(model_key)
+                async_hook_found = False
+                for hook_name, hook_data in async_hooks.items():
+                    if 'save_async' in hook_data and hook_data['save_async']:
+                        async_hook_found = True
+                        break
+
+                if async_hook_found:
+                    try:
+                        from apps.core.tasks.cache_tasks import execute_save_async_hooks
+                        execute_save_async_hooks.delay(model_key, obj_id, data)
+                    except ImportError:
+                        pass  # Graceful degradation if tasks module not available
+            except ImportError:
+                pass  # Graceful degradation if save_hooks module not available
+
             try:
                 tasks.save_post.run(model_key, data)
             except Exception:

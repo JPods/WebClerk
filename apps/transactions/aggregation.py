@@ -8,6 +8,7 @@ from apps.transactions.models import (
 )
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from apps.core.services.cache_service import cache_service
 
 LINE_MODEL_MAP = {
     'proposal-line': ProposalLine,
@@ -105,9 +106,21 @@ def compute_line_aggregate(parent_id: int,
     ttl = max(5, ttl_seconds or dynamic_default)  # guard against very low values
     now = int(time.time())
     window = now // ttl
+
+    # Try to get from Redis cache first
+    cache_key = cache_service.make_key('aggregation', str(parent_id), str(model_key or 'all'), str(window))
+    cached_data = cache_service.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    # Compute and cache the result
     data = _compute_line_aggregate_internal(parent_id, model_key, window, include_breakdown)
     data['ttl_seconds'] = ttl
     data['cache_window'] = window  # optional debugging / introspection
+
+    # Cache the result
+    cache_service.set(cache_key, data, ttl=ttl)
+
     return data
 
 
@@ -117,5 +130,10 @@ def compute_line_aggregate(parent_id: int,
 @receiver([post_save, post_delete], sender=PurchaseOrderLine)
 @receiver([post_save, post_delete], sender=WorkOrderLine)
 @receiver([post_save, post_delete], sender=RequisitionLine)
-def clear_aggregate_cache(**kwargs):  # pragma: no cover - simple invalidation
+def clear_aggregate_cache(sender, instance, **kwargs):  # pragma: no cover - simple invalidation
+    # Clear LRU cache
     _compute_line_aggregate_internal.cache_clear()
+
+    # Invalidate Redis cache for this parent_id
+    if hasattr(instance, 'parent_id'):
+        cache_service.invalidate_namespace('aggregation')

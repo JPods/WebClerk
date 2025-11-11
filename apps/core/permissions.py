@@ -5,15 +5,27 @@ from apps.core.models.setting import Setting
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from apps.core.services.wcapi_registry import to_model_name
+from apps.core.services.cache_service import cache_service
 
 
 @lru_cache(maxsize=256)
 def _cached_view_edit_matrix(setting_id: int, dt_modified: str):
+    # Try Redis cache first
+    cache_key = cache_service.make_key('permissions', 'matrix', str(setting_id), dt_modified)
+    cached_data = cache_service.get(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    # Load from database
     try:
         s = Setting.objects.only('data').get(id=setting_id)
+        data = s.data or {}
     except Setting.DoesNotExist:
-        return {}
-    return s.data or {}
+        data = {}
+
+    # Cache the result
+    cache_service.set(cache_key, data, ttl=3600)  # 1 hour
+    return data
 
 
 def _get_active_view_edit_setting(model_name: str) -> tuple[int | None, dict]:
