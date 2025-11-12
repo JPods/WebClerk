@@ -1231,7 +1231,7 @@ const KanbanGanttPage: React.FC = () => {
 
         <div className="flex">
           {/* Task List */}
-          {/* <div className="w-96 flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
+          <div className="w-96 flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
             <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tasks</h3>
             </div>
@@ -1328,7 +1328,7 @@ const KanbanGanttPage: React.FC = () => {
                 ))
               )}
             </div>
-          </div> */}
+          </div>
 
           {/* Timeline */}
           <div className="flex-1 overflow-x-auto">

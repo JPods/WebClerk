@@ -57,9 +57,20 @@ type TaskFormState = {
   startDate: string;
   endDate: string;
   assignee: string;
+  difficulty: string;
+  progress: string;
 };
 
 type TaskFormEditableField = Exclude<keyof TaskFormState, "translations">;
+
+const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
+const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
+
+const DEFAULT_DIFFICULTY = DIFFICULTY_OPTIONS[2] ?? DIFFICULTY_OPTIONS[0];
+const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
+
+const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
+const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
 
 const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
   id: createLocalId(),
@@ -78,6 +89,8 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   startDate: "",
   endDate: "",
   assignee: "",
+  difficulty: DEFAULT_DIFFICULTY_STRING,
+  progress: DEFAULT_PROGRESS_STRING,
 });
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
@@ -241,6 +254,32 @@ const normalizeIncomingDateValue = (value: unknown): string => {
   return date ? formatDateTimeLocalString(date) : "";
 };
 
+const normalizeNumericSelectValue = (value: unknown, fallback: number): string => {
+  if (value === null || value === undefined) {
+    return String(fallback);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return String(fallback);
+    }
+    const numeric = Number(trimmed);
+    return Number.isNaN(numeric) ? String(fallback) : String(numeric);
+  }
+
+  const numeric = Number(value);
+  return Number.isNaN(numeric) ? String(fallback) : String(numeric);
+};
+
+const extendNumericOptionStrings = (options: readonly number[], current: string): string[] => {
+  const base = options.map((value) => String(value));
+  if (current && !base.includes(current)) {
+    return [...base, current];
+  }
+  return base;
+};
+
 const ensureEndAfterStart = (start: string, candidate: string): string => {
   const startDate = parseDateTimeInputValue(start);
 
@@ -336,6 +375,14 @@ const updateTaskFormState = (
 
   if (field === "assignee") {
     return { ...prev, assignee: value };
+  }
+
+  if (field === "difficulty") {
+    return { ...prev, difficulty: value };
+  }
+
+  if (field === "progress") {
+    return { ...prev, progress: value };
   }
 
   return prev;
@@ -437,6 +484,22 @@ const KanbanBoardPage: React.FC = () => {
   );
 
   const columnOptions = useMemo(() => columns.map((column) => ({ id: column.id, title: column.title })), [columns]);
+  const createDifficultyOptions = useMemo(
+    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, createTaskState.difficulty),
+    [createTaskState.difficulty]
+  );
+  const createProgressOptions = useMemo(
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, createTaskState.progress),
+    [createTaskState.progress]
+  );
+  const editDifficultyOptions = useMemo(
+    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
+    [editTaskState.difficulty]
+  );
+  const editProgressOptions = useMemo(
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
+    [editTaskState.progress]
+  );
   const languageOptions = useMemo(() => {
     const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
     Object.values(board.tasks).forEach((task) => {
@@ -513,6 +576,11 @@ const KanbanBoardPage: React.FC = () => {
     const normalizedStart = normalizeIncomingDateValue(task.startDate);
     const normalizedEnd = normalizeIncomingDateValue(task.endDate);
     const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+    const normalizedDifficulty = normalizeNumericSelectValue(
+      task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
+      DEFAULT_DIFFICULTY
+    );
+    const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
 
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
@@ -522,12 +590,15 @@ const KanbanBoardPage: React.FC = () => {
       startDate: normalizedStart,
       endDate: normalizedEnd,
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+      difficulty: normalizedDifficulty,
+      progress: normalizedProgress,
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
     setEditLanguageSelection("");
     setEditCustomLanguage("");
     setEditLanguagePickerError(null);
+
     setIsEditModalOpen(true);
   };
 
@@ -712,6 +783,14 @@ const KanbanBoardPage: React.FC = () => {
       return { error: "Due date must be on or after end date." };
     }
 
+    const fallbackDifficulty = baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority];
+    const parsedDifficulty = Number(state.difficulty);
+    const resolvedDifficulty = Number.isNaN(parsedDifficulty) || parsedDifficulty <= 0 ? fallbackDifficulty : parsedDifficulty;
+
+    const fallbackProgress = baseTask?.progress ?? 0;
+    const parsedProgress = Number(state.progress);
+    const resolvedProgress = Number.isNaN(parsedProgress) || parsedProgress < 0 ? fallbackProgress : parsedProgress;
+
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
       ...translationFields,
@@ -720,12 +799,13 @@ const KanbanBoardPage: React.FC = () => {
       kanban_column: columnTitle,
       kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
       priority: PRIORITY_TO_VALUE[state.priority],
-      difficulty: baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority],
+      difficulty: resolvedDifficulty,
       status: baseTask?.status ?? "In progress",
       dt_due: dueTimestamp,
       dt_start: startTimestamp,
       dt_end: endTimestamp,
       assigned_to: assignedTo,
+      progress: resolvedProgress,
     };
 
     if (mode === "edit" && baseTask) {
@@ -1017,7 +1097,7 @@ const KanbanBoardPage: React.FC = () => {
 
                         <div>
                           <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Title
+                            Action
                           </label>
                           <input
                             className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
@@ -1206,6 +1286,36 @@ const KanbanBoardPage: React.FC = () => {
                     {priorityOptions.map((priority) => (
                       <option key={priority} value={priority}>
                         {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Difficulty</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={createTaskState.difficulty}
+                    onChange={(event) => handleCreateTaskChange("difficulty", event.target.value)}
+                    disabled={isSavingCreate}
+                  >
+                    {createDifficultyOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Progress (%)</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={createTaskState.progress}
+                    onChange={(event) => handleCreateTaskChange("progress", event.target.value)}
+                    disabled={isSavingCreate}
+                  >
+                    {createProgressOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
                       </option>
                     ))}
                   </select>
@@ -1553,6 +1663,36 @@ const KanbanBoardPage: React.FC = () => {
                     {priorityOptions.map((priority) => (
                       <option key={priority} value={priority}>
                         {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Difficulty</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.difficulty}
+                    onChange={(event) => handleEditTaskChange("difficulty", event.target.value)}
+                    disabled={isSavingEdit}
+                  >
+                    {editDifficultyOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Progress (%)</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.progress}
+                    onChange={(event) => handleEditTaskChange("progress", event.target.value)}
+                    disabled={isSavingEdit}
+                  >
+                    {editProgressOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
                       </option>
                     ))}
                   </select>
