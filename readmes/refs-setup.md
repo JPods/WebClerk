@@ -20,6 +20,7 @@ The `.refs` system in WebClerk provides denormalized data storage to simplify us
   }
 }
 ```
+- ensure_refs_setup.py currently has the related models liste
 
 - **`tags`**: User-defined search words
 - **`links`**: Arrays of related record IDs for quick lookups

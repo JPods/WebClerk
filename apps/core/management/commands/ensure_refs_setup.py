@@ -1,4 +1,5 @@
 """
+ensure_refs_setup.py
 Management command to ensure refs_setup settings exist for all models.
 """
 
@@ -9,35 +10,46 @@ from apps.core.constants.model_registry import MODEL_REGISTRY
 
 # Define related models that should be denormalized for each model type
 RELATED_MODELS_MAP = {
+    #QQQ move to setting records at some point
     # Core entities that link to communications
-    'contact': ['email', 'phone', 'location', 'domain'],
-    'customer': ['contact', 'email', 'phone', 'location', 'domain'],
-    'vendor': ['contact', 'email', 'phone', 'location', 'domain'],
+    'contact': ['email', 'phone', 'location', 'domain','customer', 'vendor', 'rep','manufacturer'],
+    'customer': ['contact', 'email', 'phone', 'location', 'domain', 'vendor', 'rep', 'manufacturer'],
+    'vendor': ['contact', 'email', 'phone', 'location', 'domain','customer', 'rep', 'manufacturer'],
     'org': ['contact', 'email', 'phone', 'location', 'domain'],
 
     # Transaction headers that link to parties and communications
-    'invoice': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
-    'sales_order': ['contact', 'customer', 'email', 'phone', 'location'],
-    'purchase_order': ['contact', 'vendor', 'email', 'phone', 'location'],
-    'proposal': ['contact', 'customer', 'email', 'phone', 'location'],
-    'requisition': ['contact', 'customer', 'email', 'phone', 'location'],
-    'work_order': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+    'invoice': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'sales_order': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'purchase_order': ['contact', 'vendor', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'proposal': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'requisition': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'work_order': ['contact', 'customer', 'vendor', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
 
     # Transaction lines that inherit from headers
-    'invoice_line': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
-    'sales_order_line': ['contact', 'customer', 'email', 'phone', 'location'],
-    'purchase_order_line': ['contact', 'vendor', 'email', 'phone', 'location'],
-    'proposal_line': ['contact', 'customer', 'email', 'phone', 'location'],
-    'requisition_line': ['contact', 'customer', 'email', 'phone', 'location'],
-    'work_order_line': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
+    'invoice_line': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'sales_order_line': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'purchase_order_line': ['contact', 'vendor', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'proposal_line': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'requisition_line': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
+    'work_order_line': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
 
     # Actions and documents
     'action': ['contact', 'customer', 'vendor', 'email', 'phone', 'location', 'domain'],
     'document': ['contact', 'customer', 'vendor', 'email', 'phone', 'location'],
 
     # Support entities
-    'project': ['contact', 'customer', 'email', 'phone', 'location'],
+    'project': ['contact', 'customer', 'email', 'phone', 'location','rep', 'manufacturer', 'vendor'],
     'notification': ['contact', 'email', 'phone'],
+
+    # Product entities
+    'item': ['manufacturer', 'vendor', 'location'],
+
+    # Docs entities
+    'document': ['contact', 'customer', 'invoice', 'sales_order', 'purchase_order', 'proposal', 'requisition', 'work_order', 'product'],
+    'linkage': ['contact', 'customer', 'invoice', 'sales_order', 'purchase_order', 'proposal', 'requisition', 'work_order', 'product'],
+    'question_answer': ['contact', 'customer', 'invoice', 'sales_order', 'purchase_order', 'proposal', 'requisition', 'work_order', 'product'],
+
+
 }
 
 
