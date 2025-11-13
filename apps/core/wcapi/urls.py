@@ -13,6 +13,9 @@ from rest_framework import viewsets  # needed for FallbackVS(viewsets.ModelViewS
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.core.views.save_view import SaveWcapiView  # add JWT views
+from apps.core.views.save_view import SaveWcapiView  # add JWT views
+from .auth_views import AuthLoginView, AuthLogoutView, AuthMeView
+from apps.core.views.dropdowns import FrontendDropdownsView
 from .auth_views import AuthLoginView, AuthLogoutView, AuthMeView    
 
 from .viewsets import WCAPIModelViewSet
@@ -639,6 +642,7 @@ urlpatterns = [
     # Standard JWT endpoints (optional but useful)
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("dropdowns/", FrontendDropdownsView.as_view(), name="frontend-dropdowns"),
     path("domain/", DomainSearchView.as_view(), name="domain-search"),
     path("readme/sync", ReadmeSyncView.as_view(), name="readme-sync"),
     path("readmes/top/", ReadmeTopView.as_view(), name="readme-top"),

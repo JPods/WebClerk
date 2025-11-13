@@ -1,18 +1,6 @@
-from .contact_view import WebContactView
-# from .edit_views import EditContactView  # Disabled: edit_views.py not found
-from .auth_views import SignupView, WebLoginView, WebLogoutView
 from apps.core.services.wcapi import (
     WcapiView,
 )
-from django.views.generic import TemplateView
-
-
-# Define HomeView and AboutView directly in this file
-class HomeView(TemplateView):
-    template_name = 'home.html'
-
-class AboutView(TemplateView):
-    template_name = 'about.html'
 
 # # Universal API Views - Simple implementations for now
 # class WcapiView(TemplateView):
@@ -56,16 +44,5 @@ class AboutView(TemplateView):
 
 # Export all views
 __all__ = [
-    'HomeView',
-    'AboutView',
-    'WebContactView',
-    'EditContactView', 
-    'SignupView',
-    'WebLoginView', 
-    'WebLogoutView',
-    'WcapiView',
-    'WcapiView',
-    'WcapiView',
-    'WcapiView',
     'WcapiView',
 ]

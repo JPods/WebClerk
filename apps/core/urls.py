@@ -1,11 +1,6 @@
 # path: apps/core/urls.py
 from django.urls import include, path
 
-from apps.core.views import (
-    HomeView, AboutView,
-    SignupView, WebLoginView, WebLogoutView,
-)
-from django.views.generic import TemplateView
 from apps.core.services.wcapi import WcapiView, wcapi_metrics_response
 
 
@@ -32,7 +27,6 @@ from apps.core.views.pending import PendingListView, PendingDetailView, PendingS
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
 from apps.core.views.setting import SettingListView, SettingDetailView, SettingSearchView
 from apps.core.views.template import TemplateListView, TemplateDetailView, TemplateSearchView
-from apps.core.views import auth_views, admin_view
 from apps.core.views.contact_api import (
     ContactListView as ContactApiListView,
     ContactDetailView as ContactApiDetailView,
@@ -41,7 +35,7 @@ from apps.core.views.contact_api import (
 
 urlpatterns = [
     path('api/token/', LoginTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    # New API auth endpoints (JSON) - do not interfere with existing HTML /login/ & /signup/
+    # New API auth endpoints (JSON)
     path('api/auth/login/', ApiLoginView.as_view(), name='api_auth_login'),
     path('api/auth/signup/', ApiSignupView.as_view(), name='api_auth_signup'),
     # Backwards-compatible wcapi auth aliases (some clients expect /wcapi/login/)
@@ -49,24 +43,6 @@ urlpatterns = [
     path('wcapi/signup/', ApiSignupView.as_view(), name='wcapi_signup_alias'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # Home and About pages
-    path('', HomeView.as_view(), name='home'),
-    path('about/', AboutView.as_view(), name='about'),
-    
-    # Authentication
-    path('signup/', SignupView.as_view(), name='signup'),
-    path('login/', WebLoginView.as_view(), name='login'),
-    path('logout/', WebLogoutView.as_view(), name='logout'),
-    
-   
-        # Dedicated Management Pages
-    path('manage/actions/', TemplateView.as_view(template_name='manage_actions.html'), name='manage-actions'),
-    path('user/', TemplateView.as_view(template_name='user.html'), name='user'),
-    path('manager/', TemplateView.as_view(template_name='manager.html'), name='manager'),
-    # Admin Workbench (3-column model/records/editor with local JSON prefs)
-    path('admin/workbench/', TemplateView.as_view(template_name='admin_workbench.html'), name='admin-workbench'),
-    # Legacy/alt admin3 page from prior work (in admin/admin3.html)
-    path('admin/workbench3/', admin_view.admin3_view, name='admin-workbench3'),
 
     #path('manager/related/', RelatedDataView.as_view(), name='manager-related'),
     # Universal API endpoints

@@ -1,5 +1,5 @@
 """
-ensure_refs_setup.py
+git
 Management command to ensure refs_setup settings exist for all models.
 """
 
