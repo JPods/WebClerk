@@ -26,8 +26,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
-    #'debug_toolbar',
-    # apps.transactions.apps.TransactionsConfig',
     'apps.accounts',
     'apps.communications',
     'apps.core',
@@ -65,7 +63,6 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',  # keep this before any auth-dependent logic
     'django.contrib.messages.middleware.MessageMiddleware',
-    # 'common.middleware.WCAPISearchGuardMiddleware',  # REMOVE: view enforces q access
     'common.middleware.WriteGateMiddleware',
     'common.middleware.RequestLogMiddleware',
     'common.middleware.ExceptionAsJsonMiddleware',
@@ -73,22 +70,13 @@ MIDDLEWARE = [
     # Add after DRF/Django exception handling so it can see 404 responses
 ]
 
-# Ensure JSON-only errors for non-DRF 404/405/403
-# try:
-#     MIDDLEWARE = list(MIDDLEWARE)
-# except NameError:
-#     MIDDLEWARE = []
-# if "common.http.middleware.ForceJSONResponses" not in MIDDLEWARE:
-#     MIDDLEWARE.append("common.http.middleware.ForceJSONResponses")
 
 ROOT_URLCONF = 'webclerk3_api.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'templates',  # Only core/templates now
-        ],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -255,12 +243,6 @@ LOGGING = {
 API_JSON_DEFAULT = True
 HTML_EXEMPT_PATH_PREFIXES = (
     '/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/',
-)
-HTML_EXEMPT_PATHS_EXACT = (
-    '/', '/about/', '/signup/', '/login/', '/logout/',
-)
-HTML_EXEMPT_PAGE_PREFIXES = (
-    '/manage/', '/user/', '/manager/',
 )
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (
