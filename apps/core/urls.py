@@ -4,9 +4,7 @@ from django.urls import include, path
 from apps.core.services.wcapi import WcapiView, wcapi_metrics_response
 
 
-from rest_framework_simplejwt.views import (
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView
 from apps.core.views.auth_token import LoginTokenObtainPairView
 from apps.core.views.api_auth import ApiLoginView, ApiSignupView
 from apps.core.views.related_view import RelatedDataView, RelatedDataAdvancedView

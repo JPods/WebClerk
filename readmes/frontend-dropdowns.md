@@ -25,17 +25,20 @@ The Frontend Dropdowns system provides centralized management of dropdown select
 ## Current Dropdowns
 
 ### assigned_to_ddl
+
 - **Purpose**: User assignment dropdown for actions/tasks
 - **Format**: `[{"label": "Full Name", "value": contact_id}, ...]`
 - **Source**: Active Contact records, ordered by last name, first name
 - **Dynamic**: Always queries database (not cached in settings)
 
 ### difficulty_ddl
+
 - **Purpose**: Task difficulty levels
 - **Format**: `["1", "5", "25", "50", "101"]`
 - **Configurable**: Can be overridden via Setting records
 
 ### priority_ddl
+
 - **Purpose**: Task priority levels
 - **Format**: `["UKN", "Low", "Medium", "High", "Immediate"]`
 - **Configurable**: Can be overridden via Setting records
@@ -43,9 +46,11 @@ The Frontend Dropdowns system provides centralized management of dropdown select
 ## API Endpoints
 
 ### GET /dropdowns/
+
 Returns all frontend dropdowns.
 
 **Response:**
+
 ```json
 {
   "assigned_to_ddl": [
@@ -58,11 +63,13 @@ Returns all frontend dropdowns.
 ```
 
 ### GET /dropdowns/?name=dropdown_name
+
 Returns a specific dropdown.
 
 **Example:** `/dropdowns/?name=priority_ddl`
 
 **Response:**
+
 ```json
 ["UKN", "Low", "Medium", "High", "Immediate"]
 ```
@@ -70,11 +77,13 @@ Returns a specific dropdown.
 ## Configuration via Settings
 
 Once migrated, dropdowns are stored as Setting records with:
+
 - **purpose**: `"front_end-ddl"`
 - **name**: `"frontend-dropdown-{dropdown_name}"`
 - **data**: The dropdown options array/object
 
 ### Example Setting Record
+
 ```json
 {
   "name": "frontend-dropdown-priority_ddl",
@@ -87,19 +96,23 @@ Once migrated, dropdowns are stored as Setting records with:
 ## Migration Process
 
 ### Step 1: Preview Migration
+
 ```bash
 python manage.py migrate_frontend_dropdowns --dry-run
 ```
 
 ### Step 2: Execute Migration
+
 ```bash
 python manage.py migrate_frontend_dropdowns
 ```
 
 ### Step 3: Verify
+
 Check that Setting records exist with purpose="front_end-ddl"
 
 ### Step 4: Update Frontend
+
 Frontend will automatically use the new settings-based dropdowns
 
 ## Usage in React Frontend

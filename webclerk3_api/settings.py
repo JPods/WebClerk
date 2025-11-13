@@ -270,6 +270,7 @@ WCAPI_BLESSED_MODELS = {
     "qa": "docs.QuestionAnswer",  # alias key for QA if present
     "tag": "docs.Tag",            # enable /tag/ endpoints
 }
+
 # Enable canonical routes for Tag if not already set
 if 'WCAPI_BLESSED_MODELS' not in globals():
     WCAPI_BLESSED_MODELS = {}
@@ -344,19 +345,6 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 30 * 60,  # every 30 minutes
         'options': {'expires': 25 * 60},
     },
-    # Drain pending inventory adjustments frequently (short task; self-limiting via limit arg)
-    'inventory-pending-drain-1m': {
-        'task': 'products.tasks.process_pending_inventory',
-        'schedule': 60,  # every minute
-        'options': {'expires': 55},
-        # args can be configured in DB scheduler; use default limit in task for now
-    },
-    # Expire stale inventory reservations every minute (short TTL reclamation)
-    'expire-inventory-reservations-1m': {
-        'task': 'products.tasks.expire_inventory_reservations',
-        'schedule': 60,
-        'options': {'expires': 55},
-    },
     # Documentation/registry hygiene: refresh artifacts daily and remind every 3 days
     'refresh-model-registry-docs-daily': {
         'task': 'common.tasks.refresh_model_registry_docs',
@@ -388,6 +376,19 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.core.tasks.cache_tasks.update_constants_cache',
         'schedule': 30 * 60,  # every 30 minutes
         'options': {'expires': 25 * 60},
+    },
+    # Drain pending inventory adjustments frequently (short task; self-limiting via limit arg)
+    'inventory-pending-drain-1m': {
+        'task': 'products.tasks.process_pending_inventory',
+        'schedule': 60,  # every minute
+        'options': {'expires': 55},
+        # args can be configured in DB scheduler; use default limit in task for now
+    },
+    # Expire stale inventory reservations every minute (short TTL reclamation)
+    'expire-inventory-reservations-1m': {
+        'task': 'products.tasks.expire_inventory_reservations',
+        'schedule': 60,
+        'options': {'expires': 55},
     },
 }
 
