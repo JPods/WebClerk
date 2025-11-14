@@ -1,0 +1,11 @@
+.github/
+.local/
+.vscode/
+.env
+bin/
+lib/
+include/
+.lock
+*.cfg
+**/__pycache__/
+.celery_started

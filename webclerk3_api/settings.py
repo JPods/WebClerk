@@ -185,12 +185,6 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 import os
-STATICFILES_DIRS = [
-    # Project-level static assets
-    os.path.join(BASE_DIR, 'static'),
-    # App-level static assets (core app)
-    os.path.join(BASE_DIR, 'apps', 'core', 'static'),
-]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
