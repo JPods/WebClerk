@@ -219,5 +219,16 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         print("Post-save logic here")
         # return False  # Return False to abort save
         return True  # Return False to abort save
+
+    def update_keywords(self):
+        """Update keywords for this contact record."""
+        from apps.core.services.keywords import build_keywords_for_record
+        keywords = build_keywords_for_record('contact', self.id)
+        # Store keywords in refs.keywords
+        refs = getattr(self, 'refs', {}) or {}
+        if not isinstance(refs, dict):
+            refs = {}
+        refs['keywords'] = keywords
+        self.refs = refs
     
 

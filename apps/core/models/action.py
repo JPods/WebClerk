@@ -76,5 +76,17 @@ class Action(BaseModel):
         verbose_name_plural = "Actions"
 
     def __str__(self):
-        action_text = self.action.get('en') or self.action.get('bn') or self.action.get('ar') or 'Untitled'
+        action_dict = self.action or {}
+        action_text = action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
         return f"{action_text} ({self.kanban_column})"
+
+    def update_keywords(self):
+        """Update keywords for this action record."""
+        from apps.core.services.keywords import build_keywords_for_record
+        keywords = build_keywords_for_record('action', self.id)
+        # Store keywords in refs.keywords
+        refs = getattr(self, 'refs', {}) or {}
+        if not isinstance(refs, dict):
+            refs = {}
+        refs['keywords'] = keywords
+        self.refs = refs
