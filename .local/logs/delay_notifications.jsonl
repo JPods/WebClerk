@@ -1,7 +1,0 @@
-{"ts": 1762040398.091168, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.04625725746154785, "exception": "AttributeError(\"'NoneType' object has no attribute 'Redis'\")", "trace": "NoneType: None\n", "likely_cause": "broker_exception"}
-{"ts": 1762535224.5555258, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.1725161075592041, "exception": null, "trace": null, "likely_cause": "broker_connection_latency"}
-{"ts": 1762536217.129997, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.13682889938354492, "exception": null, "trace": null, "likely_cause": "broker_connection_latency"}
-{"ts": 1762542390.458842, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.20417523384094238, "exception": null, "trace": null, "likely_cause": "broker_connection_latency"}
-{"ts": 1762609650.2060108, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.20871925354003906, "exception": null, "trace": null, "likely_cause": "broker_connection_latency"}
-{"ts": 1762613980.48051, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.23161101341247559, "exception": null, "trace": null, "likely_cause": "broker_connection_latency"}
-{"ts": 1762614070.190669, "api": "/wcapi/save/", "model": "action", "id": 107, "duration": 0.1616048812866211, "exception": null, "trace": null, "likely_cause": "broker_connection_latency"}
