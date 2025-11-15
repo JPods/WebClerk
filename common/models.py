@@ -44,6 +44,7 @@ import uuid
 import inspect
 import json
 from typing import Any, Dict, Optional, Iterable, cast
+from common.ignore_fields import IGNORE_FIELDS, IGNORE_WORDS
 
 # ---------------- Size / warning thresholds ----------------
 # YYY Review by 2026-03-01
@@ -673,19 +674,89 @@ class KeywordsMixin(models.Model):
     def keywords_pending(self) -> bool:
         return bool(getattr(self, "metadata", {}).get("flags", {}).get("keywords_pending")) if hasattr(self, "metadata") else False
 
+    def _extract_strings_recursive(self, value: Any) -> list[str]:
+        """Recursively extract all string values from a value, handling arrays and objects."""
+        strings = []
+        if isinstance(value, str):
+            # Try to parse as JSON first
+            try:
+                parsed = json.loads(value)
+                strings.extend(self._extract_strings_recursive(parsed))
+            except (json.JSONDecodeError, TypeError):
+                # Not JSON, treat as regular string
+                strings.append(value)
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                strings.extend(self._extract_strings_recursive(item))
+        elif isinstance(value, dict):
+            for v in value.values():
+                strings.extend(self._extract_strings_recursive(v))
+        elif value is not None:
+            # Convert other types to string
+            strings.append(str(value))
+        return strings
+
     def update_keywords(self):  # requires refs + metadata if present
         if not hasattr(self, "refs"):
             return
-        sensitive_fields = {'password'}  # exclude sensitive fields like password
         keywords_set: set[str] = set()
         for field in self._meta.fields:  # type: ignore[attr-defined]
-            if isinstance(field, (models.CharField, models.TextField)) and field.name not in sensitive_fields:
-                val = getattr(self, field.name, "")
-                if val:
-                    for raw in str(val).lower().split():
-                        token = raw.strip('.,!?;:"()[]{}')
-                        if len(token) > 2:
-                            keywords_set.add(token)
+            if field.name in IGNORE_FIELDS:
+                continue
+            val = getattr(self, field.name, None)
+            if val is not None:
+                # Extract all strings recursively (handles JSON parsing for all field types)
+                strings = self._extract_strings_recursive(val)
+                for s in strings:
+                    if s.strip():
+                        # Split by space and process each word
+                        for raw in s.lower().split():
+                            token = raw.strip('.,!?;:"()[]{}')
+                            if len(token) > 2 and token not in IGNORE_WORDS:
+                                keywords_set.add(token)
+        # Process keywords from linked related objects
+        if hasattr(self, "refs") and isinstance(self.refs, dict):  # type: ignore[attr-defined]
+            links = self.refs.get("links", {})  # type: ignore[attr-defined]
+            if isinstance(links, dict):
+                for link_type, ids in links.items():
+                    if not ids or not isinstance(ids, list):
+                        continue
+
+                    # Limit to first 10 related objects to avoid performance issues
+                    limited_ids = ids[:10]
+
+                    # Get related model name (singularize if plural)
+                    related_model_name = link_type[:-1] if link_type.endswith('s') else link_type
+
+                    # Find the related model (import locally to avoid Django setup issues)
+                    from apps.core.services.wcapi_registry import get_model
+                    related_model = get_model(related_model_name)
+                    if not related_model:
+                        continue
+
+                    try:
+                        # Query related objects
+                        related_objects = related_model.objects.filter(id__in=limited_ids)  # type: ignore[attr-defined]
+                        for related_obj in related_objects:
+                            # Extract keywords from related object using same logic
+                            for field in related_obj._meta.fields:
+                                if field.name in IGNORE_FIELDS:
+                                    continue
+                                val = getattr(related_obj, field.name, None)
+                                if val is not None:
+                                    # Extract all strings recursively
+                                    strings = self._extract_strings_recursive(val)
+                                    for s in strings:
+                                        if s.strip():
+                                            # Split by space and process each word
+                                            for raw in s.lower().split():
+                                                token = raw.strip('.,!?;:"()[]{}')
+                                                if len(token) > 2 and token not in IGNORE_WORDS:
+                                                    keywords_set.add(token)
+                    except Exception:
+                        # Skip if query fails
+                        continue
+
         self.refs.setdefault("keywords", [])  # type: ignore[attr-defined]
         self.refs["keywords"] = list(keywords_set)[:50]  # type: ignore[attr-defined]
         if hasattr(self, "metadata"):
@@ -1010,7 +1081,7 @@ class BaseModel(
     - keyword dirtiness marking on save (for async refresh flows)
     """
 
-    class Meta:
+    class Meta:  # type: ignore[override]
         abstract = True
         indexes = [
             GinIndex(fields=["refs"]),
