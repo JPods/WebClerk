@@ -7,11 +7,11 @@ from apps.orgs.models.base_org_model import OrgBase, OrgType
 @pytest.mark.django_db
 def test_recompute_relationship_counts_updates_changed_orgs():
     # Org with empty relations should not be updated (no counts)
-    o1 = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Org One', status='active')
+    o1 = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Org One', status='active')
     # Org with relations will have counts populated
     o2 = OrgBase.objects.create(
         org_type=OrgType.VENDOR,
-        display_name='Vendor Two',
+        company='Vendor Two',
         status='active',
         relations={
             'parents': [1,2],
@@ -29,7 +29,7 @@ def test_recompute_relationship_counts_updates_changed_orgs():
 
 @pytest.mark.django_db
 def test_recompute_basic_stats_normalizes_structure():
-    o = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Org Three', status='active')
+    o = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Org Three', status='active')
     # Force an invalid/malformed state by setting a scalar instead of dict
     OrgBase.objects.filter(pk=o.pk).update(stats=123)  # type: ignore[arg-type]
     res = recompute_basic_stats()
@@ -42,7 +42,7 @@ def test_recompute_basic_stats_normalizes_structure():
 @pytest.mark.django_db
 def test_atomic_append_alias_deprecated_but_functional():
     # Guard: atomic_append method should still exist (alias of atomic_list_append)
-    o = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Alias Org', status='active')
+    o = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Alias Org', status='active')
     v = o.version
     new_v = o.atomic_append('comments', ['notes'], {'text': 'alias note'}, expected_version=v)
     assert new_v == v + 1

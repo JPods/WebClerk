@@ -1,6 +1,7 @@
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from common.mixins import OptimisticPatchMixin
 from common.models import VersionConflictError
 from common.api_responses import api_response
@@ -103,3 +104,8 @@ class BaseOptimisticDetailView(OptimisticPatchMixin, generics.RetrieveUpdateDest
         resp = super().destroy(request, *args, **kwargs)
         # Some destroys return no content; unify to success with code 204
         return api_response(data=None, status_code=resp.status_code)
+
+
+class AdminRequiredView(APIView):
+    """Base view that requires admin user permissions."""
+    permission_classes = [IsAdminUser]

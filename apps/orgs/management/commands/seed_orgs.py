@@ -28,14 +28,14 @@ class Command(BaseCommand):
             for name in names[:count]:
                 obj = OrgBase.objects.create(
                     org_type=org_type,
-                    display_name=name,
+                    company=name,
                     status='active',
                     is_active=True,
                 )
                 created.append({
                     'id': obj.id,
                     'org_type': obj.org_type,
-                    'display_name': obj.display_name,
+                    'company': obj.company,
                     'status': obj.status,
                 })
         if not created:
@@ -43,4 +43,4 @@ class Command(BaseCommand):
             return
         self.stdout.write('Created orgs:')
         for row in created:
-            self.stdout.write(f" - {row['id']}: {row['org_type']} :: {row['display_name']}")
+            self.stdout.write(f" - {row['id']}: {row['org_type']} :: {row['company']}")
