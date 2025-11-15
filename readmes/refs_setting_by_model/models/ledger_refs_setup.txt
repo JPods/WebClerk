@@ -1,0 +1,9 @@
+setting model_name="ledger" purpose="refs_setup"
+{
+    "self_fields": [
+        "model_name",
+        "source"
+    ],
+    "related_keywords": {},
+    "related_models": []
+}

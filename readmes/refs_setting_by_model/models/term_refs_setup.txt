@@ -1,0 +1,9 @@
+setting model_name="term" purpose="refs_setup"
+{
+    "self_fields": [
+        "name",
+        "approved_by"
+    ],
+    "related_keywords": {},
+    "related_models": []
+}

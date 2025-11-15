@@ -1,0 +1,13 @@
+setting model_name="email" purpose="refs_setup"
+{
+    "self_fields": [
+        "email",
+        "name_first",
+        "attention",
+        "type"
+    ],
+    "related_keywords": {
+        "contact": ["contact.refs.keywords"]
+    },
+    "related_models": ["contact", "customer", "vendor", "rep"]
+}

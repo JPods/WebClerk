@@ -1,0 +1,41 @@
+Keywords
+
+We use .refs object in each record to denormalize data to simplify searching by keywords. 
+
+The frontend users will type comma separated words, or word fragments. Keywords will be searched for that combination of entries.
+
+We need to 
+1. for selected string fields, parse by space character and aggregate the values into distinct keywords. We can get rid of junk words like "this, that, he, she, etc..." It would be good to have an ai system for evaluating what should be keywords.
+2. On hold: for convert to strings non-string values and aggregate the values into unique keywords.
+
+Field values may come from the record itself and from field values of linked related records. If there are no linked records, no values will be added.
+
+Examples of related records:
+1. action records might have related records from contact, customer, vendor, communications, linkage 
+2. invoice_line records will have invoice, item, customer and might have action, linkage, order, order_line, vendor, serial
+
+The related records should be stored in .refs.links
+
+What is the best human readable approach to creating keywords based on multiple fields from multiple records. It would be good if they are prioritized, such as listing all phone numbers, emails, first name, etc...
+
+To keep the noise down while we work this out, lets do just contact and action. Later we will have to do all models with refs. Many the less critical models will only make keywords from their own string fields.
+
+For now let's leave out all non-string fields.
+
+For contact: contact.email, contact.name_first, contact.name_last, contact.company, email.email, email.attention, location.address1, location.city, location.zip, location.state, phone.number, phone.attention. What other fields do you think would be good. 
+
+
+Contact Self Fields:
+
+email
+name_first
+name_last
+company
+department
+
+Related Models:
+
+email: email, attention
+location: address1, city, state, zip, country
+phone: number, country_code, attention
+customer: company

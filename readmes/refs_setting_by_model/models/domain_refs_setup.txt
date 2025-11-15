@@ -1,0 +1,12 @@
+setting model_name="domain" purpose="refs_setup"
+{
+    "self_fields": [
+        "name",
+        "description"
+    ],
+    "related_keywords": {
+        "customer": ["refs.keywords"],
+        "vendor": ["refs.keywords"]
+    },
+    "related_models": ["customer","contact","vendor","manufacturer"]
+}

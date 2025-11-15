@@ -1,0 +1,11 @@
+setting model_name="tax_jurisdiction" purpose="refs_setup"
+{
+    "self_fields": [
+        "tax_jurisdiction",
+        "gl_account_payable",
+        "service_provider",
+        "tax_name"
+    ],
+    "related_keywords": {},
+    "related_models": []
+}

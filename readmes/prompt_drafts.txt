@@ -1,0 +1,15 @@
+Keywords
+
+We use .refs object in each record to denormalize data to simplify searching by keywords. 
+
+The frontend users will type comma separated words, or word fragments. Keywords will be searched for that combination of entries.
+
+We need to parse by space character and aggregate the values from selected fields and stored them in .refs.keywords based on the value in selected fields from the record and some field values from related records.
+
+Examples of related records:
+1. action records might have related records from contact, customer, vendor, communications, linkage 
+2. invoice_line records will have invoice, item, customer and might have action, linkage, order, order_line, vendor, serial
+
+
+I would like to approach our approach in two ways:
+1st create a function that defines what models should be denormalized in other models. 

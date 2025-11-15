@@ -1,0 +1,12 @@
+setting model_name="invoice_line" purpose="refs_setup"
+{
+    "self_fields": [
+        "ida_item",
+        "description"
+    ],
+    "related_keywords": {
+        "item": ["sku"],
+        "invoice": ["ida", "status", "priority"]
+    },
+    "related_models": ["item", "invoice","customer"]
+}

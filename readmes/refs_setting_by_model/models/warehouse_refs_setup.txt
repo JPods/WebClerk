@@ -1,0 +1,10 @@
+setting model_name="warehouse" purpose="refs_setup"
+{
+    "self_fields": [
+        "name",
+        "code",
+        "site_code"
+    ],
+    "related_keywords": {},
+    "related_models": ["location"]
+}
