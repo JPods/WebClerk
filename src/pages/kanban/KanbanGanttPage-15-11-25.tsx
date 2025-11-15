@@ -1,14 +1,10 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
 import type { BoardData } from "../../type/kanban";
 import { KanbanTask, TaskPriority } from "../../type/kanban";
 import clsx from "clsx";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
 
 // Sample data used as a fallback when the API is unavailable
 // const FALLBACK_GANTT_TASKS: KanbanTask[] = [
@@ -101,8 +97,6 @@ const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
 
 const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
 
-const DRAG_TYPE_GANTT_TASK = "GANTT_TASK";
-
 const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -120,6 +114,27 @@ const createLocalId = () => {
   }
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 };
+
+type TranslationFormEntry = {
+  id: string;
+  language: string;
+  title: string;
+  description: string;
+};
+
+type TaskFormState = {
+  translations: TranslationFormEntry[];
+  columnId: string;
+  priority: TaskPriority;
+  dueDate: string;
+  startDate: string;
+  endDate: string;
+  assignee: string;
+  difficulty: string;
+  progress: string;
+};
+
+type TaskFormEditableField = Exclude<keyof TaskFormState, "translations">;
 
 const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
 const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
@@ -407,24 +422,10 @@ interface GanttBarProps {
   task: KanbanTask;
   dateRange: GanttDateRange;
   isSubtask?: boolean;
-  onEdit?: (task: KanbanTask) => void;
 }
 
-interface DragItem {
-  type: string;
-  task: KanbanTask;
-}
-
-const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false, onEdit }) => {
-  const [{ isDragging }, drag] = useDrag<DragItem, void, { isDragging: boolean }>({
-    type: DRAG_TYPE_GANTT_TASK,
-    item: { type: DRAG_TYPE_GANTT_TASK, task },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-  
-  const taskStart = task.startDate ? new Date(task.startDate) : new Date();
+const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false }) => {
+  const taskStart = new Date();
   const taskEnd = task.dueDate ? new Date(task.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   
   const totalDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
@@ -440,12 +441,7 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
 
   return (
     <div 
-      ref={drag as any}
-      className={clsx(
-        "relative h-10 rounded-lg shadow-sm transition-all hover:shadow-md group",
-        isDragging && "opacity-50 cursor-grabbing",
-        !isDragging && "cursor-grab"
-      )}
+      className="relative h-10 rounded-lg shadow-sm transition-all hover:shadow-md group"
       style={{
         left: `${Math.max(0, leftPercentage)}%`,
         width: `${Math.max(8, Math.min(widthPercentage, 100 - leftPercentage))}%`,
@@ -476,21 +472,14 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
         
         {/* Task title overlay */}
         <div className="absolute inset-0 flex items-center justify-between px-3">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onEdit?.(task);
-            }}
-            className={clsx(
-              "text-left text-sm font-medium truncate flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60",
-              task.progress && task.progress > 50 ? "text-white" : "text-gray-700 dark:text-gray-300",
-              isSubtask && "text-xs"
-            )}
-            title={task.title}
-          >
+          <span 
+          className={clsx(
+            "text-sm font-medium truncate flex-1",
+            task.progress && task.progress > 50 ? "text-white" : "text-gray-700 dark:text-gray-300",
+            isSubtask && "text-xs"
+          )}>
             {task.title}
-          </button>
+          </span>
           
           {/* Status indicators */}
           <div className="flex items-center gap-1 ml-2">
@@ -521,10 +510,9 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
 
 interface TimelineHeaderProps {
   dateRange: GanttDateRange;
-  onDropTask?: (task: KanbanTask, date: Date) => void;
 }
 
-const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange, onDropTask }) => {
+const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange }) => {
   const days = useMemo(() => {
     const result: Date[] = [];
     const current = new Date(dateRange.start);
@@ -544,60 +532,28 @@ const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange, onDropTask }
         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
         
         return (
-          <DroppableDate
+          <div
             key={index}
-            day={day}
-            isToday={isToday}
-            isWeekend={isWeekend}
-            onDropTask={onDropTask}
-          />
+            className={clsx(
+              "flex-1 min-w-0 px-2 py-4 text-center border-r border-gray-100 dark:border-gray-800",
+              {
+                "bg-indigo-50 dark:bg-indigo-500/10": isToday,
+                "bg-gray-50 dark:bg-gray-800/50": isWeekend,
+              }
+            )}
+          >
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {day.toLocaleDateString('en', { weekday: 'short' })}
+            </div>
+            <div className={clsx(
+              "text-sm font-semibold",
+              isToday ? "text-indigo-600 dark:text-indigo-400" : "text-gray-900 dark:text-white"
+            )}>
+              {day.getDate()}
+            </div>
+          </div>
         );
       })}
-    </div>
-  );
-};
-
-interface DroppableDateProps {
-  day: Date;
-  isToday: boolean;
-  isWeekend: boolean;
-  onDropTask?: (task: KanbanTask, date: Date) => void;
-}
-
-const DroppableDate: React.FC<DroppableDateProps> = ({ day, isToday, isWeekend, onDropTask }) => {
-  const [{ isOver, canDrop }, drop] = useDrop<DragItem, void, { isOver: boolean; canDrop: boolean }>({
-    accept: DRAG_TYPE_GANTT_TASK,
-    drop: (item) => {
-      onDropTask?.(item.task, day);
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-    }),
-  });
-
-  return (
-    <div
-      ref={drop as any}
-      className={clsx(
-        "flex-1 min-w-0 px-2 py-4 text-center border-r border-gray-100 dark:border-gray-800 transition-colors",
-        {
-          "bg-indigo-50 dark:bg-indigo-500/10": isToday && !isOver,
-          "bg-gray-50 dark:bg-gray-800/50": isWeekend && !isOver,
-          "bg-indigo-200 dark:bg-indigo-500/30": isOver && canDrop,
-          "ring-2 ring-inset ring-indigo-400": isOver && canDrop,
-        }
-      )}
-    >
-      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-        {day.toLocaleDateString('en', { weekday: 'short' })}
-      </div>
-      <div className={clsx(
-        "text-sm font-semibold",
-        isToday ? "text-indigo-600 dark:text-indigo-400" : "text-gray-900 dark:text-white"
-      )}>
-        {day.getDate()}
-      </div>
     </div>
   );
 };
@@ -798,66 +754,6 @@ const KanbanGanttPage: React.FC = () => {
       return languageOptions.filter((option) => !used.has(option.value));
     }, [editTaskState.translations, languageOptions]);
 
-    const handleEditLanguagePickerToggle = () => {
-      setEditLanguagePickerError(null);
-      setEditLanguagePickerOpen((prev) => {
-        const next = !prev;
-        if (next) {
-          if (availableEditLanguages.length > 0) {
-            setEditLanguageSelection("");
-            setEditCustomLanguage("");
-          } else {
-            setEditLanguageSelection("__custom");
-            setEditCustomLanguage("");
-          }
-        }
-        return next;
-      });
-    };
-
-    const handleEditLanguageSelectionChange = (value: string) => {
-      setEditLanguageSelection(value);
-      if (value !== "__custom") {
-        setEditCustomLanguage("");
-      }
-      setEditLanguagePickerError(null);
-    };
-
-    const handleEditLanguageCustomChange = (value: string) => {
-      setEditCustomLanguage(value);
-      setEditLanguagePickerError(null);
-    };
-
-    const handleEditLanguagePickerSubmit = () => {
-      const selection = editLanguageSelection === "__custom" ? editCustomLanguage.trim() : editLanguageSelection;
-      if (!selection) {
-        setEditLanguagePickerError("Choose a language before adding.");
-        return;
-      }
-      const result = handleAddEditTranslation(selection);
-      if (!result.success) {
-        setEditLanguagePickerError(result.error ?? "Unable to add language.");
-        return;
-      }
-      setEditLanguagePickerOpen(false);
-      setEditLanguageSelection("");
-      setEditCustomLanguage("");
-    };
-
-    const handleEditLanguagePickerCancel = () => {
-      setEditLanguagePickerOpen(false);
-      setEditLanguageSelection("");
-      setEditCustomLanguage("");
-      setEditLanguagePickerError(null);
-    };
-
-    const editLanguagePickerState = {
-      isOpen: editLanguagePickerOpen,
-      selection: editLanguageSelection,
-      customValue: editCustomLanguage,
-      error: editLanguagePickerError,
-    };
-
     const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
       setEditTaskState((prev) => updateTaskFormState(prev, field, value));
     };
@@ -891,25 +787,26 @@ const KanbanGanttPage: React.FC = () => {
         return { error: "Add at least one language with a title." };
       }
 
-      // Build action and description with dot notation keys (e.g., action.en, description.en)
-      const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
-      
+      const translationFields: Record<string, string | null> = {};
       normalized.forEach((value, language) => {
-        translationFields[`action.${language}`] = {
-          mode: "update",
-          value: value.title || ""
-        };
-        translationFields[`description.${language}`] = {
-          mode: "update",
-          value: value.description || ""
-        };
+        translationFields[`action_${language}`] = value.title || "";
+        translationFields[`description_${language}`] = value.description || "";
       });
 
-      // Add languages with the same format
-      translationFields.languages = {
-        mode: "update",
-        value: Array.from(normalized.keys())
-      };
+      const languages = Array.from(normalized.keys());
+
+      const removalTokens: string[] = [];
+      const originalLanguages = new Set<string>();
+      baseTask.languageCodes?.forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+
+      originalLanguages.forEach((language) => {
+        if (language && !normalized.has(language)) {
+          removalTokens.push(`action_${language}`);
+          removalTokens.push(`description_${language}`);
+        }
+      });
 
       const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
       const columnTitle = column?.title ?? "Uncategorized";
@@ -941,51 +838,27 @@ const KanbanGanttPage: React.FC = () => {
       const payloadItem: Record<string, unknown> = {
         model_name: "action",
         ...translationFields,
-        kanban_column: {
-          mode: "update",
-          value: columnTitle
-        },
-        kanban_column_id: {
-          mode: "update",
-          value: column?.id ?? FALLBACK_COLUMN_ID
-        },
-        priority: {
-          mode: "update",
-          value: PRIORITY_TO_VALUE[state.priority]
-        },
-        difficulty: {
-          mode: "update",
-          value: resolvedDifficulty
-        },
-        status: {
-          mode: "update",
-          value: baseTask.status ?? "In progress"
-        },
-        dt_due: {
-          mode: "update",
-          value: dueTimestamp
-        },
-        dt_start: {
-          mode: "update",
-          value: startTimestamp
-        },
-        dt_end: {
-          mode: "update",
-          value: endTimestamp
-        },
-        assigned_to: {
-          mode: "update",
-          value: assignedTo
-        },
-        progress: {
-          mode: "update",
-          value: resolvedProgress
-        },
+        languages,
+        needtoremove: removalTokens.join(","),
+        kanban_column: columnTitle,
+        kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
+        priority: PRIORITY_TO_VALUE[state.priority],
+        difficulty: resolvedDifficulty,
+        status: baseTask.status ?? "In progress",
+        dt_due: dueTimestamp,
+        dt_start: startTimestamp,
+        dt_end: endTimestamp,
+        assigned_to: assignedTo,
+        progress: resolvedProgress,
         id: baseTask.id,
       };
 
       if (!state.assignee && assignedTo.length === 0) {
         delete payloadItem.assigned_to;
+      }
+
+      if (!removalTokens.length) {
+        payloadItem.needtoremove = "";
       }
 
       return { payload: payloadItem };
@@ -994,7 +867,6 @@ const KanbanGanttPage: React.FC = () => {
     const handleOpenEditModal = useCallback(
       (task: KanbanTask) => {
         setEditingTask(task);
-        setSelectedTask(task.id);
         const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
 
         const normalizedStart = normalizeIncomingDateValue(task.startDate);
@@ -1074,128 +946,6 @@ const KanbanGanttPage: React.FC = () => {
       },
       [editingTask, editTaskState, fetchGanttTasks, handleCloseEditModal, isSavingEdit]
     );
-
-  const handleTaskDrop = useCallback(
-    async (task: KanbanTask, newDate: Date) => {
-      if (usingFallback) {
-        return;
-      }
-
-      try {
-        // Calculate new dates based on dropped date
-        const newStartDate = new Date(newDate);
-        newStartDate.setHours(9, 0, 0, 0); // Set to 9 AM
-
-        const taskDuration = task.endDate && task.startDate
-          ? new Date(task.endDate).getTime() - new Date(task.startDate).getTime()
-          : 24 * 60 * 60 * 1000; // Default 1 day
-
-        const newEndDate = new Date(newStartDate.getTime() + taskDuration);
-        const newDueDate = new Date(newEndDate.getTime());
-
-        // Build the payload with updated dates
-        const normalized = new Map<string, { title: string; description: string }>();
-        
-        task.languageCodes?.forEach((code) => {
-          const lang = normalizeLanguageCode(code);
-          normalized.set(lang, {
-            title: task.titleTranslations?.[lang] || task.title,
-            description: task.descriptionTranslations?.[lang] || task.description || "",
-          });
-        });
-
-        if (normalized.size === 0) {
-          normalized.set("en", { title: task.title, description: task.description || "" });
-        }
-
-        // Build action and description with dot notation keys (e.g., action.en, description.en)
-        const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
-        
-        normalized.forEach((value, language) => {
-          translationFields[`action.${language}`] = {
-            mode: "update",
-            value: value.title || ""
-          };
-          translationFields[`description.${language}`] = {
-            mode: "update",
-            value: value.description || ""
-          };
-        });
-
-        // Add languages with the same format
-        translationFields.languages = {
-          mode: "update",
-          value: Array.from(normalized.keys())
-        };
-
-        const column = Object.values(board.columns).find((col) => col.taskIds.includes(task.id));
-        const assignedTo = task.assignee
-          ? [{ name: task.assignee }]
-          : task.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
-
-        const payload: Record<string, unknown> = {
-          id: task.id,
-          model_name: "action",
-          ...translationFields,
-          kanban_column: {
-            mode: "update",
-            value: column?.title ?? "Uncategorized"
-          },
-          kanban_column_id: {
-            mode: "update",
-            value: column?.id ?? FALLBACK_COLUMN_ID
-          },
-          priority: {
-            mode: "update",
-            value: PRIORITY_TO_VALUE[task.priority]
-          },
-          difficulty: {
-            mode: "update",
-            value: task.difficulty ?? PRIORITY_TO_VALUE[task.priority]
-          },
-          status: {
-            mode: "update",
-            value: task.status ?? "In progress"
-          },
-          dt_start: {
-            mode: "update",
-            value: newStartDate.getTime()
-          },
-          dt_end: {
-            mode: "update",
-            value: newEndDate.getTime()
-          },
-          dt_due: {
-            mode: "update",
-            value: newDueDate.getTime()
-          },
-          assigned_to: {
-            mode: "update",
-            value: assignedTo
-          },
-          progress: {
-            mode: "update",
-            value: task.progress ?? 0
-          },
-        };
-
-        if (assignedTo.length === 0) {
-          delete payload.assigned_to;
-        }
-
-        const response = await patchAction(payload);
-        if (response?.status !== 200 && response?.status !== 201) {
-          throw new Error("Failed to update task date.");
-        }
-
-        await fetchGanttTasks();
-      } catch (error) {
-        console.error("Failed to update task date via drag and drop", error);
-        setFetchError("Failed to update task. Please try again.");
-      }
-    },
-    [board.columns, fetchGanttTasks, usingFallback]
-  );
 
   const dateRange = useMemo((): GanttDateRange => {
     const start = new Date();
@@ -1434,41 +1184,31 @@ const KanbanGanttPage: React.FC = () => {
 
       {/* Legend */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Legend</h3>
-            <div className="flex flex-wrap items-center gap-4 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 rounded bg-emerald-500"></div>
-                <span className="text-gray-600 dark:text-gray-300">Low Priority</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 rounded bg-amber-500"></div>
-                <span className="text-gray-600 dark:text-gray-300">Medium Priority</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 rounded bg-orange-500"></div>
-                <span className="text-gray-600 dark:text-gray-300">High Priority</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 rounded bg-rose-500 ring-2 ring-orange-400 ring-opacity-50"></div>
-                <span className="text-gray-600 dark:text-gray-300">Critical Priority</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 rounded bg-emerald-100 border-2 border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-500/40"></div>
-                <span className="text-gray-600 dark:text-gray-300">Completed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-2 rounded bg-rose-100 border-2 border-rose-300 dark:bg-rose-500/20 dark:border-rose-500/40"></div>
-                <span className="text-gray-600 dark:text-gray-300">Overdue</span>
-              </div>
-            </div>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Legend</h3>
+        <div className="flex flex-wrap items-center gap-4 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-2 rounded bg-emerald-500"></div>
+            <span className="text-gray-600 dark:text-gray-300">Low Priority</span>
           </div>
-          <div className="flex items-start gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
-            <svg className="h-4 w-4 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <span>Drag task bars to any date to reschedule</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-2 rounded bg-amber-500"></div>
+            <span className="text-gray-600 dark:text-gray-300">Medium Priority</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-2 rounded bg-orange-500"></div>
+            <span className="text-gray-600 dark:text-gray-300">High Priority</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-2 rounded bg-rose-500 ring-2 ring-orange-400 ring-opacity-50"></div>
+            <span className="text-gray-600 dark:text-gray-300">Critical Priority</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-2 rounded bg-emerald-100 border-2 border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-500/40"></div>
+            <span className="text-gray-600 dark:text-gray-300">Completed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-2 rounded bg-rose-100 border-2 border-rose-300 dark:bg-rose-500/20 dark:border-rose-500/40"></div>
+            <span className="text-gray-600 dark:text-gray-300">Overdue</span>
           </div>
         </div>
       </div>
@@ -1591,55 +1331,36 @@ const KanbanGanttPage: React.FC = () => {
           </div> */}
 
           {/* Timeline */}
-          <DndProvider backend={HTML5Backend}>
-            <div className="flex-1 overflow-x-auto">
-              <TimelineHeader dateRange={dateRange} onDropTask={handleTaskDrop} />
-              
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {isLoading ? (
-                  <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
-                    Loading timeline…
+          <div className="flex-1 overflow-x-auto">
+            <TimelineHeader dateRange={dateRange} />
+            
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {isLoading ? (
+                <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
+                  Loading timeline…
+                </div>
+              ) : !hasOrganizedTasks ? (
+                <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
+                  {usingFallback ? "No timeline data in sample set." : "Add tasks to view the timeline."}
+                </div>
+              ) : (
+                organizedTasks.map(({ task, isSubtask }) => (
+                  <div
+                    key={task.id}
+                    className={clsx(
+                      "relative h-20 flex items-center px-4",
+                      {
+                        "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
+                        "h-16": isSubtask,
+                      }
+                    )}
+                  >
+                    <GanttBar task={task} dateRange={dateRange} isSubtask={isSubtask} />
                   </div>
-                ) : !hasOrganizedTasks ? (
-                  <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
-                    {usingFallback ? "No timeline data in sample set." : "Add tasks to view the timeline."}
-                  </div>
-                ) : (
-                  organizedTasks.map(({ task, isSubtask }) => (
-                    <div
-                      key={task.id}
-                      onClick={() => handleTaskClick(task.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          handleTaskClick(task.id);
-                          handleOpenEditModal(task);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      className={clsx(
-                        "relative h-20 flex items-center px-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60",
-                        {
-                          "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
-                          "h-16": isSubtask,
-                        }
-                      )}
-                    >
-                      <GanttBar
-                        task={task}
-                        dateRange={dateRange}
-                        isSubtask={isSubtask}
-                        onEdit={(clickedTask) => {
-                          handleOpenEditModal(clickedTask);
-                        }}
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
+                ))
+              )}
             </div>
-          </DndProvider>
+          </div>
         </div>
       </div>
 
@@ -1738,41 +1459,397 @@ const KanbanGanttPage: React.FC = () => {
         </div>
       )}
 
-      <KanbanTaskModal
-        mode="edit"
-        isOpen={isEditModalOpen && Boolean(editingTask)}
-        title="Edit task"
-        description="Update task details and move between columns."
-        isSaving={isSavingEdit}
-        submitLabel={isSavingEdit ? "Saving…" : "Save changes"}
-        onClose={handleCloseEditModal}
-        onSubmit={handleEditTaskSubmit}
-        modalError={editModalError}
-        formState={editTaskState}
-        onFieldChange={handleEditTaskChange}
-        columnOptions={columnOptions}
-        priorityOptions={priorityOptions}
-        difficultyOptions={editDifficultyOptions}
-        progressOptions={editProgressOptions}
-        translations={editTaskState.translations}
-        onTranslationFieldChange={(entryId, field, value) =>
-          handleEditTranslationFieldChange(
-            entryId,
-            field as "language" | "title" | "description",
-            value
-          )
-        }
-        onRemoveTranslation={handleRemoveEditTranslation}
-        languageOptions={languageOptions}
-        languagePickerOptions={availableEditLanguages}
-        languagePickerState={editLanguagePickerState}
-        onLanguagePickerToggle={handleEditLanguagePickerToggle}
-        onLanguageSelectionChange={handleEditLanguageSelectionChange}
-        onLanguageCustomChange={handleEditLanguageCustomChange}
-        onLanguagePickerSubmit={handleEditLanguagePickerSubmit}
-        onLanguagePickerCancel={handleEditLanguagePickerCancel}
-        currentTask={editingTask}
-      />
+      {isEditModalOpen && editingTask && (
+        <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-xl no-scrollbar dark:border-gray-800 dark:bg-gray-900">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit task</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Update task details and move between columns.</p>
+              </div>
+              <button
+                onClick={handleCloseEditModal}
+                className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+
+            <form className="space-y-5" onSubmit={handleEditTaskSubmit}>
+              {editModalError && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
+                  {editModalError}
+                </div>
+              )}
+
+              <datalist id="language-options-edit">
+                {languageOptions.map((option) => (
+                  <option key={option.value} value={option.value} label={option.label} />
+                ))}
+              </datalist>
+
+              <div className="space-y-4">
+                {editTaskState.translations.map((translation, index) => {
+                  const canRemove = editTaskState.translations.length > 1;
+                  return (
+                    <div
+                      key={translation.id}
+                      className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-800/40"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">Language {index + 1}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {translation.language ? getLanguageLabel(translation.language) : "Set the language code"}
+                          </p>
+                        </div>
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            {translation.language || "—"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditTranslation(translation.id)}
+                            disabled={!canRemove || isSavingEdit}
+                            className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Language code
+                          </label>
+                          <input
+                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            value={translation.language}
+                            onChange={(event) =>
+                              handleEditTranslationFieldChange(translation.id, "language", event.target.value)
+                            }
+                            placeholder="e.g. en"
+                            list="language-options-edit"
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Action
+                          </label>
+                          <input
+                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            value={translation.title}
+                            onChange={(event) =>
+                              handleEditTranslationFieldChange(translation.id, "title", event.target.value)
+                            }
+                            placeholder="Localized task title"
+                            required={index === 0}
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Description
+                          </label>
+                          <textarea
+                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            rows={3}
+                            value={translation.description}
+                            onChange={(event) =>
+                              handleEditTranslationFieldChange(translation.id, "description", event.target.value)
+                            }
+                            placeholder="Localized context, acceptance criteria, or notes"
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isSavingEdit) return;
+                    setEditLanguagePickerError(null);
+                    setEditLanguagePickerOpen((prev) => {
+                      const next = !prev;
+                      if (next) {
+                        if (availableEditLanguages.length > 0) {
+                          setEditLanguageSelection("");
+                          setEditCustomLanguage("");
+                        } else {
+                          setEditLanguageSelection("__custom");
+                          setEditCustomLanguage("");
+                        }
+                      }
+                      return next;
+                    });
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
+                  disabled={isSavingEdit}
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 4v12m6-6H4" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {editLanguagePickerOpen ? "Hide language picker" : "Add language"}
+                </button>
+
+                {editLanguagePickerOpen && (
+                  <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Select language
+                        </label>
+                        <select
+                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-black dark:text-white"
+                          value={editLanguageSelection}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setEditLanguageSelection(value);
+                            if (value !== "__custom") {
+                              setEditCustomLanguage("");
+                            }
+                            setEditLanguagePickerError(null);
+                          }}
+                          disabled={isSavingEdit}
+                        >
+                          <option value="">Select a language…</option>
+                          {availableEditLanguages.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                          <option value="__custom">Custom code…</option>
+                        </select>
+                      </div>
+
+                      {editLanguageSelection === "__custom" && (
+                        <div className="flex-1 space-y-1">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Custom code
+                          </label>
+                          <input
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
+                            value={editCustomLanguage}
+                            onChange={(event) => {
+                              setEditCustomLanguage(event.target.value);
+                              setEditLanguagePickerError(null);
+                            }}
+                            placeholder="e.g. fr"
+                            disabled={isSavingEdit}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const selected =
+                              editLanguageSelection === "__custom"
+                                ? editCustomLanguage.trim()
+                                : editLanguageSelection;
+                            if (!selected) {
+                              setEditLanguagePickerError("Choose a language before adding.");
+                              return;
+                            }
+                            const result = handleAddEditTranslation(selected);
+                            if (!result.success) {
+                              setEditLanguagePickerError(result.error ?? "Unable to add language.");
+                              return;
+                            }
+                            setEditLanguagePickerOpen(false);
+                            setEditLanguageSelection("");
+                            setEditCustomLanguage("");
+                          }}
+                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
+                          disabled={isSavingEdit}
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditLanguagePickerOpen(false);
+                            setEditLanguageSelection("");
+                            setEditCustomLanguage("");
+                            setEditLanguagePickerError(null);
+                          }}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          disabled={isSavingEdit}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                    {editLanguagePickerError && (
+                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                        {editLanguagePickerError}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Column</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.columnId}
+                    onChange={(event) => handleEditTaskChange("columnId", event.target.value)}
+                    disabled={isSavingEdit}
+                  >
+                    {columnOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.priority}
+                    onChange={(event) => handleEditTaskChange("priority", event.target.value as TaskPriority)}
+                    disabled={isSavingEdit}
+                  >
+                    {priorityOptions.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Difficulty</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.difficulty}
+                    onChange={(event) => handleEditTaskChange("difficulty", event.target.value)}
+                    disabled={isSavingEdit}
+                  >
+                    {editDifficultyOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Progress (%)</label>
+                  <select
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.progress}
+                    onChange={(event) => handleEditTaskChange("progress", event.target.value)}
+                    disabled={isSavingEdit}
+                  >
+                    {editProgressOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date &amp; time</label>
+                  <input
+                    type="datetime-local"
+                    step={60}
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.startDate}
+                    onChange={(event) => handleEditTaskChange("startDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date &amp; time</label>
+                  <input
+                    type="datetime-local"
+                    step={60}
+                    min={editTaskState.startDate || undefined}
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.endDate}
+                    onChange={(event) => handleEditTaskChange("endDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date &amp; time</label>
+                  <input
+                    type="datetime-local"
+                    step={60}
+                    min={editTaskState.endDate || editTaskState.startDate || undefined}
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.dueDate}
+                    onChange={(event) => handleEditTaskChange("dueDate", event.target.value)}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    value={editTaskState.assignee}
+                    onChange={(event) => handleEditTaskChange("assignee", event.target.value)}
+                    placeholder="Who owns this?"
+                    disabled={isSavingEdit}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
+                <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Progress:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">Tags:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">
+                      {editingTask.tags?.join(", ") || "None"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  disabled={isSavingEdit}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
+                >
+                  {isSavingEdit ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

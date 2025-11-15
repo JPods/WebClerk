@@ -1,12 +1,14 @@
 import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "../../components/kanban/KanbanColumn";
-import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
+import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
 import type { DragItem, DropResult } from "../../components/kanban/dndTypes";
 import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
-import clsx from "clsx";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 
@@ -23,6 +25,8 @@ const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
   high: 3,
   critical: 4,
 };
+
+const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
 
 const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
 
@@ -41,27 +45,6 @@ const createLocalId = () => {
   }
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 };
-
-type TranslationFormEntry = {
-  id: string;
-  language: string;
-  title: string;
-  description: string;
-};
-
-type TaskFormState = {
-  translations: TranslationFormEntry[];
-  columnId: string;
-  priority: TaskPriority;
-  dueDate: string;
-  startDate: string;
-  endDate: string;
-  assignee: string;
-  difficulty: string;
-  progress: string;
-};
-
-type TaskFormEditableField = Exclude<keyof TaskFormState, "translations">;
 
 const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
 const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
@@ -142,18 +125,24 @@ interface OnDragEndArgs {
   result: DropResult | null;
 }
 
-const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
+const FALLBACK_COLUMN_ID = "column-uncategorized";
 
 const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): BoardData => {
-  if (!result) return prev;
+  if (!result) {
+    return prev;
+  }
 
   const sourceColumn = prev.columns[item.sourceColumnId];
   const destinationColumn = prev.columns[result.columnId];
 
-  if (!sourceColumn || !destinationColumn) return prev;
+  if (!sourceColumn || !destinationColumn) {
+    return prev;
+  }
 
   const sourceIndex = sourceColumn.taskIds.indexOf(item.taskId);
-  if (sourceIndex === -1) return prev;
+  if (sourceIndex === -1) {
+    return prev;
+  }
 
   const destinationColumnId = result.columnId;
   const rawDestinationIndex = result.index;
@@ -172,8 +161,8 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
   };
 
   if (item.sourceColumnId === destinationColumnId) {
-  const withoutTask = removeFromSource();
-  let insertIndex = rawDestinationIndex;
+    const withoutTask = removeFromSource();
+    let insertIndex = rawDestinationIndex;
     if (insertIndex > sourceIndex) {
       insertIndex -= 1;
     }
@@ -201,8 +190,6 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
     columns: nextColumns,
   };
 };
-
-const FALLBACK_COLUMN_ID = "column-uncategorized";
 
 const padTwo = (value: number) => value.toString().padStart(2, "0");
 
@@ -323,11 +310,7 @@ const toTimestampMilliseconds = (value: string): number | null => {
   return date ? date.getTime() : null;
 };
 
-const updateTaskFormState = (
-  prev: TaskFormState,
-  field: TaskFormEditableField,
-  value: string
-): TaskFormState => {
+const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, value: string): TaskFormState => {
   if (field === "startDate") {
     const next: TaskFormState = { ...prev, startDate: value };
     next.endDate = ensureEndAfterStart(value, prev.endDate);
@@ -390,25 +373,30 @@ const updateTaskFormState = (
 
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [columnsPerRow, setColumnsPerRow] = useState<number>(4);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
+
   const [createTaskState, setCreateTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
   const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
-  const [columnsPerRow, setColumnsPerRow] = useState<number>(5);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
-  const [createLanguagePickerOpen, setCreateLanguagePickerOpen] = useState<boolean>(false);
-  const [createLanguageSelection, setCreateLanguageSelection] = useState<string>("");
-  const [createCustomLanguage, setCreateCustomLanguage] = useState<string>("");
+
+  const [createLanguagePickerOpen, setCreateLanguagePickerOpen] = useState(false);
+  const [createLanguageSelection, setCreateLanguageSelection] = useState("");
+  const [createCustomLanguage, setCreateCustomLanguage] = useState("");
   const [createLanguagePickerError, setCreateLanguagePickerError] = useState<string | null>(null);
-  const [editLanguagePickerOpen, setEditLanguagePickerOpen] = useState<boolean>(false);
-  const [editLanguageSelection, setEditLanguageSelection] = useState<string>("");
-  const [editCustomLanguage, setEditCustomLanguage] = useState<string>("");
+
+  const [editLanguagePickerOpen, setEditLanguagePickerOpen] = useState(false);
+  const [editLanguageSelection, setEditLanguageSelection] = useState("");
+  const [editCustomLanguage, setEditCustomLanguage] = useState("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
 
   const resolveDefaultColumnId = useCallback(
@@ -418,7 +406,9 @@ const KanbanBoardPage: React.FC = () => {
 
   const handleDragEnd = useCallback(
     (item: DragItem, dropResult: DropResult | null) => {
-      if (item.type !== DRAG_TYPE_TASK) return;
+      if (item.type !== DRAG_TYPE_TASK) {
+        return;
+      }
       setBoard((prev) => handleBoardMove(prev, { item, result: dropResult }));
     },
     []
@@ -457,49 +447,59 @@ const KanbanBoardPage: React.FC = () => {
       return;
     }
     setColumnsPerRow((prev) => {
-      const baseline = prev > 1 ? prev : 5;
-      const clamped = Math.min(Math.max(baseline, 1), Math.max(board.columnOrder.length, 1));
-      return clamped;
+      // If user hasn't changed it manually (still 4), keep it at 4
+      // Otherwise respect the user's choice but clamp to available columns
+      const baseline = prev;
+      const maxColumns = board.columnOrder.length;
+      // Only clamp if the current value exceeds available columns
+      if (baseline > maxColumns) {
+        return maxColumns;
+      }
+      return baseline;
     });
   }, [board.columnOrder]);
 
   useEffect(() => {
     const firstColumnId = resolveDefaultColumnId();
-    setCreateTaskState((prev) => {
-      if (board.columns[prev.columnId]) {
-        return prev;
-      }
-      return {
-        ...prev,
-        columnId: firstColumnId,
-      };
-    });
+    setCreateTaskState((prev) => ({
+      ...prev,
+      columnId: board.columns[prev.columnId] ? prev.columnId : firstColumnId,
+    }));
   }, [board.columns, resolveDefaultColumnId]);
 
-  const columns = useMemo(() =>
+  const columns = useMemo(
+    () =>
       board.columnOrder
         .map((columnId) => board.columns[columnId])
         .filter((column): column is KanbanColumnType => Boolean(column)),
     [board]
   );
 
-  const columnOptions = useMemo(() => columns.map((column) => ({ id: column.id, title: column.title })), [columns]);
+  const columnOptions = useMemo(
+    () => columns.map((column) => ({ id: column.id, title: column.title })),
+    [columns]
+  );
+
   const createDifficultyOptions = useMemo(
     () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, createTaskState.difficulty),
     [createTaskState.difficulty]
   );
+
   const createProgressOptions = useMemo(
     () => extendNumericOptionStrings(PROGRESS_OPTIONS, createTaskState.progress),
     [createTaskState.progress]
   );
+
   const editDifficultyOptions = useMemo(
     () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
     [editTaskState.difficulty]
   );
+
   const editProgressOptions = useMemo(
     () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
     [editTaskState.progress]
   );
+
   const languageOptions = useMemo(() => {
     const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
     Object.values(board.tasks).forEach((task) => {
@@ -519,14 +519,15 @@ const KanbanBoardPage: React.FC = () => {
 
     return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
   }, [board.tasks]);
+
   const columnDensityOptions = useMemo(() => {
     const maxOption = Math.max(5, columns.length || 1);
     const options: number[] = [];
     for (let count = 1; count <= Math.min(8, maxOption); count += 1) {
       options.push(count);
     }
-    if (!options.includes(5)) {
-      options.push(5);
+    if (!options.includes(4)) {
+      options.push(4);
     }
     return Array.from(new Set(options)).sort((a, b) => a - b);
   }, [columns.length]);
@@ -613,11 +614,11 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
-    setCreateTaskState((prev: TaskFormState) => updateTaskFormState(prev, field, value));
+    setCreateTaskState((prev) => updateTaskFormState(prev, field, value));
   };
 
   const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
-    setEditTaskState((prev: TaskFormState) => updateTaskFormState(prev, field, value));
+    setEditTaskState((prev) => updateTaskFormState(prev, field, value));
   };
 
   const updateTranslations = (
@@ -625,12 +626,12 @@ const KanbanBoardPage: React.FC = () => {
     updater: (current: TranslationFormEntry[]) => TranslationFormEntry[]
   ) => {
     if (mode === "create") {
-      setCreateTaskState((prev: TaskFormState) => ({
+      setCreateTaskState((prev) => ({
         ...prev,
         translations: updater(prev.translations),
       }));
     } else {
-      setEditTaskState((prev: TaskFormState) => ({
+      setEditTaskState((prev) => ({
         ...prev,
         translations: updater(prev.translations),
       }));
@@ -674,9 +675,7 @@ const KanbanBoardPage: React.FC = () => {
   ): { success: boolean; error?: string } => {
     const targetState = mode === "create" ? createTaskState : editTaskState;
     const used = new Set<string>(
-      targetState.translations
-        .map((translation) => normalizeLanguageCode(translation.language))
-        .filter(Boolean)
+      targetState.translations.map((translation) => normalizeLanguageCode(translation.language)).filter(Boolean)
     );
 
     let languageToUse = explicitLanguage ? normalizeLanguageCode(explicitLanguage) : "";
@@ -716,6 +715,126 @@ const KanbanBoardPage: React.FC = () => {
   const availableCreateLanguages = useMemo(() => getAvailableLanguages("create"), [getAvailableLanguages]);
   const availableEditLanguages = useMemo(() => getAvailableLanguages("edit"), [getAvailableLanguages]);
 
+  const handleCreateLanguagePickerToggle = () => {
+    setCreateLanguagePickerError(null);
+    setCreateLanguagePickerOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        if (availableCreateLanguages.length > 0) {
+          setCreateLanguageSelection("");
+          setCreateCustomLanguage("");
+        } else {
+          setCreateLanguageSelection("__custom");
+          setCreateCustomLanguage("");
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleEditLanguagePickerToggle = () => {
+    setEditLanguagePickerError(null);
+    setEditLanguagePickerOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        if (availableEditLanguages.length > 0) {
+          setEditLanguageSelection("");
+          setEditCustomLanguage("");
+        } else {
+          setEditLanguageSelection("__custom");
+          setEditCustomLanguage("");
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleCreateLanguageSelectionChange = (value: string) => {
+    setCreateLanguageSelection(value);
+    if (value !== "__custom") {
+      setCreateCustomLanguage("");
+    }
+    setCreateLanguagePickerError(null);
+  };
+
+  const handleEditLanguageSelectionChange = (value: string) => {
+    setEditLanguageSelection(value);
+    if (value !== "__custom") {
+      setEditCustomLanguage("");
+    }
+    setEditLanguagePickerError(null);
+  };
+
+  const handleCreateLanguageCustomChange = (value: string) => {
+    setCreateCustomLanguage(value);
+    setCreateLanguagePickerError(null);
+  };
+
+  const handleEditLanguageCustomChange = (value: string) => {
+    setEditCustomLanguage(value);
+    setEditLanguagePickerError(null);
+  };
+
+  const handleCreateLanguagePickerSubmit = () => {
+    const selection = createLanguageSelection === "__custom" ? createCustomLanguage.trim() : createLanguageSelection;
+    if (!selection) {
+      setCreateLanguagePickerError("Choose a language before adding.");
+      return;
+    }
+    const result = handleAddTranslation("create", selection);
+    if (!result.success) {
+      setCreateLanguagePickerError(result.error ?? "Unable to add language.");
+      return;
+    }
+    setCreateLanguagePickerOpen(false);
+    setCreateLanguageSelection("");
+    setCreateCustomLanguage("");
+  };
+
+  const handleEditLanguagePickerSubmit = () => {
+    const selection = editLanguageSelection === "__custom" ? editCustomLanguage.trim() : editLanguageSelection;
+    if (!selection) {
+      setEditLanguagePickerError("Choose a language before adding.");
+      return;
+    }
+    const result = handleAddTranslation("edit", selection);
+    if (!result.success) {
+      setEditLanguagePickerError(result.error ?? "Unable to add language.");
+      return;
+    }
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+  };
+
+  const handleCreateLanguagePickerCancel = () => {
+    setCreateLanguagePickerOpen(false);
+    setCreateLanguageSelection("");
+    setCreateCustomLanguage("");
+    setCreateLanguagePickerError(null);
+  };
+
+  const handleEditLanguagePickerCancel = () => {
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+    setEditLanguagePickerError(null);
+  };
+
+  const createLanguagePickerState = {
+    isOpen: createLanguagePickerOpen,
+    selection: createLanguageSelection,
+    customValue: createCustomLanguage,
+    error: createLanguagePickerError,
+  };
+
+  const editLanguagePickerState = {
+    isOpen: editLanguagePickerOpen,
+    selection: editLanguageSelection,
+    customValue: editCustomLanguage,
+    error: editLanguagePickerError,
+  };
+
   const buildActionPayload = (
     mode: "create" | "edit",
     state: TaskFormState,
@@ -742,28 +861,26 @@ const KanbanBoardPage: React.FC = () => {
       return { error: "Add at least one language with a title." };
     }
 
-    const translationFields: Record<string, string | null> = {};
+    // Build action and description with dot notation keys (e.g., action.en, description.en)
+    const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
+    const updateMode = mode === "edit" ? "update" : "create";
+    
     normalized.forEach((value, language) => {
-      translationFields[`action_${language}`] = value.title || "";
-      translationFields[`description_${language}`] = value.description || "";
+      translationFields[`action.${language}`] = {
+        mode: updateMode,
+        value: value.title || ""
+      };
+      translationFields[`description.${language}`] = {
+        mode: updateMode,
+        value: value.description || ""
+      };
     });
 
-    const languages = Array.from(normalized.keys());
-
-    const removalTokens: string[] = [];
-    if (mode === "edit" && baseTask) {
-      const originalLanguages = new Set<string>();
-      baseTask.languageCodes?.forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-
-      originalLanguages.forEach((language) => {
-        if (language && !normalized.has(language)) {
-          removalTokens.push(`action_${language}`);
-          removalTokens.push(`description_${language}`);
-        }
-      });
-    }
+    // Add languages with the same format
+    translationFields.languages = {
+      mode: updateMode,
+      value: Array.from(normalized.keys())
+    };
 
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
@@ -794,18 +911,46 @@ const KanbanBoardPage: React.FC = () => {
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
       ...translationFields,
-      languages,
-      needtoremove: removalTokens.join(","),
-      kanban_column: columnTitle,
-      kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
-      priority: PRIORITY_TO_VALUE[state.priority],
-      difficulty: resolvedDifficulty,
-      status: baseTask?.status ?? "In progress",
-      dt_due: dueTimestamp,
-      dt_start: startTimestamp,
-      dt_end: endTimestamp,
-      assigned_to: assignedTo,
-      progress: resolvedProgress,
+      kanban_column: {
+        mode: updateMode,
+        value: columnTitle
+      },
+      kanban_column_id: {
+        mode: updateMode,
+        value: column?.id ?? FALLBACK_COLUMN_ID
+      },
+      priority: {
+        mode: updateMode,
+        value: PRIORITY_TO_VALUE[state.priority]
+      },
+      difficulty: {
+        mode: updateMode,
+        value: resolvedDifficulty
+      },
+      status: {
+        mode: updateMode,
+        value: baseTask?.status ?? "In progress"
+      },
+      dt_due: {
+        mode: updateMode,
+        value: dueTimestamp
+      },
+      dt_start: {
+        mode: updateMode,
+        value: startTimestamp
+      },
+      dt_end: {
+        mode: updateMode,
+        value: endTimestamp
+      },
+      assigned_to: {
+        mode: updateMode,
+        value: assignedTo
+      },
+      progress: {
+        mode: updateMode,
+        value: resolvedProgress
+      },
     };
 
     if (mode === "edit" && baseTask) {
@@ -814,10 +959,6 @@ const KanbanBoardPage: React.FC = () => {
 
     if (!state.assignee && assignedTo.length === 0) {
       delete payloadItem.assigned_to;
-    }
-
-    if (!removalTokens.length) {
-      payloadItem.needtoremove = "";
     }
 
     return { payload: payloadItem };
@@ -891,9 +1032,30 @@ const KanbanBoardPage: React.FC = () => {
     }
   };
 
-  const gridStyle = useMemo<CSSProperties>(() => ({
-    gridTemplateColumns: `repeat(${Math.max(1, columnsPerRow)}, minmax(0, 1fr))`,
-  }), [columnsPerRow]);
+  const gridStyle = useMemo<CSSProperties>(
+    () => ({
+      gridTemplateColumns: `repeat(${Math.max(1, columnsPerRow)}, minmax(0, 1fr))`,
+    }),
+    [columnsPerRow]
+  );
+
+  const editModalExtraContent = editingTask ? (
+    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
+      <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Progress:</span>
+          <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Tags:</span>
+          <span className="ml-1 font-medium text-gray-900 dark:text-white">
+            {editingTask.tags?.join(", ") || "None"}
+          </span>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-6">
@@ -912,7 +1074,7 @@ const KanbanBoardPage: React.FC = () => {
             <select
               value={columnsPerRow}
               onChange={(event) => setColumnsPerRow(Number(event.target.value))}
-              className="rounded-md border border-gray-200 dark:bg-black px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:text-white"
+              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
             >
               {columnDensityOptions.map((option) => (
                 <option key={option} value={option}>
@@ -930,14 +1092,10 @@ const KanbanBoardPage: React.FC = () => {
             </svg>
             New Task
           </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 8v8m-4-4h8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M6.5 4h11a2.5 2.5 0 012.5 2.5v11a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-11A2.5 2.5 0 016.5 4z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Manage Columns
-          </button>
-          <a href="/kanban-gantt" className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20">
+          <a
+            href="/kanban-gantt"
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+          >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
               <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
@@ -980,813 +1138,94 @@ const KanbanBoardPage: React.FC = () => {
 
       <DndProvider backend={HTML5Backend}>
         {isLoading ? (
-          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-200 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            Loading kanban data…
+          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+            Loading kanban board...
           </div>
         ) : columns.length === 0 ? (
-          <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-gray-200 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            <span>No tasks found. Create a new card or refresh from the API.</span>
-            <button
-              type="button"
-              onClick={() => fetchActions()}
-              className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              Refresh
-            </button>
+          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+            No columns configured yet. Start by creating your first task.
           </div>
         ) : (
-          <div className="grid gap-5 pb-6" style={gridStyle}>
-            {columns.map((column) => {
-              const tasks: KanbanTask[] = column.taskIds
-                .map((taskId) => board.tasks[taskId])
-                .filter((task): task is KanbanTask => Boolean(task));
-
-              return (
-                <KanbanColumn
-                  key={column.id}
-                  column={column}
-                  tasks={tasks}
-                  onDragEnd={handleDragEnd}
-                  onTaskClick={handleOpenEditModal}
-                  className="h-full"
-                />
-              );
-            })}
+          <div className="grid gap-4" style={gridStyle}>
+            {columns.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                tasks={column.taskIds.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
+                onDragEnd={handleDragEnd}
+                onTaskClick={handleOpenEditModal}
+              />
+            ))}
           </div>
         )}
       </DndProvider>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-xl no-scrollbar dark:border-gray-800 dark:bg-gray-900">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Create new task</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Add the essentials and drop it in the right column.</p>
-              </div>
-              <button
-                onClick={handleCloseCreateModal}
-                className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                aria-label="Close"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
+      <KanbanTaskModal
+        mode="create"
+        isOpen={isCreateModalOpen}
+        title="Create new task"
+        description="Add the essentials and drop it in the right column."
+        isSaving={isSavingCreate}
+        submitLabel={isSavingCreate ? "Saving..." : "Create task"}
+        onClose={handleCloseCreateModal}
+        onSubmit={handleCreateTaskSubmit}
+        modalError={createModalError}
+        formState={createTaskState}
+        onFieldChange={handleCreateTaskChange}
+        columnOptions={columnOptions}
+        priorityOptions={priorityOptions}
+        difficultyOptions={createDifficultyOptions}
+        progressOptions={createProgressOptions}
+        translations={createTaskState.translations}
+        onTranslationFieldChange={(entryId, field, value) =>
+          handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
+        }
+        onRemoveTranslation={(entryId) => handleRemoveTranslation("create", entryId)}
+        languageOptions={languageOptions}
+        languagePickerOptions={availableCreateLanguages}
+        languagePickerState={createLanguagePickerState}
+        onLanguagePickerToggle={handleCreateLanguagePickerToggle}
+        onLanguageSelectionChange={handleCreateLanguageSelectionChange}
+        onLanguageCustomChange={handleCreateLanguageCustomChange}
+        onLanguagePickerSubmit={handleCreateLanguagePickerSubmit}
+        onLanguagePickerCancel={handleCreateLanguagePickerCancel}
+      />
 
-            <form className="space-y-5" onSubmit={handleCreateTaskSubmit}>
-              {createModalError && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
-                  {createModalError}
-                </div>
-              )}
-
-              <datalist id="language-options-create">
-                {languageOptions.map((option) => (
-                  <option key={option.value} value={option.value} label={option.label} />
-                ))}
-              </datalist>
-
-              <div className="space-y-4">
-                {createTaskState.translations.map((translation, index) => {
-                  const canRemove = createTaskState.translations.length > 1;
-                  return (
-                    <div
-                      key={translation.id}
-                      className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-800/40"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">Language {index + 1}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {translation.language ? getLanguageLabel(translation.language) : "Set the language code"}
-                          </p>
-                        </div>
-                        <div className="inline-flex items-center gap-2">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                            {translation.language || "—"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTranslation("create", translation.id)}
-                            disabled={!canRemove || isSavingCreate}
-                            className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300 dark:text-rose-300 dark:hover:bg-rose-900/40"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 space-y-3">
-                        <div>
-                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Language code
-                          </label>
-                          <input
-                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            value={translation.language}
-                            onChange={(event) =>
-                              handleTranslationFieldChange("create", translation.id, "language", event.target.value)
-                            }
-                            placeholder="e.g. en"
-                            list="language-options-create"
-                            disabled={isSavingCreate}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Action
-                          </label>
-                          <input
-                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            value={translation.title}
-                            onChange={(event) =>
-                              handleTranslationFieldChange("create", translation.id, "title", event.target.value)
-                            }
-                            placeholder="Localized task title"
-                            required={index === 0}
-                            disabled={isSavingCreate}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Description
-                          </label>
-                          <textarea
-                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            rows={3}
-                            value={translation.description}
-                            onChange={(event) =>
-                              handleTranslationFieldChange("create", translation.id, "description", event.target.value)
-                            }
-                            placeholder="Localized context, acceptance criteria, or notes"
-                            disabled={isSavingCreate}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isSavingCreate) return;
-                    setCreateLanguagePickerError(null);
-                    setCreateLanguagePickerOpen((prev) => {
-                      const next = !prev;
-                      if (next) {
-                        if (availableCreateLanguages.length > 0) {
-                          setCreateLanguageSelection("");
-                          setCreateCustomLanguage("");
-                        } else {
-                          setCreateLanguageSelection("__custom");
-                          setCreateCustomLanguage("");
-                        }
-                      }
-                      return next;
-                    });
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
-                  disabled={isSavingCreate}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 4v12m6-6H4" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {createLanguagePickerOpen ? "Hide language picker" : "Add language"}
-                </button>
-
-                {createLanguagePickerOpen && (
-                  <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                          Select language
-                        </label>
-                        <select
-                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                          value={createLanguageSelection}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            setCreateLanguageSelection(value);
-                            if (value !== "__custom") {
-                              setCreateCustomLanguage("");
-                            }
-                            setCreateLanguagePickerError(null);
-                          }}
-                          disabled={isSavingCreate}
-                        >
-                          <option value="">Select a language…</option>
-                          {availableCreateLanguages.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                          <option value="__custom">Custom code…</option>
-                        </select>
-                      </div>
-
-                      {createLanguageSelection === "__custom" && (
-                        <div className="flex-1 space-y-1">
-                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Custom code
-                          </label>
-                          <input
-                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            value={createCustomLanguage}
-                            onChange={(event) => {
-                              setCreateCustomLanguage(event.target.value);
-                              setCreateLanguagePickerError(null);
-                            }}
-                            placeholder="e.g. fr"
-                            disabled={isSavingCreate}
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const selected =
-                              createLanguageSelection === "__custom"
-                                ? createCustomLanguage.trim()
-                                : createLanguageSelection;
-                            if (!selected) {
-                              setCreateLanguagePickerError("Choose a language before adding.");
-                              return;
-                            }
-                            const result = handleAddTranslation("create", selected);
-                            if (!result.success) {
-                              setCreateLanguagePickerError(result.error ?? "Unable to add language.");
-                              return;
-                            }
-                            setCreateLanguagePickerOpen(false);
-                            setCreateLanguageSelection("");
-                            setCreateCustomLanguage("");
-                          }}
-                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
-                          disabled={isSavingCreate}
-                        >
-                          Add
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCreateLanguagePickerOpen(false);
-                            setCreateLanguageSelection("");
-                            setCreateCustomLanguage("");
-                            setCreateLanguagePickerError(null);
-                          }}
-                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                          disabled={isSavingCreate}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                    {createLanguagePickerError && (
-                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
-                        {createLanguagePickerError}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Column</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.columnId}
-                    onChange={(event) => handleCreateTaskChange("columnId", event.target.value)}
-                    disabled={isSavingCreate}
-                  >
-                    {columnOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.priority}
-                    onChange={(event) => handleCreateTaskChange("priority", event.target.value as TaskPriority)}
-                    disabled={isSavingCreate}
-                  >
-                    {priorityOptions.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Difficulty</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.difficulty}
-                    onChange={(event) => handleCreateTaskChange("difficulty", event.target.value)}
-                    disabled={isSavingCreate}
-                  >
-                    {createDifficultyOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Progress (%)</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.progress}
-                    onChange={(event) => handleCreateTaskChange("progress", event.target.value)}
-                    disabled={isSavingCreate}
-                  >
-                    {createProgressOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date &amp; time</label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.startDate}
-                    onChange={(event) => handleCreateTaskChange("startDate", event.target.value)}
-                    disabled={isSavingCreate}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date &amp; time</label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    min={createTaskState.startDate || undefined}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.endDate}
-                    onChange={(event) => handleCreateTaskChange("endDate", event.target.value)}
-                    disabled={isSavingCreate}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date &amp; time</label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    min={createTaskState.endDate || createTaskState.startDate || undefined}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.dueDate}
-                    onChange={(event) => handleCreateTaskChange("dueDate", event.target.value)}
-                    disabled={isSavingCreate}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
-                  <input
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={createTaskState.assignee}
-                    onChange={(event) => handleCreateTaskChange("assignee", event.target.value)}
-                    placeholder="Who owns this?"
-                    disabled={isSavingCreate}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleCloseCreateModal}
-                  disabled={isSavingCreate}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingCreate}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
-                >
-                  {isSavingCreate ? "Saving…" : "Add task"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Task Modal */}
-      {isEditModalOpen && editingTask && (
-        <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-xl no-scrollbar dark:border-gray-800 dark:bg-gray-900">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit task</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Update task details and move between columns.</p>
-              </div>
-              <button
-                onClick={handleCloseEditModal}
-                className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                aria-label="Close"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
-
-            <form className="space-y-5" onSubmit={handleEditTaskSubmit}>
-              {editModalError && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
-                  {editModalError}
-                </div>
-              )}
-
-              <datalist id="language-options-edit">
-                {languageOptions.map((option) => (
-                  <option key={option.value} value={option.value} label={option.label} />
-                ))}
-              </datalist>
-
-              <div className="space-y-4">
-                {editTaskState.translations.map((translation, index) => {
-                  const canRemove = editTaskState.translations.length > 1;
-                  return (
-                    <div
-                      key={translation.id}
-                      className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-800/40"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">Language {index + 1}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {translation.language ? getLanguageLabel(translation.language) : "Set the language code"}
-                          </p>
-                        </div>
-                        <div className="inline-flex items-center gap-2">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                            {translation.language || "—"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTranslation("edit", translation.id)}
-                            disabled={!canRemove || isSavingEdit}
-                            className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300 dark:text-rose-300 dark:hover:bg-rose-900/40"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 space-y-3">
-                        <div>
-                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Language code
-                          </label>
-                          <input
-                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            value={translation.language}
-                            onChange={(event) =>
-                              handleTranslationFieldChange("edit", translation.id, "language", event.target.value)
-                            }
-                            placeholder="e.g. en"
-                            list="language-options-edit"
-                            disabled={isSavingEdit}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Title
-                          </label>
-                          <input
-                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            value={translation.title}
-                            onChange={(event) =>
-                              handleTranslationFieldChange("edit", translation.id, "title", event.target.value)
-                            }
-                            placeholder="Localized task title"
-                            required={index === 0}
-                            disabled={isSavingEdit}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Description
-                          </label>
-                          <textarea
-                            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            rows={3}
-                            value={translation.description}
-                            onChange={(event) =>
-                              handleTranslationFieldChange("edit", translation.id, "description", event.target.value)
-                            }
-                            placeholder="Localized context, acceptance criteria, or notes"
-                            disabled={isSavingEdit}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isSavingEdit) return;
-                    setEditLanguagePickerError(null);
-                    setEditLanguagePickerOpen((prev) => {
-                      const next = !prev;
-                      if (next) {
-                        if (availableEditLanguages.length > 0) {
-                          setEditLanguageSelection("");
-                          setEditCustomLanguage("");
-                        } else {
-                          setEditLanguageSelection("__custom");
-                          setEditCustomLanguage("");
-                        }
-                      }
-                      return next;
-                    });
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
-                  disabled={isSavingEdit}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 4v12m6-6H4" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {editLanguagePickerOpen ? "Hide language picker" : "Add language"}
-                </button>
-
-                {editLanguagePickerOpen && (
-                  <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                          Select language
-                        </label>
-                        <select
-                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-black dark:text-white"
-                          value={editLanguageSelection}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            setEditLanguageSelection(value);
-                            if (value !== "__custom") {
-                              setEditCustomLanguage("");
-                            }
-                            setEditLanguagePickerError(null);
-                          }}
-                          disabled={isSavingEdit}
-                        >
-                          <option value="">Select a language…</option>
-                          {availableEditLanguages.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                          <option value="__custom">Custom code…</option>
-                        </select>
-                      </div>
-
-                      {editLanguageSelection === "__custom" && (
-                        <div className="flex-1 space-y-1">
-                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Custom code
-                          </label>
-                          <input
-                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
-                            value={editCustomLanguage}
-                            onChange={(event) => {
-                              setEditCustomLanguage(event.target.value);
-                              setEditLanguagePickerError(null);
-                            }}
-                            placeholder="e.g. fr"
-                            disabled={isSavingEdit}
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const selected =
-                              editLanguageSelection === "__custom"
-                                ? editCustomLanguage.trim()
-                                : editLanguageSelection;
-                            if (!selected) {
-                              setEditLanguagePickerError("Choose a language before adding.");
-                              return;
-                            }
-                            const result = handleAddTranslation("edit", selected);
-                            if (!result.success) {
-                              setEditLanguagePickerError(result.error ?? "Unable to add language.");
-                              return;
-                            }
-                            setEditLanguagePickerOpen(false);
-                            setEditLanguageSelection("");
-                            setEditCustomLanguage("");
-                          }}
-                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
-                          disabled={isSavingEdit}
-                        >
-                          Add
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditLanguagePickerOpen(false);
-                            setEditLanguageSelection("");
-                            setEditCustomLanguage("");
-                            setEditLanguagePickerError(null);
-                          }}
-                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                          disabled={isSavingEdit}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                    {editLanguagePickerError && (
-                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
-                        {editLanguagePickerError}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Column</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.columnId}
-                    onChange={(event) => handleEditTaskChange("columnId", event.target.value)}
-                    disabled={isSavingEdit}
-                  >
-                    {columnOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.priority}
-                    onChange={(event) => handleEditTaskChange("priority", event.target.value as TaskPriority)}
-                    disabled={isSavingEdit}
-                  >
-                    {priorityOptions.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Difficulty</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.difficulty}
-                    onChange={(event) => handleEditTaskChange("difficulty", event.target.value)}
-                    disabled={isSavingEdit}
-                  >
-                    {editDifficultyOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Progress (%)</label>
-                  <select
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.progress}
-                    onChange={(event) => handleEditTaskChange("progress", event.target.value)}
-                    disabled={isSavingEdit}
-                  >
-                    {editProgressOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start date &amp; time</label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.startDate}
-                    onChange={(event) => handleEditTaskChange("startDate", event.target.value)}
-                    disabled={isSavingEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End date &amp; time</label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    min={editTaskState.startDate || undefined}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.endDate}
-                    onChange={(event) => handleEditTaskChange("endDate", event.target.value)}
-                    disabled={isSavingEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date &amp; time</label>
-                  <input
-                    type="datetime-local"
-                    step={60}
-                    min={editTaskState.endDate || editTaskState.startDate || undefined}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.dueDate}
-                    onChange={(event) => handleEditTaskChange("dueDate", event.target.value)}
-                    disabled={isSavingEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
-                  <input
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value={editTaskState.assignee}
-                    onChange={(event) => handleEditTaskChange("assignee", event.target.value)}
-                    placeholder="Who owns this?"
-                    disabled={isSavingEdit}
-                  />
-                </div>
-              </div>
-
-              {/* Current Task Info */}
-              <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
-                <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500 dark:text-gray-400">Progress:</span>
-                    <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 dark:text-gray-400">Tags:</span>
-                    <span className="ml-1 font-medium text-gray-900 dark:text-white">
-                      {editingTask.tags?.join(", ") || "None"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleCloseEditModal}
-                  disabled={isSavingEdit}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingEdit}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
-                >
-                  {isSavingEdit ? "Saving…" : "Update task"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <KanbanTaskModal
+        mode="edit"
+        isOpen={isEditModalOpen}
+        title="Update task"
+        description="Fine-tune translations, ownership, or schedule without losing context."
+        isSaving={isSavingEdit}
+        submitLabel={isSavingEdit ? "Saving..." : "Update task"}
+        onClose={handleCloseEditModal}
+        onSubmit={handleEditTaskSubmit}
+        modalError={editModalError}
+        formState={editTaskState}
+        onFieldChange={handleEditTaskChange}
+        columnOptions={columnOptions}
+        priorityOptions={priorityOptions}
+        difficultyOptions={editDifficultyOptions}
+        progressOptions={editProgressOptions}
+        translations={editTaskState.translations}
+        onTranslationFieldChange={(entryId, field, value) =>
+          handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
+        }
+        onRemoveTranslation={(entryId) => handleRemoveTranslation("edit", entryId)}
+        languageOptions={languageOptions}
+        languagePickerOptions={availableEditLanguages}
+        languagePickerState={editLanguagePickerState}
+        onLanguagePickerToggle={handleEditLanguagePickerToggle}
+        onLanguageSelectionChange={handleEditLanguageSelectionChange}
+        onLanguageCustomChange={handleEditLanguageCustomChange}
+        onLanguagePickerSubmit={handleEditLanguagePickerSubmit}
+        onLanguagePickerCancel={handleEditLanguagePickerCancel}
+        extraContent={editModalExtraContent}
+        currentTask={editingTask}
+      />
     </div>
   );
 };
 
 export default KanbanBoardPage;
+

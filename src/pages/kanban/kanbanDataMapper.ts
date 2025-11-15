@@ -167,7 +167,32 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
     };
   });
 
-  return { tasks, columns, columnOrder };
+  // Define the desired column order with specific priority
+  const getColumnPriority = (columnId: string): number => {
+    const normalized = columnId.replace("column-", "").toLowerCase();
+    
+    if (normalized.includes("backlog")) return 1;
+    if (normalized.includes("inprogress") || normalized.includes("in-progress") || normalized.includes("progress")) return 2;
+    if (normalized.includes("review")) return 3;
+    if (normalized.includes("complete") || normalized.includes("completed") || normalized.includes("done")) return 4;
+    
+    return 999; // Other columns go last
+  };
+  
+  // Sort columnOrder based on priority
+  const sortedColumnOrder = [...columnOrder].sort((a, b) => {
+    const priorityA = getColumnPriority(a);
+    const priorityB = getColumnPriority(b);
+    
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    
+    // If same priority, maintain original order
+    return columnOrder.indexOf(a) - columnOrder.indexOf(b);
+  });
+
+  return { tasks, columns, columnOrder: sortedColumnOrder };
 };
 
 export const extractKanbanItems = (raw: unknown): ApiKanbanItem[] => {
