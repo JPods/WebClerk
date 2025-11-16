@@ -51,7 +51,7 @@ from common.ignore_fields import IGNORE_FIELDS, IGNORE_WORDS
 MAX_METADATA_SIZE = 128000  # bytes
 # larger data items should be driven into documents and linked
 MAX_REFS_SIZE = 64000
-MAX_PREFS_SIZE = 96000
+MAX_PREFS_SIZE = 96000 # max prefs
 MAX_ACTIONS_SIZE = 32000  # actions JSON should remain small and query-friendly
 SIZE_WARN_FRACTION = 0.75  # warn once JSON envelope passes 75% of limit
 SIZE_ACTIVITY_FRACTIONS: tuple[float, ...] = (0.30, 0.60, 0.75)  # progressive telemetry thresholds
