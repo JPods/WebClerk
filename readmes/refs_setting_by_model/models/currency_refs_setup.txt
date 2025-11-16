@@ -1,0 +1,10 @@
+setting model_name="currency" purpose="refs_setup"
+{
+    "self_fields": [
+        "name",
+        "code",
+        "symbol"
+    ],
+    "related_keywords": {},
+    "related_models": []
+}

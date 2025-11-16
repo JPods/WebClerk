@@ -38,7 +38,7 @@ def test_stats_transaction_and_margin(db):
 
 
 def test_stats_service_call_and_series(db):
-    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name="Acme Corp")
+    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company="Acme Corp")
     # Record service calls
     org.record_service_call()
     org.record_service_call()

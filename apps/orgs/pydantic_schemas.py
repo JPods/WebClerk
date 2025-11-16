@@ -88,7 +88,7 @@ class MetricsSnapshot(BaseModel):
 
 class OrgSnapshot(BaseModel):
     org_type: str
-    display_name: str
+    company: str
     status: Optional[str] = None
     is_active: bool = True
     contacts: List[ContactMini] = Field(default_factory=list)
@@ -114,7 +114,7 @@ class OrgSnapshot(BaseModel):
 
 class OrgSnapshotPatch(BaseModel):  # all optional, for partial updates
     org_type: Optional[str] = None
-    display_name: Optional[str] = None
+    company: Optional[str] = None
     status: Optional[str] = None
     is_active: Optional[bool] = None
     contacts: Optional[List[ContactMini]] = None
@@ -136,7 +136,7 @@ def build_org_snapshot(org) -> OrgSnapshot:
     access_payload = getattr(org, 'connections', {})
     return OrgSnapshot(
         org_type=org.org_type,
-        display_name=org.display_name,
+        company=org.company,
         status=org.status,
         is_active=org.is_active,
         contacts=org.contacts or [],

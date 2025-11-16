@@ -17,8 +17,8 @@ class Command(BaseCommand):
             call_command('migrate', interactive=False, verbosity=0)
 
         with transaction.atomic():
-            vendor, _ = OrgBase.objects.get_or_create(display_name="Sample Vendor", org_type=OrgType.VENDOR)
-            customer, _ = OrgBase.objects.get_or_create(display_name="Sample Customer", org_type=OrgType.CUSTOMER)
+            vendor, _ = OrgBase.objects.get_or_create(company="Sample Vendor", org_type=OrgType.VENDOR)
+            customer, _ = OrgBase.objects.get_or_create(company="Sample Customer", org_type=OrgType.CUSTOMER)
 
             now_ms = int(timezone.now().timestamp() * 1000)
             catalog, _ = Catalog.objects.get_or_create(

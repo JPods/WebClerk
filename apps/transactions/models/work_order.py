@@ -6,8 +6,7 @@ from apps.transactions.services.wo_totals import compute_work_order_cost_totals
 
 
 class WorkOrder(TransactionBaseModel):
-    # Identifier for WOs
-    wo_no = models.CharField(max_length=64, default="", db_index=True)
+    # Identifier for WOs is BaseModel's 'id' field
 
     class Meta:
         db_table = "work_orders"

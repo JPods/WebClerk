@@ -1,0 +1,11 @@
+setting model_name="bundle" purpose="refs_setup"
+{
+    "self_fields": [
+        "direction",
+        "alert",
+        "status",
+        "alert"
+    ],
+    "related_keywords": {},
+    "related_models": []
+}

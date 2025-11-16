@@ -3,7 +3,7 @@ from apps.orgs.models import OrgBase, Customer, OrgType
 
 @pytest.mark.django_db
 def test_create_orgbase_and_proxy():
-    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Proto Cust', status='active')
+    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Proto Cust', status='active')
     assert org.pk is not None
     assert org.org_type == OrgType.CUSTOMER
     # proxy manager should see it
@@ -11,7 +11,7 @@ def test_create_orgbase_and_proxy():
 
 @pytest.mark.django_db
 def test_add_contact_helper_marks_keywords_dirty():
-    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Has Contacts', status='active')
+    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Has Contacts', status='active')
     org.add_contact(contact_id=123, name='Jane Contact', role='decision')
     v_before = org.version
     org.save(expected_version=v_before)
@@ -23,7 +23,7 @@ def test_add_contact_helper_marks_keywords_dirty():
 
 @pytest.mark.django_db
 def test_credit_utilization_computation():
-    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Credit Co', status='active')
+    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Credit Co', status='active')
     org.financial['credit'] = {'limit': 1000, 'used': 250}
     v = org.version
     org.save(expected_version=v)
@@ -31,7 +31,7 @@ def test_credit_utilization_computation():
 
 @pytest.mark.django_db
 def test_primary_domain_none_and_then_set():
-    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, display_name='Domainless', status='active')
+    org = OrgBase.objects.create(org_type=OrgType.CUSTOMER, company='Domainless', status='active')
     assert org.primary_domain() is None
     org.domains.append({'domain': 'example.com', 'verified': True})
     v = org.version

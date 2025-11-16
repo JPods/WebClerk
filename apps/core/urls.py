@@ -24,6 +24,9 @@ from django.views.generic import TemplateView
 from apps.core.views.pending import PendingListView, PendingDetailView, PendingSearchView
 from apps.core.views.action import ActionListView, ActionDetailView, ActionSearchView
 from apps.core.views.setting import SettingListView, SettingDetailView, SettingSearchView
+from apps.core.views.refs_setting_manage import RefsSettingManageView
+from apps.core.views.template import TemplateListView, TemplateDetailView, TemplateSearchView
+from apps.core.views.setting import SettingListView, SettingDetailView, SettingSearchView
 from apps.core.views.template import TemplateListView, TemplateDetailView, TemplateSearchView
 from apps.core.views.contact_api import (
     ContactListView as ContactApiListView,
@@ -124,6 +127,13 @@ urlpatterns = [
     path('settings/<int:pk>/', SettingDetailView.as_view(), name='setting-detail'),
     path('settings/search/', SettingSearchView.as_view(), name='setting-search'),
 
+    # Templates endpoints
+    path('templates/', TemplateListView.as_view(), name='template-list'),
+    path('templates/<int:pk>/', TemplateDetailView.as_view(), name='template-detail'),
+    path('templates/search/', TemplateSearchView.as_view(), name='template-search'),
+
+    # Admin endpoints (require admin user)
+    path('admin/refs-setting-manage/', RefsSettingManageView.as_view(), name='refs-setting-manage'),
     # Templates endpoints
     path('templates/', TemplateListView.as_view(), name='template-list'),
     path('templates/<int:pk>/', TemplateDetailView.as_view(), name='template-detail'),

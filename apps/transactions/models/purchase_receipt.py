@@ -3,7 +3,8 @@ from common.models import BaseModel
 
 class PurchaseReceipt(BaseModel):
 	"""Received shipment representing one or more received PO line partials."""
-	receipt_no = models.CharField(max_length=40, unique=True)
+	#id is inherited from BaseModel
+	#receipt_no = models.CharField(max_length=40, unique=True)
 	dt_received = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

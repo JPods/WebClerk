@@ -1,0 +1,9 @@
+setting model_name="gl_journal" purpose="refs_setup"
+{
+    "self_fields": [
+        "account",
+        "type"
+    ],
+    "related_keywords": {},
+    "related_models": []
+}

@@ -1,0 +1,15 @@
+setting model_name="other" purpose="refs_setup"
+{
+    "self_fields": [
+        "org_type",
+        "email",
+        "company"
+    ],
+    "related_keywords": {
+        "contact": ["email", "name_first", "name_last", "company"],
+        "location": ["address1", "city", "state", "zip", "country"],
+        "phone": ["number", "country_code", "attention"],
+        "email": ["email", "attention"]
+    },
+    "related_models": ["location", "contact","customer","vendor"]
+}

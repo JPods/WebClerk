@@ -1,0 +1,45 @@
+/* Layout Navigation CSS */
+
+.contact-link {
+    color: #007cba;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.contact-link:hover {
+    text-decoration: underline;
+}
+
+.logout-button {
+    background: none;
+    border: none;
+    font-size: 1em;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+}
+
+.logout-button:hover {
+    opacity: 0.7;
+}
+
+/* Additional navigation styling */
+nav {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+nav a {
+    color: #007cba;
+    text-decoration: none;
+    margin: 0 5px;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+.logout {
+    display: inline;
+    margin: 0;
+}
