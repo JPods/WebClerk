@@ -1,5 +1,6 @@
-setting model_name="rep" purpose="refs_setup"
+
 {
+    "jjj_WhereUsed":"setting model_name='rep' purpose='refs_setup'",
     "self_fields": [
         "org_type",
         "email",
@@ -9,7 +10,8 @@ setting model_name="rep" purpose="refs_setup"
         "contact": ["email", "name_first", "name_last", "company"],
         "location": ["address1", "city", "state", "zip", "country"],
         "phone": ["number", "country_code", "attention"],
-        "email": ["email", "attention"]
+        "email": ["email", "attention"],
+        "jjj_updateThisBy":"Example comment on when this needs to be updated,2026-01-15"
     },
     "related_models": ["contact", "location", "phone", "email"]
 }
