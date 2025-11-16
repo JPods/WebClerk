@@ -1,0 +1,25 @@
+setting model_name="work_order" purpose="refs_setup"
+{
+    "self_fields": ["wo_no", "status", "priority", "price_level"],
+    "related_keywords": {},
+    "related_models": []
+}
+{
+    "self_fields": [
+        "ida",
+        "status",
+        "price_level",
+        "action_next.who",
+        "action_next.what",
+        "priority"
+
+    ],
+    "related_keywords": {
+        "email": ["email", "attention"],
+        "location": ["address1", "city", "state", "zip", "country"],
+        "phone": ["number", "country_code", "attention"],
+        "customer": ["refs.keywords"],
+        "vendor": ["refs.keywords"]
+    },
+    "related_models": ["sales_order_line", "contact", "project", "item", "customer"]
+}

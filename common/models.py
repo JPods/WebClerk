@@ -241,8 +241,13 @@ def default_refs() -> dict:
     """Lightweight relationship & classification structure (keywords/tags/links...)."""
     return {
         "keywords": [],
+        #setting used to build keywords
+        #"self_fields": ["canonical_key"],
+        #"related_keywords": {},
         "tags": [],
         "links": {"contacts": [], "items": []},
+        #setting record populates links from #"related_models": []
+
         # Execution gating: identify upstream dependencies by model keys.
         # Example: {"action": [1,2], "work_order": [5], "work_order_line": [9,10]}
         "depends_on": {},

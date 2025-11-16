@@ -1,0 +1,6 @@
+setting model_name="serial" purpose="refs_setup"
+{
+    "self_fields": ["serial_ida", "model_ida", "status", "qr_code", "action"],
+    "related_keywords": {},
+    "related_models": []
+}

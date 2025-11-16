@@ -1,0 +1,6 @@
+setting model_name="metrics" purpose="refs_setup"
+{
+    "self_fields": [],
+    "related_keywords": {},
+    "related_models": ["item"]
+}

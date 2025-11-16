@@ -105,9 +105,14 @@ class Command(BaseCommand):
         except Setting.DoesNotExist:
             self.stderr.write(f'Error: Setting {model_name}.{purpose} not found')
 
-    def _update_baseline(self, model_name, purpose, baseline_dir):
+    def _update_baseline(self, model_name, purpose, baseline_dir, models_dir=None):
         """Update a single setting from its baseline file."""
+        if models_dir is None:
+            models_dir = os.path.join(baseline_dir, 'models')
+
         baseline_file = os.path.join(baseline_dir, f'{purpose}.txt')
+        if not os.path.exists(baseline_file):
+            baseline_file = os.path.join(models_dir, f'{model_name}_{purpose}.txt')
 
         if not os.path.exists(baseline_file):
             self.stderr.write(f'Error: Baseline file {baseline_file} not found')
@@ -137,6 +142,10 @@ class Command(BaseCommand):
             except json.JSONDecodeError as e:
                 self.stderr.write(f'Error: Invalid JSON in {baseline_file}: {e}')
                 return
+
+            # Ensure related_models is present
+            if 'related_models' not in data:
+                data['related_models'] = []
 
             # Create or update the setting
             setting, created = Setting.objects.update_or_create(
@@ -200,6 +209,10 @@ class Command(BaseCommand):
                     # Parse JSON data
                     data_str = '\n'.join(lines[1:])
                     data = json.loads(data_str)
+
+                    # Ensure related_models is present
+                    if 'related_models' not in data:
+                        data['related_models'] = []
 
                     # Create or update setting
                     setting, created = Setting.objects.update_or_create(

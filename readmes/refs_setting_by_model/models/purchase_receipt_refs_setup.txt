@@ -1,0 +1,12 @@
+setting model_name="purchase_receipt" purpose="refs_setup"
+{
+    "self_fields": ["receipt_no","ida", "status","priority"],
+    "related_keywords": {
+        "email": ["email", "attention"],
+        "location": ["address1", "city", "state", "zip", "country"],
+        "phone": ["number", "country_code", "attention"],
+        "customer": ["refs.keywords"],
+        "vendor": ["refs.keywords"]
+    },
+    "related_models": ["purchase_order", "contact", "project", "item", "customer","vendor"]
+}
