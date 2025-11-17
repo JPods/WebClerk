@@ -1,0 +1,11 @@
+{
+    "self_fields": [
+        "source",
+        "source_model_name",
+        "source_name",
+        "external_sku"
+    ],
+    "related_keywords": {},
+    "related_models": [],
+    "jjj_comment": "setting model_name=\"item_xref\" purpose=\"refs_setup\""
+}

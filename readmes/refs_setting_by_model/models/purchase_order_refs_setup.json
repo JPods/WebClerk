@@ -1,0 +1,40 @@
+{
+    "self_fields": [
+        "ida",
+        "status",
+        "priority",
+        "price_level"
+    ],
+    "related_keywords": {
+        "email": [
+            "email",
+            "attention"
+        ],
+        "location": [
+            "address1",
+            "city",
+            "state",
+            "zip",
+            "country"
+        ],
+        "phone": [
+            "number",
+            "country_code",
+            "attention"
+        ],
+        "customer": [
+            "refs.keywords"
+        ],
+        "vendor": [
+            "refs.keywords"
+        ]
+    },
+    "related_models": [
+        "vendor",
+        "purchase_order_line",
+        "contact",
+        "project",
+        "customer"
+    ],
+    "jjj_comment": "setting model_name=\"purchase_order\" purpose=\"refs_setup\""
+}

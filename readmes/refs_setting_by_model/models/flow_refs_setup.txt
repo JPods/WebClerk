@@ -1,6 +1,0 @@
-setting model_name="flow" purpose="refs_setup"
-{
-    "self_fields": ["status", "skipped_reason"],
-    "related_keywords": {},
-    "related_models": ["customer","vendor"]
-}

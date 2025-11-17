@@ -1,0 +1,35 @@
+{
+    "self_fields": [
+        "action.en",
+        "action.bn",
+        "action.ar",
+        "description.en",
+        "description.bn",
+        "description.ar",
+        "project_name",
+        "assigned_to"
+    ],
+    "related_keywords": {
+        "vendor": [
+            "company",
+            "email"
+        ],
+        "contact": [
+            "email",
+            "name_first",
+            "name_last",
+            "company"
+        ],
+        "customer": [
+            "company",
+            "email"
+        ]
+    },
+    "related_models": [
+        "domain",
+        "customer",
+        "contact",
+        "vendor"
+    ],
+    "jjj_comment": "setting model_name=\"action\" purpose=\"refs_setup\""
+}
