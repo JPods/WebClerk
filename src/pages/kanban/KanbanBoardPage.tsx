@@ -11,6 +11,8 @@ import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from 
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
+import { Link, useNavigate } from "react-router";
+import { PageRoutes } from "../../routes/Routes";
 
 const priorityPalette: Record<TaskPriority, string> = {
   low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
@@ -398,6 +400,8 @@ const KanbanBoardPage: React.FC = () => {
   const [editLanguageSelection, setEditLanguageSelection] = useState("");
   const [editCustomLanguage, setEditCustomLanguage] = useState("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   const resolveDefaultColumnId = useCallback(
     () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
@@ -1092,8 +1096,8 @@ const KanbanBoardPage: React.FC = () => {
             </svg>
             New Task
           </button>
-          <a
-            href="/kanban-gantt"
+          <Link
+            to={PageRoutes.kanbanGantt}
             className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1101,7 +1105,7 @@ const KanbanBoardPage: React.FC = () => {
               <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             View Gantt Chart
-          </a>
+          </Link>
         </div>
       </div>
 

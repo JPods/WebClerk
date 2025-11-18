@@ -95,6 +95,104 @@ const buildTranslations = (
   return Object.keys(map).length > 0 ? map : undefined;
 };
 
+const normalizeLanguageKey = (key: string): string => key.trim().toLowerCase();
+
+const coerceTranslationString = (input: unknown): string | undefined => {
+  if (input === null || input === undefined) {
+    return undefined;
+  }
+  if (typeof input === "string") {
+    return input;
+  }
+  if (typeof input === "number" || typeof input === "boolean") {
+    return String(input);
+  }
+  if (Array.isArray(input)) {
+    for (const value of input) {
+      const candidate = coerceTranslationString(value);
+      if (candidate) {
+        return candidate;
+      }
+    }
+    return undefined;
+  }
+  if (typeof input === "object") {
+    const candidateKeys = ["value", "text", "title", "description", "display_value"];    
+    for (const key of candidateKeys) {
+      if (Object.prototype.hasOwnProperty.call(input, key)) {
+        const nested = coerceTranslationString((input as Record<string, unknown>)[key]);
+        if (nested) {
+          return nested;
+        }
+      }
+    }
+    // As a last resort, grab the first primitive child value
+    for (const value of Object.values(input as Record<string, unknown>)) {
+      const nested = coerceTranslationString(value);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+  return undefined;
+};
+
+const assignTranslationValue = (
+  target: Map<string, string | null | undefined>,
+  language: string,
+  rawValue: unknown
+) => {
+  const normalized = normalizeLanguageKey(language);
+  if (!normalized || target.has(normalized)) {
+    return;
+  }
+  const coerced = coerceTranslationString(rawValue);
+  if (coerced !== undefined) {
+    target.set(normalized, coerced);
+    return;
+  }
+  if (rawValue === null) {
+    target.set(normalized, undefined);
+  }
+};
+
+const collectLocalizedEntries = (
+  item: ApiKanbanItem,
+  fieldPrefix: string,
+  fallbackEntries: Array<[string, string | null | undefined]> = []
+): Array<[string, string | null | undefined]> => {
+  const collected = new Map<string, string | null | undefined>();
+  const record = item as Record<string, unknown>;
+  const pattern = new RegExp(`^${fieldPrefix}(?:[._])([a-z0-9-]+)$`, "i");
+
+  Object.entries(record).forEach(([key, raw]) => {
+    const match = key.match(pattern);
+    if (!match) return;
+    assignTranslationValue(collected, match[1], raw);
+  });
+
+  const nestedField = record[fieldPrefix];
+  if (nestedField && typeof nestedField === "object" && !Array.isArray(nestedField)) {
+    Object.entries(nestedField as Record<string, unknown>).forEach(([language, rawValue]) => {
+      assignTranslationValue(collected, language, rawValue);
+    });
+  }
+
+  fallbackEntries.forEach(([language, value]) => {
+    assignTranslationValue(collected, language, value);
+  });
+
+  return Array.from(collected.entries());
+};
+
+const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined => {
+  if (!map) {
+    return undefined;
+  }
+  const [firstKey] = Object.keys(map);
+  return firstKey ? map[firstKey] : undefined;
+};
+
 export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   const tasks: Record<string, KanbanTask> = {};
   const columns: Record<string, KanbanColumnType> = {};
@@ -113,19 +211,32 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
 
     columns[columnId].taskIds.push(item.id);
 
-    const titleTranslations = buildTranslations([
+    const actionEntries = collectLocalizedEntries(item, "action", [
       ["en", item.action_en],
       ["ar", item.action_ar],
       ["bn", item.action_bn],
       ["es", item.action_es],
     ]);
 
-    const descriptionTranslations = buildTranslations([
+    const descriptionEntries = collectLocalizedEntries(item, "description", [
       ["en", item.description_en],
       ["ar", item.description_ar],
       ["bn", item.description_bn],
       ["es", item.description_es],
     ]);
+
+    const titleTranslations = buildTranslations(actionEntries);
+    const descriptionTranslations = buildTranslations(descriptionEntries);
+
+    const translationLanguages = new Set<string>();
+    actionEntries.forEach(([language]) => translationLanguages.add(language));
+    descriptionEntries.forEach(([language]) => translationLanguages.add(language));
+    item.languages?.forEach((language) => {
+      if (typeof language === "string" && language.trim()) {
+        translationLanguages.add(language.trim().toLowerCase());
+      }
+    });
+    const languageCodes = translationLanguages.size ? Array.from(translationLanguages) : undefined;
 
     const assignedToRecords =
       item.assigned_to?.map((person, index) => ({
@@ -138,12 +249,16 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
     tasks[item.id] = {
       id: item.id,
       title:
+        titleTranslations?.en ||
+        getFirstTranslationValue(titleTranslations) ||
         item.action_en ||
         item.action_ar ||
         item.action_bn ||
         item.action_es ||
         `Task ${item.id}`,
       description:
+        descriptionTranslations?.en ??
+        getFirstTranslationValue(descriptionTranslations) ??
         item.description_en ??
         item.description_ar ??
         item.description_bn ??
@@ -158,7 +273,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   endDate: item.dt_end ?? undefined,
       assignee: assignedToRecords[0]?.name,
       assignedTo: assignedToRecords.length ? assignedToRecords : undefined,
-      languageCodes: item.languages && item.languages.length ? item.languages : undefined,
+      languageCodes,
       titleTranslations,
       descriptionTranslations,
       tags: tags.length ? tags : undefined,
