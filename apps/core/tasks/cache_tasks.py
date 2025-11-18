@@ -61,6 +61,43 @@ def update_constants_cache():
         return {'status': 'error', 'error': str(e)}
 
 
+@shared_task(name='apps.core.tasks.cache_tasks.update_all_settings_cache')
+def update_all_settings_cache():
+    """Load all active Setting records into Redis cache."""
+    try:
+        from apps.core.models.setting import Setting
+
+        # Load all active settings
+        settings = Setting.objects.filter(is_active=True).only('model_name', 'purpose', 'data')
+
+        # Group by purpose for efficient caching
+        settings_by_purpose = {}
+        for setting in settings:
+            purpose = setting.purpose or 'general'
+            if purpose not in settings_by_purpose:
+                settings_by_purpose[purpose] = {}
+            if setting.model_name:
+                settings_by_purpose[purpose][setting.model_name] = setting.data
+
+        # Cache each purpose group
+        for purpose, data in settings_by_purpose.items():
+            cache_key = cache_service.make_key('settings', purpose)
+            cache_service.set(cache_key, data, ttl=3600)  # 1 hour TTL
+
+        # Also cache all settings in a single key for easy access
+        all_settings = {}
+        for setting in settings:
+            key = f"{setting.model_name or 'general'}:{setting.purpose or 'general'}"
+            all_settings[key] = setting.data
+
+        cache_key = cache_service.make_key('settings', 'all')
+        cache_service.set(cache_key, all_settings, ttl=3600)
+
+        return {'status': 'completed', 'purposes': list(settings_by_purpose.keys()), 'total_settings': len(settings)}
+    except Exception as e:
+        return {'status': 'error', 'error': str(e)}
+
+
 @shared_task(name='apps.core.tasks.cache_tasks.invalidate_cache_namespace')
 def invalidate_cache_namespace(namespace: str):
     """Invalidate all caches in a namespace."""

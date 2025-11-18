@@ -1,5 +1,6 @@
 from apps.core.models.pending import Pending
 from apps.core.constants.keyword_requirements import get_keyword_requirements
+from apps.core.services.cache_service import cache_service
 from django.apps import apps
 
 def build_keywords_for_contact(contact_id):
@@ -105,8 +106,12 @@ def build_keywords_for_record(model_name, record_id):
         model = apps.get_model('core', model_name)
         record = model.objects.get(id=record_id)
 
-        # Get keyword requirements for this model
-        requirements = get_keyword_requirements()
+        # Get settings from cache
+        cache_key = cache_service.make_key('settings', 'refs_setup')
+        requirements = cache_service.get(cache_key)
+        if requirements is None:
+            # Fallback to loading from DB if cache miss
+            requirements = get_keyword_requirements()
         if model_name not in requirements:
             return []
 
@@ -120,13 +125,47 @@ def build_keywords_for_record(model_name, record_id):
             keywords.update(field_keywords)
 
         # Process related models in configuration order
-        related_models = model_config.get('related_models', {})
+        related_models = model_config.get('related_models', [])
+        related_keywords = model_config.get('related_keywords', {})
         refs_data = getattr(record, 'refs', None)
 
         if refs_data and isinstance(refs_data, dict):
             links = refs_data.get('links', {})
 
-            for related_model_name, related_fields in related_models.items():
+            # Process related_models (legacy format - list of model names with field paths)
+            if isinstance(related_models, dict):
+                for related_model_name, related_fields in related_models.items():
+                    # Get related record IDs from refs.links
+                    # Try both singular and plural forms
+                    link_keys = [related_model_name, related_model_name + 's']
+                    related_ids = []
+                    for link_key in link_keys:
+                        if link_key in links:
+                            ids = links[link_key]
+                            if isinstance(ids, list):
+                                related_ids.extend(ids)
+                            break
+
+                    if not related_ids:
+                        continue
+
+                    # Query related records
+                    try:
+                        related_model = apps.get_model('core', related_model_name)
+                        related_records = related_model.objects.filter(id__in=related_ids)
+
+                        # Extract keywords from each related record's specified fields
+                        for related_record in related_records:
+                            for field_path in related_fields:
+                                field_keywords = _extract_keywords_from_field(related_record, field_path)
+                                keywords.update(field_keywords)
+
+                    except Exception:
+                        # Skip if related model doesn't exist or query fails
+                        continue
+
+            # Process related_keywords (new format - dict of model names to field arrays)
+            for related_model_name, field_paths in related_keywords.items():
                 # Get related record IDs from refs.links
                 # Try both singular and plural forms
                 link_keys = [related_model_name, related_model_name + 's']
@@ -148,7 +187,7 @@ def build_keywords_for_record(model_name, record_id):
 
                     # Extract keywords from each related record's specified fields
                     for related_record in related_records:
-                        for field_path in related_fields:
+                        for field_path in field_paths:
                             field_keywords = _extract_keywords_from_field(related_record, field_path)
                             keywords.update(field_keywords)
 
