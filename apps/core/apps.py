@@ -19,3 +19,4 @@ class CoreConfig(AppConfig):
             update_all_settings_cache.delay()
         except Exception:
             pass  # Graceful degradation if settings cache fails
+
