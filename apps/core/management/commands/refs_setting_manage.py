@@ -10,7 +10,7 @@ from apps.core.models.setting import Setting
 
 
 def filter_jjj_keys(data):
-    """Recursively filter out any keys containing 'jjj_' from the data."""
+    """Recursively filter out any keys containing 'jjj_' from the data and add 'ida' to lists if not present."""
     if isinstance(data, dict):
         return {
             key: filter_jjj_keys(value)
@@ -18,7 +18,11 @@ def filter_jjj_keys(data):
             if 'jjj_' not in key
         }
     elif isinstance(data, list):
-        return [filter_jjj_keys(item) for item in data]
+        filtered_list = [filter_jjj_keys(item) for item in data]
+        # Add 'ida' if the list contains strings and 'ida' is not already present
+        if filtered_list and all(isinstance(item, str) for item in filtered_list) and 'ida' not in filtered_list:
+            filtered_list.append('ida')
+        return filtered_list
     else:
         return data
 
