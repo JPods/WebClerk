@@ -9,6 +9,20 @@ from django.core.management.base import BaseCommand
 from apps.core.models.setting import Setting
 
 
+def filter_jjj_keys(data):
+    """Recursively filter out any keys containing 'jjj_' from the data."""
+    if isinstance(data, dict):
+        return {
+            key: filter_jjj_keys(value)
+            for key, value in data.items()
+            if 'jjj_' not in key
+        }
+    elif isinstance(data, list):
+        return [filter_jjj_keys(item) for item in data]
+    else:
+        return data
+
+
 class Command(BaseCommand):
     help = 'Manage Setting records for model configurations'
 
@@ -106,13 +120,13 @@ class Command(BaseCommand):
             self.stderr.write(f'Error: Setting {model_name}.{purpose} not found')
 
     def _update_baseline(self, model_name, purpose, baseline_dir, models_dir=None):
-        """Update a single setting from its baseline file."""
+        """Update a single setting from its baseline JSON file."""
         if models_dir is None:
             models_dir = os.path.join(baseline_dir, 'models')
 
-        baseline_file = os.path.join(baseline_dir, f'{purpose}.txt')
+        baseline_file = os.path.join(baseline_dir, f'{purpose}.json')
         if not os.path.exists(baseline_file):
-            baseline_file = os.path.join(models_dir, f'{model_name}_{purpose}.txt')
+            baseline_file = os.path.join(models_dir, f'{model_name}_{purpose}.json')
 
         if not os.path.exists(baseline_file):
             self.stderr.write(f'Error: Baseline file {baseline_file} not found')
@@ -120,31 +134,13 @@ class Command(BaseCommand):
 
         try:
             with open(baseline_file, 'r') as f:
-                content = f.read()
+                data = json.load(f)
 
-            # Parse the baseline file format
-            # Expected format: "setting model_name="X" purpose="Y"\n{...}"
-            lines = content.strip().split('\n')
-            if len(lines) < 2:
-                self.stderr.write(f'Error: Invalid baseline file format in {baseline_file}')
-                return
-
-            # Extract model_name and purpose from first line
-            first_line = lines[0]
-            if not first_line.startswith('setting model_name=') or 'purpose=' not in first_line:
-                self.stderr.write(f'Error: Invalid header format in {baseline_file}')
-                return
-
-            # Parse the JSON data (everything after the header line)
-            data_str = '\n'.join(lines[1:])
-            try:
-                data = json.loads(data_str)
-            except json.JSONDecodeError as e:
-                self.stderr.write(f'Error: Invalid JSON in {baseline_file}: {e}')
-                return
+            # Filter out any keys containing 'jjj_'
+            data = filter_jjj_keys(data)
 
             # Ensure related_models is present
-            if 'related_models' not in data:
+            if isinstance(data, dict) and 'related_models' not in data:
                 data['related_models'] = []
 
             # Create or update the setting
@@ -162,7 +158,7 @@ class Command(BaseCommand):
             self.stderr.write(f'Error processing baseline file: {e}')
 
     def _update_all_baselines(self, baseline_dir, models_dir=None):
-        """Update all settings from baseline files in both main and models directories."""
+        """Update all settings from baseline JSON files in both main and models directories."""
         if models_dir is None:
             models_dir = os.path.join(baseline_dir, 'models')
 
@@ -177,38 +173,35 @@ class Command(BaseCommand):
                 continue
 
             for filename in os.listdir(directory):
-                if not filename.endswith('.txt'):
+                if not filename.endswith('.json'):
                     continue
 
                 baseline_file = os.path.join(directory, filename)
 
                 try:
+                    # Extract model_name and purpose from filename
+                    # Format: {model_name}_{purpose}.json
+                    name_part = filename[:-5]  # remove .json
+                    if '_refs_setup' in name_part:
+                        idx = name_part.rfind('_refs_setup')
+                        model_name = name_part[:idx]
+                        purpose = 'refs_setup'
+                    else:
+                        if '_' not in name_part:
+                            self.stderr.write(f'Skipping {filename}: invalid filename format')
+                            continue
+                        parts = name_part.rsplit('_', 1)
+                        if len(parts) != 2:
+                            self.stderr.write(f'Skipping {filename}: invalid filename format')
+                            continue
+                        model_name, purpose = parts
+
+                    # Load JSON data
                     with open(baseline_file, 'r') as f:
-                        content = f.read()
+                        data = json.load(f)
 
-                    lines = content.strip().split('\n')
-                    if len(lines) < 2:
-                        continue
-
-                    first_line = lines[0]
-                    if not first_line.startswith('setting model_name=') or 'purpose=' not in first_line:
-                        continue
-
-                    # Extract model_name and purpose from header
-                    # Format: setting model_name="contact" purpose="refs_setup"
-                    import re
-                    model_match = re.search(r'model_name="([^"]+)"', first_line)
-                    purpose_match = re.search(r'purpose="([^"]+)"', first_line)
-
-                    if not model_match or not purpose_match:
-                        continue
-
-                    model_name = model_match.group(1)
-                    purpose = purpose_match.group(1)
-
-                    # Parse JSON data
-                    data_str = '\n'.join(lines[1:])
-                    data = json.loads(data_str)
+                    # Filter out any keys containing 'jjj_'
+                    data = filter_jjj_keys(data)
 
                     # Ensure related_models is present
                     if 'related_models' not in data:
