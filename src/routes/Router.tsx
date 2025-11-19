@@ -13,6 +13,9 @@ import InvoicesListPage from '../pages/transactions/InvoicesListPage';
 import InvoiceDetailPage from '../pages/transactions/InvoiceDetailPage';
 import PurchaseOrderDetailPage from '../pages/transactions/PurchaseOrderDetailPage';
 import ProposalDetailPage from '../pages/transactions/ProposalDetailPage';
+import CallReportDetailPage from '../pages/actions/CallReportDetailPage';
+import ServiceDetailPage from '../pages/actions/ServiceDetailPage';
+import TaskMarkerDetailPage from '../pages/actions/TaskMarkerDetailPage';
 // Redux store is not used directly here; pages connect as needed.
 import Test from '../pages/test/Test';
 import DocsIndex from '../pages/docs/DocsIndex';
@@ -38,6 +41,12 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.actionList} element={<ActionList />} />
               <Route path={PageRoutes.actionAdd} element={<ActionAdd />} />  
               <Route path={PageRoutes.actionAdd + '/:id'} element={<ActionAdd />} /> 
+              <Route path={PageRoutes.actionsCallReportAdd} element={<CallReportDetailPage defaultMode="add" />} />
+              <Route path={PageRoutes.actionsCallReportDetail} element={<CallReportDetailPage />} />
+              <Route path={PageRoutes.actionsServiceAdd} element={<ServiceDetailPage defaultMode="add" />} />
+              <Route path={PageRoutes.actionsServiceDetail} element={<ServiceDetailPage />} />
+              <Route path={PageRoutes.actionsTaskMarkerAdd} element={<TaskMarkerDetailPage defaultMode="add" />} />
+              <Route path={PageRoutes.actionsTaskMarkerDetail} element={<TaskMarkerDetailPage />} />
               <Route path={PageRoutes.contactList} element={<ContactList />} />
               <Route path={PageRoutes.contactAdd} element={<ContactAdd />} />
               <Route path={PageRoutes.contactAdd + '/:id'} element={<ContactAdd />} />
