@@ -26,17 +26,17 @@ export default function SelectInputs() {
     <ComponentCard title="Select Inputs">
       <div className="space-y-6">
         <div>
-          <Label>Select Input</Label>
+          <Label>select_input</Label>
           <Select
             options={options}
-            placeholder="Select Option"
+            placeholder="select_input"
             onChange={handleSelectChange}
             className="dark:bg-dark-900"
           />
         </div>
         <div>
           <MultiSelect
-            label="Multiple Select Options"
+            label="multiple_select_options"
             options={multiOptions}
             defaultSelected={["1", "3"]}
             onChange={(values) => setSelectedValues(values)}

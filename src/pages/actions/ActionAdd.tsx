@@ -259,11 +259,11 @@ const ActionAdd = ({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="action_en">Title (English)</Label>
+              <Label htmlFor="action_en">action_en</Label>
               <Input
                 type="text"
                 id="action_en"
-                placeholder="Task title"
+                placeholder="action_en"
                 {...register("action_en")}
                 error={Boolean(errors.action_en)}
                 hint={errors.action_en?.message}
@@ -271,7 +271,7 @@ const ActionAdd = ({
               />
             </div>
             <div>
-              <Label htmlFor="kanban_column">Column</Label>
+              <Label htmlFor="kanban_column">kanban_column</Label>
               <select
                 id="kanban_column"
                 className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 ${
@@ -281,7 +281,7 @@ const ActionAdd = ({
                 disabled={mode === "view"}
               >
                 <option value="" disabled>
-                  Select column
+                  kanban_column
                 </option>
                 {availableColumns.map((option) => (
                   <option key={option} value={option}>
@@ -297,7 +297,7 @@ const ActionAdd = ({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="priority">Priority</Label>
+              <Label htmlFor="priority">priority</Label>
               <select
                 id="priority"
                 className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 ${
@@ -307,7 +307,7 @@ const ActionAdd = ({
                 disabled={mode === "view"}
               >
                 <option value="" disabled>
-                  Select priority
+                  priority
                 </option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -319,11 +319,11 @@ const ActionAdd = ({
               )}
             </div>
             <div>
-              <Label htmlFor="difficulty">Difficulty (numeric)</Label>
+              <Label htmlFor="difficulty">difficulty</Label>
               <Input
                 type="number"
                 id="difficulty"
-                placeholder="1"
+                placeholder="difficulty"
                 min={1}
                 {...register("difficulty", { valueAsNumber: true })}
                 error={Boolean(errors.difficulty)}
@@ -332,11 +332,11 @@ const ActionAdd = ({
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">status</Label>
               <Input
                 type="text"
                 id="status"
-                placeholder="In progress"
+                placeholder="status"
                 {...register("status")}
                 error={Boolean(errors.status)}
                 hint={errors.status?.message}
@@ -344,11 +344,11 @@ const ActionAdd = ({
               />
             </div>
             <div>
-              <Label htmlFor="assignee">Assignee</Label>
+              <Label htmlFor="assignee">assignee</Label>
               <Input
                 type="text"
                 id="assignee"
-                placeholder="Assign to"
+                placeholder="assignee"
                 {...register("assignee")}
                 error={Boolean(errors.assignee)}
                 hint={errors.assignee?.message}
@@ -359,7 +359,7 @@ const ActionAdd = ({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-              <Label htmlFor="dt_start">Start date</Label>
+              <Label htmlFor="dt_start">dt_start</Label>
               <Input
                 type="date"
                 id="dt_start"
@@ -370,7 +370,7 @@ const ActionAdd = ({
               />
             </div>
             <div>
-              <Label htmlFor="dt_end">End date</Label>
+              <Label htmlFor="dt_end">dt_end</Label>
               <Input
                 type="date"
                 id="dt_end"
@@ -381,7 +381,7 @@ const ActionAdd = ({
               />
             </div>
             <div>
-              <Label htmlFor="dt_due">Due date</Label>
+              <Label htmlFor="dt_due">dt_due</Label>
               <Input
                 type="date"
                 id="dt_due"
@@ -395,9 +395,9 @@ const ActionAdd = ({
 
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="description_en">Description</Label>
+              <Label htmlFor="description_en">description_en</Label>
               <TextArea
-                placeholder="Description"
+                placeholder="description_en"
                 register={register("description_en")}
                 error={errors.description_en}
                 disabled={mode === "view"}

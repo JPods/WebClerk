@@ -13,12 +13,17 @@ import { useDispatch } from "react-redux";
 import staticLists from "../constants/staticLists";
 
 const contactSchema = z.object({
-  name_first: z.string().min(1, "First name is required"),
-  name_last: z.string().min(1, "Last name is required"),
+  name_first: z.string().min(1, "name_first is required"),
+  name_last: z.string().min(1, "name_last is required"),
   company: z.string().optional(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
+  email: z
+    .string()
+    .email("email must be valid")
+    .optional()
+    .or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
   address1: z.string().optional(),
+  address2: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zip: z.string().optional(),
@@ -74,7 +79,7 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
   };
 
   const stateOptions = [
-    { value: "", label: "Select State" },
+    { value: "", label: "select_state" },
     ...staticLists.aStates.map(state => ({ value: state, label: state }))
   ];
 
@@ -93,11 +98,11 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="name_first">First Name</Label>
+            <Label htmlFor="name_first">name_first</Label>
             <Input
               type="text"
               id="name_first"
-              placeholder="First Name"
+              placeholder="name_first"
               {...register("name_first")}
               error={errors.name_first && errors.name_first.message ? true : false}
               hint={errors.name_first && errors.name_first.message}
@@ -105,11 +110,11 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
             />
           </div>
           <div>
-            <Label htmlFor="name_last">Last Name</Label>
+            <Label htmlFor="name_last">name_last</Label>
             <Input
               type="text"
               id="name_last"
-              placeholder="Last Name"
+              placeholder="name_last"
               {...register("name_last")}
               error={errors.name_last && errors.name_last.message ? true : false}
               hint={errors.name_last && errors.name_last.message}
@@ -117,21 +122,21 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
             />
           </div>
           <div>
-            <Label htmlFor="company">Company</Label>
+            <Label htmlFor="company">company</Label>
             <Input
               type="text"
               id="company"
-              placeholder="Company"
+              placeholder="company"
               {...register("company")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">email</Label>
             <Input
               type="email"
               id="email"
-              placeholder="Email"
+              placeholder="email"
               {...register("email")}
               error={errors.email && errors.email.message ? true : false}
               hint={errors.email && errors.email.message}
@@ -139,60 +144,70 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
             />
           </div>
           <div>
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">phone</Label>
             <Input
               type="tel"
               id="phone"
-              placeholder="Phone"
+              placeholder="phone"
               {...register("phone")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="address1">Address 1</Label>
+            <Label htmlFor="address1">address1</Label>
             <Input
               type="text"
               id="address1"
-              placeholder="Address 1"
+              placeholder="address1"
               {...register("address1")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="address2">address2</Label>
+            <Input
+              type="text"
+              id="address2"
+              placeholder="address2"
+              {...register("address2")}
+              disabled={mode === 'view'}
+            />
+          </div>
+          <div>
+            <Label htmlFor="city">city</Label>
             <Input
               type="text"
               id="city"
-              placeholder="City"
+              placeholder="city"
               {...register("city")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="state">State</Label>
+            <Label htmlFor="state">state</Label>
             <Select
               options={stateOptions}
-              placeholder="Select State"
+              placeholder="state"
               value={data?.state || ""}
               onChange={(value) => setValue("state", value)}
               className={mode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}
             />
           </div>
           <div>
-            <Label htmlFor="zip">Zip</Label>
+            <Label htmlFor="zip">zip</Label>
             <Input
               type="text"
               id="zip"
-              placeholder="Zip"
+              placeholder="zip"
               {...register("zip")}
               disabled={mode === 'view'}
             />
           </div>
         </div>
         <div>
-          <Label htmlFor="comment">Comment</Label>
+          <Label htmlFor="comment">comment</Label>
           <TextArea
-            placeholder="Comment"
+            placeholder="comment"
             register={register("comment")}
             disabled={mode === 'view'}
           />

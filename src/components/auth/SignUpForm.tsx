@@ -89,12 +89,12 @@ export default function SignUpForm() {
               <div className="space-y-5">
                 <div>
                     <Label>
-                      Email<span className="text-error-500">* { errors.email && errors.email.message}</span>
+                      email<span className="text-error-500">* { errors.email && errors.email.message}</span>
                     </Label>
                     <Input
                       type="email"
                       id="email"                      
-                      placeholder="Enter your email"
+                      placeholder="email"
                       {...register('email')}
                     />
                 </div>
@@ -102,25 +102,25 @@ export default function SignUpForm() {
                   {/* <!-- First Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
-                      First Name<span className="text-error-500">* { errors.name_first && errors.name_first.message}</span>
+                      name_first<span className="text-error-500">* { errors.name_first && errors.name_first.message}</span>
                     </Label>
                     <Input
                       type="text"
                       id="fname"
                       {...register('name_first')}
-                      placeholder="Enter your first name"
+                      placeholder="name_first"
                     />
                   </div>
                   {/* <!-- Last Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
-                      Last Name<span className="text-error-500">* { errors.name_last && errors.name_last.message}</span>
+                      name_last<span className="text-error-500">* { errors.name_last && errors.name_last.message}</span>
                     </Label>
                     <Input
                       type="text"
                       id="lname"
                       {...register('name_last')}
-                      placeholder="Enter your last name"
+                      placeholder="name_last"
                     />
                   </div>
                 </div>
@@ -128,11 +128,11 @@ export default function SignUpForm() {
                   {/* <!-- First Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
-                      Password<span className="text-error-500">* { errors.password && errors.password.message}</span>
+                      password<span className="text-error-500">* { errors.password && errors.password.message}</span>
                     </Label>
                     <div className="relative">
                       <Input
-                        placeholder="Enter your password"
+                        placeholder="password"
                         type={showPassword ? "text" : "password"}
                          {...register('password')}
                       />
@@ -151,11 +151,11 @@ export default function SignUpForm() {
                   {/* <!-- Last Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
-                      Confirm Password<span className="text-error-500">* { errors.confirmPassword && errors.confirmPassword.message}</span>
+                      confirm_password<span className="text-error-500">* { errors.confirmPassword && errors.confirmPassword.message}</span>
                     </Label>
                       <div className="relative">
                         <Input
-                          placeholder="Enter your password"
+                          placeholder="confirm_password"
                           type={showPassword ? "text" : "password"}
                            {...register('confirmPassword')}
                         />

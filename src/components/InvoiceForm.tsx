@@ -7,19 +7,19 @@ import ComponentCard from "./common/ComponentCard";
 import Label from "./form/Label";
 import { Input, Select, TextArea } from "./wrapper";
 
-import { saveRecord, getRecord } from "../api/wcapi";
+import { saveRecord } from "../api/wcapi";
 import { showToast } from "../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import staticLists from "../constants/staticLists";
 
 const invoiceSchema = z.object({
-  company: z.string().min(1, "Company is required"),
+  company: z.string().min(1, "company is required"),
   attention: z.string().optional(),
-  address1: z.string().min(1, "Address1 is required"),
+  address1: z.string().min(1, "address1 is required"),
   address2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
+  city: z.string().min(1, "city is required"),
   state: z.string().optional(),
-  zip: z.string().min(1, "Zip is required"),
+  zip: z.string().min(1, "zip is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
   phone_cell: z.string().optional(),
@@ -51,7 +51,7 @@ interface InvoiceFormProps {
 export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = false, onCancelInline }: InvoiceFormProps) {
   const dispatch = useDispatch();
 
-  const { register, setValue, handleSubmit, formState: { errors }, reset } = useForm<z.infer<typeof invoiceSchema>>({
+  const { register, setValue, handleSubmit, formState: { errors }, reset, watch } = useForm<z.infer<typeof invoiceSchema>>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {},
   });
@@ -89,7 +89,7 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
   };
 
   const stateOptions = [
-    { value: "", label: "Select State" },
+    { value: "", label: "state" },
     ...staticLists.aStates.map(state => ({ value: state, label: state }))
   ];
 
@@ -108,11 +108,11 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="company">Company</Label>
+            <Label htmlFor="company">company</Label>
             <Input
               type="text"
               id="company"
-              placeholder="Company"
+              placeholder="company"
               {...register("company")}
               error={errors.company && errors.company.message ? true : false}
               hint={errors.company && errors.company.message}
@@ -120,21 +120,21 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
             />
           </div>
           <div>
-            <Label htmlFor="attention">Attention</Label>
+            <Label htmlFor="attention">attention</Label>
             <Input
               type="text"
               id="attention"
-              placeholder="Attention"
+              placeholder="attention"
               {...register("attention")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="address1">Address 1</Label>
+            <Label htmlFor="address1">address1</Label>
             <Input
               type="text"
               id="address1"
-              placeholder="Address 1"
+              placeholder="address1"
               {...register("address1")}
               error={errors.address1 && errors.address1.message ? true : false}
               hint={errors.address1 && errors.address1.message}
@@ -142,21 +142,21 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
             />
           </div>
           <div>
-            <Label htmlFor="address2">Address 2</Label>
+            <Label htmlFor="address2">address2</Label>
             <Input
               type="text"
               id="address2"
-              placeholder="Address 2"
+              placeholder="address2"
               {...register("address2")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="city">city</Label>
             <Input
               type="text"
               id="city"
-              placeholder="City"
+              placeholder="city"
               {...register("city")}
               error={errors.city && errors.city.message ? true : false}
               hint={errors.city && errors.city.message}
@@ -164,21 +164,21 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
             />
           </div>
           <div>
-            <Label htmlFor="state">State</Label>
+            <Label htmlFor="state">state</Label>
             <Select
               options={stateOptions}
-              placeholder="Select State"
-              value={data?.state || ""}
+              placeholder="state"
+              value={watch("state") || ""}
               onChange={(value) => setValue("state", value)}
               className={mode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}
             />
           </div>
           <div>
-            <Label htmlFor="zip">Zip</Label>
+            <Label htmlFor="zip">zip</Label>
             <Input
               type="text"
               id="zip"
-              placeholder="Zip"
+              placeholder="zip"
               {...register("zip")}
               error={errors.zip && errors.zip.message ? true : false}
               hint={errors.zip && errors.zip.message}
@@ -186,11 +186,11 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">email</Label>
             <Input
               type="email"
               id="email"
-              placeholder="Email"
+              placeholder="email"
               {...register("email")}
               error={errors.email && errors.email.message ? true : false}
               hint={errors.email && errors.email.message}
@@ -198,30 +198,30 @@ export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = fals
             />
           </div>
           <div>
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">phone</Label>
             <Input
               type="tel"
               id="phone"
-              placeholder="Phone"
+              placeholder="phone"
               {...register("phone")}
               disabled={mode === 'view'}
             />
           </div>
           <div>
-            <Label htmlFor="phone_cell">Phone Cell</Label>
+            <Label htmlFor="phone_cell">phone_cell</Label>
             <Input
               type="tel"
               id="phone_cell"
-              placeholder="Phone Cell"
+              placeholder="phone_cell"
               {...register("phone_cell")}
               disabled={mode === 'view'}
             />
           </div>
         </div>
         <div>
-          <Label htmlFor="comment">Comment</Label>
+          <Label htmlFor="comment">comment</Label>
           <TextArea
-            placeholder="Comment"
+            placeholder="comment"
             register={register("comment")}
             disabled={mode === 'view'}
           />

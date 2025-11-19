@@ -197,7 +197,7 @@ export default function UserMetaCard() {
                   </div>
 
                   <div>
-                    <Label>Linkedin</Label>
+                    <Label>linkedin</Label>
                     <Input
                       type="text"
                       value="https://www.linkedin.com/company/pimjo"
@@ -205,7 +205,7 @@ export default function UserMetaCard() {
                   </div>
 
                   <div>
-                    <Label>Instagram</Label>
+                    <Label>instagram</Label>
                     <Input type="text" value="https://instagram.com/PimjoHQ" />
                   </div>
                 </div>
@@ -217,27 +217,27 @@ export default function UserMetaCard() {
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>First Name</Label>
+                    <Label>name_first</Label>
                     <Input type="text" value="Riju" />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Last Name</Label>
+                    <Label>name_last</Label>
                     <Input type="text" value="Karar" />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Email Address</Label>
+                    <Label>email</Label>
                     <Input type="text" value="technoriju@gmail.com" />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
+                    <Label>phone</Label>
                     <Input type="text" value="+09 363 398 46" />
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Bio</Label>
+                    <Label>bio</Label>
                     <Input type="text" value="Super Admin" />
                   </div>
                 </div>

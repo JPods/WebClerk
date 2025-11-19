@@ -51,18 +51,18 @@ export default function InvoiceDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ComponentCard>
             <div className="p-4">
-              <label className="block text-sm font-medium mb-2">Customer Name Search</label>
-              <input type="text" className="w-full p-2 border rounded" placeholder="Search customer..." />
+              <label className="block text-sm font-medium mb-2">customer_name_search</label>
+              <input type="text" className="w-full p-2 border rounded" placeholder="customer_name_search" />
             </div>
           </ComponentCard>
           <ComponentCard>
             <div className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm"><strong>Sales Order Number:</strong> {invoice?.order_num || 'N/A'}</p>
-                <p className="text-sm"><strong>Customer PO Number:</strong> {invoice?.customer_po || 'N/A'}</p>
+                <p className="text-sm"><strong>sales_order_number:</strong> {invoice?.order_num || 'N/A'}</p>
+                <p className="text-sm"><strong>customer_po_number:</strong> {invoice?.customer_po || 'N/A'}</p>
               </div>
               <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Print
+                print
               </button>
             </div>
           </ComponentCard>

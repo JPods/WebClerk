@@ -204,34 +204,37 @@ const App: React.FC = () => {
         <div className="p-6 space-y-5">
           {/* First Name */}
           <div>
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="name_first">name_first</Label>
             <Input
-              id="firstName"
+              id="name_first"
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
+              placeholder="name_first"
             />
           </div>
 
           {/* Last Name */}
           <div>
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="name_last">name_last</Label>
             <Input
-              id="lastName"
+              id="name_last"
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
+              placeholder="name_last"
             />
           </div>
           
           {/* Miscellaneous */}
           <div>
-            <Label htmlFor="miscellaneous">Miscellaneous</Label>
+            <Label htmlFor="miscellaneous">miscellaneous</Label>
             <TextArea
               id="miscellaneous"
               value={miscellaneous}
               onChange={handleMiscellaneousChange}
               maxLength={MAX_MISC_CHARS}
+              placeholder="miscellaneous"
             />
             <p className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
               Characters Available: {MAX_MISC_CHARS - miscCharCount}
@@ -269,7 +272,7 @@ const App: React.FC = () => {
                   type="text"
                   value={phone.value}
                   onChange={(e) => handleUpdatePhoneNumber(phone.id, 'value', e.target.value)}
-                  placeholder="Enter phone number"
+                  placeholder="phone"
                   className="flex-grow w-full sm:w-auto mt-2 sm:mt-0"
                 />
                 {phoneNumbers.length > 1 && (
@@ -308,7 +311,7 @@ const App: React.FC = () => {
                   type="email"
                   value={email.value}
                   onChange={(e) => handleUpdateEmail(email.id, 'value', e.target.value)}
-                  placeholder="Enter email address"
+                  placeholder="email"
                   className="flex-grow w-full sm:w-auto mt-2 sm:mt-0"
                 />
                  {emails.length > 1 && (
@@ -337,28 +340,28 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 
                    <div className="col-span-2"> {/* Takes full width on small screens */}
-                    <Label htmlFor={`address1-${address.id}`}>Address 1</Label>
+                    <Label htmlFor={`address1-${address.id}`}>address1</Label>
                     <Input
                       id={`address1-${address.id}`}
                       type="text"
                       value={address.address1}
                       onChange={(e) => handleUpdateAddress(address.id, 'address1', e.target.value)}
-                      placeholder="Enter address1"
+                      placeholder="address1"
                     />
                   </div>
                     <div className="col-span-2"> {/* Takes full width on small screens */}
-                    <Label htmlFor={`address2-${address.id}`}>Address 2</Label>
+                    <Label htmlFor={`address2-${address.id}`}>address2</Label>
                     <Input
                       id={`address2-${address.id}`}
                       type="text"
                       value={address.address1}
                       onChange={(e) => handleUpdateAddress(address.id, 'address2', e.target.value)}
-                      placeholder="Enter address 2"
+                      placeholder="address2"
                     />
                   </div>
                   {/* Country */}
                   <div>
-                    <Label htmlFor={`country-${address.id}`}>Country</Label>
+                    <Label htmlFor={`country-${address.id}`}>country</Label>
                     <Select
                       id={`country-${address.id}`}
                       value={address.country}
@@ -372,7 +375,7 @@ const App: React.FC = () => {
                   </div>
                   {/* State */}
                   <div>
-                    <Label htmlFor={`state-${address.id}`}>State</Label>
+                    <Label htmlFor={`state-${address.id}`}>state</Label>
                     <Select
                       id={`state-${address.id}`}
                       value={address.state}
@@ -385,7 +388,7 @@ const App: React.FC = () => {
                     </Select>
                   </div>
                      <div>
-                    <Label htmlFor={`city-${address.id}`}>City</Label>
+                    <Label htmlFor={`city-${address.id}`}>city</Label>
                     <Select
                       id={`city-${address.id}`}
                       value={address.city}
@@ -399,24 +402,24 @@ const App: React.FC = () => {
                   </div>
                   {/* Zip Code */}
                   <div className="col-span-2 border-gray-200"> {/* Takes full width on small screens */}
-                    <Label htmlFor={`zipCode-${address.id}`}>Zip Code</Label>
+                    <Label htmlFor={`zipCode-${address.id}`}>zip_code</Label>
                     <Input
                       id={`zipCode-${address.id}`}
                       type="text"
                       value={address.zipCode}
                       onChange={(e) => handleUpdateAddress(address.id, 'zipCode', e.target.value)}
-                      placeholder="Enter zip code"
+                      placeholder="zip_code"
                     />
                   </div>
                   {/* Street Address */}
                   <div className="col-span-2"> {/* Takes full width on small screens */}
-                    <Label htmlFor={`streetAddress-${address.id}`}>Street Address</Label>
+                    <Label htmlFor={`streetAddress-${address.id}`}>street_address</Label>
                     <Input
                       id={`streetAddress-${address.id}`}
                       type="text"
                       value={address.fullAddress}
                       onChange={(e) => handleUpdateAddress(address.id, 'fullAddress', e.target.value)}
-                      placeholder="Enter street address"
+                      placeholder="street_address"
                     />
                   </div>
                 </div>

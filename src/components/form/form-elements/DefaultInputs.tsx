@@ -21,28 +21,28 @@ export default function DefaultInputs() {
     <ComponentCard title="Default Inputs">
       <div className="space-y-6">
         <div>
-          <Label htmlFor="input">Input</Label>
+          <Label htmlFor="input">input</Label>
           <Input type="text" id="input" />
         </div>
         <div>
-          <Label htmlFor="inputTwo">Input with Placeholder</Label>
-          <Input type="text" id="inputTwo" placeholder="info@gmail.com" />
+          <Label htmlFor="inputTwo">input_with_placeholder</Label>
+          <Input type="text" id="inputTwo" placeholder="input_with_placeholder" />
         </div>
         <div>
-          <Label>Select Input</Label>
+          <Label>select_input</Label>
           <Select
             options={options}
-            placeholder="Select an option"
+            placeholder="select_input"
             onChange={handleSelectChange}
             className="dark:bg-dark-900"
           />
         </div>
         <div>
-          <Label>Password Input</Label>
+          <Label>password_input</Label>
           <div className="relative">
             <Input
               type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
+              placeholder="password"
             />
             <button
               onClick={() => setShowPassword(!showPassword)}
@@ -60,8 +60,8 @@ export default function DefaultInputs() {
         <div>
           <DatePicker
             id="date-picker"
-            label="Date Picker Input"
-            placeholder="Select a date"
+            label="date_picker"
+            placeholder="date_picker"
             onChange={(dates, currentDateString) => {
               // Handle your logic
               console.log({ dates, currentDateString });
@@ -70,7 +70,7 @@ export default function DefaultInputs() {
         </div>
 
         <div>
-          <Label htmlFor="tm">Time Picker Input</Label>
+          <Label htmlFor="tm">time_picker</Label>
           <div className="relative">
             <Input
               type="time"
@@ -84,11 +84,11 @@ export default function DefaultInputs() {
           </div>
         </div>
         <div>
-          <Label htmlFor="tm">Input with Payment</Label>
+          <Label htmlFor="tm">payment_input</Label>
           <div className="relative">
             <Input
               type="text"
-              placeholder="Card number"
+              placeholder="card_number"
               className="pl-[62px]"
             />
             <span className="absolute left-0 top-1/2 flex h-11 w-[46px] -translate-y-1/2 items-center justify-center border-r border-gray-200 dark:border-gray-800">
