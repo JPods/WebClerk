@@ -1,6 +1,7 @@
-from apps.core.services.wcapi import (
-    WcapiView,
-)
+from apps.core.views.save_view import SaveWcapiView
+
+# Alias for backward compatibility
+WcapiView = SaveWcapiView
 
 # # Universal API Views - Simple implementations for now
 # class WcapiView(TemplateView):

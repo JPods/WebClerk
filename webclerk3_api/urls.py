@@ -1,13 +1,24 @@
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView
+)
 
 urlpatterns = [
-    path('', include('apps.core.wcapi.urls')),
+    # API Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    
+    # Core API endpoints
+    path('', include('apps.core.urls')),
     path('admin/', admin.site.urls),
 ]
 
 # JSON-only error handlers
-handler400 = "apps.core.wcapi.error_handlers.json_bad_request"
-handler403 = "apps.core.wcapi.error_handlers.json_permission_denied"
-handler404 = "apps.core.wcapi.error_handlers.json_not_found"
-handler500 = "apps.core.wcapi.error_handlers.json_server_error"
+handler400 = "django.views.defaults.bad_request"
+handler403 = "django.views.defaults.permission_denied"
+handler404 = "django.views.defaults.page_not_found"
+handler500 = "django.views.defaults.server_error"

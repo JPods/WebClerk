@@ -5,7 +5,7 @@ from django.db.models import QuerySet, Model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from apps.core.wcapi import registry
+from apps.core.utils import registry
 
 def to_dict(obj: Model) -> Dict[str, Any]:
     try:
@@ -32,7 +32,7 @@ class WCAPIGetView(APIView):
 
     def post(self, request, *args, **kwargs):
         body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model")
+        model_key = body.get("model_name")
         record_id = body.get("id")
         filters = body.get("filters") or {}
         fields: Optional[List[str]] = body.get("fields")
@@ -77,7 +77,7 @@ class WCAPISaveView(APIView):
 
     def post(self, request, *args, **kwargs):
         body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model")
+        model_key = body.get("model_name")
         record_id = body.get("id")
         data = body.get("data") or {}
 
@@ -105,7 +105,7 @@ class WCAPIDeleteView(APIView):
 
     def post(self, request, *args, **kwargs):
         body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model")
+        model_key = body.get("model_name")
         record_id = body.get("id")
 
         ModelCls = registry.resolve(model_key or "")

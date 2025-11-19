@@ -3,7 +3,6 @@
 
 from apps.core.models.setting import Setting
 from apps.core.services.cache_service import cache_service
-from django.db import connection
 
 def load_keyword_requirements():
     # Load all active keyword requirements once at startup

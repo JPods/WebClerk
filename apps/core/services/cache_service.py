@@ -1,7 +1,7 @@
 import redis
 import json
 import hashlib
-from typing import Any, Optional, Union
+from typing import Any
 from django.conf import settings
 
 

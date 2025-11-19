@@ -1,10 +1,10 @@
 from celery import shared_task
 from apps.core.services.cache_service import cache_service
-from apps.core.utils import access_utils
 from apps.core.constants import keyword_requirements, constants_init
 from typing import Dict, Any
 from apps.core.services.wcapi_registry import ALLOWED_TABLE_KEYS
 from django.apps import apps
+from apps.core.constants.save_hooks import execute_save_hook
 
 
 @shared_task(name='apps.core.tasks.cache_tasks.update_access_fields_cache')
@@ -112,9 +112,6 @@ def invalidate_cache_namespace(namespace: str):
 def execute_save_async_hooks(model_name: str, record_id: int, hook_data: Dict[str, Any]):
     """Execute save_async hooks asynchronously after save completes."""
     try:
-        from apps.core.constants.save_hooks import execute_save_hook
-        from django.apps import apps
-
         # Get the model and instance
         try:
             model = apps.get_model('core', model_name)  # Adjust app label as needed

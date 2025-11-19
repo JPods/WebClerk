@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
+from typing import Dict, Iterable, List, Optional, Type
 from importlib import import_module
 
 from django.conf import settings
 from django.db.models import Model
 
-from apps.core.wcapi import services, policy as base_policy
+from apps.core.services import wcapi as services
+from apps.core.utils.policy import field_allowlist as base_policy
 
 
 def _get_model_key(model: Type[Model]) -> str:
@@ -55,7 +56,7 @@ def _resolve_fields(rule: dict, roles: Iterable[str]) -> Optional[List[str]]:
 def read_allowlist(model: Type[Model], request=None) -> Optional[List[str]]:
     if not _enabled():
         # fall back to existing policy behavior
-        return base_policy.field_allowlist(model, request=request)
+        return base_policy(model, request=request)
     cfg = _get_policies().get(_get_model_key(model)) or {}
     fields_cfg = (cfg.get("fields") or {}).get("read") or {}
     roles = _roles_for(request)

@@ -7,7 +7,7 @@ class ExchangeRate(BaseModel):
     """Time-windowed FX rate between two currency codes.
 
     Separate from transactional Exchanges; this stores reference rates
-    fetched from an external provider (sync.Connection).
+    fetched from an external provider.
     """
 
     name = models.CharField(max_length=255, blank=True, null=True)
@@ -20,15 +20,6 @@ class ExchangeRate(BaseModel):
     rate = models.DecimalField(max_digits=20, decimal_places=6, default=Decimal('1'))
     precision_convert = models.IntegerField(default=4)
     precision_display = models.IntegerField(default=2)
-
-    # Provenance to the provider that supplied this rate
-    connection = models.ForeignKey(
-        'sync.Connection',
-        db_column='connection_id',
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-    )
 
     class Meta:
         db_table = 'acct_exchange_rates'

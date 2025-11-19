@@ -8,7 +8,7 @@ class CoreConfig(AppConfig):
     def ready(self):
         # Initialize WCAPI registry
         try:
-            from .wcapi import registry
+            from apps.core.utils import registry
             registry.refresh_from_settings()
         except Exception:
             pass

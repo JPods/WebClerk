@@ -6,7 +6,7 @@ class Currency(BaseModel):
     """Currency catalog entry with optional external provider link.
 
     Used for listing active currencies and storing metadata needed for
-    formatting and conversion. External updates are fetched via a sync.Connection.
+    formatting and conversion.
     """
 
     code = models.CharField(max_length=10, unique=True)  # e.g., USD, EUR
@@ -14,9 +14,6 @@ class Currency(BaseModel):
     symbol = models.CharField(max_length=8, blank=True, null=True)
     precision = models.IntegerField(default=2)
     is_active = models.BooleanField(default=True)
-
-    # Optional default provider connection for updates (e.g., forex API)
-    connection = models.ForeignKey('sync.Connection', blank=True, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'acct_currencies'

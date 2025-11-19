@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 from django.apps import apps as django_apps
 
 # Optional, lightweight cache

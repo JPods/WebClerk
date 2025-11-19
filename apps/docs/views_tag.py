@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Any, Optional, List
 from apps.docs.models import Tag
-from apps.core.wcapi.mixins import SettingsDrivenCRUDMixin
-from apps.core.wcapi.hierarchy import parent_field_name, children_qs, parent_chain
+from apps.core.utils.mixins import SettingsDrivenCRUDMixin
+from apps.core.utils.hierarchy import parent_field_name, children_qs, parent_chain
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView

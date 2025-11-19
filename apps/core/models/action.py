@@ -1,7 +1,6 @@
-import uuid
 from django.db import models
-from django.utils import timezone
 from common.models import BaseModel
+from apps.core.services.keywords import build_keywords_for_record
 
 KANBAN_COLUMNS = [
     ('Backlog', 'Backlog'),
@@ -81,9 +80,7 @@ class Action(BaseModel):
         return f"{action_text} ({self.kanban_column})"
 
     def update_keywords(self):
-        """Update keywords for this action record."""
-        from apps.core.services.keywords import build_keywords_for_record
-        
+        """Update keywords for this action record."""   
         # Clear previous keywords and generate new ones
         refs = getattr(self, 'refs', {}) or {}
         if not isinstance(refs, dict):

@@ -7,7 +7,6 @@ from functools import cached_property
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Protocol, cast
 
 from django.conf import settings
-from django.http import Http404
 from django.db.models import Q, QuerySet, Model
 from rest_framework.request import Request
 

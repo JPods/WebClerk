@@ -22,8 +22,6 @@ class ExchangeTransaction(BaseModel):
     rate = models.DecimalField(max_digits=20, decimal_places=6, default=Decimal('1'))
     precision_convert = models.IntegerField(default=2)
     precision_display = models.IntegerField(default=2)
-    # Link to the provider connection used (if any)
-    connection = models.ForeignKey('sync.Connection', db_column='connection_id', blank=True, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'acct_exchanges'

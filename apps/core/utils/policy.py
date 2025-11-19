@@ -1,9 +1,8 @@
 from __future__ import annotations
-from typing import Iterable, Optional
-from django.db.models import QuerySet, Model
+from django.db.models import QuerySet
 
 try:
-    from apps.core.wcapi.model_policies import read_allowlist as _mp_read_allowlist
+    from apps.core.utils.model_policies import read_allowlist as _mp_read_allowlist
 except Exception:
     _mp_read_allowlist = None
 

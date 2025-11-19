@@ -21,6 +21,7 @@ from django.utils import timezone
 
 from common.models import BaseModel
 from common.link_mixins import StandardLinksMixin
+from apps.core.services.keywords import build_keywords_for_record
 
 # Django requires a custom manager for custom user models.
 # ContactManager inherits from BaseUserManager (from django.contrib.auth.models)
@@ -222,8 +223,6 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     def update_keywords(self):
         """Update keywords for this contact record."""
-        from apps.core.services.keywords import build_keywords_for_record
-        
         # Clear previous keywords and generate new ones
         refs = getattr(self, 'refs', {}) or {}
         if not isinstance(refs, dict):
