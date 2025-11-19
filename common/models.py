@@ -702,71 +702,42 @@ class KeywordsMixin(models.Model):
         return strings
 
     def update_keywords(self):  # requires refs + metadata if present
-        if not hasattr(self, "refs"):
-            return
-        keywords_set: set[str] = set()
-        for field in self._meta.fields:  # type: ignore[attr-defined]
-            if field.name in IGNORE_FIELDS:
-                continue
-            val = getattr(self, field.name, None)
-            if val is not None:
-                # Extract all strings recursively (handles JSON parsing for all field types)
-                strings = self._extract_strings_recursive(val)
-                for s in strings:
-                    if s.strip():
-                        # Split by space and process each word
-                        for raw in s.lower().split():
-                            token = raw.strip('.,!?;:"()[]{}')
-                            if len(token) > 2 and token not in IGNORE_WORDS:
-                                keywords_set.add(token)
-        # Process keywords from linked related objects
-        if hasattr(self, "refs") and isinstance(self.refs, dict):  # type: ignore[attr-defined]
-            links = self.refs.get("links", {})  # type: ignore[attr-defined]
-            if isinstance(links, dict):
-                for link_type, ids in links.items():
-                    if not ids or not isinstance(ids, list):
-                        continue
-
-                    # Limit to first 10 related objects to avoid performance issues
-                    limited_ids = ids[:10]
-
-                    # Get related model name (singularize if plural)
-                    related_model_name = link_type[:-1] if link_type.endswith('s') else link_type
-
-                    # Find the related model (import locally to avoid Django setup issues)
-                    from apps.core.services.wcapi_registry import get_model
-                    related_model = get_model(related_model_name)
-                    if not related_model:
-                        continue
-
-                    try:
-                        # Query related objects
-                        related_objects = related_model.objects.filter(id__in=limited_ids)  # type: ignore[attr-defined]
-                        for related_obj in related_objects:
-                            # Extract keywords from related object using same logic
-                            for field in related_obj._meta.fields:
-                                if field.name in IGNORE_FIELDS:
-                                    continue
-                                val = getattr(related_obj, field.name, None)
-                                if val is not None:
-                                    # Extract all strings recursively
-                                    strings = self._extract_strings_recursive(val)
-                                    for s in strings:
-                                        if s.strip():
-                                            # Split by space and process each word
-                                            for raw in s.lower().split():
-                                                token = raw.strip('.,!?;:"()[]{}')
-                                                if len(token) > 2 and token not in IGNORE_WORDS:
-                                                    keywords_set.add(token)
-                    except Exception:
-                        # Skip if query fails
-                        continue
-
-        self.refs.setdefault("keywords", [])  # type: ignore[attr-defined]
-        self.refs["keywords"] = list(keywords_set)[:50]  # type: ignore[attr-defined]
-        if hasattr(self, "metadata"):
-            self.metadata.setdefault("flags", {})["keywords_pending"] = False  # type: ignore[attr-defined]
-            self.metadata.setdefault("versioning", {})["keywords_dt_refreshed"] = int(timezone.now().timestamp() * 1000)  # type: ignore[attr-defined]
+        try:
+            if not hasattr(self, "refs"):
+                logging.getLogger(__name__).warning('No refs field found for %s', self.__class__.__name__)
+                return
+            
+            # Clear previous keywords list to ensure fresh generation
+            self.refs.setdefault("keywords", [])
+            self.refs["keywords"] = []
+            
+            logging.getLogger(__name__).info('Starting keyword generation for %s id=%s', self.__class__.__name__, getattr(self, 'id', None))
+            
+            # Import the keyword service function
+            from apps.core.services.keywords import build_keywords_for_record
+            
+            # Get model name for the keyword service
+            model_name = self.__class__.__name__.lower()
+            
+            # Generate keywords using the configuration-based system
+            keywords_list = build_keywords_for_record(model_name, self.id)
+            
+            # Update refs with new keywords
+            self.refs["keywords"] = keywords_list
+            
+            logging.getLogger(__name__).info('Keyword generation completed for %s id=%s. Generated %d keywords: %s',
+                                           self.__class__.__name__, getattr(self, 'id', None),
+                                           len(keywords_list), keywords_list[:10])  # Log first 10 keywords
+            
+            if hasattr(self, "metadata"):
+                self.metadata.setdefault("flags", {})["keywords_pending"] = False  # type: ignore[attr-defined]
+                self.metadata.setdefault("versioning", {})["keywords_dt_refreshed"] = int(timezone.now().timestamp() * 1000)  # type: ignore[attr-defined]
+            
+            logging.getLogger(__name__).info('update_keywords completed successfully for %s id=%s',
+                                           self.__class__.__name__, getattr(self, 'id', None))
+        except Exception as e:
+            logging.getLogger(__name__).exception('Exception in update_keywords for %s id=%s: %s',
+                                                self.__class__.__name__, getattr(self, 'id', None), str(e))
 
 
 class AtomicJSONMixin(models.Model):

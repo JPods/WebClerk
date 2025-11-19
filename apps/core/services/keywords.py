@@ -1,7 +1,7 @@
-from apps.core.models.pending import Pending
 from apps.core.constants.keyword_requirements import get_keyword_requirements
 from apps.core.services.cache_service import cache_service
 from django.apps import apps
+from common.ignore_fields import IGNORE_WORDS
 
 def build_keywords_for_contact(contact_id):
     # Query related records and build keywords for a contact
@@ -10,6 +10,7 @@ def build_keywords_for_contact(contact_id):
 def _extract_keywords_from_value(value):
     """
     Extract keywords from a value, handling various data types including JSON structures.
+    Applies filtering for common words and minimum length.
     """
     keywords = []
 
@@ -17,27 +18,32 @@ def _extract_keywords_from_value(value):
         return keywords
 
     if isinstance(value, str):
-        # Split by space and comma, strip, lowercase, filter empty
+        # Split by space and comma, strip, lowercase, filter empty and apply word filtering
         for word in value.replace(',', ' ').split():
             word = word.strip().lower()
             if word:
-                keywords.append(word)
+                # Split by punctuation and process each token
+                for raw in word.split():
+                    token = raw.strip('.,!?;:"()[]{}')
+                    # Filter common words and apply minimum length
+                    if len(token) > 2 and token not in IGNORE_WORDS:
+                        keywords.append(token)
     elif isinstance(value, list):
         # Handle JSON arrays
         for item in value:
             keywords.extend(_extract_keywords_from_value(item))
     elif isinstance(value, dict):
-        # Handle JSON objects - extract all string values
+        # Handle JSON objects - extract all string values recursively
         for key, val in value.items():
-            if key == 'name':  # Special handling for name fields (like in assigned_to)
-                keywords.extend(_extract_keywords_from_value(val))
-            elif isinstance(val, str):
-                keywords.extend(_extract_keywords_from_value(val))
+            keywords.extend(_extract_keywords_from_value(val))
     else:
-        # Convert other types to string
+        # Convert other types to string and apply filtering
         str_value = str(value).strip().lower()
         if str_value:
-            keywords.append(str_value)
+            for raw in str_value.split():
+                token = raw.strip('.,!?;:"()[]{}')
+                if len(token) > 2 and token not in IGNORE_WORDS:
+                    keywords.append(token)
 
     return keywords
 
@@ -55,6 +61,7 @@ def _extract_keywords_from_field(record, field_path):
 
             for i, part in enumerate(parts):
                 if isinstance(value, dict):
+                    # Handle dictionary access (for JSONField values)
                     value = value.get(part)
                 elif isinstance(value, list) and part.isdigit():
                     # Handle array indexing like assigned_to.0
@@ -64,6 +71,7 @@ def _extract_keywords_from_field(record, field_path):
                     else:
                         return []
                 elif hasattr(value, part):
+                    # Handle Django model attributes
                     value = getattr(value, part, None)
                 else:
                     # Special handling for extracting nested properties from arrays of objects
@@ -77,6 +85,8 @@ def _extract_keywords_from_field(record, field_path):
                             for nested_part in remaining_parts:
                                 if isinstance(item_value, dict):
                                     item_value = item_value.get(nested_part)
+                                elif hasattr(item_value, nested_part):
+                                    item_value = getattr(item_value, nested_part, None)
                                 else:
                                     item_value = None
                                     break
@@ -88,6 +98,7 @@ def _extract_keywords_from_field(record, field_path):
                 if value is None:
                     return []
         else:
+            # Handle simple field access on Django model
             value = getattr(record, field_path, None)
 
         return _extract_keywords_from_value(value)
@@ -201,10 +212,11 @@ def build_keywords_for_record(model_name, record_id):
         return []
 
 def create_pending_keyword_update(model_name, record_id, data):
-    # Create a Pending record for later processing
+    # Create a Pending record for later processing (local import to avoid circular dependency)
+    from apps.core.models.pending import Pending
     cache = Pending.objects.create(
-    ida=f"{model_name}:{record_id}",
-    model_name=model_name,
+        ida=f"{model_name}:{record_id}",
+        model_name=model_name,
         data=data
     )
     return cache

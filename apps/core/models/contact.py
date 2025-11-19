@@ -223,12 +223,22 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     def update_keywords(self):
         """Update keywords for this contact record."""
         from apps.core.services.keywords import build_keywords_for_record
-        keywords = build_keywords_for_record('contact', self.id)
-        # Store keywords in refs.keywords
+        
+        # Clear previous keywords and generate new ones
         refs = getattr(self, 'refs', {}) or {}
         if not isinstance(refs, dict):
             refs = {}
+        refs['keywords'] = []
+        self.refs = refs
+        
+        # Use the actual model name from class name
+        model_name = self.__class__.__name__.lower()
+        keywords = build_keywords_for_record(model_name, self.id)
+        
+        # Store keywords in refs.keywords
         refs['keywords'] = keywords
         self.refs = refs
+        
+        # Note: Save is handled by the calling thread in save_view.py
     
 

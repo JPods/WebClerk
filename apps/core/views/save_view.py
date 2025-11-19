@@ -595,19 +595,24 @@ class SaveWcapiView(APIView):
         except Exception:
             logging.getLogger(__name__).exception('Unexpected error measuring save_post_async')
 
-        # Kick keyword rebuild in background (best-effort)
+        # Run keyword generation in a thread (not blocking API response)
         try:
-            kw_task = getattr(tasks, 'update_keywords_task', None)
-            if kw_task is not None and obj_id:
-                try:
-                    kw_task.delay(model_key, obj_id)
-                except Exception:
+            if hasattr(obj, 'update_keywords'):
+                import threading
+                def update_keywords_async():
                     try:
-                        kw_task.run(model_key, obj_id)
+                        logging.getLogger(__name__).info('Starting keyword update for %s id=%s', model_key, obj_id)
+                        obj.update_keywords()
+                        logging.getLogger(__name__).info('Calling save for keywords update for %s id=%s', model_key, obj_id)
+                        obj.save(update_fields=['refs', 'metadata'])
+                        logging.getLogger(__name__).info('Keyword update completed successfully for %s id=%s', model_key, obj_id)
                     except Exception:
                         logging.getLogger(__name__).exception('Failed to update keywords for %s id=%s', model_key, obj_id)
+                thread = threading.Thread(target=update_keywords_async)
+                thread.daemon = True
+                thread.start()
         except Exception:
-            logging.getLogger(__name__).exception('Unexpected error dispatching keyword rebuild')
+            logging.getLogger(__name__).exception('Failed to start keyword update thread for %s id=%s', model_key, obj_id)
 
         # this is needed to pass out to id of a new record
         try:
