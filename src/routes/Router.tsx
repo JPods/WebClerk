@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
-import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, CustomerDetailPage, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, CustomerAddPage, CustomerDetailPage, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
 import AdminWorkbench from '../pages/admin/AdminWorkbench';
 import WhitelistTester from '../pages/tools/WhitelistTester';
 import ProductsPage from '../pages/items/ProductsPage';
@@ -41,6 +41,7 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.contactList} element={<ContactList />} />
               <Route path={PageRoutes.contactAdd} element={<ContactAdd />} />
               <Route path={PageRoutes.contactAdd + '/:id'} element={<ContactAdd />} />
+              <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
               <Route path={PageRoutes.customerDetail} element={<CustomerDetailPage />} />
               <Route path={PageRoutes.settingList} element={<SettingList />} /> 
               <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />

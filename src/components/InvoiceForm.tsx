@@ -12,20 +12,35 @@ import { showToast } from "../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import staticLists from "../constants/staticLists";
 
-const contactSchema = z.object({
-  name_first: z.string().min(1, "First name is required"),
-  name_last: z.string().min(1, "Last name is required"),
-  company: z.string().optional(),
+const invoiceSchema = z.object({
+  company: z.string().min(1, "Company is required"),
+  attention: z.string().optional(),
+  address1: z.string().min(1, "Address1 is required"),
+  address2: z.string().optional(),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional(),
+  zip: z.string().min(1, "Zip is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
-  address1: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip: z.string().optional(),
+  phone_cell: z.string().optional(),
+  action_by: z.string().optional(),
+  action: z.string().optional(),
+  action_date: z.string().optional(),
+  action_time: z.string().optional(),
+  sales_name: z.string().optional(),
+  ordered_by: z.string().optional(),
+  contract_detail_tag: z.string().optional(),
+  terms: z.string().optional(),
+  type_sale: z.string().optional(),
+  tax_juris: z.string().optional(),
+  ad_source: z.string().optional(),
+  status: z.string().optional(),
+  add_comment: z.string().optional(),
   comment: z.string().optional(),
+  contract_detail: z.string().optional(),
 });
 
-interface CustomerFormProps {
+interface InvoiceFormProps {
   modeProp?: 'add' | 'edit' | 'view';
   dataProp?: any;
   onSaved?: () => void;
@@ -33,11 +48,11 @@ interface CustomerFormProps {
   onCancelInline?: () => void;
 }
 
-export default function CustomerForm({ modeProp, dataProp, onSaved, inline = false, onCancelInline }: CustomerFormProps) {
+export default function InvoiceForm({ modeProp, dataProp, onSaved, inline = false, onCancelInline }: InvoiceFormProps) {
   const dispatch = useDispatch();
 
-  const { register, setValue, handleSubmit, formState: { errors }, reset } = useForm<z.infer<typeof contactSchema>>({
-    resolver: zodResolver(contactSchema),
+  const { register, setValue, handleSubmit, formState: { errors }, reset } = useForm<z.infer<typeof invoiceSchema>>({
+    resolver: zodResolver(invoiceSchema),
     defaultValues: {},
   });
 
@@ -58,18 +73,18 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof invoiceSchema>) => {
     try {
       const payload = { ...formData, id: data?.id };
-      const res = await saveRecord('contact', payload);
+      const res = await saveRecord('invoice', payload);
       if (res) {
-        dispatch(showToast({ message: `Contact ${mode === 'add' ? 'saved' : 'updated'} successfully`, type: "success" }));
+        dispatch(showToast({ message: `Invoice ${mode === 'add' ? 'saved' : 'updated'} successfully`, type: "success" }));
         if (onSaved) {
           onSaved();
         }
       }
     } catch (error: any) {
-      dispatch(showToast({ message: error.message || "Failed to save contact", type: "error" }));
+      dispatch(showToast({ message: error.message || "Failed to save invoice", type: "error" }));
     }
   };
 
@@ -83,7 +98,7 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
       {inline && (
         <div className="flex justify-between items-center mb-4">
           <h3 className="dark:text-white text-lg font-semibold">
-            {mode === 'edit' ? 'Edit Contact' : mode === 'view' ? 'View Contact' : 'Add New Contact'}
+            {mode === 'edit' ? 'Edit Invoice' : mode === 'view' ? 'View Invoice' : 'Add New Invoice'}
           </h3>
           {onCancelInline && (
             <button type="button" onClick={onCancelInline} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">&times;</button>
@@ -93,36 +108,80 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="name_first">First Name</Label>
-            <Input
-              type="text"
-              id="name_first"
-              placeholder="First Name"
-              {...register("name_first")}
-              error={errors.name_first && errors.name_first.message ? true : false}
-              hint={errors.name_first && errors.name_first.message}
-              disabled={mode === 'view'}
-            />
-          </div>
-          <div>
-            <Label htmlFor="name_last">Last Name</Label>
-            <Input
-              type="text"
-              id="name_last"
-              placeholder="Last Name"
-              {...register("name_last")}
-              error={errors.name_last && errors.name_last.message ? true : false}
-              hint={errors.name_last && errors.name_last.message}
-              disabled={mode === 'view'}
-            />
-          </div>
-          <div>
             <Label htmlFor="company">Company</Label>
             <Input
               type="text"
               id="company"
               placeholder="Company"
               {...register("company")}
+              error={errors.company && errors.company.message ? true : false}
+              hint={errors.company && errors.company.message}
+              disabled={mode === 'view'}
+            />
+          </div>
+          <div>
+            <Label htmlFor="attention">Attention</Label>
+            <Input
+              type="text"
+              id="attention"
+              placeholder="Attention"
+              {...register("attention")}
+              disabled={mode === 'view'}
+            />
+          </div>
+          <div>
+            <Label htmlFor="address1">Address 1</Label>
+            <Input
+              type="text"
+              id="address1"
+              placeholder="Address 1"
+              {...register("address1")}
+              error={errors.address1 && errors.address1.message ? true : false}
+              hint={errors.address1 && errors.address1.message}
+              disabled={mode === 'view'}
+            />
+          </div>
+          <div>
+            <Label htmlFor="address2">Address 2</Label>
+            <Input
+              type="text"
+              id="address2"
+              placeholder="Address 2"
+              {...register("address2")}
+              disabled={mode === 'view'}
+            />
+          </div>
+          <div>
+            <Label htmlFor="city">City</Label>
+            <Input
+              type="text"
+              id="city"
+              placeholder="City"
+              {...register("city")}
+              error={errors.city && errors.city.message ? true : false}
+              hint={errors.city && errors.city.message}
+              disabled={mode === 'view'}
+            />
+          </div>
+          <div>
+            <Label htmlFor="state">State</Label>
+            <Select
+              options={stateOptions}
+              placeholder="Select State"
+              value={data?.state || ""}
+              onChange={(value) => setValue("state", value)}
+              className={mode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}
+            />
+          </div>
+          <div>
+            <Label htmlFor="zip">Zip</Label>
+            <Input
+              type="text"
+              id="zip"
+              placeholder="Zip"
+              {...register("zip")}
+              error={errors.zip && errors.zip.message ? true : false}
+              hint={errors.zip && errors.zip.message}
               disabled={mode === 'view'}
             />
           </div>
@@ -149,42 +208,12 @@ export default function CustomerForm({ modeProp, dataProp, onSaved, inline = fal
             />
           </div>
           <div>
-            <Label htmlFor="address1">Address 1</Label>
+            <Label htmlFor="phone_cell">Phone Cell</Label>
             <Input
-              type="text"
-              id="address1"
-              placeholder="Address 1"
-              {...register("address1")}
-              disabled={mode === 'view'}
-            />
-          </div>
-          <div>
-            <Label htmlFor="city">City</Label>
-            <Input
-              type="text"
-              id="city"
-              placeholder="City"
-              {...register("city")}
-              disabled={mode === 'view'}
-            />
-          </div>
-          <div>
-            <Label htmlFor="state">State</Label>
-            <Select
-              options={stateOptions}
-              placeholder="Select State"
-              value={data?.state || ""}
-              onChange={(value) => setValue("state", value)}
-              className={mode === 'view' ? 'opacity-50 cursor-not-allowed' : ''}
-            />
-          </div>
-          <div>
-            <Label htmlFor="zip">Zip</Label>
-            <Input
-              type="text"
-              id="zip"
-              placeholder="Zip"
-              {...register("zip")}
+              type="tel"
+              id="phone_cell"
+              placeholder="Phone Cell"
+              {...register("phone_cell")}
               disabled={mode === 'view'}
             />
           </div>
