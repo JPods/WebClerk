@@ -7,6 +7,7 @@ import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
 import ContactAdd from "./contacts/ContactAdd";
 import ContactList from "./contacts/ContactList";
+import CustomerDetailPage from "./contacts/CustomerDetailPage";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
 import DomainAdd from "./domain/DomainAdd";
@@ -35,6 +36,7 @@ export {
   ActionAdd,
   ContactAdd,
   ContactList,
+  CustomerDetailPage,
   SettingAdd,
   SettingList,
   DomainAdd,
