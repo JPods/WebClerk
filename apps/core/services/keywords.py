@@ -3,10 +3,6 @@ from apps.core.services.cache_service import cache_service
 from django.apps import apps
 from common.ignore_fields import IGNORE_WORDS
 
-def build_keywords_for_contact(contact_id):
-    # Query related records and build keywords for a contact
-    pass
-
 def _extract_keywords_from_value(value):
     """
     Extract keywords from a value, handling various data types including JSON structures.
