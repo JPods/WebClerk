@@ -3,14 +3,10 @@ from typing import Any, Dict, List, Optional
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
 from apps.core.services import wcapi as services
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve
-from typing import Optional
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 
 try:
     from apps.core.utils.model_policies import model_policies as mp
@@ -38,8 +34,6 @@ WcapiResponseSerializer = inline_serializer(
 )
 
 
-
-from drf_spectacular.utils import extend_schema, inline_serializer
 class WCAPIGetView(APIView):
     """
     Universal GET endpoint for retrieving data from any configured model.
@@ -66,25 +60,25 @@ class WCAPIGetView(APIView):
         return Response({"items": [services.to_dict(o, allow=allow) for o in items]}, status=status.HTTP_200_OK)
 
     @extend_schema(
-        operation_id="wcapi_get_list",
+        operation_id="wcapi_get_list_query",
         summary="Get model records (GET method)",
         description="Retrieve records from any configured model using query parameters. "
                    "Supports pagination, filtering, and field selection.",
         parameters=[
-            {"name": "model_name", "in": "query", "required": True, "schema": {"type": "string"},
-             "description": "Model key from WCAPI registry (e.g., 'contact', 'action')"},
-            {"name": "id", "in": "query", "required": False, "schema": {"type": "integer"},
-             "description": "Specific record ID to retrieve (returns single item)"},
-            {"name": "fields", "in": "query", "required": False, "schema": {"type": "string"},
-             "description": "Comma-separated list of fields to include in response"}
+            OpenApiParameter(name="model_name", type=str, required=True, location=OpenApiParameter.QUERY,
+                           description="Model key from WCAPI registry (e.g., 'contact', 'action')"),
+            OpenApiParameter(name="id", type=int, required=False, location=OpenApiParameter.QUERY,
+                           description="Specific record ID to retrieve (returns single item)"),
+            OpenApiParameter(name="fields", type=str, required=False, location=OpenApiParameter.QUERY,
+                           description="Comma-separated list of fields to include in response")
         ],
         responses={
-            200: "Success - returns either single item or array of items",
-            400: "Bad Request - invalid model key or parameters",
-            401: "Unauthorized - authentication required",
+            200: WcapiResponseSerializer,
+            400: WcapiResponseSerializer,
+            401: WcapiResponseSerializer,
         }
     )
-    def get(self, request, *args, **kwargs):
+    def get(self, request, **kwargs):
         # Only accept 'model_name' query param
         model_key = request.query_params.get("model_name")
         if not model_key:
@@ -95,7 +89,7 @@ class WCAPIGetView(APIView):
         return self._handle(model_key, record_id, {}, fields_list, request)
 
     @extend_schema(
-        operation_id="wcapi_get_list_post",
+        operation_id="wcapi_get_list_body",
         summary="Get model records (POST method)",
         description="Retrieve records from any configured model using request body. "
                    "Supports advanced filtering and pagination compared to GET method.",
@@ -111,9 +105,9 @@ class WCAPIGetView(APIView):
             }
         ),
         responses={
-            200: "Success - returns records array",
-            400: "Bad Request - invalid parameters",
-            401: "Unauthorized - authentication required",
+            200: WcapiResponseSerializer,
+            400: WcapiResponseSerializer,
+            401: WcapiResponseSerializer,
         }
     )
     def post(self, request, *args, **kwargs):
@@ -126,6 +120,7 @@ class WCAPIGetView(APIView):
         if not model_key:
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
         return self._handle(model_key, record_id, filters, fields, request)
+
 
 class WCAPISaveView(APIView):
     """
@@ -162,9 +157,9 @@ class WCAPISaveView(APIView):
             }
         ),
         responses={
-            201: "Created - new record successfully created",
-            400: "Bad Request - invalid model or data format",
-            401: "Unauthorized - authentication required",
+            201: WcapiResponseSerializer,
+            400: WcapiResponseSerializer,
+            401: WcapiResponseSerializer,
         }
     )
     def post(self, request, *args, **kwargs):

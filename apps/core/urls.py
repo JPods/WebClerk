@@ -15,7 +15,6 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     # Core WCAPI endpoints
-    path("wcapi/get", WCAPIGetView.as_view(), name="wcapi-get"),
-    path("wcapi/get/", WCAPIGetView.as_view(), name="wcapi-get-slash"),
+    path("wcapi/get/", WCAPIGetView.as_view(), name="wcapi-get"),
     path("wcapi/save/", SaveWcapiView.as_view(), name="wcapi-save"),
 ]

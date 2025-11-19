@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',
     'drf_spectacular',
+    'drf_spectacular_sidecar',
 ]
 
 MIDDLEWARE = [
@@ -151,38 +152,37 @@ SIMPLE_JWT = {
 
 # Spectacular (OpenAPI) Configuration
 SPECTACULAR_SETTINGS = {
+    # === Basic metadata ===
     'TITLE': 'WebClerk3 API',
     'DESCRIPTION': 'Cleaned REST API for WebClerk3 - Auth and WCAPI only',
     'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'COMPONENT_SPLIT_RESPONSE': True,
-    'COMPONENT_SPLIT_ENUM': True,
-    'POSTPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.postprocess_schema_enums',
-    ],
-    'SCHEMA_PATH_PREFIX': r'/',
-    'AUTHENTICATION_WHITELIST': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-    'SECURITY': [
-        {
-            'type': 'http',
-            'scheme': 'bearer',
-            'bearerFormat': 'JWT',
-        }
-    ],
+    'OPENAPI': '3.0.3',
+    'SERVE_INCLUDE_SCHEMA': False,        
+    'SERVE_URLCONF': 'webclerk3_api.urls', 
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+
+    # === Authentication (global) ===
+    'SECURITY': [{'BearerAuth': []}],       # applies BearerAuth globally
     'COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {
                 'type': 'http',
                 'scheme': 'bearer',
                 'bearerFormat': 'JWT',
-                'description': 'JWT Token authentication. Format: "Authorization: Bearer <token>"'
+                'description': (
+                    'JWT authorization header using the Bearer scheme.\n\n'
+                    'Example: `Authorization: Bearer <your-jwt-token>`'
+                ),
             }
-        }
-    }
+        },
+    },
 }
+CSP_DEFAULT_SRC = ("'self'", "cdn.jsdelivr.net")
+CSP_SCRIPT_SRC  = ("'self'", "cdn.jsdelivr.net")
+CSP_STYLE_SRC   = ("'self'", "'unsafe-inline'", "cdn.jsdelivr.net")
+CSP_IMG_SRC     = ("'self'", "data:", "cdn.jsdelivr.net")
+
 
 # Email configuration
 # - Default to SMTP backend, but switch to console backend automatically during pytest runs
@@ -262,7 +262,7 @@ LOGGING = {
 # You can extend these in environment-specific settings or override in local settings.
 API_JSON_DEFAULT = True
 HTML_EXEMPT_PATH_PREFIXES = (
-    '/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/',
+    '/admin/', '/admin-django/', '/static/', '/media/', '/api/swagger/', '/api/schema/','/api/redoc/',
 )
 WRITE_GATE_ENABLED = True
 WRITE_GATE_EXACT_PATHS = (

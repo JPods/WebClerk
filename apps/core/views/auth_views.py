@@ -50,31 +50,9 @@ AuthMeResponseSerializer = inline_serializer(
     request=LoginRequestSerializer,
     responses={
         200: LoginResponseSerializer,
-        400: OpenApiExample('Bad Request', value={'ok': False, 'code': 400, 'message': 'username/email and password required'}),
-        401: OpenApiExample('Unauthorized', value={'ok': False, 'code': 401, 'message': 'invalid credentials'}),
-    },
-    examples=[
-        OpenApiExample(
-            'Valid Login',
-            value={
-                'username': 'john@example.com',
-                'password': 'securepassword'
-            },
-            request_only=True,
-        ),
-        OpenApiExample(
-            'Successful Response',
-            value={
-                'ok': True,
-                'data': {
-                    'user': {'id': 1, 'email': 'john@example.com', 'username': 'john'},
-                    'access': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...',
-                    'refresh': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...'
-                }
-            },
-            response_only=True,
-        ),
-    ]
+        400: LoginResponseSerializer,
+        401: LoginResponseSerializer,
+    }
 )
 class AuthLoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -121,17 +99,11 @@ class AuthLoginView(APIView):
     description="Logout the current user and invalidate their session.",
     responses={
         200: LogoutResponseSerializer,
-    },
-    examples=[
-        OpenApiExample(
-            'Successful Logout',
-            value={'ok': True},
-            response_only=True,
-        ),
-    ]
+    }
 )
 class AuthLogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = LogoutResponseSerializer
 
     def post(self, request):
         logout(request)
@@ -143,29 +115,8 @@ class AuthLogoutView(APIView):
     description="Get information about the currently authenticated user.",
     responses={
         200: AuthMeResponseSerializer,
-        401: OpenApiExample('Unauthorized', value={'ok': False, 'code': 401, 'message': 'unauthenticated'}),
-    },
-    examples=[
-        OpenApiExample(
-            'Authenticated User',
-            value={
-                'ok': True,
-                'data': {
-                    'user': {
-                        'id': 1,
-                        'email': 'john@example.com',
-                        'username': 'john'
-                    }
-                }
-            },
-            response_only=True,
-        ),
-        OpenApiExample(
-            'Unauthenticated',
-            value={'ok': False, 'code': 401, 'message': 'unauthenticated'},
-            response_only=True,
-        ),
-    ]
+        401: AuthMeResponseSerializer,
+    }
 )
 class AuthMeView(APIView):
     permission_classes = [permissions.AllowAny]
