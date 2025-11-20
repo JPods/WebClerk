@@ -35,6 +35,7 @@ class Action(BaseModel):
     project_id = models.CharField(max_length=255, blank=True, null=True)
 
     # Kanban board and workflow management
+    sequence = models.PositiveIntegerField(default=0)
     kanban_column = models.CharField(max_length=50, choices=KANBAN_COLUMNS, default='Backlog')
     priority = models.PositiveIntegerField(default=1)
     difficulty = models.PositiveIntegerField(choices=DIFFICULTY_LEVELS, default=10)
