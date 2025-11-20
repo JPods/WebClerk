@@ -1,6 +1,8 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status, serializers
@@ -36,6 +38,26 @@ LogoutResponseSerializer = inline_serializer(
 
 AuthMeResponseSerializer = inline_serializer(
     name='AuthMeResponse',
+    fields={
+        'ok': serializers.BooleanField(),
+        'data': serializers.DictField(child=serializers.CharField()),
+    }
+)
+
+RegisterRequestSerializer = inline_serializer(
+    name='RegisterRequest',
+    fields={
+        'email': serializers.EmailField(help_text='Email address for registration'),
+        'password': serializers.CharField(help_text='Password for the new account'),
+        'name_first': serializers.CharField(help_text='First name', required=False),
+        'name_last': serializers.CharField(help_text='Last name', required=False),
+        'company': serializers.CharField(help_text='Company name', required=False),
+        'title': serializers.CharField(help_text='Job title', required=False),
+    }
+)
+
+RegisterResponseSerializer = inline_serializer(
+    name='RegisterResponse',
     fields={
         'ok': serializers.BooleanField(),
         'data': serializers.DictField(child=serializers.CharField()),
@@ -121,13 +143,99 @@ class AuthMeView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        u = getattr(request, "user", None)
-        if not (u and getattr(u, "is_authenticated", False)):
+        if not request.user.is_authenticated:
             return Response({"ok": False, "code": 401, "message": "unauthenticated"}, status=401)
-        # Only access u.pk after confirming authentication
+        
+        # Get user data with proper error handling
+        user = request.user
         data = {
-            "id": u.pk,
-            "email": getattr(u, "email", None),
-            "username": getattr(u, "username", None),
+            "id": user.pk,
+            "email": getattr(user, "email", None),
+            "name_first": getattr(user, "name_first", None),
+            "name_last": getattr(user, "name_last", None),
+            "company": getattr(user, "company", None),
+            "title": getattr(user, "title", None),
+            "role": getattr(user, "role", None),
+            "is_active": getattr(user, "is_active", False),
+            "date_joined": getattr(user, "date_joined", None),
         }
         return Response({"ok": True, "data": {"user": data}})
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+@extend_schema(
+    summary="User Registration",
+    description="Register a new user account with email and password. Returns JWT tokens for subsequent API requests.",
+    request=RegisterRequestSerializer,
+    responses={
+        201: RegisterResponseSerializer,
+        400: RegisterResponseSerializer,
+        409: RegisterResponseSerializer,
+    }
+)
+class AuthRegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: tuple[type[BaseAuthentication], ...] = ()
+
+    def post(self, request):
+        body = request.data if isinstance(request.data, dict) else {}
+        email = (body.get("email") or "").strip().lower()
+        password = (body.get("password") or "").strip()
+        name_first = (body.get("name_first") or "").strip()
+        name_last = (body.get("name_last") or "").strip()
+        company = (body.get("company") or "").strip()
+        title = (body.get("title") or "").strip()
+
+        # Validate required fields
+        if not email or not password:
+            return Response({"ok": False, "code": 400, "message": "email and password are required"}, status=400)
+
+        # Check if email already exists
+        if User.objects.filter(email__iexact=email).exists():
+            return Response({"ok": False, "code": 409, "message": "email already registered"}, status=409)
+
+        # Validate password strength
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            return Response({"ok": False, "code": 400, "message": "invalid password", "errors": list(e.messages)}, status=400)
+
+        # Create user
+        try:
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                name_first=name_first or "User",
+                name_last=name_last or "Account",
+                company=company,
+                title=title,
+                role='user'
+            )
+        except Exception as e:
+            return Response({"ok": False, "code": 400, "message": "failed to create user", "error": str(e)}, status=400)
+
+        # Auto-login user and issue JWT tokens
+        try:
+            user = authenticate(request, username=email, password=password)
+            if user and getattr(user, "is_active", True):
+                # Issue JWT tokens
+                refresh = RefreshToken.for_user(user)
+                access = refresh.access_token
+                data = {
+                    "user": {
+                        "id": user.pk, 
+                        "email": getattr(user, "email", None), 
+                        "name_first": getattr(user, "name_first", None),
+                        "name_last": getattr(user, "name_last", None),
+                        "company": getattr(user, "company", None),
+                        "title": getattr(user, "title", None),
+                        "role": getattr(user, "role", None),
+                    },
+                    "access": str(access),
+                    "refresh": str(refresh),
+                }
+                return Response({"ok": True, "data": data}, status=201)
+        except Exception as e:
+            return Response({"ok": False, "code": 500, "message": "authentication failed after registration", "error": str(e)}, status=500)
+
+        return Response({"ok": False, "code": 500, "message": "registration completed but login failed"}, status=500)

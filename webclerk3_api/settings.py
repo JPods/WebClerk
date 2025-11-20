@@ -167,7 +167,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
 
     # === Authentication (global) ===
-    'SECURITY': [{'BearerAuth': []}],
+    'SECURITY': [{'BearerAuth': []}, {'CookieAuth': []}],
     'COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {

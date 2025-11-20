@@ -30,7 +30,15 @@ from typing import List
 # ------------------------------------------------------------------------------------
 
 WHITELIST: List[str] = [
-    r'^/api/auth/login/$',           # POST – JSON login
+    # Auth APIs
+    r'^/wcapi/register/$',           # POST – User registration
+    r'^/wcapi/login/$',              # POST – User login
+    r'^/wcapi/logout/$',             # POST – User logout
+    r'^/wcapi/me/$',                 # GET  – Get current user profile
+    # JWT APIs
+    r'^/wcapi/token/$',              # POST – Obtain JWT token pair
+    r'^/wcapi/token_refresh/$',      # POST – Refresh JWT token
+    # WCAPI endpoints
     r'^/wcapi/get/$',                # GET  – registry-backed list/detail
     r'^/wcapi/save/$',               # POST – registry-backed create/update
     r'^/wcapi/models/$',             # GET  – model name -> field names
