@@ -388,9 +388,13 @@ class SaveWcapiView(APIView):
             if field in ('model_name', 'id', 'version', 'expected_version'):
                 continue
 
-            # Require new structure: field_data must be {"mode|task": "update|insert|delete", "value": ...} or {"mode|task": "delete"}
-            if not isinstance(field_data, dict) or ('mode' not in field_data and 'task' not in field_data):
-                return api_response(success=False, status_code=400, message=f'Invalid field format for {field}', error={'code':'invalid_field_format','details':f'Field {field} must be an object with "mode" or "task" key'})
+            # Auto-set to update mode if field_data doesn't have proper structure
+            if not isinstance(field_data, dict):
+                # Convert non-dict values to dict with update mode
+                field_data = {'mode': 'update', 'value': field_data}
+            elif 'mode' not in field_data and 'task' not in field_data:
+                # Add update mode to dict that doesn't have mode or task
+                field_data = {**field_data, 'mode': 'update'}
 
             # Extract mode from 'mode' or 'task' key
             if 'mode' in field_data:
