@@ -16,11 +16,11 @@ export default function SelectInputs() {
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
 
   const multiOptions = [
-    { value: "1", text: "Option 1", selected: false },
-    { value: "2", text: "Option 2", selected: false },
-    { value: "3", text: "Option 3", selected: false },
-    { value: "4", text: "Option 4", selected: false },
-    { value: "5", text: "Option 5", selected: false },
+    { value: "1", label: "Option 1" },
+    { value: "2", label: "Option 2" },
+    { value: "3", label: "Option 3" },
+    { value: "4", label: "Option 4" },
+    { value: "5", label: "Option 5" },
   ];
   return (
     <ComponentCard title="Select Inputs">
@@ -31,8 +31,7 @@ export default function SelectInputs() {
             options={options}
             placeholder="select_input"
             onChange={handleSelectChange}
-            className="dark:bg-dark-900"
-          />
+            className="dark:bg-dark-900" value={""}          />
         </div>
         <div>
           <MultiSelect

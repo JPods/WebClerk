@@ -9,22 +9,16 @@ import z from "zod";
 import { addressSchema } from "../../validations/contact";
 import { PlusIcon, TrashBinIcon } from "../../icons";
 import { Select } from "../wrapper";
-import { showToast } from "../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
-import { getAddress, getDomain, postAddress, postDomain } from "../../api/userProfile";
+import { getAddress, getDomain } from "../../api/userProfile";
 import { useEffect } from "react";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
-  };
-  
-  const dispatch = useDispatch()
 
-  const { register, handleSubmit, control, formState: { errors }, setValue, getValues, watch, reset } = useForm<z.infer<typeof addressSchema>>({
+  
+
+
+  const { register, handleSubmit, control, formState: { errors }, setValue } = useForm<z.infer<typeof addressSchema>>({
       resolver: zodResolver(addressSchema),
       defaultValues:{
         addresses: [{ country: "", state: "", zip: "", address1: "" }],
@@ -75,21 +69,21 @@ export default function UserAddressCard() {
         }
     }
 
-   const onSubmit = async(data: any) => {
+  //  const onSubmit = async(data: any) => {
      
-     try {
-         const [addressResponse, domainResponse] = await Promise.all([
-                      Promise.all(data.addresses.map((list: any) => postAddress(list))),
-                      Promise.all(data.domains.map((list: any) => postDomain(list))),
-                   ]);                   
-                  dispatch(showToast({ message: "Profile addresses uploaded successfully", type: "success" }));
-     } catch (error:any) {
-          dispatch(showToast({ message: error.message, type: "error" }));
-     }
+  //    try {
+  //        const [addressResponse, domainResponse] = await Promise.all([
+  //                     Promise.all(data.addresses.map((list: any) => postAddress(list))),
+  //                     Promise.all(data.domains.map((list: any) => postDomain(list))),
+  //                  ]);                   
+  //                 dispatch(showToast({ message: "Profile addresses uploaded successfully", type: "success" }));
+  //    } catch (error:any) {
+  //         dispatch(showToast({ message: error.message, type: "error" }));
+  //    }
 
-      // localStorage.removeItem("contactFormData");
-      // reset();
-    };
+  //     // localStorage.removeItem("contactFormData");
+  //     // reset();
+  //   };
 
   return (
     <>

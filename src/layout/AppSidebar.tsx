@@ -50,6 +50,11 @@ const navItems: NavItem[] = [
     path: "/kanban-gantt",
   },
   {
+    icon: <CalenderIcon />,
+    name: "SVAR Gantt",
+    path: "/svar-gantt",
+  },
+  {
     icon: <GridIcon />,
     name: "Kanban API",
     path: "/kanban-board-data",

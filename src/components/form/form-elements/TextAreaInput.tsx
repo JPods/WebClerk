@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { SetStateAction, useState } from "react";
 import ComponentCard from "../../common/ComponentCard";
 import TextArea from "../input/TextArea";
 import Label from "../Label";
@@ -14,7 +14,7 @@ export default function TextAreaInput() {
           <Label>Description</Label>
           <TextArea
             value={message}
-            onChange={(value) => setMessage(value)}
+            onChange={(value: SetStateAction<string>) => setMessage(value)}
             rows={6}
           />
         </div>
@@ -22,7 +22,7 @@ export default function TextAreaInput() {
         {/* Disabled TextArea */}
         <div>
           <Label>Description</Label>
-          <TextArea rows={6} disabled />
+          <TextArea value={message} rows={6} disabled />
         </div>
 
         {/* Error TextArea */}
@@ -31,8 +31,7 @@ export default function TextAreaInput() {
           <TextArea
             rows={6}
             value={messageTwo}
-            error
-            onChange={(value) => setMessageTwo(value)}
+            onChange={(value: SetStateAction<string>) => setMessageTwo(value)}
             hint="Please enter a valid message."
           />
         </div>

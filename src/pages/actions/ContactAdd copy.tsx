@@ -160,7 +160,7 @@ export default function ContactAdd() {
             <Label className="block text-base font-medium text-gray-700 dark:text-gray-300">
               phone_numbers
             </Label>
-            {phoneNumbers.map((phone, index) => (
+            {phoneNumbers.map((phone) => (
               <div key={phone.id} className="flex items-end space-x-2">
                 {/* Phone Type Select */}
                 <div className="w-1/4">
@@ -251,7 +251,7 @@ export default function ContactAdd() {
                 <Label className="block text-base font-medium text-gray-700 dark:text-gray-300">
                 email
                 </Label>
-                {email.map((mail, index) => (
+                {email.map((mail) => (
                 <div key={mail.id} className="flex items-end space-x-2">
                     {/* Phone Type Select */}
                     <div className="w-1/4">

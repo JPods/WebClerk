@@ -3,7 +3,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
+<<<<<<< HEAD
 import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, CustomerAddPage, CustomerDetailPage, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+=======
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, SvarGanttPage, UserProfiles } from '../pages/wrapperPage';
+>>>>>>> 4ed8f5f2ef69b1a5505b4ee49acf6be2405ad71f
 import AdminWorkbench from '../pages/admin/AdminWorkbench';
 import WhitelistTester from '../pages/tools/WhitelistTester';
 import ProductsPage from '../pages/items/ProductsPage';
@@ -60,6 +64,7 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.kanbanBoard} element={<KanbanBoardPage />} />
               <Route path={PageRoutes.kanbanBoardData} element={<KanbanBoardDataPage />} />
               <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
+              <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
     
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />

@@ -37,6 +37,7 @@ export class PageRoutes {
   static readonly kanbanBoard: string = "/kanban-board";
   static readonly kanbanBoardData: string = "/kanban-board-data";
   static readonly kanbanGantt: string = "/kanban-gantt";
+  static readonly svarGantt: string = "/svar-gantt";
 
   // Products & Transactions
   static readonly products: string = "/products";

@@ -1,5 +1,5 @@
 import apiClient, { authClient } from "./axios"; // separated clients
-import { EmailVerifyFormData, LoginFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
+import { EmailVerifyFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
 import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
 
 export const login = async (credentials:any) => {
