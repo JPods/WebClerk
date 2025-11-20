@@ -34,10 +34,10 @@ class HTTPMethod {
 
 class AuthURL {
   // These paths assume AUTH_URL points to the backend ROOT (no trailing /api)
-  static readonly SIGNUP: string = "/api/auth/signup/";
-  static readonly LOGIN: string = "/api/auth/login/"; 
-  static readonly REFRESH_TOKEN: string = "/api/token/refresh/"; 
-  static readonly LOGOUT: string = "/api/auth/logout/"; 
+  static readonly SIGNUP: string = "/wcapi/signup/";
+  static readonly LOGIN: string = "/wcapi/login/"; 
+  static readonly REFRESH_TOKEN: string = "/wcapi/refresh/"; 
+  static readonly LOGOUT: string = "/wcapi/logout/"; 
   static readonly FORGOT_PASS: string = "/forgetPassword";
   static readonly verifyEmail: string = "/verify-email/"; 
 }

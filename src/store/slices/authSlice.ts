@@ -2,6 +2,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface User {
+  rank: User | null;
+  date_joined: User | null;
+  company: string | undefined;
+  name_middle: string | undefined;
   //id: string; 
   //uuid: string;
   email: string;

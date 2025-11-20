@@ -3,14 +3,13 @@ import ComponentCard from "../../components/common/ComponentCard";
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { createTheme } from 'react-data-table-component';
 import { useEffect, useMemo, useState } from "react";
-import { Actions, Contacts, deleteAction } from "../../api/userProfile";
+import { Actions, deleteAction } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../context/ThemeContext";
 import ActionAdd from "./ActionAdd";
-import { get } from "react-hook-form";
 
 
 // Create the dark theme only once

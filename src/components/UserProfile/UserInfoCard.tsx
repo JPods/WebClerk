@@ -13,8 +13,7 @@ import { Select } from "../wrapper";
 import { getAddress, getEmail, getPhone, patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useEffect, useState } from "react";
-import { dynamicData } from "../../model/dynamicData";
+import { useEffect } from "react";
 
 const phoneTypeOptions = [
     { value: "mobile", label: "Mobile" },
@@ -28,12 +27,6 @@ export default function UserInfoCard() {
    const { user } = useAppSelector((state) => state.auth);
    const dispatch = useDispatch()
    
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
-  };
-  
   useEffect(() => {
       getAddressData()
       getPhones()
@@ -68,7 +61,7 @@ export default function UserInfoCard() {
       }
   }
 
-  const { register, handleSubmit, control, formState: { errors }, setValue, getValues, reset } = useForm<z.infer<typeof contactSchema>>({
+  const { register, handleSubmit, control, formState: { errors }, setValue, getValues } = useForm<z.infer<typeof contactSchema>>({
       resolver: zodResolver(contactSchema),
       defaultValues: { 
          name_first: user ? user.name_first : '',

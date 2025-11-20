@@ -9,7 +9,7 @@ import { dynamicData } from "../../model/dynamicData";
 import { useAppSelector } from "../../store/hooks";
 
 export default function UserMetaCard() {
-  const [userProfile, setUserProfile] = useState<dynamicData[]>([])
+  const [ setUserProfile] = useState<dynamicData[]>([])
   const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAppSelector((state) => state.auth);
   console.log("user details:", user?.name_first)

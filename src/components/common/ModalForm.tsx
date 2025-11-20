@@ -26,7 +26,6 @@ const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose, data = '
   },[])
   const {
         register,
-        control,
         handleSubmit,
         setValue,
         formState: { errors },

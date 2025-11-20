@@ -1,31 +1,31 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
+import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import Checkbox from "../form/input/Checkbox";
-import { Controller, useForm } from "react-hook-form";
+
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterFormData, registerSchema } from "../../validations/auth";
-import Select from "../form/Select";
+
 import { PageRoutes } from "../../routes/Routes";
 import { showToast } from "../../store/slices/toastSlice";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { setUser } from "../../store/slices/authSlice";
+
 import { signup } from "../../api/auth";
-import MultiSelect from "../form/MultiSelect";
+
 import { ModalForm } from "../wrapper";
 
 export default function SignUpForm() {
   const [modalOpen, setModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [data, setData] = useState<string>('');
-  const [isChecked, setIsChecked] = useState(false);
+ 
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
     useEffect(() => {
       if (isAuthenticated) {
@@ -35,7 +35,6 @@ export default function SignUpForm() {
 
   const {
       register,
-      control,
       handleSubmit,
       formState: { errors },
     } = useForm<RegisterFormData>({

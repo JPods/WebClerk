@@ -1,9 +1,9 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 
-import DataTable, { TableColumn } from 'react-data-table-component';
+import { TableColumn } from 'react-data-table-component';
 import { useEffect, useState } from "react";
-import { Actions, Contacts, deleteAction, getAction } from "../../api/userProfile";
+import { Contacts, deleteAction } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash } from 'react-icons/fa'; 
 import { useNavigate } from "react-router";
@@ -57,10 +57,10 @@ export default function ContactList() {
       const [selectedItem, setSelectedItem] = useState<Item | null>(initialItems[0]);
   
   // State for the form data, used for editing.
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [editingItem] = useState<Item | null>(null);
 
-const [globalFilter, setGlobalFilter] = useState('');
-const [data, setData] = useState<dynamicData[]>([]);
+
+const [ setData] = useState<dynamicData[]>([]);
 
 const navigate = useNavigate()
 const dispatch = useDispatch()

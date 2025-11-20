@@ -22,6 +22,7 @@ import NotionTrackerPage from "./notion/NotionTrackerPage.tsx";
 import KanbanBoardPage from "./kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
 import KanbanGanttPage from "./kanban/KanbanGanttPage";
+import SvarGanttPage from "./kanban/SvarGanttPage";
 
 export {  
   SignIn,
@@ -48,4 +49,5 @@ export {
   , KanbanBoardPage
   , KanbanBoardDataPage
   , KanbanGanttPage
+  , SvarGanttPage
 };
