@@ -14,9 +14,8 @@ User = get_user_model()
 LoginRequestSerializer = inline_serializer(
     name='LoginRequest',
     fields={
-        'username': serializers.CharField(required=False, help_text='Username or email address'),
-        'email': serializers.CharField(required=False, help_text='Email address (alternative to username)'),
-        'password': serializers.CharField(required=True, help_text='User password'),
+        'email': serializers.CharField(help_text='Email address', default='2@2.com'),
+        'password': serializers.CharField(help_text='User password', default='1111pass'),
     }
 )
 

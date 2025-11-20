@@ -151,6 +151,7 @@ class SaveWcapiView(APIView):
     #This is documentation and not executed code
     @extend_schema(
         operation_id="wcapi_save_create_update",
+        summary="Insert/Update/Delete any model records",
         request=inline_serializer(
             name="WcapiSaveRequest",
             fields={

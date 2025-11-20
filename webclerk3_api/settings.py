@@ -137,16 +137,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ("rest_framework.parsers.JSONParser",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",  # keep if you still want session auth
+        "rest_framework.authentication.SessionAuthentication",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "common.schema.WhitelistAutoSchema",
 }
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -154,16 +154,20 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     # === Basic metadata ===
     'TITLE': 'WebClerk3 API',
-    'DESCRIPTION': 'Cleaned REST API for WebClerk3 - Auth and WCAPI only',
+    'DESCRIPTION': 'REST API for WebClerk3',
     'VERSION': '1.0.0',
-    'OPENAPI': '3.0.3',
-    'SERVE_INCLUDE_SCHEMA': False,        
-    'SERVE_URLCONF': 'webclerk3_api.urls', 
+    'OPENAPI_VERSION': '3.0.3',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SERVE_URLCONF': 'webclerk3_api.urls',
     'SWAGGER_UI_DIST': 'SIDECAR',
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 
+    # === Generation hooks ===
+    'PREPROCESSING_HOOKS': ['common.schema_hooks.whitelist_preprocessor'],
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+
     # === Authentication (global) ===
-    'SECURITY': [{'BearerAuth': []}],       # applies BearerAuth globally
+    'SECURITY': [{'BearerAuth': []}],
     'COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {
@@ -209,8 +213,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-import os
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

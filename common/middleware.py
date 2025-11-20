@@ -123,9 +123,19 @@ class AutoEnvelopeMiddleware(MiddlewareMixin):
 
     def process_response(self, request, response):  # pragma: no cover
         try:
+            path = ''
+            try:
+                path = request.path or ''
+            except Exception:
+                path = ''
+
+            # Skip envelope on documentation/schema endpoints to keep raw OpenAPI spec
+            if path.startswith(('/api/schema/', '/api/swagger/', '/api/redoc/')):
+                return response
+
             # Short-circuit: v2 actions detail does not support PATCH -> make it 405 so test skips
             try:
-                if request.method == 'PATCH' and re.match(r'^/actions/std/\d+/?$', request.path or ''):
+                if request.method == 'PATCH' and re.match(r'^/actions/std/\d+/?$', path):
                     from django.http import JsonResponse
                     return JsonResponse(
                         {"status": "fail", "error": {"code": "method_not_allowed"}, "code": 405, "message": "Method not allowed", "data": None},
