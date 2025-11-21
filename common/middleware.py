@@ -336,6 +336,18 @@ class WCAPISearchGuardMiddleware:
                     from django.http import JsonResponse
                     return JsonResponse({'detail': 'forbidden'}, status=403)
         return self.get_response(request)
+class AdminRestrictMiddleware(MiddlewareMixin):
+    """Restrict Django admin to localhost only."""
+    def process_request(self, request):
+        path = request.path or ''
+        if path.startswith('/admin/'):
+            ip = request.META.get('REMOTE_ADDR')
+            if ip not in settings.INTERNAL_IPS:
+                from django.http import HttpResponseNotFound
+                return HttpResponseNotFound()
+        return None
+
+  
 
 def _should_skip_envelope(request, response) -> bool:
     try:
