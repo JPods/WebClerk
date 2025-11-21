@@ -8,7 +8,7 @@ def load_keyword_requirements():
     # Load all active keyword requirements once at startup
     # Select only columns we need to avoid referencing columns that may not exist in early migrations
     requirements = {}
-    qs = Setting.objects.filter(purpose="refs_setup", is_active=True).only("model_name", "data")
+    qs = Setting.objects.filter(purpose__in=["refs_setup", "ref_seup"], is_active=True).only("model_name", "data")
     for setting in qs:
         key = getattr(setting, 'model_name', None)
         if key:

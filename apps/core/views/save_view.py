@@ -600,24 +600,13 @@ class SaveWcapiView(APIView):
         except Exception:
             logging.getLogger(__name__).exception('Unexpected error measuring save_post_async')
 
-        # Run keyword generation in a thread (not blocking API response)
+        # Update keywords synchronously so the response contains latest keywords
         try:
             if hasattr(obj, 'update_keywords'):
-                import threading
-                def update_keywords_async():
-                    try:
-                        logging.getLogger(__name__).info('Starting keyword update for %s id=%s', model_key, obj_id)
-                        obj.update_keywords()
-                        logging.getLogger(__name__).info('Calling save for keywords update for %s id=%s', model_key, obj_id)
-                        obj.save(update_fields=['refs', 'metadata'])
-                        logging.getLogger(__name__).info('Keyword update completed successfully for %s id=%s', model_key, obj_id)
-                    except Exception:
-                        logging.getLogger(__name__).exception('Failed to update keywords for %s id=%s', model_key, obj_id)
-                thread = threading.Thread(target=update_keywords_async)
-                thread.daemon = True
-                thread.start()
+                obj.update_keywords()
+                obj.save(update_fields=['refs', 'metadata'])
         except Exception:
-            logging.getLogger(__name__).exception('Failed to start keyword update thread for %s id=%s', model_key, obj_id)
+            logging.getLogger(__name__).exception('Failed to update keywords for %s id=%s', model_key, obj_id)
 
         # this is needed to pass out to id of a new record
         try:

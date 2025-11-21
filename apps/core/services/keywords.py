@@ -46,56 +46,40 @@ def _extract_keywords_from_value(value):
 
 def _extract_keywords_from_field(record, field_path):
     """
-    Extract keywords from a field path (supports nested access like 'action.en' or 'assigned_to.name').
+    Extract keywords from a field path (supports immediate nested access only, e.g., 'action.en' or 'refs.keywords').
     Returns a list of keyword strings.
     """
     try:
-        # Handle nested field access (e.g., 'action.en', 'assigned_to.name')
+        # Handle immediate nested field access (e.g., 'action.en', 'refs.keywords')
+        # But don't go deeper than one level
         if '.' in field_path:
             parts = field_path.split('.')
+            if len(parts) > 2:
+                # Only handle up to 2 levels deep
+                return []
+            
             value = record
-
-            for i, part in enumerate(parts):
+            for part in parts:
                 if isinstance(value, dict):
                     # Handle dictionary access (for JSONField values)
                     value = value.get(part)
-                elif isinstance(value, list) and part.isdigit():
-                    # Handle array indexing like assigned_to.0
-                    index = int(part)
-                    if 0 <= index < len(value):
-                        value = value[index]
-                    else:
-                        return []
                 elif hasattr(value, part):
                     # Handle Django model attributes
                     value = getattr(value, part, None)
                 else:
-                    # Special handling for extracting nested properties from arrays of objects
-                    # e.g., 'assigned_to.name' should extract 'name' from each object in the array
-                    if isinstance(value, list) and all(isinstance(item, dict) for item in value):
-                        # Extract the nested property from each object in the array
-                        nested_values = []
-                        remaining_parts = parts[i:]
-                        for item in value:
-                            item_value = item
-                            for nested_part in remaining_parts:
-                                if isinstance(item_value, dict):
-                                    item_value = item_value.get(nested_part)
-                                elif hasattr(item_value, nested_part):
-                                    item_value = getattr(item_value, nested_part, None)
-                                else:
-                                    item_value = None
-                                    break
-                            if item_value is not None:
-                                nested_values.append(item_value)
-                        return _extract_keywords_from_value(nested_values)
+                    # Field doesn't exist
                     return []
-
+                
                 if value is None:
                     return []
         else:
             # Handle simple field access on Django model
             value = getattr(record, field_path, None)
+            
+            # Special handling for 'ida' field - this might be a custom field
+            # that should be treated as a keyword directly
+            if field_path == 'ida' and value is not None:
+                return [str(value).lower()]
 
         return _extract_keywords_from_value(value)
 
@@ -109,20 +93,36 @@ def build_keywords_for_record(model_name, record_id):
     Processes self fields first, then related model fields in priority order.
     """
     try:
-        # Get the model class
-        model = apps.get_model('core', model_name)
-        record = model.objects.get(id=record_id)
-
-        # Get settings from cache
+        # Get settings from cache first to determine the app
         cache_key = cache_service.make_key('settings', 'refs_setup')
         requirements = cache_service.get(cache_key)
         if requirements is None:
             # Fallback to loading from DB if cache miss
             requirements = get_keyword_requirements()
+        
         if model_name not in requirements:
             return []
 
         model_config = requirements[model_name]
+        
+        # Try to find the model in any app
+        model = None
+        for app_config in apps.get_app_configs():
+            try:
+                model = app_config.get_model(model_name)
+                break
+            except Exception:
+                continue
+        
+        if not model:
+            return []
+            
+        # Check if record exists first to avoid query exceptions
+        try:
+            record = model.objects.get(id=record_id)
+        except model.DoesNotExist:
+            return []
+        
         keywords = set()  # Use set for automatic deduplication
 
         # Process self fields first (highest priority)
@@ -131,48 +131,25 @@ def build_keywords_for_record(model_name, record_id):
             field_keywords = _extract_keywords_from_field(record, field_path)
             keywords.update(field_keywords)
 
-        # Process related models in configuration order
-        related_models = model_config.get('related_models', [])
+        # Process related models with safety limits
         related_keywords = model_config.get('related_keywords', {})
         refs_data = getattr(record, 'refs', None)
 
         if refs_data and isinstance(refs_data, dict):
             links = refs_data.get('links', {})
-
-            # Process related_models (legacy format - list of model names with field paths)
-            if isinstance(related_models, dict):
-                for related_model_name, related_fields in related_models.items():
-                    # Get related record IDs from refs.links
-                    # Try both singular and plural forms
-                    link_keys = [related_model_name, related_model_name + 's']
-                    related_ids = []
-                    for link_key in link_keys:
-                        if link_key in links:
-                            ids = links[link_key]
-                            if isinstance(ids, list):
-                                related_ids.extend(ids)
-                            break
-
-                    if not related_ids:
-                        continue
-
-                    # Query related records
-                    try:
-                        related_model = apps.get_model('core', related_model_name)
-                        related_records = related_model.objects.filter(id__in=related_ids)
-
-                        # Extract keywords from each related record's specified fields
-                        for related_record in related_records:
-                            for field_path in related_fields:
-                                field_keywords = _extract_keywords_from_field(related_record, field_path)
-                                keywords.update(field_keywords)
-
-                    except Exception:
-                        # Skip if related model doesn't exist or query fails
-                        continue
+            processed_models = set()  # Prevent infinite loops
 
             # Process related_keywords (new format - dict of model names to field arrays)
             for related_model_name, field_paths in related_keywords.items():
+                # Prevent infinite loops by tracking processed models
+                if related_model_name in processed_models:
+                    continue
+                processed_models.add(related_model_name)
+                
+                # Limit the number of related models processed to prevent infinite loops
+                if len(processed_models) > 10:  # Reasonable limit
+                    break
+
                 # Get related record IDs from refs.links
                 # Try both singular and plural forms
                 link_keys = [related_model_name, related_model_name + 's']
@@ -187,16 +164,35 @@ def build_keywords_for_record(model_name, record_id):
                 if not related_ids:
                     continue
 
-                # Query related records
+                # Try to find the related model in any app
+                related_model = None
+                for app_config in apps.get_app_configs():
+                    try:
+                        related_model = app_config.get_model(related_model_name)
+                        break
+                    except Exception:
+                        continue
+
+                if not related_model:
+                    continue
+
+                # Query related records with limit to prevent performance issues
                 try:
-                    related_model = apps.get_model('core', related_model_name)
-                    related_records = related_model.objects.filter(id__in=related_ids)
+                    related_records = related_model.objects.filter(id__in=related_ids)[:100]  # Limit query size
 
                     # Extract keywords from each related record's specified fields
                     for related_record in related_records:
                         for field_path in field_paths:
-                            field_keywords = _extract_keywords_from_field(related_record, field_path)
-                            keywords.update(field_keywords)
+                            # Handle special case for refs.keywords
+                            if field_path == 'refs.keywords':
+                                refs = getattr(related_record, 'refs', None)
+                                if refs and isinstance(refs, dict):
+                                    kw = refs.get('keywords', [])
+                                    if isinstance(kw, list):
+                                        keywords.update(kw)
+                            else:
+                                field_keywords = _extract_keywords_from_field(related_record, field_path)
+                                keywords.update(field_keywords)
 
                 except Exception:
                     # Skip if related model doesn't exist or query fails
@@ -205,6 +201,9 @@ def build_keywords_for_record(model_name, record_id):
         return list(keywords)  # Convert set back to list
 
     except Exception as e:
+        # Log the error for debugging but don't fail the save operation
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to build keywords for {model_name}:{record_id} - {str(e)}")
         return []
 
 def create_pending_keyword_update(model_name, record_id, data):
