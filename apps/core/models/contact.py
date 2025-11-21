@@ -118,7 +118,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     )
     is_active = models.BooleanField(default=True, help_text="User account is active")
     is_staff = models.BooleanField(default=False, help_text="User can access admin")
-    date_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
+    dt_joined = models.DateTimeField(default=timezone.now, help_text="Account creation date")
     
     objects = ContactManager()
 

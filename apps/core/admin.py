@@ -9,14 +9,14 @@ class ContactAdmin(BaseUserAdmin):
     list_display = ('id', 'email', 'name_first', 'name_last', 'company', 'role', 'is_active', 'is_staff')
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
-    readonly_fields = ('date_joined', 'uuid')
+    readonly_fields = ('dt_joined', 'uuid')
     ordering = ('name_last', 'name_first')
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix')}),
         ('Company info', {'fields': ('company', 'title', 'department')}),
         ('Permissions', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('date_joined',)}),
+        ('Important dates', {'fields': ('dt_joined',)}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
     )
 
