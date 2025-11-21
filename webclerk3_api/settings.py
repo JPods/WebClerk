@@ -27,7 +27,14 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     'apps.accounts',
+    'apps.communications',
     'apps.core',
+    'apps.docs',
+    'apps.orgs',
+    'apps.products',
+    'apps.support',
+    'apps.sync',
+    'apps.transactions',
     'common',
     'corsheaders',
     'django.contrib.admin',

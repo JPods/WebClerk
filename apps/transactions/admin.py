@@ -2,9 +2,9 @@ from django.contrib import admin, messages
 from .models import (
     Invoice, InvoiceLine,
     WorkOrderLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine,
-    Proposal, ProposalLine, Requisition, RequisitionLine, PurchaseReceipt,
-    WorkOrder,
+    Proposal, ProposalLine, Requisition, RequisitionLine, WorkOrder,
 )
+from .models.purchase_receipt import PurchaseReceipt
 
 
 # Scoped: other model admin registrations are deferred for now
@@ -150,8 +150,7 @@ class RequisitionLineAdmin(admin.ModelAdmin):
 
 @admin.register(PurchaseReceipt)
 class PurchaseReceiptAdmin(admin.ModelAdmin):
-    list_display = ("id", "dt_created", "status")
-    list_filter = ("status",)
+    list_display = ("id", "dt_received")
     search_fields = ("id",)
 
 
