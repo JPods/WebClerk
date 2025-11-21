@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Currency, ExchangeRate, ExchangeTransaction
+from .models import Currency, ExchangeRate, ExchangeTransaction, Term
 
 
 @admin.register(Currency)
@@ -21,3 +21,10 @@ class ExchangeTransactionAdmin(admin.ModelAdmin):
 	list_display = ("name", "currency_base", "currency_target", "rate", "dt_start", "dt_end", "is_active")
 	list_filter = ("is_active", "currency_base", "currency_target")
 	search_fields = ("name", "currency_base", "currency_target")
+
+
+@admin.register(Term)
+class TermAdmin(admin.ModelAdmin):
+	list_display = ("name", "days_due", "days_discount", "discount_rate", "day_cut_off_due", "day_cut_off_invoice")
+	list_filter = ("days_due", "days_discount")
+	search_fields = ("name", "description")
