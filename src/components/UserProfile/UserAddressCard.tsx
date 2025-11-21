@@ -176,14 +176,14 @@ export default function UserAddressCard() {
                       {addressFields.map((field, index) => (
                         <div key={field.id} className="grid grid-cols-1 xl:grid-cols-3 gap-x-6 gap-y-5 mb-4 p-2 border border-gray-200 dark:border-amber-500 rounded-xl">
                           <div className="w-full ml-2">
-                            <Label htmlFor={`addresses.${index}.country`}>Country</Label>
+                            <Label htmlFor={`addresses.${index}.country`}>country</Label>
                             <Controller
                               name={`addresses.${index}.country`}
                               control={control}
                               render={({ field }) => (
                                 <Select
                                   options={countryOptions}
-                                  placeholder="Select Country"
+                                  placeholder="country"
                                   value={field.value}
                                   onChange={field.onChange}
                                   className="dark:bg-dark-900"
@@ -197,11 +197,11 @@ export default function UserAddressCard() {
                             )}
                           </div>
                           <div className="w-full">
-                            <Label htmlFor={`addresses.${index}.state`}>State</Label>
+                            <Label htmlFor={`addresses.${index}.state`}>state</Label>
                             <Input
                               type="text"
                               id={`addresses.${index}.state`}
-                              placeholder="Enter state"
+                              placeholder="state"
                               {...register(`addresses.${index}.state`)}
                             />
                             {errors.addresses?.[index]?.state?.message && (
@@ -211,11 +211,11 @@ export default function UserAddressCard() {
                             )}
                           </div>
                           <div className="w-full">
-                            <Label htmlFor={`addresses.${index}.zip`}>Zipcode</Label>
+                            <Label htmlFor={`addresses.${index}.zip`}>zip</Label>
                             <Input
                               type="text"
                               id={`addresses.${index}.zip`}
-                              placeholder="Enter zip"
+                              placeholder="zip"
                               {...register(`addresses.${index}.zip`)}
                               className="mr-3"
                             />
@@ -226,11 +226,11 @@ export default function UserAddressCard() {
                             )}
                           </div>
                           <div className="w-full ml-2 mb-2">
-                            <Label htmlFor={`addresses.${index}.address1`}>Street Address</Label>
+                            <Label htmlFor={`addresses.${index}.address1`}>address1</Label>
                             <Input
                               type="text"
                               id={`addresses.${index}.address1`}
-                              placeholder="Enter street address"
+                              placeholder="address1"
                               {...register(`addresses.${index}.address1`)}
                             />
                             {errors.addresses?.[index]?.address1?.message && (
@@ -274,11 +274,11 @@ export default function UserAddressCard() {
                         <div key={field.id} className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-5 mb-4 p-2 border border-gray-200 dark:border-pink-500 rounded-xl">
                           
                           <div className="w-full">
-                            <Label htmlFor={`domains.${index}.state`}>Path</Label>
+                            <Label htmlFor={`domains.${index}.path`}>path</Label>
                             <Input
                               type="text"
                               id={`domains.${index}.path`}
-                              placeholder="Enter state"
+                              placeholder="path"
                               {...register(`domains.${index}.path`)}
                             />
                             {errors.domains?.[index]?.path?.message && (
@@ -288,11 +288,11 @@ export default function UserAddressCard() {
                             )}
                           </div>
                           <div className="w-full">
-                            <Label htmlFor={`domains.${index}.type`}>Type</Label>
+                            <Label htmlFor={`domains.${index}.type`}>type</Label>
                             <Input
                               type="text"
                               id={`domains.${index}.type`}
-                              placeholder="Enter type"
+                              placeholder="type"
                               {...register(`domains.${index}.type`)}
                               className="mr-3"
                             />
@@ -303,11 +303,11 @@ export default function UserAddressCard() {
                             )}
                           </div>
                           <div className="w-full ml-2 mb-2">
-                            <Label htmlFor={`domains.${index}.comment`}>Comments</Label>
+                            <Label htmlFor={`domains.${index}.comment`}>comment</Label>
                             <Input
                               type="text"
                               id={`domains.${index}.comment`}
-                              placeholder="Enter street address"
+                              placeholder="comment"
                               {...register(`domains.${index}.comment`)}
                             />
                             {errors.domains?.[index]?.comment?.message && (

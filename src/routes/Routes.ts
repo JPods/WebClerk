@@ -8,9 +8,17 @@ export class PageRoutes {
 
   static readonly actionList: string = "/action-list";
   static readonly actionAdd: string = "/action-add";
+  static readonly actionsCallReportAdd: string = "/actions/call-reports/add";
+  static readonly actionsCallReportDetail: string = "/actions/call-reports/:id";
+  static readonly actionsServiceAdd: string = "/actions/services/add";
+  static readonly actionsServiceDetail: string = "/actions/services/:id";
+  static readonly actionsTaskMarkerAdd: string = "/actions/task-markers/add";
+  static readonly actionsTaskMarkerDetail: string = "/actions/task-markers/:id";
 
   static readonly contactAdd: string = "/contact-add";
   static readonly contactList: string = "/contact-list";
+  static readonly customerDetail: string = "/contacts/:id";
+  static readonly customerAdd: string = "/contacts/add";
 
   static readonly settingAdd: string = "/setting-add";
   static readonly settingList: string = "/setting-list";

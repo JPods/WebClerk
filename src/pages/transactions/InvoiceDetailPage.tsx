@@ -1,231 +1,292 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-import ComponentCard from "../../components/common/ComponentCard";
-import Label from "../../components/form/Label";
-import { Input } from "../../components/wrapper";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router";
 
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import ComponentCard from "../../components/common/ComponentCard";
+import InvoiceForm from "../../components/InvoiceForm";
+import QAList from "../../components/QAList";
+import LineItemModal from "../../components/modals/LineItemModal";
+import { getRecord } from "../../api/wcapi";
+import { firstAvailableValue } from "../../utils/optionUtils";
 
-import { contactSchema } from "../../validations/action";
-import { getByTypeAndId, patchAction, postAction } from "../../api/userProfile";
-import { showToast } from "../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "../../store/hooks";
-import { useLocation } from "react-router";
+const InvoiceDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [invoice, setInvoice] = useState<any>(null);
+  const [lines, setLines] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [phones, setPhones] = useState<any[]>([]);
+  const [emails, setEmails] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedLine, setSelectedLine] = useState<any | null>(null);
+  const [isLineModalOpen, setIsLineModalOpen] = useState(false);
 
-interface ContactAddProps {
-  modeProp?: 'add' | 'edit' | 'view';
-  dataProp?: any; // TODO: Type this properly
-  hideBreadcrumb?: boolean;
-  onSaved?: () => void;
-  inline?: boolean;
-  onCancelInline?: () => void;
-}
-
-export default function InvoiceDetailPage({ modeProp, dataProp, hideBreadcrumb, onSaved, inline = false, onCancelInline }: ContactAddProps) {
-  
-  const dispatch = useDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-
-  const { register, setValue, handleSubmit, formState: { errors }, reset } = useForm<z.infer<typeof contactSchema>>({
-    resolver: zodResolver(contactSchema),
-    defaultValues: {},
-  }); 
-  
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: 'add' | 'edit' | 'view' = modeProp || routeState.mode || 'add';
-  const data = dataProp || routeState.data || null;
-  const [linkedLists, setLinkedLists] = useState<Record<string, any[]>>({});
-   useEffect(() => {
-    if (mode === 'add') {
-      reset();
-    } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
-        }
-      });
-      // Fetch linked lists by ids if present: data.refs.links
-      const links = (data as any)?.refs?.links as Record<string, (string|number)[]> | undefined;
-      if (links) {
-        const fetchAll = async () => {
-          const entries: Array<[string, any[]]> = await Promise.all(
-            Object.entries(links).map(async ([key, ids]): Promise<[string, any[]]> => {
-              if (!Array.isArray(ids) || ids.length === 0) return [key, []];
-              // Fetch each id and flatten
-              const results = await Promise.all(ids.map((id) => getByTypeAndId(key, id)));
-              const flat = (results as any[]).flat().filter(Boolean) as any[];
-              return [key, flat];
-            })
-          );
-          const map: Record<string, any[]> = {};
-          entries.forEach(([k, v]) => { map[k] = v; });
-          setLinkedLists(map);
-        };
-        fetchAll();
-      } else {
-        setLinkedLists({});
-      }
-    } else {
-      reset({});
-      setLinkedLists({});
+  const fetchInvoice = useCallback(async () => {
+    if (!id) {
+      setInvoice(null);
+      setLines([]);
+      setCustomers([]);
+      setAddresses([]);
+      setPhones([]);
+      setEmails([]);
+      setLoading(false);
+      return;
     }
-  }, [data, reset, setValue, mode]);
- 
-  const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
+
     try {
-      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.name_first, formData);
-      if (res.status === 201 || res.status === 200) {
-        dispatch(showToast({ message: `Action ${mode === 'add' ? 'saved' : 'updated'} successfully`, type: "success" }));
-        if (onSaved) {
-          onSaved();
-        }
-      }
-    } catch (error: any) {
-         dispatch(showToast({ message: error.message, type: "error" }));
-    }  
+      setLoading(true);
+      setError(null);
+      const res = await getRecord("invoice", Number(id));
+      setInvoice(res?.record ?? null);
+      const rel = res?.related || {};
+      const detected = rel["invoice_line"] || rel["invoice_lines"] || [];
+      setLines(Array.isArray(detected) ? detected : []);
+      setCustomers(Array.isArray(rel["customers"]) ? rel["customers"] : []);
+      setAddresses(Array.isArray(rel["addresses"]) ? rel["addresses"] : []);
+      setPhones(Array.isArray(rel["phones"]) ? rel["phones"] : []);
+      setEmails(Array.isArray(rel["emails"]) ? rel["emails"] : []);
+    } catch (err: any) {
+      setError(err?.message || "failed to load invoice");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchInvoice();
+  }, [fetchInvoice]);
+
+  const lineColumns = useMemo(() => {
+    if (!lines.length) {
+      return [] as string[];
+    }
+    const preferred = ["line_no", "item_id", "description", "qty", "price", "amount"];
+    const keys = Object.keys(lines[0] || {});
+    const cols = preferred.filter((key) => keys.includes(key));
+    return cols.length ? cols : keys.slice(0, 8);
+  }, [lines]);
+
+  const openLineModal = (line: any) => {
+    setSelectedLine(line);
+    setIsLineModalOpen(true);
   };
+
+  const closeLineModal = () => {
+    setIsLineModalOpen(false);
+    setSelectedLine(null);
+  };
+
+  const lineModalFields = useMemo(() => {
+    if (!selectedLine) {
+      return [];
+    }
+    return [
+      { label: "item_num", value: firstAvailableValue(selectedLine, ["item_num", "itemNum"]) },
+      { label: "qty_ordered", value: firstAvailableValue(selectedLine, ["qty_ordered", "qtyOrdered"]) },
+      { label: "qty_change", value: firstAvailableValue(selectedLine, ["qty_change", "qtyChange"]) },
+      { label: "unit_price", value: firstAvailableValue(selectedLine, ["unit_price", "unitPrice"]) },
+      { label: "discount", value: firstAvailableValue(selectedLine, ["discount"]) },
+      { label: "extended_price", value: firstAvailableValue(selectedLine, ["extended_price", "extendedPrice"]) },
+      { label: "description", value: firstAvailableValue(selectedLine, ["description", "Description"]) },
+    ];
+  }, [selectedLine]);
+
+  const lineModalImage = useMemo(() => {
+    if (!selectedLine) {
+      return "";
+    }
+    return firstAvailableValue(selectedLine, ["photo", "image_url", "imageUrl"]);
+  }, [selectedLine]);
+
+  if (loading) {
+    return <div className="p-4 text-sm text-gray-500">loading invoice...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-sm text-red-600">{error}</div>;
+  }
 
   return (
     <>
-      {!hideBreadcrumb && !inline && <PageBreadcrumb pageTitle={mode === 'edit' ? 'Edit Invoice' : mode === 'view' ? 'View Invoice' : 'Add Invoice'} />}
-      <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className=" dark:text-white text-lg font-semibold">
-              {mode === 'edit' ? 'Edit Invoice' : mode === 'view' ? 'View Invoice' : 'Add New Invoice'}
-            </h3>
-            {onCancelInline && (
-              <button type="button" onClick={onCancelInline} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">&times;</button>
-            )}
+      <PageBreadcrumb pageTitle="Invoice Details" />
+      <div className="space-y-6">
+        <ComponentCard>
+          <div className="rounded bg-yellow-100 p-4 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            locked box component - placeholder
           </div>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="FirstName">FirstName</Label>
-              <Input
-                type="text"
-                id="FirstName"
-                placeholder="First Name"
-                {...register("name_first")}
-                error={errors.name_first && errors.name_first.message ? true : false }
-                hint={errors.name_first && errors.name_first.message}
-                disabled={mode == 'view'}
-              />
-            </div>
-            <div>
-              <Label htmlFor="name_last">LastName</Label>
-              <Input
-                type="text"
-                id="name_last"
-                placeholder="Last Name"
-                {...register("name_last")}
-                error={errors.name_last && errors.name_last.message ? true : false }
-                hint={errors.name_last && errors.name_last.message}
-                disabled={mode == 'view'}
-              />
-            </div>
+        </ComponentCard>
 
-             <div>
-              <Label htmlFor="name_middle">MiddleName</Label>
-              <Input
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <ComponentCard>
+            <div className="p-4">
+              <label className="mb-2 block text-sm font-medium">customer_name_search</label>
+              <input
                 type="text"
-                id="name_middle"
-                placeholder="Middle Name"
-                {...register("name_middle")}
-                error={errors.name_middle && errors.name_middle.message ? true : false }
-                hint={errors.name_middle && errors.name_middle.message}
-                disabled={mode == 'view'}
+                className="w-full rounded border border-gray-300 p-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                placeholder="customer_name_search"
               />
             </div>
-              <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                type="email"
-                id="email"
-                placeholder="Email"
-                {...register("email")}
-                error={errors.email && errors.email.message ? true : false }
-                hint={errors.email && errors.email.message}
-                disabled={mode == 'view'}
-              />
+          </ComponentCard>
+          <ComponentCard>
+            <div className="flex items-center justify-between p-4">
+              <div className="text-sm">
+                <p>
+                  <strong>sales_order_number:</strong> {invoice?.order_num || "n/a"}
+                </p>
+                <p>
+                  <strong>customer_po_number:</strong> {invoice?.customer_po || "n/a"}
+                </p>
+              </div>
+              <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">print</button>
             </div>
+          </ComponentCard>
+        </div>
+
+        <InvoiceForm
+          modeProp={id ? "edit" : "add"}
+          dataProp={invoice}
+          onSaved={fetchInvoice}
+        />
+
+        <ComponentCard>
+          <h3 className="mb-4 text-lg font-semibold">order_totals</h3>
+          <table className="w-full border-collapse border border-gray-300 text-sm dark:border-gray-700">
+            <thead className="bg-gray-100 dark:bg-gray-800">
+              <tr>
+                <th className="border border-gray-300 p-2 text-right dark:border-gray-700">lines</th>
+                <th className="border border-gray-300 p-2 text-right dark:border-gray-700">amount</th>
+                <th className="border border-gray-300 p-2 text-right dark:border-gray-700">tax</th>
+                <th className="border border-gray-300 p-2 text-right dark:border-gray-700">freight</th>
+                <th className="border border-gray-300 p-2 text-right dark:border-gray-700">order_total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-gray-300 p-2 text-right dark:border-gray-700">{lines.length}</td>
+                <td className="border border-gray-300 p-2 text-right dark:border-gray-700">
+                  ${invoice?.amount?.toFixed?.(2) ?? "0.00"}
+                </td>
+                <td className="border border-gray-300 p-2 text-right dark:border-gray-700">
+                  ${invoice?.sales_tax?.toFixed?.(2) ?? "0.00"}
+                </td>
+                <td className="border border-gray-300 p-2 text-right dark:border-gray-700">
+                  ${invoice?.ship_total?.toFixed?.(2) ?? "0.00"}
+                </td>
+                <td className="border border-gray-300 p-2 text-right font-semibold dark:border-gray-700">
+                  ${invoice?.total?.toFixed?.(2) ?? "0.00"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </ComponentCard>
+
+        <ComponentCard>
+          <div className="grid gap-4 text-sm md:grid-cols-2">
             <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                type="tel"
-                id="phone"
-                placeholder="Phone"
-                {...register("phone")}
-                error={errors.phone && errors.phone.message ? true : false }
-                hint={errors.phone && errors.phone.message}
-                disabled={mode == 'view'}
-              />
-            </div>
-              <div>
-              <Label htmlFor="company">Company</Label>
-              <Input
-                type="text"
-                id="company"
-                placeholder="Company"
-                {...register("company")}
-                error={errors.company && errors.company.message ? true : false }
-                hint={errors.company && errors.company.message}
-                disabled={mode == 'view'}
-              />
-            </div>
-          </div>
-          {mode !== 'view' && (
-            <div className="flex items-center gap-4">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === 'edit' ? 'Update' : 'Submit'}
-              </button>
-              {inline && onCancelInline && (
-                 <button
-                 type="button"
-                 onClick={onCancelInline}
-                 className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-               >
-                 Cancel
-               </button>
+              <h4 className="mb-1 font-medium text-gray-600 dark:text-gray-300">customers</h4>
+              {customers.length === 0 ? (
+                <div className="text-xs text-gray-400 dark:text-gray-500">no customers linked</div>
+              ) : (
+                <ul className="list-disc list-inside text-xs">
+                  {customers.map((customer, index) => (
+                    <li key={index}>{customer?.display_name || customer?.name || customer?.id}</li>
+                  ))}
+                </ul>
               )}
             </div>
-          )}          
-        </form>
-        {/* Linked data lists */}
-        {mode !== 'add' && (
-          <div className="mt-6 space-y-4">
-            {Object.keys(linkedLists).length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No linked data.</p>
-            ) : (
-              Object.entries(linkedLists).map(([section, items]) => (
-                <div key={section}>
-                  <h4 className="text-md font-semibold capitalize dark:text-white mb-2">{section.split('_').join(' ')}</h4>
-                  <ul className="text-sm divide-y divide-gray-200 dark:divide-gray-700 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
-                    {(items as any[]).map((item, idx) => (
-                      <li key={idx} className="p-2 flex items-center justify-between">
-                        <span className="truncate text-gray-500 dark:text-white">
-                          {item?.data?.record?.name || item?.data?.record?.title || item?.data?.record?.email || item?.data?.record?.phone || item?.data?.record?.id}
-                        </span>
-                        <span className="text-gray-400 text-xs">ID: {item?.data?.record?.id}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
+            <div>
+              <h4 className="mb-1 font-medium text-gray-600 dark:text-gray-300">phones</h4>
+              {phones.length === 0 ? (
+                <div className="text-xs text-gray-400 dark:text-gray-500">no phones linked</div>
+              ) : (
+                <ul className="list-disc list-inside text-xs">
+                  {phones.map((phone, index) => (
+                    <li key={index}>{phone?.number || phone?.name || phone?.id}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h4 className="mb-1 font-medium text-gray-600 dark:text-gray-300">emails</h4>
+              {emails.length === 0 ? (
+                <div className="text-xs text-gray-400 dark:text-gray-500">no emails linked</div>
+              ) : (
+                <ul className="list-disc list-inside text-xs">
+                  {emails.map((email, index) => (
+                    <li key={index}>{email?.email || email?.name || email?.id}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <h4 className="mb-1 font-medium text-gray-600 dark:text-gray-300">addresses</h4>
+              {addresses.length === 0 ? (
+                <div className="text-xs text-gray-400 dark:text-gray-500">no addresses linked</div>
+              ) : (
+                <ul className="list-disc list-inside text-xs">
+                  {addresses.map((address, index) => (
+                    <li key={index}>{address?.display || address?.address1 || address?.id}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        )}
-      </ComponentCard>
+        </ComponentCard>
+
+        <ComponentCard>
+          <h3 className="mb-2 text-lg font-semibold">invoice_lines</h3>
+          {lines.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400">no lines</div>
+          ) : (
+            <div className="overflow-auto">
+              <table className="min-w-full text-xs">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    {lineColumns.map((column) => (
+                      <th
+                        key={column}
+                        className="border-b px-2 py-1 text-left font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200"
+                      >
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => (
+                    <tr
+                      key={index}
+                      className="cursor-pointer odd:bg-white even:bg-gray-50 transition hover:bg-blue-50 dark:odd:bg-gray-900 dark:even:bg-gray-800 dark:hover:bg-gray-700"
+                      onClick={() => openLineModal(line)}
+                    >
+                      {lineColumns.map((column) => (
+                        <td key={column} className="border-b px-2 py-1 dark:border-gray-800">
+                          {String(line?.[column] ?? "")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </ComponentCard>
+
+        <ComponentCard>
+          <QAList entityType="invoice" entityId={invoice?.id} />
+        </ComponentCard>
+
+        <LineItemModal
+          isOpen={isLineModalOpen}
+          onClose={closeLineModal}
+          title={firstAvailableValue(selectedLine, ["description", "Description", "item_num", "itemNum"]) || "invoice_line"}
+          fields={lineModalFields}
+          imageUrl={lineModalImage || null}
+        />
+      </div>
     </>
   );
-}
+};
 
+export default InvoiceDetailPage;

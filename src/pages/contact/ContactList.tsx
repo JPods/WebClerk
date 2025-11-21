@@ -182,7 +182,7 @@ const userColumns: TableColumn<dynamicData>[] = [
                         <h2 className="text-4xl font-bold mb-6 text-blue-600 dark:text-blue-400">Edit Article</h2>
                         
                         <div className="mb-4">
-                        <label htmlFor="title" className="block text-sm font-medium mb-1">Title</label>
+                        <label htmlFor="title" className="block text-sm font-medium mb-1">title</label>
                         <input
                             type="text"
                             id="title"
@@ -194,7 +194,7 @@ const userColumns: TableColumn<dynamicData>[] = [
                         </div>
                         
                         <div className="mb-4">
-                        <label htmlFor="author" className="block text-sm font-medium mb-1">Author</label>
+                        <label htmlFor="author" className="block text-sm font-medium mb-1">author</label>
                         <input
                             type="text"
                             id="author"
@@ -206,7 +206,7 @@ const userColumns: TableColumn<dynamicData>[] = [
                         </div>
                         
                         <div className="mb-6">
-                        <label htmlFor="description" className="block text-sm font-medium mb-1">Description</label>
+                        <label htmlFor="description" className="block text-sm font-medium mb-1">description</label>
                         <textarea
                             id="description"
                             name="description"

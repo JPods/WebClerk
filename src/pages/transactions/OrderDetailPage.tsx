@@ -107,11 +107,11 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="FirstName">FirstName</Label>
+              <Label htmlFor="name_first">name_first</Label>
               <Input
                 type="text"
-                id="FirstName"
-                placeholder="First Name"
+                id="name_first"
+                placeholder="name_first"
                 {...register("name_first")}
                 error={errors.name_first && errors.name_first.message ? true : false }
                 hint={errors.name_first && errors.name_first.message}
@@ -119,11 +119,11 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
               />
             </div>
             <div>
-              <Label htmlFor="name_last">LastName</Label>
+              <Label htmlFor="name_last">name_last</Label>
               <Input
                 type="text"
                 id="name_last"
-                placeholder="Last Name"
+                placeholder="name_last"
                 {...register("name_last")}
                 error={errors.name_last && errors.name_last.message ? true : false }
                 hint={errors.name_last && errors.name_last.message}
@@ -132,11 +132,11 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
             </div>
 
              <div>
-              <Label htmlFor="name_middle">MiddleName</Label>
+              <Label htmlFor="name_middle">name_middle</Label>
               <Input
                 type="text"
                 id="name_middle"
-                placeholder="Middle Name"
+                placeholder="name_middle"
                 {...register("name_middle")}
                 error={errors.name_middle && errors.name_middle.message ? true : false }
                 hint={errors.name_middle && errors.name_middle.message}
@@ -144,11 +144,11 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
               />
             </div>
               <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">email</Label>
               <Input
                 type="email"
                 id="email"
-                placeholder="Email"
+                placeholder="email"
                 {...register("email")}
                 error={errors.email && errors.email.message ? true : false }
                 hint={errors.email && errors.email.message}
@@ -156,11 +156,11 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
               />
             </div>
             <div>
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">phone</Label>
               <Input
                 type="tel"
                 id="phone"
-                placeholder="Phone"
+                placeholder="phone"
                 {...register("phone")}
                 error={errors.phone && errors.phone.message ? true : false }
                 hint={errors.phone && errors.phone.message}
@@ -168,11 +168,11 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
               />
             </div>
               <div>
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="company">company</Label>
               <Input
                 type="text"
                 id="company"
-                placeholder="Company"
+                placeholder="company"
                 {...register("company")}
                 error={errors.company && errors.company.message ? true : false }
                 hint={errors.company && errors.company.message}

@@ -274,28 +274,28 @@ export default function UserInfoCard() {
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>First Name</Label>
-                    <Input type="text" {...register("name_first")}/>
+                    <Label>name_first</Label>
+                    <Input type="text" placeholder="name_first" {...register("name_first")}/>
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Middle Name</Label>
-                    <Input type="text" {...register("name_middle")}/>
+                    <Label>name_middle</Label>
+                    <Input type="text" placeholder="name_middle" {...register("name_middle")}/>
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Last Name</Label>
-                    <Input placeholder="Last name" type="text" {...register("name_last")} />
+                    <Label>name_last</Label>
+                    <Input placeholder="name_last" type="text" {...register("name_last")} />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Company</Label>
-                    <Input type="text" {...register("company")} />
+                    <Label>company</Label>
+                    <Input type="text" placeholder="company" {...register("company")} />
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Role</Label>
-                    <Input type="text" value="Super Admin" disabled/>
+                    <Label>role</Label>
+                    <Input type="text" placeholder="role" value="Super Admin" disabled/>
                   </div>
                 </div>
               </div>
@@ -308,18 +308,18 @@ export default function UserInfoCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">               
 
                   <div className="col-span-2">
-                    <Label>Phone</Label>
+                    <Label>phone</Label>
                     {phoneFields.map((field, index) => (
                       <div key={field.id} className="flex items-end space-x-2 mb-2">
                         <div className="w-1/4">
-                          <Label htmlFor={`phoneNumbers.${index}.format`}>Type</Label>
+                          <Label htmlFor={`phoneNumbers.${index}.format`}>format</Label>
                           <Controller
                             name={`phoneNumbers.${index}.format`}
                             control={control}
                             render={({ field }) => (
                               <Select
                                 options={phoneTypeOptions}
-                                placeholder="Select Type"
+                                placeholder="format"
                                 value={field.value}
                                 onChange={field.onChange}
                                 className="dark:bg-dark-900"
@@ -333,11 +333,11 @@ export default function UserInfoCard() {
                           )}
                         </div>
                         <div className="w-1/6">
-                          <Label htmlFor={`phoneNumbers.${index}.country_code`}>Code</Label>
+                          <Label htmlFor={`phoneNumbers.${index}.country_code`}>country_code</Label>
                           <Input
                             type="text"
                             id={`phoneNumbers.${index}.country_code`}
-                            placeholder="+91"
+                            placeholder="country_code"
                             {...register(`phoneNumbers.${index}.country_code`)}
                           />
                           {errors.phoneNumbers?.[index]?.country_code && (
@@ -347,11 +347,11 @@ export default function UserInfoCard() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <Label htmlFor={`phoneNumbers.${index}.number`}>Number</Label>
+                          <Label htmlFor={`phoneNumbers.${index}.number`}>number</Label>
                           <Input
                             type="text"
                             id={`phoneNumbers.${index}.number`}
-                            placeholder="Enter phone number"
+                            placeholder="number"
                             {...register(`phoneNumbers.${index}.number`)}
                           />
                           {errors.phoneNumbers?.[index]?.number && (
@@ -382,18 +382,18 @@ export default function UserInfoCard() {
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Email</Label>
+                    <Label>email</Label>
                      {emailFields.map((field, index) => (
                         <div key={field.id} className="flex items-end space-x-2 mb-2">
                           <div className="w-1/4">
-                            <Label htmlFor={`emails.${index}.type`}>Type</Label>
+                            <Label htmlFor={`emails.${index}.type`}>type</Label>
                             <Controller
                               name={`emails.${index}.type`}
                               control={control}
                               render={({ field }) => (
                                 <Select
                                   options={phoneTypeOptions}
-                                  placeholder="Select Type"
+                                  placeholder="type"
                                   value={field.value}
                                   onChange={field.onChange}
                                   className="dark:bg-dark-900"
@@ -408,11 +408,11 @@ export default function UserInfoCard() {
                             
                           </div>
                           <div className="flex-1">
-                            <Label htmlFor={`emails.${index}.email`}>Email</Label>
+                            <Label htmlFor={`emails.${index}.email`}>email</Label>
                             <Input
                               type="text"
                               id={`emails.${index}.email`}
-                              placeholder="Enter email"
+                              placeholder="email"
                               {...register(`emails.${index}.email`)}
                             />
                             {errors.emails?.[index]?.email && (
