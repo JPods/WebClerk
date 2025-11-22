@@ -39,7 +39,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   es: "Spanish",
 };
 
-const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
+const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code;
 
 const createLocalId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
