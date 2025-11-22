@@ -1,6 +1,5 @@
 import time
 import json
-import hashlib
 import os
 import re
 import uuid
@@ -8,12 +7,9 @@ import logging
 from typing import Any, Dict
 
 from django.conf import settings
-from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import Promise
 from django.utils.encoding import force_str
-from django.utils.dateparse import parse_datetime
-from django.utils.http import http_date  # keep http_date from Django
 from email.utils import parsedate_to_datetime
 try:
     from django.utils.http import parse_http_date_safe  # type: ignore
@@ -30,7 +26,6 @@ except Exception:
             return int(dt.timestamp())
         except Exception:
             return None
-from django.utils import timezone
 
 # Stable Last-Modified cache keyed by ETag
 _LM_CACHE: Dict[str, str] = {}
@@ -336,18 +331,6 @@ class WCAPISearchGuardMiddleware:
                     from django.http import JsonResponse
                     return JsonResponse({'detail': 'forbidden'}, status=403)
         return self.get_response(request)
-class AdminRestrictMiddleware(MiddlewareMixin):
-    """Restrict Django admin to localhost only."""
-    def process_request(self, request):
-        path = request.path or ''
-        if path.startswith('/admin/'):
-            ip = request.META.get('REMOTE_ADDR')
-            if ip not in settings.INTERNAL_IPS:
-                from django.http import HttpResponseNotFound
-                return HttpResponseNotFound()
-        return None
-
-  
 
 def _should_skip_envelope(request, response) -> bool:
     try:

@@ -56,8 +56,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "apps.core.utils.middleware.JSONOnlyMiddleware",
     'corsheaders.middleware.CorsMiddleware',
-    'common.middleware.AdminRestrictMiddleware',
-  
     'common.middleware.EnsureRenderedMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
