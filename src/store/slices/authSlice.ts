@@ -1,19 +1,19 @@
 // src/store/slices/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-interface User {
-  //id: string; 
-  //uuid: string;
+export interface User {
+  id: string | number;
+  uuid?: string;
   email: string;
-  role: string[];
+  role: string | string[];
   name_first: string;
-  //name_middle: string;
+  name_middle?: string | null;
   name_last: string;
-  // rank: string,
-  // company: string,
-  // date_joined: string,
-  // salutation: string,
-  // attention:string
+  rank?: string | null;
+  company?: string | null;
+  date_joined?: string | null;
+  salutation?: string | null;
+  attention?: string | null;
 }
 
 interface AuthState {

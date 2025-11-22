@@ -1,11 +1,10 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 //import { useAppSelector } from '../store/hooks';
 import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 import AppSidebar from '../layout/AppSidebar';
 import Backdrop from '../layout/Backdrop';
 import AppHeader from '../layout/AppHeader';
-import { useAuth } from '../hooks/useAuth';
 import { useAppSelector } from '../store/hooks';
 
 const AppLayout: React.FC = () => {
@@ -13,9 +12,9 @@ const AppLayout: React.FC = () => {
   //const { isAuthenticated, isLoading } = useAuth();
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
-  const location = useLocation();
-  const pathSegments = location.pathname.split('/');
-  const segment = pathSegments[1]; 
+  // const location = useLocation();
+  // const pathSegments = location.pathname.split('/');
+  // const segment = pathSegments[1]; 
 
   const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
     console.log("data url", isAuthenticated)
@@ -48,8 +47,7 @@ const AppLayout: React.FC = () => {
 };
 
 const PrivateRoute: React.FC = () => {
-  //const getToken = localStorage.getItem("accessToken");
-  const getToken = true
+  const getToken = localStorage.getItem("accessToken");
   return getToken ? (
     <SidebarProvider>
       <AppLayout />

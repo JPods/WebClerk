@@ -5,11 +5,11 @@ import { z } from "zod";
 
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
-import { Input, TextArea } from "../../components/wrapper";
+import { Input } from "../../components/wrapper";
 
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 
-import { actionSchema, contactSchema } from "../../validations/action";
+import { contactSchema } from "../../validations/action";
 import { patchAction, postAction } from "../../api/userProfile";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -56,7 +56,7 @@ export default function DomainAdd({ modeProp, dataProp, hideBreadcrumb, onSaved,
  
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
     try {
-      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.name_first, formData);
+      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.name_first);
       if (res.status === 201 || res.status === 200) {
         dispatch(showToast({ message: `Action ${mode === 'add' ? 'saved' : 'updated'} successfully`, type: "success" }));
         if (onSaved) {

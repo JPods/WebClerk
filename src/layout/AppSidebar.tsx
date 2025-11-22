@@ -3,14 +3,11 @@ import { Link, useLocation } from "react-router";
 
 // Assume these icons are imported from an icon library
 import {
-  BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  PageIcon,
-  PieChartIcon,
   PlugInIcon,
   TableIcon,
   UserCircleIcon,
@@ -36,6 +33,54 @@ const navItems: NavItem[] = [
     icon:<GridIcon />,
     name: "Dashboard",
     path: "/dashboard",
+  },
+  {
+    icon: <PlugInIcon />,
+    name: "Notion Tracker",
+    path: "/notion-tracker",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Kanban Board",
+    path: "/kanban-board",
+  },
+  {
+    icon: <CalenderIcon />,
+    name: "Kanban Gantt",
+    path: "/kanban-gantt",
+  },
+  {
+    icon: <CalenderIcon />,
+    name: "SVAR Gantt",
+    path: "/svar-gantt",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Kanban API",
+    path: "/kanban-board-data",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Admin Workbench",
+    path: "/admin-wb",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Whitelist Tester",
+    path: "/whitelist",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Products",
+    path: "/products",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Transactions",
+    subItems: [
+      { name: "Orders", path: "/transactions/orders" },
+      { name: "Invoices", path: "/transactions/invoices" },
+    ],
   },
   {
     icon: <CalenderIcon />,
@@ -106,7 +151,7 @@ const navItems: NavItem[] = [
   {
     name: "Tables",
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    subItems: [{ name: "Basic Models", path: "/basic-models", pro: false }],
   },
   // {
   //   name: "Pages",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -9,25 +9,40 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { login } from "../../api/auth";
+import { login, userDetails } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
-import { setUser } from "../../store/slices/authSlice";
+import { setUser, type User } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
-import axiosInstance from "../../api/axios";
-import { PostLoginURL } from "../../routes/network";
+// import axiosInstance from "../../api/axios";
+// import { PostLoginURL } from "../../routes/network";
 
+
+const mapProfileToUser = (profile: any): User => ({
+  id: profile?.id ?? "",
+  uuid: profile?.uuid ?? "",
+  email: profile?.email ?? "",
+  role: profile?.role ?? [],
+  name_first: profile?.name_first ?? "",
+  name_middle: profile?.name_middle ?? "",
+  name_last: profile?.name_last ?? "",
+  rank: profile?.rank ?? null,
+  company: profile?.company ?? null,
+  date_joined: profile?.date_joined ?? null,
+  salutation: profile?.salutation ?? null,
+  attention: profile?.attention ?? null,
+});
 
 export default function SignInForm() {
 
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const { user, isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user } = useAppSelector((state) => state.auth);
   
    console.log("User data",user)
   const {
     register,
-    control,
+  // control,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
@@ -37,35 +52,47 @@ export default function SignInForm() {
     },
   });
 
-  const handleFormSubmit = async (data:any) => {
+  const isValidToken = (val: any): val is string => typeof val === 'string' && val.trim() !== '' && val !== 'undefined' && val !== 'null';
+
+  const handleFormSubmit = async (data: LoginFormData) => {
           // Overwritten on the backend by user profile
              //data.role = 'USER';
-       try {
-              const response = await login(data);
-              console.log("Login response", response.data);
-              if (response.code === 200) {
-                  console.log("Login response2", response.data);
-                  localStorage.setItem("accessToken", response.data.access);
-                  localStorage.setItem("refreshToken", response.data.refresh);
+     try {
+        const resp = await login(data);
+        console.log("Login response", resp);
 
-                  const { email, role, name_first, name_last } = response.data;
-                  const user = { email, role, name_first, name_last };
-                  dispatch(setUser(user));
-                  dispatch(showToast({ message: "Login successful!", type: "success" }));
-                  //navigate('/dashboard');
-                       // }    
-                 
-                       // dispatch(setUser({ ...response.data.access, isAuthenticated: true }));
-                 
-              } else {               
-                  dispatch(showToast({ message: response.error[0] ?? "Try again later", type: "error" }));
-              }             
-       } catch (error : any) {
-             dispatch(showToast({ message: error, type: "error" }));
-       }   
+        const accessRaw = resp?.data?.access ?? resp?.access ?? null;
+        const refreshRaw = resp?.data?.refresh ?? resp?.refresh ?? null;
+        const access = isValidToken(accessRaw) ? accessRaw : null;
+        const refresh = isValidToken(refreshRaw) ? refreshRaw : null;
+
+        if (!access) {
+          const msg = resp?.error?.[0] || resp?.message || "Login failed";
+          dispatch(showToast({ message: msg, type: "error" }));
+          return;
+        }
+
+        localStorage.setItem("accessToken", access);
+        if (refresh) localStorage.setItem("refreshToken", refresh);
+
+        let profilePayload: any = resp?.data?.user ?? resp?.user ?? resp?.data ?? resp;
+        try {
+          const profileResponse = await userDetails();
+          if (profileResponse?.status === 200) {
+            profilePayload = profileResponse.data;
+          }
+        } catch (profileError) {
+          console.warn("Failed to fetch profile after login", profileError);
+        }
+
+        dispatch(setUser(mapProfileToUser(profilePayload)));
+        dispatch(showToast({ message: "Login successful!", type: "success" }));
+     } catch (error : any) {
+       dispatch(showToast({ message: error, type: "error" }));
+     }   
   };
   const [showPassword, setShowPassword] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
+  // const [isChecked, setIsChecked] = useState(false);
 
   //  const selectOption = [                          
   //                         {value:"ADMIN", label:"ADMIN"},

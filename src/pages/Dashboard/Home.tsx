@@ -5,13 +5,7 @@ import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
-import { useAuth } from "../../hooks/useAuth";
 import { useAppSelector } from "../../store/hooks";
-import { useEffect } from "react";
-import { userDetails } from "../../api/auth";
-import { setUser } from "../../store/slices/authSlice";
-import { showToast } from "../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
 
 export default function Home() {
   
@@ -22,8 +16,8 @@ export default function Home() {
   return (
     <>
       <PageMeta
-        title="React.js Ecommerce Dashboard | TailAdmin - React.js Admin Dashboard Template"
-        description="This is React.js Ecommerce Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
+        title="React.js Ecommerce Dashboard | WebClerk - React.js Admin Dashboard Template"
+        description="This is React.js Ecommerce Dashboard page for WebClerk - React.js Tailwind CSS Admin Dashboard Template"
       />
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         <div className="col-span-12 space-y-6 xl:col-span-7">

@@ -1,5 +1,5 @@
 {
-  "name": "tailadmin-react",
+  "name": "WebClerk-react",
   "private": true,
   "version": "2.0.2",
   "type": "module",
@@ -21,6 +21,7 @@
     "@react-jvectormap/core": "^1.0.4",
     "@react-jvectormap/world": "^1.1.2",
     "@reduxjs/toolkit": "^2.6.1",
+    "@svar-ui/react-gantt": "^2.3.3",
     "apexcharts": "^4.1.0",
     "axios": "^1.8.4",
     "clsx": "^2.1.1",
@@ -47,6 +48,7 @@
   "devDependencies": {
     "@eslint/js": "^9.19.0",
     "@tailwindcss/postcss": "^4.0.8",
+    "@types/gensync": "^1.0.4",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

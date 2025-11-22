@@ -1,15 +1,9 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 
-import DataTable, { TableColumn } from 'react-data-table-component';
 import { useEffect, useState } from "react";
-import { Actions, Contacts, deleteAction, getAction } from "../../api/userProfile";
-import { dynamicData } from "../../model/dynamicData";
-import { FaEye, FaEdit, FaTrash } from 'react-icons/fa'; 
-import { useNavigate } from "react-router";
-import { PageRoutes } from "../../routes/Routes";
-import { showToast } from "../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
+import { Contacts } from "../../api/userProfile";
+
 
 interface Item {
   id: number;
@@ -57,34 +51,34 @@ export default function ContactList() {
       const [selectedItem, setSelectedItem] = useState<Item | null>(initialItems[0]);
   
   // State for the form data, used for editing.
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [editingItem] = useState<Item | null>(null);
 
-const [globalFilter, setGlobalFilter] = useState('');
-const [data, setData] = useState<dynamicData[]>([]);
 
-const navigate = useNavigate()
-const dispatch = useDispatch()
+// const [ setData] = useState<dynamicData[]>([]);
 
-const handleView = (row: any) => {
-    navigate(PageRoutes.actionAdd, {state: {mode:'view', data:row}})
-};
+// const navigate = useNavigate()
+// const dispatch = useDispatch()
 
-  const handleEdit = (row: any) => {
-    navigate(PageRoutes.actionAdd, {state: {mode:'edit', data:row}})
-  };
+//const handleView = (row: any) => {
+//     navigate(PageRoutes.actionAdd, {state: {mode:'view', data:row}})
+// };
 
-  const handleDelete = async(row: any) => {
-    if (window.confirm(`Delete task with ID ${row.id}?`)) {
-      try {
-        deleteAction(row.id)      
-        dispatch(showToast({ message: "Action delete Successfully", type: "success" }));
-        setData((prev:dynamicData) => 
-            prev.filter((list: { id: any; }) => list.id !== row.id))
-      } catch (error) {
+//   const handleEdit = (row: any) => {
+//     navigate(PageRoutes.actionAdd, {state: {mode:'edit', data:row}})
+//   };
+
+//   const handleDelete = async(row: any) => {
+//     if (window.confirm(`Delete task with ID ${row.id}?`)) {
+//       try {
+//         deleteAction(row.id)      
+//         dispatch(showToast({ message: "Action delete Successfully", type: "success" }));
+//         // setData((prev:dynamicData) => 
+//         //     prev.filter((list: { id: any; }) => list.id !== row.id))
+//       } catch (error) {
         
-      }
-    }
-  };
+//       }
+//     }
+//   };
 
 useEffect(() => {
    getActionData()
@@ -94,7 +88,7 @@ useEffect(() => {
          const res = await Contacts()       
          if(res.status === 200)
          {            
-            setData(res.data)
+            //setData(res.data)
          }
          
       } catch (error) {
@@ -102,37 +96,37 @@ useEffect(() => {
       }
   }
 
-const userColumns: TableColumn<dynamicData>[] = [
-  { name: 'ID', selector: row => row.id, sortable: true },
-  { name: 'Priority', selector: row => row.priority, sortable: true },
-  { name: 'Difficulty', selector: row => row.difficulty, sortable: true },
-  { name: 'Status', selector: row => row.status, sortable: true },
-  { name: 'Quality', selector: row => row.quality, sortable: true },
-  { name: 'Hours', selector: row => row.hours, sortable: true },
-  { name: 'Percent', selector: row => `${row.percent}%`, sortable: true },
-  { name: 'Due Date', selector: row => new Date(row.dt_due).toLocaleString(), sortable: true },
-  { name: 'Completed On', selector: row => new Date(row.dt_completed).toLocaleString(), sortable: true },
-  { name: 'Last Updated', selector: row => new Date(row.dt_updated).toLocaleString(), sortable: true },
-  {
-    name: 'Action',
-    cell: (row) => (
-      <div className="flex gap-2">
-        <button onClick={() => handleView(row)} title="View">
-          <FaEye className="text-blue-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleEdit(row)} title="Edit">
-          <FaEdit className="text-green-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleDelete(row)} title="Delete">
-          <FaTrash className="text-red-600 hover:scale-110 transition" />
-        </button>
-      </div>
-    ),
-    ignoreRowClick: true,
-    allowOverflow: true,
-    button: true,
-  },
-];
+// const userColumns: TableColumn<dynamicData>[] = [
+//   { name: 'ID', selector: row => row.id, sortable: true },
+//   { name: 'Priority', selector: row => row.priority, sortable: true },
+//   { name: 'Difficulty', selector: row => row.difficulty, sortable: true },
+//   { name: 'Status', selector: row => row.status, sortable: true },
+//   { name: 'Quality', selector: row => row.quality, sortable: true },
+//   { name: 'Hours', selector: row => row.hours, sortable: true },
+//   { name: 'Percent', selector: row => `${row.percent}%`, sortable: true },
+//   { name: 'Due Date', selector: row => new Date(row.dt_due).toLocaleString(), sortable: true },
+//   { name: 'Completed On', selector: row => new Date(row.dt_completed).toLocaleString(), sortable: true },
+//   { name: 'Last Updated', selector: row => new Date(row.dt_updated).toLocaleString(), sortable: true },
+//   {
+//     name: 'Action',
+//     cell: (row) => (
+//       <div className="flex gap-2">
+//         <button onClick={() => handleView(row)} title="View">
+//           <FaEye className="text-blue-600 hover:scale-110 transition" />
+//         </button>
+//         <button onClick={() => handleEdit(row)} title="Edit">
+//           <FaEdit className="text-green-600 hover:scale-110 transition" />
+//         </button>
+//         <button onClick={() => handleDelete(row)} title="Delete">
+//           <FaTrash className="text-red-600 hover:scale-110 transition" />
+//         </button>
+//       </div>
+//     ),
+//     ignoreRowClick: true,
+//     allowOverflow: true,
+//     button: true,
+//   },
+// ];
 
   return (
     <>

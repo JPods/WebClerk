@@ -2,15 +2,14 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { createTheme } from 'react-data-table-component';
-import { useEffect, useState } from "react";
-import { Actions, Contacts, deleteAction } from "../../api/userProfile";
+import { useEffect, useMemo, useState } from "react";
+import { Actions, deleteAction } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../context/ThemeContext";
 import ActionAdd from "./ActionAdd";
-import { get } from "react-hook-form";
 
 
 // Create the dark theme only once
@@ -113,17 +112,32 @@ export default function ActionList() {
     setSelectedContact(null);
   };
 
+  const columnOptions = useMemo(() => {
+    const options = new Set<string>();
+    data.forEach((item) => {
+      const raw = item?.kanban_column ?? item?.column;
+      if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if (trimmed) {
+          options.add(trimmed);
+        }
+      }
+    });
+    return Array.from(options);
+  }, [data]);
+
   const userColumns: TableColumn<dynamicData>[] = [
-     { name: 'ID', selector: row => row.id, sortable: true },
+  { name: 'ID', selector: row => row.id, sortable: true },
+   { name: 'Title', selector: row => row.action_en || row.action || '-', sortable: true },
       { name: 'Priority', selector: row => row.priority, sortable: true },
       { name: 'Difficulty', selector: row => row.difficulty, sortable: true },
       { name: 'Status', selector: row => row.status, sortable: true },
       { name: 'Quality', selector: row => row.quality, sortable: true },
       { name: 'Hours', selector: row => row.hours, sortable: true },
       { name: 'Percent', selector: row => `${row.percent}%`, sortable: true },
-      { name: 'Due Date', selector: row => new Date(row.dt_due).toLocaleString(), sortable: true },
-      { name: 'Completed On', selector: row => new Date(row.dt_completed).toLocaleString(), sortable: true },
-      { name: 'Last Updated', selector: row => new Date(row.dt_updated).toLocaleString(), sortable: true },
+   { name: 'Due Date', selector: row => row.dt_due ? new Date(row.dt_due).toLocaleString() : '-', sortable: true },
+   { name: 'Completed On', selector: row => row.dt_completed ? new Date(row.dt_completed).toLocaleString() : '-', sortable: true },
+   { name: 'Last Updated', selector: row => row.dt_updated ? new Date(row.dt_updated).toLocaleString() : '-', sortable: true },
     {
       name: 'Action',
       cell: (row) => (
@@ -181,6 +195,7 @@ export default function ActionList() {
               dataProp={selectedContact}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
+              columnOptions={columnOptions}
             />
           </div>
         )}

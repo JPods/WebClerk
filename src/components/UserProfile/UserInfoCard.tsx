@@ -13,8 +13,7 @@ import { Select } from "../wrapper";
 import { getAddress, getEmail, getPhone, patchUserProfile, postEmail, postPhone } from "../../api/userProfile";
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useEffect, useState } from "react";
-import { dynamicData } from "../../model/dynamicData";
+import { useEffect } from "react";
 
 const phoneTypeOptions = [
     { value: "mobile", label: "Mobile" },
@@ -28,12 +27,6 @@ export default function UserInfoCard() {
    const { user } = useAppSelector((state) => state.auth);
    const dispatch = useDispatch()
    
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
-  };
-  
   useEffect(() => {
       getAddressData()
       getPhones()
@@ -61,28 +54,28 @@ export default function UserInfoCard() {
 
   const getAddressData = () => {
       try {         
-        const res = getAddress(user?.id)
+        const res = getAddress(user?.email)
         console.log("address data", res)
       } catch (error) {
         
       }
   }
 
-  const { register, handleSubmit, control, formState: { errors }, setValue, getValues, reset } = useForm<z.infer<typeof contactSchema>>({
+  const { register, handleSubmit, control, formState: { errors }, setValue, getValues } = useForm<z.infer<typeof contactSchema>>({
       resolver: zodResolver(contactSchema),
       defaultValues: { 
          name_first: user ? user.name_first : '',
-         name_middle: user ? user.name_middle : '',
+        // name_middle: user ? user.name_middle : '',
          name_last: user ? user.name_last : '',         
          phoneNumbers: [{ format: "", country_code: "", number: "" }],    
          emails: [{ type: "", email: "" }],  
       },
     });
 
-    useEffect(() => {
-      console.log("user", user)
-         setValue('company', user ? user.company: '');
-    },[])
+    // useEffect(() => {
+    //   console.log("user", user)
+    //      setValue('company', user ? user.company: '');
+    // },[])
     
    const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
        control,
@@ -192,7 +185,7 @@ export default function UserInfoCard() {
                 Joining Date
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                { user && user.date_joined }
+                {/* { user && user.date_joined } */}
               </p>
             </div>
             <div>
@@ -200,7 +193,7 @@ export default function UserInfoCard() {
                 rank
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                { user && user.rank }
+                {/* { user && user.rank } */}
               </p>
             </div>
           </div>

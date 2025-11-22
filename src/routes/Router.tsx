@@ -3,10 +3,19 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
-import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
-import { Provider } from 'react-redux';
-import { store } from '../store';
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, SvarGanttPage, UserProfiles } from '../pages/wrapperPage';
+import AdminWorkbench from '../pages/admin/AdminWorkbench';
+import WhitelistTester from '../pages/tools/WhitelistTester';
+import ProductsPage from '../pages/items/ProductsPage';
+import OrdersListPage from '../pages/transactions/OrdersListPage';
+import OrderDetailPage from '../pages/transactions/OrderDetailPage';
+import InvoicesListPage from '../pages/transactions/InvoicesListPage';
+import InvoiceDetailPage from '../pages/transactions/InvoiceDetailPage';
+import PurchaseOrderDetailPage from '../pages/transactions/PurchaseOrderDetailPage';
+import ProposalDetailPage from '../pages/transactions/ProposalDetailPage';
+// Redux store is not used directly here; pages connect as needed.
 import Test from '../pages/test/Test';
+import DocsIndex from '../pages/docs/DocsIndex';
 
 
 
@@ -36,10 +45,27 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
               <Route path={PageRoutes.domainList} element={<DomainList />} /> 
               <Route path={PageRoutes.domainAdd} element={<DomainAdd />} />
+              <Route path={PageRoutes.notionTracker} element={<NotionTrackerPage />} />
+              <Route path={PageRoutes.kanbanBoard} element={<KanbanBoardPage />} />
+              <Route path={PageRoutes.kanbanBoardData} element={<KanbanBoardDataPage />} />
+              <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
+              <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
     
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/form-elements" element={<FormElements />} />
-              <Route path="/basic-tables" element={<BasicTables />} />   
+              <Route path="/basic-models" element={<BasicTables />} />   
+              <Route path={PageRoutes.adminWorkbench} element={<AdminWorkbench />} />
+              <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
+              <Route path={PageRoutes.docs} element={<DocsIndex />} />
+              {/* Products */}
+              <Route path={PageRoutes.products} element={<ProductsPage />} />
+              {/* Transactions */}
+              <Route path={PageRoutes.transactionsOrders} element={<OrdersListPage />} />
+              <Route path={PageRoutes.transactionsOrderDetail} element={<OrderDetailPage />} />
+              <Route path={PageRoutes.transactionsInvoices} element={<InvoicesListPage />} />
+              <Route path={PageRoutes.transactionsInvoiceDetail} element={<InvoiceDetailPage />} />
+              <Route path={PageRoutes.transactionsPurchaseOrderDetail} element={<PurchaseOrderDetailPage />} />
+              <Route path={PageRoutes.transactionsProposalDetail} element={<ProposalDetailPage />} />
             </Route>
             
             {/* 404 page */}

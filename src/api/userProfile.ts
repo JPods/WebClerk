@@ -1,5 +1,11 @@
-import apiClient from "./axios"; // unified protected API client
-import { PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
+import apiClient, { notionClient } from "./axios"; // unified protected API client
+import { IntegrationURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
+import {
+  NotionModule,
+  NotionModuleUpdatePayload,
+  NotionProgressResponse,
+  NotionAuthStatus,
+} from "../type/notion";
 
 export const patchUserProfile = async (data:any) => {
   try {
@@ -116,15 +122,7 @@ export const getAction = async (id:any = '') => {
   }  
 };
 
-export const patchAction = async (id:any,data:any) => {
-  try {
-  const res = await apiClient.patch(PostLoginURL.addActions + id +'/', {...data});
-    return res;
-  }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
-};
+
 
 export const deleteAction = async (id:any) => {
   try {
@@ -138,7 +136,7 @@ export const deleteAction = async (id:any) => {
 
 export const Contacts = async (id:any = '') => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=contact' + (id ? `&id=${id}` : '') );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=contact' + (id ? `&id=${id}` : '') );
     return res;
   }
   catch (error: any) { 
@@ -148,7 +146,17 @@ export const Contacts = async (id:any = '') => {
 
 export const Actions = async () => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=actions' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=action' );
+    return res;
+  }
+  catch (error: any) { 
+    return error.response?.data || error.message   
+  }  
+};
+
+export const patchAction = async (data: any) => {
+  try {
+  const res = await apiClient.post(PostLoginURL.allSave, {...data});
     return res;
   }
   catch (error: any) { 
@@ -159,7 +167,7 @@ export const Actions = async () => {
 // Generic fetch for any table by id via the allTypes endpoint
 export const getByTypeAndId = async (tableName: string, id: string | number) => {
   try {
-    const url = `${PostLoginURL.allTypes}table_name=${encodeURIComponent(tableName)}&id=${encodeURIComponent(String(id))}`;
+    const url = `${PostLoginURL.allTypes}model_name=${encodeURIComponent(tableName)}&id=${encodeURIComponent(String(id))}`;
     const res = await apiClient.get(url);
     // Some endpoints return { data: [...] } or a single object; normalize to array of items
     const payload = (res as any).data ?? res;
@@ -174,7 +182,7 @@ export const getByTypeAndId = async (tableName: string, id: string | number) => 
 
 export const Settings = async () => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=settings' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=settings' );
     return res;
   }
   catch (error: any) { 
@@ -183,10 +191,49 @@ export const Settings = async () => {
 };
 export const Domains = async () => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'table_name=domains' );
+  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=domains' );
     return res;
   }
   catch (error: any) { 
     return error.response?.data || error.message   
   }  
+};
+
+// --------------------
+// Notion integration
+// --------------------
+
+const normalizeEnvelope = <T>(response: any): T => {
+  if (!response) return {} as T;
+  if (response?.data && response.data.data) return response.data.data as T;
+  if (response?.data) return response.data as T;
+  return response as T;
+};
+
+export const fetchNotionAuthStatus = async (): Promise<NotionAuthStatus> => {
+  const res = await notionClient.get(IntegrationURL.notionStatus);
+  return normalizeEnvelope<NotionAuthStatus>(res);
+};
+
+export const startNotionLogin = async (): Promise<{ url?: string }> => {
+  const res = await notionClient.post(IntegrationURL.notionLogin);
+  return normalizeEnvelope<{ url?: string }>(res);
+};
+
+export const fetchNotionProgress = async (): Promise<NotionProgressResponse> => {
+  const res = await notionClient.get(IntegrationURL.notionProgress);
+  return normalizeEnvelope<NotionProgressResponse>(res);
+};
+
+export const triggerNotionSync = async (): Promise<{ message: string }> => {
+  const res = await notionClient.post(IntegrationURL.notionSync);
+  return normalizeEnvelope<{ message: string }>(res);
+};
+
+export const updateNotionModule = async (
+  moduleId: string,
+  payload: NotionModuleUpdatePayload
+): Promise<NotionModule> => {
+  const res = await notionClient.patch(`${IntegrationURL.notionProgress}${moduleId}/`, payload);
+  return normalizeEnvelope<NotionModule>(res);
 };

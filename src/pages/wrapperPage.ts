@@ -15,11 +15,21 @@ import DomainList from "./domain/DomainList";
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
 import BasicTables from "./Tables/BasicTables";
+import AdminWorkbench from "./admin/AdminWorkbench";
+import OrderDetailPage from "./transactions/OrderDetailPage";
+import InvoiceDetailPage from "./transactions/InvoiceDetailPage";
+import NotionTrackerPage from "./notion/NotionTrackerPage.tsx";
+import KanbanBoardPage from "./kanban/KanbanBoardPage";
+import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
+import KanbanGanttPage from "./kanban/KanbanGanttPage";
+import SvarGanttPage from "./kanban/SvarGanttPage";
 
 export {  
   SignIn,
   SignUp,
-  NotFound,  
+  NotFound,
+  OrderDetailPage,
+  InvoiceDetailPage,
   Home,
   UserProfiles,
   ActionList,
@@ -34,4 +44,10 @@ export {
   Calendar,
   FormElements,
   BasicTables
+  , AdminWorkbench
+  , NotionTrackerPage
+  , KanbanBoardPage
+  , KanbanBoardDataPage
+  , KanbanGanttPage
+  , SvarGanttPage
 };

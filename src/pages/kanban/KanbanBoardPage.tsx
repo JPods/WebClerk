@@ -1,0 +1,1235 @@
+import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { KanbanColumn } from "../../components/kanban/KanbanColumn";
+import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
+import type { DragItem, DropResult } from "../../components/kanban/dndTypes";
+import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
+import { Actions, patchAction } from "../../api/userProfile";
+import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
+import { Link } from "react-router";
+import { PageRoutes } from "../../routes/Routes";
+
+const priorityPalette: Record<TaskPriority, string> = {
+  low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+  medium: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
+  high: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
+  critical: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
+};
+
+const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
+
+const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
+
+const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  ar: "Arabic",
+  bn: "Bengali",
+  es: "Spanish",
+};
+
+const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
+
+const createLocalId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
+const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
+const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
+
+const DEFAULT_DIFFICULTY = DIFFICULTY_OPTIONS[2] ?? DIFFICULTY_OPTIONS[0];
+const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
+
+const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
+const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
+
+const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
+  id: createLocalId(),
+  language,
+  title,
+  description,
+});
+
+const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
+
+const createInitialTaskFormState = (columnId: string): TaskFormState => ({
+  translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
+  columnId,
+  priority: "medium",
+  dueDate: "",
+  startDate: "",
+  endDate: "",
+  assignee: "",
+  difficulty: DEFAULT_DIFFICULTY_STRING,
+  progress: DEFAULT_PROGRESS_STRING,
+});
+
+const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
+  for (const code of DEFAULT_LANGUAGE_ORDER) {
+    if (!used.has(code)) {
+      return code;
+    }
+  }
+  for (const option of options) {
+    if (!used.has(option.value)) {
+      return option.value;
+    }
+  }
+  return "";
+};
+
+const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
+  const languages = new Set<string>();
+  task.languageCodes?.forEach((code) => languages.add(normalizeLanguageCode(code)));
+  Object.keys(task.titleTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
+  Object.keys(task.descriptionTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
+
+  if (languages.size === 0) {
+    languages.add("en");
+  }
+
+  const orderedLanguages = Array.from(languages).sort((a, b) => {
+    const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
+    const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  return orderedLanguages.map((language) => {
+    const fallbackTitle = language === "en" ? task.title : "";
+    const fallbackDescription = language === "en" ? task.description ?? "" : "";
+    return createTranslationEntry(
+      language,
+      task.titleTranslations?.[language] ?? fallbackTitle,
+      task.descriptionTranslations?.[language] ?? fallbackDescription
+    );
+  });
+};
+
+interface OnDragEndArgs {
+  item: DragItem;
+  result: DropResult | null;
+}
+
+const FALLBACK_COLUMN_ID = "column-uncategorized";
+
+const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): BoardData => {
+  if (!result) {
+    return prev;
+  }
+
+  const sourceColumn = prev.columns[item.sourceColumnId];
+  const destinationColumn = prev.columns[result.columnId];
+
+  if (!sourceColumn || !destinationColumn) {
+    return prev;
+  }
+
+  const sourceIndex = sourceColumn.taskIds.indexOf(item.taskId);
+  if (sourceIndex === -1) {
+    return prev;
+  }
+
+  const destinationColumnId = result.columnId;
+  const rawDestinationIndex = result.index;
+
+  if (item.sourceColumnId === destinationColumnId && sourceIndex === rawDestinationIndex) {
+    return prev;
+  }
+
+  const nextColumns: Record<string, KanbanColumnType> = { ...prev.columns };
+
+  const removeFromSource = () => {
+    const updated = [...sourceColumn.taskIds];
+    updated.splice(sourceIndex, 1);
+    nextColumns[sourceColumn.id] = { ...sourceColumn, taskIds: updated };
+    return updated;
+  };
+
+  if (item.sourceColumnId === destinationColumnId) {
+    const withoutTask = removeFromSource();
+    let insertIndex = rawDestinationIndex;
+    if (insertIndex > sourceIndex) {
+      insertIndex -= 1;
+    }
+    const clampedIndex = Math.max(0, Math.min(insertIndex, withoutTask.length));
+    const reordered = [...withoutTask];
+    reordered.splice(clampedIndex, 0, item.taskId);
+
+    if (sourceColumn.taskIds.join() === reordered.join()) {
+      return prev;
+    }
+
+    nextColumns[sourceColumn.id] = { ...sourceColumn, taskIds: reordered };
+    return { ...prev, columns: nextColumns };
+  }
+
+  removeFromSource();
+  const destinationTaskIds = [...destinationColumn.taskIds];
+  const clampedIndex = Math.max(0, Math.min(rawDestinationIndex, destinationTaskIds.length));
+  destinationTaskIds.splice(clampedIndex, 0, item.taskId);
+
+  nextColumns[destinationColumn.id] = { ...destinationColumn, taskIds: destinationTaskIds };
+
+  return {
+    ...prev,
+    columns: nextColumns,
+  };
+};
+
+const padTwo = (value: number) => value.toString().padStart(2, "0");
+
+const formatDateTimeLocalString = (date: Date) =>
+  `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())}T${padTwo(date.getHours())}:${padTwo(
+    date.getMinutes()
+  )}`;
+
+const parseDateTimeInputValue = (value?: string): Date | null => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const coerceDateFromUnknown = (value: unknown): Date | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (/^\d+$/.test(trimmed)) {
+      const numeric = Number(trimmed);
+      const date = trimmed.length <= 10 ? new Date(numeric * 1000) : new Date(numeric);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+};
+
+const normalizeIncomingDateValue = (value: unknown): string => {
+  const date = coerceDateFromUnknown(value);
+  return date ? formatDateTimeLocalString(date) : "";
+};
+
+const normalizeNumericSelectValue = (value: unknown, fallback: number): string => {
+  if (value === null || value === undefined) {
+    return String(fallback);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return String(fallback);
+    }
+    const numeric = Number(trimmed);
+    return Number.isNaN(numeric) ? String(fallback) : String(numeric);
+  }
+
+  const numeric = Number(value);
+  return Number.isNaN(numeric) ? String(fallback) : String(numeric);
+};
+
+const extendNumericOptionStrings = (options: readonly number[], current: string): string[] => {
+  const base = options.map((value) => String(value));
+  if (current && !base.includes(current)) {
+    return [...base, current];
+  }
+  return base;
+};
+
+const ensureEndAfterStart = (start: string, candidate: string): string => {
+  const startDate = parseDateTimeInputValue(start);
+
+  if (!candidate) {
+    if (!startDate) {
+      return "";
+    }
+    const adjusted = new Date(startDate.getTime());
+    adjusted.setHours(adjusted.getHours() + 1);
+    return formatDateTimeLocalString(adjusted);
+  }
+
+  const candidateDate = parseDateTimeInputValue(candidate);
+  if (!startDate || !candidateDate) {
+    return candidateDate ? formatDateTimeLocalString(candidateDate) : "";
+  }
+  if (candidateDate.getTime() <= startDate.getTime()) {
+    const adjusted = new Date(startDate.getTime());
+    adjusted.setHours(adjusted.getHours() + 1);
+    return formatDateTimeLocalString(adjusted);
+  }
+  return formatDateTimeLocalString(candidateDate);
+};
+
+const calculateDueDate = (start: string, end: string): string => {
+  const endDate = parseDateTimeInputValue(end);
+  if (endDate) {
+    return formatDateTimeLocalString(endDate);
+  }
+  const startDate = parseDateTimeInputValue(start);
+  if (startDate) {
+    const due = new Date(startDate.getTime());
+    due.setDate(due.getDate() + 1);
+    return formatDateTimeLocalString(due);
+  }
+  return "";
+};
+
+const toTimestampMilliseconds = (value: string): number | null => {
+  const date = parseDateTimeInputValue(value);
+  return date ? date.getTime() : null;
+};
+
+const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, value: string): TaskFormState => {
+  if (field === "startDate") {
+    const next: TaskFormState = { ...prev, startDate: value };
+    next.endDate = ensureEndAfterStart(value, prev.endDate);
+    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+    return next;
+  }
+
+  if (field === "endDate") {
+    const nextEnd = ensureEndAfterStart(prev.startDate, value);
+    const next: TaskFormState = { ...prev, endDate: nextEnd };
+    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+    return next;
+  }
+
+  if (field === "dueDate") {
+    if (!value) {
+      return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.endDate) };
+    }
+
+    const parsedDue = parseDateTimeInputValue(value);
+    if (!parsedDue) {
+      return prev;
+    }
+
+    const endDate = parseDateTimeInputValue(prev.endDate);
+    if (endDate && parsedDue.getTime() < endDate.getTime()) {
+      return { ...prev, dueDate: formatDateTimeLocalString(endDate) };
+    }
+
+    const startDate = parseDateTimeInputValue(prev.startDate);
+    if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
+      return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
+    }
+
+    return { ...prev, dueDate: formatDateTimeLocalString(parsedDue) };
+  }
+
+  if (field === "priority") {
+    return { ...prev, priority: value as TaskPriority };
+  }
+
+  if (field === "columnId") {
+    return { ...prev, columnId: value };
+  }
+
+  if (field === "assignee") {
+    return { ...prev, assignee: value };
+  }
+
+  if (field === "difficulty") {
+    return { ...prev, difficulty: value };
+  }
+
+  if (field === "progress") {
+    return { ...prev, progress: value };
+  }
+
+  return prev;
+};
+
+const KanbanBoardPage: React.FC = () => {
+  const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [columnsPerRow, setColumnsPerRow] = useState<number>(4);
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
+
+  const [createTaskState, setCreateTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
+  const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
+
+  const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [createModalError, setCreateModalError] = useState<string | null>(null);
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+
+  const [createLanguagePickerOpen, setCreateLanguagePickerOpen] = useState(false);
+  const [createLanguageSelection, setCreateLanguageSelection] = useState("");
+  const [createCustomLanguage, setCreateCustomLanguage] = useState("");
+  const [createLanguagePickerError, setCreateLanguagePickerError] = useState<string | null>(null);
+
+  const [editLanguagePickerOpen, setEditLanguagePickerOpen] = useState(false);
+  const [editLanguageSelection, setEditLanguageSelection] = useState("");
+  const [editCustomLanguage, setEditCustomLanguage] = useState("");
+  const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
+
+  //const navigate = useNavigate();
+
+  const resolveDefaultColumnId = useCallback(
+    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
+    [board.columnOrder]
+  );
+
+  const handleDragEnd = useCallback(
+    (item: DragItem, dropResult: DropResult | null) => {
+      if (item.type !== DRAG_TYPE_TASK) {
+        return;
+      }
+      setBoard((prev) => handleBoardMove(prev, { item, result: dropResult }));
+    },
+    []
+  );
+
+  const fetchActions = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const response = await Actions();
+      if (!response || response.status !== 200) {
+        throw new Error("Request failed");
+      }
+
+      const items = extractKanbanItems(response);
+      if (items.length === 0) {
+        setBoard(createEmptyBoardData());
+      } else {
+        setBoard(createBoardDataFromApi(items));
+      }
+    } catch (error) {
+      console.error("Failed to fetch kanban actions", error);
+      setFetchError("Unable to load kanban data. Displaying local state only.");
+      setBoard(createEmptyBoardData());
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActions();
+  }, [fetchActions]);
+
+  useEffect(() => {
+    if (board.columnOrder.length === 0) {
+      return;
+    }
+    setColumnsPerRow((prev) => {
+      // If user hasn't changed it manually (still 4), keep it at 4
+      // Otherwise respect the user's choice but clamp to available columns
+      const baseline = prev;
+      const maxColumns = board.columnOrder.length;
+      // Only clamp if the current value exceeds available columns
+      if (baseline > maxColumns) {
+        return maxColumns;
+      }
+      return baseline;
+    });
+  }, [board.columnOrder]);
+
+  useEffect(() => {
+    const firstColumnId = resolveDefaultColumnId();
+    setCreateTaskState((prev) => ({
+      ...prev,
+      columnId: board.columns[prev.columnId] ? prev.columnId : firstColumnId,
+    }));
+  }, [board.columns, resolveDefaultColumnId]);
+
+  const columns = useMemo(
+    () =>
+      board.columnOrder
+        .map((columnId) => board.columns[columnId])
+        .filter((column): column is KanbanColumnType => Boolean(column)),
+    [board]
+  );
+
+  const columnOptions = useMemo(
+    () => columns.map((column) => ({ id: column.id, title: column.title })),
+    [columns]
+  );
+
+  const createDifficultyOptions = useMemo(
+    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, createTaskState.difficulty),
+    [createTaskState.difficulty]
+  );
+
+  const createProgressOptions = useMemo(
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, createTaskState.progress),
+    [createTaskState.progress]
+  );
+
+  const editDifficultyOptions = useMemo(
+    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
+    [editTaskState.difficulty]
+  );
+
+  const editProgressOptions = useMemo(
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
+    [editTaskState.progress]
+  );
+
+  const languageOptions = useMemo(() => {
+    const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
+    Object.values(board.tasks).forEach((task) => {
+      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+    });
+
+    const orderedCodes = Array.from(codes).sort((a, b) => {
+      const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
+      const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+
+    return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
+  }, [board.tasks]);
+
+  const columnDensityOptions = useMemo(() => {
+    const maxOption = Math.max(5, columns.length || 1);
+    const options: number[] = [];
+    for (let count = 1; count <= Math.min(8, maxOption); count += 1) {
+      options.push(count);
+    }
+    if (!options.includes(4)) {
+      options.push(4);
+    }
+    return Array.from(new Set(options)).sort((a, b) => a - b);
+  }, [columns.length]);
+
+  const prioritySummary = useMemo(() => {
+    const base: Record<TaskPriority, number> = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+    };
+
+    Object.values(board.tasks).forEach((task) => {
+      base[task.priority] += 1;
+    });
+
+    return base;
+  }, [board.tasks]);
+
+  const totalTasks = useMemo(() => Object.keys(board.tasks).length, [board.tasks]);
+
+  const resetCreateState = useCallback(() => {
+    const firstColumn = resolveDefaultColumnId();
+    setCreateTaskState(createInitialTaskFormState(firstColumn));
+    setCreateModalError(null);
+    setCreateLanguagePickerOpen(false);
+    setCreateLanguageSelection("");
+    setCreateCustomLanguage("");
+    setCreateLanguagePickerError(null);
+  }, [resolveDefaultColumnId]);
+
+  const handleOpenCreateModal = () => {
+    resetCreateState();
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    resetCreateState();
+  };
+
+  const handleOpenEditModal = (task: KanbanTask) => {
+    setEditingTask(task);
+
+    const taskColumn = Object.values(board.columns).find((column) => column.taskIds.includes(task.id));
+
+    const normalizedStart = normalizeIncomingDateValue(task.startDate);
+    const normalizedEnd = normalizeIncomingDateValue(task.endDate);
+    const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+    const normalizedDifficulty = normalizeNumericSelectValue(
+      task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
+      DEFAULT_DIFFICULTY
+    );
+    const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+
+    setEditTaskState({
+      translations: createTranslationEntriesFromTask(task),
+      columnId: taskColumn?.id || resolveDefaultColumnId(),
+      priority: task.priority,
+      dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+      startDate: normalizedStart,
+      endDate: normalizedEnd,
+      assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+      difficulty: normalizedDifficulty,
+      progress: normalizedProgress,
+    });
+    setEditModalError(null);
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+    setEditLanguagePickerError(null);
+
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    setEditModalError(null);
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+    setEditLanguagePickerError(null);
+  };
+
+  const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
+    setCreateTaskState((prev) => updateTaskFormState(prev, field, value));
+  };
+
+  const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
+    setEditTaskState((prev) => updateTaskFormState(prev, field, value));
+  };
+
+  const updateTranslations = (
+    mode: "create" | "edit",
+    updater: (current: TranslationFormEntry[]) => TranslationFormEntry[]
+  ) => {
+    if (mode === "create") {
+      setCreateTaskState((prev) => ({
+        ...prev,
+        translations: updater(prev.translations),
+      }));
+    } else {
+      setEditTaskState((prev) => ({
+        ...prev,
+        translations: updater(prev.translations),
+      }));
+    }
+  };
+
+  const handleTranslationFieldChange = (
+    mode: "create" | "edit",
+    entryId: string,
+    field: "language" | "title" | "description",
+    value: string
+  ) => {
+    updateTranslations(mode, (current) =>
+      current.map((entry) => {
+        if (entry.id !== entryId) {
+          return entry;
+        }
+
+        if (field === "language") {
+          const normalized = normalizeLanguageCode(value);
+          if (!normalized) {
+            return { ...entry, language: normalized };
+          }
+          const duplicate = current.some(
+            (other) => other.id !== entryId && normalizeLanguageCode(other.language) === normalized
+          );
+          if (duplicate) {
+            return entry;
+          }
+          return { ...entry, language: normalized };
+        }
+
+        return { ...entry, [field]: value };
+      })
+    );
+  };
+
+  const handleAddTranslation = (
+    mode: "create" | "edit",
+    explicitLanguage?: string
+  ): { success: boolean; error?: string } => {
+    const targetState = mode === "create" ? createTaskState : editTaskState;
+    const used = new Set<string>(
+      targetState.translations.map((translation) => normalizeLanguageCode(translation.language)).filter(Boolean)
+    );
+
+    let languageToUse = explicitLanguage ? normalizeLanguageCode(explicitLanguage) : "";
+    if (languageToUse && used.has(languageToUse)) {
+      return { success: false, error: "Language already added." };
+    }
+
+    if (!languageToUse) {
+      languageToUse = findNextLanguageCode(used, languageOptions);
+    }
+
+    updateTranslations(mode, (current) => [...current, createTranslationEntry(languageToUse)]);
+    return { success: true };
+  };
+
+  const handleRemoveTranslation = (mode: "create" | "edit", entryId: string) => {
+    const targetState = mode === "create" ? createTaskState : editTaskState;
+    if (targetState.translations.length <= 1) {
+      return;
+    }
+    updateTranslations(mode, (current) => current.filter((entry) => entry.id !== entryId));
+  };
+
+  const getAvailableLanguages = useCallback(
+    (mode: "create" | "edit") => {
+      const targetState = mode === "create" ? createTaskState : editTaskState;
+      const used = new Set(
+        targetState.translations
+          .map((translation) => normalizeLanguageCode(translation.language))
+          .filter(Boolean)
+      );
+      return languageOptions.filter((option) => !used.has(option.value));
+    },
+    [createTaskState.translations, editTaskState.translations, languageOptions]
+  );
+
+  const availableCreateLanguages = useMemo(() => getAvailableLanguages("create"), [getAvailableLanguages]);
+  const availableEditLanguages = useMemo(() => getAvailableLanguages("edit"), [getAvailableLanguages]);
+
+  const handleCreateLanguagePickerToggle = () => {
+    setCreateLanguagePickerError(null);
+    setCreateLanguagePickerOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        if (availableCreateLanguages.length > 0) {
+          setCreateLanguageSelection("");
+          setCreateCustomLanguage("");
+        } else {
+          setCreateLanguageSelection("__custom");
+          setCreateCustomLanguage("");
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleEditLanguagePickerToggle = () => {
+    setEditLanguagePickerError(null);
+    setEditLanguagePickerOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        if (availableEditLanguages.length > 0) {
+          setEditLanguageSelection("");
+          setEditCustomLanguage("");
+        } else {
+          setEditLanguageSelection("__custom");
+          setEditCustomLanguage("");
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleCreateLanguageSelectionChange = (value: string) => {
+    setCreateLanguageSelection(value);
+    if (value !== "__custom") {
+      setCreateCustomLanguage("");
+    }
+    setCreateLanguagePickerError(null);
+  };
+
+  const handleEditLanguageSelectionChange = (value: string) => {
+    setEditLanguageSelection(value);
+    if (value !== "__custom") {
+      setEditCustomLanguage("");
+    }
+    setEditLanguagePickerError(null);
+  };
+
+  const handleCreateLanguageCustomChange = (value: string) => {
+    setCreateCustomLanguage(value);
+    setCreateLanguagePickerError(null);
+  };
+
+  const handleEditLanguageCustomChange = (value: string) => {
+    setEditCustomLanguage(value);
+    setEditLanguagePickerError(null);
+  };
+
+  const handleCreateLanguagePickerSubmit = () => {
+    const selection = createLanguageSelection === "__custom" ? createCustomLanguage.trim() : createLanguageSelection;
+    if (!selection) {
+      setCreateLanguagePickerError("Choose a language before adding.");
+      return;
+    }
+    const result = handleAddTranslation("create", selection);
+    if (!result.success) {
+      setCreateLanguagePickerError(result.error ?? "Unable to add language.");
+      return;
+    }
+    setCreateLanguagePickerOpen(false);
+    setCreateLanguageSelection("");
+    setCreateCustomLanguage("");
+  };
+
+  const handleEditLanguagePickerSubmit = () => {
+    const selection = editLanguageSelection === "__custom" ? editCustomLanguage.trim() : editLanguageSelection;
+    if (!selection) {
+      setEditLanguagePickerError("Choose a language before adding.");
+      return;
+    }
+    const result = handleAddTranslation("edit", selection);
+    if (!result.success) {
+      setEditLanguagePickerError(result.error ?? "Unable to add language.");
+      return;
+    }
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+  };
+
+  const handleCreateLanguagePickerCancel = () => {
+    setCreateLanguagePickerOpen(false);
+    setCreateLanguageSelection("");
+    setCreateCustomLanguage("");
+    setCreateLanguagePickerError(null);
+  };
+
+  const handleEditLanguagePickerCancel = () => {
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+    setEditLanguagePickerError(null);
+  };
+
+  const createLanguagePickerState = {
+    isOpen: createLanguagePickerOpen,
+    selection: createLanguageSelection,
+    customValue: createCustomLanguage,
+    error: createLanguagePickerError,
+  };
+
+  const editLanguagePickerState = {
+    isOpen: editLanguagePickerOpen,
+    selection: editLanguageSelection,
+    customValue: editCustomLanguage,
+    error: editLanguagePickerError,
+  };
+
+  const buildActionPayload = (
+    mode: "create" | "edit",
+    state: TaskFormState,
+    baseTask?: KanbanTask | null
+  ): { payload: Record<string, unknown> } | { error: string } => {
+    const normalized = new Map<string, { title: string; description: string }>();
+
+    state.translations.forEach((entry) => {
+      const language = normalizeLanguageCode(entry.language);
+      if (!language) {
+        return;
+      }
+      const current = normalized.get(language) ?? { title: "", description: "" };
+      const title = entry.title.trim();
+      const description = entry.description.trim();
+      normalized.set(language, {
+        title: title || current.title,
+        description: description || current.description,
+      });
+    });
+
+    const hasTitle = Array.from(normalized.values()).some((value) => value.title.length > 0);
+    if (!hasTitle) {
+      return { error: "Add at least one language with a title." };
+    }
+
+    // Build action and description with dot notation keys (e.g., action.en, description.en)
+    const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
+    const updateMode = mode === "edit" ? "update" : "create";
+    
+    normalized.forEach((value, language) => {
+      translationFields[`action.${language}`] = {
+        mode: updateMode,
+        value: value.title || ""
+      };
+      translationFields[`description.${language}`] = {
+        mode: updateMode,
+        value: value.description || ""
+      };
+    });
+
+    // Add languages with the same format
+    translationFields.languages = {
+      mode: updateMode,
+      value: Array.from(normalized.keys())
+    };
+
+    const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
+    const columnTitle = column?.title ?? "Uncategorized";
+    const assignedTo = state.assignee
+      ? [{ name: state.assignee }]
+      : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+
+    const startTimestamp = toTimestampMilliseconds(state.startDate);
+    const endTimestamp = toTimestampMilliseconds(state.endDate);
+    const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+
+    if (startTimestamp !== null && endTimestamp !== null && endTimestamp <= startTimestamp) {
+      return { error: "End date must be after start date." };
+    }
+
+    if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
+      return { error: "Due date must be on or after end date." };
+    }
+
+    const fallbackDifficulty = baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority];
+    const parsedDifficulty = Number(state.difficulty);
+    const resolvedDifficulty = Number.isNaN(parsedDifficulty) || parsedDifficulty <= 0 ? fallbackDifficulty : parsedDifficulty;
+
+    const fallbackProgress = baseTask?.progress ?? 0;
+    const parsedProgress = Number(state.progress);
+    const resolvedProgress = Number.isNaN(parsedProgress) || parsedProgress < 0 ? fallbackProgress : parsedProgress;
+
+    const payloadItem: Record<string, unknown> = {
+      model_name: "action",
+      ...translationFields,
+      kanban_column: {
+        mode: updateMode,
+        value: columnTitle
+      },
+      kanban_column_id: {
+        mode: updateMode,
+        value: column?.id ?? FALLBACK_COLUMN_ID
+      },
+      priority: {
+        mode: updateMode,
+        value: PRIORITY_TO_VALUE[state.priority]
+      },
+      difficulty: {
+        mode: updateMode,
+        value: resolvedDifficulty
+      },
+      status: {
+        mode: updateMode,
+        value: baseTask?.status ?? "In progress"
+      },
+      dt_due: {
+        mode: updateMode,
+        value: dueTimestamp
+      },
+      dt_start: {
+        mode: updateMode,
+        value: startTimestamp
+      },
+      dt_end: {
+        mode: updateMode,
+        value: endTimestamp
+      },
+      assigned_to: {
+        mode: updateMode,
+        value: assignedTo
+      },
+      progress: {
+        mode: updateMode,
+        value: resolvedProgress
+      },
+    };
+
+    if (mode === "edit" && baseTask) {
+      payloadItem.id = baseTask.id;
+    }
+
+    if (!state.assignee && assignedTo.length === 0) {
+      delete payloadItem.assigned_to;
+    }
+
+    return { payload: payloadItem };
+  };
+
+  const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSavingCreate) {
+      return;
+    }
+
+    setCreateModalError(null);
+    const result = buildActionPayload("create", createTaskState);
+
+    if ("error" in result) {
+      setCreateModalError(result.error);
+      return;
+    }
+
+    try {
+      setIsSavingCreate(true);
+      const response = await patchAction(result.payload);
+      if (response?.status !== 200 && response?.status !== 201) {
+        throw new Error("Failed to save task.");
+      }
+      await fetchActions();
+      handleCloseCreateModal();
+    } catch (error) {
+      console.error("Failed to create kanban task", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Unable to save task. Please try again.";
+      setCreateModalError(message);
+    } finally {
+      setIsSavingCreate(false);
+    }
+  };
+
+  const handleEditTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingTask || isSavingEdit) {
+      return;
+    }
+
+    setEditModalError(null);
+    const result = buildActionPayload("edit", editTaskState, editingTask);
+
+    if ("error" in result) {
+      setEditModalError(result.error);
+      return;
+    }
+
+    try {
+      setIsSavingEdit(true);
+      const response = await patchAction(result.payload);
+      if (response?.status !== 200 && response?.status !== 201) {
+        throw new Error("Failed to update task.");
+      }
+      await fetchActions();
+      handleCloseEditModal();
+    } catch (error) {
+      console.error("Failed to update kanban task", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Unable to update task. Please try again.";
+      setEditModalError(message);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const gridStyle = useMemo<CSSProperties>(
+    () => ({
+      gridTemplateColumns: `repeat(${Math.max(1, columnsPerRow)}, minmax(0, 1fr))`,
+    }),
+    [columnsPerRow]
+  );
+
+  const editModalExtraContent = editingTask ? (
+    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
+      <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Progress:</span>
+          <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
+        </div>
+        <div>
+          <span className="text-gray-500 dark:text-gray-400">Tags:</span>
+          <span className="ml-1 font-medium text-gray-900 dark:text-white">
+            {editingTask.tags?.join(", ") || "None"}
+          </span>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div className="space-y-6">
+      <PageBreadcrumb pageTitle="Kanban Board" />
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Keep work flowing</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Drag tasks across columns to reshuffle priorities, track progress, and visualize throughput in real time.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <span>Columns</span>
+            <select
+              value={columnsPerRow}
+              onChange={(event) => setColumnsPerRow(Number(event.target.value))}
+              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
+            >
+              {columnDensityOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={handleOpenCreateModal}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5v14m7-7H5" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            New Task
+          </button>
+          <Link
+            to={PageRoutes.kanbanGantt}
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            View Gantt Chart
+          </Link>
+        </div>
+      </div>
+
+      {fetchError && (
+        <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
+          <span>{fetchError}</span>
+          <button
+            type="button"
+            onClick={() => fetchActions()}
+            className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/50"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {(Object.keys(prioritySummary) as TaskPriority[]).map((priority) => (
+          <div
+            key={priority}
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900/40"
+          >
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{priority}</p>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-semibold text-gray-900 dark:text-white">{prioritySummary[priority]}</span>
+              <span className="text-xs font-medium text-gray-400">/ {totalTasks} tasks</span>
+            </div>
+            <span className={clsx("mt-4 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", priorityPalette[priority])}>
+              Priority lane
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <DndProvider backend={HTML5Backend}>
+        {isLoading ? (
+          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+            Loading kanban board...
+          </div>
+        ) : columns.length === 0 ? (
+          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+            No columns configured yet. Start by creating your first task.
+          </div>
+        ) : (
+          <div className="grid gap-4" style={gridStyle}>
+            {columns.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                tasks={column.taskIds.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
+                onDragEnd={handleDragEnd}
+                onTaskClick={handleOpenEditModal}
+              />
+            ))}
+          </div>
+        )}
+      </DndProvider>
+
+      <KanbanTaskModal
+        mode="create"
+        isOpen={isCreateModalOpen}
+        title="Create new task"
+        description="Add the essentials and drop it in the right column."
+        isSaving={isSavingCreate}
+        submitLabel={isSavingCreate ? "Saving..." : "Create task"}
+        onClose={handleCloseCreateModal}
+        onSubmit={handleCreateTaskSubmit}
+        modalError={createModalError}
+        formState={createTaskState}
+        onFieldChange={handleCreateTaskChange}
+        columnOptions={columnOptions}
+        priorityOptions={priorityOptions}
+        difficultyOptions={createDifficultyOptions}
+        progressOptions={createProgressOptions}
+        translations={createTaskState.translations}
+        onTranslationFieldChange={(entryId, field, value) =>
+          handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
+        }
+        onRemoveTranslation={(entryId) => handleRemoveTranslation("create", entryId)}
+        languageOptions={languageOptions}
+        languagePickerOptions={availableCreateLanguages}
+        languagePickerState={createLanguagePickerState}
+        onLanguagePickerToggle={handleCreateLanguagePickerToggle}
+        onLanguageSelectionChange={handleCreateLanguageSelectionChange}
+        onLanguageCustomChange={handleCreateLanguageCustomChange}
+        onLanguagePickerSubmit={handleCreateLanguagePickerSubmit}
+        onLanguagePickerCancel={handleCreateLanguagePickerCancel}
+      />
+
+      <KanbanTaskModal
+        mode="edit"
+        isOpen={isEditModalOpen}
+        title="Update task"
+        description="Fine-tune translations, ownership, or schedule without losing context."
+        isSaving={isSavingEdit}
+        submitLabel={isSavingEdit ? "Saving..." : "Update task"}
+        onClose={handleCloseEditModal}
+        onSubmit={handleEditTaskSubmit}
+        modalError={editModalError}
+        formState={editTaskState}
+        onFieldChange={handleEditTaskChange}
+        columnOptions={columnOptions}
+        priorityOptions={priorityOptions}
+        difficultyOptions={editDifficultyOptions}
+        progressOptions={editProgressOptions}
+        translations={editTaskState.translations}
+        onTranslationFieldChange={(entryId, field, value) =>
+          handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
+        }
+        onRemoveTranslation={(entryId) => handleRemoveTranslation("edit", entryId)}
+        languageOptions={languageOptions}
+        languagePickerOptions={availableEditLanguages}
+        languagePickerState={editLanguagePickerState}
+        onLanguagePickerToggle={handleEditLanguagePickerToggle}
+        onLanguageSelectionChange={handleEditLanguageSelectionChange}
+        onLanguageCustomChange={handleEditLanguageCustomChange}
+        onLanguagePickerSubmit={handleEditLanguagePickerSubmit}
+        onLanguagePickerCancel={handleEditLanguagePickerCancel}
+        extraContent={editModalExtraContent}
+        currentTask={editingTask}
+      />
+    </div>
+  );
+};
+
+export default KanbanBoardPage;
+
