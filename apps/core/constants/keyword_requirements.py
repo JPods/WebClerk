@@ -1,19 +1,37 @@
 #Tip: You can call load_keyword_requirements() in your 
 # AppConfig’s ready() method and cache the result.
+import logging
+console_logger = logging.getLogger('console')  # Console logger for debugging
 
 from apps.core.models.setting import Setting
 from apps.core.services.cache_service import cache_service
 
 def load_keyword_requirements():
-    # Load all active keyword requirements once at startup
-    # Select only columns we need to avoid referencing columns that may not exist in early migrations
-    requirements = {}
-    qs = Setting.objects.filter(purpose__in=["refs_setup", "ref_seup"], is_active=True).only("model_name", "data")
-    for setting in qs:
-        key = getattr(setting, 'model_name', None)
-        if key:
-            requirements[key] = setting.data
-    return requirements
+    """Load keyword requirements with timeout and error handling."""
+    try:
+        import time
+        start_time = time.time()
+        timeout = 10  # 10 second timeout
+        
+        requirements = {}
+        # Use basic query without .only() to avoid hanging
+        qs = Setting.objects.filter(purpose__in=["refs_setup", "ref_seup"], is_active=True)
+        
+        for setting in qs:
+            # Check timeout
+            if time.time() - start_time > timeout:
+                print(f"[KEYWORDS] Timeout reached, stopping keyword requirements loading")
+                break
+                
+            key = getattr(setting, 'model_name', None)
+            if key:
+                requirements[key] = setting.data
+        
+        print(f"[KEYWORDS] Loaded requirements for {len(requirements)} models in {time.time() - start_time:.2f}s")
+        return requirements
+    except Exception as e:
+        print(f"[KEYWORDS] Error loading requirements: {e}")
+        return {}
 
 def get_keyword_requirements():
     try:

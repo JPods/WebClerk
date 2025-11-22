@@ -1,13 +1,34 @@
-from celery import shared_task
 from apps.core.services.cache_service import cache_service
-from apps.core.constants import keyword_requirements, constants_init
+from apps.core.constants import keyword_requirements
 from typing import Dict, Any
 from apps.core.services.wcapi_registry import ALLOWED_TABLE_KEYS
 from django.apps import apps
 from apps.core.constants.save_hooks import execute_save_hook
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.update_access_fields_cache')
+def load_constants_from_settings():
+    """Load constants from database settings."""
+    try:
+        from apps.core.models.setting import Setting
+        constants_settings = Setting.objects.filter(purpose='constants', is_active=True)
+        constants = {}
+        for setting in constants_settings:
+            if setting.model_name:
+                constants[setting.model_name] = setting.data or {}
+            else:
+                constants['general'] = {**(constants.get('general', {})), **(setting.data or {})}
+        return constants
+    except Exception:
+        return {}
+
+
+def refresh_cached_constants():
+    """Refresh in-memory cache of constants (placeholder for future implementation)."""
+    # This would update any in-memory constants cache if implemented
+    # For now, just a placeholder function
+    pass
+
+
 def update_access_fields_cache():
     """Async update of access field rules for all models."""
     processed = 0
@@ -24,7 +45,6 @@ def update_access_fields_cache():
         return {'processed': processed, 'error': str(e)}
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.update_keyword_requirements_cache')
 def update_keyword_requirements_cache():
     """Async update of keyword requirements."""
     try:
@@ -36,7 +56,6 @@ def update_keyword_requirements_cache():
         return {'status': 'error', 'error': str(e)}
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.update_model_registry_cache')
 def update_model_registry_cache():
     """Cache model registry data."""
     try:
@@ -47,21 +66,19 @@ def update_model_registry_cache():
         return {'status': 'error', 'error': str(e)}
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.update_constants_cache')
 def update_constants_cache():
     """Async update of constants from database settings."""
     try:
-        constants = constants_init.load_constants_from_settings()
+        constants = load_constants_from_settings()
         key = cache_service.make_key('constants', 'all')
         cache_service.set(key, constants, ttl=3600)  # 1 hour
         # Also refresh in-memory cache
-        constants_init.refresh_cached_constants()
+        refresh_cached_constants()
         return {'status': 'completed', 'categories': list(constants.keys())}
     except Exception as e:
         return {'status': 'error', 'error': str(e)}
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.update_all_settings_cache')
 def update_all_settings_cache():
     """Load all active Setting records into Redis cache."""
     try:
@@ -98,7 +115,6 @@ def update_all_settings_cache():
         return {'status': 'error', 'error': str(e)}
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.invalidate_cache_namespace')
 def invalidate_cache_namespace(namespace: str):
     """Invalidate all caches in a namespace."""
     try:
@@ -108,7 +124,6 @@ def invalidate_cache_namespace(namespace: str):
         return {'status': 'error', 'error': str(e)}
 
 
-@shared_task(name='apps.core.tasks.cache_tasks.execute_save_async_hooks')
 def execute_save_async_hooks(model_name: str, record_id: int, hook_data: Dict[str, Any]):
     """Execute save_async hooks asynchronously after save completes."""
     try:

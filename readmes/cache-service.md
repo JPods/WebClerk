@@ -2,42 +2,29 @@
 
 ## Overview
 
-WebClerk now features a centralized, Redis-backed cache service that provides cross-process consistency, automatic versioning, and async cache updates via Celery. This replaces scattered caching mechanisms with a unified, scalable solution.
+WebClerk now features a centralized, in-memory cache service that provides versioning and synchronous cache operations. This replaces Redis- and Celery-based caching with a simpler in-process solution.
 
 ## Architecture
 
 ### Core Components
 
 1. **CacheService** (`apps/core/services/cache_service.py`)
-   - Redis-backed caching with automatic versioning
-   - Graceful degradation when Redis unavailable
-   - Cross-process consistency across workers
+   - In-memory caching with automatic versioning
+   - Graceful degradation without external dependencies
 
-2. **Cache Tasks** (`apps/core/tasks/cache_tasks.py`)
-   - Async cache update operations
-   - Scheduled cache refresh tasks
-   - Bulk cache invalidation utilities
-
-3. **Cache Signals** (`apps/core/signals/cache_signals.py`)
+2. **Cache Signals** (`apps/core/signals/cache_signals.py`)
    - Automatic cache invalidation on data changes
-   - Async cache refresh triggers
 
 ## Key Features
 
-### 🔄 Cross-Process Consistency
-All workers share the same Redis cache, ensuring consistent data across processes.
+### ⚡️ Synchronous In-Process Cache
+Cache operations are fully in-process and do not depend on external workers or services.
 
-### 🚀 Async Updates
-Expensive cache computations run asynchronously via Celery, preventing request blocking.
-
-### 📦 Automatic Versioning
-Cache keys include version hashes that automatically invalidate on deployments.
+### 🔑 Versioned Cache Keys
+Cache keys include version hashes based on SECRET_KEY to automatically invalidate deployments.
 
 ### 🛡️ Graceful Degradation
-System continues functioning if Redis is unavailable, falling back to local storage.
-
-### 🎯 Centralized Management
-Single service handles all cache operations with consistent TTLs and invalidation.
+Cache service continues functioning without external dependencies.
 
 ## Implementation Details
 

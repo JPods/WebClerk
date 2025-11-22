@@ -6,19 +6,19 @@
 
 ## Table of Contents
 
-- [Test & Verification Guide](#test--verification-guide)
+- [Test \& Verification Guide](#test--verification-guide)
   - [Table of Contents](#table-of-contents)
   - [1. Quick Start (most common)](#1-quick-start-most-common)
   - [2. Environment Assumptions](#2-environment-assumptions)
   - [3. Test Categories Overview](#3-test-categories-overview)
-- [4. Size Telemetry & JSON Envelope Checks](#4-size-telemetry--json-envelope-checks)
-- [5. Org Aspect Metrics & Validation](#5-org-aspect-metrics--validation)
+  - [4. Size Telemetry \& JSON Envelope Checks](#4-size-telemetry--json-envelope-checks)
+  - [5. Org Aspect Metrics \& Validation](#5-org-aspect-metrics--validation)
   - [6. Storage Load Report (Admin Telemetry)](#6-storage-load-report-admin-telemetry)
   - [7. Optimistic Concurrency Pattern](#7-optimistic-concurrency-pattern)
   - [8. Adding New Tests](#8-adding-new-tests)
   - [9. Planned Postman and API Contract Suite](#9-planned-postman-and-api-contract-suite)
-  - [10. Markers & Layered CI Execution](#10-markers--layered-ci-execution)
-  - [11. Continuous Integration (Implemented & Next)](#11-continuous-integration-implemented--next)
+  - [10. Markers \& Layered CI Execution](#10-markers--layered-ci-execution)
+  - [11. Continuous Integration (Implemented \& Next)](#11-continuous-integration-implemented--next)
   - [12. Troubleshooting](#12-troubleshooting)
   - [13. Fast Local Loop Tips](#13-fast-local-loop-tips)
   - [14. Guardrails Before Merge](#14-guardrails-before-merge)
@@ -71,7 +71,6 @@ coverage run -m pytest && coverage report -m
 - Normal development runtime (`runserver`, management commands outside pytest) now defaults to Postgres to prevent data loss.
 - Ephemeral SQLite outside pytest: export `USE_SQLITE_TEST=1` (warning printed).
 - Force Postgres inside pytest: set `PYTEST_FORCE_DB=1`.
-- Redis / Celery only required if you explicitly run tasks tests.
 
 ## 3. Test Categories Overview
 

@@ -6,17 +6,17 @@ class CoreConfig(AppConfig):
     label = "core"
 
     def ready(self):
-        # Initialize WCAPI registry
+        # Initialize WCAPI registry (safe, no database calls)
         try:
             from apps.core.utils import registry
             registry.refresh_from_settings()
         except Exception:
             pass
 
-        # Load all settings into Redis cache asynchronously at app startup
+        # Import signal handlers to auto-populate cache after Django is ready
+        # This avoids the Django warning about database access during app initialization
         try:
-            from .tasks.cache_tasks import update_all_settings_cache
-            update_all_settings_cache.delay()
+            from . import init_handlers  # noqa: F401
         except Exception:
-            pass  # Graceful degradation if settings cache fails
+            pass
 

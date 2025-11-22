@@ -42,7 +42,7 @@ class Domain(BaseModel):
     def queue_verification(self, connection_name: str | None = None) -> None:
         try:
             from apps.communications.tasks import validate_domain_basic
-            validate_domain_basic.delay(self.pk)
+            validate_domain_basic(self.pk)
         except Exception:
             pass
     

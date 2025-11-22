@@ -1,21 +1,16 @@
-import redis
-import json
+import time
 import hashlib
-from typing import Any
+from typing import Any, Dict, Tuple, Optional
 from django.conf import settings
 
+_cache: Dict[str, Tuple[Any, Optional[float]]] = {}
 
 class CacheService:
-    """Centralized Redis-based cache service with versioning and async updates."""
+    """Centralized in-memory cache service with versioning."""
 
     def __init__(self):
-        try:
-            self.redis = redis.Redis.from_url(settings.CELERY_RESULT_BACKEND)
-            self.version = self._get_cache_version()
-        except Exception:
-            # Graceful degradation if Redis unavailable
-            self.redis = None
-            self.version = "fallback"
+        self.cache = _cache
+        self.version = self._get_cache_version()
 
     def _get_cache_version(self) -> str:
         """Generate cache version based on SECRET_KEY to invalidate on deployments."""
@@ -28,77 +23,53 @@ class CacheService:
 
     def get(self, key: str, default=None) -> Any:
         """Get value from cache, with fallback."""
-        if not self.redis:
+        entry = self.cache.get(key)
+        if not entry:
             return default
-        try:
-            data = self.redis.get(key)
-            if data is None:
-                return default
-            # Handle both bytes and str
-            if isinstance(data, bytes):
-                data = data.decode('utf-8')
-            return json.loads(data)
-        except Exception:
+        value, expire = entry
+        if expire is not None and time.time() > expire:
+            del self.cache[key]
             return default
+        return value
 
     def set(self, key: str, value: Any, ttl: int = 3600) -> None:
         """Set value in cache with TTL."""
-        if not self.redis:
-            return
-        try:
-            self.redis.setex(key, ttl, json.dumps(value))
-        except Exception:
-            pass  # Silent failure for graceful degradation
+        expire = time.time() + ttl if ttl else None
+        self.cache[key] = (value, expire)
 
     def delete(self, key: str) -> None:
         """Delete key from cache."""
-        if not self.redis:
-            return
-        try:
-            self.redis.delete(key)
-        except Exception:
-            pass
+        if key in self.cache:
+            del self.cache[key]
 
     def invalidate_namespace(self, namespace: str) -> None:
         """Invalidate all keys in a namespace."""
-        if not self.redis:
-            return
-        try:
-            pattern = f"{self.version}:{namespace}:*"
-            keys = self.redis.keys(pattern)
-            if keys:
-                # Handle both single key and list of keys
-                if isinstance(keys, list):
-                    self.redis.delete(*keys)
-                else:
-                    self.redis.delete(keys)
-        except Exception:
-            pass
+        prefix = f"{self.version}:{namespace}:"
+        keys_to_delete = [k for k in list(self.cache) if k.startswith(prefix)]
+        for k in keys_to_delete:
+            del self.cache[k]
 
     def exists(self, key: str) -> bool:
         """Check if key exists."""
-        if not self.redis:
+        entry = self.cache.get(key)
+        if not entry:
             return False
-        try:
-            result = self.redis.exists(key)
-            return bool(result)
-        except Exception:
+        _, expire = entry
+        if expire is not None and time.time() > expire:
+            del self.cache[key]
             return False
+        return True
 
     def get_ttl(self, key: str) -> int:
         """Get TTL for key."""
-        if not self.redis:
+        entry = self.cache.get(key)
+        if not entry:
             return -1
-        try:
-            result = self.redis.ttl(key)
-            # Redis.ttl returns -1 if key doesn't exist, -2 if expired
-            # or the remaining TTL in seconds
-            if isinstance(result, (int, float)):
-                return int(result)
+        _, expire = entry
+        if expire is None:
             return -1
-        except Exception:
-            return -1
-
+        remaining = int(expire - time.time())
+        return remaining if remaining > 0 else -1
 
 # Global instance
 cache_service = CacheService()

@@ -76,3 +76,62 @@ def resolve(key: str):
         except Exception:
             continue
     return None
+
+
+def refresh_from_settings():
+    """
+    Refresh the registry from Django settings.
+    
+    This method populates the registry with ModelConfig objects based on:
+    - WCAPI_BLESSED_MODELS: maps model keys to Django model paths
+    - WCAPI_MODEL_POLICIES: per-model field access policies
+    - WCAPI_WHITELIST_APPS: whitelist of apps for WCAPI access
+    
+    The registry will be cleared and repopulated with fresh configurations.
+    """
+    from django.conf import settings
+    
+    # Clear existing registry
+    _REGISTRY.clear()
+    
+    # Get blessed models from settings
+    blessed_models = getattr(settings, 'WCAPI_BLESSED_MODELS', {})
+    model_policies = getattr(settings, 'WCAPI_MODEL_POLICIES', {})
+    whitelist_apps = getattr(settings, 'WCAPI_WHITELIST_APPS', None)
+    
+    # Process each blessed model
+    for key, model_path in blessed_models.items():
+        try:
+            # Parse model path (e.g., "core.Contact" -> app_label="core", model_name="Contact")
+            if '.' not in model_path:
+                continue
+                
+            app_label, model_name = model_path.rsplit('.', 1)
+            
+            # Check whitelist if configured
+            if whitelist_apps and app_label not in whitelist_apps:
+                continue
+            
+            # Get the actual model class
+            try:
+                model_class = django_apps.get_model(app_label, model_name, require_ready=False)
+            except Exception:
+                continue
+            
+            # Get policies for this model
+            policies = model_policies.get(key, {})
+            
+            # Create ModelConfig with settings-based configuration
+            cfg = ModelConfig(
+                key=key,
+                model=model_class,
+                search_fields=policies.get('search_fields', []),
+                permission_classes=policies.get('permission_classes', []),
+            )
+            
+            # Register the configuration
+            register(cfg)
+            
+        except Exception:
+            # Continue processing other models if one fails
+            continue

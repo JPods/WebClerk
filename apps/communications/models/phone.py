@@ -46,6 +46,6 @@ class Phone(BaseModel):
     def queue_verification(self, connection_name: str | None = None) -> None:
         try:
             from apps.communications.tasks import validate_phone_basic
-            validate_phone_basic.delay(self.pk)
+            validate_phone_basic(self.pk)
         except Exception:
             pass

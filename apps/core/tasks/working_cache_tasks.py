@@ -1,0 +1,85 @@
+"""
+Working cache population function that avoids the problematic .only() query.
+"""
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def update_all_settings_cache_working():
+    """Load all active Setting records into cache - working version without .only()."""
+    start_time = time.time()
+    
+    try:
+        logger.info("Starting working cache population...")
+        
+        from apps.core.models.setting import Setting
+        
+        # Use a simpler query without .only() to avoid the freezing issue
+        logger.info("Querying active settings (without .only())...")
+        active_settings = Setting.objects.filter(is_active=True)
+        
+        # Convert to list to force immediate evaluation
+        settings_list = list(active_settings)
+        logger.info(f"Found {len(settings_list)} active settings")
+        
+        if not settings_list:
+            logger.info("No active settings found, completing successfully")
+            return {'status': 'completed', 'message': 'No active settings found', 'total_settings': 0}
+        
+        # Process settings
+        settings_by_purpose = {}
+        all_settings = {}
+        
+        for setting in settings_list:
+            purpose = setting.purpose or 'general'
+            model_name = setting.model_name or 'general'
+            data = setting.data or {}
+            
+            # Group by purpose
+            if purpose not in settings_by_purpose:
+                settings_by_purpose[purpose] = {}
+            if model_name:
+                settings_by_purpose[purpose][model_name] = data
+            
+            # Add to all settings
+            key = f"{model_name}:{purpose}"
+            all_settings[key] = data
+        
+        # Cache results
+        from apps.core.services.cache_service import cache_service
+        
+        # Cache each purpose group
+        cached_purposes = []
+        for purpose, data in settings_by_purpose.items():
+            try:
+                cache_key = cache_service.make_key('settings', purpose)
+                cache_service.set(cache_key, data, ttl=3600)
+                cached_purposes.append(purpose)
+            except Exception as e:
+                logger.error(f"Failed to cache purpose {purpose}: {e}")
+        
+        # Cache all settings
+        try:
+            cache_key = cache_service.make_key('settings', 'all')
+            cache_service.set(cache_key, all_settings, ttl=3600)
+        except Exception as e:
+            logger.error(f"Failed to cache all settings: {e}")
+        
+        elapsed = time.time() - start_time
+        logger.info(f"Cache population completed in {elapsed:.2f} seconds")
+        
+        return {
+            'status': 'completed', 
+            'purposes': cached_purposes, 
+            'total_settings': len(settings_list),
+            'elapsed': round(elapsed, 2)
+        }
+        
+    except Exception as e:
+        elapsed = time.time() - start_time
+        logger.error(f"Error in cache population after {elapsed:.2f} seconds: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'status': 'error', 'error': str(e), 'elapsed': round(elapsed, 2)}

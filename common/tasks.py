@@ -1,4 +1,3 @@
-from celery import shared_task
 from django.apps import apps
 from django.utils import timezone
 from pathlib import Path
@@ -9,7 +8,6 @@ from .models import BaseModel
 from .stats_mixin import StatsMixin
 from .relationship_stats_mixin import RelationshipStatsMixin
 
-@shared_task(name='common.tasks.refresh_keywords_task')
 def refresh_keywords_task(limit: int = 500, batch_size: int = 200):
     """Periodic task to refresh pending keywords across BaseModel subclasses.
 
@@ -29,13 +27,9 @@ def refresh_keywords_task(limit: int = 500, batch_size: int = 200):
             model.objects.filter(pk=obj.pk).update(refs=obj.refs, metadata=obj.metadata)
             processed += 1
             if processed >= limit:
-                duration = (timezone.now() - started).total_seconds()
-                return {'processed': processed, 'duration': duration}
-    duration = (timezone.now() - started).total_seconds()
-    return {'processed': processed, 'duration': duration}
+                return {'processed': processed, 'duration': (timezone.now() - started).total_seconds()}
+    return {'processed': processed, 'duration': (timezone.now() - started).total_seconds()}
 
-
-@shared_task(name='common.tasks.recompute_relationship_counts')
 def recompute_relationship_counts(limit: int = 5000, batch_size: int = 500):
     """Recompute denormalized relationship counts for models using RelationshipStatsMixin.
 
@@ -56,10 +50,8 @@ def recompute_relationship_counts(limit: int = 5000, batch_size: int = 500):
         rel_qs = model.objects.all().only('id', 'relationship_stats')  # type: ignore[attr-defined]
         for obj in rel_qs.iterator(chunk_size=batch_size):
             if processed >= limit:
-                duration = (timezone.now() - started).total_seconds()
-                return {'processed': processed, 'updated': updated, 'duration': duration}
+                return {'processed': processed, 'updated': updated, 'duration': (timezone.now() - started).total_seconds()}
             processed += 1
-            # Heuristic extraction
             relations = getattr(obj, 'relations', None)
             counts = {}
             if isinstance(relations, dict):
@@ -74,11 +66,8 @@ def recompute_relationship_counts(limit: int = 5000, batch_size: int = 500):
                 obj.set_relation_count('linked', counts['linked'])  # type: ignore[attr-defined]
                 obj.save(update_fields=['relationship_stats'])
                 updated += 1
-    duration = (timezone.now() - started).total_seconds()
-    return {'processed': processed, 'updated': updated, 'duration': duration}
+    return {'processed': processed, 'updated': updated, 'duration': (timezone.now() - started).total_seconds()}
 
-
-@shared_task(name='common.tasks.recompute_basic_stats')
 def recompute_basic_stats(limit: int = 5000, batch_size: int = 500):
     """Example aggregation task to backfill or sanity-sync StatsMixin data.
 
@@ -95,8 +84,7 @@ def recompute_basic_stats(limit: int = 5000, batch_size: int = 500):
         qs = model.objects.all().only('id')  # lean load
         for obj in qs.iterator(chunk_size=batch_size):
             if processed >= limit:
-                duration = (timezone.now() - started).total_seconds()
-                return {'processed': processed, 'normalized': normalized, 'duration': duration}
+                return {'processed': processed, 'normalized': normalized, 'duration': (timezone.now() - started).total_seconds()}
             processed += 1
             stats = getattr(obj, 'stats', None)
             changed = False
@@ -111,11 +99,8 @@ def recompute_basic_stats(limit: int = 5000, batch_size: int = 500):
                 obj.stats = stats  # type: ignore[attr-defined]
                 obj.save(update_fields=['stats'])
                 normalized += 1
-    duration = (timezone.now() - started).total_seconds()
-    return {'processed': processed, 'normalized': normalized, 'duration': duration}
+    return {'processed': processed, 'normalized': normalized, 'duration': (timezone.now() - started).total_seconds()}
 
-
-@shared_task(name='common.tasks.refresh_model_registry_docs')
 def refresh_model_registry_docs():
     """Regenerate registry README/JSON/CSV and docs_index.json.
 
@@ -124,9 +109,7 @@ def refresh_model_registry_docs():
     """
     root = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
-    # Choose interpreter
     python = str(root / 'bin' / 'python') if (root / 'bin' / 'python').exists() else 'python3'
-    # Run generators
     gen_readme = [python, str(root / 'Scripts' / 'gen_model_registry_readme.py')]
     gen_index = [python, str(root / 'Scripts' / 'gen_docs_index.py')]
     out = {}
@@ -142,8 +125,6 @@ def refresh_model_registry_docs():
         out['gen_docs_index'] = {'error': str(e)}
     return out
 
-
-@shared_task(name='common.tasks.docs_staleness_reminder')
 def docs_staleness_reminder(days: int = 3):
     """Emit a periodic reminder to review docs and registry for staleness.
 

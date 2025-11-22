@@ -67,7 +67,7 @@ class Email(BaseModel):
     def queue_verification(self, connection_name: str | None = None) -> None:
         try:
             from apps.communications.tasks import validate_email_format
-            validate_email_format.delay(self.pk)
+            validate_email_format(self.pk)
         except Exception:
             pass
 

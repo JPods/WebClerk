@@ -4,14 +4,12 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction
 from django.apps import apps
-from celery import shared_task
 
 from common.refs.actions_index import ensure_action_all_links
 from common.refs.policy import PolicyEngine, default_rules
 from common.refs.assignees import ensure_line_assignee_links
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def prune_refs_for_owner(self, owner_model: str, owner_id: int) -> int:
+def prune_refs_for_owner(owner_model: str, owner_id: int) -> int:
     """
     Prunes stale links on a single owner object (e.g., accounts.customer).
     Returns 1 if pruned, 0 if no-op.
@@ -34,7 +32,6 @@ def prune_refs_for_owner(self, owner_model: str, owner_id: int) -> int:
                 obj.save()
         return 1 if mutated else 0
 
-@shared_task
 def nightly_prune_refs(owner_model: str = "accounts.customer") -> int:
     """
     Runs during low-load windows via beat scheduler. Iterates candidate owners.
@@ -52,8 +49,7 @@ def nightly_prune_refs(owner_model: str = "accounts.customer") -> int:
         count += 1
     return count
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_assignees_for_line(self, line_model: str, line_id: int, kind: str = "assignee") -> int:
+def sync_assignees_for_line(line_model: str, line_id: int, kind: str = "assignee") -> int:
     """
     Upserts refs between a line and any active action assignees.
     Safe to call on Action save or Line save.
@@ -71,7 +67,6 @@ def sync_assignees_for_line(self, line_model: str, line_id: int, kind: str = "as
             line.save(update_fields=["refs"] if hasattr(line, "refs") else None)
         return created
 
-@shared_task
 def nightly_backfill_assignee_refs(line_model: str, days: int = 14, kind: str = "assignee") -> int:
     """
     Low-load backfill. Touch lines changed recently and ensure assignee links.
@@ -95,8 +90,7 @@ def nightly_backfill_assignee_refs(line_model: str, days: int = 14, kind: str = 
         count += 1
     return count
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_action_denorm_refs(self, action_model: str, action_id: int) -> int:
+def sync_action_denorm_refs(action_model: str, action_id: int) -> int:
     """
     Upserts refs between an Action and all related targets: acts_on, docs, comms, sync, orgs, assignee.
     """
@@ -113,7 +107,6 @@ def sync_action_denorm_refs(self, action_model: str, action_id: int) -> int:
             action.save(update_fields=["refs"])
         return created
 
-@shared_task
 def nightly_backfill_action_refs(action_model: str, days: int = 14) -> int:
     """
     Low-load backfill: ensure Action -> related refs for recently-touched Actions.

@@ -22,7 +22,7 @@ def register_action_signals():
 
     @receiver(post_save, sender=Action, weak=False, dispatch_uid="action_refs_post_save")
     def _action_post_save(sender, instance, **kwargs):
-        sync_action_denorm_refs.delay(ACTION_MODEL_LABEL, instance.pk)
+        sync_action_denorm_refs(ACTION_MODEL_LABEL, instance.pk)
 
     # Dynamically bind m2m_changed for each M2M on Action (capture through in closure)
     for m2m in Action._meta.many_to_many:
@@ -37,7 +37,7 @@ def register_action_signals():
             def _action_m2m_changed(sender, instance, action, reverse, model, pk_set, **kwargs):
                 ActionModel = _get_action_model()
                 if ActionModel and isinstance(instance, ActionModel):
-                    sync_action_denorm_refs.delay(ACTION_MODEL_LABEL, instance.pk)
+                    sync_action_denorm_refs(ACTION_MODEL_LABEL, instance.pk)
             return _action_m2m_changed
 
         _make_m2m_receiver(through, rel_name)
