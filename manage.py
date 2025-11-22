@@ -45,7 +45,7 @@ def main():
                     except Exception as e:
                         print(f"Failed to start Redis on macOS: {e}")
                         print("Please start Redis manually: redis-server")
-                        return
+                        #return
                 elif system == 'linux':
                     # Try common Linux Redis config locations
                     config_paths = ['/etc/redis/redis.conf', '/etc/redis.conf']
@@ -63,7 +63,7 @@ def main():
                         return
                 else:
                     print(f"Unsupported OS: {system}. Please start Redis manually: redis-server")
-                    return
+                    #return
 
                 # Wait for Redis to be ready
                 import time
