@@ -1,28 +1,42 @@
-import { SetStateAction, useState } from "react";
+import { useMemo } from "react";
+import { FieldError, useForm } from "react-hook-form";
 import ComponentCard from "../../common/ComponentCard";
 import TextArea from "../input/TextArea";
 import Label from "../Label";
 
+type TextAreaSampleForm = {
+  description: string;
+  disabledDescription: string;
+  errorDescription: string;
+};
+
 export default function TextAreaInput() {
-  const [message, setMessage] = useState("");
-  const [messageTwo, setMessageTwo] = useState("");
+  const { register } = useForm<TextAreaSampleForm>({
+    defaultValues: {
+      description: "",
+      disabledDescription: "",
+      errorDescription: "",
+    },
+  });
+
+  const staticError = useMemo<FieldError>(
+    () => ({ type: "manual", message: "Please enter a valid message." }),
+    []
+  );
+
   return (
     <ComponentCard title="Textarea input field">
       <div className="space-y-6">
         {/* Default TextArea */}
         <div>
           <Label>Description</Label>
-          <TextArea
-            value={message}
-            onChange={(value: SetStateAction<string>) => setMessage(value)}
-            rows={6}
-          />
+          <TextArea rows={6} register={register("description")} />
         </div>
 
         {/* Disabled TextArea */}
         <div>
           <Label>Description</Label>
-          <TextArea value={message} rows={6} disabled />
+          <TextArea rows={6} disabled register={register("disabledDescription")} />
         </div>
 
         {/* Error TextArea */}
@@ -30,9 +44,9 @@ export default function TextAreaInput() {
           <Label>Description</Label>
           <TextArea
             rows={6}
-            value={messageTwo}
-            onChange={(value: SetStateAction<string>) => setMessageTwo(value)}
-            hint="Please enter a valid message."
+            register={register("errorDescription")}
+            error={staticError}
+            hint={staticError.message}
           />
         </div>
       </div>

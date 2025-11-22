@@ -3,13 +3,13 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { userDetails } from "../../api/auth";
-import { dynamicData } from "../../model/dynamicData";
+//import { dynamicData } from "../../model/dynamicData";
 import { useAppSelector } from "../../store/hooks";
 
 export default function UserMetaCard() {
-  const [ setUserProfile] = useState<dynamicData[]>([])
+  //const [ setUserProfile] = useState<dynamicData[]>([])
   const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAppSelector((state) => state.auth);
   console.log("user details:", user?.name_first)
@@ -28,7 +28,8 @@ export default function UserMetaCard() {
     try {
          const res = await userDetails()
          if(res.status === 200)
-            setUserProfile(res.data)
+          {console.log("user profile data:", res.data)}
+            //setUserProfile(res.data)
     } catch (error) {
          
     }

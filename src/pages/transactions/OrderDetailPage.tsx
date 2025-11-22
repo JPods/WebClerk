@@ -78,7 +78,7 @@ export default function OrderDetailPage({ modeProp, dataProp, hideBreadcrumb, on
  
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
     try {
-      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.name_first, formData);
+      const res = mode === 'add' ? await postAction(formData) : await patchAction(user?.name_first);
       if (res.status === 201 || res.status === 200) {
         dispatch(showToast({ message: `Action ${mode === 'add' ? 'saved' : 'updated'} successfully`, type: "success" }));
         if (onSaved) {

@@ -9,13 +9,28 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { login } from "../../api/auth";
+import { login, userDetails } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
-import { setUser } from "../../store/slices/authSlice";
+import { setUser, type User } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
 // import axiosInstance from "../../api/axios";
 // import { PostLoginURL } from "../../routes/network";
 
+
+const mapProfileToUser = (profile: any): User => ({
+  id: profile?.id ?? "",
+  uuid: profile?.uuid ?? "",
+  email: profile?.email ?? "",
+  role: profile?.role ?? [],
+  name_first: profile?.name_first ?? "",
+  name_middle: profile?.name_middle ?? "",
+  name_last: profile?.name_last ?? "",
+  rank: profile?.rank ?? null,
+  company: profile?.company ?? null,
+  date_joined: profile?.date_joined ?? null,
+  salutation: profile?.salutation ?? null,
+  attention: profile?.attention ?? null,
+});
 
 export default function SignInForm() {
 
@@ -39,37 +54,39 @@ export default function SignInForm() {
 
   const isValidToken = (val: any): val is string => typeof val === 'string' && val.trim() !== '' && val !== 'undefined' && val !== 'null';
 
-  const handleFormSubmit = async (data:any) => {
+  const handleFormSubmit = async (data: LoginFormData) => {
           // Overwritten on the backend by user profile
              //data.role = 'USER';
      try {
         const resp = await login(data);
         console.log("Login response", resp);
 
-  const accessRaw = resp?.data?.access ?? resp?.access ?? null;
-  const refreshRaw = resp?.data?.refresh ?? resp?.refresh ?? null;
-  const access = isValidToken(accessRaw) ? accessRaw : null;
-  const refresh = isValidToken(refreshRaw) ? refreshRaw : null;
+        const accessRaw = resp?.data?.access ?? resp?.access ?? null;
+        const refreshRaw = resp?.data?.refresh ?? resp?.refresh ?? null;
+        const access = isValidToken(accessRaw) ? accessRaw : null;
+        const refresh = isValidToken(refreshRaw) ? refreshRaw : null;
 
         if (!access) {
-          const msg = resp?.error?.[0] || resp?.message || 'Login failed';
-          dispatch(showToast({ message: msg, type: 'error' }));
+          const msg = resp?.error?.[0] || resp?.message || "Login failed";
+          dispatch(showToast({ message: msg, type: "error" }));
           return;
         }
 
-  localStorage.setItem("accessToken", access);
-  if (refresh) localStorage.setItem("refreshToken", refresh);
+        localStorage.setItem("accessToken", access);
+        if (refresh) localStorage.setItem("refreshToken", refresh);
 
-        const src: any = resp?.data || resp;
-        const user = {
-          email: src?.email ?? '',
-          role: src?.role ?? [],
-          name_first: src?.name_first ?? '',
-          name_last: src?.name_last ?? '',
-        };
-        dispatch(setUser(user));
+        let profilePayload: any = resp?.data?.user ?? resp?.user ?? resp?.data ?? resp;
+        try {
+          const profileResponse = await userDetails();
+          if (profileResponse?.status === 200) {
+            profilePayload = profileResponse.data;
+          }
+        } catch (profileError) {
+          console.warn("Failed to fetch profile after login", profileError);
+        }
+
+        dispatch(setUser(mapProfileToUser(profilePayload)));
         dispatch(showToast({ message: "Login successful!", type: "success" }));
-        //navigate('/dashboard');
      } catch (error : any) {
        dispatch(showToast({ message: error, type: "error" }));
      }   
