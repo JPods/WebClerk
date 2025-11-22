@@ -301,6 +301,7 @@ const SvarGanttPage: React.FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState<boolean>(false);
   const [scalePreset, setScalePreset] = useState<ScalePresetKey>("month");
+  const [ganttKey, setGanttKey] = useState<number>(0);
   const activeScales = scalePresets[scalePreset];
 
   const fetchGanttTasks = useCallback(async () => {
@@ -359,6 +360,10 @@ const SvarGanttPage: React.FC = () => {
     }
     setVisibleData(applyColumnFilter(fullDataset, selectedColumnFilter));
   }, [fullDataset, selectedColumnFilter]);
+
+  useEffect(() => {
+    setGanttKey((prev) => prev + 1);
+  }, [selectedColumnFilter]);
 
   useEffect(() => {
     if (selectedColumnFilter === "all") {
@@ -469,9 +474,9 @@ const SvarGanttPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-[640px] overflow-hidden rounded-b-2xl">
+          <div className="min-h-screen overflow-y-auto overflow-x-hidden rounded-b-2xl">
             <Willow>
-              <Gantt tasks={visibleData.tasks} links={visibleData.links} columns={ganttColumns} scales={activeScales} />
+              <Gantt key={ganttKey} tasks={visibleData.tasks} links={visibleData.links} columns={ganttColumns} scales={activeScales} />
             </Willow>
           </div>
         </div>
