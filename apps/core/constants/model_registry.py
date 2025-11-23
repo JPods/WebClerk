@@ -56,6 +56,13 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'location': ModelMeta('location', 'apps.communications.models.location.Location', 'Location', 'Locations', 'locations', kind='support', aliases=['locations']),
     'phone': ModelMeta('phone', 'apps.communications.models.phone.Phone', 'Phone', 'Phones', 'phones', kind='support', aliases=['phones']),
 
+    # --- orgs --- (A->Z by key)
+    'customer': ModelMeta('customer', 'apps.orgs.models.Customer', 'Customer', 'Customers', 'customers', kind='support', aliases=['customers']),
+    'employee': ModelMeta('employee', 'apps.orgs.models.Employee', 'Employee', 'Employees', 'employees', kind='support', aliases=['employees']),
+    'manufacturer': ModelMeta('manufacturer', 'apps.orgs.models.Manufacturer', 'Manufacturer', 'Manufacturers', 'manufacturers', kind='support', aliases=['manufacturers']),
+    'rep': ModelMeta('rep', 'apps.orgs.models.Rep', 'Rep', 'Reps', 'reps', kind='support', aliases=['reps']),
+    'vendor': ModelMeta('vendor', 'apps.orgs.models.Vendor', 'Vendor', 'Vendors', 'vendors', kind='support', aliases=['vendors']),
+
     # --- core --- (A->Z by key)
     'action': ModelMeta('action', 'apps.core.models.action.Action', 'Action', 'Actions', 'actions', kind='support', aliases=['actions']),
     'contact': ModelMeta('contact', 'apps.core.models.contact.Contact', 'Contact', 'Contacts', 'contacts', kind='support', aliases=['contacts']),
