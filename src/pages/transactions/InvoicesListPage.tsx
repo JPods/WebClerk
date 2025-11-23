@@ -3,13 +3,13 @@ import ComponentCard from "../../components/common/ComponentCard";
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { createTheme } from 'react-data-table-component';
 import { useEffect, useState } from "react";
-import { Contacts, deleteAction } from "../../api/userProfile";
+import { deleteAction } from "../../api/userProfile";
 import { dynamicData } from "../../model/dynamicData";
 import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../context/ThemeContext";
-import { InvoiceDetailPage, OrderDetailPage } from "../wrapperPage";
+import { InvoiceDetailPage } from "../wrapperPage";
 import { getInvoiceData } from "../../api/orderDetails";
 
 

@@ -154,7 +154,7 @@ export const Actions = async () => {
   }  
 };
 
-export const patchAction = async (data:any) => {
+export const patchAction = async (data: any) => {
   try {
   const res = await apiClient.post(PostLoginURL.allSave, {...data});
     return res;

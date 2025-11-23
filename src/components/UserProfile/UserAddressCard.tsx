@@ -69,21 +69,21 @@ export default function UserAddressCard() {
         }
     }
 
-  //  const onSubmit = async(data: any) => {
-     
-  //    try {
-  //        const [addressResponse, domainResponse] = await Promise.all([
-  //                     Promise.all(data.addresses.map((list: any) => postAddress(list))),
-  //                     Promise.all(data.domains.map((list: any) => postDomain(list))),
-  //                  ]);                   
-  //                 dispatch(showToast({ message: "Profile addresses uploaded successfully", type: "success" }));
-  //    } catch (error:any) {
-  //         dispatch(showToast({ message: error.message, type: "error" }));
-  //    }
+   const onSubmit = async(data: any) => {
+     console.log("address and domain data:", data)
+     try {
+        //  const [addressResponse, domainResponse] = await Promise.all([
+        //               Promise.all(data.addresses.map((list: any) => postAddress(list))),
+        //               Promise.all(data.domains.map((list: any) => postDomain(list))),
+        //            ]);                   
+                  //dispatch(showToast({ message: "Profile addresses uploaded successfully", type: "success" }));
+     } catch (error:any) {
+         // dispatch(showToast({ message: error.message, type: "error" }));
+     }
 
-  //     // localStorage.removeItem("contactFormData");
-  //     // reset();
-  //   };
+      // localStorage.removeItem("contactFormData");
+      // reset();
+    };
 
   return (
     <>
