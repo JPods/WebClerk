@@ -130,45 +130,45 @@ export default function ContactAdd() {
 
            <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="inputTwo">First Name</Label>
-                    <Input type="text" id="inputTwo" placeholder="First Name" />
+                <Label htmlFor="inputTwo">name_first</Label>
+                <Input type="text" id="inputTwo" placeholder="name_first" />
                 </div>
                 <div>
-                    <Label htmlFor="inputTwo">Last Name</Label>
-                    <Input type="text" id="inputTwo" placeholder="Last Name" />
+                <Label htmlFor="inputTwo">name_last</Label>
+                <Input type="text" id="inputTwo" placeholder="name_last" />
                 </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="inputTwo">Company Name</Label>
-                    <Input type="text" id="inputTwo" placeholder="Company" />
-                </div>
-                <div>
-                    <Label htmlFor="inputTwo">Role</Label>
-                   <Select
-                    options={role}
-                    placeholder="Select an option"
-                    onChange={handleSelectChange}
-                    className="dark:bg-dark-900"
-                    value={""}
-                    />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="inputTwo">company</Label>
+                <Input type="text" id="inputTwo" placeholder="company" />
+              </div>
+              <div>
+                <Label htmlFor="inputTwo">role</Label>
+                 <Select
+                options={role}
+                placeholder="role"
+                onChange={handleSelectChange}
+                className="dark:bg-dark-900"
+                value={""}
+                />
+              </div>
           </div>
 
           <div>
             <Label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-              Phone Numbers
+              phone_numbers
             </Label>
             {phoneNumbers.map((phone) => (
               <div key={phone.id} className="flex items-end space-x-2">
                 {/* Phone Type Select */}
                 <div className="w-1/4">
-                  <Label htmlFor={`phoneType-${phone.id}`}>Type</Label>
+                  <Label htmlFor={`phoneType-${phone.id}`}>type</Label>
                   <Select
                     //id={`phoneType-${phone.id}`}
                     options={phoneTypeOptions}
-                    placeholder="Select Type"
+                    placeholder="type"
                     value={phone.type}
                     onChange={(selectedOption) =>
                       handlePhoneNumberChange(phone.id, "type", selectedOption)
@@ -205,11 +205,11 @@ export default function ContactAdd() {
 
                 {/* Mobile Number Input */}
                 <div className="flex-1">
-                  <Label htmlFor={`phoneNumber-${phone.id}`}>Number</Label>
+                  <Label htmlFor={`phoneNumber-${phone.id}`}>number</Label>
                   <Input
                     type="text"
                     id={`phoneNumber-${phone.id}`}
-                    placeholder="Enter mobile number"
+                    placeholder="number"
                     value={phone.number}
                     onChange={(e) =>
                       handlePhoneNumberChange(
@@ -249,17 +249,17 @@ export default function ContactAdd() {
           
           <div>
                 <Label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                Email Id
+                email
                 </Label>
                 {email.map((mail) => (
                 <div key={mail.id} className="flex items-end space-x-2">
                     {/* Phone Type Select */}
                     <div className="w-1/4">
-                    <Label htmlFor={`phoneType-${mail.id}`}>Type</Label>
+                  <Label htmlFor={`phoneType-${mail.id}`}>type</Label>
                     <Select
                         //id={`phoneType-${mail.id}`}
                         options={phoneTypeOptions}
-                        placeholder="Select Type"
+                    placeholder="type"
                         value={mail.type}
                         onChange={(selectedOption) =>
                         handlePhoneNumberChange(mail.id, "type", selectedOption)
@@ -270,11 +270,11 @@ export default function ContactAdd() {
 
                     {/* Mobile Number Input */}
                     <div className="flex-1">
-                    <Label htmlFor={`email-${mail.id}`}>Email</Label>
+                    <Label htmlFor={`email-${mail.id}`}>email</Label>
                     <Input
                         type="text"
                         id={`email-${mail.id}`}
-                        placeholder="Enter mobile number"
+                      placeholder="email"
                         value={mail.email}
                         onChange={(e) =>
                         handleEmailChange(
@@ -312,35 +312,35 @@ export default function ContactAdd() {
           </div>
 
           <div>
-            <Label htmlFor="inputTwo">Input with Placeholder</Label>
-            <Input type="text" id="inputTwo" placeholder="info@gmail.com" />
+            <Label htmlFor="inputTwo">input_with_placeholder</Label>
+            <Input type="text" id="inputTwo" placeholder="input_with_placeholder" />
           </div>
           <div>
-            <Label>Select Input</Label>
+            <Label>select_input</Label>
             <Select
               options={options}
-              placeholder="Select an option"
+              placeholder="select_input"
               onChange={handleSelectChange}
               className="dark:bg-dark-900"
               value={""}
             />
           </div>
           <div>
-            <Label>Phone</Label>
+            <Label>phone</Label>
             <PhoneInput
               selectPosition="start"
               countries={countries}
-              placeholder="+1 (555) 000-0000"
+              placeholder="phone"
               onChange={() => handlePhoneNumberChange}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Password Input</Label>
+              <Label>password_input</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder="password"
                 />
                 <button
                   onClick={() => setShowPassword(!showPassword)}
@@ -357,8 +357,8 @@ export default function ContactAdd() {
             <div>
               <DatePicker
                 id="date-picker"
-                label="Date Picker Input"
-                placeholder="Select a date"
+                label="date_picker"
+                placeholder="date_picker"
                 onChange={(dates, currentDateString) => {
                   // Handle your logic
                   console.log({ dates, currentDateString });
@@ -367,7 +367,7 @@ export default function ContactAdd() {
             </div>
           </div>
           <div>
-            <Label htmlFor="tm">Time Picker Input</Label>
+            <Label htmlFor="tm">time_picker</Label>
             <div className="relative">
               <Input
                 type="time"
@@ -381,11 +381,11 @@ export default function ContactAdd() {
             </div>
           </div>
           <div>
-            <Label htmlFor="tm">Input with Payment</Label>
+            <Label htmlFor="tm">payment_input</Label>
             <div className="relative">
               <Input
                 type="text"
-                placeholder="Card number"
+                placeholder="card_number"
                 className="pl-[62px]"
               />
               <span className="absolute left-0 top-1/2 flex h-11 w-[46px] -translate-y-1/2 items-center justify-center border-r border-gray-200 dark:border-gray-800">

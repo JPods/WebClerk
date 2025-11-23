@@ -33,38 +33,38 @@ export default function InputStates() {
       <div className="space-y-5 sm:space-y-6">
         {/* Error Input */}
         <div>
-          <Label>Email</Label>
+          <Label>email</Label>
           <Input
             type="email"
             value={email}
             error={error}
             onChange={handleEmailChange}
-            placeholder="Enter your email"
+            placeholder="email"
             hint={error ? "This is an invalid email address." : ""}
           />
         </div>
 
         {/* Success Input */}
         <div>
-          <Label>Email</Label>
+          <Label>email</Label>
           <Input
             type="email"
             value={emailTwo}
             success={!error}
             onChange={handleEmailTwoChange}
-            placeholder="Enter your email"
+            placeholder="email"
             hint={!error ? "This is an success message." : ""}
           />
         </div>
 
         {/* Disabled Input */}
         <div>
-          <Label>Email</Label>
+          <Label>email</Label>
           <Input
             type="text"
             value="disabled@example.com"
             disabled={true}
-            placeholder="Disabled email"
+            placeholder="email"
           />
         </div>
       </div>

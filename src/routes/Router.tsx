@@ -3,7 +3,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
 import { PageRoutes } from './Routes';
 import { ScrollToTop, Toster } from '../components/wrapper';
+<<<<<<< HEAD
+import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, CustomerAddPage, CustomerDetailPage, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, UserProfiles } from '../pages/wrapperPage';
+=======
 import { ActionAdd, ActionList, BasicTables, Calendar, ContactAdd, ContactList, DomainAdd, DomainList, FormElements, Home, KanbanBoardDataPage, KanbanBoardPage, KanbanGanttPage, NotionTrackerPage, SettingAdd, SettingList, SignIn, SignUp, SvarGanttPage, UserProfiles } from '../pages/wrapperPage';
+>>>>>>> 4ed8f5f2ef69b1a5505b4ee49acf6be2405ad71f
 import AdminWorkbench from '../pages/admin/AdminWorkbench';
 import WhitelistTester from '../pages/tools/WhitelistTester';
 import ProductsPage from '../pages/items/ProductsPage';
@@ -13,6 +17,9 @@ import InvoicesListPage from '../pages/transactions/InvoicesListPage';
 import InvoiceDetailPage from '../pages/transactions/InvoiceDetailPage';
 import PurchaseOrderDetailPage from '../pages/transactions/PurchaseOrderDetailPage';
 import ProposalDetailPage from '../pages/transactions/ProposalDetailPage';
+import CallReportDetailPage from '../pages/actions/CallReportDetailPage';
+import ServiceDetailPage from '../pages/actions/ServiceDetailPage';
+import TaskMarkerDetailPage from '../pages/actions/TaskMarkerDetailPage';
 // Redux store is not used directly here; pages connect as needed.
 import Test from '../pages/test/Test';
 import DocsIndex from '../pages/docs/DocsIndex';
@@ -38,9 +45,17 @@ const Router: React.FC = () => {
               <Route path={PageRoutes.actionList} element={<ActionList />} />
               <Route path={PageRoutes.actionAdd} element={<ActionAdd />} />  
               <Route path={PageRoutes.actionAdd + '/:id'} element={<ActionAdd />} /> 
-              <Route path={PageRoutes.contactList} element={<ContactList />} /> 
+              <Route path={PageRoutes.actionsCallReportAdd} element={<CallReportDetailPage defaultMode="add" />} />
+              <Route path={PageRoutes.actionsCallReportDetail} element={<CallReportDetailPage />} />
+              <Route path={PageRoutes.actionsServiceAdd} element={<ServiceDetailPage defaultMode="add" />} />
+              <Route path={PageRoutes.actionsServiceDetail} element={<ServiceDetailPage />} />
+              <Route path={PageRoutes.actionsTaskMarkerAdd} element={<TaskMarkerDetailPage defaultMode="add" />} />
+              <Route path={PageRoutes.actionsTaskMarkerDetail} element={<TaskMarkerDetailPage />} />
+              <Route path={PageRoutes.contactList} element={<ContactList />} />
               <Route path={PageRoutes.contactAdd} element={<ContactAdd />} />
               <Route path={PageRoutes.contactAdd + '/:id'} element={<ContactAdd />} />
+              <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
+              <Route path={PageRoutes.customerDetail} element={<CustomerDetailPage />} />
               <Route path={PageRoutes.settingList} element={<SettingList />} /> 
               <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
               <Route path={PageRoutes.domainList} element={<DomainList />} /> 
