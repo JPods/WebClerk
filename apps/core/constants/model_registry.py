@@ -89,9 +89,13 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'inventory_check_line': ModelMeta('inventory_check_line', 'apps.products.models.inventory_check.InventoryCheckLine', 'Inventory Check Line', 'Inventory Check Lines', 'inventory-check-lines', kind='support', aliases=['inventory_check_lines']),
     'inventory_metrics_snapshot': ModelMeta('inventory_metrics_snapshot', 'apps.products.models.metrics.InventoryMetricsSnapshot', 'Inventory Metrics Snapshot', 'Inventory Metrics Snapshots', 'inventory-metrics-snapshots', kind='support', aliases=['inventory_metrics_snapshots']),
     'inventory_reservation': ModelMeta('inventory_reservation', 'apps.products.models.inventory_reservation.InventoryReservation', 'Inventory Reservation', 'Inventory Reservations', 'inventory-reservations', kind='support', aliases=['inventory_reservations']),
+    'item_usage': ModelMeta('item_usage', 'apps.products.models.ItemUsage', 'Item Usage', 'Item Usages', 'item-usages', kind='support', aliases=['item_usages']),
+    'item_xref': ModelMeta('item_xref', 'apps.products.models.ItemXRef', 'Item XRef', 'Item XRefs', 'item-xrefs', kind='support', aliases=['item_xrefs']),
     'org_item': ModelMeta('org_item', 'apps.products.models.org_item.OrgItem', 'Org Item', 'Org Items', 'org-items', kind='support', aliases=['org_items']),
     'pending_inventory_adjustment': ModelMeta('pending_inventory_adjustment', 'apps.products.models.inventory_layer.PendingInventoryAdjustment', 'Pending Inventory Adjustment', 'Pending Inventory Adjustments', 'pending-inventory-adjustments', kind='support', aliases=['pending_inventory_adjustments']),
     'serial_log': ModelMeta('serial_log', 'apps.products.models.serial.SerialLog', 'Serial Log', 'Serial Logs', 'serial-logs', kind='support', aliases=['serial_logs']),
+    'service': ModelMeta('service', 'apps.products.models.Service', 'Service', 'Services', 'services', kind='support', aliases=['services']),
+    'variant': ModelMeta('variant', 'apps.products.models.Variant', 'Variant', 'Variants', 'variants', kind='support', aliases=['variants']),
     'warehouse': ModelMeta('warehouse', 'apps.products.models.warehouse.Warehouse', 'Warehouse', 'Warehouses', 'warehouses', kind='support', aliases=['warehouses']),
 
     # --- sync --- (A->Z by key)
