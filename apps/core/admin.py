@@ -11,6 +11,28 @@ class ContactAdmin(BaseUserAdmin):
     search_fields = ('email', 'name_first', 'name_last', 'company')
     readonly_fields = ('dt_joined', 'uuid')
     ordering = ('name_last', 'name_first')
+    
+    # Specify the fields to be used in displaying the User model
+    # These are the fields that inherit from BaseUserAdmin but we override for our Contact model
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2'),
+        }),
+        ('Personal info', {
+            'classes': ('wide',),
+            'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix'),
+        }),
+        ('Company info', {
+            'classes': ('wide',),
+            'fields': ('company', 'title', 'department'),
+        }),
+        ('Permissions', {
+            'classes': ('wide',),
+            'fields': ('role', 'is_active', 'is_staff'),
+        }),
+    )
+    
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix')}),
@@ -19,6 +41,18 @@ class ContactAdmin(BaseUserAdmin):
         ('Important dates', {'fields': ('dt_joined',)}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
     )
+    
+    # Override the get_fieldsets method to use our custom fieldsets
+    def get_fieldsets(self, request, obj=None):
+        if not obj:
+            return self.add_fieldsets
+        return super().get_fieldsets(request, obj)
+    
+    # Override get_form to prevent issues with username field
+    def get_form(self, request, obj=None, **kwargs):
+        # Remove username from kwargs if it's passed by parent
+        kwargs.pop('username', None)
+        return super().get_form(request, obj, **kwargs)
 
 
 @admin.register(Action)

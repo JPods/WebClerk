@@ -355,6 +355,11 @@ class _TypeFilteredManager(models.Manager):
 
 	def get_queryset(self):  # type: ignore[override]
 		return super().get_queryset().filter(org_type=self._org_type)
+	
+	def create(self, **kwargs):
+		"""Auto-set org_type when creating records through proxy models."""
+		kwargs['org_type'] = self._org_type
+		return super().create(**kwargs)
 
 
 class Customer(OrgBase):
