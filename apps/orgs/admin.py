@@ -41,12 +41,12 @@ class OrgBaseAdminForm(forms.ModelForm):
 @admin.register(OrgBase)
 class OrgBaseAdmin(admin.ModelAdmin):
     form = OrgBaseAdminForm
-    list_display = ("id", "company", "org_type", "status", "is_active", "version")
+    list_display = ("id", "display_name", "org_type", "status", "is_active", "version")
     list_filter = ("org_type", "status", "is_active")
-    search_fields = ("company", "domains", "contacts")
+    search_fields = ("display_name", "domains", "contacts")
     readonly_fields = ("version", "dt_created", "dt_modified")
     fieldsets = (
-        (None, {"fields": ("company", "org_type", "status", "is_active")}),
+        (None, {"fields": ("display_name", "org_type", "status", "is_active")}),
         ("Aspects", {"fields": ("contacts", "locations", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
         ("Versioning", {"fields": ("version", "dt_created", "dt_modified")}),
     )
