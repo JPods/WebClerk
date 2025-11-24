@@ -24,12 +24,18 @@ class OrgBaseAdminForm(forms.ModelForm):
             if field_name in self.fields:
                 self.fields[field_name].required = False
         
-        # Remove org_type field entirely for proxy models (it's auto-set in save_model)
+        # For proxy models, make org_type field hidden but still present
         if hasattr(self.instance, '_meta') and self.instance._meta.proxy:
-            self.fields.pop('org_type', None)
+            if 'org_type' in self.fields:
+                self.fields['org_type'].widget = forms.HiddenInput()
         elif 'org_type' in self.fields:
             # For OrgBase admin, keep org_type field but make it optional
             self.fields['org_type'].required = False
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        print(f"Form cleaned_data: {cleaned_data}")
+        return cleaned_data
 
 
 @admin.register(OrgBase)
@@ -47,9 +53,13 @@ class OrgBaseAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """Ensure org_type is set correctly based on the admin model being used."""
+        # Log for debugging
+        print(f"save_model called: {obj.__class__.__name__}, proxy={getattr(obj._meta, 'proxy', False)}, change={change}")
+        
         # For proxy models, always set the correct org_type (override form data)
-        if hasattr(obj, '_meta') and obj._meta.proxy:
-            model_name = obj._meta.proxy_for_model.__name__
+        if getattr(obj._meta, 'proxy', False):
+            model_name = obj.__class__.__name__
+            print(f"Detected proxy model: {model_name}")
             if model_name == 'Customer':
                 obj.org_type = 'customer'
             elif model_name == 'Vendor':
@@ -58,9 +68,16 @@ class OrgBaseAdmin(admin.ModelAdmin):
                 obj.org_type = 'rep'
             elif model_name == 'Employee':
                 obj.org_type = 'employee'
+                print("Setting org_type to 'employee'")
             elif model_name == 'Manufacturer':
                 obj.org_type = 'manufacturer'
-        super().save_model(request, obj, form, change)
+        
+        try:
+            super().save_model(request, obj, form, change)
+            print(f"Successfully saved {obj.__class__.__name__} with ID {obj.id}")
+        except Exception as e:
+            print(f"Error saving {obj.__class__.__name__}: {e}")
+            raise
 
 
 def _proxy_admin(model, base: type[OrgBaseAdmin]):  # helper to clone config
