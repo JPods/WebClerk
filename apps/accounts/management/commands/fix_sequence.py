@@ -71,11 +71,14 @@ class Command(BaseCommand):
                     table_name = model._meta.db_table
                     sequence_name = f"{table_name}_id_seq"
                     
-                    # Check if sequence exists
+                    # Check if sequence exists using PostgreSQL system catalogs
                     cursor.execute("""
                         SELECT EXISTS (
-                            SELECT FROM information_schema.sequences 
-                            WHERE sequence_name = %s
+                            SELECT FROM pg_class c
+                            JOIN pg_namespace n ON n.oid = c.relnamespace
+                            WHERE c.relkind = 'S' 
+                            AND c.relname = %s
+                            AND n.nspname = 'public'
                         )
                     """, [sequence_name])
                     
