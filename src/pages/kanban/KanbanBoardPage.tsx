@@ -11,7 +11,7 @@ import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from 
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { PageRoutes } from "../../routes/Routes";
 
 const priorityPalette: Record<TaskPriority, string> = {
@@ -39,7 +39,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   es: "Spanish",
 };
 
-const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
+const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code;
 
 const createLocalId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -401,7 +401,7 @@ const KanbanBoardPage: React.FC = () => {
   const [editCustomLanguage, setEditCustomLanguage] = useState("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
 
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
 
   const resolveDefaultColumnId = useCallback(
     () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,

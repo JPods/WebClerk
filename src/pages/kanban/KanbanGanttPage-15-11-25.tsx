@@ -1012,9 +1012,9 @@ const KanbanGanttPage: React.FC = () => {
 
   const hasOrganizedTasks = organizedTasks.length > 0;
 
-  const handleTaskClick = useCallback((taskId: string) => {
-    setSelectedTask(selectedTask === taskId ? null : taskId);
-  }, [selectedTask]);
+  // const handleTaskClick = useCallback((taskId: string) => {
+  //   setSelectedTask(selectedTask === taskId ? null : taskId);
+  // }, [selectedTask]);
 
   const taskStats = useMemo(() => {
     const total = tasks.length;

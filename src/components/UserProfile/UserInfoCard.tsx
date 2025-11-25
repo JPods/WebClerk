@@ -54,7 +54,7 @@ export default function UserInfoCard() {
 
   const getAddressData = () => {
       try {         
-        const res = getAddress(user?.id)
+        const res = getAddress(user?.email)
         console.log("address data", res)
       } catch (error) {
         
@@ -65,17 +65,17 @@ export default function UserInfoCard() {
       resolver: zodResolver(contactSchema),
       defaultValues: { 
          name_first: user ? user.name_first : '',
-         name_middle: user ? user.name_middle : '',
+        // name_middle: user ? user.name_middle : '',
          name_last: user ? user.name_last : '',         
          phoneNumbers: [{ format: "", country_code: "", number: "" }],    
          emails: [{ type: "", email: "" }],  
       },
     });
 
-    useEffect(() => {
-      console.log("user", user)
-         setValue('company', user ? user.company: '');
-    },[])
+    // useEffect(() => {
+    //   console.log("user", user)
+    //      setValue('company', user ? user.company: '');
+    // },[])
     
    const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
        control,
@@ -185,7 +185,7 @@ export default function UserInfoCard() {
                 Joining Date
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                { user && user.date_joined }
+                {/* { user && user.date_joined } */}
               </p>
             </div>
             <div>
@@ -193,7 +193,7 @@ export default function UserInfoCard() {
                 rank
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                { user && user.rank }
+                {/* { user && user.rank } */}
               </p>
             </div>
           </div>

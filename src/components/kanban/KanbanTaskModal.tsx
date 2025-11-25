@@ -154,7 +154,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
                   <div className="mt-4 space-y-3">
                     <div>
-                      <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
                         language
                       </label>
                       <input
@@ -168,8 +168,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        Action
+                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                        action
                       </label>
                       <input
                         className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white"
@@ -183,7 +183,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
                         description
                       </label>
                       <textarea

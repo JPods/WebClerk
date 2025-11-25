@@ -11,23 +11,39 @@ export const useAuth = () => {
     const fetchUser = async () => {
       try {
         dispatch(setLoading(true));
-        const res = await userDetails();      
-       
-        if(res.status === 200)
-        {
-          const { id, uuid, email, role, name_first, name_last, rank,company,date_joined,salutation,attention } = res.data;
-           const user = {
+        const res = await userDetails();
+
+        if (res.status === 200) {
+          const {
             id,
             uuid,
             email,
             role,
             name_first,
+            name_middle,
             name_last,
             rank,
-            company,date_joined,salutation,attention
+            company,
+            date_joined,
+            salutation,
+            attention,
+          } = res.data;
+          const user = {
+            id,
+            uuid,
+            email,
+            role,
+            name_first,
+            name_middle: name_middle ?? "",
+            name_last,
+            rank: rank ?? null,
+            company: company ?? null,
+            date_joined: date_joined ?? null,
+            salutation: salutation ?? null,
+            attention: attention ?? null,
           };
-          dispatch(setUser(user));          
-        }       
+          dispatch(setUser(user));
+        }
       } catch (err: any) {
         dispatch(clearUser());
         dispatch(setAuthError(err?.response?.data?.message || "Failed to fetch user"));
@@ -39,7 +55,7 @@ export const useAuth = () => {
     if (!isAuthenticated) {
       fetchUser();
     }
-  }, [dispatch, user, isAuthenticated]);
+  }, [dispatch, isAuthenticated]);
 
   return { user, isAuthenticated, isLoading, error };
 };

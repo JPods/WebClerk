@@ -310,38 +310,142 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   return { tasks, columns, columnOrder: sortedColumnOrder };
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const looksLikeKanbanEntry = (entry: Record<string, unknown>): boolean => {
+  const keys = Object.keys(entry).map((key) => key.toLowerCase());
+  if (keys.includes("id")) {
+    return true;
+  }
+  const hints = ["action", "description", "kanban", "priority", "dt_", "status", "assigned"];
+  return keys.some((key) => hints.some((hint) => key.includes(hint)));
+};
+
+const coerceKanbanArray = (value: unknown): ApiKanbanItem[] | null => {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+  const objects = value.filter((entry): entry is ApiKanbanItem => isPlainObject(entry));
+  if (!objects.length) {
+    return null;
+  }
+  if (!objects.some((entry) => looksLikeKanbanEntry(entry as Record<string, unknown>))) {
+    return null;
+  }
+  return objects;
+};
+
+const drill = (candidate: any): ApiKanbanItem[] => {
+  if (!candidate) return [];
+
+  const direct = coerceKanbanArray(candidate);
+  if (direct) {
+    return direct;
+  }
+
+  const arrayKeys = [
+    "results",
+    "records",
+    "items",
+    "data",
+    "payload",
+    "value",
+    "rows",
+  ];
+
+  if (isPlainObject(candidate)) {
+    const record = candidate as Record<string, unknown>;
+
+    for (const key of arrayKeys) {
+      const nested = coerceKanbanArray(record[key]);
+      if (nested) {
+        return nested;
+      }
+    }
+
+    const dataLayer = record.data as any;
+    if (dataLayer?.results && Array.isArray(dataLayer.results)) {
+      return dataLayer.results as ApiKanbanItem[];
+    }
+
+    if (dataLayer?.records && Array.isArray(dataLayer.records)) {
+      return dataLayer.records as ApiKanbanItem[];
+    }
+
+    if (dataLayer?.payload?.results && Array.isArray(dataLayer.payload.results)) {
+      return dataLayer.payload.results as ApiKanbanItem[];
+    }
+
+    const payloadLayer = record.payload as any;
+    if (payloadLayer?.results && Array.isArray(payloadLayer.results)) {
+      return payloadLayer.results as ApiKanbanItem[];
+    }
+
+    if (dataLayer?.payload && Array.isArray(dataLayer.payload)) {
+      return dataLayer.payload as ApiKanbanItem[];
+    }
+
+    if (payloadLayer && Array.isArray(payloadLayer)) {
+      return payloadLayer as ApiKanbanItem[];
+    }
+
+    if (dataLayer?.data?.results && Array.isArray(dataLayer.data.results)) {
+      return dataLayer.data.results as ApiKanbanItem[];
+    }
+
+    if (dataLayer?.data && Array.isArray(dataLayer.data)) {
+      return dataLayer.data as ApiKanbanItem[];
+    }
+  }
+
+  return [];
+};
+
+const deepScanForItems = (root: unknown): ApiKanbanItem[] => {
+  const queue: unknown[] = [root];
+  const visited = new Set<unknown>();
+  const MAX_NODES = 200;
+  let processed = 0;
+
+  while (queue.length && processed < MAX_NODES) {
+    const current = queue.shift();
+    processed += 1;
+
+    const asArray = coerceKanbanArray(current);
+    if (asArray) {
+      return asArray;
+    }
+
+    if (!isPlainObject(current) && !Array.isArray(current)) {
+      continue;
+    }
+
+    if (visited.has(current as object)) {
+      continue;
+    }
+    visited.add(current as object);
+
+    const values = Array.isArray(current)
+      ? (current as unknown[])
+      : Object.values(current as Record<string, unknown>);
+
+    for (const value of values) {
+      const nestedArray = coerceKanbanArray(value);
+      if (nestedArray) {
+        return nestedArray;
+      }
+      if (value && (isPlainObject(value) || Array.isArray(value))) {
+        queue.push(value);
+      }
+    }
+  }
+
+  return [];
+};
+
 export const extractKanbanItems = (raw: unknown): ApiKanbanItem[] => {
   if (!raw) return [];
-
-  const drill = (candidate: any): ApiKanbanItem[] => {
-    if (!candidate) return [];
-
-    if (Array.isArray(candidate)) {
-      return candidate as ApiKanbanItem[];
-    }
-
-    if (candidate?.results && Array.isArray(candidate.results)) {
-      return candidate.results as ApiKanbanItem[];
-    }
-
-    if (candidate?.data?.results && Array.isArray(candidate.data.results)) {
-      return candidate.data.results as ApiKanbanItem[];
-    }
-
-    if (candidate?.data && Array.isArray(candidate.data)) {
-      return candidate.data as ApiKanbanItem[];
-    }
-
-    if (candidate?.data?.data?.results && Array.isArray(candidate.data.data.results)) {
-      return candidate.data.data.results as ApiKanbanItem[];
-    }
-
-    if (candidate?.data?.data && Array.isArray(candidate.data.data)) {
-      return candidate.data.data as ApiKanbanItem[];
-    }
-
-    return [];
-  };
 
   const levels = [raw, (raw as any)?.data];
   for (const level of levels) {
@@ -349,6 +453,11 @@ export const extractKanbanItems = (raw: unknown): ApiKanbanItem[] => {
     if (extracted.length) {
       return extracted;
     }
+  }
+
+  const fallback = deepScanForItems(raw);
+  if (fallback.length) {
+    return fallback;
   }
 
   return [];
