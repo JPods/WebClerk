@@ -98,3 +98,55 @@ class Action(BaseModel):
         self.refs = refs
         
         # Note: Save is handled by the calling thread in save_view.py
+    def save(self, *args, **kwargs):
+        # compute changed_fields before save
+        changed_fields = []
+        if self.pk:
+            for f in self._meta.fields:
+                name = f.name
+                if name in {'dt_modified', 'version'}:
+                    continue
+                old = self._original_state.get(name)
+                new = getattr(self, name)
+                if old != new:
+                    changed_fields.append(name)
+        # set the _by based on changed_fields
+        from django.utils import timezone
+        now_ms = int(timezone.now().timestamp() * 1000)
+        contact_id = None
+        contact_email = None
+        if self.assigned_to and isinstance(self.assigned_to, list) and self.assigned_to:
+            first_assigned = self.assigned_to[0]
+            if isinstance(first_assigned, dict):
+                contact_id = first_assigned.get('id')
+                contact_email = first_assigned.get('email')
+            else:
+                contact_id = first_assigned
+            if contact_id and not contact_email:
+                try:
+                    from apps.core.models import Contact
+                    contact = Contact.objects.get(id=contact_id)
+                    contact_email = contact.email
+                except Contact.DoesNotExist:
+                    pass
+        if not contact_id:
+            contact_id = 1
+            contact_email = 'system@example.com'
+        for field in changed_fields:
+            if field == 'dt_due':
+                due_by = self.due_by or []
+                due_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})
+                self.due_by = due_by
+            elif field == 'dt_end':
+                end_by = self.end_by or []
+                end_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})
+                self.end_by = end_by
+        if changed_fields:
+            updated_by = self.updated_by or []
+            updated_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})
+            self.updated_by = updated_by
+        if not self.pk:
+            created_by = self.created_by or []
+            created_by.append({'id': contact_id, 'email': contact_email, 'dt': now_ms})
+            self.created_by = created_by
+        super().save(*args, **kwargs)
