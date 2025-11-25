@@ -80,32 +80,32 @@ import { PageRoutes } from "../../routes/Routes";
 //   }
 // ];
 
-const priorityColors: Record<TaskPriority, string> = {
+export const priorityColors: Record<TaskPriority, string> = {
   low: "bg-emerald-500",
   medium: "bg-amber-500",
   high: "bg-orange-500",
   critical: "bg-rose-500",
 };
 
-const priorityBgColors: Record<TaskPriority, string> = {
+export const priorityBgColors: Record<TaskPriority, string> = {
   low: "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20",
   medium: "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20",
   high: "bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20",
   critical: "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20",
 };
 
-const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
+export const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
   low: 1,
   medium: 2,
   high: 3,
   critical: 4,
 };
 
-const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
+export const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
 
 const DRAG_TYPE_GANTT_TASK = "GANTT_TASK";
 
-const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
+export const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
@@ -114,7 +114,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   es: "Spanish",
 };
 
-const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
+export const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
 
 const createLocalId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -123,26 +123,26 @@ const createLocalId = () => {
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
-const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
-const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
+export const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
+export const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
 
-const DEFAULT_DIFFICULTY = DIFFICULTY_OPTIONS[2] ?? DIFFICULTY_OPTIONS[0];
-const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
+export const DEFAULT_DIFFICULTY = DIFFICULTY_OPTIONS[2] ?? DIFFICULTY_OPTIONS[0];
+export const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
 
-const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
-const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
+export const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
+export const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
+export const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
+export const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 
-const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
+export const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
   id: createLocalId(),
   language,
   title,
   description,
 });
 
-const createInitialTaskFormState = (columnId: string): TaskFormState => ({
+export const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
   columnId,
   priority: "medium",
@@ -154,7 +154,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   progress: DEFAULT_PROGRESS_STRING,
 });
 
-const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
+export const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
   for (const code of DEFAULT_LANGUAGE_ORDER) {
     if (!used.has(code)) {
       return code;
@@ -168,7 +168,7 @@ const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string 
   return "";
 };
 
-const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
+export const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
   const languages = new Set<string>();
   task.languageCodes?.forEach((code) => languages.add(normalizeLanguageCode(code)));
   Object.keys(task.titleTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
@@ -198,7 +198,7 @@ const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntr
   });
 };
 
-const FALLBACK_COLUMN_ID = "column-uncategorized";
+export const FALLBACK_COLUMN_ID = "column-uncategorized";
 
 const padTwo = (value: number) => value.toString().padStart(2, "0");
 
@@ -245,12 +245,12 @@ const coerceDateFromUnknown = (value: unknown): Date | null => {
   return null;
 };
 
-const normalizeIncomingDateValue = (value: unknown): string => {
+export const normalizeIncomingDateValue = (value: unknown): string => {
   const date = coerceDateFromUnknown(value);
   return date ? formatDateTimeLocalString(date) : "";
 };
 
-const normalizeNumericSelectValue = (value: unknown, fallback: number): string => {
+export const normalizeNumericSelectValue = (value: unknown, fallback: number): string => {
   if (value === null || value === undefined) {
     return String(fallback);
   }
@@ -268,7 +268,7 @@ const normalizeNumericSelectValue = (value: unknown, fallback: number): string =
   return Number.isNaN(numeric) ? String(fallback) : String(numeric);
 };
 
-const extendNumericOptionStrings = (options: readonly number[], current: string): string[] => {
+export const extendNumericOptionStrings = (options: readonly number[], current: string): string[] => {
   const base = options.map((value) => String(value));
   if (current && !base.includes(current)) {
     return [...base, current];
@@ -300,7 +300,7 @@ const ensureEndAfterStart = (start: string, candidate: string): string => {
   return formatDateTimeLocalString(candidateDate);
 };
 
-const calculateDueDate = (start: string, end: string): string => {
+export const calculateDueDate = (start: string, end: string): string => {
   const endDate = parseDateTimeInputValue(end);
   if (endDate) {
     return formatDateTimeLocalString(endDate);
@@ -314,12 +314,12 @@ const calculateDueDate = (start: string, end: string): string => {
   return "";
 };
 
-const toTimestampMilliseconds = (value: string): number | null => {
+export const toTimestampMilliseconds = (value: string): number | null => {
   const date = parseDateTimeInputValue(value);
   return date ? date.getTime() : null;
 };
 
-const updateTaskFormState = (
+export const updateTaskFormState = (
   prev: TaskFormState,
   field: TaskFormEditableField,
   value: string

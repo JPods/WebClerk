@@ -1,11 +1,37 @@
-import { useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { Actions } from "../../api/userProfile";
-import { createBoardDataFromApi, extractKanbanItems } from "./kanbanDataMapper";
-import type { BoardData, KanbanTask } from "../../type/kanban";
+import clsx from "clsx";
+import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import { Actions, patchAction } from "../../api/userProfile";
+import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
+import type { BoardData, KanbanTask, TaskPriority } from "../../type/kanban";
+import {
+  DEFAULT_LANGUAGE_ORDER,
+  DEFAULT_DIFFICULTY,
+  DEFAULT_PROGRESS,
+  DIFFICULTY_OPTIONS,
+  FALLBACK_COLUMN_ID,
+  PRIORITY_TO_VALUE,
+  PROGRESS_OPTIONS,
+  calculateDueDate,
+  createInitialTaskFormState,
+  createTranslationEntriesFromTask,
+  createTranslationEntry,
+  extendNumericOptionStrings,
+  findNextLanguageCode,
+  getLanguageLabel,
+  normalizeIncomingDateValue,
+  normalizeLanguageCode,
+  normalizeNumericSelectValue,
+  priorityColors,
+  priorityOptions,
+  toTimestampMilliseconds,
+  updateTaskFormState,
+} from "./KanbanGanttPage";
 const screenshotInspiredTasks = [
   { id: 1, text: "Project planning", start: new Date(2024, 3, 2), duration: 16, type: "summary", progress: 65 },
   { id: 2, parent: 1, text: "Marketing analysis", start: new Date(2024, 3, 3), duration: 3, type: "task" },
@@ -24,6 +50,8 @@ const screenshotInspiredTasks = [
   { id: 15, parent: 11, text: "Beta testing", start: new Date(2024, 4, 8), duration: 10, type: "task" },
   { id: 16, text: "Release 1.0.0", start: new Date(2024, 4, 25), duration: 0, type: "milestone" },
 ];
+
+const fallbackPriorityCycle: TaskPriority[] = ["low", "medium", "high", "critical"];
 
 const screenshotInspiredLinks = [
   { id: 1, source: 2, target: 3, type: "e2e" },
@@ -202,10 +230,11 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
 };
 
 const buildFallbackGanttData = (): GanttDataset => {
-  const fallbackTasks: ITask[] = screenshotInspiredTasks.map((task) => ({
+  const fallbackTasks: ITask[] = screenshotInspiredTasks.map((task, index) => ({
     ...task,
     columnId: "sample",
     columnTitle: "Sample data",
+    priority: fallbackPriorityCycle[index % fallbackPriorityCycle.length],
   }));
 
   const fallbackLinks: ILink[] = screenshotInspiredLinks.map((link) => ({
@@ -292,7 +321,13 @@ const scaleButtons: Array<{ id: ScalePresetKey; label: string }> = [
   { id: "week", label: "Week" },
 ];
 
+interface TaskTemplateProps {
+  data: ITask;
+  onaction?: (event: { action: string; data: Record<string, unknown> }) => void;
+}
+
 const SvarGanttPage: React.FC = () => {
+  const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
   const [fullDataset, setFullDataset] = useState<GanttDataset | null>(null);
   const [visibleData, setVisibleData] = useState<GanttDataState>({ tasks: [], links: [] });
   const [columnFilters, setColumnFilters] = useState<ColumnFilterOption[]>([]);
@@ -302,7 +337,368 @@ const SvarGanttPage: React.FC = () => {
   const [usingFallback, setUsingFallback] = useState<boolean>(false);
   const [scalePreset, setScalePreset] = useState<ScalePresetKey>("month");
   const [ganttKey, setGanttKey] = useState<number>(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
+  const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+  const [editLanguagePickerOpen, setEditLanguagePickerOpen] = useState<boolean>(false);
+  const [editLanguageSelection, setEditLanguageSelection] = useState<string>("");
+  const [editCustomLanguage, setEditCustomLanguage] = useState<string>("");
+  const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
   const activeScales = scalePresets[scalePreset];
+
+  const resolveDefaultColumnId = useCallback(
+    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
+    [board.columnOrder]
+  );
+
+  const columnOptions = useMemo(
+    () =>
+      board.columnOrder
+        .map((columnId) => board.columns[columnId])
+        .filter((column): column is NonNullable<(typeof board.columns)[string]> => Boolean(column))
+        .map((column) => ({ id: column.id, title: column.title })),
+    [board]
+  );
+
+  const editDifficultyOptions = useMemo(
+    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
+    [editTaskState.difficulty]
+  );
+
+  const editProgressOptions = useMemo(
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
+    [editTaskState.progress]
+  );
+
+  const languageOptions = useMemo(() => {
+    const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
+    Object.values(board.tasks).forEach((task) => {
+      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+    });
+
+    const orderedCodes = Array.from(codes).sort((a, b) => {
+      const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
+      const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+
+    return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
+  }, [board]);
+
+  const updateEditTranslations = useCallback(
+    (updater: (current: TranslationFormEntry[]) => TranslationFormEntry[] ) => {
+      setEditTaskState((prev) => ({
+        ...prev,
+        translations: updater(prev.translations),
+      }));
+    },
+    []
+  );
+
+  const handleEditTranslationFieldChange = useCallback(
+    (entryId: string, field: "language" | "title" | "description", value: string) => {
+      updateEditTranslations((current) =>
+        current.map((entry) => {
+          if (entry.id !== entryId) {
+            return entry;
+          }
+
+          if (field === "language") {
+            const normalized = normalizeLanguageCode(value);
+            if (!normalized) {
+              return { ...entry, language: normalized };
+            }
+            const duplicate = current.some(
+              (other) => other.id !== entryId && normalizeLanguageCode(other.language) === normalized
+            );
+            if (duplicate) {
+              return entry;
+            }
+            return { ...entry, language: normalized };
+          }
+
+          return { ...entry, [field]: value };
+        })
+      );
+    },
+    [updateEditTranslations]
+  );
+
+  const handleAddEditTranslation = useCallback(
+    (explicitLanguage?: string): { success: boolean; error?: string } => {
+      const used = new Set<string>(
+        editTaskState.translations
+          .map((translation) => normalizeLanguageCode(translation.language))
+          .filter(Boolean)
+      );
+
+      let languageToUse = explicitLanguage ? normalizeLanguageCode(explicitLanguage) : "";
+      if (languageToUse && used.has(languageToUse)) {
+        return { success: false, error: "Language already added." };
+      }
+
+      if (!languageToUse) {
+        languageToUse = findNextLanguageCode(used, languageOptions);
+      }
+
+      updateEditTranslations((current) => [...current, createTranslationEntry(languageToUse)]);
+      return { success: true };
+    },
+    [editTaskState.translations, languageOptions, updateEditTranslations]
+  );
+
+  const handleRemoveEditTranslation = useCallback(
+    (entryId: string) => {
+      if (editTaskState.translations.length <= 1) {
+        return;
+      }
+      updateEditTranslations((current) => current.filter((entry) => entry.id !== entryId));
+    },
+    [editTaskState.translations.length, updateEditTranslations]
+  );
+
+  const availableEditLanguages = useMemo(() => {
+    const used = new Set(
+      editTaskState.translations
+        .map((translation) => normalizeLanguageCode(translation.language))
+        .filter(Boolean)
+    );
+    return languageOptions.filter((option) => !used.has(option.value));
+  }, [editTaskState.translations, languageOptions]);
+
+  const handleEditLanguagePickerToggle = useCallback(() => {
+    setEditLanguagePickerError(null);
+    setEditLanguagePickerOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        if (availableEditLanguages.length > 0) {
+          setEditLanguageSelection("");
+          setEditCustomLanguage("");
+        } else {
+          setEditLanguageSelection("__custom");
+          setEditCustomLanguage("");
+        }
+      }
+      return next;
+    });
+  }, [availableEditLanguages.length]);
+
+  const handleEditLanguageSelectionChange = useCallback((value: string) => {
+    setEditLanguageSelection(value);
+    if (value !== "__custom") {
+      setEditCustomLanguage("");
+    }
+    setEditLanguagePickerError(null);
+  }, []);
+
+  const handleEditLanguageCustomChange = useCallback((value: string) => {
+    setEditCustomLanguage(value);
+    setEditLanguagePickerError(null);
+  }, []);
+
+  const handleEditLanguagePickerSubmit = useCallback(() => {
+    const selection = editLanguageSelection === "__custom" ? editCustomLanguage.trim() : editLanguageSelection;
+    if (!selection) {
+      setEditLanguagePickerError("Choose a language before adding.");
+      return;
+    }
+    const result = handleAddEditTranslation(selection);
+    if (!result.success) {
+      setEditLanguagePickerError(result.error ?? "Unable to add language.");
+      return;
+    }
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+  }, [editCustomLanguage, editLanguageSelection, handleAddEditTranslation]);
+
+  const handleEditLanguagePickerCancel = useCallback(() => {
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+    setEditLanguagePickerError(null);
+  }, []);
+
+  const editLanguagePickerState = {
+    isOpen: editLanguagePickerOpen,
+    selection: editLanguageSelection,
+    customValue: editCustomLanguage,
+    error: editLanguagePickerError,
+  };
+
+  const handleEditTaskChange = useCallback(
+    (field: TaskFormEditableField, value: string) => {
+      setEditTaskState((prev) => updateTaskFormState(prev, field, value));
+    },
+    []
+  );
+
+  const buildEditActionPayload = useCallback(
+    (state: TaskFormState, baseTask: KanbanTask | null): { payload: Record<string, unknown> } | { error: string } => {
+      if (!baseTask) {
+        return { error: "No task selected for editing." };
+      }
+
+      const normalized = new Map<string, { title: string; description: string }>();
+
+      state.translations.forEach((entry) => {
+        const language = normalizeLanguageCode(entry.language);
+        if (!language) {
+          return;
+        }
+        const current = normalized.get(language) ?? { title: "", description: "" };
+        const title = entry.title.trim();
+        const description = entry.description.trim();
+        normalized.set(language, {
+          title: title || current.title,
+          description: description || current.description,
+        });
+      });
+
+      const hasTitle = Array.from(normalized.values()).some((value) => value.title.length > 0);
+      if (!hasTitle) {
+        return { error: "Add at least one language with a title." };
+      }
+
+      const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
+
+      normalized.forEach((value, language) => {
+        translationFields[`action.${language}`] = {
+          mode: "update",
+          value: value.title || "",
+        };
+        translationFields[`description.${language}`] = {
+          mode: "update",
+          value: value.description || "",
+        };
+      });
+
+      translationFields.languages = {
+        mode: "update",
+        value: Array.from(normalized.keys()),
+      };
+
+      const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
+      const assignedTo = state.assignee
+        ? [{ name: state.assignee }]
+        : baseTask.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+
+      const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+      const startTimestamp = toTimestampMilliseconds(state.startDate);
+      const endTimestamp = toTimestampMilliseconds(state.endDate);
+      const resolvedProgress = Number(state.progress) || 0;
+
+      const payloadItem: Record<string, unknown> = {
+        model_name: "action",
+        ...translationFields,
+        kanban_column: {
+          mode: "update",
+          value: column?.title ?? "Uncategorized",
+        },
+        kanban_column_id: {
+          mode: "update",
+          value: column?.id ?? FALLBACK_COLUMN_ID,
+        },
+        priority: {
+          mode: "update",
+          value: PRIORITY_TO_VALUE[state.priority],
+        },
+        difficulty: {
+          mode: "update",
+          value: Number(state.difficulty) || PRIORITY_TO_VALUE[state.priority],
+        },
+        status: {
+          mode: "update",
+          value: baseTask.status ?? "In progress",
+        },
+        dt_due: {
+          mode: "update",
+          value: dueTimestamp,
+        },
+        dt_start: {
+          mode: "update",
+          value: startTimestamp,
+        },
+        dt_end: {
+          mode: "update",
+          value: endTimestamp,
+        },
+        assigned_to: {
+          mode: "update",
+          value: assignedTo,
+        },
+        progress: {
+          mode: "update",
+          value: resolvedProgress,
+        },
+        id: baseTask.id,
+      };
+
+      if (!state.assignee && assignedTo.length === 0) {
+        delete payloadItem.assigned_to;
+      }
+
+      return { payload: payloadItem };
+    },
+    [board.columns]
+  );
+
+  const handleOpenEditModal = useCallback(
+    (task: KanbanTask | null) => {
+      if (!task || usingFallback) {
+        return;
+      }
+      setEditingTask(task);
+      const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
+
+      const normalizedStart = normalizeIncomingDateValue(task.startDate);
+      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
+      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+      const normalizedDifficulty = normalizeNumericSelectValue(
+        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
+        DEFAULT_DIFFICULTY
+      );
+      const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+
+      setEditTaskState({
+        translations: createTranslationEntriesFromTask(task),
+        columnId: taskColumn?.id ?? resolveDefaultColumnId(),
+        priority: task.priority,
+        dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+        startDate: normalizedStart,
+        endDate: normalizedEnd,
+        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+        difficulty: normalizedDifficulty,
+        progress: normalizedProgress,
+      });
+      setEditModalError(null);
+      setEditLanguagePickerOpen(false);
+      setEditLanguageSelection("");
+      setEditCustomLanguage("");
+      setEditLanguagePickerError(null);
+      setIsEditModalOpen(true);
+    },
+    [board.columns, resolveDefaultColumnId, usingFallback]
+  );
+
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    setEditModalError(null);
+    setEditLanguagePickerOpen(false);
+    setEditLanguageSelection("");
+    setEditCustomLanguage("");
+    setEditLanguagePickerError(null);
+    setEditTaskState(createInitialTaskFormState(resolveDefaultColumnId()));
+  }, [resolveDefaultColumnId]);
+
 
   const fetchGanttTasks = useCallback(async () => {
     setIsLoading(true);
@@ -320,10 +716,12 @@ const SvarGanttPage: React.FC = () => {
         setFullDataset(fallback);
         setColumnFilters(fallback.filters);
         setUsingFallback(true);
+        setBoard(createEmptyBoardData());
         return;
       }
 
       const boardData = createBoardDataFromApi(items);
+      setBoard(boardData);
       const mapped = mapBoardToSvarGantt(boardData);
       if (!mapped.tasks.length) {
         setFetchError("No schedulable tasks were returned. Showing sample data.");
@@ -331,6 +729,7 @@ const SvarGanttPage: React.FC = () => {
         setFullDataset(fallback);
         setColumnFilters(fallback.filters);
         setUsingFallback(true);
+        setBoard(createEmptyBoardData());
         return;
       }
 
@@ -344,10 +743,108 @@ const SvarGanttPage: React.FC = () => {
       setFullDataset(fallback);
       setColumnFilters(fallback.filters);
       setUsingFallback(true);
+      setBoard(createEmptyBoardData());
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  const handleEditTaskSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!editingTask || isSavingEdit) {
+        return;
+      }
+
+      setEditModalError(null);
+      const result = buildEditActionPayload(editTaskState, editingTask);
+
+      if ("error" in result) {
+        setEditModalError(result.error);
+        return;
+      }
+
+      try {
+        setIsSavingEdit(true);
+        const response = await patchAction(result.payload);
+        if (response?.status !== 200 && response?.status !== 201) {
+          throw new Error("Failed to update task.");
+        }
+        await fetchGanttTasks();
+        handleCloseEditModal();
+      } catch (error) {
+        console.error("Failed to update kanban task", error);
+        const message =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          "Unable to update task. Please try again.";
+        setEditModalError(message);
+      } finally {
+        setIsSavingEdit(false);
+      }
+    },
+    [buildEditActionPayload, editTaskState, editingTask, fetchGanttTasks, handleCloseEditModal, isSavingEdit]
+  );
+
+  const handleSvarTaskDoubleClick = useCallback(
+    (taskIdentifier: ITask["id"]) => {
+      if (usingFallback || !taskIdentifier) {
+        return;
+      }
+      const resolvedId = String(taskIdentifier);
+      const targetTask = board.tasks[resolvedId];
+      if (targetTask) {
+        handleOpenEditModal(targetTask);
+      }
+    },
+    [board.tasks, handleOpenEditModal, usingFallback]
+  );
+
+  const TaskBarTemplate = useCallback(
+    ({ data }: TaskTemplateProps) => {
+      const priorityCandidate = data.priority as TaskPriority;
+      const resolvedPriority = priorityOptions.includes(priorityCandidate) ? priorityCandidate : "medium";
+      const progressValue = typeof data.progress === "number" ? Math.min(100, Math.max(0, data.progress)) : 0;
+
+      return (
+        <div
+          className="flex h-full w-full flex-col justify-center gap-1 px-2 py-1 text-white"
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            handleSvarTaskDoubleClick(data.id);
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-xs font-semibold">{data.text}</p>
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+              {resolvedPriority}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-semibold">
+            <div className="h-1.5 flex-1 rounded-full bg-white/30">
+              <div
+                className={clsx("h-full rounded-full", priorityColors[resolvedPriority])}
+                style={{ width: `${progressValue}%` }}
+              />
+            </div>
+            <span>{progressValue}%</span>
+          </div>
+        </div>
+      );
+    },
+    [handleSvarTaskDoubleClick]
+  );
+
+  const handleShowEditor = useCallback(
+    (event?: { id?: string | number }) => {
+      if (!event?.id) {
+        return false;
+      }
+      handleSvarTaskDoubleClick(event.id);
+      return false;
+    },
+    [handleSvarTaskDoubleClick]
+  );
 
   useEffect(() => {
     fetchGanttTasks();
@@ -476,11 +973,51 @@ const SvarGanttPage: React.FC = () => {
 
           <div className="min-h-screen overflow-y-auto overflow-x-hidden rounded-b-2xl">
             <Willow>
-              <Gantt key={ganttKey} tasks={visibleData.tasks} links={visibleData.links} columns={ganttColumns} scales={activeScales} />
+              <Gantt
+                key={ganttKey}
+                tasks={visibleData.tasks}
+                links={visibleData.links}
+                columns={ganttColumns}
+                scales={activeScales}
+                taskTemplate={TaskBarTemplate}
+                onShowEditor={handleShowEditor}
+              />
             </Willow>
           </div>
         </div>
       </section>
+
+      <KanbanTaskModal
+        mode="edit"
+        isOpen={isEditModalOpen && Boolean(editingTask)}
+        title="Edit task"
+        description="Update task details and keep the SVAR timeline in sync."
+        isSaving={isSavingEdit}
+        submitLabel={isSavingEdit ? "Saving…" : "Save changes"}
+        onClose={handleCloseEditModal}
+        onSubmit={handleEditTaskSubmit}
+        modalError={editModalError}
+        formState={editTaskState}
+        onFieldChange={handleEditTaskChange}
+        columnOptions={columnOptions}
+        priorityOptions={priorityOptions}
+        difficultyOptions={editDifficultyOptions}
+        progressOptions={editProgressOptions}
+        translations={editTaskState.translations}
+        onTranslationFieldChange={(entryId, field, value) =>
+          handleEditTranslationFieldChange(entryId, field as "language" | "title" | "description", value)
+        }
+        onRemoveTranslation={handleRemoveEditTranslation}
+        languageOptions={languageOptions}
+        languagePickerOptions={availableEditLanguages}
+        languagePickerState={editLanguagePickerState}
+        onLanguagePickerToggle={handleEditLanguagePickerToggle}
+        onLanguageSelectionChange={handleEditLanguageSelectionChange}
+        onLanguageCustomChange={handleEditLanguageCustomChange}
+        onLanguagePickerSubmit={handleEditLanguagePickerSubmit}
+        onLanguagePickerCancel={handleEditLanguagePickerCancel}
+        currentTask={editingTask}
+      />
     </div>
   );
 };
