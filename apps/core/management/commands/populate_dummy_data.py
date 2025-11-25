@@ -97,13 +97,40 @@ class Command(BaseCommand):
             # Generate dummy data
             for i in range(count):
                 try:
-                    obj = self.create_dummy_instance(model, fake, used_values)
+                    obj = self.create_dummy_instance(model, fake, used_values, i)
                     if obj:
+                        # Special handling for Contact superusers
+                        if model._meta.label == 'core.Contact' and i < 2:
+                            passwords = ['1111pass', '1111pass']
+                            obj.set_password(passwords[i])
+                            obj.is_superuser = True
+                            obj.is_staff = True
+                            obj.role = 'admin'
                         obj.save()
                         self.stdout.write(f"  Created record {i+1}")
                 except Exception as e:
                     self.stdout.write(self.style.WARNING(f"  Failed to create record {i+1}: {e}"))
 
+        # Populate many-to-many relationships
+        self.stdout.write("Populating many-to-many relationships...")
+        for model in all_models:
+            m2m_fields = [f for f in model._meta.get_fields() if f.many_to_many and not f.auto_created]
+            if not m2m_fields:
+                continue
+            instances = list(model.objects.all())
+            if not instances:
+                continue
+            for field in m2m_fields:
+                related_model = field.related_model
+                related_instances = list(related_model.objects.all())
+                if not related_instances:
+                    continue
+                for instance in instances:
+                    # Randomly add 0-3 related instances
+                    num_to_add = random.randint(0, min(3, len(related_instances)))
+                    if num_to_add > 0:
+                        to_add = random.sample(related_instances, num_to_add)
+                        getattr(instance, field.name).add(*to_add)
         self.stdout.write(self.style.SUCCESS("Dummy data population completed"))
 
     def reset_sequence(self, model):
@@ -118,7 +145,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.WARNING(f"  Could not reset sequence: {e}"))
 
-    def create_dummy_instance(self, model, fake, used_values=None):
+    def create_dummy_instance(self, model, fake, used_values=None, index=0):
         """Create a dummy instance of the model."""
         if used_values is None:
             used_values = {}
@@ -170,16 +197,22 @@ class Command(BaseCommand):
                 if field_name == 'model_name' and model._meta.label == 'core.Setting':
                     value = random.choice(VALID_MODEL_NAMES)
                 elif field_name == 'email' and model._meta.label == 'core.Contact':
-                    # Generate unique email
-                    while True:
-                        value = fake.email()
-                        if value not in self.used_emails:
-                            self.used_emails.add(value)
-                            break
+                    # Special emails for first two contacts
+                    if index == 0:
+                        value = '1@1.com'
+                    elif index == 1:
+                        value = '2@2.com'
+                    else:
+                        # Generate unique email
+                        while True:
+                            value = fake.email()
+                            if value not in self.used_emails:
+                                self.used_emails.add(value)
+                                break
                 elif 'email' in field_name.lower():
                     value = fake.email()
                 elif 'phone' in field_name.lower() or 'number' in field_name.lower():
-                    value = fake.phone_number()[:max_length]
+                    value = fake.phone_number().replace(' ', '').replace('-', '').replace('(', '').replace(')', '')[:max_length]
                 elif 'name' in field_name.lower():
                     value = fake.name()[:max_length]
                 elif 'address' in field_name.lower():
@@ -192,6 +225,8 @@ class Command(BaseCommand):
                     value = fake.state()[:max_length]
                 elif 'zip' in field_name.lower():
                     value = fake.zipcode()[:max_length]
+                elif 'path' in field_name.lower():
+                    value = fake.file_path().replace(' ', '_')[:max_length]
                 elif 'code' in field_name.lower():
                     value = fake.currency_code() if 'currency' in model._meta.label.lower() else fake.lexify(text='???')[:max_length]
                 elif field_name == 'status' and model._meta.label == 'products.OrgItem':

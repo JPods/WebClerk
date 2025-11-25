@@ -20,7 +20,7 @@ class LocationAdmin(admin.ModelAdmin):
             'fields': ('latitude', 'longitude')
         }),
         ('Additional Info', {
-            'fields': ('comment', 'instructions', 'refs', 'prefs', 'metadata')
+            'fields': ('comments', 'instructions', 'refs', 'prefs', 'metadata')
         }),
     )
 
@@ -44,7 +44,7 @@ class EmailAdmin(admin.ModelAdmin):
             'fields': ('opt_out', 'is_primary')
         }),
         ('Additional Info', {
-            'fields': ('comment', 'refs', 'prefs', 'metadata')
+            'fields': ('comments', 'refs', 'prefs', 'metadata')
         }),
     )
 
@@ -61,7 +61,7 @@ class PhoneAdmin(admin.ModelAdmin):
             'fields': ('number', 'country_code', 'format', 'name', 'attention', 'opt_out')
         }),
         ('Additional Info', {
-            'fields': ('comment', 'refs', 'prefs', 'metadata')
+            'fields': ('comments', 'refs', 'prefs', 'metadata')
         }),
     )
 
@@ -80,7 +80,7 @@ class DomainAdmin(admin.ModelAdmin):
             'fields': ('path', 'type')
         }),
         ('Additional Info', {
-            'fields': ('comment', 'refs', 'prefs', 'metadata')
+            'fields': ('comments', 'refs', 'prefs', 'metadata')
         }),
     )
 
