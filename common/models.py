@@ -246,7 +246,7 @@ def default_refs() -> dict:
         #"self_fields": ["canonical_key"],
         #"related_keywords": {},
         "tags": [],
-        "links": {"contacts": [], "items": []},
+        "links": {"contact": [], "item": []},
         #setting record populates links from #"related_models": []
 
         # Execution gating: identify upstream dependencies by model keys.
