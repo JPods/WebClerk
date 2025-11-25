@@ -1,4 +1,4 @@
-import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
@@ -105,25 +105,6 @@ const ensureEndDate = (start: Date, end?: Date | null, duration?: number): Date 
   return copy;
 };
 
-const toProgressPercentage = (value?: number | null): number => {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return 0;
-  }
-  if (value >= 0 && value <= 1) {
-    return Math.round(value * 100);
-  }
-  return Math.round(Math.max(0, Math.min(100, value)));
-};
-
-const toProgressRatio = (value?: number | null): number | undefined => {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return undefined;
-  }
-  if (value > 1) {
-    return Math.max(0, Math.min(1, value / 100));
-  }
-  return Math.max(0, Math.min(1, value));
-};
 
 const mapKanbanTaskToSvarTask = (
   task: KanbanTask,
@@ -147,7 +128,7 @@ const mapKanbanTaskToSvarTask = (
     end,
     duration,
     type: "task",
-    progress: toProgressRatio(task.progress),
+    progress: typeof task.progress === "number" ? task.progress : undefined,
     details: task.description,
     assignee: task.assignee,
     priority: task.priority,
@@ -340,124 +321,6 @@ const scaleButtons: Array<{ id: ScalePresetKey; label: string }> = [
   { id: "week", label: "Week" },
 ];
 
-const COLUMN_COLOR_PALETTE: readonly string[] = [
-  "#0ea5e9", // sky-500
-  "#6366f1", // indigo-500
-  "#10b981", // emerald-500
-  "#f59e0b", // amber-500
-  "#f43f5e", // rose-500
-  "#a855f7", // purple-500
-  "#06b6d4", // cyan-500
-  "#d946ef", // fuchsia-500
-];
-
-const COLUMN_KEYWORD_COLOR_RULES: Array<{ keywords: string[]; color: string }> = [
-  { keywords: ["backlog", "todo", "idea"], color: "#0ea5e9" },
-  { keywords: ["inprogress", "progress", "doing"], color: "#f59e0b" },
-  { keywords: ["review", "qa", "testing"], color: "#8b5cf6" },
-  { keywords: ["complete", "completed", "done", "launch"], color: "#10b981" },
-];
-
-const DEFAULT_COLUMN_ACCENT_COLOR = "#94a3b8"; // slate-400
-
-const resolvePaletteIndex = (input: string): number => {
-  if (!input) {
-    return 0;
-  }
-  let hash = 0;
-  for (let index = 0; index < input.length; index += 1) {
-    hash = (hash + input.charCodeAt(index) * (index + 1)) % COLUMN_COLOR_PALETTE.length;
-  }
-  return hash;
-};
-
-const resolveKeywordColorMatch = (value?: string | null): string | null => {
-  if (!value) {
-    return null;
-  }
-  const normalized = value.toLowerCase();
-  const condensed = normalized.replace(/[\s_-]+/g, "");
-  for (const rule of COLUMN_KEYWORD_COLOR_RULES) {
-    const hasMatch = rule.keywords.some((keyword) => {
-      const keywordCondensed = keyword.replace(/[\s_-]+/g, "");
-      return normalized.includes(keyword) || condensed.includes(keywordCondensed);
-    });
-    if (hasMatch) {
-      return rule.color;
-    }
-  }
-  return null;
-};
-
-const normalizeHexColor = (color?: string | null): string | null => {
-  if (!color) {
-    return null;
-  }
-  const trimmed = color.trim();
-  if (/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
-    return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
-  }
-  return null;
-};
-
-const applyAlphaToColor = (color: string, alphaHex: string): string => {
-  const normalized = normalizeHexColor(color);
-  if (!normalized) {
-    return color;
-  }
-  const hex = normalized.replace("#", "");
-  return `#${hex}${alphaHex}`;
-};
-
-const createFilterButtonStyles = (color: string, isActive: boolean): CSSProperties => {
-  const normalized = normalizeHexColor(color);
-  if (!normalized) {
-    return {};
-  }
-  if (isActive) {
-    return {
-      backgroundColor: normalized,
-      borderColor: normalized,
-      color: "#ffffff",
-    };
-  }
-  return {
-    backgroundColor: applyAlphaToColor(normalized, "22"),
-    borderColor: applyAlphaToColor(normalized, "55"),
-    color: normalized,
-  };
-};
-
-const createFilterCountStyles = (color: string, isActive: boolean): CSSProperties => {
-  const normalized = normalizeHexColor(color);
-  if (!normalized) {
-    return {};
-  }
-  if (isActive) {
-    return {
-      backgroundColor: "rgba(255,255,255,0.25)",
-      color: "#ffffff",
-    };
-  }
-  return {
-    backgroundColor: applyAlphaToColor(normalized, "33"),
-    color: normalized,
-  };
-};
-
-const createTaskBarStyles = (color: string): CSSProperties => {
-  const normalized = normalizeHexColor(color);
-  if (!normalized) {
-    return {};
-  }
-  return {
-    backgroundColor: normalized,
-    borderColor: normalized,
-    color: "#ffffff",
-    boxShadow: `0 2px 6px ${applyAlphaToColor(normalized, "55")}`,
-  };
-};
-
 interface TaskTemplateProps {
   data: ITask;
   onaction?: (event: { action: string; data: Record<string, unknown> }) => void;
@@ -484,7 +347,6 @@ const SvarGanttPage: React.FC = () => {
   const [editCustomLanguage, setEditCustomLanguage] = useState<string>("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
   const activeScales = scalePresets[scalePreset];
-  const progressUpdateQueueRef = useRef<Set<string>>(new Set());
 
   const resolveDefaultColumnId = useCallback(
     () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
@@ -539,96 +401,6 @@ const SvarGanttPage: React.FC = () => {
     },
     []
   );
-
-  const deriveFormStateFromTask = useCallback(
-    (task: KanbanTask, overrides?: Partial<TaskFormState>): TaskFormState => {
-      const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
-      const normalizedStart = normalizeIncomingDateValue(task.startDate);
-      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
-      const normalizedDifficulty = normalizeNumericSelectValue(
-        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
-        DEFAULT_DIFFICULTY
-      );
-      const normalizedProgressValue = toProgressPercentage(task.progress);
-      const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
-
-      return {
-        translations: createTranslationEntriesFromTask(task),
-        columnId: taskColumn?.id ?? resolveDefaultColumnId(),
-        priority: task.priority,
-        dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
-        startDate: normalizedStart,
-        endDate: normalizedEnd,
-        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
-        difficulty: normalizedDifficulty,
-        progress: normalizedProgress,
-        ...overrides,
-      };
-    },
-    [board.columns, resolveDefaultColumnId]
-  );
-
-  const columnColorMap = useMemo(() => {
-    const map = new Map<string, string>();
-    board.columnOrder.forEach((columnId, index) => {
-      const column = board.columns[columnId];
-      const keywordColor = resolveKeywordColorMatch(column?.title ?? columnId);
-      const fallbackColor = COLUMN_COLOR_PALETTE[index % COLUMN_COLOR_PALETTE.length];
-      map.set(columnId, keywordColor ?? fallbackColor);
-    });
-    return map;
-  }, [board]);
-
-  const getColumnAccentColor = useCallback(
-    (columnId?: string | number | null) => {
-      if (!columnId) {
-        return DEFAULT_COLUMN_ACCENT_COLOR;
-      }
-      const normalized = String(columnId);
-      const mapped = columnColorMap.get(normalized);
-      if (mapped) {
-        return mapped;
-      }
-      const fallbackIndex = resolvePaletteIndex(normalized);
-      return COLUMN_COLOR_PALETTE[fallbackIndex] ?? DEFAULT_COLUMN_ACCENT_COLOR;
-    },
-    [columnColorMap]
-  );
-
-  const updateLocalTaskProgress = useCallback((taskId: string, progressValue: number) => {
-    const progressRatio = toProgressRatio(progressValue) ?? 0;
-    setBoard((prev) => {
-      const existingTask = prev.tasks[taskId];
-      if (!existingTask) {
-        return prev;
-      }
-      return {
-        ...prev,
-        tasks: {
-          ...prev.tasks,
-          [taskId]: { ...existingTask, progress: progressValue },
-        },
-      };
-    });
-
-    setFullDataset((prev) => {
-      if (!prev) {
-        return prev;
-      }
-      const updatedTasks = prev.tasks.map((task) =>
-        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
-      );
-      return { ...prev, tasks: updatedTasks };
-    });
-
-    setVisibleData((prev) => ({
-      tasks: prev.tasks.map((task) =>
-        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
-      ),
-      links: prev.links,
-    }));
-  }, []);
 
   const handleEditTranslationFieldChange = useCallback(
     (entryId: string, field: "language" | "title" | "description", value: string) => {
@@ -884,7 +656,28 @@ const SvarGanttPage: React.FC = () => {
         return;
       }
       setEditingTask(task);
-      setEditTaskState(deriveFormStateFromTask(task));
+      const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
+
+      const normalizedStart = normalizeIncomingDateValue(task.startDate);
+      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
+      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+      const normalizedDifficulty = normalizeNumericSelectValue(
+        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
+        DEFAULT_DIFFICULTY
+      );
+      const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+
+      setEditTaskState({
+        translations: createTranslationEntriesFromTask(task),
+        columnId: taskColumn?.id ?? resolveDefaultColumnId(),
+        priority: task.priority,
+        dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+        startDate: normalizedStart,
+        endDate: normalizedEnd,
+        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+        difficulty: normalizedDifficulty,
+        progress: normalizedProgress,
+      });
       setEditModalError(null);
       setEditLanguagePickerOpen(false);
       setEditLanguageSelection("");
@@ -892,7 +685,7 @@ const SvarGanttPage: React.FC = () => {
       setEditLanguagePickerError(null);
       setIsEditModalOpen(true);
     },
-    [deriveFormStateFromTask, usingFallback]
+    [board.columns, resolveDefaultColumnId, usingFallback]
   );
 
   const handleCloseEditModal = useCallback(() => {
@@ -1011,43 +804,35 @@ const SvarGanttPage: React.FC = () => {
     ({ data }: TaskTemplateProps) => {
       const priorityCandidate = data.priority as TaskPriority;
       const resolvedPriority = priorityOptions.includes(priorityCandidate) ? priorityCandidate : "medium";
-      const progressValue = toProgressPercentage(data.progress);
-      const columnAccentColor = getColumnAccentColor(data.columnId);
-      const taskBarStyle = createTaskBarStyles(columnAccentColor);
+      const progressValue = typeof data.progress === "number" ? Math.min(100, Math.max(0, data.progress)) : 0;
 
       return (
         <div
-          className="flex h-full w-full flex-col justify-center gap-1 rounded-lg border px-2 py-1 text-white"
-          style={taskBarStyle}
+          className="flex h-full w-full flex-col justify-center gap-1 px-2 py-1 text-white"
           onDoubleClick={(event) => {
             event.stopPropagation();
             handleSvarTaskDoubleClick(data.id);
           }}
         >
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-xs font-semibold">{data.text}</p>
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
               {resolvedPriority}
             </span>
           </div>
-          <div className="flex flex-col gap-1 text-[10px] font-semibold">
-            <div className="relative flex-1 overflow-hidden rounded-md bg-white/25">
+          <div className="flex items-center gap-2 text-[10px] font-semibold">
+            <div className="h-1.5 flex-1 rounded-full bg-white/30">
               <div
-                className={clsx("absolute left-0 top-0 h-full", priorityColors[resolvedPriority])}
+                className={clsx("h-full rounded-full", priorityColors[resolvedPriority])}
                 style={{ width: `${progressValue}%` }}
               />
-              <div className="relative z-10 flex h-10 w-full items-center justify-center px-2 text-center text-xs font-semibold uppercase tracking-wide leading-tight">
-                <p className="w-full break-words text-center leading-tight">{data.text}</p>
-              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold">Progress</span>
-              <span className="text-[11px] font-semibold">{progressValue}%</span>
-            </div>
+            <span>{progressValue}%</span>
           </div>
         </div>
       );
     },
-    [getColumnAccentColor, handleSvarTaskDoubleClick]
+    [handleSvarTaskDoubleClick]
   );
 
   const handleShowEditor = useCallback(
@@ -1059,79 +844,6 @@ const SvarGanttPage: React.FC = () => {
       return false;
     },
     [handleSvarTaskDoubleClick]
-  );
-
-  const handleSvarTaskUpdate = useCallback(
-    (event?: {
-      id?: string | number;
-      task?: Partial<ITask>;
-      inProgress?: boolean;
-      eventSource?: string;
-    }) => {
-      if (!event || usingFallback || event.inProgress) {
-        return;
-      }
-
-      const taskId = event.id !== undefined ? String(event.id) : "";
-      if (!taskId) {
-        return;
-      }
-
-      const updatedProgress = event.task?.progress;
-      if (typeof updatedProgress !== "number") {
-        return;
-      }
-
-      const targetTask = board.tasks[taskId];
-      if (!targetTask) {
-        return;
-      }
-
-      const normalizedProgress = toProgressPercentage(updatedProgress);
-      const previousProgress =
-        typeof targetTask.progress === "number"
-          ? Math.max(0, Math.min(100, Math.round(targetTask.progress)))
-          : 0;
-
-      if (normalizedProgress === previousProgress) {
-        return;
-      }
-
-      updateLocalTaskProgress(taskId, normalizedProgress);
-
-      const updatedTask: KanbanTask = { ...targetTask, progress: normalizedProgress };
-      const derivedState = deriveFormStateFromTask(updatedTask, {
-        progress: String(normalizedProgress),
-      });
-      const payloadResult = buildEditActionPayload(derivedState, updatedTask);
-      if ("error" in payloadResult) {
-        console.warn("Unable to sync task progress", payloadResult.error);
-        return;
-      }
-
-      const syncProgress = async () => {
-        if (progressUpdateQueueRef.current.has(taskId)) {
-          return;
-        }
-        progressUpdateQueueRef.current.add(taskId);
-        try {
-          await patchAction(payloadResult.payload);
-        } catch (error) {
-          console.error("Failed to sync task progress", error);
-        } finally {
-          progressUpdateQueueRef.current.delete(taskId);
-        }
-      };
-
-      void syncProgress();
-    },
-    [
-      board.tasks,
-      buildEditActionPayload,
-      deriveFormStateFromTask,
-      updateLocalTaskProgress,
-      usingFallback,
-    ]
   );
 
   useEffect(() => {
@@ -1167,7 +879,7 @@ const SvarGanttPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 svar-kanban-gantt">
+    <div className="space-y-6">
       <PageBreadcrumb pageTitle="SVAR React Gantt" />
 
       <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/70">
@@ -1209,38 +921,20 @@ const SvarGanttPage: React.FC = () => {
                 {filterOptions.map((option) => {
                   const isActive = selectedColumnFilter === option.id;
                   const isDisabled = option.id !== "all" && option.count === 0;
-                  const isAllFilter = option.id === "all";
-                  const accentColor = !isAllFilter ? getColumnAccentColor(option.id) : null;
-                  const buttonStyle = accentColor ? createFilterButtonStyles(accentColor, isActive) : undefined;
-                  const countStyle = accentColor ? createFilterCountStyles(accentColor, isActive) : undefined;
                   return (
                     <button
                       key={option.id}
                       type="button"
                       onClick={() => setSelectedColumnFilter(option.id)}
                       disabled={isDisabled}
-                      style={buttonStyle}
-                      className={clsx(
-                        "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition",
-                        {
-                          "cursor-not-allowed opacity-60": isDisabled,
-                        },
-                        isAllFilter
-                          ? isActive
-                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
-                            : "border-gray-300 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300"
-                          : "border-transparent text-gray-700 dark:text-gray-200"
-                      )}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+                        isActive
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
+                          : "border-gray-300 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300"
+                      } ${isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
                     >
                       {option.label}
-                      <span
-                        className={clsx(
-                          "ml-2 rounded-full px-2 py-0.5 text-[11px] font-bold",
-                          isAllFilter &&
-                            "bg-white/60 text-gray-600 dark:bg-gray-800/60 dark:text-gray-200"
-                        )}
-                        style={countStyle}
-                      >
+                      <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 text-[11px] font-bold text-gray-600 dark:bg-gray-800/60 dark:text-gray-200">
                         {option.count}
                       </span>
                     </button>
@@ -1287,7 +981,6 @@ const SvarGanttPage: React.FC = () => {
                 scales={activeScales}
                 taskTemplate={TaskBarTemplate}
                 onShowEditor={handleShowEditor}
-                onUpdateTask={handleSvarTaskUpdate}
               />
             </Willow>
           </div>

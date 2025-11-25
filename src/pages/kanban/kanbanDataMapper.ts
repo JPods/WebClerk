@@ -52,6 +52,12 @@ export interface ApiKanbanItem {
     public?: string;
     [key: string]: unknown;
   };
+  progress?: number | string | null;
+  progress_percent?: number | string | null;
+  progress_percentage?: number | string | null;
+  completion?: number | string | null;
+  completion_percent?: number | string | null;
+  completion_percentage?: number | string | null;
   [key: string]: unknown;
 }
 
@@ -81,6 +87,64 @@ const slugifyColumn = (rawTitle: string): string => {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `column-${cleaned || "uncategorized"}`;
+};
+
+const PROGRESS_FIELD_CANDIDATES = [
+  "progress",
+  "progress_percent",
+  "progress_percentage",
+  "completion",
+  "completion_percent",
+  "completion_percentage",
+];
+
+const coerceNumericValue = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim().replace(/%$/, "");
+    if (!trimmed) {
+      return undefined;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
+const normalizeProgressInput = (value?: number): number | undefined => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return undefined;
+  }
+  if (value >= 0 && value <= 1) {
+    return Math.round(value * 100);
+  }
+  return Math.round(Math.max(0, Math.min(100, value)));
+};
+
+const extractProgressValue = (item: ApiKanbanItem): number | undefined => {
+  for (const key of PROGRESS_FIELD_CANDIDATES) {
+    const candidate = coerceNumericValue((item as Record<string, unknown>)[key]);
+    if (candidate !== undefined) {
+      return normalizeProgressInput(candidate);
+    }
+  }
+
+  const metaSources = [item.kanban_meta, item.refs];
+  for (const source of metaSources) {
+    if (!source || typeof source !== "object") {
+      continue;
+    }
+    for (const key of PROGRESS_FIELD_CANDIDATES) {
+      const candidate = coerceNumericValue((source as Record<string, unknown>)[key]);
+      if (candidate !== undefined) {
+        return normalizeProgressInput(candidate);
+      }
+    }
+  }
+
+  return undefined;
 };
 
 const buildTranslations = (
@@ -245,6 +309,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       })) ?? [];
 
     const tags = item.refs?.tags ?? [];
+    const progressValue = extractProgressValue(item);
 
     tasks[item.id] = {
       id: item.id,
@@ -279,6 +344,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       tags: tags.length ? tags : undefined,
       linkage: item.linkage ?? undefined,
       remarks: item.comments?.public || undefined,
+      progress: progressValue,
     };
   });
 
