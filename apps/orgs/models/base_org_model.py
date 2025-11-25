@@ -135,8 +135,8 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		"gl_accounts": 1,
 	}
 
-	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True)
-	company = models.CharField(max_length=255, db_index=True)
+	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
+	display_name = models.CharField(max_length=255, db_index=True)
 	status = models.CharField(max_length=30, blank=True, db_index=True)  # e.g. active, prospect, retired
 
 	# Aspect JSONB fields -------------------------------------------------
@@ -163,7 +163,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			GinIndex(fields=["domains"], name="org_domains_gin"),
 		]
 		constraints = [
-			models.CheckConstraint(check=~models.Q(company=""), name="org_company_not_empty"),
+			models.CheckConstraint(check=~models.Q(display_name=""), name="org_display_name_not_empty"),
 		]
 		verbose_name = "Organization"
 		verbose_name_plural = "Organizations"
@@ -221,7 +221,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 			except Exception:
 				base_payload = {
 					"org_type": getattr(self, 'org_type', None),
-					"company": getattr(self, 'company', ''),
+					"display_name": getattr(self, 'display_name', ''),
 					"status": getattr(self, 'status', None),
 					"is_active": getattr(self, 'is_active', True),
 					"contacts": [],
@@ -261,19 +261,19 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		Returns (ok, errors). Delegates to validate_aspects with partial flag for updates.
 		Filters patch payload to aspect + core fields so unrelated metadata fields do not cause noise.
 		"""
-		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","company","status","is_active"}
+		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","display_name","status","is_active"}
 		if is_update:
 			patch_subset = {k: v for k, v in data.items() if k in aspect_keys}
 			return self.validate_aspects(partial=True, data=patch_subset)
 		# full create/update (no id): validate full snapshot
 		return self.validate_aspects(partial=False)
 
-	# Example: customize universal dict to expose org_type & company directly
+	# Example: customize universal dict to expose org_type & display_name directly
 	def to_universal_dict(self):  # type: ignore[override]
 		base = super().to_universal_dict()
 		base.update({
 			"org_type": self.org_type,
-			"company": self.company,
+			"display_name": self.display_name,
 			"status": self.status,
 			"is_active": self.is_active,
 		})
@@ -294,7 +294,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				dm = d.get('domain')
 				if dm:
 					domain_list.append(dm)
-		return " ".join(filter(None, [self.company, self.status] + contact_names + domain_list))
+		return " ".join(filter(None, [self.display_name, self.status] + contact_names + domain_list))
 
 	# -------- Aspect governance helpers ---------------------------------
 	def _prune_aspect(self, aspect: str):
@@ -345,6 +345,31 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		"""Public convenience to refresh governance metadata then save with optional optimistic lock."""
 		self.refresh_aspects(prune=prune, aspects=aspects)
 		self.save(expected_version=expected_version)
+	
+	def save(self, *args, **kwargs):
+		"""Override save to ensure org_type is set correctly for proxy models."""
+		# For proxy models, ensure org_type is set correctly
+		if getattr(self._meta, 'proxy', False):
+			model_name = self.__class__.__name__
+			if model_name == 'Customer' and self.org_type != 'customer':
+				self.org_type = 'customer'
+			elif model_name == 'Vendor' and self.org_type != 'vendor':
+				self.org_type = 'vendor'
+			elif model_name == 'Rep' and self.org_type != 'rep':
+				self.org_type = 'rep'
+			elif model_name == 'Employee' and self.org_type != 'employee':
+				self.org_type = 'employee'
+			elif model_name == 'Manufacturer' and self.org_type != 'manufacturer':
+				self.org_type = 'manufacturer'
+		
+		try:
+			# Try to validate aspects, but don't fail save if validation fails
+			if hasattr(self, 'validate_aspects'):
+				self.validate_aspects(partial=True)
+		except Exception as e:
+			# Log validation errors but continue with save for admin
+			print(f"Validation error during save (continuing anyway): {e}")
+		super().save(*args, **kwargs)
 
 
 # -------------- Proxy type models (ergonomic filters, no new tables) -----
@@ -355,6 +380,11 @@ class _TypeFilteredManager(models.Manager):
 
 	def get_queryset(self):  # type: ignore[override]
 		return super().get_queryset().filter(org_type=self._org_type)
+	
+	def create(self, **kwargs):
+		"""Auto-set org_type when creating records through proxy models."""
+		kwargs['org_type'] = self._org_type
+		return super().create(**kwargs)
 
 
 class Customer(OrgBase):
