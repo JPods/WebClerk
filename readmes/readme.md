@@ -291,6 +291,10 @@ python manage.py runserver
 kill -9 $(lsof -t -i :8000)
 ```
 
+### Clear migration history
+
+python manage.py find apps -name "migrations" -type d -exec find {} -name "*.py" -not -name "__init__.py" -delete \;
+
 ### Schema changes (add/remove/modify columns)
 
 ```bash
