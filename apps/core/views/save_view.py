@@ -531,6 +531,17 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
+        # Append contact link for action saves
+        if model_key == 'action':
+            try:
+                from apps.core.services.action_service import append_contact_link
+                user_id = getattr(request.user, 'id', None)
+                if user_id:
+                    append_contact_link(obj, user_id)
+                    console_logger.info(f"[SAVE_VIEW] Appended contact link for action ID: {obj.id}")
+            except Exception as e:
+                console_logger.error(f"[SAVE_VIEW] Failed to append contact link: {e}")
+
         obj_id = getattr(obj, 'id', None)
         console_logger.info(f"[SAVE_VIEW] Save completed, object ID: {obj_id}")
 
