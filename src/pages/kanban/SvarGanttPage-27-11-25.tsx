@@ -1,13 +1,14 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Gantt, Willow } from "@svar-ui/react-gantt";
-import type { IApi, IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
+import type { IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import clsx from "clsx";
 import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import type { BoardData, KanbanTask } from "../../type/kanban";
+import type { BoardData, KanbanTask, TaskPriority } from "../../type/kanban";
 import {
   DEFAULT_LANGUAGE_ORDER,
   DEFAULT_DIFFICULTY,
@@ -26,6 +27,7 @@ import {
   normalizeIncomingDateValue,
   normalizeLanguageCode,
   normalizeNumericSelectValue,
+  priorityColors,
   priorityOptions,
   toTimestampMilliseconds,
   updateTaskFormState,
@@ -49,6 +51,8 @@ const screenshotInspiredTasks = [
   { id: 16, text: "Release 1.0.0", start: new Date(2024, 4, 25), duration: 0, type: "milestone" },
 ];
 
+const fallbackPriorityCycle: TaskPriority[] = ["low", "medium", "high", "critical"];
+
 const screenshotInspiredLinks = [
   { id: 1, source: 2, target: 3, type: "e2e" },
   { id: 2, source: 3, target: 4, type: "e2s" },
@@ -61,125 +65,10 @@ const screenshotInspiredLinks = [
   { id: 9, source: 15, target: 16, type: "fs" },
 ];
 
-const COLUMN_COLOR_RULES: Array<{ keywords: string[]; color: string }> = [
-  { keywords: ["backlog", "todo", "idea"], color: "#0ea5e9" },
-  { keywords: ["progress", "inprogress", "doing"], color: "#f59e0b" },
-  { keywords: ["review", "qa", "test"], color: "#8b5cf6" },
-  { keywords: ["complete", "completed", "done"], color: "#10b981" },
-];
-
-const DEFAULT_COLUMN_COLOR = "#94a3b8"; // slate-400
-
-const normalizeHexColor = (color?: string | null): string | null => {
-  if (!color) {
-    return null;
-  }
-  const trimmed = color.trim();
-  if (/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
-    return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
-  }
-  return null;
-};
-
-type ParsedHexColor = { normalized: string; r: number; g: number; b: number };
-
-const parseHexColor = (color: string): ParsedHexColor | null => {
-  const normalized = normalizeHexColor(color);
-  if (!normalized) {
-    return null;
-  }
-  return {
-    normalized,
-    r: parseInt(normalized.slice(1, 3), 16),
-    g: parseInt(normalized.slice(3, 5), 16),
-    b: parseInt(normalized.slice(5, 7), 16),
-  };
-};
-
-const applyAlphaToColor = (color: string, alpha: number): string => {
-  const parsed = parseHexColor(color);
-  if (!parsed) {
-    return color;
-  }
-  const clampedAlpha = Math.min(1, Math.max(0, alpha));
-  const { r, g, b } = parsed;
-  return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
-};
-
-const combineClassNames = (
-  ...classes: Array<string | false | null | undefined>
-) => classes.filter(Boolean).join(" ");
-
-const resolveColumnColor = (value?: string | null): string => {
-  if (!value) {
-    return DEFAULT_COLUMN_COLOR;
-  }
-  const normalized = value.toLowerCase();
-  const condensed = normalized.replace(/[\s_-]+/g, "");
-  for (const rule of COLUMN_COLOR_RULES) {
-    const hasMatch = rule.keywords.some((keyword) => {
-      const condensedKeyword = keyword.replace(/[\s_-]+/g, "");
-      return normalized.includes(keyword) || condensed.includes(condensedKeyword);
-    });
-    if (hasMatch) {
-      return rule.color;
-    }
-  }
-  return DEFAULT_COLUMN_COLOR;
-};
-
-type RgbChannels = { r: number; g: number; b: number };
-
-const getRgbChannels = (color: string): RgbChannels | null => {
-  const parsed = parseHexColor(color);
-  if (!parsed) {
-    return null;
-  }
-  const { r, g, b } = parsed;
-  return { r, g, b };
-};
-
-const getRelativeLuminance = ({ r, g, b }: RgbChannels): number => {
-  const normalizeChannel = (value: number) => {
-    const channel = value / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  };
-  const rLum = normalizeChannel(r);
-  const gLum = normalizeChannel(g);
-  const bLum = normalizeChannel(b);
-  return 0.2126 * rLum + 0.7152 * gLum + 0.0722 * bLum;
-};
-
-const pickReadableTextColor = (background: string): string => {
-  const channels = getRgbChannels(background);
-  if (!channels) {
-    return "#0f172a";
-  }
-  const luminance = getRelativeLuminance(channels);
-  return luminance > 0.45 ? "#0f172a" : "#ffffff";
-};
-
-const mixHexColors = (source: string, target: string, ratio: number): string => {
-  const sourceChannels = getRgbChannels(source);
-  const targetChannels = getRgbChannels(target);
-  if (!sourceChannels || !targetChannels) {
-    return source;
-  }
-  const clampedRatio = Math.min(1, Math.max(0, ratio));
-  const mixChannel = (base: number, mix: number) => Math.round(base * (1 - clampedRatio) + mix * clampedRatio);
-  const r = mixChannel(sourceChannels.r, targetChannels.r);
-  const g = mixChannel(sourceChannels.g, targetChannels.g);
-  const b = mixChannel(sourceChannels.b, targetChannels.b);
-  return `rgb(${r}, ${g}, ${b})`;
-};
-
-const lightenColor = (color: string, amount: number) => mixHexColors(color, "#ffffff", amount);
-const darkenColor = (color: string, amount: number) => mixHexColors(color, "#000000", amount);
-
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type GanttDataState = { tasks: ITask[]; links: ILink[] };
-type ColumnFilterOption = { id: string; label: string; count: number; color?: string };
+type ColumnFilterOption = { id: string; label: string; count: number };
 type GanttDataset = GanttDataState & { filters: ColumnFilterOption[] };
 
 const parseDateValue = (value?: string | null): Date | null => {
@@ -235,27 +124,6 @@ const toProgressRatio = (value?: number | null): number | undefined => {
   }
   return Math.max(0, Math.min(1, value));
 };
-
-const padTwoDigits = (value: number) => value.toString().padStart(2, "0");
-
-const formatDateTimeLocal = (date: Date): string =>
-  `${date.getFullYear()}-${padTwoDigits(date.getMonth() + 1)}-${padTwoDigits(date.getDate())}T${padTwoDigits(
-    date.getHours()
-  )}:${padTwoDigits(date.getMinutes())}`;
-
-const createFallbackEndFromStart = (startValue: string): string => {
-  if (!startValue) {
-    return "";
-  }
-  const parsed = new Date(startValue);
-  if (Number.isNaN(parsed.getTime())) {
-    return "";
-  }
-  const adjusted = new Date(parsed.getTime());
-  adjusted.setHours(adjusted.getHours() + 1);
-  return formatDateTimeLocal(adjusted);
-};
-
 
 const mapKanbanTaskToSvarTask = (
   task: KanbanTask,
@@ -361,12 +229,7 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
         return;
       }
 
-      const columnColor = resolveColumnColor(column.title);
       const task = mapKanbanTaskToSvarTask(kanbanTask, index, undefined, column.id, column.title);
-      if (columnColor) {
-        (task as unknown as { color?: string; progressColor?: string }).color = columnColor;
-        (task as unknown as { color?: string; progressColor?: string }).progressColor = columnColor;
-      }
       mappedTasks.push(task);
       columnTasks.push(task);
 
@@ -378,8 +241,7 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
       }
     });
 
-    const columnColor = resolveColumnColor(column.title);
-    filters.push({ id: column.id, label: column.title, count: columnTasks.length, color: columnColor });
+    filters.push({ id: column.id, label: column.title, count: columnTasks.length });
     mappedLinks.push(...createLinksForColumn(columnTasks));
   });
 
@@ -387,15 +249,12 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
 };
 
 const buildFallbackGanttData = (): GanttDataset => {
-  const fallbackColor = resolveColumnColor("sample");
-  const fallbackTasks: ITask[] = screenshotInspiredTasks.map((task) => ({
+  const fallbackTasks: ITask[] = screenshotInspiredTasks.map((task, index) => ({
     ...task,
     columnId: "sample",
     columnTitle: "Sample data",
-    color: fallbackColor,
-    progressColor: fallbackColor,
-    progress: toProgressRatio(task.progress),
-  })) as unknown as ITask[];
+    priority: fallbackPriorityCycle[index % fallbackPriorityCycle.length],
+  }));
 
   const fallbackLinks: ILink[] = screenshotInspiredLinks.map((link) => ({
     ...link,
@@ -407,7 +266,7 @@ const buildFallbackGanttData = (): GanttDataset => {
   return {
     tasks: fallbackTasks,
     links: fallbackLinks,
-    filters: [{ id: "sample", label: "Sample data", count: rootTaskCount, color: fallbackColor }],
+    filters: [{ id: "sample", label: "Sample data", count: rootTaskCount }],
   };
 };
 
@@ -481,20 +340,128 @@ const scaleButtons: Array<{ id: ScalePresetKey; label: string }> = [
   { id: "week", label: "Week" },
 ];
 
-type TaskWithColor = ITask & {
-  color?: string;
-  progressColor?: string;
-  columnId?: string | number | null;
-  columnTitle?: string | null;
+const COLUMN_COLOR_PALETTE: readonly string[] = [
+  "#0ea5e9", // sky-500
+  "#6366f1", // indigo-500
+  "#10b981", // emerald-500
+  "#f59e0b", // amber-500
+  "#f43f5e", // rose-500
+  "#a855f7", // purple-500
+  "#06b6d4", // cyan-500
+  "#d946ef", // fuchsia-500
+];
+
+const COLUMN_KEYWORD_COLOR_RULES: Array<{ keywords: string[]; color: string }> = [
+  { keywords: ["backlog", "todo", "idea"], color: "#0ea5e9" },
+  { keywords: ["inprogress", "progress", "doing"], color: "#f59e0b" },
+  { keywords: ["review", "qa", "testing"], color: "#8b5cf6" },
+  { keywords: ["complete", "completed", "done", "launch"], color: "#10b981" },
+];
+
+const DEFAULT_COLUMN_ACCENT_COLOR = "#94a3b8"; // slate-400
+
+const resolvePaletteIndex = (input: string): number => {
+  if (!input) {
+    return 0;
+  }
+  let hash = 0;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash + input.charCodeAt(index) * (index + 1)) % COLUMN_COLOR_PALETTE.length;
+  }
+  return hash;
 };
 
-type TaskColorInfo = {
-  color: string;
-  textColor: string;
-  type?: ITask["type"];
+const resolveKeywordColorMatch = (value?: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.toLowerCase();
+  const condensed = normalized.replace(/[\s_-]+/g, "");
+  for (const rule of COLUMN_KEYWORD_COLOR_RULES) {
+    const hasMatch = rule.keywords.some((keyword) => {
+      const keywordCondensed = keyword.replace(/[\s_-]+/g, "");
+      return normalized.includes(keyword) || condensed.includes(keywordCondensed);
+    });
+    if (hasMatch) {
+      return rule.color;
+    }
+  }
+  return null;
 };
 
-const GANTT_COLOR_EVENT_TAG = "gantt-column-colors";
+const normalizeHexColor = (color?: string | null): string | null => {
+  if (!color) {
+    return null;
+  }
+  const trimmed = color.trim();
+  if (/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  }
+  return null;
+};
+
+const applyAlphaToColor = (color: string, alphaHex: string): string => {
+  const normalized = normalizeHexColor(color);
+  if (!normalized) {
+    return color;
+  }
+  const hex = normalized.replace("#", "");
+  return `#${hex}${alphaHex}`;
+};
+
+const createFilterButtonStyles = (color: string, isActive: boolean): CSSProperties => {
+  const normalized = normalizeHexColor(color);
+  if (!normalized) {
+    return {};
+  }
+  if (isActive) {
+    return {
+      backgroundColor: normalized,
+      borderColor: normalized,
+      color: "#ffffff",
+    };
+  }
+  return {
+    backgroundColor: applyAlphaToColor(normalized, "22"),
+    borderColor: applyAlphaToColor(normalized, "55"),
+    color: normalized,
+  };
+};
+
+const createFilterCountStyles = (color: string, isActive: boolean): CSSProperties => {
+  const normalized = normalizeHexColor(color);
+  if (!normalized) {
+    return {};
+  }
+  if (isActive) {
+    return {
+      backgroundColor: "rgba(255,255,255,0.25)",
+      color: "#ffffff",
+    };
+  }
+  return {
+    backgroundColor: applyAlphaToColor(normalized, "33"),
+    color: normalized,
+  };
+};
+
+const createTaskBarStyles = (color: string): CSSProperties => {
+  const normalized = normalizeHexColor(color);
+  if (!normalized) {
+    return {};
+  }
+  return {
+    backgroundColor: normalized,
+    borderColor: normalized,
+    color: "#ffffff",
+    boxShadow: `0 2px 6px ${applyAlphaToColor(normalized, "55")}`,
+  };
+};
+
+interface TaskTemplateProps {
+  data: ITask;
+  onaction?: (event: { action: string; data: Record<string, unknown> }) => void;
+}
 
 const SvarGanttPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
@@ -517,10 +484,118 @@ const SvarGanttPage: React.FC = () => {
   const [editCustomLanguage, setEditCustomLanguage] = useState<string>("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
   const activeScales = scalePresets[scalePreset];
-  const ganttContainerRef = useRef<HTMLDivElement | null>(null);
-  const ganttApiRef = useRef<IApi | null>(null);
-  const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
   const progressUpdateQueueRef = useRef<Set<string>>(new Set());
+
+  const resolveDefaultColumnId = useCallback(
+    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
+    [board.columnOrder]
+  );
+
+  const columnOptions = useMemo(
+    () =>
+      board.columnOrder
+        .map((columnId) => board.columns[columnId])
+        .filter((column): column is NonNullable<(typeof board.columns)[string]> => Boolean(column))
+        .map((column) => ({ id: column.id, title: column.title })),
+    [board]
+  );
+
+  const editDifficultyOptions = useMemo(
+    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
+    [editTaskState.difficulty]
+  );
+
+  const editProgressOptions = useMemo(
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
+    [editTaskState.progress]
+  );
+
+  const languageOptions = useMemo(() => {
+    const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
+    Object.values(board.tasks).forEach((task) => {
+      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+    });
+
+    const orderedCodes = Array.from(codes).sort((a, b) => {
+      const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
+      const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+
+    return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
+  }, [board]);
+
+  const updateEditTranslations = useCallback(
+    (updater: (current: TranslationFormEntry[]) => TranslationFormEntry[] ) => {
+      setEditTaskState((prev) => ({
+        ...prev,
+        translations: updater(prev.translations),
+      }));
+    },
+    []
+  );
+
+  const deriveFormStateFromTask = useCallback(
+    (task: KanbanTask, overrides?: Partial<TaskFormState>): TaskFormState => {
+      const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
+      const normalizedStart = normalizeIncomingDateValue(task.startDate);
+      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
+      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+      const normalizedDifficulty = normalizeNumericSelectValue(
+        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
+        DEFAULT_DIFFICULTY
+      );
+      const normalizedProgressValue = toProgressPercentage(task.progress);
+      const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
+
+      return {
+        translations: createTranslationEntriesFromTask(task),
+        columnId: taskColumn?.id ?? resolveDefaultColumnId(),
+        priority: task.priority,
+        dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+        startDate: normalizedStart,
+        endDate: normalizedEnd,
+        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+        difficulty: normalizedDifficulty,
+        progress: normalizedProgress,
+        ...overrides,
+      };
+    },
+    [board.columns, resolveDefaultColumnId]
+  );
+
+  const columnColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    board.columnOrder.forEach((columnId, index) => {
+      const column = board.columns[columnId];
+      const keywordColor = resolveKeywordColorMatch(column?.title ?? columnId);
+      const fallbackColor = COLUMN_COLOR_PALETTE[index % COLUMN_COLOR_PALETTE.length];
+      map.set(columnId, keywordColor ?? fallbackColor);
+    });
+    return map;
+  }, [board]);
+
+  const getColumnAccentColor = useCallback(
+    (columnId?: string | number | null) => {
+      if (!columnId) {
+        return DEFAULT_COLUMN_ACCENT_COLOR;
+      }
+      const normalized = String(columnId);
+      const mapped = columnColorMap.get(normalized);
+      if (mapped) {
+        return mapped;
+      }
+      const fallbackIndex = resolvePaletteIndex(normalized);
+      return COLUMN_COLOR_PALETTE[fallbackIndex] ?? DEFAULT_COLUMN_ACCENT_COLOR;
+    },
+    [columnColorMap]
+  );
+
   const updateLocalTaskProgress = useCallback((taskId: string, progressValue: number) => {
     const progressRatio = toProgressRatio(progressValue) ?? 0;
     setBoard((prev) => {
@@ -554,96 +629,6 @@ const SvarGanttPage: React.FC = () => {
       links: prev.links,
     }));
   }, []);
-
-  const resolveDefaultColumnId = useCallback(
-    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
-    [board.columnOrder]
-  );
-
-  const columnOptions = useMemo(
-    () =>
-      board.columnOrder
-        .map((columnId) => board.columns[columnId])
-        .filter((column): column is NonNullable<(typeof board.columns)[string]> => Boolean(column))
-        .map((column) => ({ id: column.id, title: column.title })),
-    [board]
-  );
-
-  const editDifficultyOptions = useMemo(
-    () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
-    [editTaskState.difficulty]
-  );
-
-  const editProgressOptions = useMemo(
-    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
-    [editTaskState.progress]
-  );
-
-  const languageOptions = useMemo(() => {
-    const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
-    Object.values(board.tasks).forEach((task) => {
-      if (!task) {
-        return;
-      }
-      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
-    });
-
-    const orderedCodes = Array.from(codes).sort((a, b) => {
-      const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
-      const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
-      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
-    });
-
-    return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
-  }, [board]);
-
-  const updateEditTranslations = useCallback(
-    (updater: (current: TranslationFormEntry[]) => TranslationFormEntry[]) => {
-      setEditTaskState((prev) => ({
-        ...prev,
-        translations: updater(prev.translations),
-      }));
-    },
-    []
-  );
-
-  const deriveFormStateFromTask = useCallback(
-    (task: KanbanTask, overrides?: Partial<TaskFormState>): TaskFormState => {
-      const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
-      const normalizedStart = normalizeIncomingDateValue(task.startDate);
-      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
-      const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
-      const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
-      const resolvedEndDate = normalizedEnd || createFallbackEndFromStart(resolvedStartDate);
-      const resolvedDueDate = normalizedDue || calculateDueDate(resolvedStartDate, resolvedEndDate);
-      const normalizedDifficulty = normalizeNumericSelectValue(
-        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
-        DEFAULT_DIFFICULTY
-      );
-      const normalizedProgressValue = toProgressPercentage(task.progress);
-      const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
-
-      return {
-        translations: createTranslationEntriesFromTask(task),
-        columnId: taskColumn?.id ?? resolveDefaultColumnId(),
-        priority: task.priority,
-        dueDate: resolvedDueDate,
-        startDate: resolvedStartDate,
-        endDate: resolvedEndDate,
-        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
-        difficulty: normalizedDifficulty,
-        progress: normalizedProgress,
-        ...overrides,
-      };
-    },
-    [board.columns, resolveDefaultColumnId]
-  );
 
   const handleEditTranslationFieldChange = useCallback(
     (entryId: string, field: "language" | "title" | "description", value: string) => {
@@ -943,6 +928,7 @@ const SvarGanttPage: React.FC = () => {
       }
 
       const boardData = createBoardDataFromApi(items);
+      setBoard(boardData);
       const mapped = mapBoardToSvarGantt(boardData);
       if (!mapped.tasks.length) {
         setFetchError("No schedulable tasks were returned. Showing sample data.");
@@ -954,7 +940,6 @@ const SvarGanttPage: React.FC = () => {
         return;
       }
 
-      setBoard(boardData);
       setFullDataset(mapped);
       setColumnFilters(mapped.filters);
       setUsingFallback(false);
@@ -1008,19 +993,145 @@ const SvarGanttPage: React.FC = () => {
     [buildEditActionPayload, editTaskState, editingTask, fetchGanttTasks, handleCloseEditModal, isSavingEdit]
   );
 
-  const handleShowEditor = useCallback(
-    (event?: { id?: string | number }) => {
-      if (!event?.id || usingFallback) {
-        return false;
+  const handleSvarTaskDoubleClick = useCallback(
+    (taskIdentifier: ITask["id"]) => {
+      if (usingFallback || !taskIdentifier) {
+        return;
       }
-      const resolvedId = String(event.id);
+      const resolvedId = String(taskIdentifier);
       const targetTask = board.tasks[resolvedId];
       if (targetTask) {
         handleOpenEditModal(targetTask);
       }
-      return false;
     },
     [board.tasks, handleOpenEditModal, usingFallback]
+  );
+
+  const TaskBarTemplate = useCallback(
+    ({ data }: TaskTemplateProps) => {
+      const priorityCandidate = data.priority as TaskPriority;
+      const resolvedPriority = priorityOptions.includes(priorityCandidate) ? priorityCandidate : "medium";
+      const progressValue = toProgressPercentage(data.progress);
+      const columnAccentColor = getColumnAccentColor(data.columnId);
+      const taskBarStyle = createTaskBarStyles(columnAccentColor);
+
+      return (
+        <div
+          className="flex h-full w-full flex-col justify-center gap-1 rounded-lg border px-2 py-1 text-white"
+          style={taskBarStyle}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            handleSvarTaskDoubleClick(data.id);
+          }}
+        >
+          <div className="flex items-center justify-end gap-2">
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+              {resolvedPriority}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1 text-[10px] font-semibold">
+            <div className="relative flex-1 overflow-hidden rounded-md bg-white/25">
+              <div
+                className={clsx("absolute left-0 top-0 h-full", priorityColors[resolvedPriority])}
+                style={{ width: `${progressValue}%` }}
+              />
+              <div className="relative z-10 flex h-10 w-full items-center justify-center px-2 text-center text-xs font-semibold uppercase tracking-wide leading-tight">
+                <p className="w-full break-words text-center leading-tight">{data.text}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold">Progress</span>
+              <span className="text-[11px] font-semibold">{progressValue}%</span>
+            </div>
+          </div>
+        </div>
+      );
+    },
+    [getColumnAccentColor, handleSvarTaskDoubleClick]
+  );
+
+  const handleShowEditor = useCallback(
+    (event?: { id?: string | number }) => {
+      if (!event?.id) {
+        return false;
+      }
+      handleSvarTaskDoubleClick(event.id);
+      return false;
+    },
+    [handleSvarTaskDoubleClick]
+  );
+
+  const handleSvarTaskUpdate = useCallback(
+    (event?: {
+      id?: string | number;
+      task?: Partial<ITask>;
+      inProgress?: boolean;
+      eventSource?: string;
+    }) => {
+      if (!event || usingFallback || event.inProgress) {
+        return;
+      }
+
+      const taskId = event.id !== undefined ? String(event.id) : "";
+      if (!taskId) {
+        return;
+      }
+
+      const updatedProgress = event.task?.progress;
+      if (typeof updatedProgress !== "number") {
+        return;
+      }
+
+      const targetTask = board.tasks[taskId];
+      if (!targetTask) {
+        return;
+      }
+
+      const normalizedProgress = toProgressPercentage(updatedProgress);
+      const previousProgress =
+        typeof targetTask.progress === "number"
+          ? Math.max(0, Math.min(100, Math.round(targetTask.progress)))
+          : 0;
+
+      if (normalizedProgress === previousProgress) {
+        return;
+      }
+
+      updateLocalTaskProgress(taskId, normalizedProgress);
+
+      const updatedTask: KanbanTask = { ...targetTask, progress: normalizedProgress };
+      const derivedState = deriveFormStateFromTask(updatedTask, {
+        progress: String(normalizedProgress),
+      });
+      const payloadResult = buildEditActionPayload(derivedState, updatedTask);
+      if ("error" in payloadResult) {
+        console.warn("Unable to sync task progress", payloadResult.error);
+        return;
+      }
+
+      const syncProgress = async () => {
+        if (progressUpdateQueueRef.current.has(taskId)) {
+          return;
+        }
+        progressUpdateQueueRef.current.add(taskId);
+        try {
+          await patchAction(payloadResult.payload);
+        } catch (error) {
+          console.error("Failed to sync task progress", error);
+        } finally {
+          progressUpdateQueueRef.current.delete(taskId);
+        }
+      };
+
+      void syncProgress();
+    },
+    [
+      board.tasks,
+      buildEditActionPayload,
+      deriveFormStateFromTask,
+      updateLocalTaskProgress,
+      usingFallback,
+    ]
   );
 
   useEffect(() => {
@@ -1055,161 +1166,8 @@ const SvarGanttPage: React.FC = () => {
     ...columnFilters,
   ];
 
-  const filterButtonBaseClasses = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition";
-  const filterCountBaseClasses = "ml-2 rounded-full px-2 py-0.5 text-[11px] font-bold";
-
-  const refreshTaskColorCache = useCallback(() => {
-    const nextMap = new Map<string, TaskColorInfo>();
-    visibleData.tasks.forEach((task) => {
-      if (!task?.id) {
-        return;
-      }
-      const taskId = String(task.id);
-      const taskColor = (task as TaskWithColor).color ?? resolveColumnColor(task.columnTitle ?? task.columnId?.toString());
-      if (!taskColor) {
-        return;
-      }
-      nextMap.set(taskId, {
-        color: taskColor,
-        textColor: pickReadableTextColor(taskColor),
-        type: task.type,
-      });
-    });
-    taskColorMapRef.current = nextMap;
-  }, [visibleData.tasks]);
-
-  const resetTaskBarStyles = useCallback((bar: HTMLElement) => {
-    const styleKeys = [
-      "--wx-gantt-task-color",
-      "--wx-gantt-task-fill-color",
-      "--wx-gantt-task-font-color",
-      "--wx-gantt-task-border-color",
-      "--wx-gantt-task-border",
-      "--wx-gantt-summary-color",
-      "--wx-gantt-summary-fill-color",
-      "--wx-gantt-summary-font-color",
-      "--wx-gantt-summary-border-color",
-      "--wx-gantt-summary-border",
-      "--wx-gantt-milestone-color",
-      "--wx-gantt-progress-border-color",
-    ];
-    styleKeys.forEach((key) => {
-      bar.style.removeProperty(key);
-    });
-    bar.style.removeProperty("background-color");
-    bar.style.removeProperty("border-color");
-    const contentElement = bar.querySelector<HTMLElement>(".wx-content");
-    if (contentElement) {
-      contentElement.style.removeProperty("color");
-    }
-    const progressElement = bar.querySelector<HTMLElement>(".wx-progress-percent");
-    if (progressElement) {
-      progressElement.style.removeProperty("background-color");
-    }
-    const markerElement = bar.querySelector<HTMLElement>(".wx-progress-marker");
-    if (markerElement) {
-      markerElement.style.removeProperty("background-color");
-      markerElement.style.removeProperty("border-color");
-    }
-  }, []);
-
-  const applyColorsToChart = useCallback(() => {
-    const container = ganttContainerRef.current;
-    if (!container) {
-      return;
-    }
-    const colorMap = taskColorMapRef.current;
-    if (!colorMap.size) {
-      return;
-    }
-
-    const bars = container.querySelectorAll<HTMLElement>(".wx-bar[data-id]");
-    bars.forEach((bar) => {
-      const identifier = bar.getAttribute("data-id");
-      if (!identifier) {
-        resetTaskBarStyles(bar);
-        return;
-      }
-      const taskInfo = colorMap.get(identifier);
-      if (!taskInfo) {
-        resetTaskBarStyles(bar);
-        return;
-      }
-
-      const { color, textColor } = taskInfo;
-      const progressElement = bar.querySelector<HTMLElement>(".wx-progress-percent");
-      const markerElement = bar.querySelector<HTMLElement>(".wx-progress-marker");
-      const contentElement = bar.querySelector<HTMLElement>(".wx-content");
-      const isSummary = bar.classList.contains("wx-summary");
-      const isTask = bar.classList.contains("wx-task");
-      const isMilestone = bar.classList.contains("wx-milestone");
-      const progressFillColor = lightenColor(color, 0.5);
-      const summaryFillColor = lightenColor(color, 0.35);
-      const borderAccentColor = darkenColor(color, 0.25);
-      const markerAccentColor = darkenColor(color, 0.15);
-
-      if (isMilestone) {
-        bar.style.setProperty("--wx-gantt-milestone-color", color);
-        bar.style.backgroundColor = color;
-        bar.style.borderColor = color;
-      } else if (isSummary) {
-        bar.style.setProperty("--wx-gantt-summary-color", color);
-        bar.style.setProperty("--wx-gantt-summary-fill-color", summaryFillColor);
-        bar.style.setProperty("--wx-gantt-summary-border-color", borderAccentColor);
-        bar.style.setProperty("--wx-gantt-summary-border", `1px solid ${borderAccentColor}`);
-        bar.style.setProperty("--wx-gantt-summary-font-color", textColor);
-      } else if (isTask) {
-        bar.style.setProperty("--wx-gantt-task-color", color);
-        bar.style.setProperty("--wx-gantt-task-fill-color", progressFillColor);
-        bar.style.setProperty("--wx-gantt-task-border-color", borderAccentColor);
-        bar.style.setProperty("--wx-gantt-task-border", `1px solid ${borderAccentColor}`);
-        bar.style.setProperty("--wx-gantt-task-font-color", textColor);
-      } else {
-        bar.style.backgroundColor = color;
-        bar.style.borderColor = color;
-      }
-
-      if (contentElement) {
-        contentElement.style.color = textColor;
-      }
-
-      if (progressElement) {
-        progressElement.style.backgroundColor = progressFillColor;
-      }
-
-      if (markerElement) {
-        markerElement.style.backgroundColor = markerAccentColor;
-        markerElement.style.borderColor = borderAccentColor;
-      }
-
-      bar.style.setProperty("--wx-gantt-progress-border-color", markerAccentColor);
-    });
-  }, [resetTaskBarStyles]);
-
-  const scheduleColorRefresh = useCallback(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.requestAnimationFrame(() => {
-      applyColorsToChart();
-    });
-  }, [applyColorsToChart]);
-
-  useEffect(() => {
-    refreshTaskColorCache();
-    scheduleColorRefresh();
-  }, [refreshTaskColorCache, scheduleColorRefresh]);
-
-  useEffect(() => {
-    return () => {
-      if (ganttApiRef.current) {
-        ganttApiRef.current.detach(GANTT_COLOR_EVENT_TAG);
-      }
-    };
-  }, []);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 svar-kanban-gantt">
       <PageBreadcrumb pageTitle="SVAR React Gantt" />
 
       <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/70">
@@ -1252,59 +1210,37 @@ const SvarGanttPage: React.FC = () => {
                   const isActive = selectedColumnFilter === option.id;
                   const isDisabled = option.id !== "all" && option.count === 0;
                   const isAllFilter = option.id === "all";
-                  const accentColor = !isAllFilter ? option.color : undefined;
-
-                  const buttonClassName = combineClassNames(
-                    filterButtonBaseClasses,
-                    isDisabled ? "cursor-not-allowed opacity-60" : undefined,
-                    !accentColor
-                      ? isActive
-                        ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
-                        : "border-gray-300 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300"
-                      : undefined,
-                    accentColor ? "shadow-sm" : undefined,
-                    accentColor && isActive ? "text-white" : undefined,
-                    accentColor && !isActive ? "text-gray-700 dark:text-gray-200" : undefined
-                  );
-
-                  const buttonStyle = accentColor
-                    ? {
-                        borderColor: accentColor,
-                        backgroundColor: isActive
-                          ? accentColor
-                          : applyAlphaToColor(accentColor, isDisabled ? 0.08 : 0.12),
-                        color: isActive ? "#ffffff" : accentColor,
-                      }
-                    : undefined;
-
-                  const countClassName = combineClassNames(
-                    filterCountBaseClasses,
-                    accentColor
-                      ? undefined
-                      : "bg-white/60 text-gray-600 dark:bg-gray-800/60 dark:text-gray-200",
-                    accentColor && isActive ? "text-white" : undefined
-                  );
-
-                  const countStyle = accentColor
-                    ? {
-                        backgroundColor: isActive
-                          ? applyAlphaToColor("#ffffff", 0.25)
-                          : applyAlphaToColor(accentColor, 0.2),
-                        color: isActive ? "#ffffff" : accentColor,
-                      }
-                    : undefined;
-
+                  const accentColor = !isAllFilter ? getColumnAccentColor(option.id) : null;
+                  const buttonStyle = accentColor ? createFilterButtonStyles(accentColor, isActive) : undefined;
+                  const countStyle = accentColor ? createFilterCountStyles(accentColor, isActive) : undefined;
                   return (
                     <button
                       key={option.id}
                       type="button"
                       onClick={() => setSelectedColumnFilter(option.id)}
                       disabled={isDisabled}
-                      className={buttonClassName}
                       style={buttonStyle}
+                      className={clsx(
+                        "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition",
+                        {
+                          "cursor-not-allowed opacity-60": isDisabled,
+                        },
+                        isAllFilter
+                          ? isActive
+                            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/30 dark:text-indigo-200"
+                            : "border-gray-300 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300"
+                          : "border-transparent text-gray-700 dark:text-gray-200"
+                      )}
                     >
                       {option.label}
-                      <span className={countClassName} style={countStyle}>
+                      <span
+                        className={clsx(
+                          "ml-2 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                          isAllFilter &&
+                            "bg-white/60 text-gray-600 dark:bg-gray-800/60 dark:text-gray-200"
+                        )}
+                        style={countStyle}
+                      >
                         {option.count}
                       </span>
                     </button>
@@ -1342,28 +1278,18 @@ const SvarGanttPage: React.FC = () => {
           </div>
 
           <div className="min-h-screen overflow-y-auto overflow-x-hidden rounded-b-2xl">
-            <div ref={ganttContainerRef}>
-              <Willow>
-                <Gantt
-                  key={ganttKey}
-                  tasks={visibleData.tasks}
-                  links={visibleData.links}
-                  columns={ganttColumns}
-                  scales={activeScales}
-                  onShowEditor={handleShowEditor}
-                  init={(api) => {
-                    ganttApiRef.current = api;
-                    api.detach(GANTT_COLOR_EVENT_TAG);
-                    const rerender = () => scheduleColorRefresh();
-                    api.on("render-data", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                    api.on("update-task", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                    api.on("add-task", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                    api.on("delete-task", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                    scheduleColorRefresh();
-                  }}
-                />
-              </Willow>
-            </div>
+            <Willow>
+              <Gantt
+                key={ganttKey}
+                tasks={visibleData.tasks}
+                links={visibleData.links}
+                columns={ganttColumns}
+                scales={activeScales}
+                taskTemplate={TaskBarTemplate}
+                onShowEditor={handleShowEditor}
+                onUpdateTask={handleSvarTaskUpdate}
+              />
+            </Willow>
           </div>
         </div>
       </section>
