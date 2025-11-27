@@ -199,7 +199,7 @@ layer(base);
 }
 
 /* SVAR Gantt customizations */
-.svar-kanban-gantt :is(
+/* .svar-kanban-gantt :is(
     .gantt_task_progress,
     .gantt_task_progress_drag,
     .gantt_task_progress_wrap,
@@ -211,7 +211,7 @@ layer(base);
   background: transparent !important;
   box-shadow: none !important;
   pointer-events: none !important;
-}
+} */
 
 
 @utility menu-item-inactive {
