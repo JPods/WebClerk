@@ -67,11 +67,11 @@ export async function getModelDetail(model_name: string) {
 
 export async function getRecords(model_name: string) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name } });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name, limit: 20 } });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params: { model_name } });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params: { model_name, limit: 20 } });
       return res2.data.data;
     }
     throw err;
@@ -119,4 +119,47 @@ export function loadFieldSelections(): FieldSelections {
 
 export function saveFieldSelections(next: FieldSelections) {
   localStorage.setItem(LS_KEY, JSON.stringify(next));
+}
+
+// Settings API for workbench fields
+export interface SettingRecord {
+  id?: number;
+  model_name: string;
+  purpose: string;
+  data: {
+    list: string[];
+    detail: string[];
+  };
+}
+
+export async function getWorkbenchFieldsSetting(model_name: string): Promise<SettingRecord | null> {
+  try {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
+      params: { model_name: 'setting', model_name_filter: model_name, purpose: 'workbench_fields' }
+    });
+    const results = res.data.data.results || [];
+    return results.length > 0 ? results[0] : null;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', {
+        params: { model_name: 'setting', model_name_filter: model_name, purpose: 'workbench_fields' }
+      });
+      const results = res2.data.data.results || [];
+      return results.length > 0 ? results[0] : null;
+    }
+    throw err;
+  }
+}
+
+export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
+  try {
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name: 'setting', ...setting });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name: 'setting', ...setting });
+      return res2.data.data;
+    }
+    throw err;
+  }
 }
