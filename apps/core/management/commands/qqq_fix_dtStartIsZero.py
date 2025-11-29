@@ -6,6 +6,7 @@ class Command(BaseCommand):
     help = 'Update action records with dt_start=0 to current datetime for dt_start and dt_updated, set duration=2, dt_expected=dt_start + 2 days'
 
     def handle(self, *args, **options):
+        #import pdb; pdb.set_trace()  # Add this line
         now = timezone.now()
         dt_start_ts = int(now.timestamp() * 1000)
         dt_updated_ts = dt_start_ts
