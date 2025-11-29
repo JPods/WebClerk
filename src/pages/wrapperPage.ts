@@ -5,7 +5,7 @@ import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
-import ContactAdd from "../apps/core/contact/pages/Contact";
+import ContactAdd from "../apps/core/models/contact/pages/Contact";
 import ContactList from "./contact/ContactList";
 import CustomerDetailPage from "./contacts/CustomerDetailPage";
 import CustomerAddPage from "./contacts/CustomerAddPage";
