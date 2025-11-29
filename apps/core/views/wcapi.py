@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -37,6 +37,8 @@ class WCAPIGetView(APIView):
         record_id: Optional[Any],
         fields: Optional[List[str]],
         request,
+        limit: int = 500,
+        filters: Optional[Dict[str, Any]] = None,
     ) -> Response:
         if not resolve(model_key):
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
@@ -44,13 +46,13 @@ class WCAPIGetView(APIView):
         if record_id is not None:
             obj = services.get_item(model_key, request=request, id=record_id)
             if not obj:
-                return Response({"item": None}, status=status.HTTP_200_OK)
+                return Response({"record": None}, status=status.HTTP_200_OK)
             allow = policy.field_allowlist(type(obj), request=request)
-            return Response({"item": services.to_dict(obj, allow=allow)}, status=status.HTTP_200_OK)
+            return Response({"record": services.to_dict(obj, allow=allow)}, status=status.HTTP_200_OK)
 
-        items = services.list_items(model_key, request=request, filters={})
+        items = services.list_items(model_key, request=request, filters=filters or {}, limit=limit)
         allow = policy.field_allowlist(type(items[0]), request=request) if items else None
-        return Response({"items": [services.to_dict(o, allow=allow) for o in items]}, status=status.HTTP_200_OK)
+        return Response({"results": [services.to_dict(o, allow=allow) for o in items]}, status=status.HTTP_200_OK)
 
     @extend_schema(
         operation_id="wcapi_get_list_query",
@@ -93,4 +95,117 @@ class WCAPIGetView(APIView):
         record_id = request.query_params.get("id")
         fields = request.query_params.get("fields")
         fields_list = [f.strip() for f in fields.split(",")] if isinstance(fields, str) else None
-        return self._handle(model_key, record_id, fields_list, request)
+        limit = request.query_params.get("limit")
+        limit_int = int(limit) if limit and limit.isdigit() else 500
+
+        # Parse additional filters from query params
+        filters = {}
+        for key, value in request.query_params.items():
+            if key not in ['model_name', 'id', 'fields', 'limit']:
+                filters[key] = value
+
+        # Handle special filter key for model_name
+        model_name_filter = request.query_params.get('model_name_filter')
+        if model_name_filter:
+            filters['model_name'] = model_name_filter
+
+        return self._handle(model_key, record_id, fields_list, request, limit_int, filters)
+
+
+class ModelNameListView(APIView):
+    """List available model names."""
+
+    http_method_names = ["get", "options", "head"]
+
+    @extend_schema(
+        operation_id="model_name_list",
+        summary="Get list of model names",
+        description="Retrieve list of available model names for the admin workbench.",
+        responses={
+            200: inline_serializer(
+                name="ModelNameListResponse",
+                fields={
+                    "model_names": serializers.ListField(child=serializers.CharField()),
+                    "count": serializers.IntegerField(),
+                },
+            ),
+        },
+    )
+    def get(self, request, **kwargs):
+        from django.apps import apps
+        from apps.core.utils.registry import resolve
+        models = apps.get_models()
+        model_names = [model._meta.model_name for model in models if model._meta.model_name != "setting" and resolve(model._meta.model_name)]
+        return Response({
+            "status": "success",
+            "code": 200,
+            "message": "OK",
+            "data": {"model_names": model_names, "count": len(model_names)}
+        }, status=status.HTTP_200_OK)
+
+
+class ModelDetailView(APIView):
+    """Get model details including fields."""
+
+    http_method_names = ["get", "options", "head"]
+
+    @extend_schema(
+        operation_id="model_detail",
+        summary="Get model details",
+        description="Retrieve model metadata including field definitions.",
+        parameters=[
+            OpenApiParameter(
+                name="model_name",
+                type=str,
+                required=True,
+                location=OpenApiParameter.QUERY,
+                description="Model key to get details for",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="ModelDetailResponse",
+                fields={
+                    "model": inline_serializer(
+                        name="ModelInfo",
+                        fields={
+                            "model_name": serializers.CharField(),
+                            "fields": serializers.ListField(child=serializers.JSONField()),
+                        },
+                    ),
+                },
+            ),
+            400: inline_serializer(
+                name="ErrorResponse",
+                fields={"detail": serializers.CharField()},
+            ),
+        },
+    )
+    def get(self, request, **kwargs):
+        from apps.core.utils.registry import resolve
+        model_key = request.query_params.get("model_name")
+        if not model_key:
+            return Response({"detail": "model_name required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        ModelCls = resolve(model_key)
+        if not ModelCls:
+            return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
+
+        fields = []
+        for f in ModelCls._meta.fields:
+            fields.append({"name": f.name, "type": f.__class__.__name__})
+
+        return Response(
+            {
+                "status": "success",
+                "code": 200,
+                "message": "OK",
+                "data": {
+                    "model": {
+                        "model_name": model_key,
+                        "fields": fields,
+                    }
+                }
+            },
+            status=status.HTTP_200_OK,
+        )
