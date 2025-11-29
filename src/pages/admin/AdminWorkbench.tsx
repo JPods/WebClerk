@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { NetworkInfo } from '../../routes/network';
-import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, loadFieldSelections, saveFieldSelections } from '../../api/wcapi';
+import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, getWorkbenchFieldsSetting, saveWorkbenchFieldsSetting } from '../../api/wcapi';
 
 //
 
@@ -18,8 +18,7 @@ const AdminWorkbench: React.FC = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [allFields, setAllFields] = useState<string[]>([]);
-  const [fieldPrefs, setFieldPrefs] = useState(loadFieldSelections());
-  const prefsForModel = fieldPrefs[selectedModel] || { list: [], detail: [] };
+  const [workbenchSetting, setWorkbenchSetting] = useState<{ list: string[]; detail: string[] } | null>(null);
   const { isAuthenticated } = useAppSelector((s) => s.auth);
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
@@ -72,6 +71,10 @@ const AdminWorkbench: React.FC = () => {
         const list = await getRecords(selectedModel);
         const recs = Array.isArray(list?.results) ? list.results : [];
         setRecords(recs);
+
+        // Fetch workbench fields setting
+        const setting = await getWorkbenchFieldsSetting(selectedModel);
+        setWorkbenchSetting(setting ? setting.data : null);
       } catch (err: any) {
         setRecordsError(err?.message || 'Failed to load records');
       } finally {
@@ -88,55 +91,76 @@ const AdminWorkbench: React.FC = () => {
     })();
   }, [selectedModel, selectedId]);
 
-  const toggleField = (kind: 'list' | 'detail', field: string) => {
-    // Determine current preferences for this model
-    const current = fieldPrefs[selectedModel] || { list: [], detail: [] };
+  const toggleField = async (kind: 'list' | 'detail', field: string) => {
+    if (!selectedModel) return;
+
+    // Get current setting or create default
+    const current = workbenchSetting || { list: [], detail: [] };
     const currentList = current[kind] || [];
 
-    // If no explicit prefs yet, we're using a fallback set.
-    // Seed the toggle operation from the visible set so toggling adds/removes from what the user actually sees.
+    // If no explicit prefs yet, seed from visible set
     const base = currentList.length === 0
       ? (kind === 'list' ? visibleListFields : allFields)
       : currentList;
 
     const has = base.includes(field);
-    const updated = has ? base.filter((f) => f !== field) : [...base, field];
+    const updated = has ? base.filter((f: string) => f !== field) : [...base, field];
 
-    const next = {
-      ...fieldPrefs,
-      [selectedModel]: {
-        ...current,
-        [kind]: updated,
-      },
-    } as typeof fieldPrefs;
+    const nextSetting = {
+      ...current,
+      [kind]: updated,
+    };
 
-    setFieldPrefs(next);
-    saveFieldSelections(next);
+    setWorkbenchSetting(nextSetting);
+
+    // Save to API
+    try {
+      const existing = await getWorkbenchFieldsSetting(selectedModel);
+      const settingToSave = {
+        id: existing?.id,
+        model_name: selectedModel,
+        purpose: 'workbench_fields',
+        data: nextSetting,
+      };
+      await saveWorkbenchFieldsSetting(settingToSave);
+    } catch (err) {
+      console.error('Failed to save field settings:', err);
+    }
   };
 
-  const bulkSetFields = (kind: 'list' | 'detail', mode: 'all' | 'clear') => {
+  const bulkSetFields = async (kind: 'list' | 'detail', mode: 'all' | 'clear') => {
     if (!selectedModel) return;
-    const current = fieldPrefs[selectedModel] || { list: [], detail: [] };
+    const current = workbenchSetting || { list: [], detail: [] };
     const nextSet = mode === 'all' ? allFields : [];
-    const next = {
-      ...fieldPrefs,
-      [selectedModel]: {
-        ...current,
-        [kind]: nextSet,
-      },
-    } as typeof fieldPrefs;
-    setFieldPrefs(next);
-    saveFieldSelections(next);
+    const nextSetting = {
+      ...current,
+      [kind]: nextSet,
+    };
+    setWorkbenchSetting(nextSetting);
+
+    // Save to API
+    try {
+      const existing = await getWorkbenchFieldsSetting(selectedModel);
+      const settingToSave = {
+        id: existing?.id,
+        model_name: selectedModel,
+        purpose: 'workbench_fields',
+        data: nextSetting,
+      };
+      await saveWorkbenchFieldsSetting(settingToSave);
+    } catch (err) {
+      console.error('Failed to save field settings:', err);
+    }
   };
 
   const visibleListFields = useMemo(() => {
-    return prefsForModel.list.length ? prefsForModel.list : ['id', 'ida', 'name', 'email'];
-  }, [prefsForModel.list]);
+    return workbenchSetting?.list.length ? workbenchSetting.list : ['id', 'ida', 'name', 'email'];
+  }, [workbenchSetting?.list]);
 
   // Compute visible fields for detail pane: use prefs if set, otherwise show all fields.
   const visibleDetailFields = useMemo(() => {
-    return prefsForModel.detail.length ? prefsForModel.detail : allFields;
-  }, [prefsForModel.detail, allFields]);
+    return workbenchSetting?.detail.length ? workbenchSetting.detail : allFields;
+  }, [workbenchSetting?.detail, allFields]);
 
   const handleSave = async () => {
     if (!selectedModel || !selectedRecord) return;
@@ -219,8 +243,8 @@ const AdminWorkbench: React.FC = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 max-h-40 overflow-auto">
-              {allFields.map((f) => {
-                const active = prefsForModel.list.includes(f);
+              {allFields.map((f: string) => {
+                const active = workbenchSetting?.list.includes(f) || false;
                 return (
                   <button key={f} onClick={() => toggleField('list', f)} className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}>
                     {f}
