@@ -5,13 +5,13 @@ import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
-import ContactAdd from "./contacts/ContactAdd";
-import ContactList from "./contacts/ContactList";
+import ContactAdd from "../apps/core/contact/pages/Contact";
+import ContactList from "./contact/ContactList";
 import CustomerDetailPage from "./contacts/CustomerDetailPage";
 import CustomerAddPage from "./contacts/CustomerAddPage";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
-import DomainAdd from "./domain/DomainAdd";
+import DomainAdd from "../apps/communications/domain/pages/domain";
 import DomainList from "./domain/DomainList";
 
 import Calendar from "./Calendar";
@@ -26,7 +26,7 @@ import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
 import KanbanGanttPage from "./kanban/KanbanGanttPage";
 import SvarGanttPage from "./kanban/SvarGanttPage";
 
-export {  
+export {
   SignIn,
   SignUp,
   NotFound,
@@ -43,15 +43,14 @@ export {
   SettingAdd,
   SettingList,
   DomainAdd,
-  DomainList, 
-  
+  DomainList,
   Calendar,
   FormElements,
-  BasicTables
-  , AdminWorkbench
-  , NotionTrackerPage
-  , KanbanBoardPage
-  , KanbanBoardDataPage
-  , KanbanGanttPage
-  , SvarGanttPage
+  BasicTables,
+  AdminWorkbench,
+  NotionTrackerPage,
+  KanbanBoardPage,
+  KanbanBoardDataPage,
+  KanbanGanttPage,
+  SvarGanttPage,
 };
