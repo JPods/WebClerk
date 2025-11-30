@@ -53,6 +53,13 @@ INSTALLED_APPS = [
     'drf_spectacular_sidecar',
 ]
 
+MIGRATION_MODULES = {
+    'admin': None,
+    'auth': None,
+    'contenttypes': None,
+    'sessions': None,
+}
+
 MIDDLEWARE = [
     "apps.core.utils.middleware.JSONOnlyMiddleware",
     'corsheaders.middleware.CorsMiddleware',
@@ -214,6 +221,24 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER or 'noreply@example.com')
 
+# Email Notification Settings
+COMPANY_NAME = config('COMPANY_NAME', default='WebClerk3')
+
+# Transaction Email Notifications
+# Enable/disable specific email notifications
+EMAIL_NOTIFICATIONS_ENABLED = config('EMAIL_NOTIFICATIONS_ENABLED', default=True, cast=bool)
+EMAIL_PROPOSAL_SUBMITTED_ENABLED = config('EMAIL_PROPOSAL_SUBMITTED_ENABLED', default=True, cast=bool)
+EMAIL_ORDER_CREATED_ENABLED = config('EMAIL_ORDER_CREATED_ENABLED', default=True, cast=bool)
+EMAIL_INVOICE_SENT_ENABLED = config('EMAIL_INVOICE_SENT_ENABLED', default=True, cast=bool)
+EMAIL_PAYMENT_RECEIVED_ENABLED = config('EMAIL_PAYMENT_RECEIVED_ENABLED', default=True, cast=bool)
+
+# Additional recipient emails for notifications (comma-separated)
+EMAIL_ADDITIONAL_RECIPIENTS = config('EMAIL_ADDITIONAL_RECIPIENTS', default='')
+
+# BCC all transaction emails to admin
+EMAIL_BCC_ADMIN = config('EMAIL_BCC_ADMIN', default=False, cast=bool)
+EMAIL_ADMIN_RECIPIENT = config('EMAIL_ADMIN_RECIPIENT', default='')
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -300,6 +325,10 @@ WRITE_GATE_ALLOWED_REGEX = (
 WCAPI_BLESSED_MODELS = {
     "contact": "core.Contact",
     "action": "core.Action",
+    "payment": "transactions.Payment",
+    "payment_method": "transactions.PaymentMethod",
+    "payment_term": "transactions.PaymentTerm",
+    "transaction": "transactions.Payment",
 }
 
 # WCAPI per-model policies (opt-in, safe by default)
@@ -390,3 +419,19 @@ try:
     DATABASES["default"]["TEST"]["SERIALIZE"] = False
 except Exception:
     pass
+
+# Payment Gateway Settings
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID', default='')
+PAYPAL_CLIENT_SECRET = config('PAYPAL_CLIENT_SECRET', default='')
+PAYPAL_ENVIRONMENT = config('PAYPAL_ENVIRONMENT', default='sandbox')  # 'sandbox' or 'live'
+PAYPAL_WEBHOOK_ID = config('PAYPAL_WEBHOOK_ID', default='')
+
+# Payment Processing Settings
+PAYMENT_CURRENCY = config('PAYMENT_CURRENCY', default='USD')
+PAYMENT_SUCCESS_URL = config('PAYMENT_SUCCESS_URL', default='http://localhost:5173/payment/success')
+PAYMENT_CANCEL_URL = config('PAYMENT_CANCEL_URL', default='http://localhost:5173/payment/cancel')
+PAYMENT_WEBHOOK_URL = config('PAYMENT_WEBHOOK_URL', default='http://localhost:8000/api/payments/webhook/')

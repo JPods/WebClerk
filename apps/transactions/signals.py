@@ -1,7 +1,8 @@
 from __future__ import annotations
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from apps.transactions.models import ProposalLine, SalesOrderLine, InvoiceLine
+from apps.transactions.models import ProposalLine, SalesOrderLine, InvoiceLine, Proposal, SalesOrder, Invoice, Payment
+from apps.transactions.services.email_notifications import TransactionEmailService
 
 @receiver(post_save, sender=ProposalLine)
 def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
@@ -41,3 +42,84 @@ def maintain_invoice_links(sender, instance: InvoiceLine, created, **kwargs):
         lst.append(instance.id)
         header.refs = refs
         header.save(update_fields=["refs", "dt_modified", "version"])
+
+
+@receiver(pre_save, sender=Proposal)
+def track_proposal_status_change(sender, instance: Proposal, **kwargs):
+    """Track original status for proposal status change detection."""
+    if instance.pk:
+        try:
+            original = Proposal.objects.get(pk=instance.pk)
+            instance._original_status = original.status
+        except Proposal.DoesNotExist:
+            instance._original_status = None
+    else:
+        instance._original_status = None
+
+
+@receiver(post_save, sender=Proposal)
+def send_proposal_submitted_notification(sender, instance: Proposal, created, **kwargs):
+    """Send email when proposal status changes to released (submitted)."""
+    if created or instance.status != instance.STATUS_RELEASED:
+        return
+
+    # Check if this is a status change to released
+    if getattr(instance, '_original_status', None) != instance.STATUS_RELEASED:
+        TransactionEmailService.send_proposal_submitted_notification(instance)
+
+
+@receiver(post_save, sender=SalesOrder)
+def send_order_created_notification(sender, instance: SalesOrder, created, **kwargs):
+    """Send email when order is created."""
+    if not created:
+        return
+
+    TransactionEmailService.send_order_created_notification(instance)
+
+
+@receiver(pre_save, sender=Invoice)
+def track_invoice_status_change(sender, instance: Invoice, **kwargs):
+    """Track original status for invoice status change detection."""
+    if instance.pk:
+        try:
+            original = Invoice.objects.get(pk=instance.pk)
+            instance._original_status = original.status
+        except Invoice.DoesNotExist:
+            instance._original_status = None
+    else:
+        instance._original_status = None
+
+
+@receiver(post_save, sender=Invoice)
+def send_invoice_sent_notification(sender, instance: Invoice, created, **kwargs):
+    """Send email when invoice status changes to released (sent)."""
+    if created or instance.status != instance.STATUS_RELEASED:
+        return
+
+    # Check if this is a status change to released
+    if getattr(instance, '_original_status', None) != instance.STATUS_RELEASED:
+        TransactionEmailService.send_invoice_sent_notification(instance)
+
+
+@receiver(pre_save, sender=Payment)
+def track_payment_status_change(sender, instance: Payment, **kwargs):
+    """Track original status for payment status change detection."""
+    if instance.pk:
+        try:
+            original = Payment.objects.get(pk=instance.pk)
+            instance._original_status = original.status
+        except Payment.DoesNotExist:
+            instance._original_status = None
+    else:
+        instance._original_status = None
+
+
+@receiver(post_save, sender=Payment)
+def send_payment_received_notification(sender, instance: Payment, created, **kwargs):
+    """Send email when payment status changes to completed."""
+    if created or instance.status != 'completed':
+        return
+
+    # Check if this is a status change to completed
+    if getattr(instance, '_original_status', None) != 'completed':
+        TransactionEmailService.send_payment_received_notification(instance)

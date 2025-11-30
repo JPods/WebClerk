@@ -39,6 +39,7 @@ class WCAPIGetView(APIView):
         request,
         limit: int = 500,
         filters: Optional[Dict[str, Any]] = None,
+        ordering: Optional[str] = None,
     ) -> Response:
         if not resolve(model_key):
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
@@ -50,7 +51,7 @@ class WCAPIGetView(APIView):
             allow = policy.field_allowlist(type(obj), request=request)
             return Response({"record": services.to_dict(obj, allow=allow)}, status=status.HTTP_200_OK)
 
-        items = services.list_items(model_key, request=request, filters=filters or {}, limit=limit)
+        items = services.list_items(model_key, request=request, filters=filters or {}, limit=limit, ordering=ordering)
         allow = policy.field_allowlist(type(items[0]), request=request) if items else None
         return Response({"results": [services.to_dict(o, allow=allow) for o in items]}, status=status.HTTP_200_OK)
 
@@ -97,11 +98,17 @@ class WCAPIGetView(APIView):
         fields_list = [f.strip() for f in fields.split(",")] if isinstance(fields, str) else None
         limit = request.query_params.get("limit")
         limit_int = int(limit) if limit and limit.isdigit() else 500
+        order_by = request.query_params.get("order_by")
+        # Map created_at to dt_created for ordering
+        if order_by == "created_at":
+            order_by = "dt_created"
+        elif order_by == "-created_at":
+            order_by = "-dt_created"
 
         # Parse additional filters from query params
         filters = {}
         for key, value in request.query_params.items():
-            if key not in ['model_name', 'id', 'fields', 'limit']:
+            if key not in ['model_name', 'id', 'fields', 'limit', 'order_by']:
                 filters[key] = value
 
         # Handle special filter key for model_name
@@ -109,7 +116,7 @@ class WCAPIGetView(APIView):
         if model_name_filter:
             filters['model_name'] = model_name_filter
 
-        return self._handle(model_key, record_id, fields_list, request, limit_int, filters)
+        return self._handle(model_key, record_id, fields_list, request, limit_int, filters, order_by)
 
 
 class ModelNameListView(APIView):
