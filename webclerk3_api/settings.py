@@ -328,7 +328,13 @@ WCAPI_BLESSED_MODELS = {
     "payment": "transactions.Payment",
     "payment_method": "transactions.PaymentMethod",
     "payment_term": "transactions.PaymentTerm",
-    "transaction": "transactions.Payment",
+    "transaction": "transactions.SalesOrder",
+    "sales_order": "transactions.SalesOrder",
+    "invoice": "transactions.Invoice",
+    "purchase_order": "transactions.PurchaseOrder",
+    "work_order": "transactions.WorkOrder",
+    "proposal": "transactions.Proposal",
+    "requisition": "transactions.Requisition",
 }
 
 # WCAPI per-model policies (opt-in, safe by default)
