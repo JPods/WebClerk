@@ -208,7 +208,7 @@ export default function ContactAdd({
             After you’ve created a user, you’ll be able to edit more user
             options.
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -221,6 +221,8 @@ export default function ContactAdd({
                 disabled={mode === "view"}
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label htmlFor="password">Password</Label>
               <Input
@@ -231,10 +233,14 @@ export default function ContactAdd({
                 error={
                   errors.password && errors.password.message ? true : false
                 }
-                hint={errors.password && errors.password.message}
+                hint={
+                  "Your password can’t be too similar to your other personal information. Your password must contain at least 8 characters.  Your password can’t be a commonly used password. Your password can’t be entirely numeric."
+                }
                 disabled={mode === "view"}
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label htmlFor="cnf_password">Confirm Password</Label>
               <Input
@@ -247,7 +253,10 @@ export default function ContactAdd({
                     ? true
                     : false
                 }
-                hint={errors.cnf_password && errors.cnf_password.message}
+                hint={
+                  (errors.cnf_password && errors.cnf_password.message) ||
+                  "Enter the same password as before, for verification."
+                }
                 disabled={mode === "view"}
               />
             </div>
@@ -255,7 +264,7 @@ export default function ContactAdd({
           <h5 className=" dark:text-white text-md font-semibold">
             Personal info
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label htmlFor="name_first">name_first</Label>
               <Input
@@ -337,7 +346,7 @@ export default function ContactAdd({
           <h5 className=" dark:text-white text-md font-semibold">
             Company info
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label htmlFor="company">company</Label>
               <Input
@@ -380,9 +389,9 @@ export default function ContactAdd({
           <h5 className=" dark:text-white text-md font-semibold">
             Permissions
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">role</Label>
               <DropDown
                 id="role"
                 options={options}
@@ -393,7 +402,7 @@ export default function ContactAdd({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Checkbox
                 checked={isChkActive}
@@ -402,7 +411,7 @@ export default function ContactAdd({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Checkbox
                 checked={isChkStaff}
@@ -412,7 +421,7 @@ export default function ContactAdd({
             </div>
           </div>
           {mode !== "view" && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <button
                 type="submit"
                 className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
