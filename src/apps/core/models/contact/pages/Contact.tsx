@@ -5,11 +5,7 @@ import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import {
-  Input,
-  CustTextArea,
-  DropDown,
-} from "../../../../../components/wrapper";
+import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import {
@@ -17,6 +13,7 @@ import {
   patchAction,
   postAction,
 } from "../../../../../api/userProfile";
+import { createContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../../../store/hooks";
@@ -35,17 +32,17 @@ export default function ContactAdd({
 }: ContactAddProps) {
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const [isChkActive, setIsChkActive] = useState(false);
-  const [isChkStaff, setIsChkStaff] = useState(false);
+
   const {
     register,
     setValue,
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm<z.infer<typeof contactSchema>>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {},
+    defaultValues: { is_staff: false, is_active: false },
   });
 
   const location = useLocation();
@@ -96,14 +93,13 @@ export default function ContactAdd({
       setLinkedLists({});
     }
   }, [data, reset, setValue, mode]);
-
+  console.log("errors", errors);
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
+    console.log("formData", formData);
     try {
-      const res =
-        mode === "add"
-          ? await postAction(formData)
-          : await patchAction(user?.name_first);
-      if (res.status === 201 || res.status === 200) {
+      const res = mode === "add" ? await createContact(formData) : "";
+      //: await patchAction(user?.name_first);
+      if (res) {
         dispatch(
           showToast({
             message: `Action ${
@@ -119,43 +115,6 @@ export default function ContactAdd({
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
     }
-  };
-  const comment = { notes: [], public: "", partner: "", process: "" };
-  const refs = {
-    tags: [],
-    links: { items: [], contacts: [] },
-    keywords: [],
-    categories: [],
-    depends_on: {},
-    related_ids: [],
-  };
-  const prefs = { userdefined: {} };
-  const metadata = {
-    flow: {},
-    flags: { schema_rev: 1 },
-    access: { edit: [], view: [] },
-    health: {
-      rating: 0,
-      accuracy: 0,
-      freshness: 0,
-      consistency: 0,
-      completeness: 0,
-    },
-    source: {},
-    history: {
-      synced: { dt: 0, contact_id: 0 },
-      created: { dt: 1764077312019, contact_id: 0 },
-      accessed: { dt: 1764077312019, contact_id: 0 },
-      modified: { dt: 1764077312019, contact_id: 0 },
-      verified: { dt: 0, contact_id: 0 },
-    },
-    publish: "",
-    version: "1.0",
-    priority: "",
-    security: "",
-    resources: { required: {}, allocated: {} },
-    undefined: {},
-    versioning: {},
   };
 
   const options = [
@@ -405,8 +364,9 @@ export default function ContactAdd({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Checkbox
-                checked={isChkActive}
-                onChange={setIsChkActive}
+                id="is_active"
+                checked={watch("is_active")}
+                onChange={(checked) => setValue("is_active", checked)}
                 label="Is Active"
               />
             </div>
@@ -414,8 +374,9 @@ export default function ContactAdd({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Checkbox
-                checked={isChkStaff}
-                onChange={setIsChkStaff}
+                id="is_staff"
+                checked={watch("is_staff")}
+                onChange={(checked) => setValue("is_staff", checked)}
                 label="Is Staff"
               />
             </div>

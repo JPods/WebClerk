@@ -15,5 +15,6 @@ export const contactSchema = z.object({
   company: z.string().optional(),
   title: z.string().optional(),
   department: z.string().optional(),
-  status: z.string().default("active"),
+  is_active: z.boolean().default(false),
+  is_staff: z.boolean().default(false),
 });

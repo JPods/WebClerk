@@ -1,9 +1,6 @@
-import apiClient from "../../../../../api/axios";
-import { PostLoginURL } from "../../../../../routes/network";
-import type {
-  CreateContactRequest,
-  ContactApiTask,
-} from "../types/contactType";
+import apiClient from "./axios";
+import { PostLoginURL } from "../routes/network";
+import type { CreateContactRequest, ContactApiTask } from "../type/contact";
 
 const unwrap = <T>(response: any): T => {
   if (!response) return [] as unknown as T;
