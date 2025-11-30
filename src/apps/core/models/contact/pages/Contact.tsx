@@ -3,22 +3,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../components/common/ComponentCard";
-import Label from "../../../../components/form/Label";
-import { Input, CustTextArea, DropDown } from "../../../../components/wrapper";
+import ComponentCard from "../../../../../components/common/ComponentCard";
+import Label from "../../../../../components/form/Label";
+import {
+  Input,
+  CustTextArea,
+  DropDown,
+} from "../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import {
   getByTypeAndId,
   patchAction,
   postAction,
-} from "../../../../api/userProfile";
-import { showToast } from "../../../../store/slices/toastSlice";
+} from "../../../../../api/userProfile";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useAppSelector } from "../../../../store/hooks";
+import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
 import { contactSchema } from "../utils/contactSchema";
 import { ContactAddProps } from "../types/contactType";
+import Checkbox from "../../../../../components/form/input/Checkbox";
 
 export default function ContactAdd({
   modeProp,
@@ -30,7 +35,8 @@ export default function ContactAdd({
 }: ContactAddProps) {
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
-
+  const [isChkActive, setIsChkActive] = useState(false);
+  const [isChkStaff, setIsChkStaff] = useState(false);
   const {
     register,
     setValue,
@@ -153,13 +159,13 @@ export default function ContactAdd({
   };
 
   const options = [
-    { value: "website", label: "Website" },
-    { value: "linkedin", label: "Linkedin" },
-    { value: "facebook", label: "Facebook" },
-    { value: "twitter", label: "Twitter" },
-    { value: "github", label: "GitHub" },
-    { value: "other", label: "Other" },
+    { value: "user", label: "User" },
+    { value: "admin", label: "Administrator" },
+    { value: "manager", label: "Manager" },
+    { value: "staff", label: "Staff" },
+    { value: "guest", label: "Guest" },
   ];
+
   const handleSelectChange = (value: string) => {
     console.log("Selected value:", value);
   };
@@ -198,83 +204,210 @@ export default function ContactAdd({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h5 className=" dark:text-white text-md font-semibold">
+            After you’ve created a user, you’ll be able to edit more user
+            options.
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="path">Path</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                type="text"
-                id="path"
-                placeholder="URL or handle (indexed)"
-                {...register("path")}
-                error={errors.path && errors.path.message ? true : false}
-                hint={errors.path && errors.path.message}
+                type="email"
+                id="email"
+                placeholder="Primary email address for login"
+                {...register("email")}
+                error={errors.email && errors.email.message ? true : false}
+                hint={errors.email && errors.email.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                type="password"
+                id="password"
+                placeholder="Password"
+                {...register("password")}
+                error={
+                  errors.password && errors.password.message ? true : false
+                }
+                hint={errors.password && errors.password.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="cnf_password">Confirm Password</Label>
+              <Input
+                type="password"
+                id="cnf_password"
+                placeholder="Confirm Password"
+                {...register("cnf_password")}
+                error={
+                  errors.cnf_password && errors.cnf_password.message
+                    ? true
+                    : false
+                }
+                hint={errors.cnf_password && errors.cnf_password.message}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+          <h5 className=" dark:text-white text-md font-semibold">
+            Personal info
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="name_first">name_first</Label>
+              <Input
+                type="text"
+                id="name_first"
+                placeholder="First Name"
+                {...register("name_first")}
+                error={
+                  errors.name_first && errors.name_first.message ? true : false
+                }
+                hint={errors.name_first && errors.name_first.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name_last">name_last</Label>
+              <Input
+                type="text"
+                id="name_last"
+                placeholder="Last Name"
+                {...register("name_last")}
+                error={
+                  errors.name_last && errors.name_last.message ? true : false
+                }
+                hint={errors.name_last && errors.name_last.message}
+                disabled={mode === "view"}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="name_middle">name_middle</Label>
+              <Input
+                type="text"
+                id="name_middle"
+                placeholder="Middle Name"
+                {...register("name_middle")}
+                error={
+                  errors.name_middle && errors.name_middle.message
+                    ? true
+                    : false
+                }
+                hint={errors.name_middle && errors.name_middle.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name_prefix">name_prefix</Label>
+              <Input
+                type="text"
+                id="name_prefix"
+                placeholder="Title (Mr., Ms., Dr.)"
+                {...register("name_prefix")}
+                error={
+                  errors.name_prefix && errors.name_prefix.message
+                    ? true
+                    : false
+                }
+                hint={errors.name_prefix && errors.name_prefix.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name_suffix">name_suffix</Label>
+              <Input
+                type="text"
+                id="name_suffix"
+                placeholder="Suffix (Jr., Sr., III)"
+                {...register("name_suffix")}
+                error={
+                  errors.name_suffix && errors.name_suffix.message
+                    ? true
+                    : false
+                }
+                hint={errors.name_suffix && errors.name_suffix.message}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+          <h5 className=" dark:text-white text-md font-semibold">
+            Company info
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="company">company</Label>
+              <Input
+                type="text"
+                id="company"
+                placeholder="Company name"
+                {...register("company")}
+                error={errors.company && errors.company.message ? true : false}
+                hint={errors.company && errors.company.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="title">title</Label>
+              <Input
+                type="text"
+                id="title"
+                placeholder="Job title"
+                {...register("title")}
+                error={errors.title && errors.title.message ? true : false}
+                hint={errors.title && errors.title.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="department">department</Label>
+              <Input
+                type="text"
+                id="department"
+                placeholder="Department"
+                {...register("department")}
+                error={
+                  errors.department && errors.department.message ? true : false
+                }
+                hint={errors.department && errors.department.message}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+          <h5 className=" dark:text-white text-md font-semibold">
+            Permissions
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="role">Role</Label>
               <DropDown
-                id="type"
+                id="role"
                 options={options}
-                placeholder="Select Option"
-                {...register("type")}
+                placeholder="Select Role"
+                {...register("role")}
                 onChange={handleSelectChange}
                 className="dark:bg-dark-900"
               />
             </div>
           </div>
-          <h3 className=" dark:text-white text-lg font-semibold">
-            Additional Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="comment">Comments</Label>
-              <CustTextArea
-                id="comment"
-                placeholder="General notes"
-                {...register("comment")}
-                error={errors.comment && errors.comment.message ? true : false}
-                hint={errors.comment && errors.comment.message}
-                disabled={mode === "view"}
-                value={JSON.stringify(comment, null, 2)}
+              <Checkbox
+                checked={isChkActive}
+                onChange={setIsChkActive}
+                label="Is Active"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="refs">Refs</Label>
-              <CustTextArea
-                id="refs"
-                placeholder="General notes"
-                {...register("refs")}
-                error={errors.refs && errors.refs.message ? true : false}
-                hint={errors.refs && errors.refs.message}
-                disabled={mode === "view"}
-                value={JSON.stringify(refs, null, 2)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="prefs">Prefs</Label>
-              <CustTextArea
-                id="prefs"
-                placeholder="Pprefs"
-                {...register("prefs")}
-                error={errors.prefs && errors.prefs.message ? true : false}
-                hint={errors.prefs && errors.prefs.message}
-                disabled={mode === "view"}
-                value={JSON.stringify(prefs, null, 2)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="metadata">Metadata</Label>
-              <CustTextArea
-                id="metadata"
-                placeholder="Metadata"
-                {...register("metadata")}
-                error={
-                  errors.metadata && errors.metadata.message ? true : false
-                }
-                hint={errors.metadata && errors.metadata.message}
-                disabled={mode === "view"}
-                value={JSON.stringify(metadata, null, 2)}
+              <Checkbox
+                checked={isChkStaff}
+                onChange={setIsChkStaff}
+                label="Is Staff"
               />
             </div>
           </div>

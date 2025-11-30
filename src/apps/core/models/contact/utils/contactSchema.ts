@@ -1,11 +1,17 @@
 import * as z from "zod";
 
 export const contactSchema = z.object({
+  password: z.string().min(1, "Password"),
+  cnf_password: z.string().min(1, "Confirm Password"),
+  email: z.string().min(1, "Primary email address for login"),
   name_first: z.string().min(1, "First name is required"),
   name_last: z.string().min(1, "Last name is required"),
   name_middle: z.string().optional(),
-  refs: z.string().optional(),
-  prefs: z.string().optional(),
-  metadata: z.string().optional(),
+  name_prefix: z.string().optional(),
+  name_suffix: z.string().optional(),
+  role: z.string().optional(),
+  company: z.string().optional(),
+  title: z.string().optional(),
+  department: z.string().optional(),
   status: z.string().default("active"),
 });
