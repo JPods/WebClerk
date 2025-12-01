@@ -137,7 +137,7 @@ export default function ContactDetail({
               ? "Edit Contact"
               : mode === "view"
               ? "View Contact"
-              : "Add Contact"
+              : "Contact Detail"
           }
         />
       )}

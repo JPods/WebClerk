@@ -1,7 +1,7 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { createTheme } from "react-data-table-component";
+//import { createTheme } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchContacts } from "../services/contactApi";
@@ -12,41 +12,6 @@ import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import ContactAdd from "./ContactDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
-
-// Create the dark theme only once
-createTheme("tailwindDark", {
-  text: {
-    primary: "#d1d5db",
-    secondary: "#9ca3af",
-  },
-  background: {
-    default: "#111827",
-  },
-  context: {
-    background: "#1f2937",
-    text: "#d1d5db",
-  },
-  divider: {
-    default: "#374151",
-  },
-  button: {
-    default: "#1f2937",
-    hover: "#374151",
-    focus: "#6b7280",
-    disabled: "#4b5563",
-  },
-  sortFocus: {
-    default: "#d1d5db",
-  },
-  highlightOnHover: {
-    default: "#1e293b",
-    text: "#d1d5db",
-  },
-  striped: {
-    default: "#1f2937",
-    text: "#d1d5db",
-  },
-});
 
 export default function ContactList() {
   const { theme } = useTheme();
@@ -196,7 +161,7 @@ export default function ContactList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Contact Management" />
+      <PageBreadcrumb pageTitle="Contact List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
