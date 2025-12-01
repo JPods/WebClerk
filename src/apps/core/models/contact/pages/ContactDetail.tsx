@@ -22,7 +22,7 @@ import { contactSchema } from "../utils/contactSchema";
 import { ContactAddProps } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 
-export default function ContactAdd({
+export default function ContactDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,

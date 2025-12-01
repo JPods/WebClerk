@@ -5,8 +5,8 @@ import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
-import ContactAdd from "../apps/core/models/contact/pages/Contact";
-import ContactList from "./contact/ContactList";
+import ContactDetail from "../apps/core/models/contact/pages/ContactDetail.tsx";
+import ContactList from "../apps/core/models/contact/pages/ContactList";
 import CustomerDetailPage from "./contacts/CustomerDetailPage";
 import CustomerAddPage from "./contacts/CustomerAddPage";
 import SettingAdd from "./setting/SettingAdd";
@@ -36,7 +36,7 @@ export {
   UserProfiles,
   ActionList,
   ActionAdd,
-  ContactAdd,
+  ContactDetail,
   ContactList,
   CustomerDetailPage,
   CustomerAddPage,

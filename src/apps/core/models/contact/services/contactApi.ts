@@ -26,7 +26,7 @@ export const createContact = async (
 export const fetchContacts = async (id: any = "") => {
   try {
     const res = await apiClient.get(
-      PostLoginURL.allTypes + "?model_name=contact" + (id ? `&id=${id}` : "")
+      PostLoginURL.allTypes + "model_name=contact" + (id ? `&id=${id}` : "")
     );
     return res;
   } catch (error: any) {

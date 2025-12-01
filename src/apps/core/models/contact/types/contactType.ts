@@ -7,34 +7,34 @@ export interface ContactAddProps {
   onCancelInline?: () => void;
 }
 
-// export interface CreateContactRequest {
-//   name_first: string;
-//   name_last: string;
-//   name_middle: string;
-//   email: string;
-//   phone: string;
-//   company?: string;
-//   name_suffix?: string;
-//   name_prefix?: string;
-//   title?: string;
-//   department?: string;
-//   comment?: string;
-//   role?: string;
-// }
-// export interface ContactApiTask {
-//   name_first: string;
-//   name_last: string;
-//   name_middle: string;
-//   email: string;
-//   phone: string;
-//   company?: string;
-//   name_suffix?: string;
-//   name_prefix?: string;
-//   title?: string;
-//   department?: string;
-//   comment?: string;
-//   role?: string;
-// }
+export interface CreateContactRequest {
+  name_first: string;
+  name_last: string;
+  name_middle: string;
+  email: string;
+  phone: string;
+  company?: string;
+  name_suffix?: string;
+  name_prefix?: string;
+  title?: string;
+  department?: string;
+  comment?: string;
+  role?: string;
+}
+export interface ContactApiTask {
+  name_first: string;
+  name_last: string;
+  name_middle: string;
+  email: string;
+  phone: string;
+  company?: string;
+  name_suffix?: string;
+  name_prefix?: string;
+  title?: string;
+  department?: string;
+  comment?: string;
+  role?: string;
+}
 
 // export const contactSchema = z.object({
 //   name_first: z.string().min(1, "First Name is required"),
