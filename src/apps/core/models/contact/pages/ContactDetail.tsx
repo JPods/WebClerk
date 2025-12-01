@@ -13,7 +13,7 @@ import {
   patchAction,
   postAction,
 } from "../../../../../api/userProfile";
-import { createContact } from "../services/contactApi";
+import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../../../store/hooks";
@@ -97,8 +97,10 @@ export default function ContactDetail({
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
     console.log("formData", formData);
     try {
-      const res = mode === "add" ? await createContact(formData) : "";
-      //: await patchAction(user?.name_first);
+      const res =
+        mode === "add"
+          ? await createContact(formData)
+          : await updateContact({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
@@ -181,45 +183,49 @@ export default function ContactDetail({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                type="password"
-                id="password"
-                placeholder="Password"
-                {...register("password")}
-                error={
-                  errors.password && errors.password.message ? true : false
-                }
-                hint={
-                  "Your password can’t be too similar to your other personal information. Your password must contain at least 8 characters.  Your password can’t be a commonly used password. Your password can’t be entirely numeric."
-                }
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Label htmlFor="cnf_password">Confirm Password</Label>
-              <Input
-                type="password"
-                id="cnf_password"
-                placeholder="Confirm Password"
-                {...register("cnf_password")}
-                error={
-                  errors.cnf_password && errors.cnf_password.message
-                    ? true
-                    : false
-                }
-                hint={
-                  (errors.cnf_password && errors.cnf_password.message) ||
-                  "Enter the same password as before, for verification."
-                }
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
+          {(mode === "add" || mode === "edit") && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    type="password"
+                    id="password"
+                    placeholder="Password"
+                    {...register("password")}
+                    error={
+                      errors.password && errors.password.message ? true : false
+                    }
+                    hint={
+                      "Your password can’t be too similar to your other personal information. Your password must contain at least 8 characters.  Your password can’t be a commonly used password. Your password can’t be entirely numeric."
+                    }
+                    disabled={mode === "view"}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div>
+                  <Label htmlFor="cnf_password">Confirm Password</Label>
+                  <Input
+                    type="password"
+                    id="cnf_password"
+                    placeholder="Confirm Password"
+                    {...register("cnf_password")}
+                    error={
+                      errors.cnf_password && errors.cnf_password.message
+                        ? true
+                        : false
+                    }
+                    hint={
+                      (errors.cnf_password && errors.cnf_password.message) ||
+                      "Enter the same password as before, for verification."
+                    }
+                    disabled={mode === "view"}
+                  />
+                </div>
+              </div>
+            </>
+          )}
           <h5 className=" dark:text-white text-md font-semibold">
             Personal info
           </h5>
@@ -358,6 +364,7 @@ export default function ContactDetail({
                 {...register("role")}
                 onChange={handleSelectChange}
                 className="dark:bg-dark-900"
+                disabled={mode === "view"}
               />
             </div>
           </div>
@@ -402,7 +409,7 @@ export default function ContactDetail({
           )}
         </form>
         {/* Linked data lists */}
-        {mode !== "add" && (
+        {/* {mode !== "add" && (
           <div className="mt-6 space-y-4">
             {Object.keys(linkedLists).length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -437,7 +444,7 @@ export default function ContactDetail({
               ))
             )}
           </div>
-        )}
+        )} */}
       </ComponentCard>
     </>
   );

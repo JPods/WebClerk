@@ -3,6 +3,7 @@ import { PostLoginURL } from "../../../../../routes/network";
 import type {
   CreateContactRequest,
   ContactApiTask,
+  UpdateContactRequest,
 } from "../types/contactType";
 
 const unwrap = <T>(response: any): T => {
@@ -21,6 +22,26 @@ export const createContact = async (
     model_name,
   });
   return unwrap<ContactApiTask>(res);
+};
+
+export const updateContact = async (
+  payload: UpdateContactRequest
+): Promise<ContactApiTask> => {
+  const model_name: string = "contact";
+  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
+    ...payload,
+    model_name,
+  });
+  return unwrap<ContactApiTask>(res);
+};
+
+export const deleteContact = async (id: any) => {
+  try {
+    const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
+    return res;
+  } catch (error: any) {
+    return error.response?.data || error.message;
+  }
 };
 
 export const fetchContacts = async (id: any = "") => {

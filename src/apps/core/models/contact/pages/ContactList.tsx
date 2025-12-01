@@ -52,11 +52,13 @@ export default function ContactList() {
 
   const handleEdit = async (row: dynamicData) => {
     const res = await fetchContacts(row.id);
-    if (res.status === 200) setSelectedContact(res.data.data.record);
+    if (res.status === 200) setSelectedContact(res.data.item);
     else setSelectedContact(row);
     setFormMode("edit");
+    console.log("res", res);
   };
 
+  console.log("res.data.items", selectedContact);
   const handleAdd = () => {
     setSelectedContact(null);
     setFormMode("add");
@@ -167,9 +169,9 @@ export default function ContactList() {
           <button onClick={() => handleEdit(row)} title="Edit">
             <FaEdit className="text-green-600 hover:scale-110 transition" />
           </button>
-          <button onClick={() => handleDelete(row)} title="Delete">
+          {/* <button onClick={() => handleDelete(row)} title="Delete">
             <FaTrash className="text-red-600 hover:scale-110 transition" />
-          </button>
+          </button> */}
         </div>
       ),
       ignoreRowClick: true,

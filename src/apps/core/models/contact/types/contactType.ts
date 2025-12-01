@@ -10,9 +10,8 @@ export interface ContactAddProps {
 export interface CreateContactRequest {
   name_first: string;
   name_last: string;
-  name_middle: string;
+  name_middle?: string;
   email: string;
-  phone: string;
   company?: string;
   name_suffix?: string;
   name_prefix?: string;
@@ -24,9 +23,22 @@ export interface CreateContactRequest {
 export interface ContactApiTask {
   name_first: string;
   name_last: string;
-  name_middle: string;
+  name_middle?: string;
   email: string;
-  phone: string;
+  company?: string;
+  name_suffix?: string;
+  name_prefix?: string;
+  title?: string;
+  department?: string;
+  comment?: string;
+  role?: string;
+}
+export interface UpdateContactRequest {
+  id: string;
+  name_first: string;
+  name_last: string;
+  name_middle?: string;
+  email: string;
   company?: string;
   name_suffix?: string;
   name_prefix?: string;
