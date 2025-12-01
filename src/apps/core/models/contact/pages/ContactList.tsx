@@ -100,20 +100,37 @@ export default function ContactList() {
   };
 
   const userColumns: TableColumn<dynamicData>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true },
-    { name: "Email", selector: (row) => row.email || "--", sortable: true },
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+    {
+      name: "Email",
+      selector: (row) => row.email || "--",
+      sortable: true,
+      width: "15%",
+    },
     {
       name: "Name First",
       selector: (row) => row.name_first || "--",
       sortable: true,
+      width: "15%",
     },
     {
       name: "Name Last",
       selector: (row) => row.name_last || "--",
       sortable: true,
+      width: "15%",
     },
-    { name: "Company", selector: (row) => row.company || "--", sortable: true },
-    { name: "Role", selector: (row) => row.role || "--", sortable: true },
+    {
+      name: "Company",
+      selector: (row) => row.company || "--",
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "Role",
+      selector: (row) => row.role || "--",
+      sortable: true,
+      width: "10%",
+    },
     {
       name: "Is Active",
       selector: (row) => (row.is_active ? "Inactive" : "Active"), // Plain string for filtering
@@ -125,6 +142,7 @@ export default function ContactList() {
         </>
       ),
       sortable: true,
+      width: "10%",
     },
     {
       name: "Is Staff",
@@ -137,6 +155,7 @@ export default function ContactList() {
         </>
       ),
       sortable: true,
+      width: "10%",
     },
     {
       name: "Action",
