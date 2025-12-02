@@ -69,7 +69,7 @@ export default function LedgerList() {
         await deleteRecord('ledger', row.id);
         dispatch(showToast({ message: "Ledger deleted successfully", type: "success" }));
         getLedgerData(); // Refresh data
-      } catch (error) {
+      } catch {
         dispatch(showToast({ message: "Failed to delete ledger", type: "error" }));
       }
     }

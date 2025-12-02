@@ -69,7 +69,7 @@ export default function TermList() {
         await deleteRecord('term', row.id);
         dispatch(showToast({ message: "Term deleted successfully", type: "success" }));
         getTermData(); // Refresh data
-      } catch (error) {
+      } catch {
         dispatch(showToast({ message: "Failed to delete term", type: "error" }));
       }
     }

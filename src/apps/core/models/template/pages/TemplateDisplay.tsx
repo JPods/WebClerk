@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { getRecord, saveRecord } from "@/api/wcapi";
-import { showToast } from "@/store/slices/toastSlice";
+import { getRecord, saveRecord } from "../../../../../api/wcapi";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 
-interface GLAccountDisplayProps {
+interface TemplateDisplayProps {
   inline?: boolean;
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
@@ -11,13 +11,13 @@ interface GLAccountDisplayProps {
   onCancelInline?: () => void;
 }
 
-export default function GLAccountDisplay({
+export default function TemplateDisplay({
   inline = false,
   modeProp,
   dataProp,
   onSaved,
   onCancelInline,
-}: GLAccountDisplayProps) {
+}: TemplateDisplayProps) {
   const [data, setData] = useState<any>(dataProp || {});
   const [fields, setFields] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,12 +27,12 @@ export default function GLAccountDisplay({
   useEffect(() => {
     const fetchFields = async () => {
       try {
-        const rec = await getRecord('gl_account', 1);
+        const rec = await getRecord('template', 1);
         const record = rec.record || rec;
         setFields(Object.keys(record));
       } catch (error) {
         console.error("Failed to fetch fields", error);
-        setFields(['id', 'name', 'code', 'type', 'balance']); // fallback
+        setFields(['id', 'purpose', 'name', 'data', 'dt_processed', 'is_active']);
       }
     };
     fetchFields();
@@ -43,7 +43,7 @@ export default function GLAccountDisplay({
       const fetchData = async () => {
         try {
           setLoading(true);
-          const rec = await getRecord('gl_account', dataProp.id);
+          const rec = await getRecord('template', dataProp.id);
           setData(rec.record || rec);
         } catch (error) {
           console.error("Failed to fetch record", error);
@@ -62,12 +62,12 @@ export default function GLAccountDisplay({
   const handleSave = async () => {
     try {
       setLoading(true);
-      await saveRecord('gl_account', data);
-      dispatch(showToast({ message: "GL Account saved successfully", type: "success" }));
+      await saveRecord('template', data);
+      dispatch(showToast({ message: "Template saved successfully", type: "success" }));
       onSaved?.();
     } catch (error) {
       console.error("Failed to save", error);
-      dispatch(showToast({ message: "Failed to save gl account", type: "error" }));
+      dispatch(showToast({ message: "Failed to save template", type: "error" }));
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function GLAccountDisplay({
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-xl font-semibold">
-        {modeProp === "add" ? "Add GL Account" : modeProp === "edit" ? "Edit GL Account" : "View GL Account"}
+        {modeProp === "add" ? "Add Template" : modeProp === "edit" ? "Edit Template" : "View Template"}
       </h2>
       <div className="grid grid-cols-2 gap-4">
         {fields

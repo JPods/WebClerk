@@ -3,7 +3,6 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 //import { createTheme } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
 import { fetchContacts } from "../services/contactApi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
@@ -64,31 +63,6 @@ export default function ContactList() {
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete contact ${row.name_first}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(
-          showToast({
-            message: "Contact deleted successfully",
-            type: "success",
-          })
-        );
-        getContactData(); // Refresh data
-        if (selectedContact && selectedContact.id === row.id) {
-          setFormMode(null);
-          setSelectedContact(null);
-        }
-      } catch (error) {
-        dispatch(
-          showToast({
-            message: "Failed to delete contact" + error,
-            type: "error",
-          })
-        );
-      }
-    }
-  };
 
   const handleFormSaved = () => {
     getContactData();

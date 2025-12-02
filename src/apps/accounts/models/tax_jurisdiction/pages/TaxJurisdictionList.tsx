@@ -69,7 +69,7 @@ export default function TaxJurisdictionList() {
         await deleteRecord('tax_jurisdiction', row.id);
         dispatch(showToast({ message: "Tax Jurisdiction deleted successfully", type: "success" }));
         getTaxJurisdictionData(); // Refresh data
-      } catch (error) {
+      } catch {
         dispatch(showToast({ message: "Failed to delete tax jurisdiction", type: "error" }));
       }
     }
