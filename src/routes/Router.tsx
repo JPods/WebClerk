@@ -39,6 +39,16 @@ import ProposalDetailPage from "../pages/transactions/ProposalDetailPage";
 import CallReportDetailPage from "../pages/actions/CallReportDetailPage";
 import ServiceDetailPage from "../pages/actions/ServiceDetailPage";
 import TaskMarkerDetailPage from "../pages/actions/TaskMarkerDetailPage";
+import {
+  AuditList,
+  AuditDisplay,
+  CurrencyList,
+  CurrencyDisplay,
+  ExchangeRateList,
+  ExchangeRateDisplay,
+  ExchangeTransactionList,
+  ExchangeTransactionDisplay,
+} from "../pages/wrapperPage";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import DocsIndex from "../pages/docs/DocsIndex";
@@ -148,6 +158,15 @@ const Router: React.FC = () => {
             path={PageRoutes.transactionsProposalDetail}
             element={<ProposalDetailPage />}
           />
+          {/* Accounts */}
+          <Route path={PageRoutes.auditList} element={<AuditList />} />
+          <Route path={PageRoutes.auditDisplay} element={<AuditDisplay />} />
+          <Route path={PageRoutes.currencyList} element={<CurrencyList />} />
+          <Route path={PageRoutes.currencyDisplay} element={<CurrencyDisplay />} />
+          <Route path={PageRoutes.exchangeRateList} element={<ExchangeRateList />} />
+          <Route path={PageRoutes.exchangeRateDisplay} element={<ExchangeRateDisplay />} />
+          <Route path={PageRoutes.exchangeTransactionList} element={<ExchangeTransactionList />} />
+          <Route path={PageRoutes.exchangeTransactionDisplay} element={<ExchangeTransactionDisplay />} />
         </Route>
 
         {/* 404 page */}
