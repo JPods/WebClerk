@@ -108,8 +108,8 @@ class Document(BaseModel):
         try:
             # Fetch settings specifying keyword fields: purpose='keywords'
             model_key = 'Document'  # canonical model identifier for settings
-            # Prefer model_name in Setting going forward
-            setting = Setting.objects.filter(model_name=model_key, purpose='keywords', is_active=True).first()
+            # Prefer model_target in Setting going forward
+            setting = Setting.objects.filter(model_target=model_key, purpose='keywords', is_active=True).first()
             if setting and isinstance(setting.data, dict):
                 fields_spec = setting.data.get('fields') or setting.data.get('field_list') or []
                 if isinstance(fields_spec, str):  # allow comma-separated string

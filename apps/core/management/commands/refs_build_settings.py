@@ -97,11 +97,11 @@ class Command(BaseCommand):
         queryset = Setting.objects.all()
 
         if model_filter:
-            queryset = queryset.filter(model_name=model_filter)
+            queryset = queryset.filter(model_target=model_filter)
         if purpose_filter:
             queryset = queryset.filter(purpose=purpose_filter)
 
-        settings = queryset.order_by('model_name', 'purpose')
+        settings = queryset.order_by('model_target', 'purpose')
 
         if not settings:
             self.stdout.write('No settings found.')
@@ -109,28 +109,28 @@ class Command(BaseCommand):
 
         self.stdout.write(f'Found {settings.count()} setting(s):')
         for setting in settings:
-            self.stdout.write(f'  {setting.model_name}.{setting.purpose} (ID: {setting.id}, Active: {setting.is_active})')
+            self.stdout.write(f'  {setting.model_target}.{setting.purpose} (ID: {setting.id}, Active: {setting.is_active})')
 
-    def _view_setting(self, model_name, purpose):
+    def _view_setting(self, model_target, purpose):
         """View the data for a specific setting."""
         try:
-            setting = Setting.objects.get(model_name=model_name, purpose=purpose)
-            self.stdout.write(f'Setting: {model_name}.{purpose}')
+            setting = Setting.objects.get(model_target=model_target, purpose=purpose)
+            self.stdout.write(f'Setting: {model_target}.{purpose}')
             self.stdout.write(f'ID: {setting.id}')
             self.stdout.write(f'Active: {setting.is_active}')
             self.stdout.write('Data:')
             self.stdout.write(json.dumps(setting.data, indent=2))
         except Setting.DoesNotExist:
-            self.stderr.write(f'Error: Setting {model_name}.{purpose} not found')
+            self.stderr.write(f'Error: Setting {model_target}.{purpose} not found')
 
-    def _update_baseline(self, model_name, purpose, baseline_dir, models_dir=None):
+    def _update_baseline(self, model_target, purpose, baseline_dir, models_dir=None):
         """Update a single setting from its baseline JSON file."""
         if models_dir is None:
             models_dir = os.path.join(baseline_dir, 'models')
 
         baseline_file = os.path.join(baseline_dir, f'{purpose}.json')
         if not os.path.exists(baseline_file):
-            baseline_file = os.path.join(models_dir, f'{model_name}_{purpose}.json')
+            baseline_file = os.path.join(models_dir, f'{model_target}_{purpose}.json')
 
         if not os.path.exists(baseline_file):
             self.stderr.write(f'Error: Baseline file {baseline_file} not found')
@@ -149,13 +149,13 @@ class Command(BaseCommand):
 
             # Create or update the setting
             setting, created = Setting.objects.update_or_create(
-                model_name=model_name,
+                model_target=model_target,
                 purpose=purpose,
                 defaults={'data': data, 'is_active': True}
             )
 
             self.stdout.write(
-                self.style.SUCCESS(f'Setting {model_name}.{purpose} {"created" if created else "updated"} from baseline')
+                self.style.SUCCESS(f'Setting {model_target}.{purpose} {"created" if created else "updated"} from baseline')
             )
 
         except Exception as e:
@@ -183,12 +183,12 @@ class Command(BaseCommand):
                 baseline_file = os.path.join(directory, filename)
 
                 try:
-                    # Extract model_name and purpose from filename
-                    # Format: {model_name}_{purpose}.json
+                    # Extract model_target and purpose from filename
+                    # Format: {model_target}_{purpose}.json
                     name_part = filename[:-5]  # remove .json
                     if '_refs_setup' in name_part:
                         idx = name_part.rfind('_refs_setup')
-                        model_name = name_part[:idx]
+                        model_target = name_part[:idx]
                         purpose = 'refs_setup'
                     else:
                         if '_' not in name_part:
@@ -198,7 +198,7 @@ class Command(BaseCommand):
                         if len(parts) != 2:
                             self.stderr.write(f'Skipping {filename}: invalid filename format')
                             continue
-                        model_name, purpose = parts
+                        model_target, purpose = parts
 
                     # Load JSON data
                     with open(baseline_file, 'r') as f:
@@ -213,12 +213,12 @@ class Command(BaseCommand):
 
                     # Create or update setting
                     setting, created = Setting.objects.update_or_create(
-                        model_name=model_name,
+                        model_target=model_target,
                         purpose=purpose,
                         defaults={'data': data, 'is_active': True}
                     )
 
-                    self.stdout.write(f'  {model_name}.{purpose}: {"created" if created else "updated"}')
+                    self.stdout.write(f'  {model_target}.{purpose}: {"created" if created else "updated"}')
                     processed += 1
 
                 except Exception as e:

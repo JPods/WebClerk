@@ -23,7 +23,7 @@ def load_keyword_requirements():
                 print(f"[KEYWORDS] Timeout reached, stopping keyword requirements loading")
                 break
                 
-            key = getattr(setting, 'model_name', None)
+            key = getattr(setting, 'model_target', None)
             if key:
                 requirements[key] = setting.data
         

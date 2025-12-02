@@ -9,8 +9,8 @@ class Setting(BaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
     purpose = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=255, blank=True, null=True)
-    # Canonical model identifier (model_name-only)
-    model_name = models.CharField(max_length=255, blank=True, null=True)
+    # Canonical model identifier (model_target-only)
+    model_target = models.CharField(max_length=255, blank=True, null=True)
     data = models.JSONField(blank=True, null=True)
     
 
@@ -22,21 +22,21 @@ class Setting(BaseModel):
 
     def clean(self):  # enforce canonical names when provided
         super().clean()
-        # Validate model_name if provided; accept canonical key, endpoint slug, or simple singular/plural variants.
-        target = (self.model_name or '').strip().lower() if self.model_name else None
+        # Validate model_target if provided; accept canonical key, endpoint slug, or simple singular/plural variants.
+        target = (self.model_target or '').strip().lower() if self.model_target else None
         if not target:
             return
         meta = get_model_meta(target) or get_model_meta_by_endpoint(target)
         if not meta:
-            raise ValidationError({'model_name': f"Invalid model_name '{target}'. Must be one of: {', '.join(VALID_MODEL_NAMES)}"})
+            raise ValidationError({'model_target': f"Invalid model_target '{target}'. Must be one of: {', '.join(VALID_MODEL_NAMES)}"})
         # Store canonical singular key
-        self.model_name = meta.key
+        self.model_target = meta.key
     
     def save(self, *args, **kwargs):
-        """Ensure model_name is normalized/validated even when created directly.
+        """Ensure model_target is normalized/validated even when created directly.
 
         Django doesn't call clean() automatically on save. We enforce it here so
-        records created via ORM (bypassing serializers) still store canonical model_name.
+        records created via ORM (bypassing serializers) still store canonical model_target.
         """
         # Use full_clean to include clean() and field validation; ignore unique checks at DB level.
         try:
@@ -61,7 +61,7 @@ class Setting(BaseModel):
 #QQQ look at documents as a model
 # we have settings record for each table that
 # lists the fields that are denormalized into .refs.keywords.
-# settings.model_name = canonical model name and settings.purpose = keywords
+# settings.model_target = canonical model name and settings.purpose = keywords
 # settings.data contains an object listing fields 
 # for the values to be denormalized into keywords.
 

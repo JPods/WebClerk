@@ -22,7 +22,7 @@ class Command(BaseCommand):
                 'detail': detail_fields
             }
             setting, created = Setting.objects.get_or_create(
-                model_name=model_name,
+                model_target=model_name,
                 purpose="workbench_fields",
                 defaults={'data': data}
             )

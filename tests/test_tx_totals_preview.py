@@ -20,7 +20,7 @@ def _auth(user):
 def test_preview_totals_scoped_to_kind(django_user_model):
     # Minimal permissions for headers so BasePermission passes
     for mn in ('proposal', 'sales_order'):
-        Setting.objects.create(purpose='view_edit', model_name=mn, is_active=True, data={"USER": {"view": ["id"], "edit": ["id"]}})
+        Setting.objects.create(purpose='view_edit', model_target=mn, is_active=True, data={"USER": {"view": ["id"], "edit": ["id"]}})
 
     user = django_user_model.objects.create_user(email='preview@example.com', password='pass12345', role='USER')
     client = _auth(user)

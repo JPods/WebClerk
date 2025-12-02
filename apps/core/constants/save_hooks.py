@@ -6,7 +6,7 @@ defined in Setting records with purpose='save_pre_post'.
 
 Setting record structure:
 - purpose: 'save_pre_post'
-- model_name: The model name this hook applies to (e.g., 'contact', 'proposal')
+- model_target: The model name this hook applies to (e.g., 'contact', 'proposal')
 - name: Descriptive name (e.g., 'contact_validation', 'audit_trail')
 - data: {
     'save_pre': 'Python script to execute before save (synchronous)',
@@ -24,9 +24,9 @@ Usage:
     # Execute a pre-save hook
     result = execute_save_hook('contact', 'save_pre', instance, data)
 """
-
 import logging
 from typing import Dict, Any, Optional
+
 from apps.core.services.cache_service import cache_service
 from apps.core.models.setting import Setting
 
@@ -61,10 +61,10 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
         # Load from database
         print(f"[HOOK DEBUG] Loading hooks from database for model '{model_name}'")
 
-        hooks = {}
+        hooks: Dict[str, Dict[str, Any]] = {}
         settings_qs = Setting.objects.filter(
             purpose='save_pre_post',
-            model_name=model_name,
+            model_target=model_name,
             is_active=True
         ).only('name', 'data')
 
@@ -72,7 +72,10 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
 
         for setting in settings_qs:
             hook_name = setting.name
-            print(f"[HOOK DEBUG] Processing setting: name='{hook_name}', data keys={list(setting.data.keys()) if setting.data else 'None'}")
+            print(
+                f"[HOOK DEBUG] Processing setting: name='{hook_name}', data keys="
+                f"{list(setting.data.keys()) if setting.data else 'None'}"
+            )
             if hook_name and setting.data:
                 hooks[hook_name] = setting.data
 
@@ -226,10 +229,10 @@ def get_all_save_hooks() -> Dict[str, Dict[str, Dict[str, Any]]]:
     settings_qs = Setting.objects.filter(
         purpose='save_pre_post',
         is_active=True
-    ).only('name', 'model_name', 'data')
+    ).only('name', 'model_target', 'data')
 
     for setting in settings_qs:
-        model_name = setting.model_name
+        model_name = setting.model_target
         hook_name = setting.name
 
         if model_name not in all_hooks:

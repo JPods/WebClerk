@@ -22,7 +22,7 @@ def _auth(user):
 def test_proposal_to_sales_order_action(django_user_model):
     # Minimal permission rules for Proposal (header) actions
     Setting.objects.create(
-        purpose='view_edit', model_name='proposal', is_active=True,
+        purpose='view_edit', model_target='proposal', is_active=True,
         data={"USER": {"view": ["id"], "edit": ["id"]}}
     )
     user = django_user_model.objects.create_user(email='flow1@example.com', password='pass12345', role='USER')
@@ -45,7 +45,7 @@ def test_proposal_to_sales_order_action(django_user_model):
 def test_sales_order_to_invoice_action(django_user_model):
     # Permission for SalesOrder header
     Setting.objects.create(
-        purpose='view_edit', model_name='sales_order', is_active=True,
+        purpose='view_edit', model_target='sales_order', is_active=True,
         data={"USER": {"view": ["id"], "edit": ["id"]}}
     )
     user = django_user_model.objects.create_user(email='flow2@example.com', password='pass12345', role='USER')
@@ -67,7 +67,7 @@ def test_sales_order_to_invoice_action(django_user_model):
 def test_receive_purchase_order_action(django_user_model):
     # Permission for PurchaseOrder header
     Setting.objects.create(
-        purpose='view_edit', model_name='purchase_order', is_active=True,
+        purpose='view_edit', model_target='purchase_order', is_active=True,
         data={"USER": {"view": ["id"], "edit": ["id"]}}
     )
     user = django_user_model.objects.create_user(email='flow3@example.com', password='pass12345', role='USER')
