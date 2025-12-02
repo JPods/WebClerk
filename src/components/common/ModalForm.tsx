@@ -66,26 +66,26 @@ const ModalForm: React.FC<PersonalInfoModalProps> = ({ isOpen, onClose, data = '
         <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div  className="grid grid-cols-1 gap-4">
            <div>
-                <Label>
-                    Email<span className="text-error-500">* { errors.email && errors.email.message}</span>
-                </Label>
+            <Label>
+              email<span className="text-error-500">* { errors.email && errors.email.message}</span>
+            </Label>
                 <Input
                     type="email"
                     id="email"                      
-                    placeholder="Enter your email"
+              placeholder="email"
                     {...register('email')}
                     disabled
                 />
             </div>
 
           <div>
-                <Label>
-                    Verification code<span className="text-error-500">* { errors.code && errors.code.message}</span>
-                </Label>
+            <Label>
+              code<span className="text-error-500">* { errors.code && errors.code.message}</span>
+            </Label>
                 <Input
                     type="text"
                     id="code"                      
-                    placeholder="Enter verification code"
+              placeholder="code"
                     {...register('code')}
                 />
           </div>          

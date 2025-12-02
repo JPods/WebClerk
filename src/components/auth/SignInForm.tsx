@@ -122,18 +122,18 @@ export default function SignInForm() {
               <div className="space-y-6">
                 <div>
                   <Label>
-                    Email <span className="text-error-500">* { errors.email && errors.email.message}</span>{" "}
+                    email <span className="text-error-500">* { errors.email && errors.email.message}</span>{" "}
                   </Label>
-                  <Input placeholder="info@gmail.com" {...register('email')}/>
+                  <Input placeholder="email" {...register('email')}/>
                 </div>
                 <div>
                   <Label>
-                    Password <span className="text-error-500">* { errors.password && errors.password.message} </span>{" "}
+                    password <span className="text-error-500">* { errors.password && errors.password.message} </span>{" "}
                   </Label>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
+                      placeholder="password"
                       {...register('password')}
                     />
                     <span

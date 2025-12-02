@@ -23,14 +23,13 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-
   // {
   //   icon: <CalenderIcon />,
   //   name: "Calendar",
   //   path: "/calendar",
   // },
   {
-    icon:<GridIcon />,
+    icon: <GridIcon />,
     name: "Dashboard",
     path: "/dashboard",
   },
@@ -87,13 +86,13 @@ const navItems: NavItem[] = [
     name: "Actions",
     subItems: [
       {
-         name: "Add Action", 
-         path: "/action-add",
+        name: "Add Action",
+        path: "/action-add",
       },
       {
-         name: "Action List", 
-         path: "/action-list",
-      }
+        name: "Action List",
+        path: "/action-list",
+      },
     ],
   },
   {
@@ -101,13 +100,13 @@ const navItems: NavItem[] = [
     name: "Contact",
     subItems: [
       {
-         name: "Add Contact", 
-         path: "/contact-add",
+        name: "Contact Detail",
+        path: "/contact-detail",
       },
       {
-         name: "Contact List", 
-         path: "/contact-list",
-      }
+        name: "Contact List",
+        path: "/contact-list",
+      },
     ],
   },
   {
@@ -115,27 +114,27 @@ const navItems: NavItem[] = [
     name: "Domains",
     subItems: [
       {
-         name: "Add Domain", 
-         path: "/domain-add",
+        name: "Add Domain",
+        path: "/domain-add",
       },
       {
-         name: "Domain List", 
-         path: "/domain-list",
-      }
+        name: "Domain List",
+        path: "/domain-list",
+      },
     ],
   },
-   {
+  {
     icon: <GridIcon />,
     name: "Settings",
     subItems: [
       {
-         name: "Add Setting", 
-         path: "/setting-add",
+        name: "Add Setting",
+        path: "/setting-add",
       },
       {
-         name: "Setting List", 
-         path: "/setting-list",
-      }
+        name: "Setting List",
+        path: "/setting-list",
+      },
     ],
   },
   {
