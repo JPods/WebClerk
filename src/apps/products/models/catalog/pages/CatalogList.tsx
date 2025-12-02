@@ -3,102 +3,96 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchItems } from "../services/itemApi";
+import { fetchCatalogs } from "../services/catalogApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import ItemDetail from "./ItemDetail";
+import CatalogDetail from "./CatalogDetail";
 
-export default function ItemList() {
+export default function CatalogList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedCatalog, setSelectedCatalog] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
-  const getItemData = useCallback(async () => {
+  const getCatalogData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchItems();
+      const res = await fetchCatalogs();
       if (res.status === 200) {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch items", type: "error" })
+          showToast({ message: "Failed to fetch catalogs", type: "error" })
         );
       }
     } catch (error) {
-      console.error("Failed to fetch items", error);
-      dispatch(showToast({ message: "Failed to fetch items", type: "error" }));
+      console.error("Failed to fetch catalogs", error);
+      dispatch(showToast({ message: "Failed to fetch catalogs", type: "error" }));
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getItemData();
-  }, [getItemData]);
+    getCatalogData();
+  }, [getCatalogData]);
 
   const handleView = (row: any) => {
-    setSelectedItem(row);
+    setSelectedCatalog(row);
     setFormMode("view");
   };
 
   const handleEdit = (row: any) => {
-    setSelectedItem(row);
+    setSelectedCatalog(row);
     setFormMode("edit");
   };
 
   const handleAdd = () => {
-    setSelectedItem(null);
+    setSelectedCatalog(null);
     setFormMode("add");
   };
 
   const handleFormSaved = () => {
-    getItemData();
+    getCatalogData();
     setFormMode(null);
-    setSelectedItem(null);
+    setSelectedCatalog(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedItem(null);
+    setSelectedCatalog(null);
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete item ${row.name}?`)) {
+    if (window.confirm(`Delete catalog ${row.name}?`)) {
       try {
         await deleteAction(row.id);
-        dispatch(showToast({ message: "Item deleted successfully", type: "success" }));
-        getItemData(); // Refresh data
+        dispatch(showToast({ message: "Catalog deleted successfully", type: "success" }));
+        getCatalogData(); // Refresh data
       } catch (error) {
-        dispatch(showToast({ message: "Failed to delete item", type: "error" }));
+        dispatch(showToast({ message: "Failed to delete catalog", type: "error" }));
       }
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
+  const catalogColumns: TableColumn<any>[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Name",
       selector: (row) => row.name || "--",
       sortable: true,
-      width: "25%",
+      width: "30%",
     },
     {
       name: "Description",
       selector: (row) => row.description || "--",
       sortable: true,
-      width: "30%",
-    },
-    {
-      name: "Price",
-      selector: (row) => row.price || "--",
-      sortable: true,
-      width: "15%",
+      width: "40%",
     },
     {
       name: "Category",
@@ -129,7 +123,7 @@ export default function ItemList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Item List" />
+      <PageBreadcrumb pageTitle="Catalog List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -139,12 +133,12 @@ export default function ItemList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Item
+                Add Catalog
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
               <DataTable
-                columns={userColumns.map((col) => ({
+                columns={catalogColumns.map((col) => ({
                   ...col,
                   name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
                 }))}
@@ -154,7 +148,7 @@ export default function ItemList() {
                 highlightOnHover
                 pointerOnHover
                 progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading items...</div>}
+                progressComponent={<div className="p-8 text-center">Loading catalogs...</div>}
                 onRowClicked={(row) => handleView(row)}
               />
             </div>
@@ -162,10 +156,10 @@ export default function ItemList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <ItemDetail
+            <CatalogDetail
               inline
               modeProp={formMode}
-              dataProp={selectedItem}
+              dataProp={selectedCatalog}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

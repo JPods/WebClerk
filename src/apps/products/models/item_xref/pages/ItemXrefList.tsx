@@ -3,79 +3,79 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchItems } from "../services/itemApi";
+import { fetchItemXrefs } from "../services/itemXrefApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import ItemDetail from "./ItemDetail";
+import ItemXrefDetail from "./ItemXrefDetail";
 
-export default function ItemList() {
+export default function ItemXrefList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedItemXref, setSelectedItemXref] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
-  const getItemData = useCallback(async () => {
+  const getItemXrefData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchItems();
+      const res = await fetchItemXrefs();
       if (res.status === 200) {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch items", type: "error" })
+          showToast({ message: "Failed to fetch item xrefs", type: "error" })
         );
       }
     } catch (error) {
-      console.error("Failed to fetch items", error);
-      dispatch(showToast({ message: "Failed to fetch items", type: "error" }));
+      console.error("Failed to fetch item xrefs", error);
+      dispatch(showToast({ message: "Failed to fetch item xrefs", type: "error" }));
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getItemData();
-  }, [getItemData]);
+    getItemXrefData();
+  }, [getItemXrefData]);
 
   const handleView = (row: any) => {
-    setSelectedItem(row);
+    setSelectedItemXref(row);
     setFormMode("view");
   };
 
   const handleEdit = (row: any) => {
-    setSelectedItem(row);
+    setSelectedItemXref(row);
     setFormMode("edit");
   };
 
   const handleAdd = () => {
-    setSelectedItem(null);
+    setSelectedItemXref(null);
     setFormMode("add");
   };
 
   const handleFormSaved = () => {
-    getItemData();
+    getItemXrefData();
     setFormMode(null);
-    setSelectedItem(null);
+    setSelectedItemXref(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedItem(null);
+    setSelectedItemXref(null);
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete item ${row.name}?`)) {
+    if (window.confirm(`Delete item xref ${row.id}?`)) {
       try {
         await deleteAction(row.id);
-        dispatch(showToast({ message: "Item deleted successfully", type: "success" }));
-        getItemData(); // Refresh data
+        dispatch(showToast({ message: "Item xref deleted successfully", type: "success" }));
+        getItemXrefData(); // Refresh data
       } catch (error) {
-        dispatch(showToast({ message: "Failed to delete item", type: "error" }));
+        dispatch(showToast({ message: "Failed to delete item xref", type: "error" }));
       }
     }
   };
@@ -83,26 +83,26 @@ export default function ItemList() {
   const userColumns: TableColumn<any>[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
-      name: "Name",
-      selector: (row) => row.name || "--",
+      name: "Item ID 1",
+      selector: (row) => row.item_id_1 || "--",
+      sortable: true,
+      width: "20%",
+    },
+    {
+      name: "Item ID 2",
+      selector: (row) => row.item_id_2 || "--",
+      sortable: true,
+      width: "20%",
+    },
+    {
+      name: "Relationship Type",
+      selector: (row) => row.relationship_type || "--",
       sortable: true,
       width: "25%",
     },
     {
       name: "Description",
       selector: (row) => row.description || "--",
-      sortable: true,
-      width: "30%",
-    },
-    {
-      name: "Price",
-      selector: (row) => row.price || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Category",
-      selector: (row) => row.category || "--",
       sortable: true,
       width: "20%",
     },
@@ -129,7 +129,7 @@ export default function ItemList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Item List" />
+      <PageBreadcrumb pageTitle="Item Xref List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -139,7 +139,7 @@ export default function ItemList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Item
+                Add Item Xref
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
@@ -154,7 +154,7 @@ export default function ItemList() {
                 highlightOnHover
                 pointerOnHover
                 progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading items...</div>}
+                progressComponent={<div className="p-8 text-center">Loading item xrefs...</div>}
                 onRowClicked={(row) => handleView(row)}
               />
             </div>
@@ -162,10 +162,10 @@ export default function ItemList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <ItemDetail
+            <ItemXrefDetail
               inline
               modeProp={formMode}
-              dataProp={selectedItem}
+              dataProp={selectedItemXref}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

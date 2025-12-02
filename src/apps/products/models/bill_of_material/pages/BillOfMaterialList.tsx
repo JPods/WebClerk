@@ -3,79 +3,79 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchItems } from "../services/itemApi";
+import { fetchBillOfMaterials } from "../services/billOfMaterialApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import ItemDetail from "./ItemDetail";
+import BillOfMaterialDetail from "./BillOfMaterialDetail";
 
-export default function ItemList() {
+export default function BillOfMaterialList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedBillOfMaterial, setSelectedBillOfMaterial] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
-  const getItemData = useCallback(async () => {
+  const getBillOfMaterialData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchItems();
+      const res = await fetchBillOfMaterials();
       if (res.status === 200) {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch items", type: "error" })
+          showToast({ message: "Failed to fetch bill of materials", type: "error" })
         );
       }
     } catch (error) {
-      console.error("Failed to fetch items", error);
-      dispatch(showToast({ message: "Failed to fetch items", type: "error" }));
+      console.error("Failed to fetch bill of materials", error);
+      dispatch(showToast({ message: "Failed to fetch bill of materials", type: "error" }));
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getItemData();
-  }, [getItemData]);
+    getBillOfMaterialData();
+  }, [getBillOfMaterialData]);
 
   const handleView = (row: any) => {
-    setSelectedItem(row);
+    setSelectedBillOfMaterial(row);
     setFormMode("view");
   };
 
   const handleEdit = (row: any) => {
-    setSelectedItem(row);
+    setSelectedBillOfMaterial(row);
     setFormMode("edit");
   };
 
   const handleAdd = () => {
-    setSelectedItem(null);
+    setSelectedBillOfMaterial(null);
     setFormMode("add");
   };
 
   const handleFormSaved = () => {
-    getItemData();
+    getBillOfMaterialData();
     setFormMode(null);
-    setSelectedItem(null);
+    setSelectedBillOfMaterial(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedItem(null);
+    setSelectedBillOfMaterial(null);
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete item ${row.name}?`)) {
+    if (window.confirm(`Delete bill of material ${row.name}?`)) {
       try {
         await deleteAction(row.id);
-        dispatch(showToast({ message: "Item deleted successfully", type: "success" }));
-        getItemData(); // Refresh data
+        dispatch(showToast({ message: "Bill of material deleted successfully", type: "success" }));
+        getBillOfMaterialData(); // Refresh data
       } catch (error) {
-        dispatch(showToast({ message: "Failed to delete item", type: "error" }));
+        dispatch(showToast({ message: "Failed to delete bill of material", type: "error" }));
       }
     }
   };
@@ -95,14 +95,8 @@ export default function ItemList() {
       width: "30%",
     },
     {
-      name: "Price",
-      selector: (row) => row.price || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Category",
-      selector: (row) => row.category || "--",
+      name: "Product ID",
+      selector: (row) => row.product_id || "--",
       sortable: true,
       width: "20%",
     },
@@ -129,7 +123,7 @@ export default function ItemList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Item List" />
+      <PageBreadcrumb pageTitle="Bill of Material List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -139,7 +133,7 @@ export default function ItemList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Item
+                Add Bill of Material
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
@@ -154,7 +148,7 @@ export default function ItemList() {
                 highlightOnHover
                 pointerOnHover
                 progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading items...</div>}
+                progressComponent={<div className="p-8 text-center">Loading bill of materials...</div>}
                 onRowClicked={(row) => handleView(row)}
               />
             </div>
@@ -162,10 +156,10 @@ export default function ItemList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <ItemDetail
+            <BillOfMaterialDetail
               inline
               modeProp={formMode}
-              dataProp={selectedItem}
+              dataProp={selectedBillOfMaterial}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

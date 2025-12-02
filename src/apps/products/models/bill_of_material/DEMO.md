@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Bill of Material Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\bill_of_material' directory in Git.
+This model manages bill of materials for products, listing components and quantities required.
