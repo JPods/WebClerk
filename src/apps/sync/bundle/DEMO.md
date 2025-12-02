@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Bundle Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\sync\bundle' directory in Git.
+This model manages data bundles for synchronization.

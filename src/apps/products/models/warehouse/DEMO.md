@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Warehouse Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\wirehouse' directory in Git.
+This model manages warehouse locations and inventory storage.
