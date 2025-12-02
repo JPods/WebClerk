@@ -521,8 +521,6 @@ const SvarGanttPage: React.FC = () => {
   const ganttApiRef = useRef<IApi | null>(null);
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
   const progressUpdateQueueRef = useRef<Set<string>>(new Set());
-  const pendingProgressPayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
-  const progressDebounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const updateLocalTaskProgress = useCallback((taskId: string, progressValue: number) => {
     const progressRatio = toProgressRatio(progressValue) ?? 0;
     setBoard((prev) => {
@@ -556,58 +554,6 @@ const SvarGanttPage: React.FC = () => {
       links: prev.links,
     }));
   }, []);
-
-  const resetProgressQueues = useCallback(() => {
-    progressUpdateQueueRef.current.clear();
-    pendingProgressPayloadRef.current.clear();
-    progressDebounceTimersRef.current.forEach((timer) => {
-      clearTimeout(timer);
-    });
-    progressDebounceTimersRef.current.clear();
-  }, []);
-
-  const processQueuedProgressUpdate = useCallback((taskId: string) => {
-    if (progressUpdateQueueRef.current.has(taskId)) {
-      return;
-    }
-    const payload = pendingProgressPayloadRef.current.get(taskId);
-    if (!payload) {
-      return;
-    }
-    pendingProgressPayloadRef.current.delete(taskId);
-    progressUpdateQueueRef.current.add(taskId);
-
-    const syncProgress = async () => {
-      try {
-        await patchAction(payload);
-      } catch (error) {
-        console.error("Failed to sync task progress", error);
-      } finally {
-        progressUpdateQueueRef.current.delete(taskId);
-        if (pendingProgressPayloadRef.current.has(taskId)) {
-          processQueuedProgressUpdate(taskId);
-        }
-      }
-    };
-
-    void syncProgress();
-  }, []);
-
-  const scheduleProgressUpdate = useCallback(
-    (taskId: string, payload: Record<string, unknown>) => {
-      pendingProgressPayloadRef.current.set(taskId, payload);
-      const existingTimer = progressDebounceTimersRef.current.get(taskId);
-      if (existingTimer) {
-        clearTimeout(existingTimer);
-      }
-      const timer = setTimeout(() => {
-        progressDebounceTimersRef.current.delete(taskId);
-        processQueuedProgressUpdate(taskId);
-      }, 400);
-      progressDebounceTimersRef.current.set(taskId, timer);
-    },
-    [processQueuedProgressUpdate]
-  );
 
   const resolveDefaultColumnId = useCallback(
     () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
@@ -947,62 +893,6 @@ const SvarGanttPage: React.FC = () => {
     [board.columns]
   );
 
-  const handleSvarTaskUpdate = useCallback(
-    (event?: { id?: string | number; task?: Partial<ITask>; inProgress?: boolean; eventSource?: string }) => {
-      if (!event || usingFallback || event.inProgress) {
-        return;
-      }
-
-      const taskId = event.id !== undefined ? String(event.id) : "";
-      if (!taskId) {
-        return;
-      }
-
-      const updatedProgress = event.task?.progress;
-      if (typeof updatedProgress !== "number") {
-        return;
-      }
-
-      const targetTask = board.tasks[taskId];
-      if (!targetTask) {
-        return;
-      }
-
-      const normalizedProgress = toProgressPercentage(updatedProgress);
-      const previousProgress =
-        typeof targetTask.progress === "number"
-          ? Math.max(0, Math.min(100, Math.round(targetTask.progress)))
-          : 0;
-
-      if (normalizedProgress === previousProgress) {
-        return;
-      }
-
-      updateLocalTaskProgress(taskId, normalizedProgress);
-
-      const updatedTask: KanbanTask = { ...targetTask, progress: normalizedProgress };
-      const derivedState = deriveFormStateFromTask(updatedTask, {
-        progress: String(normalizedProgress),
-      });
-      const payloadResult = buildEditActionPayload(derivedState, updatedTask);
-      if ("error" in payloadResult) {
-        console.warn("Unable to sync task progress", payloadResult.error);
-        return;
-      }
-
-      scheduleProgressUpdate(taskId, payloadResult.payload);
-      return true;
-    },
-    [
-      board.tasks,
-      buildEditActionPayload,
-      deriveFormStateFromTask,
-      scheduleProgressUpdate,
-      updateLocalTaskProgress,
-      usingFallback,
-    ]
-  );
-
   const handleOpenEditModal = useCallback(
     (task: KanbanTask | null) => {
       if (!task || usingFallback) {
@@ -1049,7 +939,6 @@ const SvarGanttPage: React.FC = () => {
         setColumnFilters(fallback.filters);
         setUsingFallback(true);
         setBoard(createEmptyBoardData());
-        resetProgressQueues();
         return;
       }
 
@@ -1062,7 +951,6 @@ const SvarGanttPage: React.FC = () => {
         setColumnFilters(fallback.filters);
         setUsingFallback(true);
         setBoard(createEmptyBoardData());
-        resetProgressQueues();
         return;
       }
 
@@ -1070,7 +958,6 @@ const SvarGanttPage: React.FC = () => {
       setFullDataset(mapped);
       setColumnFilters(mapped.filters);
       setUsingFallback(false);
-      resetProgressQueues();
     } catch (error) {
       console.error("Failed to fetch gantt tasks", error);
       setFetchError("Unable to load tasks from the API. Showing sample data.");
@@ -1079,11 +966,10 @@ const SvarGanttPage: React.FC = () => {
       setColumnFilters(fallback.filters);
       setUsingFallback(true);
       setBoard(createEmptyBoardData());
-      resetProgressQueues();
     } finally {
       setIsLoading(false);
     }
-  }, [resetProgressQueues]);
+  }, []);
 
   const handleEditTaskSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -1319,9 +1205,8 @@ const SvarGanttPage: React.FC = () => {
       if (ganttApiRef.current) {
         ganttApiRef.current.detach(GANTT_COLOR_EVENT_TAG);
       }
-      resetProgressQueues();
     };
-  }, [resetProgressQueues]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -1466,7 +1351,6 @@ const SvarGanttPage: React.FC = () => {
                   columns={ganttColumns}
                   scales={activeScales}
                   onShowEditor={handleShowEditor}
-                  onUpdateTask={handleSvarTaskUpdate}
                   init={(api) => {
                     ganttApiRef.current = api;
                     api.detach(GANTT_COLOR_EVENT_TAG);

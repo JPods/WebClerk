@@ -56,4 +56,14 @@ export class PageRoutes {
   static readonly transactionsProposals: string = "/transactions/proposals";
   static readonly transactionsProposalDetail: string =
     "/transactions/proposals/:id";
+
+  // Accounts
+  static readonly auditList: string = "/accounts/audit/list";
+  static readonly auditDisplay: string = "/accounts/audit/display/:id?";
+  static readonly currencyList: string = "/accounts/currency/list";
+  static readonly currencyDisplay: string = "/accounts/currency/display/:id?";
+  static readonly exchangeRateList: string = "/accounts/exchange-rate/list";
+  static readonly exchangeRateDisplay: string = "/accounts/exchange-rate/display/:id?";
+  static readonly exchangeTransactionList: string = "/accounts/exchange-transaction/list";
+  static readonly exchangeTransactionDisplay: string = "/accounts/exchange-transaction/display/:id?";
 }
