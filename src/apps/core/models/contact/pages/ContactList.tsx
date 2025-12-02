@@ -113,19 +113,19 @@ export default function ContactList() {
       name: "Name First",
       selector: (row) => row.name_first || "--",
       sortable: true,
-      width: "15%",
+      width: "13%",
     },
     {
       name: "Name Last",
       selector: (row) => row.name_last || "--",
       sortable: true,
-      width: "15%",
+      width: "13%",
     },
     {
       name: "Company",
       selector: (row) => row.company || "--",
       sortable: true,
-      width: "10%",
+      width: "15%",
     },
     {
       name: "Role",
