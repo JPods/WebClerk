@@ -1,88 +1,79 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
-//import { createTheme } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchContacts } from "../services/contactApi";
-import { dynamicData } from "../../../../../model/dynamicData";
-import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
+import { fetchReports } from "../services/reportApi";
+import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import ContactAdd from "./ContactDetail";
+import ReportDetail from "./ReportDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
 
-export default function ContactList() {
+export default function ReportList() {
   const { theme } = useTheme();
-  const [data, setData] = useState<dynamicData[]>([]);
-  const [selectedContact, setSelectedContact] = useState<dynamicData | null>(
-    null
-  );
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
-  );
+  const [data, setData] = useState<any[]>([]);
+  const [selectedReport, setSelectedReport] = useState<any | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
 
   const dispatch = useDispatch();
-  console.log("data", data);
-  const getContactData = useCallback(async () => {
+
+  const getReportData = useCallback(async () => {
     try {
-      const res = await fetchContacts();
+      const res = await fetchReports();
       if (res.status === 200) {
-        console.log(res.data.results);
-        setData(res.data.results);
+        setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch contacts", type: "error" })
+          showToast({ message: "Failed to fetch reports", type: "error" })
         );
       }
     } catch (error) {
-      console.error("Failed to fetch contacts", error);
+      console.error("Failed to fetch reports", error);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getContactData();
-  }, [getContactData]);
+    getReportData();
+  }, [getReportData]);
 
-  const handleView = (row: dynamicData) => {
-    setSelectedContact(row);
+  const handleView = (row: any) => {
+    setSelectedReport(row);
     setFormMode("view");
   };
 
-  const handleEdit = async (row: dynamicData) => {
-    const res = await fetchContacts(row.id);
-    if (res.status === 200) setSelectedContact(res.data.item);
-    else setSelectedContact(row);
+  const handleEdit = async (row: any) => {
+    const res = await fetchReports(row.id);
+    if (res.status === 200) setSelectedReport(res.data.item);
+    else setSelectedReport(row);
     setFormMode("edit");
-    console.log("res", res);
   };
 
-  console.log("res.data.items", selectedContact);
   const handleAdd = () => {
-    setSelectedContact(null);
+    setSelectedReport(null);
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete contact ${row.name_first}?`)) {
+  const handleDelete = async (row: any) => {
+    if (window.confirm(`Delete report ${row.title}?`)) {
       try {
         await deleteAction(row.id);
         dispatch(
           showToast({
-            message: "Contact deleted successfully",
+            message: "Report deleted successfully",
             type: "success",
           })
         );
-        getContactData(); // Refresh data
-        if (selectedContact && selectedContact.id === row.id) {
+        getReportData(); // Refresh data
+        if (selectedReport && selectedReport.id === row.id) {
           setFormMode(null);
-          setSelectedContact(null);
+          setSelectedReport(null);
         }
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete contact" + error,
+            message: "Failed to delete report" + error,
             type: "error",
           })
         );
@@ -91,68 +82,43 @@ export default function ContactList() {
   };
 
   const handleFormSaved = () => {
-    getContactData();
+    getReportData();
     setFormMode(null);
-    setSelectedContact(null);
+    setSelectedReport(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedContact(null);
+    setSelectedReport(null);
   };
 
-  const userColumns: TableColumn<dynamicData>[] = [
+  const userColumns: TableColumn<any>[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
-      name: "Email",
-      selector: (row) => row.email || "--",
+      name: "Title",
+      selector: (row) => row.title || "--",
+      sortable: true,
+      width: "20%",
+    },
+    {
+      name: "Type",
+      selector: (row) => row.type || "--",
       sortable: true,
       width: "15%",
     },
     {
-      name: "Name First",
-      selector: (row) => row.name_first || "--",
+      name: "Description",
+      selector: (row) => row.description || "--",
       sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Name Last",
-      selector: (row) => row.name_last || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Company",
-      selector: (row) => row.company || "--",
-      sortable: true,
-      width: "10%",
-    },
-    {
-      name: "Role",
-      selector: (row) => row.role || "--",
-      sortable: true,
-      width: "10%",
+      width: "30%",
     },
     {
       name: "Is Active",
-      selector: (row) => (row.is_active ? "Active" : "Inactive"), // Plain string for filtering
+      selector: (row) => (row.is_active ? "Active" : "Inactive"),
       cell: (row) => (
         <>
           <Badge size="sm" color={row.is_active ? "success" : "warning"}>
             {row.is_active ? "Active" : "Inactive"}
-          </Badge>
-        </>
-      ),
-      sortable: true,
-      width: "10%",
-    },
-    {
-      name: "Is Staff",
-      selector: (row) => (row.is_staff ? "Active" : "Inactive"), // Plain string for filtering
-      cell: (row) => (
-        <>
-          <Badge size="sm" color={row.is_staff ? "success" : "warning"}>
-            {row.is_staff ? "Active" : "Inactive"}
           </Badge>
         </>
       ),
@@ -169,9 +135,9 @@ export default function ContactList() {
           <button onClick={() => handleEdit(row)} title="Edit">
             <FaEdit className="text-green-600 hover:scale-110 transition" />
           </button>
-          {/* <button onClick={() => handleDelete(row)} title="Delete">
+          <button onClick={() => handleDelete(row)} title="Delete">
             <FaTrash className="text-red-600 hover:scale-110 transition" />
-          </button> */}
+          </button>
         </div>
       ),
       ignoreRowClick: true,
@@ -182,7 +148,7 @@ export default function ContactList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Contact List" />
+      <PageBreadcrumb pageTitle="Report List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -192,7 +158,7 @@ export default function ContactList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Contact
+                Add Report
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
@@ -210,7 +176,7 @@ export default function ContactList() {
                 highlightOnHover
                 pointerOnHover
                 progressComponent={
-                  <div className="p-8 text-center">Loading contacts...</div>
+                  <div className="p-8 text-center">Loading reports...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
               />
@@ -219,10 +185,10 @@ export default function ContactList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <ContactAdd
+            <ReportDetail
               inline
               modeProp={formMode}
-              dataProp={selectedContact}
+              dataProp={selectedReport}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

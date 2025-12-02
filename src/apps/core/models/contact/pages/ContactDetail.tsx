@@ -8,11 +8,7 @@ import Label from "../../../../../components/form/Label";
 import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import {
-  getByTypeAndId,
-  patchAction,
-  postAction,
-} from "../../../../../api/userProfile";
+import { getByTypeAndId } from "../../../../../api/userProfile";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -31,7 +27,6 @@ export default function ContactDetail({
   onCancelInline,
 }: ContactAddProps) {
   const dispatch = useDispatch();
-  const { user } = useAppSelector((state) => state.auth);
 
   const {
     register,
@@ -49,7 +44,6 @@ export default function ContactDetail({
   const routeState = (location.state as any) || {};
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
-  const [linkedLists, setLinkedLists] = useState<Record<string, any[]>>({});
   useEffect(() => {
     if (mode === "add") {
       reset();
@@ -60,37 +54,9 @@ export default function ContactDetail({
         }
       });
       // Fetch linked lists by ids if present: data.refs.links
-      const links = (data as any)?.refs?.links as
-        | Record<string, (string | number)[]>
-        | undefined;
-      if (links) {
-        const fetchAll = async () => {
-          const entries: Array<[string, any[]]> = await Promise.all(
-            Object.entries(links).map(
-              async ([key, ids]): Promise<[string, any[]]> => {
-                if (!Array.isArray(ids) || ids.length === 0) return [key, []];
-                // Fetch each id and flatten
-                const results = await Promise.all(
-                  ids.map((id) => getByTypeAndId(key, id))
-                );
-                const flat = (results as any[]).flat().filter(Boolean) as any[];
-                return [key, flat];
-              }
-            )
-          );
-          const map: Record<string, any[]> = {};
-          entries.forEach(([k, v]) => {
-            map[k] = v;
-          });
-          setLinkedLists(map);
-        };
-        fetchAll();
-      } else {
-        setLinkedLists({});
-      }
+      // Commented out as linked data is not displayed
     } else {
       reset({});
-      setLinkedLists({});
     }
   }, [data, reset, setValue, mode]);
   console.log("errors", errors);
@@ -241,7 +207,7 @@ export default function ContactDetail({
                   errors.name_first && errors.name_first.message ? true : false
                 }
                 hint={errors.name_first && errors.name_first.message}
-                disabled={mode === "view"}
+                disabled={false}
               />
             </div>
             <div>
@@ -255,7 +221,7 @@ export default function ContactDetail({
                   errors.name_last && errors.name_last.message ? true : false
                 }
                 hint={errors.name_last && errors.name_last.message}
-                disabled={mode === "view"}
+                disabled={false}
               />
             </div>
 
