@@ -61,10 +61,7 @@
   - [15. Tracking Template (Copy For Each Ticket)](#15-tracking-template-copy-for-each-ticket)
   - [16. Recently Completed (Reference)](#16-recently-completed-reference)
   - [17. Unified Response Envelope Adoption (Historical Timeline)](#17-unified-response-envelope-adoption-historical-timeline)
-    - [Deprecation Plan (Raw Mode)](#deprecation-plan-raw-mode)
     - [Client Migration Guidance](#client-migration-guidance)
-    - [Adding New Error Codes](#adding-new-error-codes)
-    - [Backward Compatibility Window](#backward-compatibility-window)
   - [18. Next Steps](#18-next-steps)
 
 <!-- TOC END -->
@@ -482,26 +479,14 @@ Risk & Mitigation:
 | 2025-08 (late) | Middleware prototype auto-wrapped DRF responses | `?raw=1` transitional flag introduced |
 | 2025-09-01 | Global enforcement (middleware + exception handlers) | All endpoints standardized |
 | 2025-09-01 | Raw mode default disabled | `API_ENVELOPE_ALLOW_RAW=1` required locally |
-| 2025-09-02 | Legacy key bubbling removed | Tests must use payload['data'][...] (no top-level mirrors) |
-| TBD | Raw mode fully removed | Env flag ignored; code deleted |
-
-### Deprecation Plan (Raw Mode)
-
-1. Current (env-gated). 2. Optional warning phase. 3. Removal & minor version bump.
+| 2025-09-02 | Legacy key bubbling removed | Tests must use `payload['data'][...]` (no top-level mirrors) |
+| 2025-12-02 | Raw mode removed | `?raw=1` ignored; env flag deleted |
 
 ### Client Migration Guidance
 
-- Treat every payload as enveloped.
+- Treat every payload as enveloped; `?raw=1` has no effect.
 - Use `error.code` not message text.
 - Ignore unknown `meta` keys.
-
-### Adding New Error Codes
-
-1. Map exception → code. 2. Add contract test. 3. Document here + README. 4. If renaming, support alias for one release.
-
-### Backward Compatibility Window
-
-Target ≤ 2 weeks from enforcement unless integrators object.
 
 ---
 

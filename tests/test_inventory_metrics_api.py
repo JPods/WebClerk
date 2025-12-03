@@ -33,12 +33,13 @@ class InventoryMetricsAPITests(TestCase):
         self.assertIn('soonest_expiry_in_s', reservations)
         self.assertIn('samples', body['data'])
 
-    def test_metrics_endpoint_raw(self):
+    def test_metrics_endpoint_ignores_raw_param(self):
         create_reservation(self.stack, Decimal('2'), ttl_seconds=300)
         resp = self.client.get('/products/inventory/metrics/?raw=1')
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
-        self.assertIn('data', body)  # transitional raw still wrapped
+        self.assertIn('status', body)
+        self.assertIn('data', body)
         reservations = body['data']['reservations']
         self.assertIn('avg_pending_ttl_s', reservations)
         self.assertIn('soonest_expiry_in_s', reservations)

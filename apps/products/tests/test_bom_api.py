@@ -41,9 +41,9 @@ def test_bom_list_create(client):
     assert resp.status_code == 200
     body = resp.json()
     assert len(body['data'].get('results', [])) == 1
-    # Raw mode deprecated: ?raw=1 still returns enveloped structure
+    # Raw query parameter is ignored; responses remain enveloped
     raw_resp = client.get(url + '?raw=1')
     raw_body = raw_resp.json()
     assert raw_body.get('status') == 'success'
-    # raw=1 returns list payload inside data for BOM endpoint
-    assert isinstance(raw_body.get('data'), list)
+    assert isinstance(raw_body.get('data'), dict)
+    assert 'results' in raw_body['data']

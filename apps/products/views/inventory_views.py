@@ -23,9 +23,6 @@ from common.http.mixins import BaseJSONAPIView
 
 
 @extend_schema(
-    parameters=[
-        OpenApiParameter(name='raw', description='Return raw JSON without envelope', required=False, type=str),
-    ],
     responses={200: InventoryReservationSerializer},
     examples=[
         OpenApiExample(
@@ -50,7 +47,6 @@ class InventoryAvailabilityView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, stack_id: int):
-        raw_flag = request.query_params.get('raw') == '1'
         stack = get_object_or_404(InventoryLayer, pk=stack_id)
         available = availability_for_stack(stack)
         # Related FK ids (item_id / warehouse_id) may not be annotated on instance if custom manager; access via related objects for safety.
@@ -61,9 +57,7 @@ class InventoryAvailabilityView(APIView):
             'remaining_qty': float(Decimal(str(stack.remaining_qty()))),
             'available_qty': float(Decimal(str(available))),
         }
-        if raw_flag:
-            return Response(payload)
-        return api_response(data=payload, raw=raw_flag)
+        return api_response(data=payload)
 
 
 @extend_schema(
@@ -97,12 +91,9 @@ class InventoryReservationCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        raw_flag = request.query_params.get('raw') == '1'
         serializer = ReservationCreateSerializer(data=request.data)
         if not serializer.is_valid():
-            if raw_flag:
-                return Response(serializer.errors, status=400)
-            return api_response(success=False, status_code=400, message='Validation error', error={'fields': serializer.errors}, raw=raw_flag)
+            return api_response(success=False, status_code=400, message='Validation error', error={'fields': serializer.errors})
         data = cast(dict, serializer.validated_data)
         stack = get_object_or_404(InventoryLayer, pk=data['stack_id'])
         try:
@@ -114,13 +105,9 @@ class InventoryReservationCreateView(APIView):
                 context=(data.get('ctx') if isinstance(data.get('ctx'), dict) else {}),
             )
         except ValueError as e:
-            if raw_flag:
-                return Response({'error': str(e)}, status=400)
-            return api_response(success=False, status_code=400, message=str(e), raw=raw_flag)
+            return api_response(success=False, status_code=400, message=str(e))
         out = InventoryReservationSerializer(reservation).data
-        if raw_flag:
-            return Response(out, status=201)
-        return api_response(data=out, status_code=201, raw=raw_flag)
+        return api_response(data=out, status_code=201)
 
 
 @extend_schema(
@@ -156,25 +143,22 @@ class InventoryReservationActionView(BaseJSONAPIView):
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
-        raw_flag = request.query_params.get('raw') == '1'
         body = request.data or {}
         rid = body.get("reservation_id")
         action = (body.get("action") or "").lower()
         if action not in ("commit", "cancel"):
-            return api_response(success=False, status_code=400, message="Unsupported action.", raw=raw_flag)
+            return api_response(success=False, status_code=400, message="Unsupported action.")
 
         state_val = "committed" if action == "commit" else "canceled"
         # Stub: idempotent success with expected shape
         return api_response(
             data={"id": rid, "state": state_val},
             status_code=200,
-            raw=raw_flag,
         )
 
 
 @extend_schema(
     parameters=[
-        OpenApiParameter(name='raw', description='Return raw JSON without envelope', required=False, type=str),
         OpenApiParameter(name='samples', description='Include sample rows (1 to enable)', required=False, type=str),
     ],
     examples=[
@@ -228,12 +212,9 @@ class InventoryMetricsView(APIView):
         description="Summarized inventory metrics including reservations, stacks, protection, and processor runs.",
     )
     def get(self, request):
-        raw_flag = request.query_params.get('raw') == '1'
         samples_flag = request.query_params.get('samples') == '1'
         metrics = summarize_inventory_metrics(include_samples=samples_flag)
-        if raw_flag:
-            return Response(metrics)
-        return api_response(data=metrics, raw=raw_flag)
+        return api_response(data=metrics)
 
 
 class InventoryPrometheusMetricsView(APIView):

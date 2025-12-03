@@ -246,7 +246,6 @@ Path: `/products/inventory/metrics/`
 
 Query params:
 
-- `raw=1` return bare JSON (no envelope)
 - `samples=1` include sample pending adjustments and active reservations
 
 Response (key sections):

@@ -4,7 +4,7 @@ import os
 import re
 import uuid
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
@@ -14,7 +14,6 @@ from email.utils import parsedate_to_datetime
 try:
     from django.utils.http import parse_http_date_safe  # type: ignore
 except Exception:
-    from typing import Optional
     def parse_http_date_safe(value: str) -> Optional[int]:
         try:
             dt = parsedate_to_datetime(value)
@@ -34,9 +33,6 @@ _LM_CACHE: Dict[str, str] = {}
 EXEMPT_PATH_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PATH_PREFIXES', ('/admin/', '/admin-django/', '/static/', '/media/', '/api/docs/')))
 HTML_PAGE_PATHS_EXACT: set[str] = set(getattr(settings, 'HTML_EXEMPT_PATHS_EXACT', ('/', '/about/', '/signup/', '/login/', '/logout/')))
 HTML_PAGE_PREFIXES: tuple[str, ...] = tuple(getattr(settings, 'HTML_EXEMPT_PAGE_PREFIXES', ('/manage/', '/user/', '/manager/')))
-
-def _allow_raw_query() -> bool:
-    return os.environ.get('API_ENVELOPE_ALLOW_RAW', '0') == '1'
 
 # In-test (pytest) registry of envelope skips for reporting. Bounded to avoid memory blow-up.
 ENVELOPE_SKIPS: list[dict] = []  # each: {'path': str, 'reason': str, 'status': int}
@@ -72,6 +68,8 @@ def _ensure_rendered(response):
             response.render()  # type: ignore[attr-defined]
     except Exception:
         pass
+
+from common.api_responses import build_api_envelope
 
 logger = logging.getLogger('request')
 console_logger = logging.getLogger('console')  # New console logger
@@ -110,132 +108,131 @@ class RequestLogMiddleware(MiddlewareMixin):
 
 
 class AutoEnvelopeMiddleware(MiddlewareMixin):
-    """Wrap plain JSON (dict/list) responses in the unified envelope unless already wrapped.
+    """Ensure every JSON response conforms to the canonical ApiEnvelope structure."""
 
-    Skips:
-      * Exempt path prefixes (/admin/, /static/, /media/)
-      * Requests under /wcapi/ (internal wcapi endpoints expect raw JSON shape in tests)
-      * Requests with ?raw=1 (explicit opt-out)
-      * Responses where view sets request._skip_envelope = True
-      * Responses whose top-level dict already contains an envelope
-    """
+    _SCHEMA_PATH_PREFIXES = ('/api/schema/', '/api/swagger/', '/api/redoc/')
 
-    def _already_enveloped(self, data: Any) -> bool:
-        # Treat both legacy and new envelopes as already-wrapped
-        if not isinstance(data, dict):
-            return False
-        keys = set(data.keys())
-        if {'status', 'code', 'data'}.issubset(keys):
-            return True
-        if 'ok' in keys and (('data' in keys) or ('items' in keys) or ('results' in keys) or ('item' in keys)):
-            return True
-        return False
-
-    def process_response(self, request, response):  # pragma: no cover
+    def _is_json_response(self, response) -> bool:
         try:
-            path = ''
-            try:
-                path = request.path or ''
-            except Exception:
-                path = ''
+            ctype = response.get('Content-Type', '')
+        except Exception:
+            ctype = ''
+        return 'application/json' in ctype or hasattr(response, 'data')
 
-            # Skip envelope on documentation/schema endpoints to keep raw OpenAPI spec
-            if path.startswith(('/api/schema/', '/api/swagger/', '/api/redoc/')):
+    def _extract_payload(self, response):
+        try:
+            payload = getattr(response, 'data', None)
+        except Exception:
+            payload = None
+        if payload is not None:
+            return payload
+        try:
+            body = response.content.decode('utf-8')
+            return json.loads(body) if body else {}
+        except Exception:
+            return None
+
+    def _already_enveloped(self, response, payload) -> bool:
+        if getattr(response, '_api_enveloped', False):
+            return True
+        if not isinstance(payload, dict):
+            return False
+        keys = set(payload.keys())
+        return {'status', 'code', 'data'}.issubset(keys)
+
+    def _split_payload(self, payload: Any, status_code: int):
+        """Return (message, data, error) tuples derived from bare DRF payloads."""
+        if not isinstance(payload, dict):
+            return '', payload, None
+
+        data_copy: Dict[str, Any] = dict(payload)
+
+        message = str(data_copy.pop('message', '') or '')
+
+        raw_error = data_copy.pop('error', None)
+        errors_list = data_copy.pop('errors', None)
+        if raw_error is None and errors_list is not None:
+            raw_error = {'code': 'validation_error', 'details': errors_list}
+
+        detail = data_copy.pop('detail', None)
+        if status_code >= 400:
+            if raw_error is None and detail is not None:
+                err_code = data_copy.pop('code', None) or 'detail'
+                raw_error = {'code': err_code, 'details': detail}
+            if not message and detail is not None:
+                message = str(detail)
+        elif detail is not None:
+            data_copy['detail'] = detail
+
+        error = self._normalize_error(raw_error)
+        if not message and isinstance(error, dict):
+            details = error.get('details')
+            if isinstance(details, str):
+                message = details
+        elif not message and isinstance(raw_error, str):
+            message = raw_error
+
+        data_payload = data_copy if data_copy else None
+        return message, data_payload, error
+
+    @staticmethod
+    def _normalize_error(raw: Any):
+        if raw in (None, ''):
+            return None
+        if isinstance(raw, dict):
+            return raw
+        if isinstance(raw, (list, tuple)):
+            return {'code': 'error_list', 'details': list(raw)}
+        return {'code': str(raw), 'details': None}
+
+    def _write_payload(self, response, payload: Dict[str, Any]):
+        try:
+            setattr(response, 'data', payload)
+        except Exception:
+            pass
+        try:
+            response.content = json.dumps(payload).encode('utf-8')
+            response['Content-Type'] = 'application/json'
+        except Exception:
+            pass
+        setattr(response, '_api_enveloped', True)
+
+    def process_response(self, request, response):  # pragma: no cover (integration focused)
+        try:
+            path = getattr(request, 'path', '') or ''
+
+            if any(path.startswith(p) for p in self._SCHEMA_PATH_PREFIXES):
                 return response
 
-            # Short-circuit: v2 actions detail does not support PATCH -> make it 405 so test skips
-            try:
-                if request.method == 'PATCH' and re.match(r'^/actions/std/\d+/?$', path):
-                    from django.http import JsonResponse
-                    return JsonResponse(
-                        {"status": "fail", "error": {"code": "method_not_allowed"}, "code": 405, "message": "Method not allowed", "data": None},
-                        status=405,
-                    )
-            except Exception:
-                pass
-
-            # Do not modify error responses; preserve 4xx/5xx statuses
-            if getattr(response, "status_code", 200) >= 400:
+            skip_envelope, skip_reason = _should_skip_envelope(request, response)
+            if skip_envelope:
+                if skip_reason:
+                    _record_skip(path, skip_reason, getattr(response, 'status_code', 200))
                 return response
 
-            # Skip wcapi endpoints or explicit skip flags/headers
-            try:
-                if (request.path or "").startswith("/wcapi/"):
-                    return response
-            except Exception:
-                pass
-            try:
-                # Reuse shared skip detector
-                if _should_skip_envelope(request, response):
-                    return response
-            except Exception:
-                pass
-
-            wants_json = (request.GET.get('format') == 'json')
-            ctype = response.get("Content-Type", "")
-            if ("application/json" not in ctype) and not wants_json:
+            if is_exempt_path(path):
                 return response
 
-            # Load JSON payload
-            try:
-                payload = getattr(response, "data", None)
-            except Exception:
-                payload = None
+            if not self._is_json_response(response):
+                return response
+
+            payload = self._extract_payload(response)
             if payload is None:
-                try:
-                    body = response.content.decode("utf-8")
-                    payload = json.loads(body) if body else {}
-                except Exception:
-                    payload = {}
+                return response
 
-            # Already enveloped?
-            if isinstance(payload, dict):
-                keys = set(payload.keys())
-                if {'status', 'code', 'data'}.issubset(keys) or ('ok' in keys and ('data' in keys or 'results' in keys or 'items' in keys or 'item' in keys)):
-                    # Normalize top-level results if present without data
-                    if 'results' in keys and 'data' not in keys:
-                        payload = {"ok": payload.get("ok", True), "data": {"results": payload["results"]}, **({k: v for k, v in payload.items() if k not in {"results", "ok"}})}
-                    # Ensure both items and results if present
-                    if 'data' in payload and isinstance(payload['data'], dict) and 'results' in payload['data'] and 'items' not in payload['data']:
-                        payload['data']['items'] = payload['data']['results']
-                    # Write back to content and DRF data
-                    response.content = json.dumps(payload).encode("utf-8")
-                    response["Content-Type"] = "application/json"
-                    try:
-                        setattr(response, "data", payload)
-                    except Exception:
-                        pass
-                    return response
+            status_code = getattr(response, 'status_code', 200)
 
-            # Normalize into envelope; map items->results if needed
-            if isinstance(payload, dict):
-                ok = bool(getattr(response, "status_code", 200) < 400)
-                if 'items' in payload and 'data' not in payload:
-                    payload = {"ok": ok, "data": {"results": payload['items'], "items": payload['items']}, **{k: v for k, v in payload.items() if k != 'items'}}
-                elif 'results' in payload and 'data' not in payload:
-                    payload = {"ok": ok, "data": {"results": payload['results'], "items": payload['results']}, **{k: v for k, v in payload.items() if k != 'results'}}
-                elif 'data' not in payload:
-                    payload = {"ok": ok, "data": payload}
-                else:
-                    # Ensure both keys inside data
-                    if isinstance(payload['data'], dict):
-                        if 'results' in payload['data'] and 'items' not in payload['data']:
-                            payload['data']['items'] = payload['data']['results']
-                        if 'items' in payload['data'] and 'results' not in payload['data']:
-                            payload['data']['results'] = payload['data']['items']
-            else:
-                payload = {"ok": True, "data": payload}
+            if self._already_enveloped(response, payload):
+                # Normalize message/error to canonical keys if needed
+                return response
 
-            response.content = json.dumps(payload).encode("utf-8")
-            response["Content-Type"] = "application/json"
-            try:
-                setattr(response, "data", payload)
-            except Exception:
-                pass
+            message, data_payload, error = self._split_payload(payload, status_code)
+
+            envelope = build_api_envelope(data=data_payload, message=message, status_code=status_code, error=error)
+            self._write_payload(response, envelope)
             return response
         except Exception:
             return response
-        return response
 
 
 class ExceptionAsJsonMiddleware(MiddlewareMixin):
@@ -347,24 +344,24 @@ class WCAPISearchGuardMiddleware:
                     return JsonResponse({'detail': 'forbidden'}, status=403)
         return self.get_response(request)
 
-def _should_skip_envelope(request, response) -> bool:
+def _should_skip_envelope(request, response) -> Tuple[bool, Optional[str]]:
     try:
         # Response attributes or headers
         if getattr(response, "_skip_envelope", False) or getattr(response, "skip_envelope", False):
-            return True
+            return True, 'response_flag'
         hdrs = {k.lower(): v for k, v in getattr(response, "headers", {}).items()} if hasattr(response, "headers") else {}
         if response.get("X-Skip-Envelope") == "skip" or hdrs.get("x-skip-envelope") == "skip":
-            return True
+            return True, 'response_header'
         # Request headers
         meta = getattr(request, "META", {}) or {}
         if meta.get("HTTP_X_SKIP_ENVELOPE") == "skip" or meta.get("HTTP_X_ENVELOPE") == "skip":
-            return True
+            return True, 'request_header'
         # Optional per-view opt-out
         if getattr(request, "skip_envelope", False):
-            return True
+            return True, 'view_flag'
     except Exception:
         pass
-    return False
+    return False, None
 
 class EnvelopeMiddleware:
     def __init__(self, get_response):
@@ -373,8 +370,10 @@ class EnvelopeMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         try:
-            # Skip if flagged
-            if _should_skip_envelope(request, response):
+            skip_envelope, skip_reason = _should_skip_envelope(request, response)
+            if skip_envelope:
+                if skip_reason:
+                    _record_skip(getattr(request, 'path', '') or '', skip_reason, getattr(response, 'status_code', 200))
                 return response
         except Exception:
             pass

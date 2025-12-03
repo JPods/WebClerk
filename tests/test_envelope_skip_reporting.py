@@ -20,5 +20,5 @@ def test_envelope_skip_registry_exposed(client, settings):
     # Import registry from middleware
     from common.middleware import ENVELOPE_SKIPS
     assert any(s['reason'] == 'exempt_path' for s in ENVELOPE_SKIPS)
-    # raw_query should NOT appear unless env var API_ENVELOPE_ALLOW_RAW=1 is set
+    # raw_query should never appear now that the opt-out path is removed
     assert not any(s['reason'] == 'raw_query' for s in ENVELOPE_SKIPS)

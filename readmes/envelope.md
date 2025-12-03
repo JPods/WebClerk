@@ -2,7 +2,6 @@
 
 # Unified API Response Envelope
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -15,7 +14,7 @@
     - [Design Notes](#design-notes)
   - [Current Error Codes](#current-error-codes)
   - [Enforcement Infrastructure](#enforcement-infrastructure)
-  - [Raw / Transitional Mode (Deprecated)](#raw--transitional-mode-deprecated)
+    - [Raw Parameter Removal](#raw-parameter-removal)
   - [Legacy Key Bubbling Removal](#legacy-key-bubbling-removal)
   - [Pagination Meta](#pagination-meta)
   - [Testing & Guardrails](#testing--guardrails)
@@ -33,20 +32,20 @@ Keys are optional unless marked REQUIRED. Order is not semantically significant 
 
 ```jsonc
 {
-	"status": "success",          // REQUIRED: "success" | "error"
-	"message": "Human summary",    // Optional: short human-readable explanation (success OR error)
-	"data": { /* or [] */ },        // Present on success when returning resource(s)
-	"error": {                      // Present when status=="error"
-		"code": "validation_error",  // REQUIRED when error object present (stable machine code)
-		"details": { /* OPTIONAL structured info (e.g. field errors) */ }
-	},
-	"meta": {                       // OPTIONAL diagnostics / pagination / tracing
-		"total": 123,
-		"page_size": 50,
-		"next": "?page=3",
-		"previous": null,
-		"request_id": "9f3c..."     // Mirrors X-Request-ID header (if configured)
-	}
+    "status": "success",          // REQUIRED: "success" | "error"
+    "message": "Human summary",    // Optional: short human-readable explanation (success OR error)
+    "data": { /* or [] */ },        // Present on success when returning resource(s)
+    "error": {                      // Present when status=="error"
+        "code": "validation_error",  // REQUIRED when error object present (stable machine code)
+        "details": { /* OPTIONAL structured info (e.g. field errors) */ }
+    },
+    "meta": {                       // OPTIONAL diagnostics / pagination / tracing
+        "total": 123,
+        "page_size": 50,
+        "next": "?page=3",
+        "previous": null,
+        "request_id": "9f3c..."     // Mirrors X-Request-ID header (if configured)
+    }
 }
 ```
 
@@ -95,17 +94,11 @@ Planned (add when implemented & tested): `authentication_failed` (401), `method_
 
 Excluded path prefixes (never wrapped): `/admin/`, `/static/`, `/media/`.
 
-## Raw / Transitional Mode (Deprecated)
+## Raw Parameter Removal
 
-Temporary escape hatch (DEV ONLY):
+The historical `?raw=1` escape hatch has been removed. Every JSON endpoint now emits the canonical envelope regardless of query parameters or environment flags. Delete any client logic that attempts to negotiate raw payloads. For diagnostic situations use structured logging or the `/api/schema/` tools instead of bypassing the envelope.
 
-```bash
-export API_ENVELOPE_ALLOW_RAW=1  # enable raw passthrough for debugging
-```
-
-Even when enabled, avoid committing tests or clients that rely on raw responses. Removal date tracked in upgrade roadmap.
-
-Per-request bypass (rare, e.g. third‑party signature constraints): set `request._skip_envelope = True` **before** returning a `JsonResponse`. Each skip is surfaced in test run summaries; unexpected skips fail CI (future gate).
+Per-request skips remain available for exceptional cases (e.g. streaming). Explicitly set `response._skip_envelope = True` in the view and add test coverage describing the rationale.
 
 ## Legacy Key Bubbling Removal
 
@@ -151,8 +144,8 @@ Additive meta fields require no version bump. Breaking changes (renaming keys, r
 ```python
 payload = response.json()
 if payload.get("status") == "error":
-	code = payload.get("error", {}).get("code", "unknown")
-	raise ApiError(code, payload.get("message"), details=payload.get("error", {}).get("details"))
+  code = payload.get("error", {}).get("code", "unknown")
+  raise ApiError(code, payload.get("message"), details=payload.get("error", {}).get("details"))
 data = payload.get("data")
 meta = payload.get("meta", {})
 ```
