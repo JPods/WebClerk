@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 export interface InvoiceAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any; // TODO: Type this properly
@@ -14,7 +12,6 @@ export interface CreateInvoiceRequest {
 }
 
 export interface UpdateInvoiceRequest {
-  id: number;
   invoice_no?: string;
 }
 
