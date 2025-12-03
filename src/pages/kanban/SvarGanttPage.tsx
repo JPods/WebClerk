@@ -521,6 +521,11 @@ const SvarGanttPage: React.FC = () => {
   const ganttApiRef = useRef<IApi | null>(null);
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
   const progressUpdateQueueRef = useRef<Set<string>>(new Set());
+  const pendingProgressPayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+  const progressDebounceTimersRef = useRef<Map<string, number>>(new Map());
+  const sequenceUpdateQueueRef = useRef<Set<string>>(new Set());
+  const pendingSequencePayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+  const sequenceDebounceTimersRef = useRef<Map<string, number>>(new Map());
   const updateLocalTaskProgress = useCallback((taskId: string, progressValue: number) => {
     const progressRatio = toProgressRatio(progressValue) ?? 0;
     setBoard((prev) => {
@@ -546,14 +551,150 @@ const SvarGanttPage: React.FC = () => {
       );
       return { ...prev, tasks: updatedTasks };
     });
-
-    setVisibleData((prev) => ({
-      tasks: prev.tasks.map((task) =>
-        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
-      ),
-      links: prev.links,
-    }));
   }, []);
+
+  const scheduleProgressUpdate = useCallback(
+    (taskId: string, progressValue: number) => {
+      setBoard((currentBoard) => {
+        const kanbanTask = currentBoard.tasks[taskId];
+        if (!kanbanTask) {
+          return currentBoard;
+        }
+
+        const payload: Record<string, unknown> = {
+          model_name: "action",
+          id: kanbanTask.id,
+          "prefs.userdefined.progress": {
+            mode: "update",
+            value: progressValue,
+          },
+        };
+
+        pendingProgressPayloadRef.current.set(taskId, payload);
+        progressUpdateQueueRef.current.add(taskId);
+
+        const existingTimer = progressDebounceTimersRef.current.get(taskId);
+        if (existingTimer) {
+          window.clearTimeout(existingTimer);
+        }
+
+        const timer = window.setTimeout(() => {
+          progressDebounceTimersRef.current.delete(taskId);
+          if (!progressUpdateQueueRef.current.has(taskId)) {
+            return;
+          }
+
+          const queued = pendingProgressPayloadRef.current.get(taskId);
+          if (!queued) {
+            progressUpdateQueueRef.current.delete(taskId);
+            return;
+          }
+
+          patchAction(queued as any)
+            .then(() => {
+              console.log("Progress updated successfully for task", taskId, "to", progressValue);
+              progressUpdateQueueRef.current.delete(taskId);
+              pendingProgressPayloadRef.current.delete(taskId);
+            })
+            .catch((error) => {
+              console.error("Failed to update progress for task", taskId, error);
+              progressUpdateQueueRef.current.delete(taskId);
+              pendingProgressPayloadRef.current.delete(taskId);
+            });
+        }, 400);
+
+        progressDebounceTimersRef.current.set(taskId, timer);
+
+        return currentBoard;
+      });
+    },
+    []
+  );
+
+  const updateLocalTaskSequence = useCallback((taskId: string, sequenceValue: number) => {
+    setBoard((prev) => {
+      const existingTask = prev.tasks[taskId];
+      if (!existingTask) {
+        return prev;
+      }
+      return {
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [taskId]: { ...existingTask, sequence: sequenceValue },
+        },
+      };
+    });
+
+    setFullDataset((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      const updatedTasks = prev.tasks.map((task) =>
+        String(task.id) === taskId ? { ...task, sequence: sequenceValue } : task
+      );
+      return { ...prev, tasks: updatedTasks };
+    });
+  }, []);
+
+  const scheduleSequenceUpdate = useCallback(
+    (taskId: string, sequenceValue: number) => {
+      // Use callback to get current board state
+      setBoard((currentBoard) => {
+        const kanbanTask = currentBoard.tasks[taskId];
+        if (!kanbanTask) {
+          return currentBoard;
+        }
+
+        const payload: Record<string, unknown> = {
+          model_name: "action",
+          id: kanbanTask.id,
+          sequence: {
+            mode: "update",
+            value: sequenceValue,
+          },
+        };
+
+        pendingSequencePayloadRef.current.set(taskId, payload);
+        sequenceUpdateQueueRef.current.add(taskId);
+
+        const existingTimer = sequenceDebounceTimersRef.current.get(taskId);
+        if (existingTimer) {
+          window.clearTimeout(existingTimer);
+        }
+
+        const timer = window.setTimeout(() => {
+          sequenceDebounceTimersRef.current.delete(taskId);
+          if (!sequenceUpdateQueueRef.current.has(taskId)) {
+            return;
+          }
+
+          const queued = pendingSequencePayloadRef.current.get(taskId);
+          if (!queued) {
+            sequenceUpdateQueueRef.current.delete(taskId);
+            return;
+          }
+
+          patchAction(queued as any)
+            .then(() => {
+              console.log("Sequence updated successfully for task", taskId, "to", sequenceValue);
+              sequenceUpdateQueueRef.current.delete(taskId);
+              pendingSequencePayloadRef.current.delete(taskId);
+            })
+            .catch((error) => {
+              console.error("Failed to update sequence for task", taskId, error);
+              sequenceUpdateQueueRef.current.delete(taskId);
+              pendingSequencePayloadRef.current.delete(taskId);
+            });
+        }, 400);
+
+        sequenceDebounceTimersRef.current.set(taskId, timer);
+
+        return currentBoard; // Don't modify board here
+      });
+    },
+    []
+  );
 
   const resolveDefaultColumnId = useCallback(
     () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
@@ -1023,6 +1164,125 @@ const SvarGanttPage: React.FC = () => {
     [board.tasks, handleOpenEditModal, usingFallback]
   );
 
+  const handleSvarUpdateTask = useCallback(
+    (event: { id?: string | number; task?: Partial<ITask>; inProgress?: boolean }) => {
+      if (!event?.id || !event?.task || usingFallback) {
+        return;
+      }
+
+      // Only process when drag is complete (inProgress === false)
+      if (event.inProgress) {
+        return;
+      }
+
+      const taskId = String(event.id);
+      const updatedTask = event.task;
+
+      // Handle progress changes
+      if (typeof updatedTask.progress === "number") {
+        const progressPercentage = toProgressPercentage(updatedTask.progress);
+        console.log("Progress changed for task", taskId, "to", progressPercentage);
+        
+        // Update fullDataset to persist the change
+        setFullDataset((prev) => {
+          if (!prev) {
+            return prev;
+          }
+          const updatedTasks = prev.tasks.map((task) =>
+            String(task.id) === taskId ? { ...task, progress: updatedTask.progress } : task
+          );
+          return { ...prev, tasks: updatedTasks };
+        });
+
+        // Update board state
+        setBoard((prev) => {
+          const existingTask = prev.tasks[taskId];
+          if (!existingTask) {
+            return prev;
+          }
+          return {
+            ...prev,
+            tasks: {
+              ...prev.tasks,
+              [taskId]: { ...existingTask, progress: progressPercentage },
+            },
+          };
+        });
+
+        // Trigger background API call
+        scheduleProgressUpdate(taskId, progressPercentage);
+      }
+    },
+    [scheduleProgressUpdate, usingFallback]
+  );
+
+  const handleSvarMoveTask = useCallback(
+    (event: { id?: string | number; mode?: string; target?: string | number; source?: number; inProgress?: boolean }) => {
+      console.log("onMoveTask triggered:", event);
+      
+      if (!event?.id || usingFallback) {
+        console.log("Move rejected - no id or using fallback");
+        return false;
+      }
+
+      const taskId = String(event.id);
+      const targetId = event.target ? String(event.target) : null;
+      
+      // Calculate new index and reorder
+      setFullDataset((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        
+        const tasks = [...prev.tasks];
+        const currentIdx = tasks.findIndex((t) => String(t.id) === taskId);
+        if (currentIdx === -1) {
+          console.log("Task not found in dataset");
+          return prev;
+        }
+
+        // Calculate target index based on mode and target
+        let newIndex: number;
+        if (targetId) {
+          const targetIdx = tasks.findIndex((t) => String(t.id) === targetId);
+          if (targetIdx === -1) {
+            console.log("Target task not found");
+            return prev;
+          }
+          // 'after' means insert after target, 'before' means insert before target
+          newIndex = event.mode === 'after' ? targetIdx + 1 : targetIdx;
+          // Adjust if current task is before target
+          if (currentIdx < targetIdx) {
+            newIndex--;
+          }
+        } else {
+          newIndex = typeof event.source === 'number' ? event.source : currentIdx;
+        }
+
+        console.log("Moving task", taskId, "from index", currentIdx, "to", newIndex);
+
+        const [moved] = tasks.splice(currentIdx, 1);
+        const clampedIndex = Math.max(0, Math.min(tasks.length, newIndex));
+        tasks.splice(clampedIndex, 0, moved);
+
+        // Update sequence and trigger API call
+        const newSequence = clampedIndex;
+        console.log("Scheduling sequence update to:", newSequence);
+        
+        // Schedule the API call
+        setTimeout(() => {
+          updateLocalTaskSequence(taskId, newSequence);
+          scheduleSequenceUpdate(taskId, newSequence);
+        }, 0);
+
+        return { ...prev, tasks };
+      });
+
+      return true;
+    },
+    [scheduleSequenceUpdate, updateLocalTaskSequence, usingFallback]
+  );
+
   useEffect(() => {
     fetchGanttTasks();
   }, [fetchGanttTasks]);
@@ -1351,6 +1611,8 @@ const SvarGanttPage: React.FC = () => {
                   columns={ganttColumns}
                   scales={activeScales}
                   onShowEditor={handleShowEditor}
+                  onMoveTask={handleSvarMoveTask}
+                  onUpdateTask={handleSvarUpdateTask}
                   init={(api) => {
                     ganttApiRef.current = api;
                     api.detach(GANTT_COLOR_EVENT_TAG);

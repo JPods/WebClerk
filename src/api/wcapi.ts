@@ -65,13 +65,13 @@ export async function getModelDetail(model_name: string) {
   }
 }
 
-export async function getRecords(model_name: string) {
+export async function getRecords(model_name: string, params?: any) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name, limit: 20 } });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name, limit: 10, ...params } });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params: { model_name, limit: 20 } });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params: { model_name, limit: 10, ...params } });
       return res2.data.data;
     }
     throw err;
@@ -98,6 +98,19 @@ export async function saveRecord(model_name: string, payload: any) {
   } catch (err: any) {
     if (err?.response?.status === 404) {
       const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name, ...payload });
+      return res2.data.data;
+    }
+    throw err;
+  }
+}
+
+export async function deleteRecord(model_name: string, id: number) {
+  try {
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name, id, method: 'delete' });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name, id, method: 'delete' });
       return res2.data.data;
     }
     throw err;
@@ -153,11 +166,11 @@ export async function getWorkbenchFieldsSetting(model_name: string): Promise<Set
 
 export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name: 'setting', ...setting });
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { ...setting, model_name: 'setting' });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name: 'setting', ...setting });
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { ...setting, model_name: 'setting' });
       return res2.data.data;
     }
     throw err;

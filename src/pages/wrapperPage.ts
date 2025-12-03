@@ -5,12 +5,24 @@ import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
-import ContactAdd from "./contacts/ContactAdd";
-import ContactList from "./contacts/ContactList";
+import ContactDetail from "../apps/core/models/contact/pages/ContactDetail.tsx";
+import ContactList from "../apps/core/models/contact/pages/ContactList";
+import CustomerDetailPage from "./contacts/CustomerDetailPage";
+import CustomerAddPage from "./contacts/CustomerAddPage";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
-import DomainAdd from "./domain/DomainAdd";
+import DomainAdd from "../apps/communications/domain/pages/domain";
 import DomainList from "./domain/DomainList";
+
+// Accounts
+import AuditList from "../apps/accounts/models/audit/pages/AuditList";
+import AuditDisplay from "../apps/accounts/models/audit/pages/AuditDisplay";
+import CurrencyList from "../apps/accounts/models/currency/pages/CurrencyList";
+import CurrencyDisplay from "../apps/accounts/models/currency/pages/CurrencyDisplay";
+import ExchangeRateList from "../apps/accounts/models/exchange_rate/pages/ExchangeRateList";
+import ExchangeRateDisplay from "../apps/accounts/models/exchange_rate/pages/ExchangeRateDisplay";
+import ExchangeTransactionList from "../apps/accounts/models/exchange_transaction/pages/ExchangeTransactionList";
+import ExchangeTransactionDisplay from "../apps/accounts/models/exchange_transaction/pages/ExchangeTransactionDisplay";
 
 import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
@@ -24,7 +36,7 @@ import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
 import KanbanGanttPage from "./kanban/KanbanGanttPage";
 import SvarGanttPage from "./kanban/SvarGanttPage";
 
-export {  
+export {
   SignIn,
   SignUp,
   NotFound,
@@ -34,20 +46,30 @@ export {
   UserProfiles,
   ActionList,
   ActionAdd,
-  ContactAdd,
+  ContactDetail,
   ContactList,
+  CustomerDetailPage,
+  CustomerAddPage,
   SettingAdd,
   SettingList,
   DomainAdd,
-  DomainList, 
-  
+  DomainList,
   Calendar,
   FormElements,
-  BasicTables
-  , AdminWorkbench
-  , NotionTrackerPage
-  , KanbanBoardPage
-  , KanbanBoardDataPage
-  , KanbanGanttPage
-  , SvarGanttPage
+  BasicTables,
+  AdminWorkbench,
+  NotionTrackerPage,
+  KanbanBoardPage,
+  KanbanBoardDataPage,
+  KanbanGanttPage,
+  SvarGanttPage,
+  // Accounts
+  AuditList,
+  AuditDisplay,
+  CurrencyList,
+  CurrencyDisplay,
+  ExchangeRateList,
+  ExchangeRateDisplay,
+  ExchangeTransactionList,
+  ExchangeTransactionDisplay,
 };

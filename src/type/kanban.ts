@@ -38,6 +38,7 @@ export interface KanbanTask {
   assignedTo?: KanbanAssignment[];
   dates?: Record<string, KanbanDateRecord | null | undefined>;
   children?: Array<{ id: string | number; name: string }>;
+  sequence?: number;
 }
 
 export interface KanbanColumn {

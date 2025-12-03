@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Flow Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\flow' directory in Git.
+This model manages workflows or process flows for products or operations.

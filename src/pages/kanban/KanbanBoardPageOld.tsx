@@ -437,30 +437,30 @@ const KanbanBoardPage: React.FC = () => {
 
             <form className="space-y-4" onSubmit={handleCreateTaskSubmit}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Task title</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">task_title</label>
                 <input
                   className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   value={createTaskState.title}
                   onChange={(event) => handleCreateTaskChange("title", event.target.value)}
-                  placeholder="e.g. Finalize onboarding flow"
+                  placeholder="task_title"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">description</label>
                 <textarea
                   className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   rows={3}
                   value={createTaskState.description}
                   onChange={(event) => handleCreateTaskChange("description", event.target.value)}
-                  placeholder="Context, acceptance criteria, or notes"
+                  placeholder="description"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Column</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">column</label>
                   <select
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={createTaskState.columnId}
@@ -474,7 +474,7 @@ const KanbanBoardPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">priority</label>
                   <select
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={createTaskState.priority}
@@ -491,7 +491,7 @@ const KanbanBoardPage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">due_date</label>
                   <input
                     type="date"
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -500,12 +500,12 @@ const KanbanBoardPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">assignee</label>
                   <input
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     value={createTaskState.assignee}
                     onChange={(event) => handleCreateTaskChange("assignee", event.target.value)}
-                    placeholder="Who owns this?"
+                    placeholder="assignee"
                   />
                 </div>
               </div>

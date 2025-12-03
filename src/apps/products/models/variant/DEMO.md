@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Variant Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\variant' directory in Git.
+This model manages product variants such as different sizes, colors, or configurations.

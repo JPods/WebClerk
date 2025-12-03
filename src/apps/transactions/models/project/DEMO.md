@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Project Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\transactions\project' directory in Git.
+This model manages projects.
