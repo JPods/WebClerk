@@ -521,8 +521,6 @@ const SvarGanttPage: React.FC = () => {
   const ganttApiRef = useRef<IApi | null>(null);
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
   const progressUpdateQueueRef = useRef<Set<string>>(new Set());
-  const pendingProgressPayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
-  const progressDebounceTimersRef = useRef<Map<string, number>>(new Map());
   const sequenceUpdateQueueRef = useRef<Set<string>>(new Set());
   const pendingSequencePayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
   const sequenceDebounceTimersRef = useRef<Map<string, number>>(new Map());
@@ -551,65 +549,14 @@ const SvarGanttPage: React.FC = () => {
       );
       return { ...prev, tasks: updatedTasks };
     });
+
+    setVisibleData((prev) => ({
+      tasks: prev.tasks.map((task) =>
+        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
+      ),
+      links: prev.links,
+    }));
   }, []);
-
-  const scheduleProgressUpdate = useCallback(
-    (taskId: string, progressValue: number) => {
-      setBoard((currentBoard) => {
-        const kanbanTask = currentBoard.tasks[taskId];
-        if (!kanbanTask) {
-          return currentBoard;
-        }
-
-        const payload: Record<string, unknown> = {
-          model_name: "action",
-          id: kanbanTask.id,
-          "prefs.userdefined.progress": {
-            mode: "update",
-            value: progressValue,
-          },
-        };
-
-        pendingProgressPayloadRef.current.set(taskId, payload);
-        progressUpdateQueueRef.current.add(taskId);
-
-        const existingTimer = progressDebounceTimersRef.current.get(taskId);
-        if (existingTimer) {
-          window.clearTimeout(existingTimer);
-        }
-
-        const timer = window.setTimeout(() => {
-          progressDebounceTimersRef.current.delete(taskId);
-          if (!progressUpdateQueueRef.current.has(taskId)) {
-            return;
-          }
-
-          const queued = pendingProgressPayloadRef.current.get(taskId);
-          if (!queued) {
-            progressUpdateQueueRef.current.delete(taskId);
-            return;
-          }
-
-          patchAction(queued as any)
-            .then(() => {
-              console.log("Progress updated successfully for task", taskId, "to", progressValue);
-              progressUpdateQueueRef.current.delete(taskId);
-              pendingProgressPayloadRef.current.delete(taskId);
-            })
-            .catch((error) => {
-              console.error("Failed to update progress for task", taskId, error);
-              progressUpdateQueueRef.current.delete(taskId);
-              pendingProgressPayloadRef.current.delete(taskId);
-            });
-        }, 400);
-
-        progressDebounceTimersRef.current.set(taskId, timer);
-
-        return currentBoard;
-      });
-    },
-    []
-  );
 
   const updateLocalTaskSequence = useCallback((taskId: string, sequenceValue: number) => {
     setBoard((prev) => {
@@ -1164,58 +1111,6 @@ const SvarGanttPage: React.FC = () => {
     [board.tasks, handleOpenEditModal, usingFallback]
   );
 
-  const handleSvarUpdateTask = useCallback(
-    (event: { id?: string | number; task?: Partial<ITask>; inProgress?: boolean }) => {
-      if (!event?.id || !event?.task || usingFallback) {
-        return;
-      }
-
-      // Only process when drag is complete (inProgress === false)
-      if (event.inProgress) {
-        return;
-      }
-
-      const taskId = String(event.id);
-      const updatedTask = event.task;
-
-      // Handle progress changes
-      if (typeof updatedTask.progress === "number") {
-        const progressPercentage = toProgressPercentage(updatedTask.progress);
-        console.log("Progress changed for task", taskId, "to", progressPercentage);
-        
-        // Update fullDataset to persist the change
-        setFullDataset((prev) => {
-          if (!prev) {
-            return prev;
-          }
-          const updatedTasks = prev.tasks.map((task) =>
-            String(task.id) === taskId ? { ...task, progress: updatedTask.progress } : task
-          );
-          return { ...prev, tasks: updatedTasks };
-        });
-
-        // Update board state
-        setBoard((prev) => {
-          const existingTask = prev.tasks[taskId];
-          if (!existingTask) {
-            return prev;
-          }
-          return {
-            ...prev,
-            tasks: {
-              ...prev.tasks,
-              [taskId]: { ...existingTask, progress: progressPercentage },
-            },
-          };
-        });
-
-        // Trigger background API call
-        scheduleProgressUpdate(taskId, progressPercentage);
-      }
-    },
-    [scheduleProgressUpdate, usingFallback]
-  );
-
   const handleSvarMoveTask = useCallback(
     (event: { id?: string | number; mode?: string; target?: string | number; source?: number; inProgress?: boolean }) => {
       console.log("onMoveTask triggered:", event);
@@ -1612,7 +1507,6 @@ const SvarGanttPage: React.FC = () => {
                   scales={activeScales}
                   onShowEditor={handleShowEditor}
                   onMoveTask={handleSvarMoveTask}
-                  onUpdateTask={handleSvarUpdateTask}
                   init={(api) => {
                     ganttApiRef.current = api;
                     api.detach(GANTT_COLOR_EVENT_TAG);

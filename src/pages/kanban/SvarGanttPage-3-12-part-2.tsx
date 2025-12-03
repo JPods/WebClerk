@@ -564,7 +564,7 @@ const SvarGanttPage: React.FC = () => {
         const payload: Record<string, unknown> = {
           model_name: "action",
           id: kanbanTask.id,
-          "prefs.userdefined.progress": {
+          progress: {
             mode: "update",
             value: progressValue,
           },
