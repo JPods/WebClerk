@@ -152,6 +152,53 @@ const navItems: NavItem[] = [
     icon: <TableIcon />,
     subItems: [{ name: "Basic Models", path: "/basic-models", pro: false }],
   },
+  {
+    icon: <GridIcon />,
+    name: "Accounts",
+    subItems: [
+      { name: "Audit", path: "/accounts/audit/list" },
+      { name: "Currency", path: "/accounts/currency/list" },
+      { name: "Exchange Rate", path: "/accounts/exchange-rate/list" },
+      { name: "Exchange Transaction", path: "/accounts/exchange-transaction/list" },
+      { name: "GL Account", path: "/accounts/gl-account/list" },
+      { name: "GL Journal", path: "/accounts/gl-journal/list" },
+      { name: "Ledger", path: "/accounts/ledger/list" },
+      { name: "Tax Jurisdiction", path: "/accounts/tax-jurisdiction/list" },
+      { name: "Term", path: "/accounts/term/list" },
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Communications",
+    subItems: [
+      { name: "Domain", path: "/communications/domain/list" },
+      { name: "Email", path: "/communications/email/list" },
+      { name: "Location", path: "/communications/location/list" },
+      { name: "Phone", path: "/communications/phone/list" },
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Core",
+    subItems: [
+      { name: "Action", path: "/core/action/list" },
+      { name: "Contact", path: "/core/contact/list" },
+      { name: "Report", path: "/core/report/list" },
+      { name: "Setting", path: "/core/setting/list" },
+      { name: "Template", path: "/core/template/list" },
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Docs",
+    subItems: [
+      { name: "Document", path: "/docs/document/list" },
+      { name: "Linkage", path: "/docs/linkage/list" },
+      { name: "Linkage Index", path: "/docs/linkage-index/list" },
+      { name: "Question Answer", path: "/docs/question-answer/list" },
+      { name: "Tag", path: "/docs/tag/list" },
+    ],
+  },
   // {
   //   name: "Pages",
   //   icon: <PageIcon />,

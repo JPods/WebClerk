@@ -21,8 +21,8 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
-import { contactSchema } from "../utils/contactSchema";
-import { ContactAddProps } from "../types/contactType";
+import { contactSchema } from "../../contact/utils/contactSchema";
+import { ContactAddProps } from "../../contact/types/contactType";
 
 export default function ActionAdd({
   modeProp,
@@ -238,7 +238,7 @@ export default function ActionAdd({
                 placeholder="General notes"
                 {...register("comment")}
                 error={errors.comment && errors.comment.message ? true : false}
-                hint={errors.comment && errors.comment.message}
+                hint={errors.comment?.message}
                 disabled={mode === "view"}
                 value={JSON.stringify(comment, null, 2)}
               />
@@ -250,7 +250,7 @@ export default function ActionAdd({
                 placeholder="General notes"
                 {...register("refs")}
                 error={errors.refs && errors.refs.message ? true : false}
-                hint={errors.refs && errors.refs.message}
+                hint={errors.refs?.message}
                 disabled={mode === "view"}
                 value={JSON.stringify(refs, null, 2)}
               />
@@ -262,7 +262,7 @@ export default function ActionAdd({
                 placeholder="Pprefs"
                 {...register("prefs")}
                 error={errors.prefs && errors.prefs.message ? true : false}
-                hint={errors.prefs && errors.prefs.message}
+                hint={errors.prefs?.message}
                 disabled={mode === "view"}
                 value={JSON.stringify(prefs, null, 2)}
               />
@@ -276,7 +276,7 @@ export default function ActionAdd({
                 error={
                   errors.metadata && errors.metadata.message ? true : false
                 }
-                hint={errors.metadata && errors.metadata.message}
+                hint={errors.metadata?.message}
                 disabled={mode === "view"}
                 value={JSON.stringify(metadata, null, 2)}
               />

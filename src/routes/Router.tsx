@@ -26,6 +26,64 @@ import {
   SignUp,
   SvarGanttPage,
   UserProfiles,
+  // Accounts
+  AuditList,
+  AuditDetail,
+  AuditDisplay,
+  CurrencyList,
+  CurrencyDetail,
+  CurrencyDisplay,
+  ExchangeRateList,
+  ExchangeRateDetail,
+  ExchangeRateDisplay,
+  ExchangeTransactionList,
+  ExchangeTransactionDetail,
+  ExchangeTransactionDisplay,
+  GLAccountList,
+  GLAccountDetail,
+  GLJournalList,
+  GLJournalDetail,
+  GLJournalDisplay,
+  LedgerList,
+  LedgerDisplay,
+  TaxJurisdictionList,
+  TaxJurisdictionDisplay,
+  TermList,
+  TermDisplay,
+  // Communications
+  AppDomainList,
+  AppDomainDetail,
+  AppEmailList,
+  AppEmailDetail,
+  AppLocationList,
+  AppLocationDetail,
+  AppPhoneList,
+  AppPhoneDetail,
+  // Core
+  CoreAction,
+  CoreContactList,
+  CoreContactDetail,
+  CoreReportList,
+  CoreReportDetail,
+  CoreReportDisplay,
+  CoreSettingList,
+  CoreSettingDetail,
+  CoreSettingDisplay,
+  CoreTemplateList,
+  CoreTemplateDetail,
+  CoreTemplateDisplay,
+  // Docs
+  DocumentList,
+  DocumentDetail,
+  DocumentDisplay,
+  LinkageList,
+  LinkageDisplay,
+  LinkageIndexList,
+  LinkageIndexDisplay,
+  QuestionAnswerList,
+  QuestionAnswerDisplay,
+  TagList,
+  TagDisplay,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
@@ -39,16 +97,6 @@ import ProposalDetailPage from "../pages/transactions/ProposalDetailPage";
 import CallReportDetailPage from "../pages/actions/CallReportDetailPage";
 import ServiceDetailPage from "../pages/actions/ServiceDetailPage";
 import TaskMarkerDetailPage from "../pages/actions/TaskMarkerDetailPage";
-import {
-  AuditList,
-  AuditDisplay,
-  CurrencyList,
-  CurrencyDisplay,
-  ExchangeRateList,
-  ExchangeRateDisplay,
-  ExchangeTransactionList,
-  ExchangeTransactionDisplay,
-} from "../pages/wrapperPage";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import DocsIndex from "../pages/docs/DocsIndex";
@@ -160,13 +208,65 @@ const Router: React.FC = () => {
           />
           {/* Accounts */}
           <Route path={PageRoutes.auditList} element={<AuditList />} />
+          <Route path={PageRoutes.auditDetail} element={<AuditDetail />} />
           <Route path={PageRoutes.auditDisplay} element={<AuditDisplay />} />
           <Route path={PageRoutes.currencyList} element={<CurrencyList />} />
+          <Route path={PageRoutes.currencyDetail} element={<CurrencyDetail />} />
           <Route path={PageRoutes.currencyDisplay} element={<CurrencyDisplay />} />
           <Route path={PageRoutes.exchangeRateList} element={<ExchangeRateList />} />
+          <Route path={PageRoutes.exchangeRateDetail} element={<ExchangeRateDetail />} />
           <Route path={PageRoutes.exchangeRateDisplay} element={<ExchangeRateDisplay />} />
           <Route path={PageRoutes.exchangeTransactionList} element={<ExchangeTransactionList />} />
+          <Route path={PageRoutes.exchangeTransactionDetail} element={<ExchangeTransactionDetail />} />
           <Route path={PageRoutes.exchangeTransactionDisplay} element={<ExchangeTransactionDisplay />} />
+          <Route path={PageRoutes.glAccountList} element={<GLAccountList />} />
+          <Route path={PageRoutes.glAccountDetail} element={<GLAccountDetail />} />
+          <Route path={PageRoutes.glJournalList} element={<GLJournalList />} />
+          <Route path={PageRoutes.glJournalDetail} element={<GLJournalDetail />} />
+          <Route path={PageRoutes.glJournalDisplay} element={<GLJournalDisplay />} />
+          <Route path={PageRoutes.ledgerList} element={<LedgerList />} />
+          <Route path={PageRoutes.ledgerDisplay} element={<LedgerDisplay />} />
+          <Route path={PageRoutes.taxJurisdictionList} element={<TaxJurisdictionList />} />
+          <Route path={PageRoutes.taxJurisdictionDisplay} element={<TaxJurisdictionDisplay />} />
+          <Route path={PageRoutes.termList} element={<TermList />} />
+          <Route path={PageRoutes.termDisplay} element={<TermDisplay />} />
+
+          {/* Communications */}
+          <Route path={PageRoutes.commDomainList} element={<AppDomainList />} />
+          <Route path={PageRoutes.commDomainDetail} element={<AppDomainDetail />} />
+          <Route path={PageRoutes.commEmailList} element={<AppEmailList />} />
+          <Route path={PageRoutes.commEmailDetail} element={<AppEmailDetail />} />
+          <Route path={PageRoutes.commLocationList} element={<AppLocationList />} />
+          <Route path={PageRoutes.commLocationDetail} element={<AppLocationDetail />} />
+          <Route path={PageRoutes.commPhoneList} element={<AppPhoneList />} />
+          <Route path={PageRoutes.commPhoneDetail} element={<AppPhoneDetail />} />
+
+          {/* Core */}
+          <Route path={PageRoutes.coreActionList} element={<CoreAction />} />
+          <Route path={PageRoutes.coreContactList} element={<CoreContactList />} />
+          <Route path={PageRoutes.coreContactDetail} element={<CoreContactDetail />} />
+          <Route path={PageRoutes.coreReportList} element={<CoreReportList />} />
+          <Route path={PageRoutes.coreReportDetail} element={<CoreReportDetail />} />
+          <Route path={PageRoutes.coreReportDisplay} element={<CoreReportDisplay />} />
+          <Route path={PageRoutes.coreSettingList} element={<CoreSettingList />} />
+          <Route path={PageRoutes.coreSettingDetail} element={<CoreSettingDetail />} />
+          <Route path={PageRoutes.coreSettingDisplay} element={<CoreSettingDisplay />} />
+          <Route path={PageRoutes.coreTemplateList} element={<CoreTemplateList />} />
+          <Route path={PageRoutes.coreTemplateDetail} element={<CoreTemplateDetail />} />
+          <Route path={PageRoutes.coreTemplateDisplay} element={<CoreTemplateDisplay />} />
+
+          {/* Docs */}
+          <Route path={PageRoutes.documentList} element={<DocumentList />} />
+          <Route path={PageRoutes.documentDetail} element={<DocumentDetail />} />
+          <Route path={PageRoutes.documentDisplay} element={<DocumentDisplay />} />
+          <Route path={PageRoutes.linkageList} element={<LinkageList />} />
+          <Route path={PageRoutes.linkageDisplay} element={<LinkageDisplay />} />
+          <Route path={PageRoutes.linkageIndexList} element={<LinkageIndexList />} />
+          <Route path={PageRoutes.linkageIndexDisplay} element={<LinkageIndexDisplay />} />
+          <Route path={PageRoutes.questionAnswerList} element={<QuestionAnswerList />} />
+          <Route path={PageRoutes.questionAnswerDisplay} element={<QuestionAnswerDisplay />} />
+          <Route path={PageRoutes.tagList} element={<TagList />} />
+          <Route path={PageRoutes.tagDisplay} element={<TagDisplay />} />
         </Route>
 
         {/* 404 page */}
