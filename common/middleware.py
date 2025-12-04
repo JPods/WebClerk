@@ -110,7 +110,7 @@ class RequestLogMiddleware(MiddlewareMixin):
 class AutoEnvelopeMiddleware(MiddlewareMixin):
     """Ensure every JSON response conforms to the canonical ApiEnvelope structure."""
 
-    _SCHEMA_PATH_PREFIXES = ('/api/schema/', '/api/swagger/', '/api/redoc/')
+    _SCHEMA_PATH_PREFIXES = ('/api/schema/', '/api/swagger/', '/api/redoc/', '/wcapi/schema/', '/wcapi/swagger/', '/wcapi/redoc/')
 
     def _is_json_response(self, response) -> bool:
         try:

@@ -155,7 +155,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
-    "DEFAULT_SCHEMA_CLASS": "common.schema.WhitelistAutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 from datetime import timedelta
@@ -179,7 +179,7 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 
     # === Generation hooks ===
-    'PREPROCESSING_HOOKS': ['common.schema_hooks.whitelist_preprocessor'],
+    # 'PREPROCESSING_HOOKS': ['common.schema_hooks.whitelist_preprocessor'],
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
 
     # === Authentication (global) ===

@@ -15,6 +15,10 @@ urlpatterns = [
     # Core API endpoints
     path('', include('apps.core.urls')),
     path('api/transactions/', include('apps.transactions.urls')),
+
+    # Admin swagger
+    path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),
+
     path('admin/', admin.site.urls),
 ]
 
