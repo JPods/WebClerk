@@ -211,7 +211,7 @@ export default function ActionAdd({
                 placeholder="URL or handle (indexed)"
                 {...register("path")}
                 error={errors.path && errors.path.message ? true : false}
-                hint={errors.path && errors.path.message}
+                hint={typeof errors.path?.message === 'string' ? errors.path.message : undefined}
                 disabled={mode === "view"}
               />
             </div>
@@ -238,7 +238,7 @@ export default function ActionAdd({
                 placeholder="General notes"
                 {...register("comment")}
                 error={errors.comment && errors.comment.message ? true : false}
-                hint={errors.comment?.message}
+                hint={typeof errors.comment?.message === 'string' ? errors.comment.message : undefined}
                 disabled={mode === "view"}
                 value={JSON.stringify(comment, null, 2)}
               />
@@ -250,7 +250,7 @@ export default function ActionAdd({
                 placeholder="General notes"
                 {...register("refs")}
                 error={errors.refs && errors.refs.message ? true : false}
-                hint={errors.refs?.message}
+                hint={typeof errors.refs?.message === 'string' ? errors.refs.message : undefined}
                 disabled={mode === "view"}
                 value={JSON.stringify(refs, null, 2)}
               />
@@ -262,7 +262,7 @@ export default function ActionAdd({
                 placeholder="Pprefs"
                 {...register("prefs")}
                 error={errors.prefs && errors.prefs.message ? true : false}
-                hint={errors.prefs?.message}
+                hint={typeof errors.prefs?.message === 'string' ? errors.prefs.message : undefined}
                 disabled={mode === "view"}
                 value={JSON.stringify(prefs, null, 2)}
               />
@@ -276,7 +276,7 @@ export default function ActionAdd({
                 error={
                   errors.metadata && errors.metadata.message ? true : false
                 }
-                hint={errors.metadata?.message}
+                hint={typeof errors.metadata?.message === 'string' ? errors.metadata.message : undefined}
                 disabled={mode === "view"}
                 value={JSON.stringify(metadata, null, 2)}
               />

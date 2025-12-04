@@ -242,7 +242,7 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.commPhoneDetail} element={<AppPhoneDetail />} />
 
           {/* Core */}
-          <Route path={PageRoutes.coreActionList} element={<CoreAction />} />
+          <Route path={PageRoutes.coreActionList} element={<ActionList />} />
           <Route path={PageRoutes.coreContactList} element={<CoreContactList />} />
           <Route path={PageRoutes.coreContactDetail} element={<CoreContactDetail />} />
           <Route path={PageRoutes.coreReportList} element={<CoreReportList />} />

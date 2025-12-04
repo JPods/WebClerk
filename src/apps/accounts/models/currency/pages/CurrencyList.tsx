@@ -3,7 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchCurrencies } from "../services/currencyApi";
+import { getRecords } from "../../../../../api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -22,14 +22,8 @@ export default function CurrencyList() {
   const getCurrencyData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchCurrencies();
-      if (res.status === 200) {
-        setData(res.data.items);
-      } else {
-        dispatch(
-          showToast({ message: "Failed to fetch currencies", type: "error" })
-        );
-      }
+      const res = await getRecords('currency');
+      setData(res.results);
     } catch (error) {
       console.error("Failed to fetch currencies", error);
       dispatch(showToast({ message: "Failed to fetch currencies", type: "error" }));

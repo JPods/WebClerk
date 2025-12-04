@@ -2,7 +2,8 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { fetchAudits, deleteAudit } from "../services/auditApi";
+import { deleteAudit } from "../services/auditApi";
+import { getRecords } from "../../../../../api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -21,14 +22,8 @@ export default function AuditList() {
   const getAuditData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchAudits();
-      if (res.status === 200) {
-        setData(res.data.items);
-      } else {
-        dispatch(
-          showToast({ message: "Failed to fetch audits", type: "error" })
-        );
-      }
+      const res = await getRecords('audit');
+      setData(res.results);
     } catch (error) {
       console.error("Failed to fetch audits", error);
       dispatch(showToast({ message: "Failed to fetch audits", type: "error" }));

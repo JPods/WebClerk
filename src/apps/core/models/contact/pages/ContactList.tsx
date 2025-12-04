@@ -3,7 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 //import { createTheme } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { fetchContacts } from "../services/contactApi";
+import { getRecords, getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
@@ -26,17 +26,11 @@ export default function ContactList() {
   console.log("data", data);
   const getContactData = useCallback(async () => {
     try {
-      const res = await fetchContacts();
-      if (res.status === 200) {
-        console.log(res.data.results);
-        setData(res.data.results);
-      } else {
-        dispatch(
-          showToast({ message: "Failed to fetch contacts", type: "error" })
-        );
-      }
+      const res = await getRecords('contact');
+      setData(res.results);
     } catch (error) {
       console.error("Failed to fetch contacts", error);
+      dispatch(showToast({ message: "Failed to fetch contacts", type: "error" }));
     }
   }, [dispatch]);
 
@@ -50,11 +44,13 @@ export default function ContactList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchContacts(row.id);
-    if (res.status === 200) setSelectedContact(res.data.item);
-    else setSelectedContact(row);
+    try {
+      const res = await getRecord('contact', row.id);
+      setSelectedContact(res.record);
+    } catch (error) {
+      setSelectedContact(row);
+    }
     setFormMode("edit");
-    console.log("res", res);
   };
 
   console.log("res.data.items", selectedContact);
