@@ -450,17 +450,8 @@ const KanbanBoardPage: React.FC = () => {
     if (board.columnOrder.length === 0) {
       return;
     }
-    setColumnsPerRow((prev) => {
-      // If user hasn't changed it manually (still 4), keep it at 4
-      // Otherwise respect the user's choice but clamp to available columns
-      const baseline = prev;
-      const maxColumns = board.columnOrder.length;
-      // Only clamp if the current value exceeds available columns
-      if (baseline > maxColumns) {
-        return maxColumns;
-      }
-      return baseline;
-    });
+    // Keep columnsPerRow at 4 by default, don't clamp based on available columns
+    // This ensures the grid always shows 4 columns per row
   }, [board.columnOrder]);
 
   useEffect(() => {
