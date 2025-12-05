@@ -60,7 +60,6 @@ import {
   AppPhoneList,
   AppPhoneDetail,
   // Core
-  CoreAction,
   CoreContactList,
   CoreContactDetail,
   CoreReportList,
