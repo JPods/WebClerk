@@ -82,6 +82,10 @@ import BasicTables from "./Tables/BasicTables";
 import AdminWorkbench from "./admin/AdminWorkbench";
 import OrderDetailPage from "./transactions/OrderDetailPage";
 import InvoiceDetailPage from "./transactions/InvoiceDetailPage";
+import PurchaseOrderDetailPage from "./transactions/PurchaseOrderDetailPage";
+import ProposalDetailPage from "./transactions/ProposalDetailPage";
+import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
+import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
 import NotionTrackerPage from "./notion/NotionTrackerPage.tsx";
 import KanbanBoardPage from "./kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
@@ -94,6 +98,10 @@ export {
   NotFound,
   OrderDetailPage,
   InvoiceDetailPage,
+  PurchaseOrderDetailPage,
+  ProposalDetailPage,
+  ProposalList,
+  PurchaseOrderList,
   Home,
   UserProfiles,
   ActionList,

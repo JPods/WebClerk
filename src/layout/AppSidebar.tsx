@@ -79,6 +79,8 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Orders", path: "/transactions/orders" },
       { name: "Invoices", path: "/transactions/invoices" },
+      { name: "Proposals", path: "/transactions/proposals" },
+      { name: "Purchase Orders", path: "/transactions/purchase-orders" },
     ],
   },
   {

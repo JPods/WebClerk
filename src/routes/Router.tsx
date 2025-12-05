@@ -93,6 +93,8 @@ import InvoicesListPage from "../pages/transactions/InvoicesListPage";
 import InvoiceDetailPage from "../pages/transactions/InvoiceDetailPage";
 import PurchaseOrderDetailPage from "../pages/transactions/PurchaseOrderDetailPage";
 import ProposalDetailPage from "../pages/transactions/ProposalDetailPage";
+import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
+import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
 import CallReportDetailPage from "../pages/actions/CallReportDetailPage";
 import ServiceDetailPage from "../pages/actions/ServiceDetailPage";
 import TaskMarkerDetailPage from "../pages/actions/TaskMarkerDetailPage";
@@ -202,8 +204,20 @@ const Router: React.FC = () => {
             element={<PurchaseOrderDetailPage />}
           />
           <Route
+            path={PageRoutes.transactionsProposals}
+            element={<ProposalList />}
+          />
+          <Route
             path={PageRoutes.transactionsProposalDetail}
             element={<ProposalDetailPage />}
+          />
+          <Route
+            path={PageRoutes.transactionsPurchaseOrders}
+            element={<PurchaseOrderList />}
+          />
+          <Route
+            path={PageRoutes.transactionsPurchaseOrderDetail}
+            element={<PurchaseOrderDetailPage />}
           />
           {/* Accounts */}
           <Route path={PageRoutes.auditList} element={<AuditList />} />
