@@ -21,7 +21,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
-import { contactSchema } from "../../contact/utils/contactSchema";
+import { actionSchema } from "../utils/actionSchema";
 import { ContactAddProps } from "../../contact/types/contactType";
 
 export default function ActionAdd({
@@ -41,8 +41,8 @@ export default function ActionAdd({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof contactSchema>>({
-    resolver: zodResolver(contactSchema),
+  } = useForm<z.infer<typeof actionSchema>>({
+    resolver: zodResolver(actionSchema),
     defaultValues: {},
   });
 
@@ -95,7 +95,7 @@ export default function ActionAdd({
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof actionSchema>) => {
     try {
       const res =
         mode === "add"
