@@ -201,6 +201,20 @@ const navItems: NavItem[] = [
       { name: "Tag", path: "/docs/tag/list" },
     ],
   },
+  {
+  icon: <GridIcon />,
+  name: "Core",
+  subItems: [
+    { name: "Action", path: "/core/action/list" },
+    { name: "Audit", path: "/core/audit/list" },
+    { name: "Contact", path: "/core/contact/list" },
+    { name: "Notification", path: "/core/notification/list" },
+    { name: "Pending", path: "/core/pending/list" },
+    { name: "Report", path: "/core/report/list" },
+    { name: "Setting", path: "/core/setting/list" },
+    { name: "Template", path: "/core/template/list" },
+  ],
+},
   // {
   //   name: "Pages",
   //   icon: <PageIcon />,

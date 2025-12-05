@@ -46,6 +46,9 @@ export interface ApiKanbanItem {
   kanban_meta?: unknown;
   refs?: {
     tags?: string[];
+    links?: {
+      parent?: string;
+    };
     [key: string]: unknown;
   };
   prefs?: {
@@ -397,6 +400,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       remarks: item.comments?.public || undefined,
       progress: progressValue,
       sequence: sequenceValue,
+      refs: item.refs,
     };
   });
 

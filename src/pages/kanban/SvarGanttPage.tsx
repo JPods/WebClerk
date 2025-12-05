@@ -362,7 +362,8 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
       }
 
       const columnColor = resolveColumnColor(column.title);
-      const task = mapKanbanTaskToSvarTask(kanbanTask, index, undefined, column.id, column.title);
+      const parentId = kanbanTask.refs?.links?.parent;
+      const task = mapKanbanTaskToSvarTask(kanbanTask, index, parentId, column.id, column.title);
       if (columnColor) {
         (task as unknown as { color?: string; progressColor?: string }).color = columnColor;
         (task as unknown as { color?: string; progressColor?: string }).progressColor = columnColor;
@@ -1634,6 +1635,7 @@ const SvarGanttPage: React.FC = () => {
                   columns={ganttColumns}
                   scales={activeScales}
                   onShowEditor={handleShowEditor}
+                  onItemDoubleClick={handleShowEditor}
                   onMoveTask={handleSvarMoveTask}
                   onUpdateTask={handleSvarUpdateTask}
                   init={(api) => {
