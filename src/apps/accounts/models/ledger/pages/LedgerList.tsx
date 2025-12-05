@@ -132,6 +132,7 @@ export default function LedgerList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading ledgers...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

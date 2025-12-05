@@ -2,8 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { getRecords } from "../../../../../api/wcapi";
+import { fetchCurrencies, deleteCurrency } from "../services/currencyApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -22,8 +21,12 @@ export default function CurrencyList() {
   const getCurrencyData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await getRecords('currency');
-      setData(res.results);
+      const res = await fetchCurrencies();
+      if (res.status === 200) {
+        setData(res.data.items);
+      } else {
+        dispatch(showToast({ message: "Failed to fetch currencies", type: "error" }));
+      }
     } catch (error) {
       console.error("Failed to fetch currencies", error);
       dispatch(showToast({ message: "Failed to fetch currencies", type: "error" }));
@@ -65,7 +68,7 @@ export default function CurrencyList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete currency ${row.code}?`)) {
       try {
-        await deleteAction(row.id);
+        await deleteCurrency(row.id);
         dispatch(showToast({ message: "Currency deleted successfully", type: "success" }));
         getCurrencyData(); // Refresh data
       } catch (error) {
@@ -150,6 +153,7 @@ export default function CurrencyList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading currencies...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

@@ -2,8 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchDomains } from "../services/domainApi";
+import { fetchDomains, deleteDomain } from "../services/domainApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -16,10 +15,12 @@ export default function DomainList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
   const getDomainData = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetchDomains();
       if (res.status === 200) {
@@ -31,6 +32,8 @@ export default function DomainList() {
       }
     } catch (error) {
       console.error("Failed to fetch domains", error);
+    } finally {
+      setLoading(false);
     }
   }, [dispatch]);
 
@@ -44,9 +47,9 @@ export default function DomainList() {
   };
 
   const handleEdit = async (row: any) => {
-    const res = await fetchDomains(row.id);
-    if (res.status === 200) setSelectedDomain(res.data.item);
-    else setSelectedDomain(row);
+     const res = await fetchDomains({ id: row.id });
+     if (res.status === 200) setSelectedDomain(res.data.items[0]);
+     else setSelectedDomain(row);
     setFormMode("edit");
   };
 
@@ -58,7 +61,7 @@ export default function DomainList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete domain ${row.path}?`)) {
       try {
-        await deleteAction(row.id);
+        await deleteDomain(row.id);
         dispatch(
           showToast({
             message: "Domain deleted successfully",
@@ -73,7 +76,7 @@ export default function DomainList() {
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete domain" + error,
+            message: "Failed to delete domain",
             type: "error",
           })
         );
@@ -168,10 +171,12 @@ export default function DomainList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
+                progressPending={loading}
                 progressComponent={
                   <div className="p-8 text-center">Loading domains...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

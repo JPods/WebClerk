@@ -2,8 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchEmails } from "../services/emailApi";
+import { fetchEmails, deleteEmail } from "../services/emailApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -15,10 +14,12 @@ export default function EmailList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
   const getEmailData = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetchEmails();
       if (res.status === 200) {
@@ -30,6 +31,8 @@ export default function EmailList() {
       }
     } catch (error) {
       console.error("Failed to fetch emails", error);
+    } finally {
+      setLoading(false);
     }
   }, [dispatch]);
 
@@ -43,9 +46,9 @@ export default function EmailList() {
   };
 
   const handleEdit = async (row: any) => {
-    const res = await fetchEmails(row.id);
-    if (res.status === 200) setSelectedEmail(res.data.item);
-    else setSelectedEmail(row);
+     const res = await fetchEmails({ id: row.id });
+     if (res.status === 200) setSelectedEmail(res.data.items[0]);
+     else setSelectedEmail(row);
     setFormMode("edit");
   };
 
@@ -57,7 +60,7 @@ export default function EmailList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete email ${row.subject}?`)) {
       try {
-        await deleteAction(row.id);
+        await deleteEmail(row.id);
         dispatch(
           showToast({
             message: "Email deleted successfully",
@@ -72,7 +75,7 @@ export default function EmailList() {
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete email" + error,
+            message: "Failed to delete email",
             type: "error",
           })
         );
@@ -94,26 +97,26 @@ export default function EmailList() {
   const userColumns: TableColumn<any>[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
-      name: "Subject",
-      selector: (row) => row.subject || "--",
+      name: "Email",
+      selector: (row) => row.email || "--",
       sortable: true,
       width: "25%",
     },
     {
-      name: "From",
-      selector: (row) => row.from_email || "--",
+      name: "Name",
+      selector: (row) => row.name || "--",
       sortable: true,
       width: "20%",
     },
     {
-      name: "To",
-      selector: (row) => row.to_email || "--",
+      name: "Attention",
+      selector: (row) => row.attention || "--",
       sortable: true,
       width: "20%",
     },
     {
-      name: "Status",
-      selector: (row) => row.status || "--",
+      name: "Type",
+      selector: (row) => row.type || "--",
       sortable: true,
       width: "15%",
     },
@@ -135,6 +138,7 @@ export default function EmailList() {
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      width: "15%",
     },
   ];
 
@@ -167,10 +171,12 @@ export default function EmailList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
+                progressPending={loading}
                 progressComponent={
                   <div className="p-8 text-center">Loading emails...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

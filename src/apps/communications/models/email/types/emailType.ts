@@ -8,26 +8,23 @@ export interface EmailAddProps {
 }
 
 export interface CreateEmailRequest {
-  subject: string;
-  body: string;
-  from_email: string;
-  to_email: string;
-  status: string;
+  email: string;
+  name?: string;
+  attention?: string;
+  type?: string;
 }
 
 export interface EmailApiTask {
-  subject: string;
-  body: string;
-  from_email: string;
-  to_email: string;
-  status: string;
+  email: string;
+  name?: string;
+  attention?: string;
+  type?: string;
 }
 
 export interface UpdateEmailRequest {
   id: string;
-  subject: string;
-  body: string;
-  from_email: string;
-  to_email: string;
-  status: string;
+  email: string;
+  name?: string;
+  attention?: string;
+  type?: string;
 }
