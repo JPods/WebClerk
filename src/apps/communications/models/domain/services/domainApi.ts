@@ -1,15 +1,14 @@
 import { getRecords, saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import type {
   CreateDomainRequest,
-  DomainApiTask,
   UpdateDomainRequest,
 } from "../types/domainType";
 
-export const createDomain = async (data: any) => {
+export const createDomain = async (data: CreateDomainRequest) => {
   return saveRecord('domain', data);
 };
 
-export const updateDomain = async (data: any) => {
+export const updateDomain = async (data: UpdateDomainRequest) => {
   return saveRecord('domain', data);
 };
 

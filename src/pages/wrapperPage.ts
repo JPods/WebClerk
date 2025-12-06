@@ -11,7 +11,7 @@ import CustomerDetailPage from "./contacts/CustomerDetailPage";
 import CustomerAddPage from "./contacts/CustomerAddPage";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
-import DomainAdd from "../apps/communications/domain/pages/domain";
+import DomainDetail from "../apps/communications/domain/pages/domainDetail";
 import DomainList from "./domain/DomainList";
 
 // Accounts
@@ -112,7 +112,7 @@ export {
   CustomerAddPage,
   SettingAdd,
   SettingList,
-  DomainAdd,
+  DomainDetail,
   DomainList,
   Calendar,
   FormElements,

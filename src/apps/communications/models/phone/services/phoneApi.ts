@@ -1,15 +1,14 @@
 import { getRecords, saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import type {
   CreatePhoneRequest,
-  PhoneApiTask,
   UpdatePhoneRequest,
 } from "../types/phoneType";
 
-export const createPhone = async (data: any) => {
+export const createPhone = async (data: CreatePhoneRequest) => {
   return saveRecord('phone', data);
 };
 
-export const updatePhone = async (data: any) => {
+export const updatePhone = async (data: UpdatePhoneRequest) => {
   return saveRecord('phone', data);
 };
 

@@ -1,15 +1,14 @@
 import { getRecords, saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import type {
   CreateLocationRequest,
-  LocationApiTask,
   UpdateLocationRequest,
 } from "../types/locationType";
 
-export const createLocation = async (data: any) => {
+export const createLocation = async (data: CreateLocationRequest) => {
   return saveRecord('location', data);
 };
 
-export const updateLocation = async (data: any) => {
+export const updateLocation = async (data: UpdateLocationRequest) => {
   return saveRecord('location', data);
 };
 

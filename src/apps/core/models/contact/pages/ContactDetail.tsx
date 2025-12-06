@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,11 +8,9 @@ import Label from "../../../../../components/form/Label";
 import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { getByTypeAndId } from "../../../../../api/userProfile";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
 import { contactSchema } from "../utils/contactSchema";
 import { ContactAddProps } from "../types/contactType";
@@ -59,9 +57,7 @@ export default function ContactDetail({
       reset({});
     }
   }, [data, reset, setValue, mode]);
-  console.log("errors", errors);
   const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
-    console.log("formData", formData);
     try {
       const res =
         mode === "add"
@@ -94,7 +90,7 @@ export default function ContactDetail({
   ];
 
   const handleSelectChange = (value: string) => {
-    console.log("Selected value:", value);
+    setValue("role", value);
   };
   return (
     <>
@@ -165,7 +161,6 @@ export default function ContactDetail({
                     hint={
                       "Your password can’t be too similar to your other personal information. Your password must contain at least 8 characters.  Your password can’t be a commonly used password. Your password can’t be entirely numeric."
                     }
-                    disabled={mode === "view"}
                   />
                 </div>
               </div>
@@ -186,7 +181,6 @@ export default function ContactDetail({
                       (errors.cnf_password && errors.cnf_password.message) ||
                       "Enter the same password as before, for verification."
                     }
-                    disabled={mode === "view"}
                   />
                 </div>
               </div>
@@ -207,7 +201,7 @@ export default function ContactDetail({
                   errors.name_first && errors.name_first.message ? true : false
                 }
                 hint={errors.name_first && errors.name_first.message}
-                disabled={false}
+                disabled={mode === "view"}
               />
             </div>
             <div>
@@ -221,7 +215,7 @@ export default function ContactDetail({
                   errors.name_last && errors.name_last.message ? true : false
                 }
                 hint={errors.name_last && errors.name_last.message}
-                disabled={false}
+                disabled={mode === "view"}
               />
             </div>
 
