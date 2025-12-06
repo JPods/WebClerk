@@ -14,6 +14,7 @@ urlpatterns = [
 
     # Core API endpoints
     path('', include('apps.core.urls')),
+    path('api/orgs/', include('apps.orgs.urls')),
     path('api/transactions/', include('apps.transactions.urls')),
 
     # Admin swagger
