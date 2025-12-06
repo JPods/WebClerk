@@ -60,7 +60,7 @@ class ActionAdmin(admin.ModelAdmin):
     """Admin interface for Action model."""
     list_display = ('id', 'get_action_title', 'kanban_column', 'status', 'priority', 'dt_created')
     list_filter = ('kanban_column', 'status', 'priority')
-    search_fields = ('project_name', 'action')
+    search_fields = ('id_project', 'action')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
     
     def get_action_title(self, obj):
@@ -90,16 +90,16 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'record_id', 'purpose', 'dt_processed')
+    list_display = ('id', 'model_name', 'id_record', 'purpose', 'dt_processed')
     list_filter = ('model_name', 'purpose')
-    search_fields = ('model_name', 'record_id', 'name')
+    search_fields = ('model_name', 'id_record', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 
 @admin.register(SoftDeleteLedger)
 class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     """Admin interface for SoftDeleteLedger model."""
-    list_display = ('id', 'target', 'purge_at', 'created_at')
-    list_filter = ('content_type', 'purge_at')
+    list_display = ('id', 'target', 'dt_purge', 'dt_created')
+    list_filter = ('content_type', 'dt_purge')
     search_fields = ('content_type__model', 'object_id')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('dt_created',)

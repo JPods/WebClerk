@@ -12,7 +12,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Proposal
         fields = [
-            'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
+            'id', 'uuid', 'ida', 'status', 'id_customer', 'id_vendor',
             'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]
@@ -28,7 +28,7 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
         model = SalesOrder
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
-            'customer_id', 'manufacturer_id', 'vendor_id',
+            'id_customer', 'id_manufacturer', 'id_vendor',
             'order_no', 'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]
@@ -44,7 +44,7 @@ class PurchaseOrderSerializer(RoleAwareModelSerializer):
         model = PurchaseOrder
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
-            'customer_id', 'manufacturer_id', 'vendor_id',
+            'id_customer', 'id_manufacturer', 'id_vendor',
             'po_no', 'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]
@@ -57,7 +57,7 @@ class InvoiceSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Invoice
         fields = [
-            'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
+            'id', 'uuid', 'ida', 'status', 'id_customer', 'id_vendor',
             'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]

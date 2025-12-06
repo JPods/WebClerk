@@ -36,7 +36,7 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
         },
         'user': {
             'view': base_fields + [
-                'name', 'status', 'customer_id', 'vendor_id',
+                'name', 'status', 'id_customer', 'id_vendor',
                 'amount', 'total', 'price', 'quantity', 'description'
             ],
             'edit': base_fields + [

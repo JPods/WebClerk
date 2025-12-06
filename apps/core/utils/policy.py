@@ -55,7 +55,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
 
     if mode == 'view':
         # Add read-only fields
-        base_fields.extend(['name', 'status', 'customer_id'])
+        base_fields.extend(['name', 'status', 'id_customer'])
     elif mode == 'edit':
         # Add editable fields
         base_fields.extend(['status', 'notes'])
@@ -65,7 +65,7 @@ def get_accessible_fields(model_name: str, mode: str, user) -> Optional[List[str
         'invoice': ['amount', 'tax', 'total', 'sales_tax'],
         'salesorder': ['order_no', 'total_amount'],
         'proposal': ['proposal_no', 'estimated_total'],
-        'purchaseorder': ['po_number', 'vendor_id']
+        'purchaseorder': ['po_number', 'id_vendor']
     }
 
     if model_name.lower() in model_specific:

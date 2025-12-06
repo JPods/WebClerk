@@ -51,7 +51,7 @@ class Payment(BaseModel):
         help_text="Contact who made the payment"
     )
     amount = models.DecimalField(max_digits=15, decimal_places=2, help_text="Payment amount")
-    payment_date = models.DateTimeField(help_text="Date the payment was made")
+    dt_payment = models.DateTimeField(help_text="Date the payment was made")
     payment_method = models.ForeignKey(
         PaymentMethod,
         on_delete=models.SET_NULL,
@@ -94,12 +94,12 @@ class Payment(BaseModel):
         default='manual',
         help_text="Payment gateway used"
     )
-    gateway_transaction_id = models.CharField(
+    id_gateway_transaction = models.CharField(
         max_length=255,
         blank=True,
         help_text="Transaction ID from the payment gateway"
     )
-    gateway_payment_intent_id = models.CharField(
+    id_gateway_payment_intent = models.CharField(
         max_length=255,
         blank=True,
         help_text="Payment intent ID from Stripe or equivalent"
@@ -115,7 +115,7 @@ class Payment(BaseModel):
         blank=True,
         help_text="Raw response from payment gateway"
     )
-    processed_at = models.DateTimeField(
+    dt_processed = models.DateTimeField(
         null=True,
         blank=True,
         help_text="When the payment was processed by gateway"
@@ -124,7 +124,7 @@ class Payment(BaseModel):
         default=False,
         help_text="Whether this payment has been reconciled"
     )
-    reconciliation_date = models.DateTimeField(
+    dt_reconciliation = models.DateTimeField(
         null=True,
         blank=True,
         help_text="When the payment was reconciled"
@@ -142,7 +142,7 @@ class Payment(BaseModel):
     def mark_as_completed(self):
         """Mark payment as completed"""
         self.status = 'completed'
-        self.processed_at = models.functions.Now()
+        self.dt_processed = models.functions.Now()
         self.save()
 
     def mark_as_failed(self, reason=None):
@@ -155,7 +155,7 @@ class Payment(BaseModel):
     def reconcile(self):
         """Mark payment as reconciled"""
         self.reconciled = True
-        self.reconciliation_date = models.functions.Now()
+        self.dt_reconciliation = models.functions.Now()
         self.save()
 
 

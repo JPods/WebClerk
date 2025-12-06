@@ -11,7 +11,7 @@ class AuditLog(BaseModel):
     class Meta:
         db_table = 'audit_logs'
         indexes = [
-            models.Index(fields=['model_name', 'record_id']),
+            models.Index(fields=['model_name', 'id_record']),
             models.Index(fields=['user', 'dt_created']),
             models.Index(fields=['action', 'dt_created']),
         ]
@@ -31,7 +31,7 @@ class AuditLog(BaseModel):
         max_length=100,
         help_text="Model that was changed (e.g., 'proposal', 'sales_order')"
     )
-    record_id = models.BigIntegerField(
+    id_record = models.BigIntegerField(
         help_text="ID of the record that was changed"
     )
 
@@ -57,7 +57,7 @@ class AuditLog(BaseModel):
         blank=True,
         help_text="User agent string from the request"
     )
-    session_id = models.CharField(
+    id_session = models.CharField(
         max_length=255,
         blank=True,
         help_text="Session ID for tracking user sessions"
@@ -70,19 +70,19 @@ class AuditLog(BaseModel):
     )
 
     def __str__(self):
-        return f"AuditLog: {self.user} {self.action} {self.model_name} {self.record_id}"
+        return f"AuditLog: {self.user} {self.action} {self.model_name} {self.id_record}"
 
     @classmethod
     def log_action(
         cls,
         user=None,
         model_name=None,
-        record_id=None,
+        id_record=None,
         action=None,
         changes=None,
         ip_address=None,
         user_agent=None,
-        session_id=None,
+        id_session=None,
         metadata=None,
         request=None
     ):
@@ -93,18 +93,18 @@ class AuditLog(BaseModel):
             ip_address = cls._get_client_ip(request)
         if request and not user_agent:
             user_agent = request.META.get('HTTP_USER_AGENT', '')
-        if request and not session_id:
-            session_id = request.session.session_key
+        if request and not id_session:
+            id_session = request.session.session_key
 
         return cls.objects.create(
             user=user,
             model_name=model_name,
-            record_id=record_id,
+            id_record=id_record,
             action=action,
             changes=changes or {},
             ip_address=ip_address,
             user_agent=user_agent,
-            session_id=session_id,
+            id_session=id_session,
             metadata=metadata or {}
         )
 

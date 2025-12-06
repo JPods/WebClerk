@@ -11,7 +11,7 @@ class Pending(CoreModel):
     """
     # Canonical model identifier
     model_name = models.CharField(max_length=255, blank=True, null=True)
-    record_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    id_record = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     purpose = models.CharField(max_length=120, blank=True, null=True)
     name = models.CharField(max_length=120, blank=True, null=True)
     data = models.JSONField(default=default_data)
@@ -21,7 +21,7 @@ class Pending(CoreModel):
         db_table = 'pending'
         indexes = [
             models.Index(fields=['model_name']),
-            models.Index(fields=['record_id']),
+            models.Index(fields=['id_record']),
             models.Index(fields=['dt_processed']),
         ]
 
@@ -36,4 +36,4 @@ class Pending(CoreModel):
         return self.dt_processed > 0
 
     def __str__(self):
-        return f"{self.model_name}:{self.record_id} (processed={self.is_processed()})"
+        return f"{self.model_name}:{self.id_record} (processed={self.is_processed()})"

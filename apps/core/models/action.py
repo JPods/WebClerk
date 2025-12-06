@@ -32,7 +32,7 @@ class Action(BaseModel):
 
     # Project information
     project_name = models.CharField(max_length=255, blank=True, null=True)
-    project_id = models.CharField(max_length=255, blank=True, null=True)
+    id_project = models.CharField(max_length=255, blank=True, null=True)
 
     # Kanban board and workflow management
     sequence = models.PositiveIntegerField(default=0)
