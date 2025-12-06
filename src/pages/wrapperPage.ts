@@ -13,6 +13,7 @@ import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
 import DomainDetail from "../apps/communications/domain/pages/domainDetail";
 import DomainList from "./domain/DomainList";
+import DomainAdd from "./domain/DomainAdd";
 
 // Accounts
 import AuditList from "../apps/accounts/models/audit/pages/AuditList";
@@ -114,6 +115,7 @@ export {
   SettingList,
   DomainDetail,
   DomainList,
+  DomainAdd,
   Calendar,
   FormElements,
   BasicTables,
