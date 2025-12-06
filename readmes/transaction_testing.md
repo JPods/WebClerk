@@ -5,6 +5,7 @@ This guide covers testing procedures for the main transaction types: Proposals, 
 ## Overview
 
 Transactions are handled through:
+
 - **Backend**: Django models in `apps/transactions/models/`
 - **Frontend**: React components in `../React2025/src/pages/transactions/`
 - **API**: WCAPI endpoints for CRUD operations
@@ -12,6 +13,7 @@ Transactions are handled through:
 ## Prerequisites
 
 1. **Backend Setup**:
+
    ```bash
    cd /Users/williamjames/Documents/CommerceExpert/webClerk3
    pip install -r requirements.txt
@@ -20,6 +22,7 @@ Transactions are handled through:
    ```
 
 2. **Frontend Setup**:
+
    ```bash
    cd ../React2025
    npm install
@@ -37,6 +40,7 @@ Transactions are handled through:
 **Frontend**: `../React2025/src/pages/transactions/ProposalDetailPage.tsx`
 
 **Test Steps**:
+
 1. Navigate to Proposals list page
 2. Create new proposal:
    - Fill customer info, items, pricing
@@ -48,6 +52,7 @@ Transactions are handled through:
 5. Verify line items and totals calculation
 
 **API Testing**:
+
 ```bash
 # List proposals
 GET /api/wcapi/?model_name=proposal
@@ -66,6 +71,7 @@ POST /api/wcapi/save/
 **Frontend**: `../React2025/src/pages/transactions/OrderDetailPage.tsx`
 
 **Test Steps**:
+
 1. Access Sales Orders page
 2. Create from proposal or directly:
    - Customer selection
@@ -77,6 +83,7 @@ POST /api/wcapi/save/
 6. Test totals and line item calculations
 
 **Key Features to Test**:
+
 - Order number generation
 - Customer linking
 - Item availability checks
@@ -88,6 +95,7 @@ POST /api/wcapi/save/
 **Frontend**: `../React2025/src/pages/transactions/InvoiceDetailPage.tsx`
 
 **Test Steps**:
+
 1. Navigate to Invoices list
 2. Create invoice from sales order:
    - Select order
@@ -101,6 +109,7 @@ POST /api/wcapi/save/
 6. Check customer and contact linking
 
 **Tax Service Integration**:
+
 - Tax service is available but not yet integrated into invoice totals
 - Manual testing via `calculate_transaction_tax()` function
 - See `readmes/tax_service.md` for details
@@ -111,6 +120,7 @@ POST /api/wcapi/save/
 **Frontend**: `../React2025/src/pages/transactions/PurchaseOrderDetailPage.tsx`
 
 **Test Steps**:
+
 1. Access Purchase Orders section
 2. Create PO for vendor:
    - Select vendor
@@ -124,23 +134,27 @@ POST /api/wcapi/save/
 ## Common Testing Scenarios
 
 ### CRUD Operations
+
 - Create new transaction
 - Read/view details
 - Update existing records
 - Delete (if allowed)
 
 ### Status Workflows
+
 - Planned → Released → In Progress → Complete
 - Hold/Cancel functionality
 - Status-dependent field visibility
 
 ### Data Relationships
+
 - Customer linking
 - Address associations
 - Contact information
 - Line item management
 
 ### Calculations
+
 - Line totals (price × quantity)
 - Header totals (subtotal, tax, shipping, total)
 - Margin calculations
@@ -149,23 +163,27 @@ POST /api/wcapi/save/
 ## UI Testing Checklist
 
 ### Navigation
+
 - [ ] Breadcrumb navigation works
 - [ ] Back/forward browser buttons
 - [ ] Direct URL access
 
 ### Forms
+
 - [ ] Required field validation
 - [ ] Data type validation (numbers, dates)
 - [ ] Save/cancel operations
 - [ ] Error message display
 
 ### Tables/Lists
+
 - [ ] Sorting functionality
 - [ ] Filtering options
 - [ ] Pagination
 - [ ] Row selection
 
 ### Responsive Design
+
 - [ ] Desktop layout
 - [ ] Tablet/mobile views
 - [ ] Form field spacing
@@ -173,6 +191,7 @@ POST /api/wcapi/save/
 ## Backend Testing
 
 ### API Endpoints
+
 ```bash
 # Test WCAPI
 curl -X GET "http://localhost:8000/api/wcapi/?model_name=invoice&id=1"
@@ -184,6 +203,7 @@ curl -X POST "http://localhost:8000/api/wcapi/save/" \
 ```
 
 ### Model Methods
+
 - Test `update_sell_cost_totals()` methods
 - Verify signal handlers
 - Check validation logic
@@ -191,11 +211,13 @@ curl -X POST "http://localhost:8000/api/wcapi/save/" \
 ## Integration Testing
 
 ### Cross-Transaction Flow
+
 1. Proposal → Sales Order → Invoice
 2. Purchase Order → Receipt → Invoice matching
 3. Customer data consistency across transactions
 
 ### External Integrations
+
 - Tax service (when integrated)
 - Inventory updates
 - Accounting system sync
@@ -216,12 +238,14 @@ curl -X POST "http://localhost:8000/api/wcapi/save/" \
 ## Troubleshooting
 
 ### Common Issues
+
 - **Page not loading**: Check backend server status
 - **Save failures**: Verify required fields and data types
 - **Missing data**: Check API responses and model relationships
 - **UI errors**: Check browser console for JavaScript errors
 
 ### Debug Tools
+
 - Django debug toolbar
 - React DevTools
 - Browser network inspector
