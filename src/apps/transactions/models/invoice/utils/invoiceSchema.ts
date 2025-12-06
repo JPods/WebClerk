@@ -1,7 +1,3 @@
-import { z } from 'zod';
+import { baseTransactionSchema } from '../../base/utils/baseSchema';
 
-export const invoiceSchema = z.object({
-  invoice_no: z.string().min(1, 'Invoice number is required'),
-});
-
-export type InvoiceFormData = z.infer<typeof invoiceSchema>;
+export const invoiceSchema = baseTransactionSchema;
