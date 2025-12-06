@@ -185,8 +185,10 @@ All adapted utility functions should be stored in `apps/core/management/misc.py`
 - **General utilities**: Safe division, text truncation, dict merging, etc.
 
 Functions can be imported as:
-```python
-from apps.core.utils import validate_filename_length, generate_barcode_data
+
+```aaa
+
+python from apps.core.utils import validate_filename_length, generate_barcode_data
 # or
 from apps.core.management.misc import WebClerk2Utils
 ```

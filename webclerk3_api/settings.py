@@ -323,18 +323,86 @@ WRITE_GATE_ALLOWED_REGEX = (
 
 # WCAPI blessed models (present in your project)
 WCAPI_BLESSED_MODELS = {
+    # Core models
     "contact": "core.Contact",
     "action": "core.Action",
+    "audit": "core.Audit",
+    "notification": "core.Notification",
+    "pending": "core.Pending",
+    "report": "core.Report",
+    "setting": "core.Setting",
+    "template": "core.Template",
+
+    # Accounts models
+    "currency": "accounts.Currency",
+    "exchange_rate": "accounts.ExchangeRate",
+    "exchange_transaction": "accounts.ExchangeTransaction",
+    "gl_account": "accounts.GlAccount",
+    "gl_journal": "accounts.GlJournal",
+    "ledger": "accounts.Ledger",
+    "tax_jurisdiction": "accounts.TaxJurisdiction",
+    "term": "accounts.Term",
+
+    # Communications models
+    "domain": "communications.Domain",
+    "email": "communications.Email",
+    "location": "communications.Location",
+    "phone": "communications.Phone",
+
+    # Docs models
+    "document": "docs.Document",
+    "linkage": "docs.Linkage",
+    "linkage_index": "docs.LinkageIndex",
+    "question_answer": "docs.QuestionAnswer",
+    "tag": "docs.Tag",
+
+    # Products models
+    "bill_of_material": "products.BillOfMaterial",
+    "catalog": "products.Catalog",
+    "flow": "products.Flow",
+    "inventory_check": "products.InventoryCheck",
+    "inventory_layer": "products.InventoryLayer",
+    "inventory_reservation": "products.InventoryReservation",
+    "item": "products.Item",
+    "item_xref": "products.ItemXRef",
+    "metrics": "products.InventoryMetricsSnapshot",
+    "org_item": "products.OrgItem",
+    "processor_runs": "products.InventoryAdjustmentProcessorRun",
+    "serial": "products.Serial",
+    "service": "products.Service",
+    "specification": "products.Specification",
+    "usage": "products.ItemUsage",
+    "variant": "products.Variant",
+    "warehouse": "products.Warehouse",
+
+    # Support models
+    "campaign": "support.Campaign",
+
+    # Sync models
+    "bundle": "sync.Bundle",
+    "connection": "sync.Connection",
+
+    # Transaction models
     "payment": "transactions.Payment",
     "payment_method": "transactions.PaymentMethod",
     "payment_term": "transactions.PaymentTerm",
+    "payment_application": "transactions.PaymentApplication",
     "transaction": "transactions.SalesOrder",
     "sales_order": "transactions.SalesOrder",
+    "sales_order_line": "transactions.SalesOrderLine",
     "invoice": "transactions.Invoice",
+    "invoice_line": "transactions.InvoiceLine",
     "purchase_order": "transactions.PurchaseOrder",
+    "purchase_order_line": "transactions.PurchaseOrderLine",
+    "purchase_receipt": "transactions.PurchaseReceipt",
     "work_order": "transactions.WorkOrder",
+    "work_order_line": "transactions.WorkOrderLine",
     "proposal": "transactions.Proposal",
+    "proposal_line": "transactions.ProposalLine",
     "requisition": "transactions.Requisition",
+    "requisition_line": "transactions.RequisitionLine",
+    "project": "transactions.Project",
+    "project_links": "transactions.ProjectLinks",
 }
 
 # WCAPI per-model policies (opt-in, safe by default)
