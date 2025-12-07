@@ -34,6 +34,7 @@ All core models are already implemented in `apps/transactions/models/`:
 - `Payment`: Payment records with gateway integration
 
 All inherit from `TransactionBaseModel` providing:
+
 - Common fields: status, customer_id, vendor_id, etc.
 - JSON fields: cost, sell, finance, flow, source, action
 - Status choices: planned → released → in_progress → complete/canceled
@@ -50,6 +51,7 @@ Key transfer services already exist in `apps/transactions/services/`:
 ### Inventory Integration
 
 Items managed via `apps/products/models/`:
+
 - `Item`: Base product catalog
 - `InventoryLayer`: Warehouse-specific stock tracking
 - `InventoryReservation`: Temporary holds
@@ -63,19 +65,23 @@ Items managed via `apps/products/models/`:
 **Current Status**: Basic transfer services exist but may need enhancement.
 
 **Enhancements Needed**:
+
 - Add purchase order creation from sales orders
 - Enhance invoice creation with tax calculations
 - Add payment application logic
 - Implement inventory quantity updates on transfers
 
 **Key Functions**:
+
 ```python
 # apps/transactions/services/order_to_purchase.py
 def transfer_order_to_purchase_order(order: SalesOrder) -> PurchaseOrder:
+
     # Create PO from SO lines requiring procurement
 
 # apps/transactions/services/invoice_to_payment.py
 def apply_payment_to_invoice(invoice: Invoice, payment: Payment):
+
     # Update invoice balance and payment status
 ```
 
@@ -84,18 +90,22 @@ def apply_payment_to_invoice(invoice: Invoice, payment: Payment):
 **Current Status**: Basic receiving exists in `flow.py`.
 
 **Enhancements Needed**:
+
 - Update item quantities on order confirmation
 - Reserve inventory on order release
 - Reduce available stock on invoicing
 - Handle backorders and partial shipments
 
 **Key Functions**:
+
 ```python
 # apps/transactions/services/inventory_flow.py
 def reserve_inventory_for_order(order: SalesOrder):
+
     # Create inventory reservations
 
 def release_inventory_on_invoice(invoice: Invoice):
+
     # Reduce available quantities
 ```
 
@@ -106,12 +116,14 @@ def release_inventory_on_invoice(invoice: Invoice):
 **Current Status**: Basic universal API coverage.
 
 **Implementation**:
+
 - Dedicated views for each transaction type
 - Line management endpoints
 - Bulk operations for transfers
 
 **URLs Structure**:
-```
+
+```aaa
 tx/
 ├── proposals/           # List/Create
 ├── proposals/{id}/      # Detail/Update
@@ -126,6 +138,7 @@ tx/
 #### 2.2 Transfer APIs
 
 **Endpoints**:
+
 - `POST /tx/proposals/{id}/convert-to-order/`
 - `POST /tx/orders/{id}/convert-to-invoice/`
 - `POST /tx/orders/{id}/create-purchase-order/`
@@ -136,12 +149,15 @@ tx/
 #### 3.1 Validation Services
 
 **Functions**:
+
 ```python
 # apps/transactions/services/validation.py
 def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
+
     # Check line completeness, pricing, etc.
 
 def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
+
     # Check fulfillment status, shipping, etc.
 ```
 
@@ -150,6 +166,7 @@ def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
 **Current Status**: Basic totals services exist.
 
 **Enhancements**:
+
 - Tax calculations
 - Discount application
 - Margin analysis
@@ -158,12 +175,15 @@ def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
 #### 3.3 Notification Services
 
 **Functions**:
+
 ```python
 # apps/transactions/services/notifications.py
 def notify_order_confirmed(order: SalesOrder):
+
     # Email customer, update CRM
 
 def notify_invoice_overdue(invoice: Invoice):
+
     # Send reminders, update collections
 ```
 
@@ -172,7 +192,8 @@ def notify_invoice_overdue(invoice: Invoice):
 #### 4.1 React Components Structure
 
 **Recommended Structure**:
-```
+
+```aaa
 src/components/transactions/
 ├── ProposalForm/
 ├── OrderDetail/
@@ -195,6 +216,7 @@ src/components/transactions/
 #### 4.3 State Management
 
 **Redux/Slice Structure**:
+
 ```javascript
 // src/store/transactions/
 ├── proposalSlice.js
@@ -209,6 +231,7 @@ src/components/transactions/
 #### 5.1 Unit Tests
 
 **Coverage Areas**:
+
 - Model validation
 - Transfer logic
 - Totals calculation
@@ -217,6 +240,7 @@ src/components/transactions/
 #### 5.2 Integration Tests
 
 **Scenarios**:
+
 - Complete flow: proposal → order → invoice → payment
 - Inventory tracking through flow
 - Error handling and rollback
@@ -270,6 +294,7 @@ src/components/transactions/
 ### Status Workflows
 
 **Proposal Statuses**:
+
 - planned
 - sent
 - accepted
@@ -277,6 +302,7 @@ src/components/transactions/
 - canceled
 
 **Order Statuses**:
+
 - confirmed
 - released
 - in_progress
@@ -284,6 +310,7 @@ src/components/transactions/
 - canceled
 
 **Invoice Statuses**:
+
 - draft
 - sent
 - paid
@@ -302,12 +329,14 @@ src/components/transactions/
 ### Salvaged Logic
 
 **From WebClerk2** (assumed based on current implementation):
+
 - Transfer utilities in `flow.py`
 - Totals calculation patterns
 - Status workflow management
 - Basic inventory receiving
 
 **Not Salvaged**:
+
 - Commission calculations (removed to JSON objects)
 - Legacy workflow states
 - Deprecated field mappings
@@ -333,21 +362,25 @@ src/components/transactions/
 ## Implementation Timeline
 
 ### Week 1-2: Core Services
+
 - Complete transfer services
 - Enhance inventory integration
 - Add validation logic
 
 ### Week 3-4: API Layer
+
 - Implement CRUD views
 - Add transfer endpoints
 - Create serializers
 
 ### Week 5-6: Frontend
+
 - Build React components
 - Implement flow visualization
 - Add payment integration
 
 ### Week 7-8: Testing & Deployment
+
 - Comprehensive testing
 - Performance optimization
 - Production deployment
@@ -355,12 +388,14 @@ src/components/transactions/
 ## Dependencies
 
 ### External Libraries
+
 - Django REST Framework (for APIs)
 - django-filter (for query filtering)
 - Stripe/PayPal SDKs (for payments)
 - React Query (for frontend data fetching)
 
 ### Internal Dependencies
+
 - `common.BaseModel` (for optimistic concurrency)
 - `products.Item` (for inventory)
 - `accounts.PaymentMethod` (for payment types)
@@ -368,11 +403,13 @@ src/components/transactions/
 ## Risk Assessment
 
 ### Technical Risks
+
 - **Inventory Accuracy**: Critical for business operations
 - **Payment Security**: PCI compliance requirements
 - **Performance**: Large transaction volumes
 
 ### Mitigation Strategies
+
 - Comprehensive testing of inventory flows
 - Gateway security audits
 - Database performance monitoring

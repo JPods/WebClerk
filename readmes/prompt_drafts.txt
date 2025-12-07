@@ -13,3 +13,23 @@ Examples of related records:
 
 I would like to approach our approach in two ways:
 1st create a function that defines what models should be denormalized in other models. 
+
+/////
+Review our architecture and provide a plan before implementing
+Note frontend is in React2025(./CommerceExpert/React2025). User pages in stored in /src/apps/{app_name}/models/{model_name}/pages
+Note backend is in Webclerk3 (./CommerceExpert/webclerk3)
+
+Put the plan into a readme
+Then we can implement step by step
+
+/////
+
+/////
+Review our architecture and provide a plan before implementing
+Note frontend is in React2025(./CommerceExpert/React2025). User pages in stored in /src/apps/{app_name}/models/{model_name}/pages
+Note backend is in Webclerk3 (./CommerceExpert/webclerk3)
+
+Put the plan into a readme
+Then we can implement step by step
+
+We want to implement proposals in both React and WebClerk 
