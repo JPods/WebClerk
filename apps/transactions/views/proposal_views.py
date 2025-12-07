@@ -65,8 +65,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # Create sales order data
         order_data = {
             'model_name': 'sales_order',
-            'id_customer': proposal.id_customer,
-            'id_vendor': proposal.id_vendor,
+            'customer_id': proposal.customer_id,
+            'vendor_id': proposal.vendor_id,
             'status': 'released',
             'sell': proposal.sell,
             'cost': proposal.cost,

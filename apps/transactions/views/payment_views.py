@@ -37,8 +37,8 @@ def process_payment(request):
 
         # Create payment record
         payment = Payment.objects.create(
-            invoice=invoice,
-            contact=request.user,  # Assuming user is contact
+            invoice_id=invoice,
+            contact_id=request.user,  # Assuming user is contact
             amount=amount,
             gateway=gateway,
             status='pending'
@@ -189,7 +189,7 @@ def payment_status(request, payment_id):
         payment = get_object_or_404(Payment, pk=payment_id)
 
         # Check if user has permission to view this payment
-        if payment.contact != request.user and not request.user.is_staff:
+        if payment.contact_id != request.user and not request.user.is_staff:
             return Response(
                 {'error': 'Permission denied'},
                 status=status.HTTP_403_FORBIDDEN
@@ -223,7 +223,7 @@ def payment_status(request, payment_id):
 def payment_history(request):
     """Get payment history for the authenticated user"""
     try:
-        payments = Payment.objects.filter(contact=request.user).order_by('-dt_created')
+        payments = Payment.objects.filter(contact_id=request.user).order_by('-dt_created')
 
         # Paginate if needed
         page = request.query_params.get('page', 1)
@@ -238,7 +238,7 @@ def payment_history(request):
         for payment in payments_page:
             data.append({
                 'id': payment.id,
-                'invoice_id': payment.invoice_id,
+                'invoice_id': payment.invoice_id_id,
                 'amount': payment.amount,
                 'status': payment.status,
                 'gateway': payment.gateway,

@@ -38,9 +38,9 @@ class InventoryReservation(models.Model):
         (STATE_EXPIRED, 'Expired'),
     ]
 
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations')
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')
-    stack = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
+    item_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations')
+    warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')
+    inventorylayer_id = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     qty = models.DecimalField(max_digits=14, decimal_places=4)
     state = models.CharField(max_length=20, choices=STATES, default=STATE_PENDING, db_index=True)
     dt_expires = models.DateTimeField(db_index=True)
@@ -54,7 +54,7 @@ class InventoryReservation(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=("state", "dt_expires"), name="invres_state_exp_idx"),
-            models.Index(fields=("item", "warehouse", "state"), name="invres_item_wh_state_idx"),
+            models.Index(fields=("item_id", "warehouse_id", "state"), name="invres_item_wh_state_idx"),
         ]
 
     # --- Core transitions -------------------------------------------------
@@ -67,9 +67,9 @@ class InventoryReservation(models.Model):
             if r.state != self.STATE_PENDING:
                 return False
             # Convert to real issue from stack (if still available)
-            if r.stack and r.stack.remaining_qty() >= self.qty:
-                r.stack.mark_issue(self.qty)
-                r.stack.save(update_fields=['quantity', 'dt_modified', 'version'])
+            if r.inventorylayer_id and r.inventorylayer_id.remaining_qty() >= self.qty:
+                r.inventorylayer_id.mark_issue(self.qty)
+                r.inventorylayer_id.save(update_fields=['quantity', 'dt_modified', 'version'])
             r.state = self.STATE_COMMITTED
             r.dt_committed = timezone.now()
             r.save(update_fields=['state', 'dt_committed'])

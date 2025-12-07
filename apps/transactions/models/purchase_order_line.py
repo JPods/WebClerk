@@ -6,7 +6,7 @@ class PurchaseOrderLine(BaseSellLineModel):
     # Legacy table doesn't have 'price'; drop inherited field so ORM won't write it.
     price = None
 
-    parent = models.ForeignKey(
+    purchaseorder_id = models.ForeignKey(
         "transactions.PurchaseOrder",
         related_name="lines",
         on_delete=models.CASCADE,
@@ -16,10 +16,10 @@ class PurchaseOrderLine(BaseSellLineModel):
         db_table = "purchase_order_lines"
 
     @property
-    def parent_ref_id(self):
+    def purchaseorder_ref_id(self):
         # Mirror FK id for test helpers
-        return getattr(self, "parent_id", None)
+        return getattr(self, "purchaseorder_id_id", None)
 
-    @parent_ref_id.setter
-    def parent_ref_id(self, value):
-        self.parent_id = value
+    @purchaseorder_ref_id.setter
+    def purchaseorder_ref_id(self, value):
+        self.purchaseorder_id_id = value

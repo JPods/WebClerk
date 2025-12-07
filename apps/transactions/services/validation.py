@@ -82,7 +82,7 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
         errors.append(f"{invalid_lines} line(s) have invalid quantity or pricing")
 
     # Customer check
-    if not proposal.id_customer:
+    if not proposal.customer_id:
         errors.append("Proposal must have a customer assigned")
 
     can_proceed = len(errors) == 0
@@ -144,7 +144,7 @@ def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
         errors.append("No lines have remaining quantity to invoice")
 
     # Address checks (simplified)
-    if not order.id_customer:
+    if not order.customer_id:
         errors.append("Order must have billing customer")
 
     can_proceed = len(errors) == 0

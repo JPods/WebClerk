@@ -21,8 +21,8 @@ class BillOfMaterial(BaseModel):
       - validation: quantity>0, 0<=scrap_factor<1, parent!=component, no duplicate sequence per parent+revision
     """
 
-    parent = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent")
-    component = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_component")
+    item_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="bom_parent")
+    component_id = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_component")
 
     revision = models.CharField(max_length=20, blank=True, default="")
     dt_effective_from = models.DateField(null=True, blank=True)
@@ -50,14 +50,14 @@ class BillOfMaterial(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["parent", "component"], name="uniq_bom_parent_component"),
-            models.CheckConstraint(check=~models.Q(parent=models.F('component')), name='ck_bom_parent_ne_component'),
+            models.UniqueConstraint(fields=["item_id", "component_id"], name="uniq_bom_parent_component"),
+            models.CheckConstraint(check=~models.Q(item_id=models.F('component_id')), name='ck_bom_parent_ne_component'),
             models.CheckConstraint(check=models.Q(scrap_factor__gte=0) & models.Q(scrap_factor__lt=1), name='ck_bom_scrap_range'),
         ]
         indexes = [
-            models.Index(fields=("parent",), name="bom_parent_idx"),
-            models.Index(fields=("component",), name="bom_component_idx"),
-            models.Index(fields=("parent", "revision", "sequence"), name="bom_parent_rev_seq_idx"),
+            models.Index(fields=("item_id",), name="bom_parent_idx"),
+            models.Index(fields=("component_id",), name="bom_component_idx"),
+            models.Index(fields=("item_id", "revision", "sequence"), name="bom_parent_rev_seq_idx"),
         ]
 
     def clean(self):  # pragma: no cover - simple validations
@@ -65,8 +65,8 @@ class BillOfMaterial(BaseModel):
             raise ValidationError({"quantity": "Quantity must be > 0"})
         if self.scrap_factor is None or self.scrap_factor < 0 or self.scrap_factor >= 1:
             raise ValidationError({"scrap_factor": "Scrap factor must be between 0 (inclusive) and 1 (exclusive)"})
-        parent_pk = getattr(self, 'parent_id', None)  # type: ignore[attr-defined]
-        component_pk = getattr(self, 'component_id', None)  # type: ignore[attr-defined]
+        parent_pk = getattr(self, 'item_id_id', None)  # type: ignore[attr-defined]
+        component_pk = getattr(self, 'component_id_id', None)  # type: ignore[attr-defined]
         if parent_pk and component_pk and parent_pk == component_pk:
             raise ValidationError("Parent and component cannot be the same item")
         # Recursive cycle detection: ensure adding parent->component line will not introduce a cycle
@@ -86,9 +86,9 @@ class BillOfMaterial(BaseModel):
             except Exception:
                 pass
         # Capture cost snapshot on create
-        component_pk = getattr(self, 'component_id', None)  # type: ignore[attr-defined]
+        component_pk = getattr(self, 'component_id_id', None)  # type: ignore[attr-defined]
         if creating and self.cost_snapshot is None and component_pk:
-            val = getattr(self.component, 'cost', None)
+            val = getattr(self.component_id, 'cost', None)
             if isinstance(val, dict):
                 # Cost precedence order:
                 # We intentionally probe keys in this fixed sequence so the first
@@ -133,7 +133,7 @@ class BillOfMaterial(BaseModel):
         except Exception:
             return
         from decimal import Decimal as _D
-        lines = BillOfMaterial.objects.filter(parent_id=parent_item_id)
+        lines = BillOfMaterial.objects.filter(item_id_id=parent_item_id)
         total = _D("0")
         for line in lines:
             try:
@@ -142,7 +142,7 @@ class BillOfMaterial(BaseModel):
                 unit_cost = line.cost_snapshot
                 if unit_cost is None:
                     # Fallback probe of live component.cost JSON (same precedence as snapshot capture)
-                    comp_cost = getattr(line.component, 'cost', None)
+                    comp_cost = getattr(line.component_id, 'cost', None)
                     if isinstance(comp_cost, dict):
                         for key in ("avg", "standard", "last", "landed"):
                             raw = comp_cost.get(key)
@@ -190,7 +190,7 @@ class BillOfMaterial(BaseModel):
             current_parent_id, depth = queue.popleft()
             if depth >= max_depth:
                 continue
-            child_lines = BillOfMaterial.objects.filter(parent_id=current_parent_id).values_list('component_id', flat=True)
+            child_lines = BillOfMaterial.objects.filter(item_id_id=current_parent_id).values_list('component_id_id', flat=True)
             for comp_id in child_lines:
                 if comp_id in visited:
                     continue

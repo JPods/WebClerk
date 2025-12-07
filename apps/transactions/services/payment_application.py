@@ -68,8 +68,8 @@ def apply_payment_to_invoice(
     # Create payment application record
     from apps.transactions.models import PaymentApplication
     application = PaymentApplication.objects.create(
-        payment=payment,
-        invoice=invoice,
+        payment_id=payment,
+        invoice_id=invoice,
         amount=actual_apply,
         applied_at=timezone.now()
     )
@@ -135,16 +135,16 @@ def unapply_payment_from_invoice(
         try:
             application = PaymentApplication.objects.get(
                 id=application_id,
-                payment=payment,
-                invoice=invoice
+                payment_id=payment,
+                invoice_id=invoice
             )
         except PaymentApplication.DoesNotExist:
             raise PaymentApplicationError("Payment application not found")
     else:
         # Find the most recent application
         application = PaymentApplication.objects.filter(
-            payment=payment,
-            invoice=invoice
+            payment_id=payment,
+            invoice_id=invoice
         ).order_by('-applied_at').first()
 
         if not application:

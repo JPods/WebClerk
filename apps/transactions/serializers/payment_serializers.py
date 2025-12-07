@@ -50,20 +50,20 @@ class PaymentSerializer(serializers.ModelSerializer):
         except Contact.DoesNotExist:
             raise serializers.ValidationError({"contact_id": "Invalid contact id"})
 
-        validated_data["invoice"] = invoice
-        validated_data["contact"] = contact
+        validated_data["invoice_id"] = invoice
+        validated_data["contact_id"] = contact
 
         if payment_method_id:
             try:
                 payment_method = PaymentMethod.objects.get(pk=payment_method_id)
-                validated_data["payment_method"] = payment_method
+                validated_data["paymentmethod_id"] = payment_method
             except PaymentMethod.DoesNotExist:
                 raise serializers.ValidationError({"payment_method_id": "Invalid payment method id"})
 
         if payment_term_id:
             try:
                 payment_term = PaymentTerm.objects.get(pk=payment_term_id)
-                validated_data["payment_term"] = payment_term
+                validated_data["paymentterm_id"] = payment_term
             except PaymentTerm.DoesNotExist:
                 raise serializers.ValidationError({"payment_term_id": "Invalid payment term id"})
 
@@ -78,14 +78,14 @@ class PaymentSerializer(serializers.ModelSerializer):
         if invoice_id:
             try:
                 invoice = Invoice.objects.get(pk=invoice_id)
-                validated_data["invoice"] = invoice
+                validated_data["invoice_id"] = invoice
             except Invoice.DoesNotExist:
                 raise serializers.ValidationError({"invoice_id": "Invalid invoice id"})
 
         if contact_id:
             try:
                 contact = Contact.objects.get(pk=contact_id)
-                validated_data["contact"] = contact
+                validated_data["contact_id"] = contact
             except Contact.DoesNotExist:
                 raise serializers.ValidationError({"contact_id": "Invalid contact id"})
 
@@ -93,20 +93,20 @@ class PaymentSerializer(serializers.ModelSerializer):
             if payment_method_id:
                 try:
                     payment_method = PaymentMethod.objects.get(pk=payment_method_id)
-                    validated_data["payment_method"] = payment_method
+                    validated_data["paymentmethod_id"] = payment_method
                 except PaymentMethod.DoesNotExist:
                     raise serializers.ValidationError({"payment_method_id": "Invalid payment method id"})
             else:
-                validated_data["payment_method"] = None
+                validated_data["paymentmethod_id"] = None
 
         if payment_term_id is not None:
             if payment_term_id:
                 try:
                     payment_term = PaymentTerm.objects.get(pk=payment_term_id)
-                    validated_data["payment_term"] = payment_term
+                    validated_data["paymentterm_id"] = payment_term
                 except PaymentTerm.DoesNotExist:
                     raise serializers.ValidationError({"payment_term_id": "Invalid payment term id"})
             else:
-                validated_data["payment_term"] = None
+                validated_data["paymentterm_id"] = None
 
         return super().update(instance, validated_data)

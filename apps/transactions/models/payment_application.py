@@ -7,15 +7,15 @@ class PaymentApplication(BaseModel):
 
     class Meta:
         db_table = "payment_applications"
-        unique_together = ['payment', 'invoice']  # One application per payment-invoice pair
+        unique_together = ['payment_id', 'invoice_id']  # One application per payment-invoice pair
 
-    payment = models.ForeignKey(
+    payment_id = models.ForeignKey(
         'transactions.Payment',
         on_delete=models.CASCADE,
         related_name='applications',
         help_text="The payment being applied"
     )
-    invoice = models.ForeignKey(
+    invoice_id = models.ForeignKey(
         'transactions.Invoice',
         on_delete=models.CASCADE,
         related_name='payment_applications',
@@ -36,7 +36,7 @@ class PaymentApplication(BaseModel):
     )
 
     def __str__(self):
-        return f"PaymentApplication: {self.payment} -> {self.invoice} (${self.amount})"
+        return f"PaymentApplication: {self.payment_id} -> {self.invoice_id} (${self.amount})"
 
     def clean(self):
         """Validate that applied amount doesn't exceed payment or invoice balance."""
@@ -47,17 +47,17 @@ class PaymentApplication(BaseModel):
 
         # Check payment has sufficient remaining amount
         total_applied = sum(
-            app.amount for app in self.payment.applications.all()
+            app.amount for app in self.payment_id.applications.all()
             if app.pk != self.pk  # Exclude self if updating
         )
-        remaining = self.payment.amount - total_applied
+        remaining = self.payment_id.amount - total_applied
         if self.amount > remaining:
             raise ValidationError(
                 f"Applied amount (${self.amount}) exceeds payment remaining (${remaining})"
             )
 
         # Check invoice has sufficient balance
-        invoice_totals = self.invoice.totals or {}
+        invoice_totals = self.invoice_id.totals or {}
         total_due = invoice_totals.get('total', 0)
         already_paid = invoice_totals.get('received', 0)
         balance = total_due - already_paid
