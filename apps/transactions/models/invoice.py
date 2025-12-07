@@ -8,6 +8,10 @@ class Invoice(TransactionBaseModel):
     class Meta:
         db_table = "invoices"
 
+    # JSONB fields for references and metadata
+    refs = models.JSONField(default=dict, blank=True, null=True, help_text="References like order_id")
+    metadata = models.JSONField(default=dict, blank=True, null=True, help_text="Payment history and balances")
+
     def update_sell_cost_totals(self, persist: bool = False) -> Dict[str, Dict[str, float]]:
         computed = compute_invoice_sell_cost_totals(self)
         if persist:

@@ -74,6 +74,14 @@ def apply_payment_to_invoice(
         applied_at=timezone.now()
     )
 
+    # Update payment refs to include this invoice
+    payment.add_invoice_ref(invoice.id)
+    payment.add_audit_entry('payment_applied', {
+        'invoice_id': invoice.id,
+        'amount': float(actual_apply),
+        'application_id': application.id
+    })
+
     # Update invoice totals
     new_received = payments_received + actual_apply
     new_balance = total_due - new_received

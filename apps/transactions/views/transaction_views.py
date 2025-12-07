@@ -46,8 +46,22 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def create_purchase_order(self, request, pk=None):
         """Create purchase order from sales order."""
+        from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
+
         order = self.get_object()
-        return Response({'message': 'PO creation endpoint - implementation needed'})
+        group_by_vendor = request.data.get('group_by_vendor', True)
+        line_ids = request.data.get('line_ids')
+
+        try:
+            result = transfer_order_to_purchase(
+                order=order,
+                line_ids=line_ids,
+                transfer_all=line_ids is None,
+                group_by_vendor=group_by_vendor
+            )
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def reserve_inventory(self, request, pk=None):
@@ -67,8 +81,40 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def receive_goods(self, request, pk=None):
         """Record receipt of goods."""
+        from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+
         po = self.get_object()
-        return Response({'message': 'Goods receipt endpoint - implementation needed'})
+        receipt_no = request.data.get('receipt_no')
+        if not receipt_no:
+            return Response({'error': 'receipt_no is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        lines_data = request.data.get('lines', [])
+        if not lines_data:
+            return Response({'error': 'lines are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        lines = []
+        for ld in lines_data:
+            lines.append(ReceiveLine(
+                po_line_id=ld['po_line_id'],
+                qty=ld['qty'],
+                warehouse_code=ld['warehouse_code'],
+                unit_cost=ld.get('unit_cost'),
+                lot=ld.get('lot'),
+                serial_batch=ld.get('serial_batch')
+            ))
+
+        try:
+            result = receive_purchase_order(po, receipt_no, lines)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'])
+    def totals(self, request, pk=None):
+        """Get detailed totals for purchase order."""
+        po = self.get_object()
+        totals = po.update_sell_cost_totals(persist=False)
+        return Response(totals)
 
 
 class InvoiceViewSet(viewsets.ModelViewSet):

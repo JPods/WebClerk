@@ -88,6 +88,23 @@ class StripeService:
             payment.processed_at = timezone.now()
             payment.gateway_response = payment_intent
             payment.fee_amount = (payment_intent.amount - payment_intent.amount_received) / 100  # Convert from cents
+
+            # Update metadata with gateway information
+            if not payment.metadata:
+                payment.metadata = {}
+            payment.metadata['gateway_metadata'] = {
+                'stripe_payment_intent_id': payment_intent.id,
+                'amount_received': payment_intent.amount_received / 100,
+                'currency': payment_intent.currency,
+                'fee': payment.fee_amount,
+                'net_amount': (payment_intent.amount_received - payment.fee_amount * 100) / 100
+            }
+            payment.add_audit_entry('gateway_payment_completed', {
+                'gateway': 'stripe',
+                'payment_intent_id': payment_intent.id,
+                'amount': payment_intent.amount / 100
+            })
+
             payment.save()
 
             logger.info(f"Payment {payment.id} marked as completed via Stripe webhook")
@@ -281,6 +298,8 @@ class PaymentReconciliationService:
             try:
                 if self._verify_payment_with_gateway(payment):
                     payment.reconcile()
+                    payment.add_reconciliation_note(f"Auto-reconciled on {timezone.now().date()}")
+                    payment.add_audit_entry('reconciled', {'method': 'auto', 'batch_id': f"batch_{timezone.now().strftime('%Y%m%d')}"})
                     reconciled_count += 1
                     logger.info(f"Reconciled payment {payment.id}")
                 else:
