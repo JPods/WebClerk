@@ -5,7 +5,12 @@ from apps.transactions.models import Invoice, InvoiceLine
 class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
-        fields = ["id", "dt_created", "dt_modified"]
+        fields = [
+            "id", "status", "customer_id", "vendor_id", "priority", "price_level",
+            "cost", "sell", "finance", "flow", "source", "action",
+            "refs", "metadata", "totals",
+            "dt_created", "dt_modified"
+        ]
         read_only_fields = ["id", "dt_created", "dt_modified"]
 
 

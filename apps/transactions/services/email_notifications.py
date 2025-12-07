@@ -3,6 +3,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
 from typing import Optional, Dict, Any
+from apps.communications.models import Email
 from apps.core.models import Contact
 from apps.transactions.models import Proposal, SalesOrder, Invoice, Payment
 
@@ -30,7 +31,7 @@ class TransactionEmailService:
                 emails.append(contact.email)
 
             # Additional emails that are verified and not opted out
-            for email_obj in contact.emails.filter(is_verified=True, opt_out=''):
+            for email_obj in Email.objects.filter(id__in=contact.refs.get('links', {}).get('email', [])).filter(is_verified=True, opt_out=''):
                 emails.append(email_obj.email)
 
         except Contact.DoesNotExist:

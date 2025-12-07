@@ -2,6 +2,29 @@ from django.db import models
 from common.models import BaseModel
 
 
+def default_refs() -> dict:
+    """Default refs structure for payment lineage tracking."""
+    return {
+        "invoice_ids": [],  # List of invoice IDs this payment applies to
+        "order_ids": [],    # Related order IDs for tracking
+        "source": {"type": "", "id": 0}  # Source transaction reference
+    }
+
+
+def default_metadata() -> dict:
+    """Default metadata structure for reconciliation and additional data."""
+    return {
+        "reconciliation": {
+            "batch_id": None,
+            "statement_date": None,
+            "notes": ""
+        },
+        "gateway_metadata": {},
+        "processing_fees": [],
+        "audit_trail": []
+    }
+
+
 class PaymentTerm(BaseModel):
     """Payment terms for transactions (e.g., Net 30, COD, etc.)"""
 
@@ -136,6 +159,20 @@ class Payment(BaseModel):
         help_text="Processing fee charged by gateway"
     )
 
+    # JSONB fields for lineage tracking and metadata
+    refs = models.JSONField(
+        default=default_refs,
+        blank=True,
+        null=True,
+        help_text="References to related transactions (invoices, orders, etc.)"
+    )
+    metadata = models.JSONField(
+        default=default_metadata,
+        blank=True,
+        null=True,
+        help_text="Additional metadata for reconciliation, gateway data, and audit trail"
+    )
+
     def __str__(self):
         return f"Payment #{self.id} - {self.amount} ({self.status}) for Invoice #{self.invoice_id.id}"
 
@@ -157,6 +194,52 @@ class Payment(BaseModel):
         self.reconciled = True
         self.dt_reconciliation = models.functions.Now()
         self.save()
+
+    def add_invoice_ref(self, invoice_id: int):
+        """Add an invoice reference to the refs field"""
+        if not self.refs:
+            self.refs = default_refs()
+        if invoice_id not in self.refs.get('invoice_ids', []):
+            self.refs['invoice_ids'].append(invoice_id)
+            self.save(update_fields=['refs'])
+
+    def add_order_ref(self, order_id: int):
+        """Add an order reference to the refs field"""
+        if not self.refs:
+            self.refs = default_refs()
+        if order_id not in self.refs.get('order_ids', []):
+            self.refs['order_ids'].append(order_id)
+            self.save(update_fields=['refs'])
+
+    def set_source_ref(self, ref_type: str, ref_id: int):
+        """Set the source reference"""
+        if not self.refs:
+            self.refs = default_refs()
+        self.refs['source'] = {'type': ref_type, 'id': ref_id}
+        self.save(update_fields=['refs'])
+
+    def add_reconciliation_note(self, note: str):
+        """Add a note to reconciliation metadata"""
+        if not self.metadata:
+            self.metadata = default_metadata()
+        reconciliation = self.metadata.get('reconciliation', {})
+        reconciliation['notes'] = note
+        self.metadata['reconciliation'] = reconciliation
+        self.save(update_fields=['metadata'])
+
+    def add_audit_entry(self, action: str, details: dict = None):
+        """Add an entry to the audit trail"""
+        if not self.metadata:
+            self.metadata = default_metadata()
+        audit_trail = self.metadata.get('audit_trail', [])
+        entry = {
+            'timestamp': models.functions.Now(),
+            'action': action,
+            'details': details or {}
+        }
+        audit_trail.append(entry)
+        self.metadata['audit_trail'] = audit_trail
+        self.save(update_fields=['metadata'])
 
 
 __all__ = ["Payment", "PaymentMethod", "PaymentTerm"]

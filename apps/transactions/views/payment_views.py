@@ -5,12 +5,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
 from apps.transactions.models import Payment, Invoice
+from apps.transactions.serializers.payment_serializers import PaymentSerializer
 from apps.transactions.services.payment_gateways import StripeService, PayPalService, PaymentReconciliationService
+from apps.transactions.services.payment_application import apply_payment_to_invoice, get_invoice_payment_status
+from apps.core.services import wcapi
 
 logger = logging.getLogger(__name__)
 
@@ -259,3 +262,113 @@ def payment_history(request):
             {'error': 'Failed to get payment history'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    """
+    REST API viewset for Payment management.
+    Uses WCAPI for all save operations to maintain consistency and security.
+    """
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions."""
+        return self.queryset
+
+    def perform_create(self, serializer):
+        """Create payment using WCAPI save."""
+        data = serializer.validated_data.copy()
+        data['model_name'] = 'payment'
+
+        # Use WCAPI save for consistency
+        result = wcapi.save_item('payment', request=self.request, data=data)
+        if result[1] == 'created':
+            # Set the created instance on serializer for response
+            instance = Payment.objects.get(pk=result[0])
+            serializer.instance = instance
+        else:
+            raise Exception("Failed to create payment")
+
+    def perform_update(self, serializer):
+        """Update payment using WCAPI save."""
+        instance = self.get_object()
+        data = serializer.validated_data.copy()
+        data['model_name'] = 'payment'
+        data['id'] = instance.id
+
+        # Use WCAPI save for consistency
+        result = wcapi.save_item('payment', request=self.request, data=data, id=instance.id)
+        if result[1] == 'updated':
+            # Refresh instance
+            instance.refresh_from_db()
+            serializer.instance = instance
+        else:
+            raise Exception("Failed to update payment")
+
+    @action(detail=True, methods=['post'])
+    def apply_to_invoice(self, request, pk=None):
+        """Apply payment to an invoice."""
+        payment = self.get_object()
+        invoice_id = request.data.get('invoice_id')
+        amount = request.data.get('amount')
+
+        if not invoice_id:
+            return Response(
+                {'error': 'invoice_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            invoice = Invoice.objects.get(pk=invoice_id)
+        except Invoice.DoesNotExist:
+            return Response(
+                {'error': 'Invoice not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            result = apply_payment_to_invoice(invoice, payment, amount)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error applying payment {payment.id} to invoice {invoice_id}: {e}")
+            return Response(
+                {'error': 'Failed to apply payment'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def status(self, request, pk=None):
+        """Get detailed payment status."""
+        payment = self.get_object()
+
+        # Get related invoice statuses
+        invoice_statuses = []
+        for invoice_id in payment.refs.get('invoice_ids', []) if payment.refs else []:
+            try:
+                invoice = Invoice.objects.get(pk=invoice_id)
+                status_info = get_invoice_payment_status(invoice)
+                invoice_statuses.append({
+                    'invoice_id': invoice_id,
+                    'status': status_info
+                })
+            except Invoice.DoesNotExist:
+                continue
+
+        return Response({
+            'payment_id': payment.id,
+            'status': payment.status,
+            'amount': payment.amount,
+            'gateway': payment.gateway,
+            'reconciled': payment.reconciled,
+            'refs': payment.refs,
+            'metadata': payment.metadata,
+            'invoice_statuses': invoice_statuses,
+            'dt_created': payment.dt_created,
+            'dt_modified': payment.dt_modified
+        })
+
+    @action(detail=False, methods=['post'])
+    def process_gateway_payment(self, request):
+        """Process a payment through gateway (alternative to function-based view)."""
+        return process_payment(request)
