@@ -69,7 +69,7 @@ class OrgItem(ItemLinkedBase):
 
     Notes:
       - Inherits `item` FK from ItemLinkedBase.
-      - `org` provides direction; org_type classification available via related org.
+      - `orgbase_id` provides direction; org_type classification available via related org.
       - `description` can hold planogram, merchandising, pricing notes, etc.
     """
 
@@ -130,7 +130,7 @@ class OrgItem(ItemLinkedBase):
     class Meta:
         # Keep existing DB constraint/index names (from original ItemCarried) after RenameModel migration
         constraints = [
-            models.UniqueConstraint(fields=["item", "orgbase_id", "catalog_id"], name="uniq_item_org_catalog"),
+            models.UniqueConstraint(fields=["item_id", "orgbase_id", "catalog_id"], name="uniq_item_org_catalog"),
             models.CheckConstraint(check=models.Q(quantity_minimum__gte=0) | models.Q(quantity_minimum__isnull=True), name="ck_orgitem_qty_min_nonneg"),
             models.CheckConstraint(check=models.Q(quantity_maximum__gte=0) | models.Q(quantity_maximum__isnull=True), name="ck_orgitem_qty_max_nonneg"),
             models.CheckConstraint(
@@ -143,7 +143,7 @@ class OrgItem(ItemLinkedBase):
             ),
         ]
         indexes = [
-            models.Index(fields=("orgbase_id", "item"), name="carried_org_item_idx"),
+            models.Index(fields=("orgbase_id", "item_id"), name="carried_org_item_idx"),
             models.Index(fields=("orgbase_id", "availability_state"), name="orgitem_org_state_idx"),
             models.Index(fields=("catalog_id",), name="orgitem_catalog_idx"),
             models.Index(fields=("dt_last_checked",), name="orgitem_lastcheck_idx"),

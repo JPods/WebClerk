@@ -26,8 +26,8 @@ class QuestionAnswer(BaseModel):
     question = models.CharField(max_length=500, blank=True, null=True, db_index=True)
     answer = models.TextField(blank=True, null=True)
     # Link to configured question definition (Setting) if available
-    question_setting = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions')
-    answered_by_contact = models.ForeignKey('core.Contact', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_answers')
+    setting_id = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions')
+    contact_id = models.ForeignKey('core.Contact', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_answers')
     answered_by_name = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     sequence = models.IntegerField(default=0, db_index=True)

@@ -70,7 +70,7 @@ class DeliveryVisit(BaseModel):
     ]
 
     orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor')
-    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer')
+    customer_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer')
     catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits')
     dt_scheduled = models.BigIntegerField(help_text="Epoch ms scheduled time window start")
     dt_arrived = models.BigIntegerField(null=True, blank=True)
@@ -82,7 +82,7 @@ class DeliveryVisit(BaseModel):
     class Meta:
         indexes = [
             models.Index(fields=("orgbase_id", "dt_scheduled"), name="delv_vendor_sched_idx"),
-            models.Index(fields=("orgbase_id", "dt_scheduled"), name="delv_customer_sched_idx"),
+            models.Index(fields=("customer_orgbase_id", "dt_scheduled"), name="delv_customer_sched_idx"),
             models.Index(fields=("status",), name="delv_status_idx"),
         ]
 
@@ -95,7 +95,7 @@ class DeliveryVisit(BaseModel):
             customer_org_id = getattr(catalog, "customer_org_id_id", None)
             if vendor_org_id and vendor_org_id != getattr(self, "orgbase_id_id", None):  # type: ignore[attr-defined]
                 raise ValidationError("catalog.vendor_org mismatch with visit.vendor_org")
-            if customer_org_id and customer_org_id != getattr(self, "orgbase_id_id", None):  # type: ignore[attr-defined]
+            if customer_org_id and customer_org_id != getattr(self, "customer_orgbase_id_id", None):  # type: ignore[attr-defined]
                 raise ValidationError("catalog.customer_org mismatch with visit.customer_org")
         return super().clean()
 

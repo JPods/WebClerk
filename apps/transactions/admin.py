@@ -26,7 +26,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 @admin.register(InvoiceLine)
 class InvoiceLineAdmin(admin.ModelAdmin):
-    list_display = ("id", "parent_id", "status")
+    list_display = ("id", "invoice_id", "status")
     list_filter = ("status",)
 
 
@@ -40,7 +40,7 @@ class InvoiceLineAdmin(admin.ModelAdmin):
 
 @admin.register(WorkOrderLine)
 class WorkOrderLineAdmin(admin.ModelAdmin):
-    list_display = ("id", "parent_id", "status")
+    list_display = ("id", "workorder_id", "status")
     list_filter = ("status",)
 
     # Admin bulk actions used in tests
@@ -105,7 +105,7 @@ class SalesOrderAdmin(admin.ModelAdmin):
 
 @admin.register(SalesOrderLine)
 class SalesOrderLineAdmin(admin.ModelAdmin):
-    list_display = ("id", "parent_id", "status")
+    list_display = ("id", "salesorder_id", "status")
     list_filter = ("status",)
 
 
@@ -118,7 +118,7 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
 
 @admin.register(PurchaseOrderLine)
 class PurchaseOrderLineAdmin(admin.ModelAdmin):
-    list_display = ("id", "parent_id", "status")
+    list_display = ("id", "purchaseorder_id", "status")
     list_filter = ("status",)
 
 
@@ -131,7 +131,7 @@ class ProposalAdmin(admin.ModelAdmin):
 
 @admin.register(ProposalLine)
 class ProposalLineAdmin(admin.ModelAdmin):
-    list_display = ("id", "parent_id", "status")
+    list_display = ("id", "proposal_id", "status")
     list_filter = ("status",)
 
 
@@ -144,7 +144,7 @@ class RequisitionAdmin(admin.ModelAdmin):
 
 @admin.register(RequisitionLine)
 class RequisitionLineAdmin(admin.ModelAdmin):
-    list_display = ("id", "parent_id", "status")
+    list_display = ("id", "requisition_id", "status")
     list_filter = ("status",)
 
 

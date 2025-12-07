@@ -76,7 +76,7 @@ class InventoryLayer(ItemLinkedBase):
 
     class Meta:
         indexes = [
-            models.Index(fields=("item", "warehouse_id"), name="inv_item_wh_idx"),
+            models.Index(fields=("item_id", "warehouse_id"), name="inv_item_wh_idx"),
             models.Index(fields=("lot",), name="inv_lot_idx"),
             GinIndex(fields=["quantity"], name="invstack_quantity_gin_idx"),
         ]
@@ -211,7 +211,7 @@ class SiteInventory(ItemLinkedBase):
     quantity = models.JSONField(default=dict, blank=True)
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["item", "site_code"], name="uniq_item_site"),
+            models.UniqueConstraint(fields=["item_id", "site_code"], name="uniq_item_site"),
         ]
         indexes = [
             models.Index(fields=("site_code",), name="siteinv_site_idx"),
@@ -249,7 +249,7 @@ class InventoryMovement(ItemLinkedBase):
     class Meta:
         indexes = [
             models.Index(fields=("movement_type",), name="invmove_type_idx"),
-            models.Index(fields=("item", "warehouse_id"), name="invmove_item_wh_idx"),
+            models.Index(fields=("item_id", "warehouse_id"), name="invmove_item_wh_idx"),
         ]
 
 

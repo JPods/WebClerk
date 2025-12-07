@@ -8,11 +8,11 @@ class Variant(models.Model):
     """Concrete materialized variant row for performance and clarity.
 
     Links a child item to its parent item with a normalized canonical key and attrs.
-    Use parent_item + canonical_key unique constraint to ensure one row per variant.
+    Use item_id + canonical_key unique constraint to ensure one row per variant.
     """
 
     item = models.OneToOneField('products.Item', on_delete=models.CASCADE, related_name='variant_row')
-    item_id = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name='variant_children')
+    parent_item = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name='variant_children')
     canonical_key = models.CharField(max_length=255, db_index=True)
     attrs = models.JSONField(default=dict, blank=True)
     set_uuid = models.UUIDField(db_index=True)
@@ -22,10 +22,10 @@ class Variant(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['item_id', 'canonical_key'], name='uniq_parent_key'),
+            models.UniqueConstraint(fields=['parent_item', 'canonical_key'], name='uniq_parent_key'),
         ]
         indexes = [
-            models.Index(fields=['item_id'], name='variant_parent_idx'),
+            models.Index(fields=['parent_item'], name='variant_parent_idx'),
         ]
 
     def save(self, *args, **kwargs):  # pragma: no cover simple
@@ -37,5 +37,5 @@ class Variant(models.Model):
 
     def __str__(self):  # pragma: no cover
         iid = getattr(self, 'item_id', None)
-        pid = getattr(self, 'item_id_id', None)
+        pid = getattr(self, 'parent_item_id', None)
         return f"Variant(item={iid}, parent={pid}, key={self.canonical_key})"
