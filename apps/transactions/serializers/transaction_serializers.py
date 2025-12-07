@@ -8,6 +8,86 @@ from apps.transactions.models import (
 from apps.core.models import Contact
 
 
+class ProposalLineSerializer(RoleAwareModelSerializer):
+    """Serializer for Proposal Line items."""
+
+    extended_price = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    item_name = serializers.CharField(read_only=True)
+    unit_cost = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    line_margin = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = ProposalLine
+        fields = [
+            'id', 'parent', 'item_id', 'description', 'quantity', 'price',
+            'discount_amount', 'extended_price', 'item_name', 'unit_cost', 'line_margin',
+            'dt_created', 'dt_modified', 'version'
+        ]
+        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version', 'extended_price', 'item_name', 'unit_cost', 'line_margin']
+
+    def to_representation(self, instance):
+        """Add computed fields to the representation."""
+        data = super().to_representation(instance)
+
+        # Calculate extended price
+        quantity = Decimal(str(instance.quantity or 0))
+        price = Decimal(str(instance.price.get('sell', 0) if instance.price else 0))
+        discount = Decimal(str(instance.discount_amount or 0))
+        data['extended_price'] = float((quantity * price) - discount)
+
+        # Calculate unit cost and line margin
+        unit_cost = Decimal(str(instance.price.get('cost', 0) if instance.price else 0))
+        data['unit_cost'] = float(unit_cost)
+        sell_price = price
+        data['line_margin'] = float((sell_price - unit_cost) * quantity - discount)
+
+        # Add item name if available
+        if hasattr(instance, 'item') and instance.item:
+            data['item_name'] = instance.item.name
+        else:
+            data['item_name'] = instance.description or 'Unknown Item'
+
+        return data
+
+    def validate_quantity(self, value):
+        """Validate quantity is positive."""
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than zero.")
+        return value
+
+    def validate_discount_amount(self, value):
+        """Validate discount is not negative."""
+        if value < 0:
+            raise serializers.ValidationError("Discount amount cannot be negative.")
+        return value
+
+    def validate_price(self, value):
+        """Validate price structure."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Price must be a dictionary with sell and cost keys.")
+        if 'sell' not in value or value['sell'] < 0:
+            raise serializers.ValidationError("Sell price must be provided and non-negative.")
+        if 'cost' not in value and value.get('cost', 0) < 0:
+            raise serializers.ValidationError("Cost price must be non-negative.")
+        return value
+
+    def validate(self, data):
+        """Cross-field validation."""
+        if data.get('item_id') and not data.get('description'):
+            # Could auto-populate description from item, but for now just validate
+            pass
+
+        # Validate discount doesn't exceed extended price
+        quantity = data.get('quantity', 1)
+        price = data.get('price', {}).get('sell', 0)
+        discount = data.get('discount_amount', 0)
+        extended = quantity * price
+        if discount > extended:
+            raise serializers.ValidationError("Discount amount cannot exceed the extended price.")
+
+        return data
+
+
 class ProposalSerializer(RoleAwareModelSerializer):
     """Serializer for Proposal transactions."""
 
@@ -122,86 +202,6 @@ class ProposalSerializer(RoleAwareModelSerializer):
             }
             if new_status not in valid_transitions.get(old_status, []):
                 raise serializers.ValidationError(f"Invalid status transition from {old_status} to {new_status}.")
-
-        return data
-
-
-class ProposalLineSerializer(RoleAwareModelSerializer):
-    """Serializer for Proposal Line items."""
-
-    extended_price = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-    item_name = serializers.CharField(read_only=True)
-    unit_cost = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-    line_margin = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
-
-    class Meta:
-        model = ProposalLine
-        fields = [
-            'id', 'parent', 'item_id', 'description', 'quantity', 'price',
-            'discount_amount', 'extended_price', 'item_name', 'unit_cost', 'line_margin',
-            'dt_created', 'dt_modified', 'version'
-        ]
-        read_only_fields = ['id', 'dt_created', 'dt_modified', 'version', 'extended_price', 'item_name', 'unit_cost', 'line_margin']
-
-    def to_representation(self, instance):
-        """Add computed fields to the representation."""
-        data = super().to_representation(instance)
-
-        # Calculate extended price
-        quantity = Decimal(str(instance.quantity or 0))
-        price = Decimal(str(instance.price.get('sell', 0) if instance.price else 0))
-        discount = Decimal(str(instance.discount_amount or 0))
-        data['extended_price'] = float((quantity * price) - discount)
-
-        # Calculate unit cost and line margin
-        unit_cost = Decimal(str(instance.price.get('cost', 0) if instance.price else 0))
-        data['unit_cost'] = float(unit_cost)
-        sell_price = price
-        data['line_margin'] = float((sell_price - unit_cost) * quantity - discount)
-
-        # Add item name if available
-        if hasattr(instance, 'item') and instance.item:
-            data['item_name'] = instance.item.name
-        else:
-            data['item_name'] = instance.description or 'Unknown Item'
-
-        return data
-
-    def validate_quantity(self, value):
-        """Validate quantity is positive."""
-        if value <= 0:
-            raise serializers.ValidationError("Quantity must be greater than zero.")
-        return value
-
-    def validate_discount_amount(self, value):
-        """Validate discount is not negative."""
-        if value < 0:
-            raise serializers.ValidationError("Discount amount cannot be negative.")
-        return value
-
-    def validate_price(self, value):
-        """Validate price structure."""
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Price must be a dictionary with sell and cost keys.")
-        if 'sell' not in value or value['sell'] < 0:
-            raise serializers.ValidationError("Sell price must be provided and non-negative.")
-        if 'cost' not in value and value.get('cost', 0) < 0:
-            raise serializers.ValidationError("Cost price must be non-negative.")
-        return value
-
-    def validate(self, data):
-        """Cross-field validation."""
-        if data.get('item_id') and not data.get('description'):
-            # Could auto-populate description from item, but for now just validate
-            pass
-
-        # Validate discount doesn't exceed extended price
-        quantity = data.get('quantity', 1)
-        price = data.get('price', {}).get('sell', 0)
-        discount = data.get('discount_amount', 0)
-        extended = quantity * price
-        if discount > extended:
-            raise serializers.ValidationError("Discount amount cannot exceed the extended price.")
 
         return data
 
