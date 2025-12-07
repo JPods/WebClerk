@@ -202,6 +202,136 @@ GET /wcapi/get/?model_name=invoice&limit=50&offset=50
 4. Use pagination for large datasets
 5. Cache frequently accessed data
 
+## Proposal API Endpoints
+
+Proposals and proposal lines have dedicated REST API endpoints in addition to WCAPI access.
+
+### Proposal Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/transactions/proposals/` | List all proposals |
+| POST | `/api/transactions/proposals/` | Create a new proposal |
+| GET | `/api/transactions/proposals/{id}/` | Get proposal details |
+| PUT | `/api/transactions/proposals/{id}/` | Update proposal |
+| PATCH | `/api/transactions/proposals/{id}/` | Partial update proposal |
+| DELETE | `/api/transactions/proposals/{id}/` | Delete proposal |
+| POST | `/api/transactions/proposals/{id}/convert_to_order/` | Convert proposal to sales order |
+| GET | `/api/transactions/proposals/{id}/totals/` | Get proposal totals |
+
+### Proposal Line Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/transactions/proposal-lines/` | List all proposal lines |
+| POST | `/api/transactions/proposal-lines/` | Create a new proposal line |
+| GET | `/api/transactions/proposal-lines/{id}/` | Get proposal line details |
+| PUT | `/api/transactions/proposal-lines/{id}/` | Update proposal line |
+| PATCH | `/api/transactions/proposal-lines/{id}/` | Partial update proposal line |
+| DELETE | `/api/transactions/proposal-lines/{id}/` | Delete proposal line |
+
+### WCAPI Access
+
+Proposals are also accessible via WCAPI:
+
+```bash
+# Get proposals
+GET /wcapi/get/?model_name=proposal&limit=20
+
+# Get specific proposal with related data
+GET /wcapi/get/?model_name=proposal&id=123
+
+# Get proposal lines for a proposal
+GET /wcapi/get/?model_name=proposal_line&parent=123
+```
+
+### Proposal Fields
+
+Key proposal fields include:
+
+- `id`: Unique identifier
+- `uuid`: UUID identifier
+- `ida`: Alternative ID
+- `proposal_no`: Auto-generated proposal number
+- `status`: Status (planned, sent, accepted, rejected, cancelled)
+- `id_customer`: Customer contact ID
+- `id_vendor`: Vendor contact ID
+- `cost`: Cost data (JSON)
+- `sell`: Sell data (JSON)
+- `finance`: Finance data (JSON)
+- `flow`: Flow data (JSON)
+- `source`: Source data (JSON)
+- `action`: Action data (JSON)
+- `total_amount`: Calculated total amount
+- `line_count`: Number of line items
+- `margin_amount`: Calculated margin
+- `margin_percentage`: Margin percentage
+- `dt_created`: Creation timestamp
+- `dt_modified`: Modification timestamp
+
+### Proposal Line Fields
+
+Key proposal line fields include:
+
+- `id`: Unique identifier
+- `parent`: Parent proposal ID
+- `item_id`: Item ID
+- `description`: Line description
+- `quantity`: Quantity
+- `price`: Price data (JSON with sell/cost)
+- `discount_amount`: Discount amount
+- `extended_price`: Calculated extended price
+- `item_name`: Item name (read-only)
+- `unit_cost`: Unit cost (read-only)
+- `line_margin`: Line margin (read-only)
+
+### Example: Create Proposal
+
+```bash
+POST /api/transactions/proposals/
+Content-Type: application/json
+
+{
+  "ida": "PROP-001",
+  "status": "planned",
+  "id_customer": 123,
+  "id_vendor": 456
+}
+```
+
+### Example: Add Proposal Line
+
+```bash
+POST /api/transactions/proposal-lines/
+Content-Type: application/json
+
+{
+  "parent": 1,
+  "item_id": 789,
+  "description": "Sample Item",
+  "quantity": 10,
+  "price": {
+    "sell": 50.00,
+    "cost": 30.00
+  },
+  "discount_amount": 5.00
+}
+```
+
+### Example: Convert Proposal to Order
+
+```bash
+POST /api/transactions/proposals/1/convert_to_order/
+```
+
+Response:
+
+```json
+{
+  "order_id": 123
+}
+```
+
 ## Integration Examples
 
 ### JavaScript/React
