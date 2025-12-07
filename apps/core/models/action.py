@@ -21,7 +21,7 @@ DIFFICULTY_LEVELS = [
 
 class Action(BaseModel):
     # Parent-child relationship
-    parent = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
+    action_id = models.ForeignKey('self', to_field='uuid', related_name='children', null=True, blank=True, on_delete=models.CASCADE)
     
     # Multilingual titles and descriptions
     action = models.JSONField(default=dict, blank=True, null=True)

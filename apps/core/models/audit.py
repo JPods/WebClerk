@@ -12,12 +12,12 @@ class AuditLog(BaseModel):
         db_table = 'audit_logs'
         indexes = [
             models.Index(fields=['model_name', 'id_record']),
-            models.Index(fields=['user', 'dt_created']),
+            models.Index(fields=['user_id', 'dt_created']),
             models.Index(fields=['action', 'dt_created']),
         ]
 
     # Who performed the action
-    user = models.ForeignKey(
+    user_id = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
@@ -70,7 +70,7 @@ class AuditLog(BaseModel):
     )
 
     def __str__(self):
-        return f"AuditLog: {self.user} {self.action} {self.model_name} {self.id_record}"
+        return f"AuditLog: {self.user_id} {self.action} {self.model_name} {self.id_record}"
 
     @classmethod
     def log_action(
@@ -97,7 +97,7 @@ class AuditLog(BaseModel):
             id_session = request.session.session_key
 
         return cls.objects.create(
-            user=user,
+            user_id=user,
             model_name=model_name,
             id_record=id_record,
             action=action,

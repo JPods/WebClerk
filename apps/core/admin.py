@@ -100,6 +100,6 @@ class PendingAdmin(admin.ModelAdmin):
 class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     """Admin interface for SoftDeleteLedger model."""
     list_display = ('id', 'target', 'dt_purge', 'dt_created')
-    list_filter = ('content_type', 'dt_purge')
-    search_fields = ('content_type__model', 'object_id')
+    list_filter = ('contenttype_id', 'dt_purge')
+    search_fields = ('contenttype_id__model', 'object_id')
     readonly_fields = ('dt_created',)

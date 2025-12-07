@@ -72,7 +72,7 @@ def compute_schedule(invoice_dt: datetime, total: Decimal, term) -> List[Schedul
     return entries
 
 
-def create_ledger_records(invoice, total: Decimal, term, strategy: str = 'records'):
+def create_ledger_records(invoice_id, total: Decimal, term_id, strategy: str = 'records'):
     """Create ledgers for an invoice based on a term.
 
     strategy:
@@ -84,8 +84,8 @@ def create_ledger_records(invoice, total: Decimal, term, strategy: str = 'record
     Ledger = dj_apps.get_model('accounts', 'Ledger')
 
     # Accept invoice.dt_created as epoch ms; fallback to now
-    inv_dt = getattr(invoice, 'dt_created', None)
-    schedule = compute_schedule(inv_dt if inv_dt is not None else datetime.now(timezone.utc), total, term)
+    inv_dt = getattr(invoice_id, 'dt_created', None)
+    schedule = compute_schedule(inv_dt if inv_dt is not None else datetime.now(timezone.utc), total, term_id)
     created = []
     if strategy == 'metadata':
         # Attach to invoice metadata
@@ -101,8 +101,8 @@ def create_ledger_records(invoice, total: Decimal, term, strategy: str = 'record
             for e in schedule
         ]
         meta['terms'] = terms_meta
-        invoice.metadata = meta
-        invoice.save(update_fields=['metadata'])
+        invoice_id.metadata = meta
+        invoice_id.save(update_fields=['metadata'])
         return created
 
     # Default: create records
@@ -110,7 +110,7 @@ def create_ledger_records(invoice, total: Decimal, term, strategy: str = 'record
         value = (total * e.share)
         refs = {
             'links': {
-                'parent': {'model': 'invoice', 'id': getattr(invoice, 'id')}
+                'parent': {'model': 'invoice', 'id': getattr(invoice_id, 'id')}
             }
         }
         obj = Ledger(
@@ -119,9 +119,9 @@ def create_ledger_records(invoice, total: Decimal, term, strategy: str = 'record
             discount_potential=float(e.discount_rate) if e.discount_rate is not None else None,
             model_name='invoice',  #chaned from t_n
             source='AR',
-            parent_id=getattr(invoice, 'id'),  #chaned from t_n
-            invoice=invoice,
-            term=term,
+            parent_id=getattr(invoice_id, 'id'),  #chaned from t_n
+            invoice_id=invoice_id,
+            term_id=term_id,
             value_original=float(value),
             value_available=float(value),
             refs=refs,
@@ -174,16 +174,16 @@ def apply_terms_for_invoice(invoice, total: Optional[Decimal] = None, term=None,
     if replace:
         Ledger.objects.filter(invoice_id=getattr(invoice, 'id')).delete()
 
-    return create_ledger_records(invoice=invoice, total=total, term=term, strategy=strategy)
+    return create_ledger_records(invoice_id=invoice, total=total, term_id=term, strategy=strategy)
 
 
-def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_fx_variance=None, source: str = 'AR'):
+def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_id=None, source: str = 'AR'):
     """Create a payment ledger with negative value to offset invoice ledgers.
 
     - amount: positive decimal (we store as negative in ledger)
     - dt_paid: datetime for payment posting/record
     - payment: optional payment object to link via parent_id and model_name='payment'
-    - gl_account_fx_variance: optional Gl_account instance for FX gain/loss
+    - gl_account_id: optional Gl_account instance for FX gain/loss
     """
     from django.apps import apps as dj_apps
     Ledger = dj_apps.get_model('accounts', 'Ledger')
@@ -201,12 +201,12 @@ def record_payment(invoice, amount: Decimal, dt_paid, payment=None, gl_account_f
         model_name='payment',  #chaned from t_n
         source=source,
         parent_id=pid,  #chaned from t_n
-        invoice=invoice,
-        term=None,
+        invoice_id=invoice,
+        term_id=None,
         value_original=float(-abs(val)),
         value_available=float(-abs(val)),
         refs=refs,
-        gl_account_fx_variance=gl_account_fx_variance,
+        gl_account_id=gl_account_fx_variance,
     )
     obj.save()
     return obj

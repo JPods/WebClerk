@@ -18,7 +18,7 @@ class ProposalTotalsServiceTest(TestCase):
         )
         self.proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
     def test_d_helper_function(self):

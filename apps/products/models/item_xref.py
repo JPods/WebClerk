@@ -32,7 +32,7 @@ class ItemXRef(ItemLinkedBase):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["item", "source", "external_sku"], name="uniq_item_source_sku"),
+            models.UniqueConstraint(fields=["item_id", "source", "external_sku"], name="uniq_item_source_sku"),
         ]
         indexes = [
             models.Index(fields=("source", "external_sku"), name="xref_source_sku_idx"),

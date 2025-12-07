@@ -120,9 +120,9 @@ class TransactionBaseModel(BaseModel):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)
-    id_customer = models.BigIntegerField(default=0, db_index=True)
-    id_manufacturer = models.BigIntegerField(default=0, db_index=True)
-    id_vendor = models.BigIntegerField(default=0, db_index=True)
+    customer_id = models.BigIntegerField(default=0, db_index=True)
+    manufacturer_id = models.BigIntegerField(default=0, db_index=True)
+    vendor_id = models.BigIntegerField(default=0, db_index=True)
     cost = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     sell = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     finance = models.JSONField(default=dict, blank=True, null=True)

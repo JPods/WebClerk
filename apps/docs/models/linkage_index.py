@@ -11,7 +11,7 @@ class LinkageIndex(models.Model):
     uniqueness guarantee without refactoring existing JSON refs storage.
     """
 
-    linkage = models.ForeignKey(
+    linkage_id = models.ForeignKey(
         'docs.Linkage', on_delete=models.CASCADE, related_name='index_entries'
     )
     table_name = models.CharField(max_length=255, db_index=True)
@@ -25,10 +25,10 @@ class LinkageIndex(models.Model):
             )
         ]
         indexes = [
-            models.Index(fields=['linkage'], name='linx_lkg_idx'),
-            models.Index(fields=['table_name', 'linkage'], name='linx_tbl_lkg_idx'),
+            models.Index(fields=['linkage_id'], name='linx_lkg_idx'),
+            models.Index(fields=['table_name', 'linkage_id'], name='linx_tbl_lkg_idx'),
         ]
 
     def __str__(self) -> str:  # pragma: no cover
         # Use getattr to avoid static analysis complaints about linkage_id
-        return f"{self.table_name}:{self.record_id} -> {getattr(self, 'linkage_id', None)}"
+        return f"{self.table_name}:{self.record_id} -> {self.linkage_id.id if self.linkage_id else None}"

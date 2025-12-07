@@ -103,7 +103,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Proposal
         fields = [
-            'id', 'uuid', 'ida', 'proposal_no', 'status', 'id_customer', 'id_vendor',
+            'id', 'uuid', 'ida', 'proposal_no', 'status', 'customer_id', 'vendor_id',
             'customer_name', 'vendor_name',
             'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'total_amount', 'line_count', 'margin_amount', 'margin_percentage', 'lines',
@@ -113,22 +113,22 @@ class ProposalSerializer(RoleAwareModelSerializer):
 
     def get_customer_name(self, obj):
         """Get customer name from Contact model."""
-        if obj.id_customer:
+        if obj.customer_id:
             try:
-                contact = Contact.objects.get(id=obj.id_customer)
+                contact = Contact.objects.get(id=obj.customer_id)
                 return f"{contact.name_first} {contact.name_last}".strip()
             except Contact.DoesNotExist:
-                return f"Contact #{obj.id_customer}"
+                return f"Contact #{obj.customer_id}"
         return None
 
     def get_vendor_name(self, obj):
         """Get vendor name from Contact model."""
-        if obj.id_vendor:
+        if obj.vendor_id:
             try:
-                contact = Contact.objects.get(id=obj.id_vendor)
+                contact = Contact.objects.get(id=obj.vendor_id)
                 return f"{contact.name_first} {contact.name_last}".strip()
             except Contact.DoesNotExist:
-                return f"Contact #{obj.id_vendor}"
+                return f"Contact #{obj.vendor_id}"
         return None
 
     def to_representation(self, instance):
@@ -165,7 +165,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
             raise serializers.ValidationError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
         return value
 
-    def validate_id_customer(self, value):
+    def validate_customer_id(self, value):
         """Validate customer exists."""
         if value and value > 0:
             try:
@@ -174,7 +174,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
                 raise serializers.ValidationError("Customer contact does not exist.")
         return value
 
-    def validate_id_vendor(self, value):
+    def validate_vendor_id(self, value):
         """Validate vendor exists."""
         if value and value > 0:
             try:
@@ -185,7 +185,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
 
     def validate(self, data):
         """Cross-field validation."""
-        if data.get('id_customer') and data.get('id_vendor') and data['id_customer'] == data['id_vendor']:
+        if data.get('customer_id') and data.get('vendor_id') and data['customer_id'] == data['vendor_id']:
             raise serializers.ValidationError("Customer and vendor cannot be the same entity.")
 
         # Validate status transitions
@@ -215,7 +215,7 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
         model = SalesOrder
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
-            'id_customer', 'id_manufacturer', 'id_vendor',
+            'customer_id', 'manufacturer_id', 'vendor_id',
             'order_no', 'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]
@@ -231,7 +231,7 @@ class PurchaseOrderSerializer(RoleAwareModelSerializer):
         model = PurchaseOrder
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
-            'id_customer', 'id_manufacturer', 'id_vendor',
+            'customer_id', 'manufacturer_id', 'vendor_id',
             'po_no', 'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]
@@ -244,7 +244,7 @@ class InvoiceSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Invoice
         fields = [
-            'id', 'uuid', 'ida', 'status', 'id_customer', 'id_vendor',
+            'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
             'cost', 'sell', 'finance', 'flow', 'source', 'action',
             'dt_created', 'dt_modified', 'version'
         ]

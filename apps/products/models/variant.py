@@ -8,7 +8,7 @@ class Variant(models.Model):
     """Concrete materialized variant row for performance and clarity.
 
     Links a child item to its parent item with a normalized canonical key and attrs.
-    Use parent_item + canonical_key unique constraint to ensure one row per variant.
+    Use item_id + canonical_key unique constraint to ensure one row per variant.
     """
 
     item = models.OneToOneField('products.Item', on_delete=models.CASCADE, related_name='variant_row')
