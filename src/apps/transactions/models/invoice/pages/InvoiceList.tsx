@@ -81,43 +81,147 @@ export default function InvoiceList() {
   };
 
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "6%" },
     {
       name: "Invoice No",
       selector: (row) => row.invoice_no || "--",
       sortable: true,
-      width: "30%",
+      width: "12%",
     },
     {
-      name: "Created",
-      selector: (row) => new Date(row.dt_created * 1000).toLocaleDateString() || "--",
+      name: "Status",
+      selector: (row) => row.status || "--",
       sortable: true,
-      width: "25%",
+      width: "10%",
+      cell: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+          row.status === 'sent' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+          row.status === 'overdue' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+          row.status === 'draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
+          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+        }`}>
+          {row.status || 'Unknown'}
+        </span>
+      ),
     },
     {
-      name: "Action",
+      name: "Customer",
+      selector: (row) => row.customer_name || row.customer_id || "--",
+      sortable: true,
+      width: "12%",
+    },
+    {
+      name: "Total Amount",
+      selector: (row) => row.total_amount || 0,
+      sortable: true,
+      width: "10%",
       cell: (row) => (
-        <div className="flex gap-2">
-          <button onClick={() => handleView(row)} title="View">
-            <FaEye className="text-blue-600 hover:scale-110 transition" />
+        <span className="font-medium text-green-600 dark:text-green-400">
+          ${Number(row.total_amount || 0).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      name: "Paid Amount",
+      selector: (row) => row.paid_amount || 0,
+      sortable: true,
+      width: "10%",
+      cell: (row) => (
+        <span className="font-medium text-blue-600 dark:text-blue-400">
+          ${Number(row.paid_amount || 0).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      name: "Balance",
+      selector: (row) => (row.total_amount || 0) - (row.paid_amount || 0),
+      sortable: true,
+      width: "10%",
+      cell: (row) => {
+        const balance = (row.total_amount || 0) - (row.paid_amount || 0);
+        return (
+          <span className={`font-medium ${balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+            ${balance.toFixed(2)}
+          </span>
+        );
+      },
+    },
+    {
+      name: "Due Date",
+      selector: (row) => row.due_date ? new Date(row.due_date).toLocaleDateString() : "--",
+      sortable: true,
+      width: "10%",
+      cell: (row) => {
+        const dueDate = row.due_date ? new Date(row.due_date) : null;
+        const isOverdue = dueDate && dueDate < new Date() && row.status !== 'paid';
+        return (
+          <span className={isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+            {dueDate ? dueDate.toLocaleDateString() : "--"}
+          </span>
+        );
+      },
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <div className="flex gap-1">
+          <button onClick={() => handleView(row)} title="View" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
+            <FaEye className="text-blue-600 dark:text-blue-400 text-sm" />
           </button>
-          <button onClick={() => handleEdit(row)} title="Edit">
-            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          <button onClick={() => handleEdit(row)} title="Edit" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
+            <FaEdit className="text-green-600 dark:text-green-400 text-sm" />
           </button>
-          <button onClick={() => handleDelete(row)} title="Delete">
-            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          <button onClick={() => handleDelete(row)} title="Delete" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
+            <FaTrash className="text-red-600 dark:text-red-400 text-sm" />
           </button>
         </div>
       ),
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      width: "10%",
     },
   ];
+
+  // Calculate summary statistics
+  const totalInvoices = data.length;
+  const totalValue = data.reduce((sum, invoice) => sum + (invoice.total_amount || 0), 0);
+  const totalPaid = data.reduce((sum, invoice) => sum + (invoice.paid_amount || 0), 0);
+  const overdueCount = data.filter(invoice => invoice.status === 'overdue').length;
 
   return (
     <>
       <PageBreadcrumb pageTitle="Invoice List" />
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalInvoices}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Invoices</div>
+          </div>
+        </ComponentCard>
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">${totalValue.toFixed(2)}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Value</div>
+          </div>
+        </ComponentCard>
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">${totalPaid.toFixed(2)}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Paid</div>
+          </div>
+        </ComponentCard>
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{overdueCount}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Overdue</div>
+          </div>
+        </ComponentCard>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>

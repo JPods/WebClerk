@@ -12,7 +12,7 @@ export const AuditTrail: React.FC<AuditTrailProps> = ({
   model,
   className = '',
 }) => {
-  const { trail, loading, addEntry } = useAuditTrail(transactionId, model);
+  const { trail, loading } = useAuditTrail(transactionId, model);
   const [showAll, setShowAll] = useState(false);
 
   const formatTimestamp = (timestamp: string) => {

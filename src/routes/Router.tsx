@@ -87,7 +87,6 @@ import {
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ProductsPage from "../pages/items/ProductsPage";
-import OrdersListPage from "../pages/transactions/OrdersListPage";
 import OrderDetailPage from "../pages/transactions/OrderDetailPage";
 import InvoicesListPage from "../pages/transactions/InvoicesListPage";
 import InvoiceDetailPage from "../pages/transactions/InvoiceDetailPage";
@@ -97,6 +96,7 @@ import ProposalList from "../apps/transactions/models/proposal/pages/ProposalLis
 import ProposalDetailVue from "../apps/transactions/models/proposal/pages/ProposalDetailVue";
 import ProposalDetailVueReact from "../apps/transactions/models/proposal/pages/ProposalDetailVueReact";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
+import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesOrderList";
 import CallReportDetailPage from "../pages/actions/CallReportDetailPage";
 import ServiceDetailPage from "../pages/actions/ServiceDetailPage";
 import TaskMarkerDetailPage from "../pages/actions/TaskMarkerDetailPage";
@@ -187,7 +187,7 @@ const Router: React.FC = () => {
           {/* Transactions */}
           <Route
             path={PageRoutes.transactionsOrders}
-            element={<OrdersListPage />}
+            element={<SalesOrderList />}
           />
           <Route
             path={PageRoutes.transactionsOrderDetail}

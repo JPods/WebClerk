@@ -14,6 +14,8 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { purchaseOrderSchema } from "../utils/purchaseOrderSchema";
 import { PurchaseOrderAddProps } from "../types/purchaseOrderType";
+import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
+import PurchaseOrderStatus from "../components/PurchaseOrderStatus";
 
 export default function PurchaseOrderDetail({
   modeProp,
@@ -77,6 +79,19 @@ export default function PurchaseOrderDetail({
     }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!data?.id) return;
+    try {
+      await updatePurchaseOrder(data.id, { ...data, status: newStatus });
+      dispatch(showToast({ message: `Purchase order marked as ${newStatus}`, type: "success" }));
+      if (onSaved) {
+        onSaved();
+      }
+    } catch (error: any) {
+      dispatch(showToast({ message: error.message || "Failed to update status", type: "error" }));
+    }
+  };
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -112,27 +127,58 @@ export default function PurchaseOrderDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <Label htmlFor="purchase_order_no">purchase_order_no</Label>
-            <Input
-              type="text"
-              id="purchase_order_no"
-              placeholder="Purchase Order Number"
-              {...register("purchase_order_no")}
-              error={!!errors.purchase_order_no?.message}
-              hint={errors.purchase_order_no?.message}
-              disabled={mode === "view"}
-            />
-          </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div>
+               <Label htmlFor="purchase_order_no">purchase_order_no</Label>
+               <Input
+                 type="text"
+                 id="purchase_order_no"
+                 placeholder="Purchase Order Number"
+                 {...register("purchase_order_no")}
+                 error={!!errors.purchase_order_no?.message}
+                 hint={errors.purchase_order_no?.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+             <div>
+               <Label htmlFor="status">status</Label>
+               <select
+                 id="status"
+                 {...register("status")}
+                 disabled={mode === "view"}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+               >
+                 <option value="draft">Draft</option>
+                 <option value="approved">Approved</option>
+                 <option value="rejected">Rejected</option>
+                 <option value="received">Received</option>
+                 <option value="closed">Closed</option>
+               </select>
+               {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+             </div>
+           </div>
           {mode === "view" && data && (
-            <div>
-              <Label htmlFor="dt_created">dt_created</Label>
-              <Input
-                type="text"
-                id="dt_created"
-                value={new Date(data.dt_created * 1000).toLocaleString()}
-                disabled
-              />
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="dt_created">dt_created</Label>
+                <Input
+                  type="text"
+                  id="dt_created"
+                  value={new Date(data.dt_created * 1000).toLocaleString()}
+                  disabled
+                />
+                {data.id && <AuditTrail transactionId={data.id} model="purchase_order" />}
+              </div>
+
+              {/* Status Management */}
+              <div>
+                <Label>Purchase Order Status</Label>
+                <PurchaseOrderStatus
+                  currentStatus={data.status || 'draft'}
+                  onStatusChange={handleStatusChange}
+                  showHistory={true}
+                />
+              </div>
             </div>
           )}
           {mode !== "view" && (
