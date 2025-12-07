@@ -3,7 +3,7 @@ from .base_line_model import BaseSellLineModel
 
 
 class SalesOrderLine(BaseSellLineModel):
-    parent = models.ForeignKey(
+    salesorder_id = models.ForeignKey(
         "transactions.SalesOrder",
         related_name="lines",
         on_delete=models.CASCADE,
@@ -13,10 +13,10 @@ class SalesOrderLine(BaseSellLineModel):
         db_table = "sales_order_lines"
 
     @property
-    def parent_ref_id(self):
+    def salesorder_ref_id(self):
         # Mirror FK id for test helpers
-        return getattr(self, "parent_id", None)
+        return getattr(self, "salesorder_id_id", None)
 
-    @parent_ref_id.setter
-    def parent_ref_id(self, value):
-        self.parent_id = value
+    @salesorder_ref_id.setter
+    def salesorder_ref_id(self, value):
+        self.salesorder_id_id = value

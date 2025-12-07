@@ -26,8 +26,8 @@ class ProposalSerializerTest(TestCase):
         self.proposal = Proposal.objects.create(
             ida="PROP-001",
             status="planned",
-            id_customer=self.customer.id,
-            id_vendor=self.vendor.id,
+            customer_id=self.customer.id,
+            vendor_id=self.vendor.id,
             sell={'total': 100.00},
             cost={'total': 80.00}
         )
@@ -38,7 +38,7 @@ class ProposalSerializerTest(TestCase):
         data = serializer.data
 
         expected_fields = [
-            'id', 'uuid', 'ida', 'proposal_no', 'status', 'id_customer', 'id_vendor',
+            'id', 'uuid', 'ida', 'proposal_no', 'status', 'customer_id', 'vendor_id',
             'customer_name', 'vendor_name', 'cost', 'sell', 'finance', 'flow',
             'source', 'action', 'total_amount', 'line_count', 'margin_amount',
             'margin_percentage', 'lines', 'dt_created', 'dt_modified', 'version'
@@ -105,24 +105,24 @@ class ProposalSerializerTest(TestCase):
         serializer = ProposalSerializer()
 
         # Valid customer (exists)
-        result = serializer.validate_id_customer(self.customer.id)
+        result = serializer.validate_customer_id(self.customer.id)
         self.assertEqual(result, self.customer.id)
 
         # Invalid customer (doesn't exist)
         with self.assertRaises(serializers.ValidationError):
-            serializer.validate_id_customer(99999)
+            serializer.validate_customer_id(99999)
 
     def test_proposal_serializer_vendor_validation(self):
         """Test vendor validation."""
         serializer = ProposalSerializer()
 
         # Valid vendor (exists)
-        result = serializer.validate_id_vendor(self.vendor.id)
+        result = serializer.validate_vendor_id(self.vendor.id)
         self.assertEqual(result, self.vendor.id)
 
         # Invalid vendor (doesn't exist)
         with self.assertRaises(serializers.ValidationError):
-            serializer.validate_id_vendor(99999)
+            serializer.validate_vendor_id(99999)
 
     def test_proposal_serializer_cross_field_validation(self):
         """Test cross-field validation."""
@@ -130,8 +130,8 @@ class ProposalSerializerTest(TestCase):
 
         # Same customer and vendor should fail
         data = {
-            'id_customer': self.customer.id,
-            'id_vendor': self.customer.id,
+            'customer_id': self.customer.id,
+            'vendor_id': self.customer.id,
             'status': 'planned'
         }
 
@@ -167,7 +167,7 @@ class ProposalLineSerializerTest(TestCase):
         )
         self.proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
     def test_proposal_line_serializer_fields(self):

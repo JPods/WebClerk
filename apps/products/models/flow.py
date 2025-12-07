@@ -69,9 +69,9 @@ class DeliveryVisit(BaseModel):
         (STATUS_CANCELED, "Canceled"),
     ]
 
-    vendor_org = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor')
-    customer_org = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer')
-    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits')
+    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor')
+    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer')
+    catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_visits')
     dt_scheduled = models.BigIntegerField(help_text="Epoch ms scheduled time window start")
     dt_arrived = models.BigIntegerField(null=True, blank=True)
     dt_completed = models.BigIntegerField(null=True, blank=True)
@@ -81,21 +81,21 @@ class DeliveryVisit(BaseModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=("vendor_org", "dt_scheduled"), name="delv_vendor_sched_idx"),
-            models.Index(fields=("customer_org", "dt_scheduled"), name="delv_customer_sched_idx"),
+            models.Index(fields=("orgbase_id", "dt_scheduled"), name="delv_vendor_sched_idx"),
+            models.Index(fields=("orgbase_id", "dt_scheduled"), name="delv_customer_sched_idx"),
             models.Index(fields=("status",), name="delv_status_idx"),
         ]
 
     def clean(self):  # pragma: no cover simple validation
         from django.core.exceptions import ValidationError
-        catalog_id = getattr(self, "catalog_id", None)
+        catalog_id = getattr(self, "catalog_id_id", None)
         if catalog_id:
-            catalog = getattr(self, "catalog")
-            vendor_org_id = getattr(catalog, "vendor_org_id", None)
-            customer_org_id = getattr(catalog, "customer_org_id", None)
-            if vendor_org_id and vendor_org_id != getattr(self, "vendor_org_id", None):  # type: ignore[attr-defined]
+            catalog = getattr(self, "catalog_id")
+            vendor_org_id = getattr(catalog, "vendor_org_id_id", None)
+            customer_org_id = getattr(catalog, "customer_org_id_id", None)
+            if vendor_org_id and vendor_org_id != getattr(self, "orgbase_id_id", None):  # type: ignore[attr-defined]
                 raise ValidationError("catalog.vendor_org mismatch with visit.vendor_org")
-            if customer_org_id and customer_org_id != getattr(self, "customer_org_id", None):  # type: ignore[attr-defined]
+            if customer_org_id and customer_org_id != getattr(self, "orgbase_id_id", None):  # type: ignore[attr-defined]
                 raise ValidationError("catalog.customer_org mismatch with visit.customer_org")
         return super().clean()
 
@@ -132,8 +132,8 @@ class DeliveryLine(BaseModel):
         (STATUS_PARTIAL, "Partial"),
     ]
 
-    visit = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines')
-    org_item = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines')
+    deliveryvisit_id = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines')
+    orgitem_id = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines')
     planned_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     loaded_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     delivered_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
@@ -143,7 +143,7 @@ class DeliveryLine(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=("visit", "org_item"), name="uniq_delivery_visit_orgitem"),
+            models.UniqueConstraint(fields=("deliveryvisit_id", "orgitem_id"), name="uniq_delivery_visit_orgitem"),
         ]
         indexes = [
             models.Index(fields=("status",), name="delvline_status_idx"),

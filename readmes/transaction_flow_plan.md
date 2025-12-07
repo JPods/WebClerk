@@ -14,7 +14,7 @@ Proposal → Sales Order → Purchase Order → Invoice → Payment
 
 ### Key Features
 
-- **Inventory Management**: Quantities tracked across POs, Orders, and removed from Item records upon invoicing
+- **Inventory Management**: Quantities tracked across POs, Orders, and removed from Item records upon invoicing and added to Item records upon purchase receipts
 - **Lineage Tracking**: Each transaction links to its predecessors via metadata and refs
 - **Totals Calculation**: Automatic computation of sell/cost/totals from lines
 - **Status Management**: Workflow states with business rules
@@ -67,8 +67,9 @@ Items managed via `apps/products/models/`:
 **Enhancements Needed**:
 
 - Add purchase order creation from sales orders
+- Estimate taxes in proposal and sales_order
 - Enhance invoice creation with tax calculations
-- Add payment application logic
+- Add payment application logic, keep an estimate of balance due in the order for invoices and payments related to that order
 - Implement inventory quantity updates on transfers
 
 **Key Functions**:

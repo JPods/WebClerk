@@ -20,7 +20,7 @@ class ProjectAssociation(BaseModel):
     of the target model identified by `model_code`.
     """
 
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="associations")
+    project_id = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="associations")
     model_code = models.CharField(max_length=32, choices=LINK_MODEL_CHOICES, db_index=True)
     object_id = models.BigIntegerField(db_index=True)
     # dt_created/dt_modified provided by BaseModel.metadata history; retain BigInt dt_created only if required elsewhere.
@@ -28,7 +28,7 @@ class ProjectAssociation(BaseModel):
 
     class Meta:
         db_table = "project_associations"
-        unique_together = ("project", "model_code", "object_id")
+        unique_together = ("project_id", "model_code", "object_id")
         indexes = [
             models.Index(fields=["model_code", "object_id"], name="projassoc_target_idx"),
         ]

@@ -30,8 +30,8 @@ class ProposalWorkflowIntegrationTest(APITestCase):
         self.proposal_data = {
             'ida': 'PROP-INT-001',
             'status': 'planned',
-            'id_customer': self.customer.id,
-            'id_vendor': self.vendor.id,
+            'customer_id': self.customer.id,
+            'vendor_id': self.vendor.id,
             'priority': 'high',
             'price_level': 'standard'
         }
@@ -244,7 +244,7 @@ class ProposalWorkflowIntegrationTest(APITestCase):
 
         # Test missing required customer
         invalid_data = {**self.proposal_data}
-        del invalid_data['id_customer']
+        del invalid_data['customer_id']
         response = self.client.post(url, invalid_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -256,8 +256,8 @@ class ProposalWorkflowIntegrationTest(APITestCase):
         # Test same customer and vendor
         invalid_data = {
             **self.proposal_data,
-            'id_customer': self.customer.id,
-            'id_vendor': self.customer.id
+            'customer_id': self.customer.id,
+            'vendor_id': self.customer.id
         }
         response = self.client.post(url, invalid_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -348,7 +348,7 @@ class ProposalWorkflowIntegrationTest(APITestCase):
         self.assertEqual(response.data['results'][0]['status'], 'sent')
 
         # Test filtering by customer
-        response = self.client.get(url, {'id_customer': self.customer.id})
+        response = self.client.get(url, {'customer_id': self.customer.id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 3)  # All proposals have same customer
 

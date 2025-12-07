@@ -73,8 +73,8 @@ class OrgItem(ItemLinkedBase):
       - `description` can hold planogram, merchandising, pricing notes, etc.
     """
 
-    org = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name="org_items")
-    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, blank=True, null=True, related_name="org_items", help_text="Optional catalog / channel context scoping this association")
+    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name="org_items")
+    catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, blank=True, null=True, related_name="org_items", help_text="Optional catalog / channel context scoping this association")
     description = models.CharField(max_length=255, blank=True)
     # --- Enumerations / standardized codes ---------------------------------
     STATE_ENABLED = "enabled"
@@ -130,7 +130,7 @@ class OrgItem(ItemLinkedBase):
     class Meta:
         # Keep existing DB constraint/index names (from original ItemCarried) after RenameModel migration
         constraints = [
-            models.UniqueConstraint(fields=["item", "org", "catalog"], name="uniq_item_org_catalog"),
+            models.UniqueConstraint(fields=["item", "orgbase_id", "catalog_id"], name="uniq_item_org_catalog"),
             models.CheckConstraint(check=models.Q(quantity_minimum__gte=0) | models.Q(quantity_minimum__isnull=True), name="ck_orgitem_qty_min_nonneg"),
             models.CheckConstraint(check=models.Q(quantity_maximum__gte=0) | models.Q(quantity_maximum__isnull=True), name="ck_orgitem_qty_max_nonneg"),
             models.CheckConstraint(
@@ -143,9 +143,9 @@ class OrgItem(ItemLinkedBase):
             ),
         ]
         indexes = [
-            models.Index(fields=("org", "item"), name="carried_org_item_idx"),
-            models.Index(fields=("org", "availability_state"), name="orgitem_org_state_idx"),
-            models.Index(fields=("catalog",), name="orgitem_catalog_idx"),
+            models.Index(fields=("orgbase_id", "item"), name="carried_org_item_idx"),
+            models.Index(fields=("orgbase_id", "availability_state"), name="orgitem_org_state_idx"),
+            models.Index(fields=("catalog_id",), name="orgitem_catalog_idx"),
             models.Index(fields=("dt_last_checked",), name="orgitem_lastcheck_idx"),
             models.Index(fields=("dt_next_check",), name="orgitem_nextcheck_idx"),
         ]
@@ -153,7 +153,7 @@ class OrgItem(ItemLinkedBase):
     # Custom manager with common query helpers
     class OrgItemQuerySet(models.QuerySet):
         def for_org(self, org):
-            return self.filter(org=org)
+            return self.filter(orgbase_id=org)
 
         def due_for_check(self, now_ms: int | None = None):
             if now_ms is None:

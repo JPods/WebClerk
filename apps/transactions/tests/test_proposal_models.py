@@ -27,14 +27,14 @@ class ProposalModelTest(TestCase):
         proposal = Proposal.objects.create(
             ida="PROP-001",
             status="planned",
-            id_customer=self.customer.id,
-            id_vendor=self.vendor.id
+            customer_id=self.customer.id,
+            vendor_id=self.vendor.id
         )
 
         self.assertEqual(proposal.ida, "PROP-001")
         self.assertEqual(proposal.status, "planned")
-        self.assertEqual(proposal.id_customer, self.customer.id)
-        self.assertEqual(proposal.id_vendor, self.vendor.id)
+        self.assertEqual(proposal.customer_id, self.customer.id)
+        self.assertEqual(proposal.vendor_id, self.vendor.id)
         self.assertIsNotNone(proposal.dt_created)
         self.assertIsNotNone(proposal.dt_modified)
 
@@ -43,7 +43,7 @@ class ProposalModelTest(TestCase):
         proposal = Proposal.objects.create(
             ida="PROP-001",
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
         expected_str = f"Proposal #{proposal.id} (PROP-001)"
@@ -53,7 +53,7 @@ class ProposalModelTest(TestCase):
         """Test name property getter and setter."""
         proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
         # Test getter with no name fields
@@ -81,7 +81,7 @@ class ProposalModelTest(TestCase):
         """Test update_sell_cost_totals method without persistence."""
         proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
         # Create some line items
@@ -125,7 +125,7 @@ class ProposalModelTest(TestCase):
         """Test update_sell_cost_totals method with persistence."""
         proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
         # Create a line item
@@ -163,7 +163,7 @@ class ProposalLineModelTest(TestCase):
         )
         self.proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
 
     def test_proposal_line_creation(self):
@@ -197,7 +197,7 @@ class ProposalLineModelTest(TestCase):
         # Test setter
         new_proposal = Proposal.objects.create(
             status="planned",
-            id_customer=self.customer.id
+            customer_id=self.customer.id
         )
         line.parent_ref_id = new_proposal.id
         self.assertEqual(line.parent_id, new_proposal.id)
