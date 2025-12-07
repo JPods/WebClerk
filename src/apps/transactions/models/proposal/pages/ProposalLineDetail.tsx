@@ -74,7 +74,7 @@ export default function ProposalLineDetail({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label htmlFor="item_description">Item Description</Label>
+            <Label htmlFor="item_description">item_description</Label>
             <Input
               type="text"
               id="item_description"
@@ -84,7 +84,7 @@ export default function ProposalLineDetail({
             />
           </div>
           <div>
-            <Label htmlFor="quantity_placed">Quantity</Label>
+            <Label htmlFor="quantity_placed">quantity_placed</Label>
             <Input
               type="number"
               id="quantity_placed"
@@ -97,7 +97,7 @@ export default function ProposalLineDetail({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label htmlFor="price_unit">Unit Price</Label>
+            <Label htmlFor="price_unit">price_unit</Label>
             <Input
               type="number"
               step="0.01"
@@ -108,7 +108,7 @@ export default function ProposalLineDetail({
             />
           </div>
           <div>
-            <Label htmlFor="cost_unit">Unit Cost</Label>
+            <Label htmlFor="cost_unit">cost_unit</Label>
             <Input
               type="number"
               step="0.01"

@@ -119,7 +119,7 @@ export default function TemplateDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="purpose">Purpose</Label>
+              <Label htmlFor="purpose">purpose</Label>
               <Input
                 type="text"
                 id="purpose"
@@ -131,7 +131,7 @@ export default function TemplateDetail({
               />
             </div>
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -145,7 +145,7 @@ export default function TemplateDetail({
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="data">Data (JSON)</Label>
+              <Label htmlFor="data">data</Label>
               <Input
                 type="text"
                 id="data"

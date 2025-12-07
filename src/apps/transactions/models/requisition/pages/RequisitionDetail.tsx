@@ -113,7 +113,7 @@ export default function RequisitionDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="requisition_no">Requisition Number</Label>
+            <Label htmlFor="requisition_no">requisition_no</Label>
             <Input
               type="text"
               id="requisition_no"
@@ -126,7 +126,7 @@ export default function RequisitionDetail({
           </div>
           {mode === "view" && data && (
             <div>
-              <Label htmlFor="dt_created">Created Date</Label>
+              <Label htmlFor="dt_created">dt_created</Label>
               <Input
                 type="text"
                 id="dt_created"

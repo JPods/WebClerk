@@ -113,7 +113,7 @@ export default function PurchaseOrderDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="purchase_order_no">Purchase Order Number</Label>
+            <Label htmlFor="purchase_order_no">purchase_order_no</Label>
             <Input
               type="text"
               id="purchase_order_no"
@@ -126,7 +126,7 @@ export default function PurchaseOrderDetail({
           </div>
           {mode === "view" && data && (
             <div>
-              <Label htmlFor="dt_created">Created Date</Label>
+              <Label htmlFor="dt_created">dt_created</Label>
               <Input
                 type="text"
                 id="dt_created"

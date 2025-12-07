@@ -128,7 +128,7 @@ export default function ReportDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">title</Label>
               <Input
                 type="text"
                 id="title"
@@ -142,7 +142,7 @@ export default function ReportDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">type</Label>
               <DropDown
                 id="type"
                 options={reportTypes}
@@ -156,7 +156,7 @@ export default function ReportDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">description</Label>
               <Input
                 type="text"
                 id="description"
@@ -172,7 +172,7 @@ export default function ReportDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="parameters">Parameters</Label>
+              <Label htmlFor="parameters">parameters</Label>
               <Input
                 type="text"
                 id="parameters"
@@ -192,7 +192,7 @@ export default function ReportDetail({
                 id="is_active"
                 checked={watch("is_active")}
                 onChange={(checked) => setValue("is_active", checked)}
-                label="Is Active"
+                label="is_active"
               />
             </div>
           </div>

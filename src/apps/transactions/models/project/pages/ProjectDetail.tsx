@@ -113,7 +113,7 @@ export default function ProjectDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">name</Label>
             <Input
               type="text"
               id="name"
@@ -125,7 +125,7 @@ export default function ProjectDetail({
             />
           </div>
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">description</Label>
             <Input
               type="text"
               id="description"
@@ -137,7 +137,7 @@ export default function ProjectDetail({
             />
           </div>
           <div>
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">status</Label>
             <Input
               type="text"
               id="status"
@@ -149,7 +149,7 @@ export default function ProjectDetail({
             />
           </div>
           <div>
-            <Label htmlFor="start_date">Start Date</Label>
+            <Label htmlFor="start_date">start_date</Label>
             <Input
               type="date"
               id="start_date"
@@ -161,7 +161,7 @@ export default function ProjectDetail({
             />
           </div>
           <div>
-            <Label htmlFor="end_date">End Date</Label>
+            <Label htmlFor="end_date">end_date</Label>
             <Input
               type="date"
               id="end_date"

@@ -127,7 +127,7 @@ export default function GLAccountDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="code">code</Label>
               <Input
                 type="text"
                 id="code"
@@ -139,7 +139,7 @@ export default function GLAccountDetail({
               />
             </div>
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -153,7 +153,7 @@ export default function GLAccountDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">type</Label>
               <DropDown
                 id="type"
                 options={accountTypes}
@@ -165,7 +165,7 @@ export default function GLAccountDetail({
               />
             </div>
             <div>
-              <Label htmlFor="balance">Balance</Label>
+              <Label htmlFor="balance">balance</Label>
               <Input
                 type="number"
                 id="balance"

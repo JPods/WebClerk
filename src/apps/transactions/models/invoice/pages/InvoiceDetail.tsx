@@ -113,7 +113,7 @@ export default function InvoiceDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="invoice_no">Invoice Number</Label>
+            <Label htmlFor="invoice_no">invoice_no</Label>
             <Input
               type="text"
               id="invoice_no"
@@ -126,7 +126,7 @@ export default function InvoiceDetail({
           </div>
           {mode === "view" && data && (
             <div>
-              <Label htmlFor="dt_created">Created Date</Label>
+              <Label htmlFor="dt_created">dt_created</Label>
               <Input
                 type="text"
                 id="dt_created"

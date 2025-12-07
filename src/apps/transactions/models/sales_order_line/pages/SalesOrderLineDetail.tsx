@@ -113,7 +113,7 @@ export default function SalesOrderLineDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="sales_order_id">Sales Order ID</Label>
+            <Label htmlFor="sales_order_id">sales_order_id</Label>
             <Input
               type="number"
               id="sales_order_id"
@@ -125,7 +125,7 @@ export default function SalesOrderLineDetail({
             />
           </div>
           <div>
-            <Label htmlFor="item_id">Item ID</Label>
+            <Label htmlFor="item_id">item_id</Label>
             <Input
               type="number"
               id="item_id"
@@ -137,7 +137,7 @@ export default function SalesOrderLineDetail({
             />
           </div>
           <div>
-            <Label htmlFor="quantity">Quantity</Label>
+            <Label htmlFor="quantity">quantity</Label>
             <Input
               type="number"
               id="quantity"
@@ -149,7 +149,7 @@ export default function SalesOrderLineDetail({
             />
           </div>
           <div>
-            <Label htmlFor="unit_price">Unit Price</Label>
+            <Label htmlFor="unit_price">unit_price</Label>
             <Input
               type="number"
               step="0.01"
@@ -162,7 +162,7 @@ export default function SalesOrderLineDetail({
             />
           </div>
           <div>
-            <Label htmlFor="line_total">Line Total</Label>
+            <Label htmlFor="line_total">line_total</Label>
             <Input
               type="number"
               step="0.01"

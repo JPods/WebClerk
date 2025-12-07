@@ -86,7 +86,7 @@ export default function EmailDetail({
   ];
 
   const handleStatusChange = (value: string) => {
-    setValue("status", value);
+    setValue("status", value as "draft" | "sent" | "failed");
   };
 
   return (
@@ -126,7 +126,7 @@ export default function EmailDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="subject">Subject</Label>
+              <Label htmlFor="subject">subject</Label>
               <Input
                 type="text"
                 id="subject"
@@ -138,7 +138,7 @@ export default function EmailDetail({
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">status</Label>
               <DropDown
                 id="status"
                 options={statusOptions}
@@ -152,7 +152,7 @@ export default function EmailDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="from_email">From Email</Label>
+              <Label htmlFor="from_email">from_email</Label>
               <Input
                 type="email"
                 id="from_email"
@@ -166,7 +166,7 @@ export default function EmailDetail({
               />
             </div>
             <div>
-              <Label htmlFor="to_email">To Email</Label>
+              <Label htmlFor="to_email">to_email</Label>
               <Input
                 type="email"
                 id="to_email"
@@ -180,7 +180,7 @@ export default function EmailDetail({
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="body">Body</Label>
+              <Label htmlFor="body">body</Label>
               <CustTextArea
                 id="body"
                 placeholder="Email Body"

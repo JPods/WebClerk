@@ -114,7 +114,7 @@ export default function ConnectionDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -126,7 +126,7 @@ export default function ConnectionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">type</Label>
               <Input
                 type="text"
                 id="type"
@@ -140,7 +140,7 @@ export default function ConnectionDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="host">Host</Label>
+              <Label htmlFor="host">host</Label>
               <Input
                 type="text"
                 id="host"
@@ -152,7 +152,7 @@ export default function ConnectionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="port">Port</Label>
+              <Label htmlFor="port">port</Label>
               <Input
                 type="number"
                 id="port"
@@ -166,7 +166,7 @@ export default function ConnectionDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">username</Label>
               <Input
                 type="text"
                 id="username"
@@ -178,7 +178,7 @@ export default function ConnectionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">password</Label>
               <Input
                 type="password"
                 id="password"
@@ -191,7 +191,7 @@ export default function ConnectionDetail({
             </div>
           </div>
           <div>
-            <Label htmlFor="database">Database</Label>
+            <Label htmlFor="database">database</Label>
             <Input
               type="text"
               id="database"

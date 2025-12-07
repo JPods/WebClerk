@@ -114,7 +114,7 @@ export default function CurrencyDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="code">code</Label>
               <Input
                 type="text"
                 id="code"
@@ -126,7 +126,7 @@ export default function CurrencyDetail({
               />
             </div>
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -140,7 +140,7 @@ export default function CurrencyDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="symbol">Symbol</Label>
+              <Label htmlFor="symbol">symbol</Label>
               <Input
                 type="text"
                 id="symbol"
@@ -152,7 +152,7 @@ export default function CurrencyDetail({
               />
             </div>
             <div>
-              <Label htmlFor="rate">Rate</Label>
+              <Label htmlFor="rate">rate</Label>
               <Input
                 type="number"
                 id="rate"

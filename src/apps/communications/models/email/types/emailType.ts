@@ -8,23 +8,26 @@ export interface EmailAddProps {
 }
 
 export interface CreateEmailRequest {
-  email: string;
-  name?: string;
-  attention?: string;
-  type?: string;
+  subject: string;
+  status: "draft" | "sent" | "failed";
+  from_email: string;
+  to_email: string;
+  body: string;
 }
 
 export interface EmailApiTask {
-  email: string;
-  name?: string;
-  attention?: string;
-  type?: string;
+  subject: string;
+  status: "draft" | "sent" | "failed";
+  from_email: string;
+  to_email: string;
+  body: string;
 }
 
 export interface UpdateEmailRequest {
   id: string;
-  email: string;
-  name?: string;
-  attention?: string;
-  type?: string;
+  subject: string;
+  status: "draft" | "sent" | "failed";
+  from_email: string;
+  to_email: string;
+  body: string;
 }

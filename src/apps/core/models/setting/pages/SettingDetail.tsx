@@ -128,7 +128,7 @@ export default function SettingDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -140,7 +140,7 @@ export default function SettingDetail({
               />
             </div>
             <div>
-              <Label htmlFor="purpose">Purpose</Label>
+              <Label htmlFor="purpose">purpose</Label>
               <DropDown
                 id="purpose"
                 options={purposes}
@@ -154,7 +154,7 @@ export default function SettingDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">role</Label>
               <Input
                 type="text"
                 id="role"
@@ -166,7 +166,7 @@ export default function SettingDetail({
               />
             </div>
             <div>
-              <Label htmlFor="model_target">Model Target</Label>
+              <Label htmlFor="model_target">model_target</Label>
               <Input
                 type="text"
                 id="model_target"
@@ -180,7 +180,7 @@ export default function SettingDetail({
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="data">Data (JSON)</Label>
+              <Label htmlFor="data">data</Label>
               <Input
                 type="text"
                 id="data"

@@ -114,7 +114,7 @@ export default function AuditDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">date</Label>
               <Input
                 type="date"
                 id="date"
@@ -126,7 +126,7 @@ export default function AuditDetail({
               />
             </div>
             <div>
-              <Label htmlFor="action">Action</Label>
+              <Label htmlFor="action">action</Label>
               <Input
                 type="text"
                 id="action"
@@ -140,7 +140,7 @@ export default function AuditDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="user">User</Label>
+              <Label htmlFor="user">user</Label>
               <Input
                 type="text"
                 id="user"
@@ -154,7 +154,7 @@ export default function AuditDetail({
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">description</Label>
               <CustTextArea
                 id="description"
                 placeholder="Audit Description"

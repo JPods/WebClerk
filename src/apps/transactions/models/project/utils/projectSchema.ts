@@ -7,6 +7,6 @@ export const projectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
   status: z.string().min(1, "Status is required"),
-  dt_start: z.string().min(1, "Start date is required"),
-  dt_end: z.string().min(1, "End date is required"),
+  start_date: z.string().min(1, "Start date is required"),
+  end_date: z.string().min(1, "End date is required"),
 });

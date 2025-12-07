@@ -140,7 +140,7 @@ export default function ExchangeTransactionDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="from_currency">From Currency</Label>
+              <Label htmlFor="from_currency">from_currency</Label>
               <DropDown
                 id="from_currency"
                 options={currencyOptions}
@@ -152,7 +152,7 @@ export default function ExchangeTransactionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="to_currency">To Currency</Label>
+              <Label htmlFor="to_currency">to_currency</Label>
               <DropDown
                 id="to_currency"
                 options={currencyOptions}
@@ -166,7 +166,7 @@ export default function ExchangeTransactionDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="amount">Amount</Label>
+              <Label htmlFor="amount">amount</Label>
               <Input
                 type="number"
                 id="amount"
@@ -178,7 +178,7 @@ export default function ExchangeTransactionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="rate">Rate</Label>
+              <Label htmlFor="rate">rate</Label>
               <Input
                 type="number"
                 id="rate"
@@ -192,7 +192,7 @@ export default function ExchangeTransactionDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">date</Label>
               <Input
                 type="date"
                 id="date"
@@ -204,7 +204,7 @@ export default function ExchangeTransactionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">status</Label>
               <DropDown
                 id="status"
                 options={statusOptions}

@@ -228,7 +228,7 @@ export default function ProposalDetail({
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="ida">Proposal ID</Label>
+              <Label htmlFor="ida">ida</Label>
               <Input
                 type="text"
                 id="ida"
@@ -240,7 +240,7 @@ export default function ProposalDetail({
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">status</Label>
               <select
                 id="status"
                 {...register("status")}
@@ -260,7 +260,7 @@ export default function ProposalDetail({
           {/* Customer Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <Label htmlFor="id_customer">Customer *</Label>
+              <Label htmlFor="id_customer">id_customer</Label>
               <CustomerSelect
                 value={data?.id_customer}
                 onChange={(value) => setValue("id_customer", value || 0)}
@@ -269,7 +269,7 @@ export default function ProposalDetail({
               {errors.id_customer && <p className="text-red-500 text-sm">{errors.id_customer.message}</p>}
             </div>
             <div>
-              <Label htmlFor="id_manufacturer">Manufacturer ID</Label>
+              <Label htmlFor="id_manufacturer">id_manufacturer</Label>
               <Input
                 type="number"
                 id="id_manufacturer"
@@ -279,7 +279,7 @@ export default function ProposalDetail({
               />
             </div>
             <div>
-              <Label htmlFor="id_vendor">Vendor</Label>
+              <Label htmlFor="id_vendor">id_vendor</Label>
               <CustomerSelect
                 value={data?.id_vendor}
                 onChange={(value) => setValue("id_vendor", value || 0)}
@@ -292,7 +292,7 @@ export default function ProposalDetail({
           {/* Additional Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="priority">Priority</Label>
+              <Label htmlFor="priority">priority</Label>
               <Input
                 type="text"
                 id="priority"
@@ -302,7 +302,7 @@ export default function ProposalDetail({
               />
             </div>
             <div>
-              <Label htmlFor="price_level">Price Level</Label>
+              <Label htmlFor="price_level">price_level</Label>
               <Input
                 type="text"
                 id="price_level"
@@ -419,7 +419,7 @@ export default function ProposalDetail({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="dt_created">Created Date</Label>
+                  <Label htmlFor="dt_created">dt_created</Label>
                   <Input
                     type="text"
                     id="dt_created"
@@ -428,7 +428,7 @@ export default function ProposalDetail({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="dt_modified">Modified Date</Label>
+                  <Label htmlFor="dt_modified">dt_modified</Label>
                   <Input
                     type="text"
                     id="dt_modified"

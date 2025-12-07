@@ -113,7 +113,7 @@ export default function PurchaseReceiptDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="purchase_order_id">Purchase Order ID</Label>
+            <Label htmlFor="purchase_order_id">purchase_order_id</Label>
             <Input
               type="number"
               id="purchase_order_id"
@@ -125,7 +125,7 @@ export default function PurchaseReceiptDetail({
             />
           </div>
           <div>
-            <Label htmlFor="receipt_date">Receipt Date</Label>
+            <Label htmlFor="receipt_date">receipt_date</Label>
             <Input
               type="date"
               id="receipt_date"
@@ -137,7 +137,7 @@ export default function PurchaseReceiptDetail({
             />
           </div>
           <div>
-            <Label htmlFor="received_by">Received By</Label>
+            <Label htmlFor="received_by">received_by</Label>
             <Input
               type="text"
               id="received_by"
@@ -149,7 +149,7 @@ export default function PurchaseReceiptDetail({
             />
           </div>
           <div>
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">notes</Label>
             <Input
               type="text"
               id="notes"

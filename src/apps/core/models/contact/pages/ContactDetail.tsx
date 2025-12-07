@@ -133,7 +133,7 @@ export default function ContactDetail({
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">email</Label>
               <Input
                 type="email"
                 id="email"
@@ -149,7 +149,7 @@ export default function ContactDetail({
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">password</Label>
                   <Input
                     type="password"
                     id="password"
@@ -166,7 +166,7 @@ export default function ContactDetail({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
-                  <Label htmlFor="cnf_password">Confirm Password</Label>
+                  <Label htmlFor="cnf_password">cnf_password</Label>
                   <Input
                     type="password"
                     id="cnf_password"
@@ -334,7 +334,7 @@ export default function ContactDetail({
                 id="is_active"
                 checked={watch("is_active")}
                 onChange={(checked) => setValue("is_active", checked)}
-                label="Is Active"
+                label="is_active"
               />
             </div>
           </div>
@@ -344,7 +344,7 @@ export default function ContactDetail({
                 id="is_staff"
                 checked={watch("is_staff")}
                 onChange={(checked) => setValue("is_staff", checked)}
-                label="Is Staff"
+                label="is_staff"
               />
             </div>
           </div>
