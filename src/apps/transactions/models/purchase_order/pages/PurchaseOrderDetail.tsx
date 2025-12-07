@@ -119,8 +119,8 @@ export default function PurchaseOrderDetail({
               id="purchase_order_no"
               placeholder="Purchase Order Number"
               {...register("purchase_order_no")}
-              error={errors.purchase_order_no && errors.purchase_order_no.message ? true : false}
-              hint={errors.purchase_order_no && errors.purchase_order_no.message}
+              error={!!errors.purchase_order_no?.message}
+              hint={errors.purchase_order_no?.message}
               disabled={mode === "view"}
             />
           </div>

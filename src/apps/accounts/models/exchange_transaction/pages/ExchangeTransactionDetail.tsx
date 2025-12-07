@@ -58,8 +58,23 @@ export default function ExchangeTransactionDetail({
     try {
       const res =
         mode === "add"
-          ? await createExchangeTransaction(formData)
-          : await updateExchangeTransaction({ ...formData, id: data && data.id });
+          ? await createExchangeTransaction({
+              from_currency: formData.from_currency,
+              to_currency: formData.to_currency,
+              amount: formData.amount,
+              rate: formData.rate,
+              date: formData.date,
+              status: formData.status,
+            })
+          : await updateExchangeTransaction({
+              id: data.id,
+              from_currency: formData.from_currency,
+              to_currency: formData.to_currency,
+              amount: formData.amount,
+              rate: formData.rate,
+              date: formData.date,
+              status: formData.status,
+            });
       if (res) {
         dispatch(
           showToast({
