@@ -138,7 +138,7 @@ export default function DomainDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="path">Path</Label>
+              <Label htmlFor="path">path</Label>
               <Input
                 type="text"
                 id="path"
@@ -150,7 +150,7 @@ export default function DomainDetail({
               />
             </div>
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">type</Label>
               <DropDown
                 id="type"
                 options={typeOptions}
@@ -164,7 +164,7 @@ export default function DomainDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">status</Label>
               <DropDown
                 id="status"
                 options={statusOptions}
@@ -178,7 +178,7 @@ export default function DomainDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="comment">Comments</Label>
+              <Label htmlFor="comment">comment</Label>
               <CustTextArea
                 id="comment"
                 placeholder="General notes"
@@ -189,7 +189,7 @@ export default function DomainDetail({
               />
             </div>
             <div>
-              <Label htmlFor="refs">Refs</Label>
+              <Label htmlFor="refs">refs</Label>
               <CustTextArea
                 id="refs"
                 placeholder="References"
@@ -202,7 +202,7 @@ export default function DomainDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="prefs">Prefs</Label>
+              <Label htmlFor="prefs">prefs</Label>
               <CustTextArea
                 id="prefs"
                 placeholder="Preferences"
@@ -213,7 +213,7 @@ export default function DomainDetail({
               />
             </div>
             <div>
-              <Label htmlFor="metadata">Metadata</Label>
+              <Label htmlFor="metadata">metadata</Label>
               <CustTextArea
                 id="metadata"
                 placeholder="Metadata"

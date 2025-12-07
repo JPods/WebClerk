@@ -4,15 +4,11 @@ import PrivateRoute from "./PrivateRoute";
 import { PageRoutes } from "./Routes";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import {
-  ActionAdd,
-  ActionList,
   BasicTables,
   Calendar,
   ContactDetail,
   ContactList,
-  CustomerAddPage,
-  CustomerDetailPage,
-  DomainAdd,
+  CustomerDetail,
   DomainList,
   FormElements,
   Home,
@@ -86,21 +82,20 @@ import {
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
-import ProductsPage from "../pages/items/ProductsPage";
-import OrdersListPage from "../pages/transactions/OrdersListPage";
-import OrderDetailPage from "../pages/transactions/OrderDetailPage";
-import InvoicesListPage from "../pages/transactions/InvoicesListPage";
-import InvoiceDetailPage from "../pages/transactions/InvoiceDetailPage";
-import PurchaseOrderDetailPage from "../pages/transactions/PurchaseOrderDetailPage";
-import ProposalDetailPage from "../pages/transactions/ProposalDetailPage";
+import ItemList from "../apps/products/models/item/pages/ItemList";
+import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
+import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
+import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
+import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
+import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
+import ProposalDetailVue from "../apps/transactions/models/proposal/pages/ProposalDetailVue";
+import ProposalDetailVueReact from "../apps/transactions/models/proposal/pages/ProposalDetailVueReact";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
-import CallReportDetailPage from "../pages/actions/CallReportDetailPage";
-import ServiceDetailPage from "../pages/actions/ServiceDetailPage";
-import TaskMarkerDetailPage from "../pages/actions/TaskMarkerDetailPage";
+import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesOrderList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
-import DocsIndex from "../pages/docs/DocsIndex";
+import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 
 const Router: React.FC = () => {
   return (
@@ -117,48 +112,24 @@ const Router: React.FC = () => {
         <Route element={<PrivateRoute />}>
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
-          <Route path={PageRoutes.actionList} element={<ActionList />} />
-          <Route path={PageRoutes.actionAdd} element={<ActionAdd />} />
-          <Route path={PageRoutes.actionAdd + "/:id"} element={<ActionAdd />} />
-          <Route
-            path={PageRoutes.actionsCallReportAdd}
-            element={<CallReportDetailPage defaultMode="add" />}
-          />
-          <Route
-            path={PageRoutes.actionsCallReportDetail}
-            element={<CallReportDetailPage />}
-          />
-          <Route
-            path={PageRoutes.actionsServiceAdd}
-            element={<ServiceDetailPage defaultMode="add" />}
-          />
-          <Route
-            path={PageRoutes.actionsServiceDetail}
-            element={<ServiceDetailPage />}
-          />
-          <Route
-            path={PageRoutes.actionsTaskMarkerAdd}
-            element={<TaskMarkerDetailPage defaultMode="add" />}
-          />
-          <Route
-            path={PageRoutes.actionsTaskMarkerDetail}
-            element={<TaskMarkerDetailPage />}
-          />
           <Route path={PageRoutes.contactList} element={<ContactList />} />
           <Route path={PageRoutes.ContactDetail} element={<ContactDetail />} />
           <Route
             path={PageRoutes.ContactDetail + "/:id"}
             element={<ContactDetail />}
           />
-          <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
+          <Route
+            path={PageRoutes.customerAdd}
+            element={<CustomerDetail modeProp="add" />}
+          />
           <Route
             path={PageRoutes.customerDetail}
-            element={<CustomerDetailPage />}
+            element={<CustomerDetail modeProp="edit" />}
           />
           <Route path={PageRoutes.settingList} element={<SettingList />} />
           <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
           <Route path={PageRoutes.domainList} element={<DomainList />} />
-          <Route path={PageRoutes.domainAdd} element={<DomainAdd />} />
+          <Route path={PageRoutes.domainAdd} element={<AppDomainDetail modeProp="add" />} />
           <Route
             path={PageRoutes.notionTracker}
             element={<NotionTrackerPage />}
@@ -179,29 +150,29 @@ const Router: React.FC = () => {
             element={<AdminWorkbench />}
           />
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
-          <Route path={PageRoutes.docs} element={<DocsIndex />} />
+          <Route path={PageRoutes.docs} element={<DocumentIndex />} />
           {/* Products */}
-          <Route path={PageRoutes.products} element={<ProductsPage />} />
+          <Route path={PageRoutes.products} element={<ItemList />} />
           {/* Transactions */}
           <Route
             path={PageRoutes.transactionsOrders}
-            element={<OrdersListPage />}
+            element={<SalesOrderList />}
           />
           <Route
             path={PageRoutes.transactionsOrderDetail}
-            element={<OrderDetailPage />}
+            element={<SalesOrderDetail />}
           />
           <Route
             path={PageRoutes.transactionsInvoices}
-            element={<InvoicesListPage />}
+            element={<InvoiceList />}
           />
           <Route
             path={PageRoutes.transactionsInvoiceDetail}
-            element={<InvoiceDetailPage />}
+            element={<InvoiceDetail />}
           />
           <Route
             path={PageRoutes.transactionsPurchaseOrderDetail}
-            element={<PurchaseOrderDetailPage />}
+            element={<PurchaseOrderDetail />}
           />
           <Route
             path={PageRoutes.transactionsProposals}
@@ -209,15 +180,17 @@ const Router: React.FC = () => {
           />
           <Route
             path={PageRoutes.transactionsProposalDetail}
-            element={<ProposalDetailPage />}
+            element={<ProposalDetail />}
           />
+          <Route path="/transactions/proposals/vue" element={<ProposalDetailVue />} />
+          <Route path="/transactions/proposals/vuereact" element={<ProposalDetailVueReact />} />
           <Route
             path={PageRoutes.transactionsPurchaseOrders}
             element={<PurchaseOrderList />}
           />
           <Route
             path={PageRoutes.transactionsPurchaseOrderDetail}
-            element={<PurchaseOrderDetailPage />}
+            element={<PurchaseOrderDetail />}
           />
           {/* Accounts */}
           <Route path={PageRoutes.auditList} element={<AuditList />} />
@@ -255,7 +228,6 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.commPhoneDetail} element={<AppPhoneDetail />} />
 
           {/* Core */}
-          <Route path={PageRoutes.coreActionList} element={<ActionList />} />
           <Route path={PageRoutes.coreContactList} element={<CoreContactList />} />
           <Route path={PageRoutes.coreContactDetail} element={<CoreContactDetail />} />
           <Route path={PageRoutes.coreReportList} element={<CoreReportList />} />

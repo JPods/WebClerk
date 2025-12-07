@@ -114,7 +114,7 @@ export default function LocationDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -126,7 +126,7 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">address</Label>
               <Input
                 type="text"
                 id="address"
@@ -140,7 +140,7 @@ export default function LocationDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city">city</Label>
               <Input
                 type="text"
                 id="city"
@@ -152,7 +152,7 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state">state</Label>
               <Input
                 type="text"
                 id="state"
@@ -164,7 +164,7 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="zip">ZIP Code</Label>
+              <Label htmlFor="zip">zip</Label>
               <Input
                 type="text"
                 id="zip"
@@ -178,7 +178,7 @@ export default function LocationDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="country">Country</Label>
+              <Label htmlFor="country">country</Label>
               <Input
                 type="text"
                 id="country"

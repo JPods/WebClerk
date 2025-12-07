@@ -115,7 +115,7 @@ export default function BundleDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -127,7 +127,7 @@ export default function BundleDetail({
               />
             </div>
             <div>
-              <Label htmlFor="version">Version</Label>
+              <Label htmlFor="version">version</Label>
               <Input
                 type="text"
                 id="version"
@@ -140,7 +140,7 @@ export default function BundleDetail({
             </div>
           </div>
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">description</Label>
             <Input
               type="text"
               id="description"
@@ -152,7 +152,7 @@ export default function BundleDetail({
             />
           </div>
           <div>
-            <Label htmlFor="data">Data (JSON)</Label>
+            <Label htmlFor="data">data</Label>
             <Input
               type="text"
               id="data"

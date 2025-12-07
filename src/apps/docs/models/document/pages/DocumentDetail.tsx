@@ -114,7 +114,7 @@ export default function DocumentDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">name</Label>
               <Input
                 type="text"
                 id="name"
@@ -126,7 +126,7 @@ export default function DocumentDetail({
               />
             </div>
             <div>
-              <Label htmlFor="slug">Slug</Label>
+              <Label htmlFor="slug">slug</Label>
               <Input
                 type="text"
                 id="slug"
@@ -139,7 +139,7 @@ export default function DocumentDetail({
             </div>
           </div>
           <div>
-            <Label htmlFor="summary">Summary</Label>
+            <Label htmlFor="summary">summary</Label>
             <Input
               type="text"
               id="summary"
@@ -151,7 +151,7 @@ export default function DocumentDetail({
             />
           </div>
           <div>
-            <Label htmlFor="content">Content</Label>
+            <Label htmlFor="content">content</Label>
             <textarea
               id="content"
               placeholder="Document Content"
@@ -166,7 +166,7 @@ export default function DocumentDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">category</Label>
               <Input
                 type="text"
                 id="category"
@@ -178,7 +178,7 @@ export default function DocumentDetail({
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">status</Label>
               <Input
                 type="text"
                 id="status"

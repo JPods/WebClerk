@@ -14,6 +14,8 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { salesOrderSchema } from "../utils/salesOrderSchema";
 import { SalesOrderAddProps } from "../types/salesOrderType";
+import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
+import SalesOrderStatus from "../components/SalesOrderStatus";
 
 export default function SalesOrderDetail({
   modeProp,
@@ -43,9 +45,9 @@ export default function SalesOrderDetail({
     if (mode === "add") {
       reset();
     } else if (data) {
-      Object.keys(data).forEach((key: any) => {
+      Object.keys(data).forEach((key: string) => {
         if (data[key] !== undefined) {
-          setValue(key, data[key]);
+          setValue(key as any, data[key]);
         }
       });
     } else {
@@ -72,8 +74,23 @@ export default function SalesOrderDetail({
           onSaved();
         }
       }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      dispatch(showToast({ message, type: "error" }));
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!data?.id) return;
+    try {
+      await updateSalesOrder(data.id, { ...data, status: newStatus });
+      dispatch(showToast({ message: `Sales order marked as ${newStatus}`, type: "success" }));
+      if (onSaved) {
+        onSaved();
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update status";
+      dispatch(showToast({ message, type: "error" }));
     }
   };
 
@@ -112,27 +129,106 @@ export default function SalesOrderDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <Label htmlFor="sales_order_no">Sales Order Number</Label>
-            <Input
-              type="text"
-              id="sales_order_no"
-              placeholder="Sales Order Number"
-              {...register("sales_order_no")}
-              error={errors.sales_order_no && errors.sales_order_no.message ? true : false}
-              hint={errors.sales_order_no && errors.sales_order_no.message}
-              disabled={mode === "view"}
-            />
-          </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div>
+               <Label htmlFor="sales_order_no">sales_order_no</Label>
+               <Input
+                 type="text"
+                 id="sales_order_no"
+                 placeholder="Sales Order Number"
+                 {...register("sales_order_no")}
+                 error={errors.sales_order_no && errors.sales_order_no.message ? true : false}
+                 hint={errors.sales_order_no && errors.sales_order_no.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+             <div>
+               <Label htmlFor="status">status</Label>
+               <select
+                 id="status"
+                 {...register("status")}
+                 disabled={mode === "view"}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+               >
+                 <option value="draft">Draft</option>
+                 <option value="confirmed">Confirmed</option>
+                 <option value="shipped">Shipped</option>
+                 <option value="delivered">Delivered</option>
+                 <option value="cancelled">Cancelled</option>
+               </select>
+               {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+             </div>
+             <div>
+               <Label htmlFor="id_customer">id_customer</Label>
+               <Input
+                 type="number"
+                 id="id_customer"
+                 placeholder="Customer ID"
+                 {...register("id_customer")}
+                 error={errors.id_customer && errors.id_customer.message ? true : false}
+                 hint={errors.id_customer && errors.id_customer.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+             <div>
+               <Label htmlFor="total">total</Label>
+               <Input
+                 type="number"
+                 id="total"
+                 placeholder="Total"
+                 {...register("total")}
+                 error={errors.total && errors.total.message ? true : false}
+                 hint={errors.total && errors.total.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+             <div>
+               <Label htmlFor="tax">tax</Label>
+               <Input
+                 type="number"
+                 id="tax"
+                 placeholder="Tax"
+                 {...register("tax")}
+                 error={errors.tax && errors.tax.message ? true : false}
+                 hint={errors.tax && errors.tax.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+             <div>
+               <Label htmlFor="discount">discount</Label>
+               <Input
+                 type="number"
+                 id="discount"
+                 placeholder="Discount"
+                 {...register("discount")}
+                 error={errors.discount && errors.discount.message ? true : false}
+                 hint={errors.discount && errors.discount.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+           </div>
           {mode === "view" && data && (
-            <div>
-              <Label htmlFor="dt_created">Created Date</Label>
-              <Input
-                type="text"
-                id="dt_created"
-                value={new Date(data.dt_created * 1000).toLocaleString()}
-                disabled
-              />
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="dt_created">dt_created</Label>
+                <Input
+                  type="text"
+                  id="dt_created"
+                  value={new Date(data.dt_created * 1000).toLocaleString()}
+                  disabled
+                />
+                {data.id && <AuditTrail transactionId={data.id} model="sales_order" />}
+              </div>
+
+              {/* Status Management */}
+              <div>
+                <Label>Sales Order Status</Label>
+                <SalesOrderStatus
+                  currentStatus={data.status || 'draft'}
+                  onStatusChange={handleStatusChange}
+                  showHistory={true}
+                />
+              </div>
             </div>
           )}
           {mode !== "view" && (

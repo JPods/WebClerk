@@ -12,7 +12,7 @@ import { createWorkorder, updateWorkorder } from "../services/workorderApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { workorderSchema } from "../utils/workorderSchema";
+import { workOrderSchema } from "../utils/workorderSchema";
 import { WorkorderAddProps } from "../types/workorderType";
 
 export default function WorkorderDetail({
@@ -31,8 +31,8 @@ export default function WorkorderDetail({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof workorderSchema>>({
-    resolver: zodResolver(workorderSchema),
+  } = useForm<z.infer<typeof workOrderSchema>>({
+    resolver: zodResolver(workOrderSchema),
   });
 
   const location = useLocation();
@@ -53,7 +53,7 @@ export default function WorkorderDetail({
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof workorderSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof workOrderSchema>) => {
     try {
       const res =
         mode === "add"
@@ -113,7 +113,7 @@ export default function WorkorderDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="workorder_no">Workorder Number</Label>
+            <Label htmlFor="workorder_no">workorder_no</Label>
             <Input
               type="text"
               id="workorder_no"
@@ -126,7 +126,7 @@ export default function WorkorderDetail({
           </div>
           {mode === "view" && data && (
             <div>
-              <Label htmlFor="dt_created">Created Date</Label>
+              <Label htmlFor="dt_created">dt_created</Label>
               <Input
                 type="text"
                 id="dt_created"

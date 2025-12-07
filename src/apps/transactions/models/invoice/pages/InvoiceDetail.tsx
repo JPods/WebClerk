@@ -14,6 +14,8 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { invoiceSchema } from "../utils/invoiceSchema";
 import { InvoiceAddProps } from "../types/invoiceType";
+import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
+import InvoiceStatus from "../components/InvoiceStatus";
 
 export default function InvoiceDetail({
   modeProp,
@@ -36,16 +38,17 @@ export default function InvoiceDetail({
   });
 
   const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const routeState = (location.state as { mode?: string; data?: z.infer<typeof invoiceSchema> }) || {};
+  const mode: "add" | "edit" | "view" = modeProp || (routeState.mode as "add" | "edit" | "view" | undefined) || "add";
   const data = dataProp || routeState.data || null;
   useEffect(() => {
     if (mode === "add") {
       reset();
     } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
+      Object.keys(data).forEach((key: string) => {
+        if (data[key as keyof typeof data] !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setValue(key as any, data[key as keyof typeof data]);
         }
       });
     } else {
@@ -72,8 +75,23 @@ export default function InvoiceDetail({
           onSaved();
         }
       }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      dispatch(showToast({ message, type: "error" }));
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!data?.id) return;
+    try {
+      await updateInvoice(data.id, { ...data, status: newStatus });
+      dispatch(showToast({ message: `Invoice marked as ${newStatus}`, type: "success" }));
+      if (onSaved) {
+        onSaved();
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update status";
+      dispatch(showToast({ message, type: "error" }));
     }
   };
 
@@ -112,27 +130,58 @@ export default function InvoiceDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <Label htmlFor="invoice_no">Invoice Number</Label>
-            <Input
-              type="text"
-              id="invoice_no"
-              placeholder="Invoice Number"
-              {...register("invoice_no")}
-              error={errors.invoice_no && errors.invoice_no.message ? true : false}
-              hint={errors.invoice_no && errors.invoice_no.message}
-              disabled={mode === "view"}
-            />
-          </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div>
+               <Label htmlFor="invoice_no">invoice_no</Label>
+               <Input
+                 type="text"
+                 id="invoice_no"
+                 placeholder="Invoice Number"
+                 {...register("invoice_no")}
+                 error={errors.invoice_no && errors.invoice_no.message ? true : false}
+                 hint={errors.invoice_no && errors.invoice_no.message}
+                 disabled={mode === "view"}
+               />
+             </div>
+             <div>
+               <Label htmlFor="status">status</Label>
+               <select
+                 id="status"
+                 {...register("status")}
+                 disabled={mode === "view"}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+               >
+                 <option value="draft">Draft</option>
+                 <option value="sent">Sent</option>
+                 <option value="paid">Paid</option>
+                 <option value="overdue">Overdue</option>
+                 <option value="cancelled">Cancelled</option>
+               </select>
+               {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+             </div>
+           </div>
           {mode === "view" && data && (
-            <div>
-              <Label htmlFor="dt_created">Created Date</Label>
-              <Input
-                type="text"
-                id="dt_created"
-                value={new Date(data.dt_created * 1000).toLocaleString()}
-                disabled
-              />
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="dt_created">dt_created</Label>
+                <Input
+                  type="text"
+                  id="dt_created"
+                  value={new Date(data.dt_created * 1000).toLocaleString()}
+                  disabled
+                />
+                {data.id && <AuditTrail transactionId={data.id} model="invoice" />}
+              </div>
+
+              {/* Status Management */}
+              <div>
+                <Label>Invoice Status</Label>
+                <InvoiceStatus
+                  currentStatus={data.status || 'draft'}
+                  onStatusChange={handleStatusChange}
+                  showHistory={true}
+                />
+              </div>
             </div>
           )}
           {mode !== "view" && (

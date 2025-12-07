@@ -125,7 +125,7 @@ export default function GLJournalDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">date</Label>
               <Input
                 type="date"
                 id="date"
@@ -137,7 +137,7 @@ export default function GLJournalDetail({
               />
             </div>
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">type</Label>
               <DropDown
                 id="type"
                 options={journalTypes}
@@ -151,7 +151,7 @@ export default function GLJournalDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="amount">Amount</Label>
+              <Label htmlFor="amount">amount</Label>
               <Input
                 type="number"
                 id="amount"
@@ -165,7 +165,7 @@ export default function GLJournalDetail({
           </div>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">description</Label>
               <Input
                 type="text"
                 id="description"
