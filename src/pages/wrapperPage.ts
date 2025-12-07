@@ -3,17 +3,13 @@ import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
-import ActionList from "./actions/ActionList";
-import ActionAdd from "./actions/ActionAdd";
 import ContactDetail from "../apps/core/models/contact/pages/ContactDetail.tsx";
 import ContactList from "../apps/core/models/contact/pages/ContactList";
-import CustomerDetailPage from "./contacts/CustomerDetailPage";
-import CustomerAddPage from "./contacts/CustomerAddPage";
+import CustomerDetail from "../apps/core/models/customer/pages/CustomerDetail";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
-import DomainDetail from "../apps/communications/domain/pages/domainDetail";
-import DomainList from "./domain/DomainList";
-import DomainAdd from "./domain/DomainAdd";
+import DomainList from "../apps/communications/models/domain/pages/DomainList";
+import DomainDetail from "../apps/communications/models/domain/pages/DomainDetail";
 
 // Accounts
 import AuditList from "../apps/accounts/models/audit/pages/AuditList";
@@ -81,10 +77,10 @@ import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
 import BasicTables from "./Tables/BasicTables";
 import AdminWorkbench from "./admin/AdminWorkbench";
-import OrderDetailPage from "./transactions/OrderDetailPage";
-import InvoiceDetailPage from "./transactions/InvoiceDetailPage";
-import PurchaseOrderDetailPage from "./transactions/PurchaseOrderDetailPage";
-import ProposalDetailPage from "./transactions/ProposalDetailPage";
+import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
+import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
+import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
+import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
 import NotionTrackerPage from "./notion/NotionTrackerPage.tsx";
@@ -97,25 +93,21 @@ export {
   SignIn,
   SignUp,
   NotFound,
-  OrderDetailPage,
-  InvoiceDetailPage,
-  PurchaseOrderDetailPage,
-  ProposalDetailPage,
+  SalesOrderDetail,
+  InvoiceDetail,
+  PurchaseOrderDetail,
+  ProposalDetail,
   ProposalList,
   PurchaseOrderList,
   Home,
   UserProfiles,
-  ActionList,
-  ActionAdd,
   ContactDetail,
   ContactList,
-  CustomerDetailPage,
-  CustomerAddPage,
+  CustomerDetail,
   SettingAdd,
   SettingList,
   DomainDetail,
   DomainList,
-  DomainAdd,
   Calendar,
   FormElements,
   BasicTables,

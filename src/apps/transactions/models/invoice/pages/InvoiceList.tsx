@@ -86,13 +86,13 @@ export default function InvoiceList() {
       name: "Invoice No",
       selector: (row) => row.invoice_no || "--",
       sortable: true,
-      width: "12%",
+      width: "14%",
     },
     {
       name: "Status",
       selector: (row) => row.status || "--",
       sortable: true,
-      width: "10%",
+      width: "12%",
       cell: (row) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
           row.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
@@ -112,6 +112,12 @@ export default function InvoiceList() {
       width: "12%",
     },
     {
+      name: "Vendor",
+      selector: (row) => row.vendor_name || row.vendor_id || "--",
+      sortable: true,
+      width: "12%",
+    },
+    {
       name: "Total Amount",
       selector: (row) => row.total_amount || 0,
       sortable: true,
@@ -119,6 +125,32 @@ export default function InvoiceList() {
       cell: (row) => (
         <span className="font-medium text-green-600 dark:text-green-400">
           ${Number(row.total_amount || 0).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      name: "Margin",
+      selector: (row) => row.margin_percentage || 0,
+      sortable: true,
+      width: "8%",
+      cell: (row) => (
+        <span className={`text-center px-2 py-1 rounded text-xs font-medium ${
+          (row.margin_percentage || 0) >= 20 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+          (row.margin_percentage || 0) >= 10 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        }`}>
+          {row.margin_percentage ? Number(row.margin_percentage).toFixed(1) : '0.0'}%
+        </span>
+      ),
+    },
+    {
+      name: "Lines",
+      selector: (row) => row.line_count || (row.line_items ? row.line_items.length : 0),
+      sortable: true,
+      width: "6%",
+      cell: (row) => (
+        <span className="text-center bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+          {row.line_count || (row.line_items ? row.line_items.length : 0)}
         </span>
       ),
     },
@@ -148,19 +180,10 @@ export default function InvoiceList() {
       },
     },
     {
-      name: "Due Date",
-      selector: (row) => row.due_date ? new Date(row.due_date).toLocaleDateString() : "--",
+      name: "Created",
+      selector: (row) => row.dt_created ? new Date(row.dt_created).toLocaleDateString() : "--",
       sortable: true,
       width: "10%",
-      cell: (row) => {
-        const dueDate = row.due_date ? new Date(row.due_date) : null;
-        const isOverdue = dueDate && dueDate < new Date() && row.status !== 'paid';
-        return (
-          <span className={isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
-            {dueDate ? dueDate.toLocaleDateString() : "--"}
-          </span>
-        );
-      },
     },
     {
       name: "Actions",
@@ -187,8 +210,12 @@ export default function InvoiceList() {
   // Calculate summary statistics
   const totalInvoices = data.length;
   const totalValue = data.reduce((sum, invoice) => sum + (invoice.total_amount || 0), 0);
-  const totalPaid = data.reduce((sum, invoice) => sum + (invoice.paid_amount || 0), 0);
-  const overdueCount = data.filter(invoice => invoice.status === 'overdue').length;
+  const totalMargin = data.reduce((sum, invoice) => sum + (invoice.margin_amount || 0), 0);
+  const avgMargin = totalInvoices > 0 ? (totalMargin / totalValue) * 100 : 0;
+  const statusCounts = data.reduce((acc, invoice) => {
+    acc[invoice.status || 'unknown'] = (acc[invoice.status || 'unknown'] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <>
@@ -210,14 +237,14 @@ export default function InvoiceList() {
         </ComponentCard>
         <ComponentCard>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">${totalPaid.toFixed(2)}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Total Paid</div>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{avgMargin.toFixed(1)}%</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Avg Margin</div>
           </div>
         </ComponentCard>
         <ComponentCard>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{overdueCount}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Overdue</div>
+            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{statusCounts.paid || 0}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Paid</div>
           </div>
         </ComponentCard>
       </div>
@@ -225,7 +252,8 @@ export default function InvoiceList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold dark:text-white">Invoices</h3>
               <button
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
