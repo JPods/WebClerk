@@ -106,7 +106,13 @@ export default function ProposalList() {
     },
     {
       name: "Customer",
-      selector: (row) => row.id_customer || "--",
+      selector: (row) => row.customer_name || row.id_customer || "--",
+      sortable: true,
+      width: "12%",
+    },
+    {
+      name: "Vendor",
+      selector: (row) => row.vendor_name || row.id_vendor || "--",
       sortable: true,
       width: "12%",
     },
@@ -114,7 +120,7 @@ export default function ProposalList() {
       name: "Total Amount",
       selector: (row) => row.total_amount || 0,
       sortable: true,
-      width: "14%",
+      width: "10%",
       cell: (row) => (
         <span className="font-medium text-green-600 dark:text-green-400">
           ${row.total_amount ? Number(row.total_amount).toFixed(2) : '0.00'}
@@ -122,10 +128,25 @@ export default function ProposalList() {
       ),
     },
     {
+      name: "Margin",
+      selector: (row) => row.margin_percentage || 0,
+      sortable: true,
+      width: "8%",
+      cell: (row) => (
+        <span className={`text-center px-2 py-1 rounded text-xs font-medium ${
+          (row.margin_percentage || 0) >= 20 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+          (row.margin_percentage || 0) >= 10 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        }`}>
+          {row.margin_percentage ? Number(row.margin_percentage).toFixed(1) : '0.0'}%
+        </span>
+      ),
+    },
+    {
       name: "Lines",
       selector: (row) => row.line_count || 0,
       sortable: true,
-      width: "8%",
+      width: "6%",
       cell: (row) => (
         <span className="text-center bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
           {row.line_count || 0}
@@ -136,7 +157,7 @@ export default function ProposalList() {
       name: "Created",
       selector: (row) => row.dt_created ? new Date(row.dt_created).toLocaleDateString() : "--",
       sortable: true,
-      width: "14%",
+      width: "10%",
     },
     {
       name: "Actions",
@@ -156,13 +177,15 @@ export default function ProposalList() {
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
-      width: "12%",
+      width: "10%",
     },
   ];
 
   // Calculate summary statistics
   const totalProposals = data.length;
   const totalValue = data.reduce((sum, proposal) => sum + (proposal.total_amount || 0), 0);
+  const totalMargin = data.reduce((sum, proposal) => sum + (proposal.margin_amount || 0), 0);
+  const avgMargin = totalProposals > 0 ? (totalMargin / totalValue) * 100 : 0;
   const statusCounts = data.reduce((acc, proposal) => {
     acc[proposal.status || 'unknown'] = (acc[proposal.status || 'unknown'] || 0) + 1;
     return acc;
@@ -188,13 +211,13 @@ export default function ProposalList() {
         </ComponentCard>
         <ComponentCard>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statusCounts.planned || 0}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Planned</div>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{avgMargin.toFixed(1)}%</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Avg Margin</div>
           </div>
         </ComponentCard>
         <ComponentCard>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{statusCounts.complete || 0}</div>
+            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{statusCounts.complete || 0}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
           </div>
         </ComponentCard>

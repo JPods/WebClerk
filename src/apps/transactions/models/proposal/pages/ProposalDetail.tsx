@@ -8,13 +8,16 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createProposal, updateProposal, convertProposalToOrder, fetchProposalLines } from "../services/proposalApi";
+import { createProposal, updateProposal, convertProposalToOrder, fetchProposalLines, createProposalLine, updateProposalLine, deleteProposalLine } from "../services/proposalApi";
+import { generateProposalPdf } from "../services/proposalPdfService";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { proposalSchema } from "../utils/proposalSchema";
 import { ProposalAddProps } from "../types/proposalType";
-import { FaPlus, FaTrash, FaEdit } from "react-icons/fa";
+import ProposalLineList from "../components/ProposalLineList";
+import ProposalStatus from "../components/ProposalStatus";
+import CustomerSelect from "../components/CustomerSelect";
 
 export default function ProposalDetail({
   modeProp,
@@ -26,6 +29,8 @@ export default function ProposalDetail({
 }: ProposalAddProps) {
   const dispatch = useDispatch();
   const [lineItems, setLineItems] = useState<any[]>([]);
+  const [editingLineId, setEditingLineId] = useState<number | null>(null);
+  const [newLine, setNewLine] = useState<any>({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
 
   const {
     register,
@@ -118,6 +123,72 @@ export default function ProposalDetail({
     }
   };
 
+  const handleAddLine = () => {
+    setEditingLineId(-1); // -1 for new line
+    setNewLine({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+  };
+
+  const handleEditLine = (line: any) => {
+    setEditingLineId(line.id);
+    setNewLine({ ...line });
+  };
+
+  const handleSaveLine = async () => {
+    try {
+      if (editingLineId === -1) {
+        // New line
+        if (data?.id) {
+          await createProposalLine(data.id, newLine);
+          dispatch(showToast({ message: "Line item added successfully", type: "success" }));
+        }
+      } else {
+        // Update line
+        if (data?.id) {
+          await updateProposalLine(data.id, editingLineId!, newLine);
+          dispatch(showToast({ message: "Line item updated successfully", type: "success" }));
+        }
+      }
+      setEditingLineId(null);
+      // Refresh line items
+      if (data?.id) {
+        loadLineItems(data.id);
+      }
+    } catch (error: any) {
+      dispatch(showToast({ message: error.message || "Failed to save line item", type: "error" }));
+    }
+  };
+
+  const handleDeleteLine = async (lineId: number) => {
+    if (!data?.id) return;
+    if (window.confirm('Delete this line item?')) {
+      try {
+        await deleteProposalLine(data.id, lineId);
+        dispatch(showToast({ message: "Line item deleted successfully", type: "success" }));
+        loadLineItems(data.id);
+      } catch (error: any) {
+        dispatch(showToast({ message: error.message || "Failed to delete line item", type: "error" }));
+      }
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLineId(null);
+    setNewLine({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!data?.id) return;
+    try {
+      await updateProposal(data.id, { ...data, status: newStatus });
+      dispatch(showToast({ message: `Proposal marked as ${newStatus}`, type: "success" }));
+      if (onSaved) {
+        onSaved();
+      }
+    } catch (error: any) {
+      dispatch(showToast({ message: error.message || "Failed to update status", type: "error" }));
+    }
+  };
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -188,16 +259,13 @@ export default function ProposalDetail({
           {/* Customer Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <Label htmlFor="id_customer">Customer ID *</Label>
-              <Input
-                type="number"
-                id="id_customer"
-                placeholder="Customer ID"
-                {...register("id_customer", { valueAsNumber: true })}
-                error={errors.id_customer && errors.id_customer.message ? true : false}
-                hint={errors.id_customer && errors.id_customer.message}
+              <Label htmlFor="id_customer">Customer *</Label>
+              <CustomerSelect
+                value={data?.id_customer}
+                onChange={(value) => setValue("id_customer", value || 0)}
                 disabled={mode === "view"}
               />
+              {errors.id_customer && <p className="text-red-500 text-sm">{errors.id_customer.message}</p>}
             </div>
             <div>
               <Label htmlFor="id_manufacturer">Manufacturer ID</Label>
@@ -210,13 +278,12 @@ export default function ProposalDetail({
               />
             </div>
             <div>
-              <Label htmlFor="id_vendor">Vendor ID</Label>
-              <Input
-                type="number"
-                id="id_vendor"
-                placeholder="Vendor ID"
-                {...register("id_vendor", { valueAsNumber: true })}
+              <Label htmlFor="id_vendor">Vendor</Label>
+              <CustomerSelect
+                value={data?.id_vendor}
+                onChange={(value) => setValue("id_vendor", value || 0)}
                 disabled={mode === "view"}
+                contactType="vendor"
               />
             </div>
           </div>
@@ -247,76 +314,17 @@ export default function ProposalDetail({
 
           {/* Line Items Section */}
           {(mode === "edit" || mode === "add") && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold dark:text-white">Line Items</h3>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 px-3 py-1 text-white bg-green-500 rounded-md hover:bg-green-600 text-sm"
-                >
-                  <FaPlus className="text-xs" />
-                  Add Item
-                </button>
-              </div>
-
-              {lineItems.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  No line items added yet. Click "Add Item" to get started.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300 dark:border-gray-600 text-sm">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Item</th>
-                        <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Description</th>
-                        <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Qty</th>
-                        <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Price</th>
-                        <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Total</th>
-                        <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lineItems.map((item, index) => (
-                        <tr key={item.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.item_name || 'Unknown'}</td>
-                          <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.description || ''}</td>
-                          <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{item.quantity || 0}</td>
-                          <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.price?.sell ? Number(item.price.sell).toFixed(2) : '0.00'}</td>
-                          <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${item.extended_price ? Number(item.extended_price).toFixed(2) : '0.00'}</td>
-                          <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">
-                            <div className="flex gap-1 justify-center">
-                              <button type="button" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded">
-                                <FaEdit className="text-blue-600 text-xs" />
-                              </button>
-                              <button type="button" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded">
-                                <FaTrash className="text-red-600 text-xs" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Totals Summary */}
-              {lineItems.length > 0 && (
-                <div className="flex justify-end">
-                  <div className="w-64 space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>${lineItems.reduce((sum, item) => sum + (item.extended_price || 0), 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                      <span>Total:</span>
-                      <span>${lineItems.reduce((sum, item) => sum + (item.extended_price || 0), 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ProposalLineList
+              lines={lineItems}
+              editingId={editingLineId}
+              newLine={newLine}
+              onAdd={handleAddLine}
+              onEdit={handleEditLine}
+              onDelete={handleDeleteLine}
+              onSave={handleSaveLine}
+              onCancel={handleCancelEdit}
+              onNewLineChange={setNewLine}
+            />
           )}
 
           {mode === "view" && data && (
@@ -354,6 +362,25 @@ export default function ProposalDetail({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
+                  <Label>Customer</Label>
+                  <Input
+                    type="text"
+                    value={data.customer_name || 'Not specified'}
+                    disabled
+                  />
+                </div>
+                <div>
+                  <Label>Vendor</Label>
+                  <Input
+                    type="text"
+                    value={data.vendor_name || 'Not specified'}
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
                   <Label htmlFor="dt_created">Created Date</Label>
                   <Input
                     type="text"
@@ -373,16 +400,72 @@ export default function ProposalDetail({
                 </div>
               </div>
 
-              {/* Actions for view mode */}
+              {/* Status Management */}
+              <div>
+                <Label>Proposal Status</Label>
+                <ProposalStatus
+                  currentStatus={data.status || 'planned'}
+                  onStatusChange={handleStatusChange}
+                  showHistory={true}
+                />
+              </div>
+
+              {/* Special Actions */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleConvertToOrder}
-                  className="flex items-center px-4 py-2 text-white bg-green-500 rounded-md hover:bg-green-600"
+                  onClick={() => generateProposalPdf({
+                    proposal: data,
+                    lines: lineItems,
+                    customerName: data.customer_name,
+                    vendorName: data.vendor_name
+                  })}
+                  className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
                 >
-                  Convert to Sales Order
+                  Download PDF
                 </button>
+                {data.status === 'accepted' && (
+                  <button
+                    type="button"
+                    onClick={handleConvertToOrder}
+                    className="flex items-center px-4 py-2 text-white bg-green-500 rounded-md hover:bg-green-600"
+                  >
+                    Convert to Sales Order
+                  </button>
+                )}
               </div>
+
+              {/* Totals Summary for View Mode */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                <h4 className="text-lg font-semibold mb-3 dark:text-white">Proposal Totals</h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      ${data.total_amount ? Number(data.total_amount).toFixed(2) : '0.00'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      ${data.margin_amount ? Number(data.margin_amount).toFixed(2) : '0.00'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Margin</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {data.margin_percentage ? Number(data.margin_percentage).toFixed(1) : '0.0'}%
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Margin %</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {data.line_count || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Line Items</div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
           {mode !== "view" && (

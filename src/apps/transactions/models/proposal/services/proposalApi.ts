@@ -39,28 +39,27 @@ export const convertProposalToOrder = async (_id: number): Promise<{ status: num
   return { status: 200, data: { message: 'Conversion not yet implemented' } };
 };
 
-// Proposal Lines API - Note: Backend may not have line endpoints yet
-export const fetchProposalLines = async (_proposalId: number): Promise<{ status: number; data: { results: ProposalLine[]; total: number } }> => {
-  // Placeholder - backend may need line endpoints
-  return { status: 200, data: { results: [], total: 0 } };
+// Proposal Lines API
+export const fetchProposalLines = async (proposalId: number): Promise<{ status: number; data: { results: ProposalLine[]; total: number } }> => {
+  const res = await getRecords('proposal_line', { parent: proposalId });
+  return { status: 200, data: { results: res.results || [], total: res.total || 0 } };
 };
 
-export const fetchProposalLine = async (_proposalId: number, _lineId: number): Promise<{ status: number; data: ProposalLine }> => {
-  // Placeholder
-  return { status: 200, data: {} as ProposalLine };
+export const fetchProposalLine = async (proposalId: number, lineId: number): Promise<{ status: number; data: ProposalLine }> => {
+  const res = await getRecords('proposal_line', { parent: proposalId, id: lineId });
+  return { status: 200, data: res.results?.[0] || {} as ProposalLine };
 };
 
-export const createProposalLine = async (_proposalId: number, _data: CreateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
-  // Placeholder
-  return { status: 200, data: {} as ProposalLine };
+export const createProposalLine = async (proposalId: number, data: CreateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
+  const payload = { ...data, parent: proposalId };
+  return saveRecord('proposal_line', payload);
 };
 
-export const updateProposalLine = async (_proposalId: number, _lineId: number, _data: UpdateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
-  // Placeholder
-  return { status: 200, data: {} as ProposalLine };
+export const updateProposalLine = async (proposalId: number, lineId: number, data: UpdateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
+  const payload = { ...data, parent: proposalId, id: lineId };
+  return saveRecord('proposal_line', payload);
 };
 
-export const deleteProposalLine = async (_proposalId: number, _lineId: number): Promise<{ status: number; data: any }> => {
-  // Placeholder
-  return { status: 200, data: {} };
+export const deleteProposalLine = async (proposalId: number, lineId: number): Promise<{ status: number; data: any }> => {
+  return deleteRecord('proposal_line', lineId);
 };
