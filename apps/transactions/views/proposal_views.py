@@ -1,135 +1,154 @@
-from rest_framework.permissions import AllowAny
-from common.http.mixins import BaseJSONAPIView
-from common.api_responses import api_response
-from apps.transactions.models.proposal import Proposal
-from apps.transactions.models.sales_order import SalesOrder
-from apps.transactions.models.sales_order_line import SalesOrderLine
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 
-class ProposalActionView(BaseJSONAPIView):
+from apps.transactions.models import Proposal, ProposalLine
+from apps.transactions.serializers.transaction_serializers import ProposalSerializer, ProposalLineSerializer
+from apps.core.services import wcapi
+
+
+class ProposalViewSet(viewsets.ModelViewSet):
     """
-    Handle proposal actions (e.g., to_sales_order).
+    REST API viewset for Proposal management.
+    Uses WCAPI for all save operations to maintain consistency and security.
     """
-    _allow_write = True
-    permission_classes = [AllowAny]
-    http_method_names = ["post", "options", "head"]
+    queryset = Proposal.objects.all()
+    serializer_class = ProposalSerializer
 
-    def post(self, request, *args, **kwargs):
-        body = request.data or {}
-        action = (body.get("action") or "").lower()
-        proposal_id = body.get("proposal_id") or body.get("id") or body.get("proposal") or kwargs.get("pk")
-        if action in ("to_sales_order", "convert_to_sales_order", "proposal_to_sales_order"):
-            return self._convert_to_sales_order(int(proposal_id) if proposal_id else None)
-        return api_response(success=False, status_code=400, message="Unsupported action.")
+    def get_queryset(self):
+        """Filter queryset based on user permissions."""
+        return self.queryset
 
-    def _convert_to_sales_order(self, proposal_pk: int | None):
-        if not proposal_pk:
-            return api_response(success=False, status_code=400, message="Missing proposal id.")
-        proposal = Proposal.objects.filter(pk=proposal_pk).first()
-        if not proposal:
-            return api_response(success=False, status_code=404, message="Proposal not found.")
+    def perform_create(self, serializer):
+        """Create proposal using WCAPI save."""
+        data = serializer.validated_data.copy()
+        data['model_name'] = 'proposal'
 
-        # Create SalesOrder and copy lines minimally for linkage propagation tests
-        so = SalesOrder.objects.create()
-        # Optional transient order number
-        try:
-            so.order_no = f"SO-{so.pk}"
-        except Exception:
-            pass
+        # Use WCAPI save for consistency
+        result = wcapi.save_item('proposal', request=self.request, data=data)
+        if result[1] == 'created':
+            # Set the created instance on serializer for response
+            instance = Proposal.objects.get(pk=result[0])
+            serializer.instance = instance
+        else:
+            raise Exception("Failed to create proposal")
 
-        for pl in getattr(proposal, "lines", []).all():
-            # Build/propagate linkage list (ensure list and non-empty)
-            linkage = []
-            try:
-                existing = (pl.refs or {}).get("links", {}).get("linkage", [])
-                if isinstance(existing, list):
-                    linkage.extend(existing)
-            except Exception:
-                pass
-            if pl.pk not in linkage:
-                linkage.append(pl.pk)
-            refs = {"links": {"linkage": linkage}}
+    def perform_update(self, serializer):
+        """Update proposal using WCAPI save."""
+        instance = self.get_object()
+        data = serializer.validated_data.copy()
+        data['model_name'] = 'proposal'
+        data['id'] = instance.id
 
-            SalesOrderLine.objects.create(
-                parent=so,
-                parent_ref_id=so.pk,
-                status=getattr(pl, "status", "OPEN") or "OPEN",
-                item=getattr(pl, "item", None),
-                quantity=getattr(pl, "quantity", None),
-                price=getattr(pl, "price", None),
-                cost=getattr(pl, "cost", None),
-                tax=getattr(pl, "tax", None),
-                physical=getattr(pl, "physical", None),
-                comments=getattr(pl, "comments", None),
-                refs=refs,
+        # Use WCAPI save for consistency
+        result = wcapi.save_item('proposal', request=self.request, data=data, id=instance.id)
+        if result[1] == 'updated':
+            # Refresh instance
+            instance.refresh_from_db()
+            serializer.instance = instance
+        else:
+            raise Exception("Failed to update proposal")
+
+    @action(detail=True, methods=['post'])
+    def convert_to_order(self, request, pk=None):
+        """Convert proposal to sales order."""
+        proposal = self.get_object()
+
+        # Validate proposal can be converted
+        if proposal.status not in ['accepted']:
+            return Response(
+                {'error': 'Only accepted proposals can be converted to orders'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        data = {
-            "proposal_id": proposal.pk,
-            "proposal": {"id": proposal.pk},
-            "sales_order_id": so.pk,
-            "sales_order": {"id": so.pk},
-            "order_no": f"SO-{so.pk}",
-            "state": "created",
+        # Create sales order data
+        order_data = {
+            'model_name': 'sales_order',
+            'id_customer': proposal.id_customer,
+            'id_vendor': proposal.id_vendor,
+            'status': 'released',
+            'sell': proposal.sell,
+            'cost': proposal.cost,
+            'source': {'proposal_id': proposal.id}
         }
-        return api_response(data=data, status_code=201)
+
+        # Use WCAPI to create sales order
+        result = wcapi.save_item('sales_order', request=request, data=order_data)
+        if result[1] == 'created':
+            order_id = result[0]
+
+            # Copy proposal lines to order lines
+            for line in proposal.proposalline_set.all():
+                line_data = {
+                    'model_name': 'sales_order_line',
+                    'parent': order_id,
+                    'item_id': line.item_id,
+                    'description': line.description,
+                    'quantity': line.quantity,
+                    'price': line.price,
+                    'discount_amount': line.discount_amount
+                }
+                wcapi.save_item('sales_order_line', request=request, data=line_data)
+
+            # Update proposal status
+            proposal.status = 'accepted'  # or 'converted'
+            proposal.save()
+
+            return Response({'order_id': order_id}, status=status.HTTP_201_CREATED)
+
+        return Response({'error': 'Failed to create order'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def totals(self, request, pk=None):
+        """Get detailed totals for proposal."""
+        proposal = self.get_object()
+        totals = proposal.update_sell_cost_totals(persist=False)
+        return Response(totals)
 
 
-class ProposalToSalesOrderView(BaseJSONAPIView):
+class ProposalLineViewSet(viewsets.ModelViewSet):
     """
-    POST /tx/proposals/<pk>/convert-to-sales-order/
+    REST API viewset for Proposal Line management.
+    Uses WCAPI for all save operations.
     """
-    _allow_write = True
-    permission_classes = [AllowAny]
-    http_method_names = ["post", "options", "head"]
+    queryset = ProposalLine.objects.all()
+    serializer_class = ProposalLineSerializer
 
-    def post(self, request, pk: int, *args, **kwargs):
-        proposal = Proposal.objects.filter(pk=pk).first()
-        if not proposal:
-            return api_response(success=False, status_code=404, message="Proposal not found.")
+    def get_queryset(self):
+        """Filter by proposal if specified."""
+        queryset = self.queryset
+        proposal_id = self.request.query_params.get('proposal_id')
+        if proposal_id:
+            queryset = queryset.filter(parent_id=proposal_id)
+        return queryset
 
-        so = SalesOrder.objects.create()
-        try:
-            so.order_no = f"SO-{so.pk}"
-        except Exception:
-            pass
+    def perform_create(self, serializer):
+        """Create proposal line using WCAPI save."""
+        data = serializer.validated_data.copy()
+        data['model_name'] = 'proposal_line'
 
-        for pl in getattr(proposal, "lines", []).all():
-            # Build/propagate linkage list (ensure list and non-empty)
-            linkage = []
-            try:
-                existing = (pl.refs or {}).get("links", {}).get("linkage", [])
-                if isinstance(existing, list):
-                    linkage.extend(existing)
-            except Exception:
-                pass
-            if pl.pk not in linkage:
-                linkage.append(pl.pk)
-            refs = {"links": {"linkage": linkage}}
+        result = wcapi.save_item('proposal_line', request=self.request, data=data)
+        if result[1] == 'created':
+            instance = ProposalLine.objects.get(pk=result[0])
+            serializer.instance = instance
+        else:
+            raise Exception("Failed to create proposal line")
 
-            SalesOrderLine.objects.create(
-                parent=so,
-                parent_ref_id=so.pk,
-                status=getattr(pl, "status", "OPEN") or "OPEN",
-                item=getattr(pl, "item", None),
-                quantity=getattr(pl, "quantity", None),
-                price=getattr(pl, "price", None),
-                cost=getattr(pl, "cost", None),
-                tax=getattr(pl, "tax", None),
-                physical=getattr(pl, "physical", None),
-                comments=getattr(pl, "comments", None),
-                refs=refs,
-            )
+    def perform_update(self, serializer):
+        """Update proposal line using WCAPI save."""
+        instance = self.get_object()
+        data = serializer.validated_data.copy()
+        data['model_name'] = 'proposal_line'
+        data['id'] = instance.id
 
-        data = {
-            "proposal_id": proposal.pk,
-            "proposal": {"id": proposal.pk},
-            "sales_order_id": so.pk,
-            "sales_order": {"id": so.pk},
-            "order_no": f"SO-{so.pk}",
-            "state": "created",
-        }
-        return api_response(data=data, status_code=201)
+        result = wcapi.save_item('proposal_line', request=self.request, data=data, id=instance.id)
+        if result[1] == 'updated':
+            instance.refresh_from_db()
+            serializer.instance = instance
+        else:
+            raise Exception("Failed to update proposal line")
 
-
-class ProposalConvertToSalesOrderView(ProposalToSalesOrderView):
-    pass
+    def perform_destroy(self, instance):
+        """Delete proposal line using WCAPI."""
+        wcapi.delete_item('proposal_line', request=self.request, id=instance.id)

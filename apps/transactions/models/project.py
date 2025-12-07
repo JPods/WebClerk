@@ -62,7 +62,7 @@ class Project(BaseModel):
     priority = models.PositiveSmallIntegerField(default=3, help_text="1 (highest) – 5 (lowest)")
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="draft", db_index=True)
     attention = models.CharField(max_length=16, choices=ATTENTION_CHOICES, default="normal", db_index=True)
-    contact_id = models.BigIntegerField(null=True, blank=True, db_index=True, help_text="Owning / primary contact id")
+    id_contact = models.BigIntegerField(null=True, blank=True, db_index=True, help_text="Owning / primary contact id")
     tasks = models.JSONField(default=default_tasks, help_text="Backlog tasks + derived counters")
     burndown = models.PositiveSmallIntegerField(default=0, help_text="0-100 percent completion snapshot")
     category = models.CharField(max_length=128, blank=True, default="", db_index=True)
@@ -81,7 +81,7 @@ class Project(BaseModel):
             models.Index(fields=["priority"], name="project_priority_idx"),
             models.Index(fields=["attention"], name="project_attention_idx"),
             models.Index(fields=["category"], name="project_category_idx"),
-            models.Index(fields=["contact_id"], name="project_contact_idx"),
+            models.Index(fields=["id_contact"], name="project_contact_idx"),
             models.Index(fields=["status", "priority"], name="project_status_priority_idx"),
             models.Index(fields=["slug"], name="project_slug_idx"),
         ]

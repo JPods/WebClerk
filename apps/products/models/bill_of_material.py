@@ -25,8 +25,8 @@ class BillOfMaterial(BaseModel):
     component = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="bom_component")
 
     revision = models.CharField(max_length=20, blank=True, default="")
-    effective_from = models.DateField(null=True, blank=True)
-    effective_to = models.DateField(null=True, blank=True)
+    dt_effective_from = models.DateField(null=True, blank=True)
+    dt_effective_to = models.DateField(null=True, blank=True)
 
     quantity = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("1"))
     scrap_factor = models.DecimalField(
@@ -74,8 +74,8 @@ class BillOfMaterial(BaseModel):
             raise ValidationError("BOM cycle detected: component appears in parent's descendant chain")
         if self.is_alternate and not self.alternate_group:
             raise ValidationError({"alternate_group": "Alternate lines must have an alternate_group"})
-        if self.effective_from and self.effective_to and self.effective_to < self.effective_from:
-            raise ValidationError({"effective_to": "effective_to must be >= effective_from"})
+        if self.dt_effective_from and self.dt_effective_to and self.dt_effective_to < self.dt_effective_from:
+            raise ValidationError({"dt_effective_to": "dt_effective_to must be >= dt_effective_from"})
 
     def save(self, *args, **kwargs):  # pragma: no cover - indirect validation
         creating = self._state.adding

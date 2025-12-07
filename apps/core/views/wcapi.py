@@ -19,9 +19,13 @@ except Exception:  # pragma: no cover - fallback if policies unavailable
 WcapiResponseSerializer = inline_serializer(
     name="WcapiResponse",
     fields={
-        "item": serializers.JSONField(required=False),
-        "items": serializers.ListField(required=False, child=serializers.JSONField()),
-        "detail": serializers.CharField(required=False),
+        "record": serializers.JSONField(required=False, help_text="Single record when id parameter is provided"),
+        "results": serializers.ListField(required=False, child=serializers.JSONField(), help_text="List of records"),
+        "count": serializers.IntegerField(required=False, help_text="Number of records returned in this response"),
+        "total": serializers.IntegerField(required=False, help_text="Total number of records matching the query"),
+        "limit": serializers.IntegerField(required=False, help_text="Requested limit"),
+        "offset": serializers.IntegerField(required=False, help_text="Applied offset"),
+        "detail": serializers.CharField(required=False, help_text="Error message if request failed"),
     },
 )
 
@@ -38,6 +42,7 @@ class WCAPIGetView(APIView):
         fields: Optional[List[str]],
         request,
         limit: int = 500,
+        offset: int = 0,
         filters: Optional[Dict[str, Any]] = None,
         ordering: Optional[str] = None,
     ) -> Response:
@@ -51,35 +56,77 @@ class WCAPIGetView(APIView):
             allow = policy.field_allowlist(type(obj), request=request)
             return Response({"record": services.to_dict(obj, allow=allow)}, status=status.HTTP_200_OK)
 
-        items = services.list_items(model_key, request=request, filters=filters or {}, limit=limit, ordering=ordering)
+        # Get total count for pagination info
+        ModelCls, qs = services.get_queryset(model_key, request=request)
+        if filters:
+            qs = qs.filter(**filters)
+        total_count = qs.count()
+
+        # Apply ordering and pagination
+        if ordering:
+            qs = qs.order_by(ordering)
+
+        # Apply offset and limit
+        qs = qs[offset:offset + limit]
+        items = list(qs)
+
         allow = policy.field_allowlist(type(items[0]), request=request) if items else None
-        return Response({"results": [services.to_dict(o, allow=allow) for o in items]}, status=status.HTTP_200_OK)
+        results = [services.to_dict(o, allow=allow) for o in items]
+
+        return Response({
+            "results": results,
+            "count": len(results),
+            "total": total_count,
+            "limit": limit,
+            "offset": offset
+        }, status=status.HTTP_200_OK)
 
     @extend_schema(
         operation_id="wcapi_get_list_query",
         summary="Get any model records",
-        description="Retrieve records from any configured model using query parameters.",
+        description="Retrieve records from any configured model using query parameters. Supports filtering, pagination, and field selection.",
         parameters=[
             OpenApiParameter(
                 name="model_name",
                 type=str,
                 required=True,
                 location=OpenApiParameter.QUERY,
-                description="Model key from WCAPI registry (e.g., 'contact', 'action')",
+                description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'salesorder')",
             ),
             OpenApiParameter(
                 name="id",
                 type=int,
                 required=False,
                 location=OpenApiParameter.QUERY,
-                description="Specific record ID to retrieve (returns single item)",
+                description="Specific record ID to retrieve (returns single item instead of list)",
             ),
             OpenApiParameter(
                 name="fields",
                 type=str,
                 required=False,
                 location=OpenApiParameter.QUERY,
-                description="Comma-separated list of fields to include in response",
+                description="Comma-separated list of fields to include in response (e.g., 'id,name,status')",
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=int,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Maximum number of records to return (default: 500, max: 1000)",
+            ),
+            OpenApiParameter(
+                name="offset",
+                type=int,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Number of records to skip for pagination (use with limit)",
+            ),
+            OpenApiParameter(
+                name="order_by",
+                type=str,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="Field to order by (prefix with '-' for descending, e.g., '-dt_created')",
             ),
         ],
         responses={
@@ -91,13 +138,28 @@ class WCAPIGetView(APIView):
     def get(self, request, **kwargs):
         model_key = request.query_params.get("model_name")
         if not model_key:
-            return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "model_name parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         record_id = request.query_params.get("id")
         fields = request.query_params.get("fields")
         fields_list = [f.strip() for f in fields.split(",")] if isinstance(fields, str) else None
-        limit = request.query_params.get("limit")
-        limit_int = int(limit) if limit and limit.isdigit() else 500
+
+        # Parse limit with bounds checking
+        limit = request.query_params.get("limit", "500")
+        try:
+            limit_int = min(int(limit), 1000)  # Max 1000 records
+            if limit_int <= 0:
+                limit_int = 500
+        except ValueError:
+            limit_int = 500
+
+        # Parse offset
+        offset = request.query_params.get("offset", "0")
+        try:
+            offset_int = max(int(offset), 0)  # Ensure non-negative
+        except ValueError:
+            offset_int = 0
+
         order_by = request.query_params.get("order_by")
         # Map created_at to dt_created for ordering
         if order_by == "created_at":
@@ -108,7 +170,7 @@ class WCAPIGetView(APIView):
         # Parse additional filters from query params
         filters = {}
         for key, value in request.query_params.items():
-            if key not in ['model_name', 'id', 'fields', 'limit', 'order_by']:
+            if key not in ['model_name', 'id', 'fields', 'limit', 'offset', 'order_by']:
                 filters[key] = value
 
         # Handle special filter key for model_name
@@ -116,7 +178,7 @@ class WCAPIGetView(APIView):
         if model_name_filter:
             filters['model_name'] = model_name_filter
 
-        return self._handle(model_key, record_id, fields_list, request, limit_int, filters, order_by)
+        return self._handle(model_key, record_id, fields_list, request, limit_int, offset_int, filters, order_by)
 
 
 class ModelNameListView(APIView):

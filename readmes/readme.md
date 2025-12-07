@@ -1,6 +1,5 @@
 # webClerk3
 
-
 <!-- TOC START -->
 
 ## Table of Contents
@@ -18,12 +17,9 @@
     - [Port already in use](#port-already-in-use)
     - [Schema changes (add/remove/modify columns)](#schema-changes-addremovemodify-columns)
     - [First time setup](#first-time-setup)
-- [or: psql -U williamjames -d postgres](#or-psql-u-williamjames-d-postgres)
     - [Reset Postgres (if issues)](#reset-postgres-if-issues)
   - [Git Workflow](#git-workflow)
-  - [Running Tests](#running-tests)
-    - [Test Database Strategy](#test-database-strategy)
-  - [🎯 Architecture Overview](#architecture-overview)
+  - [Architecture Overview](#architecture-overview)
     - [Pattern Structure (dev without front end)](#pattern-structure-dev-without-front-end)
     - [Universal API Endpoints](#universal-api-endpoints)
   - [Universal API Usage Examples](#universal-api-usage-examples)
@@ -33,7 +29,7 @@
     - [Create New Action](#create-new-action)
     - [API Data Retrieval](#api-data-retrieval)
     - [Key Features](#key-features)
-    - [New: Bill of Material (BOM) API (Experimental)](#new-bill-of-material-bill_of_material-api-experimental)
+    - [New: Bill of Material (BOM) API (Experimental)](#new-bill-of-material-bom-api-experimental)
     - [Unified Response Envelope](#unified-response-envelope)
     - [Operational Headers](#operational-headers)
     - [Client Migration Checklist](#client-migration-checklist)
@@ -45,10 +41,6 @@
     - [Metrics Backend Options](#metrics-backend-options)
     - [Projection Field Cache](#projection-field-cache)
     - [Metrics Endpoint](#metrics-endpoint)
-- [HELP wcapi_requests_total Total WCAPI requests](#help-wcapirequeststotal-total-wcapi-requests)
-- [TYPE wcapi_requests_total counter](#type-wcapirequeststotal-counter)
-- [HELP wcapi_request_duration_seconds Request duration seconds](#help-wcapirequestdurationseconds-request-duration-seconds)
-- [TYPE wcapi_request_duration_seconds summary](#type-wcapirequestdurationseconds-summary)
     - [Model Registry & Security Hardening](#model-registry-security-hardening)
     - [Error Path Guarantees](#error-path-guarantees)
     - [Extending the Universal API](#extending-the-universal-api)
@@ -63,7 +55,20 @@
   - [Lineage & Serial Tracking](#lineage-serial-tracking)
     - [Comment / Linkage Strategy](#comment-linkage-strategy)
     - [Field-Level Authorization (view_edit)](#field-level-authorization-viewedit)
-  - [Running Tests](#running-tests)
+  - [Write policy (SaveWcapiView + Write Gate)](#write-policy-savewcAPIView--write-gate)
+  - [Modular BaseModel & CoreModel (Capability Composition)](#modular-basemodel-coremodel-capability-composition)
+    - [Mixins & Capabilities](#mixins-capabilities)
+    - [Choosing a Composition](#choosing-a-composition)
+    - [Example Compositions](#example-compositions)
+    - [Pending (Queue) Example](#pending-queue-example)
+    - [Migrating an Existing Full Model to a Leaner Composition](#migrating-an-existing-full-model-to-a-leaner-composition)
+    - [Capability Introspection](#capability-introspection)
+    - [Design Principles](#design-principles)
+    - [Why Not Just Two Bases?](#why-not-just-two-bases)
+    - [Pydantic Integration](#pydantic-integration)
+    - [Future Extensions](#future-extensions)
+  - [Consistency Standards (All Apps / Models)](#consistency-standards-all-apps-models)
+  - [Running Tests](#running-tests-1)
   - [Deployment (Placeholder)](#deployment-placeholder)
   - [Environment Variables](#environment-variables)
   - [API Documentation Access (Placeholder)](#api-documentation-access-placeholder)
@@ -79,60 +84,6 @@
     - [Extending To Another Model](#extending-to-another-model)
     - [Design Rationale](#design-rationale)
     - [Future Enhancements](#future-enhancements)
-
-## Write policy (SaveWcapiView + Write Gate)
-
-To ensure all model writes trigger consistent pre/post side effects (Celery tasks) and optimistic concurrency checks, we centralize mutations through `SaveWcapiView` and block ad‑hoc writes by default.
-
-Key points:
-
-- All POST/PUT/PATCH/DELETE requests are blocked unless explicitly allowlisted.
-- Default allowed endpoints include `/wcapi/save/` and auth/token paths. Admin paths are also allowed by default.
-- The write gate is implemented by `common.middleware.WriteGateMiddleware`.
-- Settings to control behavior:
-
-  - `WRITE_GATE_ENABLED` (bool, default True): master switch.
-  - `WRITE_GATE_EXACT_PATHS` (tuple[str]): exact path allowlist, default `('/wcapi/save/',)`.
-  - `WRITE_GATE_PREFIXES` (tuple[str]): prefix allowlist, includes `/wcapi/save/`, `/api/auth/`, `/api/token/`, `/wcapi/login/`, `/wcapi/signup/`, `/admin/`, `/admin-django/`.
-  - Env override `WRITE_GATE_DISABLED=1` disables the gate regardless of settings (dev convenience).
-
-Decorator for exceptions:
-
-- Use `@allow_write` (from `common.decorators`) to mark specific function‑ or class‑based views as allowed to write.
-- The middleware checks for `_allow_write` attribute on the resolved view or class and permits the request.
-
-Save endpoint behavior:
-
-- `POST /wcapi/save/` accepts a JSON payload with at least `model_name` and optional `id`.
-- Dict payloads for JSON fields (e.g., `refs`, `prefs`, `metadata`, `item`, `price`, `cost`) are deep‑merged into existing objects to avoid clobbering existing keys.
-- Unknown top‑level fields are captured into `prefs.userdefined` with a bounded size.
-- Pre/post Celery tasks `tasks.save_pre` and `tasks.save_post` are invoked (and an optional `save_post_async` is `.delay()`ed if available).
-
-Example: deep‑merge and unknown‑field capture
-
-- See test `tests/test_wcapi_save_deep_merge.py` for a minimal example that posts two saves: the first sets nested `prefs`, and the second updates `prefs.ui` while also sending an unknown top‑level field which is captured into `prefs.userdefined`.
-
-Concurrency:
-
-- The endpoint supports optimistic concurrency via the `If-Match` header (`*`, specific version), `version` in body, or legacy `expected_version`.
-
-Troubleshooting:
-
-- Receiving `405 Write blocked by policy` indicates the path isn’t allowlisted: route the write through `/wcapi/save/` or decorate the view with `@allow_write`.
-  - [Modular BaseModel & CoreModel (Capability Composition)](#modular-basemodel-coremodel-capability-composition)
-    - [Mixins & Capabilities](#mixins-capabilities)
-    - [Choosing a Composition](#choosing-a-composition)
-    - [Example Compositions](#example-compositions)
-    - [Pending (Queue) Example](#pending-queue-example)
-    - [Migrating an Existing Full Model to a Leaner Composition](#migrating-an-existing-full-model-to-a-leaner-composition)
-    - [Capability Introspection](#capability-introspection)
-    - [Design Principles](#design-principles)
-    - [Why Not Just Two Bases?](#why-not-just-two-bases)
-    - [Pydantic Integration](#pydantic-integration)
-    - [Future Extensions](#future-extensions)
-  - [Consistency Standards (All Apps / Models)](#consistency-standards-all-apps-models)
-- [serializers/myresource.py](#serializersmyresourcepy)
-- [views/myresource.py](#viewsmyresourcepy)
 
 <!-- TOC END -->
 
@@ -167,6 +118,7 @@ Authoritative guides are split by concern (single source each, no duplication):
 - Data / model structure map: `readmes/data-map.md`
 - Management & Operations: `readmes/manage.md`
 - Inventory & Costing: `readmes/inventory.md`
+- Inventory Deltas (dInventory): `readmes/inventory_deltas.md`
 - Flow vs Inventory Domain Boundary: `readmes/flow-vs-inventory.md`
 - Testing & Verification: `readmes/testing.md`
 - Upgrade Roadmap: `readmes/upgrade.md`
@@ -350,25 +302,6 @@ python manage.py check_services  # or ./check_services.sh
 After changes:
 
 ```bash
-
-## Running Tests
-
-### Test Database Strategy
-
-The settings module now auto-selects an in-memory SQLite database during pytest runs (detected via `PYTEST_CURRENT_TEST`) for speed and isolation, while normal development / `runserver` defaults to Postgres for persistence. Previously a `conftest.py` fixture forced SQLite; that override has been removed to avoid duplication and accidental masking of Postgres integration tests.
-
-Environment variables:
-
-| Var | Purpose | Typical Use |
-|-----|---------|-------------|
-| `PYTEST_FORCE_DB=1` | Force Postgres inside pytest | Run integration / migration-sensitive tests |
-| `USE_SQLITE_TEST=1` | Force ephemeral in-memory SQLite even outside pytest (warning printed) | One-off throwaway experiments |
-| (unset) | Default behavior (SQLite in pytest, Postgres otherwise) | Standard workflow |
-
-If you unexpectedly see auth errors like `no such table: contact` outside pytest, ensure you did not export `USE_SQLITE_TEST=1` and that migrations have been applied (`python manage.py migrate`).
-
-Deeper details & scenarios: see `README_TESTS.md` (Environment Assumptions section).
-
 ```
 
 Create PR:
@@ -378,7 +311,7 @@ Create PR:
 3. New pull request (dev <- your_branch)
 4. Complete review steps
 
-## 🎯 Architecture Overview
+## Architecture Overview
 
 **Universal API System** – One API pattern handles all data operations (contact, action, email, phones, domain, locations).
 
@@ -488,22 +421,6 @@ Full canonical spec, error code table, pagination meta rules, test guidance, and
 5. Log / surface `meta.request_id` when present for cross-service tracing.
 Provide a schema component in OpenAPI (spectacular) describing the envelope for reuse via `extend_schema(responses=...)` to cut duplication. (Planned)
 
-QQQ
-Usage Pattern (simple view):
-
-```python
-from common.api_responses import api_response
-
-def sample_view(request):
-  data = {"foo": "bar"}
-  return api_response(data=data)
-```
-
-Open Questions / TODOs:
-
-- Should delete responses unify on HTTP 200 + message, or 204 with empty envelope? (Currently 200 + message for enveloped deletes.)
-- Decide on enforcing `success` vs `error` purely from HTTP status class (e.g. always map non-2xx to error) – middleware today only auto-wraps success style.
-- Add test harness ensuring all non-exempt API paths include `status` key (contract test).
 
 ### Pagination (Universal Query)
 

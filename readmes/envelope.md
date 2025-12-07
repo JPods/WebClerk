@@ -94,6 +94,8 @@ Planned (add when implemented & tested): `authentication_failed` (401), `method_
 
 Excluded path prefixes (never wrapped): `/admin/`, `/static/`, `/media/`.
 
+Additionally, OpenAPI schema endpoints (`/wcapi/schema/`, `/wcapi/swagger/`, `/wcapi/redoc/`) are exempted to return raw OpenAPI JSON for compatibility with third-party tools like Swagger UI.
+
 ## Raw Parameter Removal
 
 The historical `?raw=1` escape hatch has been removed. Every JSON endpoint now emits the canonical envelope regardless of query parameters or environment flags. Delete any client logic that attempts to negotiate raw payloads. For diagnostic situations use structured logging or the `/api/schema/` tools instead of bypassing the envelope.
