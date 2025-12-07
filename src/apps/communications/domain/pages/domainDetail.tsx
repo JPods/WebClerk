@@ -20,7 +20,7 @@ import { useLocation } from "react-router";
 import { domainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
 
-export default function DomainAdd({
+export default function DomainDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -31,15 +31,59 @@ export default function DomainAdd({
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
+  const comment = { notes: [], public: "", partner: "", process: "" };
+  const refs = {
+    tags: [],
+    links: { items: [], contacts: [] },
+    keywords: [],
+    categories: [],
+    depends_on: {},
+    related_ids: [],
+  };
+  const prefs = { userdefined: {} };
+  const metadata = {
+    flow: {},
+    flags: { schema_rev: 1 },
+    access: { edit: [], view: [] },
+    health: {
+      rating: 0,
+      accuracy: 0,
+      freshness: 0,
+      consistency: 0,
+      completeness: 0,
+    },
+    source: {},
+    history: {
+      synced: { dt: 0, contact_id: 0 },
+      created: { dt: 1764077312019, contact_id: 0 },
+      accessed: { dt: 1764077312019, contact_id: 0 },
+      modified: { dt: 1764077312019, contact_id: 0 },
+      verified: { dt: 0, contact_id: 0 },
+    },
+    publish: "",
+    version: "1.0",
+    priority: "",
+    security: "",
+    resources: { required: {}, allocated: {} },
+    undefined: {},
+    versioning: {},
+  };
+
   const {
     register,
     setValue,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof domainSchema>>({
+  } = useForm({
     resolver: zodResolver(domainSchema),
-    defaultValues: {},
+    defaultValues: {
+      status: "active",
+      comment: JSON.stringify(comment, null, 2),
+      refs: JSON.stringify(refs, null, 2),
+      prefs: JSON.stringify(prefs, null, 2),
+      metadata: JSON.stringify(metadata, null, 2),
+    },
   });
 
   const location = useLocation();
@@ -114,44 +158,6 @@ export default function DomainAdd({
       dispatch(showToast({ message: error.message, type: "error" }));
     }
   };
-  const comment = { notes: [], public: "", partner: "", process: "" };
-  const refs = {
-    tags: [],
-    links: { items: [], contacts: [] },
-    keywords: [],
-    categories: [],
-    depends_on: {},
-    related_ids: [],
-  };
-  const prefs = { userdefined: {} };
-  const metadata = {
-    flow: {},
-    flags: { schema_rev: 1 },
-    access: { edit: [], view: [] },
-    health: {
-      rating: 0,
-      accuracy: 0,
-      freshness: 0,
-      consistency: 0,
-      completeness: 0,
-    },
-    source: {},
-    history: {
-      synced: { dt: 0, contact_id: 0 },
-      created: { dt: 1764077312019, contact_id: 0 },
-      accessed: { dt: 1764077312019, contact_id: 0 },
-      modified: { dt: 1764077312019, contact_id: 0 },
-      verified: { dt: 0, contact_id: 0 },
-    },
-    publish: "",
-    version: "1.0",
-    priority: "",
-    security: "",
-    resources: { required: {}, allocated: {} },
-    undefined: {},
-    versioning: {},
-  };
-
   const options = [
     { value: "website", label: "Website" },
     { value: "linkedin", label: "Linkedin" },
@@ -236,7 +242,6 @@ export default function DomainAdd({
                 error={errors.comment && errors.comment.message ? true : false}
                 hint={errors.comment && errors.comment.message}
                 disabled={mode === "view"}
-                value={JSON.stringify(comment, null, 2)}
               />
             </div>
             <div>
@@ -248,19 +253,17 @@ export default function DomainAdd({
                 error={errors.refs && errors.refs.message ? true : false}
                 hint={errors.refs && errors.refs.message}
                 disabled={mode === "view"}
-                value={JSON.stringify(refs, null, 2)}
               />
             </div>
             <div>
               <Label htmlFor="prefs">Prefs</Label>
               <CustTextArea
                 id="prefs"
-                placeholder="Pprefs"
+                placeholder="Prefs"
                 {...register("prefs")}
                 error={errors.prefs && errors.prefs.message ? true : false}
                 hint={errors.prefs && errors.prefs.message}
                 disabled={mode === "view"}
-                value={JSON.stringify(prefs, null, 2)}
               />
             </div>
             <div>
@@ -274,7 +277,6 @@ export default function DomainAdd({
                 }
                 hint={errors.metadata && errors.metadata.message}
                 disabled={mode === "view"}
-                value={JSON.stringify(metadata, null, 2)}
               />
             </div>
           </div>

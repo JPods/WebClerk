@@ -156,6 +156,7 @@ export default function GLJournalList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading gl journals...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

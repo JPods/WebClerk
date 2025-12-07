@@ -3,9 +3,10 @@ import ComponentCard from "../../components/common/ComponentCard";
 import DataTable, { TableColumn } from 'react-data-table-component';
 import { createTheme } from 'react-data-table-component';
 import { useEffect, useMemo, useState } from "react";
-import { Actions, deleteAction } from "../../api/userProfile";
+import { deleteAction } from "../../api/userProfile";
+import { getRecords } from "../../api/wcapi";
 import { dynamicData } from "../../model/dynamicData";
-import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; 
+import { FaEye, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import { showToast } from "../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../context/ThemeContext";
@@ -57,10 +58,8 @@ export default function ActionList() {
 
   const getActionData = async () => {
     try {
-      const res = await Actions();
-      if (res.status === 200) {
-        setData(res.data.data.results);
-      }
+      const res = await getRecords('action');
+      setData(res.results);
     } catch (error) {
       console.error("Failed to fetch actions", error);
     }

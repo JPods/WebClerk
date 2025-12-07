@@ -2,8 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchLocations } from "../services/locationApi";
+import { fetchLocations, deleteLocation } from "../services/locationApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -15,10 +14,12 @@ export default function LocationList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
   const getLocationData = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetchLocations();
       if (res.status === 200) {
@@ -30,6 +31,8 @@ export default function LocationList() {
       }
     } catch (error) {
       console.error("Failed to fetch locations", error);
+    } finally {
+      setLoading(false);
     }
   }, [dispatch]);
 
@@ -43,8 +46,8 @@ export default function LocationList() {
   };
 
   const handleEdit = async (row: any) => {
-    const res = await fetchLocations(row.id);
-    if (res.status === 200) setSelectedLocation(res.data.item);
+    const res = await fetchLocations({ id: row.id });
+    if (res.status === 200) setSelectedLocation(res.data.items[0]);
     else setSelectedLocation(row);
     setFormMode("edit");
   };
@@ -57,7 +60,7 @@ export default function LocationList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete location ${row.name}?`)) {
       try {
-        await deleteAction(row.id);
+        await deleteLocation(row.id);
         dispatch(
           showToast({
             message: "Location deleted successfully",
@@ -72,7 +75,7 @@ export default function LocationList() {
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete location" + error,
+            message: "Failed to delete location",
             type: "error",
           })
         );
@@ -179,10 +182,12 @@ export default function LocationList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
+                progressPending={loading}
                 progressComponent={
                   <div className="p-8 text-center">Loading locations...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

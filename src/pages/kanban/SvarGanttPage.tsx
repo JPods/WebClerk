@@ -362,7 +362,8 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
       }
 
       const columnColor = resolveColumnColor(column.title);
-      const task = mapKanbanTaskToSvarTask(kanbanTask, index, undefined, column.id, column.title);
+      const parentId = kanbanTask.refs?.links?.parent;
+      const task = mapKanbanTaskToSvarTask(kanbanTask, index, parentId, column.id, column.title);
       if (columnColor) {
         (task as unknown as { color?: string; progressColor?: string }).color = columnColor;
         (task as unknown as { color?: string; progressColor?: string }).progressColor = columnColor;
@@ -526,32 +527,6 @@ const SvarGanttPage: React.FC = () => {
   const sequenceUpdateQueueRef = useRef<Set<string>>(new Set());
   const pendingSequencePayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
   const sequenceDebounceTimersRef = useRef<Map<string, number>>(new Map());
-  const updateLocalTaskProgress = useCallback((taskId: string, progressValue: number) => {
-    const progressRatio = toProgressRatio(progressValue) ?? 0;
-    setBoard((prev) => {
-      const existingTask = prev.tasks[taskId];
-      if (!existingTask) {
-        return prev;
-      }
-      return {
-        ...prev,
-        tasks: {
-          ...prev.tasks,
-          [taskId]: { ...existingTask, progress: progressValue },
-        },
-      };
-    });
-
-    setFullDataset((prev) => {
-      if (!prev) {
-        return prev;
-      }
-      const updatedTasks = prev.tasks.map((task) =>
-        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
-      );
-      return { ...prev, tasks: updatedTasks };
-    });
-  }, []);
 
   const scheduleProgressUpdate = useCallback(
     (taskId: string, progressValue: number) => {
@@ -1634,6 +1609,7 @@ const SvarGanttPage: React.FC = () => {
                   columns={ganttColumns}
                   scales={activeScales}
                   onShowEditor={handleShowEditor}
+                  onItemDoubleClick={handleShowEditor}
                   onMoveTask={handleSvarMoveTask}
                   onUpdateTask={handleSvarUpdateTask}
                   init={(api) => {

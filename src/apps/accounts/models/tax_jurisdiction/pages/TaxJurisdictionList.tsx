@@ -132,6 +132,7 @@ export default function TaxJurisdictionList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading tax jurisdictions...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

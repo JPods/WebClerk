@@ -138,6 +138,7 @@ export default function ExchangeRateList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading exchange rates...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

@@ -137,6 +137,7 @@ export default function GLAccountList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading gl accounts...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

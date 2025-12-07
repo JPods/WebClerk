@@ -1,7 +1,3 @@
-import { z } from 'zod';
+import { baseTransactionSchema } from '../../base/utils/baseSchema';
 
-export const purchaseOrderSchema = z.object({
-  purchase_order_no: z.string().min(1, 'Purchase order number is required'),
-});
-
-export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
+export const purchaseOrderSchema = baseTransactionSchema;

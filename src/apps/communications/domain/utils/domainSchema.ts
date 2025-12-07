@@ -7,5 +7,5 @@ export const domainSchema = z.object({
   refs: z.string().optional(),
   prefs: z.string().optional(),
   metadata: z.string().optional(),
-  status: z.string().default("active"),
+  status: z.string().optional().default("active"),
 });

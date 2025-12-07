@@ -1,13 +1,12 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import ComponentCard from "@/components/common/ComponentCard";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
-import { showToast } from "@/store/slices/toastSlice";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
+import { useTheme } from "../../../../../context/ThemeContext";
+import { fetchTerms, deleteTerm } from "../services/termApi";
 import TermDisplay from "./TermDisplay";
 
 export default function TermList() {
@@ -22,9 +21,12 @@ export default function TermList() {
   const getTermData = useCallback(async () => {
     try {
       setLoading(true);
-      const list = await getRecords('term');
-      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
-      setData(recs);
+      const res = await fetchTerms();
+      if (res.status === 200) {
+        setData(res.data.items);
+      } else {
+        dispatch(showToast({ message: "Failed to fetch terms", type: "error" }));
+      }
     } catch (error) {
       console.error("Failed to fetch terms", error);
       dispatch(showToast({ message: "Failed to fetch terms", type: "error" }));
@@ -66,7 +68,7 @@ export default function TermList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete term ${row.id}?`)) {
       try {
-        await deleteRecord('term', row.id);
+        await deleteTerm(row.id);
         dispatch(showToast({ message: "Term deleted successfully", type: "success" }));
         getTermData(); // Refresh data
       } catch {
@@ -132,6 +134,7 @@ export default function TermList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading terms...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

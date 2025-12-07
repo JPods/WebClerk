@@ -3,13 +3,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../components/common/ComponentCard";
-import Label from "../../../../components/form/Label";
-import { Input } from "../../../../components/wrapper";
+import ComponentCard from "../../../../../components/common/ComponentCard";
+import Label from "../../../../../components/form/Label";
+import { Input } from "../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createBundle, updateBundle } from "../services/bundleApi";
-import { showToast } from "../../../../store/slices/toastSlice";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { bundleSchema } from "../utils/bundleSchema";
@@ -43,7 +43,8 @@ export default function BundleDetail({
     if (mode === "add") {
       reset();
     } else if (data) {
-      Object.keys(data).forEach((key: any) => {
+      const formKeys = Object.keys(bundleSchema.shape) as (keyof z.infer<typeof bundleSchema>)[];
+      formKeys.forEach((key) => {
         if (data[key] !== undefined) {
           setValue(key, data[key]);
         }
@@ -120,7 +121,7 @@ export default function BundleDetail({
                 id="name"
                 placeholder="Bundle Name"
                 {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
+                error={!!errors.name}
                 hint={errors.name && errors.name.message}
                 disabled={mode === "view"}
               />
@@ -132,7 +133,7 @@ export default function BundleDetail({
                 id="version"
                 placeholder="Version"
                 {...register("version")}
-                error={errors.version && errors.version.message ? true : false}
+                error={!!errors.version}
                 hint={errors.version && errors.version.message}
                 disabled={mode === "view"}
               />
@@ -145,7 +146,7 @@ export default function BundleDetail({
               id="description"
               placeholder="Description"
               {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
+              error={!!errors.description}
               hint={errors.description && errors.description.message}
               disabled={mode === "view"}
             />
@@ -157,7 +158,7 @@ export default function BundleDetail({
               id="data"
               placeholder="Data"
               {...register("data")}
-              error={errors.data && errors.data.message ? true : false}
+              error={!!errors.data}
               hint={errors.data && errors.data.message}
               disabled={mode === "view"}
             />

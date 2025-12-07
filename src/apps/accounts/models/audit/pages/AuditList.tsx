@@ -25,9 +25,7 @@ export default function AuditList() {
       if (res.status === 200) {
         setData(res.data.items);
       } else {
-        dispatch(
-          showToast({ message: "Failed to fetch audits", type: "error" })
-        );
+        dispatch(showToast({ message: "Failed to fetch audits", type: "error" }));
       }
     } catch (error) {
       console.error("Failed to fetch audits", error);
@@ -155,6 +153,7 @@ export default function AuditList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading audits...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

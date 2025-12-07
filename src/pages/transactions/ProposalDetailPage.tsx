@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -11,6 +11,7 @@ import { firstAvailableValue } from "../../utils/optionUtils";
 
 const ProposalDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<any>(null);
@@ -21,6 +22,9 @@ const ProposalDetailPage: React.FC = () => {
   const [emails, setEmails] = useState<any[]>([]);
   const [selectedLine, setSelectedLine] = useState<any | null>(null);
   const [lineModalOpen, setLineModalOpen] = useState(false);
+  const [linkages, setLinkages] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [questionAnswers, setQuestionAnswers] = useState<any[]>([]);
 
   const fetchProposal = useCallback(async () => {
     if (!id) {
@@ -30,6 +34,9 @@ const ProposalDetailPage: React.FC = () => {
       setAddresses([]);
       setPhones([]);
       setEmails([]);
+      setLinkages([]);
+      setDocuments([]);
+      setQuestionAnswers([]);
       setLoading(false);
       return;
     }
@@ -46,6 +53,9 @@ const ProposalDetailPage: React.FC = () => {
       setAddresses(Array.isArray(rel["addresses"]) ? rel["addresses"] : []);
       setPhones(Array.isArray(rel["phones"]) ? rel["phones"] : []);
       setEmails(Array.isArray(rel["emails"]) ? rel["emails"] : []);
+      setLinkages(Array.isArray(rel["linkages"]) ? rel["linkages"] : []);
+      setDocuments(Array.isArray(rel["documents"]) ? rel["documents"] : []);
+      setQuestionAnswers(Array.isArray(rel["question_answers"]) ? rel["question_answers"] : []);
     } catch (e: any) {
       setError(e?.message || "failed to load proposal");
     } finally {
@@ -177,6 +187,42 @@ const ProposalDetailPage: React.FC = () => {
               </tr>
             </tbody>
           </table>
+        </ComponentCard>
+
+        <ComponentCard>
+          <h3 className="mb-4 text-lg font-semibold">Related Records</h3>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="stat-item text-center">
+              <div className="stat-count text-2xl font-bold text-blue-600">{documents.length}</div>
+              <div className="stat-label text-sm text-gray-600 dark:text-gray-300">Documents</div>
+              <button
+                className="mt-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                onClick={() => navigate('/docs/document/list')}
+              >
+                View Documents
+              </button>
+            </div>
+            <div className="stat-item text-center">
+              <div className="stat-count text-2xl font-bold text-green-600">{linkages.length}</div>
+              <div className="stat-label text-sm text-gray-600 dark:text-gray-300">Linkages</div>
+              <button
+                className="mt-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600"
+                onClick={() => navigate('/docs/linkage/list')}
+              >
+                View Linkages
+              </button>
+            </div>
+            <div className="stat-item text-center">
+              <div className="stat-count text-2xl font-bold text-purple-600">{questionAnswers.length}</div>
+              <div className="stat-label text-sm text-gray-600 dark:text-gray-300">Q&A Records</div>
+              <button
+                className="mt-2 rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600"
+                onClick={() => navigate('/docs/question-answer/list')}
+              >
+                View Q&A
+              </button>
+            </div>
+          </div>
         </ComponentCard>
 
         <ComponentCard>

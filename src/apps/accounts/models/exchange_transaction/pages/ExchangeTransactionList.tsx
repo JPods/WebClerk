@@ -168,6 +168,7 @@ export default function ExchangeTransactionList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading exchange transactions...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>
