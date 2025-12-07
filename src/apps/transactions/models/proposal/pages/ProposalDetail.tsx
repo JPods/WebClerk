@@ -479,25 +479,39 @@ export default function ProposalDetail({
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${data.total_amount ? Number(data.total_amount).toFixed(2) : '0.00'}
+                      ${(() => {
+                        const total = lineItems.reduce((sum, item) => sum + (item.extended_price || 0), 0);
+                        return total.toFixed(2);
+                      })()}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      ${data.margin_amount ? Number(data.margin_amount).toFixed(2) : '0.00'}
+                      ${(() => {
+                        const totalSell = lineItems.reduce((sum, item) => sum + ((item.price?.sell || 0) * (item.quantity || 0)), 0);
+                        const totalCost = lineItems.reduce((sum, item) => sum + ((item.price?.cost || 0) * (item.quantity || 0)), 0);
+                        const margin = totalSell - totalCost;
+                        return margin.toFixed(2);
+                      })()}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">Total Margin</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {data.margin_percentage ? Number(data.margin_percentage).toFixed(1) : '0.0'}%
+                      {(() => {
+                        const totalSell = lineItems.reduce((sum, item) => sum + ((item.price?.sell || 0) * (item.quantity || 0)), 0);
+                        const totalCost = lineItems.reduce((sum, item) => sum + ((item.price?.cost || 0) * (item.quantity || 0)), 0);
+                        const margin = totalSell - totalCost;
+                        const percentage = totalSell > 0 ? (margin / totalSell) * 100 : 0;
+                        return percentage.toFixed(1);
+                      })()}%
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">Margin %</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                      {data.line_count || 0}
+                      {lineItems.length}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">Line Items</div>
                   </div>
