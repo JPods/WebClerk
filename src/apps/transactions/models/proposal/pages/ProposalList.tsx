@@ -24,7 +24,7 @@ export default function ProposalList() {
       setLoading(true);
       const res = await fetchProposals();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch proposals", type: "error" })
@@ -69,7 +69,7 @@ export default function ProposalList() {
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete proposal ${row.proposal_no}?`)) {
+    if (window.confirm(`Delete proposal ${row.ida || row.id}?`)) {
       try {
         await deleteAction(row.id);
         dispatch(showToast({ message: "Proposal deleted successfully", type: "success" }));
@@ -81,47 +81,130 @@ export default function ProposalList() {
   };
 
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "6%" },
     {
       name: "Proposal No",
-      selector: (row) => row.proposal_no || "--",
+      selector: (row) => row.proposal_no || row.ida || "--",
       sortable: true,
-      width: "30%",
+      width: "14%",
+    },
+    {
+      name: "Status",
+      selector: (row) => row.status || "--",
+      sortable: true,
+      width: "12%",
+      cell: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.status === 'complete' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+          row.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+          row.status === 'planned' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+          'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+        }`}>
+          {row.status || 'Unknown'}
+        </span>
+      ),
+    },
+    {
+      name: "Customer",
+      selector: (row) => row.id_customer || "--",
+      sortable: true,
+      width: "12%",
+    },
+    {
+      name: "Total Amount",
+      selector: (row) => row.total_amount || 0,
+      sortable: true,
+      width: "14%",
+      cell: (row) => (
+        <span className="font-medium text-green-600 dark:text-green-400">
+          ${row.total_amount ? Number(row.total_amount).toFixed(2) : '0.00'}
+        </span>
+      ),
+    },
+    {
+      name: "Lines",
+      selector: (row) => row.line_count || 0,
+      sortable: true,
+      width: "8%",
+      cell: (row) => (
+        <span className="text-center bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+          {row.line_count || 0}
+        </span>
+      ),
     },
     {
       name: "Created",
-      selector: (row) => new Date(row.dt_created * 1000).toLocaleDateString() || "--",
+      selector: (row) => row.dt_created ? new Date(row.dt_created).toLocaleDateString() : "--",
       sortable: true,
-      width: "25%",
+      width: "14%",
     },
     {
-      name: "Action",
+      name: "Actions",
       cell: (row) => (
-        <div className="flex gap-2">
-          <button onClick={() => handleView(row)} title="View">
-            <FaEye className="text-blue-600 hover:scale-110 transition" />
+        <div className="flex gap-1">
+          <button onClick={() => handleView(row)} title="View" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
+            <FaEye className="text-blue-600 dark:text-blue-400 text-sm" />
           </button>
-          <button onClick={() => handleEdit(row)} title="Edit">
-            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          <button onClick={() => handleEdit(row)} title="Edit" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
+            <FaEdit className="text-green-600 dark:text-green-400 text-sm" />
           </button>
-          <button onClick={() => handleDelete(row)} title="Delete">
-            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          <button onClick={() => handleDelete(row)} title="Delete" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
+            <FaTrash className="text-red-600 dark:text-red-400 text-sm" />
           </button>
         </div>
       ),
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      width: "12%",
     },
   ];
+
+  // Calculate summary statistics
+  const totalProposals = data.length;
+  const totalValue = data.reduce((sum, proposal) => sum + (proposal.total_amount || 0), 0);
+  const statusCounts = data.reduce((acc, proposal) => {
+    acc[proposal.status || 'unknown'] = (acc[proposal.status || 'unknown'] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <>
       <PageBreadcrumb pageTitle="Proposal List" />
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalProposals}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Proposals</div>
+          </div>
+        </ComponentCard>
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">${totalValue.toFixed(2)}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Value</div>
+          </div>
+        </ComponentCard>
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statusCounts.planned || 0}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Planned</div>
+          </div>
+        </ComponentCard>
+        <ComponentCard>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{statusCounts.complete || 0}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
+          </div>
+        </ComponentCard>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold dark:text-white">Proposals</h3>
               <button
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
