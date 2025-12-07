@@ -22,23 +22,26 @@ class PaymentSerializer(serializers.ModelSerializer):
     contact_id = serializers.IntegerField(required=True)
     payment_method_id = serializers.IntegerField(required=False, allow_null=True)
     payment_term_id = serializers.IntegerField(required=False, allow_null=True)
+    refs = serializers.JSONField(required=False, allow_null=True)
+    metadata = serializers.JSONField(required=False, allow_null=True)
 
     class Meta:
         model = Payment
         fields = [
-            "id", "invoice_id", "contact_id", "amount", "payment_date",
-            "payment_method_id", "payment_term_id", "reference_number", "notes",
-            "gateway", "gateway_transaction_id", "gateway_payment_intent_id", "status",
-            "gateway_response", "processed_at", "reconciled", "reconciliation_date", "fee_amount",
-            "dt_created", "dt_modified"
+            "id", "invoice_id", "contact_id", "amount", "dt_payment",
+            "paymentmethod_id", "paymentterm_id", "reference_number", "notes",
+            "gateway", "id_gateway_transaction", "id_gateway_payment_intent", "status",
+            "gateway_response", "dt_processed", "reconciled", "dt_reconciliation", "fee_amount",
+            "refs", "metadata",
+            "dt_created", "dt_modified", "version"
         ]
-        read_only_fields = ["id", "dt_created", "dt_modified", "processed_at", "reconciliation_date"]
+        read_only_fields = ["id", "dt_created", "dt_modified", "dt_processed", "dt_reconciliation", "version"]
 
     def create(self, validated_data):
         invoice_id = validated_data.pop("invoice_id")
         contact_id = validated_data.pop("contact_id")
-        payment_method_id = validated_data.pop("payment_method_id", None)
-        payment_term_id = validated_data.pop("payment_term_id", None)
+        payment_method_id = validated_data.pop("paymentmethod_id", None)
+        payment_term_id = validated_data.pop("paymentterm_id", None)
 
         try:
             invoice = Invoice.objects.get(pk=invoice_id)
@@ -72,8 +75,8 @@ class PaymentSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         invoice_id = validated_data.pop("invoice_id", None)
         contact_id = validated_data.pop("contact_id", None)
-        payment_method_id = validated_data.pop("payment_method_id", None)
-        payment_term_id = validated_data.pop("payment_term_id", None)
+        payment_method_id = validated_data.pop("paymentmethod_id", None)
+        payment_term_id = validated_data.pop("paymentterm_id", None)
 
         if invoice_id:
             try:

@@ -1,11 +1,8 @@
 from __future__ import annotations
 from django.db import models
-from .base_line_model import BaseSellLineModel
+from .base_line_model import BaseExecLineModel
 
-class PurchaseOrderLine(BaseSellLineModel):
-    # Legacy table doesn't have 'price'; drop inherited field so ORM won't write it.
-    price = None
-
+class PurchaseOrderLine(BaseExecLineModel):
     purchaseorder_id = models.ForeignKey(
         "transactions.PurchaseOrder",
         related_name="lines",
