@@ -306,6 +306,24 @@ class BaseSellLineModel(BaseLineCore):
     def ensure_json_defaults(self) -> None:
         super().ensure_json_defaults()
         self.price = normalize_price_map(getattr(self, "price", None))
+        self._calculate_extended_price()
+
+    def _calculate_extended_price(self) -> None:
+        """Calculate and update the extended prices in price and cost JSON."""
+        quantity = self.quantity.get("placed", 0) if self.quantity else 0
+
+        # Calculate sell extended
+        if self.price:
+            unit_price = self.price.get("unit", 0)
+            discount_amount = self.price.get("discount_amount", 0)
+            extended = float(_to_decimal(quantity * unit_price - discount_amount, places=self.price.get("precision", 2)))
+            self.price["extended"] = extended
+
+        # Calculate cost extended
+        if self.cost:
+            unit_cost = self.cost.get("unit", 0)
+            extended_cost = float(_to_decimal(quantity * unit_cost, places=self.cost.get("precision", 2)))
+            self.cost["extended"] = extended_cost
 
 
 class BaseExecLineModel(BaseLineCore):

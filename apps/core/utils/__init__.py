@@ -13,6 +13,7 @@ from ..management.commands.misc.misc import (
     merge_dicts,
     WebClerk2Utils,
 )
+from .policy import get_accessible_fields
 
 __all__ = [
     'validate_filename_length',
@@ -25,4 +26,5 @@ __all__ = [
     'truncate_text',
     'merge_dicts',
     'WebClerk2Utils',
+    'get_accessible_fields',
 ]

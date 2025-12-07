@@ -103,13 +103,13 @@ class TransactionEmailService:
         if not getattr(settings, 'EMAIL_PROPOSAL_SUBMITTED_ENABLED', True):
             return False
 
-        recipient_emails = cls.get_recipient_emails(proposal.customer_id)
+        recipient_emails = cls.get_recipient_emails(proposal.id_customer)
         if not recipient_emails:
             return False
 
         context = {
             'proposal': proposal,
-            'contact': Contact.objects.get(id=proposal.customer_id),
+            'contact': Contact.objects.get(id=proposal.id_customer),
             'company_name': getattr(settings, 'COMPANY_NAME', 'WebClerk3'),
         }
 
@@ -130,13 +130,13 @@ class TransactionEmailService:
         if not getattr(settings, 'EMAIL_ORDER_CREATED_ENABLED', True):
             return False
 
-        recipient_emails = cls.get_recipient_emails(order.customer_id)
+        recipient_emails = cls.get_recipient_emails(order.id_customer)
         if not recipient_emails:
             return False
 
         context = {
             'order': order,
-            'contact': Contact.objects.get(id=order.customer_id),
+            'contact': Contact.objects.get(id=order.id_customer),
             'company_name': getattr(settings, 'COMPANY_NAME', 'WebClerk3'),
         }
 
@@ -157,7 +157,7 @@ class TransactionEmailService:
         if not getattr(settings, 'EMAIL_INVOICE_SENT_ENABLED', True):
             return False
 
-        recipient_emails = cls.get_recipient_emails(invoice.customer_id)
+        recipient_emails = cls.get_recipient_emails(invoice.id_customer)
         if not recipient_emails:
             return False
 
@@ -168,7 +168,7 @@ class TransactionEmailService:
 
         context = {
             'invoice': invoice,
-            'contact': Contact.objects.get(id=invoice.customer_id),
+            'contact': Contact.objects.get(id=invoice.id_customer),
             'company_name': getattr(settings, 'COMPANY_NAME', 'WebClerk3'),
             'payment_terms': payment_terms,
         }

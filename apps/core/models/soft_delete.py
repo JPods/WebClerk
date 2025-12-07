@@ -11,12 +11,12 @@ class SoftDeleteLedger(models.Model):
     object_id = models.PositiveIntegerField()
     target = GenericForeignKey("content_type", "object_id")
 
-    purge_at = models.DateTimeField(db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    dt_purge = models.DateTimeField(db_index=True)
+    dt_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=["purge_at"]),
+            models.Index(fields=["dt_purge"]),
             models.Index(fields=["content_type", "object_id"]),
         ]
         unique_together = (("content_type", "object_id"),)
@@ -28,6 +28,6 @@ class SoftDeleteLedger(models.Model):
         entry, _ = cls.objects.update_or_create(
             content_type=ct,
             object_id=obj.pk,
-            defaults={"purge_at": when},
+            defaults={"dt_purge": when},
         )
         return entry

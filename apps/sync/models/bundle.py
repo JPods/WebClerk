@@ -6,7 +6,7 @@ from .connection import Connection  # Relative import
 #
     
 class Bundle(BaseModel):
-    connection_id = models.ForeignKey(Connection, on_delete=models.CASCADE, related_name='bundles')
+    id_connection = models.ForeignKey(Connection, on_delete=models.CASCADE, related_name='bundles')
     direction = models.CharField(max_length=255)
     config = models.JSONField()
     status = models.CharField(max_length=255, blank=True, null=True)
@@ -25,4 +25,4 @@ class Bundle(BaseModel):
         db_table = 'bundles'
 
     def __str__(self):
-        return f"Bundle {self.id} for connection {self.connection_id.id}"
+        return f"Bundle {self.id} for connection {self.id_connection.id}"
