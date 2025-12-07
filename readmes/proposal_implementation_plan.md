@@ -34,7 +34,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 ### Phase 1: Backend Completion & Fixes
 
-#### 1.1 Fix WCAPI Model Registration
+#### 1.1 Fix WCAPI Model Registration  -- DONE
 
 - **Issue**: Frontend uses `tx_proposals` but backend registers `proposal`
 
@@ -42,7 +42,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `../React2025/src/apps/transactions/models/proposal/services/proposalApi.ts`
 
-#### 1.2 Enhance Proposal Serializer
+#### 1.2 Enhance Proposal Serializer  -- DONE
 
 - **Current**: Basic fields only
 
@@ -50,7 +50,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `apps/transactions/serializers/transaction_serializers.py`
 
-#### 1.3 Add Proposal Line Serializer
+#### 1.3 Add Proposal Line Serializer  -- DONE
 
 - **Status**: Missing
 
@@ -58,7 +58,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `apps/transactions/serializers/transaction_serializers.py`
 
-#### 1.4 Add API Views (Optional)
+#### 1.4 Add API Views (Optional)  -- DONE
 
 - **Current**: Relies on WCAPI only
 
@@ -68,13 +68,13 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 ### Phase 2: Frontend Enhancement
 
-#### 2.1 Fix API Integration
+#### 2.1 Fix API Integration  -- DONE
 
 - **Action**: Correct model name in API calls
 
 - **Files**: `proposalApi.ts`, `ProposalList.tsx`, `ProposalDetail.tsx`
 
-#### 2.2 Enhance Proposal List Page
+#### 2.2 Enhance Proposal List Page  -- DONE
 
 - **Current**: Basic table with ID, Proposal No, Created date
 
@@ -82,7 +82,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `ProposalList.tsx`
 
-#### 2.3 Complete Proposal Detail Page
+#### 2.3 Complete Proposal Detail Page  -- DONE
 
 - **Current**: Basic form structure
 
@@ -90,7 +90,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `ProposalDetail.tsx`
 
-#### 2.4 Add Line Item Components
+#### 2.4 Add Line Item Components  -- DONE
 
 - **Status**: Missing
 
@@ -98,19 +98,19 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `components/ProposalLineForm.tsx`, `components/ProposalLineList.tsx`
 
-#### 2.5 Add Form Validation
+#### 2.5 Add Form Validation  -- DONE
 
 - **Action**: Implement Zod schemas for proposal and line item validation
 
 - **Files**: `types/proposalSchema.ts`
 
-#### 2.6 Add Status Management
+#### 2.6 Add Status Management  -- DONE
 
 - **Action**: Implement proposal status workflow (draft → sent → accepted → rejected)
 
 - **Files**: `components/ProposalStatus.tsx`, `hooks/useProposalStatus.ts`
 
-### Phase 3: Business Logic & Features
+### Phase 3: Business Logic & Features  -- DONE
 
 #### 3.1 Implement Totals Calculation
 
@@ -120,7 +120,7 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `ProposalDetail.tsx`, `proposal_totals.py`
 
-#### 3.2 Add Customer Integration
+#### 3.2 Add Customer Integration  -- DONE
 
 - **Action**: Link proposals to customers with contact information
 
@@ -132,13 +132,13 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: Product search/selection components
 
-#### 3.4 Add PDF Generation (Future)
+#### 3.4 Add PDF Generation (Future)  -- DONE
 
 - **Action**: Generate proposal PDFs for customer delivery
 
 - **Files**: PDF generation service, download functionality
 
-### Phase 4: Testing & Validation
+### Phase 4: Testing & Validation  -- DONE
 
 #### 4.1 Unit Tests
 
@@ -148,17 +148,21 @@ This document outlines a comprehensive plan to implement proposal functionality 
 
 - **Files**: `tests/test_proposal*.py`, component test files
 
-#### 4.2 Integration Tests
+#### 4.2 Integration Tests  -- DONE
 
 - **Action**: Test full proposal creation workflow
 
 - **Files**: End-to-end test scenarios
 
-#### 4.3 User Acceptance Testing
+#### 4.3 User Acceptance Testing  -- DONE
 
 - **Action**: Validate business requirements
 
 - **Files**: Test scripts and documentation
+
+#### 4.4 User Acceptance Testing  -- DONE
+
+- Before we get into documentation let's add a block on the frontend that displays the number of document records with a button to access them, number of linkage records with a button to access them,  number of question_answer records with a button to access them.
 
 ### Phase 5: Documentation & Deployment
 

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from apps.transactions.models import ProposalLine, SalesOrderLine, InvoiceLine, Proposal, SalesOrder, Invoice, Payment
 from apps.transactions.services.email_notifications import TransactionEmailService
@@ -16,6 +16,20 @@ def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
         lst.append(instance.id)
         header.refs = refs
         header.save(update_fields=["refs", "dt_modified", "version"])
+
+
+@receiver(post_save, sender=ProposalLine)
+def update_proposal_totals_on_line_save(sender, instance: ProposalLine, **kwargs):
+    """Update proposal totals when a line is saved."""
+    proposal = instance.parent
+    proposal.update_sell_cost_totals(persist=True)
+
+
+@receiver(post_delete, sender=ProposalLine)
+def update_proposal_totals_on_line_delete(sender, instance: ProposalLine, **kwargs):
+    """Update proposal totals when a line is deleted."""
+    proposal = instance.parent
+    proposal.update_sell_cost_totals(persist=True)
 
 @receiver(post_save, sender=SalesOrderLine)
 def maintain_sales_order_links(sender, instance: SalesOrderLine, created, **kwargs):
