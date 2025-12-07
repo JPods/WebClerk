@@ -491,6 +491,7 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
 try:
     DATABASES["default"].setdefault("TEST", {})
     DATABASES["default"]["TEST"]["SERIALIZE"] = False
+    DATABASES["default"]["TEST"]["NAME"] = 'test_commerce_expert_new'
 except Exception:
     pass
 

@@ -3,7 +3,7 @@ from common.base_serializers import RoleAwareModelSerializer
 from decimal import Decimal
 
 from apps.transactions.models import (
-    Proposal, ProposalLine, SalesOrder, SalesOrderLine, PurchaseOrder, Invoice, Payment, PaymentApplication
+    Proposal, ProposalLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine, Invoice, Payment, PaymentApplication
 )
 from apps.core.models import Contact
 

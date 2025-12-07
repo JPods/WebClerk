@@ -8,7 +8,7 @@ from apps.transactions.services.email_notifications import TransactionEmailServi
 def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
     if not created:
         return
-    header = instance.parent
+    header = instance.proposal_id
     refs = header.refs or {}
     links = refs.setdefault("links", {})
     lst = links.setdefault("proposal_line", [])
@@ -21,21 +21,21 @@ def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
 @receiver(post_save, sender=ProposalLine)
 def update_proposal_totals_on_line_save(sender, instance: ProposalLine, **kwargs):
     """Update proposal totals when a line is saved."""
-    proposal = instance.parent
+    proposal = instance.proposal_id
     proposal.update_sell_cost_totals(persist=True)
 
 
 @receiver(post_delete, sender=ProposalLine)
 def update_proposal_totals_on_line_delete(sender, instance: ProposalLine, **kwargs):
     """Update proposal totals when a line is deleted."""
-    proposal = instance.parent
+    proposal = instance.proposal_id
     proposal.update_sell_cost_totals(persist=True)
 
 @receiver(post_save, sender=SalesOrderLine)
 def maintain_sales_order_links(sender, instance: SalesOrderLine, created, **kwargs):
     if not created:
         return
-    header = instance.parent
+    header = instance.salesorder_id
     refs = header.refs or {}
     links = refs.setdefault("links", {})
     lst = links.setdefault("sales_order_line", [])
@@ -48,7 +48,7 @@ def maintain_sales_order_links(sender, instance: SalesOrderLine, created, **kwar
 def maintain_invoice_links(sender, instance: InvoiceLine, created, **kwargs):
     if not created:
         return
-    header = instance.parent
+    header = instance.invoice_id
     refs = header.refs or {}
     links = refs.setdefault("links", {})
     lst = links.setdefault("invoice_line", [])

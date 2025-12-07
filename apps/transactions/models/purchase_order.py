@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 from django.db import models
 
 from .base_transaction_model import TransactionBaseModel
