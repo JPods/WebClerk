@@ -94,6 +94,8 @@ import InvoiceDetailPage from "../pages/transactions/InvoiceDetailPage";
 import PurchaseOrderDetailPage from "../pages/transactions/PurchaseOrderDetailPage";
 import ProposalDetailPage from "../pages/transactions/ProposalDetailPage";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
+import ProposalDetailVue from "../apps/transactions/models/proposal/pages/ProposalDetailVue";
+import ProposalDetailVueReact from "../apps/transactions/models/proposal/pages/ProposalDetailVueReact";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
 import CallReportDetailPage from "../pages/actions/CallReportDetailPage";
 import ServiceDetailPage from "../pages/actions/ServiceDetailPage";
@@ -211,6 +213,8 @@ const Router: React.FC = () => {
             path={PageRoutes.transactionsProposalDetail}
             element={<ProposalDetailPage />}
           />
+          <Route path="/transactions/proposals/vue" element={<ProposalDetailVue />} />
+          <Route path="/transactions/proposals/vuereact" element={<ProposalDetailVueReact />} />
           <Route
             path={PageRoutes.transactionsPurchaseOrders}
             element={<PurchaseOrderList />}
