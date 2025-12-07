@@ -12,7 +12,7 @@ import { createProposal, updateProposal, convertProposalToOrder, fetchProposalLi
 import { generateProposalPdf } from "../services/proposalPdfService";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { proposalSchema } from "../utils/proposalSchema";
 import { ProposalAddProps } from "../types/proposalType";
 import ProposalLineList from "../components/ProposalLineList";
@@ -43,6 +43,7 @@ export default function ProposalDetail({
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = (location.state as any) || {};
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
@@ -357,9 +358,46 @@ export default function ProposalDetail({
                       </tbody>
                     </table>
                   </div>
+   
+                  {/* Related Records */}
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                    <h4 className="text-lg font-semibold mb-3 dark:text-white">Related Records</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">0</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Documents</div>
+                        <button
+                          className="mt-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                          onClick={() => navigate('/docs/document/list')}
+                        >
+                          View Documents
+                        </button>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Linkages</div>
+                        <button
+                          className="mt-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600"
+                          onClick={() => navigate('/docs/linkage/list')}
+                        >
+                          View Linkages
+                        </button>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">0</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Q&A Records</div>
+                        <button
+                          className="mt-2 rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600"
+                          onClick={() => navigate('/docs/question-answer/list')}
+                        >
+                          View Q&A
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+   
                 </div>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label>Customer</Label>
