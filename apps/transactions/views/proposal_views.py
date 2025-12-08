@@ -97,6 +97,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             return Response({'order_id': order_id}, status=status.HTTP_201_CREATED)
 
+        # Backwards-compatible alias expected by external docs/tests
+        @action(detail=True, methods=['post'], url_path='convert-to-sales-order')
+        def convert_to_sales_order(self, request, pk=None):
+            """Alias for convert_to_order to support legacy route naming."""
+            return self.convert_to_order(request, pk)
+
         return Response({'error': 'Failed to create order'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['get'])
