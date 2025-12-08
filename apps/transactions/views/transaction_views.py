@@ -16,7 +16,7 @@ from apps.transactions.serializers import (
 class ProposalViewSet(viewsets.ModelViewSet):
     """ViewSet for Proposal transactions."""
 
-    queryset = Proposal.objects.all()
+    queryset = Proposal.objects.prefetch_related('lines').all()
     serializer_class = ProposalSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'customer_id', 'vendor_id']
@@ -32,7 +32,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 class SalesOrderViewSet(viewsets.ModelViewSet):
     """ViewSet for Sales Order transactions."""
 
-    queryset = SalesOrder.objects.all()
+    queryset = SalesOrder.objects.prefetch_related('lines').all()
     serializer_class = SalesOrderSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'customer_id', 'vendor_id', 'order_no']
@@ -73,7 +73,7 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
     """ViewSet for Purchase Order transactions."""
 
-    queryset = PurchaseOrder.objects.all()
+    queryset = PurchaseOrder.objects.prefetch_related('lines').all()
     serializer_class = PurchaseOrderSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'customer_id', 'vendor_id', 'po_no']

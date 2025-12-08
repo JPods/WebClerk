@@ -171,7 +171,7 @@ class ProposalSerializer(RoleAwareModelSerializer):
     vendor_name = serializers.SerializerMethodField(read_only=True)
     margin_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     margin_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
-    lines = ProposalLineSerializer(many=True, read_only=True, source='proposalline_set')
+    lines = ProposalLineSerializer(many=True, read_only=True, source='lines')
 
     class Meta:
         model = Proposal
@@ -289,6 +289,7 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
     vendor_name = serializers.SerializerMethodField(read_only=True)
     margin_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     margin_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    lines = SalesOrderLineSerializer(many=True, read_only=True, source='lines')
 
     class Meta:
         model = SalesOrder
@@ -296,10 +297,10 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
             'order_no', 'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
-            'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage',
+            'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'order_no', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage']
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'order_no', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines']
 
     def get_customer_name(self, obj):
         """Get customer name from Contact model."""
@@ -427,7 +428,7 @@ class PurchaseOrderSerializer(RoleAwareModelSerializer):
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
-    lines = PurchaseOrderLineSerializer(many=True, read_only=True, source='purchaseorderline_set')
+    lines = PurchaseOrderLineSerializer(many=True, read_only=True, source='lines')
 
     class Meta:
         model = PurchaseOrder
