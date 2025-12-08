@@ -58,7 +58,10 @@ export interface Proposal {
 export interface CreateProposalRequest {
   ida?: string;
   status?: string;
-  id_customer?: number;
+  priority?: string;
+  price_level?: string;
+  id_customer: number;
+  id_manufacturer?: number;
   id_vendor?: number;
   cost?: ProposalCost;
   sell?: ProposalSell;
@@ -72,7 +75,10 @@ export interface UpdateProposalRequest {
   id: number;
   ida?: string;
   status?: string;
+  priority?: string;
+  price_level?: string;
   id_customer?: number;
+  id_manufacturer?: number;
   id_vendor?: number;
   cost?: ProposalCost;
   sell?: ProposalSell;
