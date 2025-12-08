@@ -10,6 +10,19 @@ from apps.core.services import wcapi as services
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve
 
+# Import serializers for transaction models to include lines
+try:
+    from apps.transactions.serializers.transaction_serializers import (
+        ProposalSerializer, SalesOrderSerializer, PurchaseOrderSerializer
+    )
+    TRANSACTION_SERIALIZERS = {
+        'proposal': ProposalSerializer,
+        'salesorder': SalesOrderSerializer,
+        'purchaseorder': PurchaseOrderSerializer,
+    }
+except ImportError:
+    TRANSACTION_SERIALIZERS = {}
+
 try:  # pragma: no cover - optional dependency in some deployments
     from apps.core.utils.model_policies import model_policies as mp  # noqa: F401
 except Exception:  # pragma: no cover - fallback if policies unavailable
@@ -53,6 +66,13 @@ class WCAPIGetView(APIView):
             obj = services.get_item(model_key, request=request, id=record_id)
             if not obj:
                 return Response({"record": None}, status=status.HTTP_200_OK)
+
+            # Use serializer for transaction models to include lines
+            if model_key in TRANSACTION_SERIALIZERS:
+                serializer_class = TRANSACTION_SERIALIZERS[model_key]
+                serializer = serializer_class(obj, context={'request': request})
+                return Response({"record": serializer.data}, status=status.HTTP_200_OK)
+
             allow = policy.field_allowlist(type(obj), request=request)
             return Response({"record": services.to_dict(obj, allow=allow)}, status=status.HTTP_200_OK)
 

@@ -20,6 +20,11 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
     if not ModelCls:
         raise ValueError("invalid model")
     qs = ModelCls.objects.all()
+
+    # Prefetch lines for transaction models
+    if model_key in ['proposal', 'salesorder', 'purchaseorder']:
+        qs = qs.prefetch_related('lines')
+
     qs = policy.inject_constraints(qs, request=request, model_key=model_key)
     return ModelCls, qs
 
