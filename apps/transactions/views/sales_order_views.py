@@ -2,8 +2,13 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from common.http.mixins import BaseJSONAPIView
 from common.api_responses import api_response
+
+# Prefer project BaseJSONAPIView; fallback to DRF APIView
+try:
+    from apps.core.views import BaseJSONAPIView
+except ImportError:
+    from rest_framework.views import APIView as BaseJSONAPIView
 from apps.transactions.models.sales_order import SalesOrder
 from apps.transactions.serializers.transaction_serializers import SalesOrderSerializer, SalesOrderLineSerializer
 from apps.transactions.models import SalesOrderLine

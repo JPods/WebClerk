@@ -19,7 +19,12 @@ from apps.products.serializers.reservation_serializers import (
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
 from apps.products.services.inventory_metrics import summarize_inventory_metrics
 from rest_framework.permissions import AllowAny
-from common.http.mixins import BaseJSONAPIView
+
+# Prefer project BaseJSONAPIView; fallback to DRF APIView
+try:
+    from apps.core.views import BaseJSONAPIView
+except ImportError:
+    from rest_framework.views import APIView as BaseJSONAPIView
 
 
 @extend_schema(

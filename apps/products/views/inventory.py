@@ -9,9 +9,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models.fields import NOT_PROVIDED
-
-from common.http.mixins import BaseJSONAPIView
 from common.api_responses import api_response
+
+# Prefer project BaseJSONAPIView; fallback to DRF APIView
+try:
+    from apps.core.views import BaseJSONAPIView
+except ImportError:
+    from rest_framework.views import APIView as BaseJSONAPIView
 from apps.products.models.inventory_reservation import InventoryReservation
 
 # Add safe import for InventoryLayer to hydrate item/warehouse from stack
