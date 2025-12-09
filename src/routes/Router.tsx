@@ -79,11 +79,12 @@ import {
   QuestionAnswerDisplay,
   TagList,
   TagDisplay,
+  SalesOrderDetailTest,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
 import ItemList from "../apps/products/models/item/pages/ItemList";
-import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
+import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail_test";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
 import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
@@ -161,6 +162,10 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.transactionsOrderDetail}
             element={<SalesOrderDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsOrderDetailTest}
+            element={<SalesOrderDetailTest />}
           />
           <Route
             path={PageRoutes.transactionsInvoices}

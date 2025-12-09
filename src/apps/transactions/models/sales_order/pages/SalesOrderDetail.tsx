@@ -17,7 +17,7 @@ import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
 
-export default function SalesOrderDetail({
+export default function SalesOrderDetailTest({
   modeProp,
   dataProp,
   hideBreadcrumb,
@@ -100,10 +100,10 @@ export default function SalesOrderDetail({
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Sales Order"
+              ? "Edit Sales Order (id=" + (data?.id || "") + ")"
               : mode === "view"
-              ? "View Sales Order"
-              : "Sales Order Detail"
+              ? "View Sales Order (Test)"
+              : "Sales Order Detail (Test)"
           }
         />
       )}
@@ -112,10 +112,10 @@ export default function SalesOrderDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Sales Order"
+                ? "Edit Sales Order (id=" + (data?.id || "") + ")" + " Search by id _______"
                 : mode === "view"
-                ? "View Sales Order"
-                : "Add New Sales Order"}
+                ? "View Sales Order (id=" + (data?.id || "") + ")"
+                : "Add New Sales Order (Test)"}
             </h3>
             {onCancelInline && (
               <button
@@ -129,84 +129,259 @@ export default function SalesOrderDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div>
-               <Label htmlFor="sales_order_no">sales_order_no</Label>
-               <Input
-                 type="text"
-                 id="sales_order_no"
-                 placeholder="Sales Order Number"
-                 {...register("sales_order_no")}
-                 error={errors.sales_order_no && errors.sales_order_no.message ? true : false}
-                 hint={errors.sales_order_no && errors.sales_order_no.message}
-                 disabled={mode === "view"}
-               />
-             </div>
-             <div>
-               <Label htmlFor="status">status</Label>
-               <select
-                 id="status"
-                 {...register("status")}
-                 disabled={mode === "view"}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-               >
-                 <option value="draft">Draft</option>
-                 <option value="confirmed">Confirmed</option>
-                 <option value="shipped">Shipped</option>
-                 <option value="delivered">Delivered</option>
-                 <option value="cancelled">Cancelled</option>
-               </select>
-               {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-             </div>
-             <div>
-               <Label htmlFor="id_customer">id_customer</Label>
-               <Input
-                 type="number"
-                 id="id_customer"
-                 placeholder="Customer ID"
-                 {...register("id_customer")}
-                 error={errors.id_customer && errors.id_customer.message ? true : false}
-                 hint={errors.id_customer && errors.id_customer.message}
-                 disabled={mode === "view"}
-               />
-             </div>
-             <div>
-               <Label htmlFor="total">total</Label>
-               <Input
-                 type="number"
-                 id="total"
-                 placeholder="Total"
-                 {...register("total")}
-                 error={errors.total && errors.total.message ? true : false}
-                 hint={errors.total && errors.total.message}
-                 disabled={mode === "view"}
-               />
-             </div>
-             <div>
-               <Label htmlFor="tax">tax</Label>
-               <Input
-                 type="number"
-                 id="tax"
-                 placeholder="Tax"
-                 {...register("tax")}
-                 error={errors.tax && errors.tax.message ? true : false}
-                 hint={errors.tax && errors.tax.message}
-                 disabled={mode === "view"}
-               />
-             </div>
-             <div>
-               <Label htmlFor="discount">discount</Label>
-               <Input
-                 type="number"
-                 id="discount"
-                 placeholder="Discount"
-                 {...register("discount")}
-                 error={errors.discount && errors.discount.message ? true : false}
-                 hint={errors.discount && errors.discount.message}
-                 disabled={mode === "view"}
-               />
-             </div>
-           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="sales_order_no">sales_order_no</Label>
+              <Input
+                type="text"
+                id="sales_order_no"
+                placeholder="Sales Order Number"
+                {...register("sales_order_no")}
+                error={errors.sales_order_no && errors.sales_order_no.message ? true : false}
+                hint={errors.sales_order_no && errors.sales_order_no.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="status">status</Label>
+              <select
+                id="status"
+                {...register("status")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="draft">Draft</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+            </div>
+            <div>
+              <Label htmlFor="id_customer">id_customer</Label>
+              <Input
+                type="number"
+                id="id_customer"
+                placeholder="Customer ID"
+                {...register("id_customer")}
+                error={errors.id_customer && errors.id_customer.message ? true : false}
+                hint={errors.id_customer && errors.id_customer.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="total">total</Label>
+              <Input
+                type="number"
+                id="total"
+                placeholder="Total"
+                {...register("total")}
+                error={errors.total && errors.total.message ? true : false}
+                hint={errors.total && errors.total.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="tax">tax</Label>
+              <Input
+                type="number"
+                id="tax"
+                placeholder="Tax"
+                {...register("tax")}
+                error={errors.tax && errors.tax.message ? true : false}
+                hint={errors.tax && errors.tax.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="discount">discount</Label>
+              <Input
+                type="number"
+                id="discount"
+                placeholder="Discount"
+                {...register("discount")}
+                error={errors.discount && errors.discount.message ? true : false}
+                hint={errors.discount && errors.discount.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            {/* New fields based on updated schema */}
+            <div>
+              <Label htmlFor="id_transaction">id_transaction</Label>
+              <Input
+                type="text"
+                id="id_transaction"
+                placeholder="Transaction ID"
+                {...register("id_transaction")}
+                error={errors.id_transaction && errors.id_transaction.message ? true : false}
+                hint={errors.id_transaction && errors.id_transaction.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="priority">priority</Label>
+              <Input
+                type="text"
+                id="priority"
+                placeholder="Priority"
+                {...register("priority")}
+                error={errors.priority && errors.priority.message ? true : false}
+                hint={errors.priority && errors.priority.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="price_level">price_level</Label>
+              <Input
+                type="text"
+                id="price_level"
+                placeholder="Price Level"
+                {...register("price_level")}
+                error={errors.price_level && errors.price_level.message ? true : false}
+                hint={errors.price_level && errors.price_level.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="id_manufacturer">id_manufacturer</Label>
+              <Input
+                type="number"
+                id="id_manufacturer"
+                placeholder="Manufacturer ID"
+                {...register("id_manufacturer")}
+                error={errors.id_manufacturer && errors.id_manufacturer.message ? true : false}
+                hint={errors.id_manufacturer && errors.id_manufacturer.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="id_vendor">id_vendor</Label>
+              <Input
+                type="number"
+                id="id_vendor"
+                placeholder="Vendor ID"
+                {...register("id_vendor")}
+                error={errors.id_vendor && errors.id_vendor.message ? true : false}
+                hint={errors.id_vendor && errors.id_vendor.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="subtotal">subtotal</Label>
+              <Input
+                type="number"
+                id="subtotal"
+                placeholder="Subtotal"
+                {...register("subtotal")}
+                error={errors.subtotal && errors.subtotal.message ? true : false}
+                hint={errors.subtotal && errors.subtotal.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="due_date">due_date</Label>
+              <Input
+                type="date"
+                id="due_date"
+                {...register("due_date")}
+                error={errors.due_date && errors.due_date.message ? true : false}
+                hint={errors.due_date && errors.due_date.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="valid_until">valid_until</Label>
+              <Input
+                type="date"
+                id="valid_until"
+                {...register("valid_until")}
+                error={errors.valid_until && errors.valid_until.message ? true : false}
+                hint={errors.valid_until && errors.valid_until.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="version">version</Label>
+              <Input
+                type="number"
+                id="version"
+                placeholder="Version"
+                {...register("version")}
+                error={errors.version && errors.version.message ? true : false}
+                hint={errors.version && errors.version.message}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+          {/* JSON fields as textareas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="cost">cost (JSON)</Label>
+              <textarea
+                id="cost"
+                {...register("cost")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+            </div>
+            <div>
+              <Label htmlFor="sell">sell (JSON)</Label>
+              <textarea
+                id="sell"
+                {...register("sell")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+            </div>
+            <div>
+              <Label htmlFor="finance">finance (JSON)</Label>
+              <textarea
+                id="finance"
+                {...register("finance")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+            </div>
+            <div>
+              <Label htmlFor="flow">flow (JSON)</Label>
+              <textarea
+                id="flow"
+                {...register("flow")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+            </div>
+            <div>
+              <Label htmlFor="source">source (JSON)</Label>
+              <textarea
+                id="source"
+                {...register("source")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+            </div>
+            <div>
+              <Label htmlFor="action">action (JSON)</Label>
+              <textarea
+                id="action"
+                {...register("action")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+            </div>
+          </div>
+          {/* Placeholder for lines - in a real implementation, this would be a dynamic list */}
+          <div>
+            <Label>lines (Array of line items)</Label>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Line items management would be implemented here with dynamic forms.</p>
+          </div>
           {mode === "view" && data && (
             <div className="space-y-6">
               <div>

@@ -77,7 +77,7 @@ import Calendar from "./Calendar";
 import FormElements from "./Forms/FormElements";
 import BasicTables from "./Tables/BasicTables";
 import AdminWorkbench from "./admin/AdminWorkbench";
-import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
+import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail_test.tsx";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
 import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
@@ -88,6 +88,7 @@ import KanbanBoardPage from "./kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
 import KanbanGanttPage from "./kanban/KanbanGanttPage";
 import SvarGanttPage from "./kanban/SvarGanttPage";
+import SalesOrderDetailTest from "../apps/transactions/models/sales_order/pages/SalesOrderDetail.tsx";
 
 export {
   SignIn,
@@ -175,4 +176,5 @@ export {
   QuestionAnswerDisplay,
   TagList,
   TagDisplay,
+  SalesOrderDetailTest,
 };

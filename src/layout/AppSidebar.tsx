@@ -81,6 +81,7 @@ const navItems: NavItem[] = [
       { name: "Invoices", path: "/transactions/invoices" },
       { name: "Proposals", path: "/transactions/proposals" },
       { name: "Purchase Orders", path: "/transactions/purchase-orders" },
+      { name: "Orders Test", path: "/transactions/orders-test" },
     ],
   },
   {
