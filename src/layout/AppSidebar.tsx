@@ -111,14 +111,22 @@ const navItems: NavItem[] = [
   },
   {
     icon: <GridIcon />,
-    name: "Domains",
+    name: "Communications",
     subItems: [
       {
-        name: "Add Domain",
+        name: "Domain Detail",
         path: "/domain-add",
       },
       {
         name: "Domain List",
+        path: "/domain-list",
+      },
+      {
+        name: "Email Detail",
+        path: "/domain-add",
+      },
+      {
+        name: "Email List",
         path: "/domain-list",
       },
     ],
