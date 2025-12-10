@@ -49,12 +49,12 @@ export const salesOrderLineSchema = z.object({
 export const salesOrderSchema = z.object({
   // Base transaction fields
   id_transaction: z.string().optional(),
-  dt_created: z.number().optional(),
-  dt_updated: z.number().optional(),
-  id_customer: z.number().min(1, "Customer ID is required"),
-  total: z.number(),
-  tax: z.number(),
-  discount: z.number(),
+  dt_created: z.union([z.string(), z.number()]).optional(),
+  dt_updated: z.union([z.string(), z.number()]).optional(),
+  id_customer: z.coerce.number().min(1, "Customer ID is required"),
+  total: z.coerce.number(),
+  tax: z.coerce.number(),
+  discount: z.coerce.number(),
   metadata: z.any().optional(),
   prefs: z.any().optional(),
   refs: z.any().optional(),
@@ -68,28 +68,28 @@ export const salesOrderSchema = z.object({
   price_level: z.string().max(50, "Price level must be 50 characters or less").optional(),
 
   // Customer/Vendor references
-  id_manufacturer: z.number().int().min(0, "Manufacturer ID must be non-negative").optional(),
-  id_vendor: z.number().int().min(0, "Vendor ID must be non-negative").optional(),
+  id_manufacturer: z.coerce.number().int().min(0, "Manufacturer ID must be non-negative").optional(),
+  id_vendor: z.coerce.number().int().min(0, "Vendor ID must be non-negative").optional(),
 
   // Financial summary fields
-  subtotal: z.number().optional(),
+  subtotal: z.coerce.number().optional(),
 
-  // JSON fields with structure validation
-  cost: z.record(z.any()).optional(),
-  sell: z.record(z.any()).optional(),
-  finance: z.record(z.any()).optional(),
-  flow: z.record(z.any()).optional(),
-  source: z.record(z.any()).optional(),
-  action: z.record(z.any()).optional(),
+  // JSON fields with structure validation - accept string, object, or undefined
+  cost: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  sell: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  finance: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  flow: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  source: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  action: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
 
   // Line items
   lines: z.array(salesOrderLineSchema).optional(),
 
   // Date fields
-  dt_modified: z.string().optional(),
+  dt_modified: z.union([z.string(), z.number()]).optional(),
   due_date: z.string().optional(),
   valid_until: z.string().optional(),
-  version: z.number().optional(),
+  version: z.coerce.number().optional(),
 }).refine((data) => {
   // Cross-field validation: customer and vendor cannot be the same
   if (data.id_customer && data.id_vendor && data.id_customer === data.id_vendor) {

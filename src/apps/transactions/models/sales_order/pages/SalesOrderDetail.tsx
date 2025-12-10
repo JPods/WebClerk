@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,7 +8,7 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createSalesOrder, updateSalesOrder } from "../services/salesOrderApi";
+import { createSalesOrder, updateSalesOrder, fetchSalesOrderLines, createSalesOrderLine, updateSalesOrderLine, deleteSalesOrderLine } from "../services/salesOrderApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
@@ -16,6 +16,8 @@ import { salesOrderSchema } from "../utils/salesOrderSchema";
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
+import SalesOrderLineList from "../components/SalesOrderLineList";
+import { getRecords } from "../../../../../api/wcapi";
 
 export default function SalesOrderDetailTest({
   modeProp,
@@ -26,6 +28,12 @@ export default function SalesOrderDetailTest({
   onCancelInline,
 }: SalesOrderAddProps) {
   const dispatch = useDispatch();
+  const [lineItems, setLineItems] = useState<any[]>([]);
+  const [editingLineId, setEditingLineId] = useState<number | null>(null);
+  const [newLine, setNewLine] = useState<any>({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+  const [searchId, setSearchId] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchedData, setSearchedData] = useState<any>(null);
 
   const {
     register,
@@ -40,20 +48,74 @@ export default function SalesOrderDetailTest({
   const location = useLocation();
   const routeState = (location.state as any) || {};
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
+  const data = dataProp || searchedData || routeState.data || null;
+
+  // Load line items when viewing/editing existing sales order
+  const loadLineItems = async (salesOrderId: number) => {
+    try {
+      const response = await fetchSalesOrderLines(salesOrderId);
+      if (response.status === 200) {
+        setLineItems(response.data.results || []);
+      }
+    } catch (error) {
+      console.error('Failed to load line items:', error);
+    }
+  };
+  
   useEffect(() => {
     if (mode === "add") {
-      reset();
+      reset({});
+      setLineItems([]);
     } else if (data) {
-      Object.keys(data).forEach((key: string) => {
-        if (data[key] !== undefined) {
-          setValue(key as any, data[key]);
-        }
-      });
+      // Log the data to check what's being received
+      console.log('Sales Order Data received:', data);
+      
+      // Map API response to form structure
+      const formData = {
+        // Fields from prefs.userdefined
+        sales_order_no: data.prefs?.userdefined?.sales_order_no || '',
+        id_customer: data.prefs?.userdefined?.id_customer || 0,
+        total: data.prefs?.userdefined?.total || 0,
+        tax: data.prefs?.userdefined?.tax || 0,
+        discount: data.prefs?.userdefined?.discount || 0,
+        id_transaction: data.prefs?.userdefined?.id_transaction || '',
+        subtotal: data.prefs?.userdefined?.subtotal || 0,
+        id_manufacturer: data.prefs?.userdefined?.id_manufacturer || 0,
+        id_vendor: data.prefs?.userdefined?.id_vendor || 0,
+        due_date: data.prefs?.userdefined?.due_date || '',
+        valid_until: data.prefs?.userdefined?.valid_until || '',
+        
+        // Fields from root level
+        status: data.status || 'draft',
+        priority: data.priority || '',
+        price_level: data.price_level || '',
+        version: data.version || 0,
+        
+        // JSON fields - already at root level
+        cost: data.cost || '',
+        sell: data.sell || '',
+        finance: data.finance || '',
+        flow: data.flow || '',
+        source: data.source || '',
+        action: data.action || '',
+        
+        // Timestamps
+        dt_created: data.dt_created,
+        dt_modified: data.dt_modified,
+      };
+      
+      // Reset form with mapped data
+      reset(formData);
+      
+      // Load line items for existing sales orders
+      if (data.id) {
+        loadLineItems(data.id);
+      }
     } else {
       reset({});
+      setLineItems([]);
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, reset, mode]);
 
   const onSubmit = async (formData: z.infer<typeof salesOrderSchema>) => {
     try {
@@ -94,6 +156,60 @@ export default function SalesOrderDetailTest({
     }
   };
 
+  const handleAddLine = () => {
+    setEditingLineId(-1); // -1 for new line
+    setNewLine({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+  };
+
+  const handleEditLine = (line: any) => {
+    setEditingLineId(line.id);
+    setNewLine({ ...line });
+  };
+
+  const handleSaveLine = async () => {
+    try {
+      if (editingLineId === -1) {
+        // New line
+        if (data?.id) {
+          await createSalesOrderLine(data.id, newLine);
+          dispatch(showToast({ message: "Line item added successfully", type: "success" }));
+        }
+      } else {
+        // Update line
+        if (data?.id) {
+          await updateSalesOrderLine(data.id, editingLineId!, newLine);
+          dispatch(showToast({ message: "Line item updated successfully", type: "success" }));
+        }
+      }
+      setEditingLineId(null);
+      // Refresh line items
+      if (data?.id) {
+        loadLineItems(data.id);
+      }
+    } catch (error: any) {
+      dispatch(showToast({ message: error.message || "Failed to save line item", type: "error" }));
+    }
+  };
+
+  const handleDeleteLine = async (lineId: number) => {
+    if (!data?.id) return;
+    if (window.confirm('Delete this line item?')) {
+      try {
+        await deleteSalesOrderLine(data.id, lineId);
+        dispatch(showToast({ message: "Line item deleted successfully", type: "success" }));
+        loadLineItems(data.id);
+      } catch (error: any) {
+        dispatch(showToast({ message: error.message || "Failed to delete line item", type: "error" }));
+      }
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLineId(null);
+    setNewLine({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+  };
+
+  console.log("Errors:", errors);
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -112,7 +228,7 @@ export default function SalesOrderDetailTest({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Sales Order (id=" + (data?.id || "") + ")" + " Search by id _______"
+                ? "Edit Sales Order (id=" + (data?.id || "") + ")"
                 : mode === "view"
                 ? "View Sales Order (id=" + (data?.id || "") + ")"
                 : "Add New Sales Order (Test)"}
@@ -325,6 +441,9 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
+              {errors.cost && typeof errors.cost === 'object' && 'message' in errors.cost && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.cost.message)}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="sell">sell (JSON)</Label>
@@ -335,6 +454,9 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
+              {errors.sell && typeof errors.sell === 'object' && 'message' in errors.sell && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.sell.message)}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="finance">finance (JSON)</Label>
@@ -345,6 +467,9 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
+              {errors.finance && typeof errors.finance === 'object' && 'message' in errors.finance && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.finance.message)}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="flow">flow (JSON)</Label>
@@ -355,6 +480,9 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
+              {errors.flow && typeof errors.flow === 'object' && 'message' in errors.flow && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.flow.message)}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="source">source (JSON)</Label>
@@ -365,6 +493,9 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
+              {errors.source && typeof errors.source === 'object' && 'message' in errors.source && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.source.message)}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="action">action (JSON)</Label>
@@ -375,13 +506,57 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
+              {errors.action && typeof errors.action === 'object' && 'message' in errors.action && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.action.message)}</p>
+              )}
             </div>
           </div>
-          {/* Placeholder for lines - in a real implementation, this would be a dynamic list */}
-          <div>
-            <Label>lines (Array of line items)</Label>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Line items management would be implemented here with dynamic forms.</p>
-          </div>
+          
+          {/* Line Items Section */}
+          {(mode === "edit" || mode === "add") && (
+            <SalesOrderLineList
+              lines={lineItems}
+              editingId={editingLineId}
+              newLine={newLine}
+              onAdd={handleAddLine}
+              onEdit={handleEditLine}
+              onDelete={handleDeleteLine}
+              onSave={handleSaveLine}
+              onCancel={handleCancelEdit}
+              onNewLineChange={setNewLine}
+            />
+          )}
+
+          {mode === "view" && data && lineItems.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold dark:text-white">Line Items</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300 dark:border-gray-600 text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Item</th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Description</th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Qty</th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Price</th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lineItems.map((item, index) => (
+                      <tr key={item.id || index}>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.item_name || 'Unknown'}</td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.description || ''}</td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{item.quantity || 0}</td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.price?.sell ? Number(item.price.sell).toFixed(2) : '0.00'}</td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${item.extended_price ? Number(item.extended_price).toFixed(2) : '0.00'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {mode === "view" && data && (
             <div className="space-y-6">
               <div>
