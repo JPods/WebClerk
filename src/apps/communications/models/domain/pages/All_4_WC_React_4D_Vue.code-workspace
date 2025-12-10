@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "React2025",
+			"path": "../../../../../.."
+		},
+		{
+			"name": "Sources",
+			"path": "../../../../../../../webclerk2/ComEx19ak/Project/Sources"
+		},
+		{
+			"name": "webClerk3",
+			"path": "../../../../../../../webClerk3"
+		},
+		{
+			"name": "vue2020",
+			"path": "../../../../../../../vue2020"
+		}
+	],
+	"settings": {}
+}
