@@ -26,8 +26,15 @@ export default function ContactList() {
   console.log("data", data);
   const getContactData = useCallback(async () => {
     try {
-      const res = await getRecords('contact');
-      setData(res.results);
+      const res = await fetchContacts();
+      if (res.status === 200) {
+        console.log(res.data.items);
+        setData(res.data.items);
+      } else {
+        dispatch(
+          showToast({ message: "Failed to fetch contacts", type: "error" })
+        );
+      }
     } catch (error) {
       console.error("Failed to fetch contacts", error);
       dispatch(showToast({ message: "Failed to fetch contacts", type: "error" }));
