@@ -1,24 +1,21 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import { Input, DropDown } from "../../../../../components/wrapper";
+import Input from "../../../../../components/form/input/InputField";
+import DropDown from "../../../../../components/form/input/DropDown";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import {
-  getByTypeAndId,
-  patchAction,
-  postAction,
-} from "../../../../../api/userProfile";
+import { getByTypeAndId } from "../../../../../api/userProfile";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
-import { contactSchema } from "../utils/contactSchema";
+import { contactSchema, updateContactSchema } from "../utils/contactSchema";
 import { ContactAddProps } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 
@@ -33,23 +30,38 @@ export default function ContactDetail({
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
-  const {
-    register,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch,
-  } = useForm<z.infer<typeof contactSchema>>({
-    resolver: zodResolver(contactSchema),
-    defaultValues: { is_staff: false, is_active: false },
-  });
+  // const {
+  //   register,
+  //   setValue,
+  //   handleSubmit,
+  //   formState: { errors },
+  //   reset,
+  //   control,
+  // } = useForm({
+  //   resolver: zodResolver(contactSchema),
+  //   defaultValues: { is_staff: false, is_active: false },
+  // });
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
   const [linkedLists, setLinkedLists] = useState<Record<string, any[]>>({});
+
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    control,
+  } = useForm({
+    resolver: zodResolver(
+      mode === "edit" ? updateContactSchema : contactSchema
+    ),
+    defaultValues: { is_staff: false, is_active: false },
+  });
+
   useEffect(() => {
     if (mode === "add") {
       reset();
@@ -92,9 +104,17 @@ export default function ContactDetail({
       reset({});
       setLinkedLists({});
     }
+    if (mode === "edit") {
+      setValue("password", "");
+      setValue("cnf_password", "");
+    }
   }, [data, reset, setValue, mode]);
   console.log("errors", errors);
-  const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
+  const onSubmit = async (
+    formData:
+      | z.infer<typeof contactSchema>
+      | z.infer<typeof updateContactSchema>
+  ) => {
     console.log("formData", formData);
     try {
       const res =
@@ -127,9 +147,6 @@ export default function ContactDetail({
     { value: "guest", label: "Guest" },
   ];
 
-  const handleSelectChange = (value: string) => {
-    console.log("Selected value:", value);
-  };
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -197,9 +214,9 @@ export default function ContactDetail({
                       errors.password && errors.password.message ? true : false
                     }
                     hint={
-                      "Your password can’t be too similar to your other personal information. Your password must contain at least 8 characters.  Your password can’t be a commonly used password. Your password can’t be entirely numeric."
+                      errors.password?.message ||
+                      "Your password can't be too similar to your other personal information. Your password must contain at least 8 characters. Your password can't be a commonly used password. Your password can't be entirely numeric."
                     }
-                    disabled={mode === "view"}
                   />
                 </div>
               </div>
@@ -217,10 +234,9 @@ export default function ContactDetail({
                         : false
                     }
                     hint={
-                      (errors.cnf_password && errors.cnf_password.message) ||
+                      errors.cnf_password?.message ||
                       "Enter the same password as before, for verification."
                     }
-                    disabled={mode === "view"}
                   />
                 </div>
               </div>
@@ -357,34 +373,52 @@ export default function ContactDetail({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Label htmlFor="role">role</Label>
-              <DropDown
-                id="role"
-                options={options}
-                placeholder="Select Role"
-                {...register("role")}
-                onChange={handleSelectChange}
-                className="dark:bg-dark-900"
-                disabled={mode === "view"}
+              <Controller
+                name="role"
+                control={control}
+                render={({ field }) => (
+                  <DropDown
+                    id="role"
+                    options={options}
+                    placeholder="Select Role"
+                    value={field.value}
+                    onChange={field.onChange}
+                    className="dark:bg-dark-900"
+                    disabled={mode === "view"}
+                  />
+                )}
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Checkbox
-                id="is_active"
-                checked={watch("is_active")}
-                onChange={(checked) => setValue("is_active", checked)}
-                label="Is Active"
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_active"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="Is Active"
+                  />
+                )}
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Checkbox
-                id="is_staff"
-                checked={watch("is_staff")}
-                onChange={(checked) => setValue("is_staff", checked)}
-                label="Is Staff"
+              <Controller
+                name="is_staff"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_staff"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="Is Staff"
+                  />
+                )}
               />
             </div>
           </div>
