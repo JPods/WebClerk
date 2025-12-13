@@ -1,3 +1,14 @@
-# Demo Placeholder
+# Employee Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\orgs\employee' directory in Git.
+This model manages employees in the application.
+
+Fields:
+
+- name: Employee name
+- employee_id: Employee ID
+- email: Email address
+- phone: Phone number
+- hire_date: Hire date
+- department: Department
+
+The directory contains the full React implementation with pages, services, types, and utils.

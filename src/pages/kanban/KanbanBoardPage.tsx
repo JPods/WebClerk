@@ -450,17 +450,8 @@ const KanbanBoardPage: React.FC = () => {
     if (board.columnOrder.length === 0) {
       return;
     }
-    setColumnsPerRow((prev) => {
-      // If user hasn't changed it manually (still 4), keep it at 4
-      // Otherwise respect the user's choice but clamp to available columns
-      const baseline = prev;
-      const maxColumns = board.columnOrder.length;
-      // Only clamp if the current value exceeds available columns
-      if (baseline > maxColumns) {
-        return maxColumns;
-      }
-      return baseline;
-    });
+    // Keep columnsPerRow at 4 by default, don't clamp based on available columns
+    // This ensures the grid always shows 4 columns per row
   }, [board.columnOrder]);
 
   useEffect(() => {
@@ -866,25 +857,15 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     // Build action and description with dot notation keys (e.g., action.en, description.en)
-    const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
-    const updateMode = mode === "edit" ? "update" : "create";
+    const translationFields: Record<string, string | string[]> = {};
     
     normalized.forEach((value, language) => {
-      translationFields[`action.${language}`] = {
-        mode: updateMode,
-        value: value.title || ""
-      };
-      translationFields[`description.${language}`] = {
-        mode: updateMode,
-        value: value.description || ""
-      };
+      translationFields[`action.${language}`] = value.title || "";
+      translationFields[`description.${language}`] = value.description || "";
     });
 
-    // Add languages with the same format
-    translationFields.languages = {
-      mode: updateMode,
-      value: Array.from(normalized.keys())
-    };
+    // Add languages array
+    translationFields.languages = Array.from(normalized.keys());
 
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
@@ -915,54 +896,23 @@ const KanbanBoardPage: React.FC = () => {
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
       ...translationFields,
-      kanban_column: {
-        mode: updateMode,
-        value: columnTitle
-      },
-      kanban_column_id: {
-        mode: updateMode,
-        value: column?.id ?? FALLBACK_COLUMN_ID
-      },
-      priority: {
-        mode: updateMode,
-        value: PRIORITY_TO_VALUE[state.priority]
-      },
-      difficulty: {
-        mode: updateMode,
-        value: resolvedDifficulty
-      },
-      status: {
-        mode: updateMode,
-        value: baseTask?.status ?? "In progress"
-      },
-      dt_due: {
-        mode: updateMode,
-        value: dueTimestamp
-      },
-      dt_start: {
-        mode: updateMode,
-        value: startTimestamp
-      },
-      dt_end: {
-        mode: updateMode,
-        value: endTimestamp
-      },
-      assigned_to: {
-        mode: updateMode,
-        value: assignedTo
-      },
-      progress: {
-        mode: updateMode,
-        value: resolvedProgress
-      },
+      kanban_column: columnTitle,
+      kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
+      priority: PRIORITY_TO_VALUE[state.priority],
+      difficulty: resolvedDifficulty,
+      status: baseTask?.status ?? "In progress",
+      dt_due: dueTimestamp,
+      dt_start: startTimestamp,
+      dt_end: endTimestamp,
+      progress: resolvedProgress,
     };
 
     if (mode === "edit" && baseTask) {
       payloadItem.id = baseTask.id;
     }
 
-    if (!state.assignee && assignedTo.length === 0) {
-      delete payloadItem.assigned_to;
+    if (assignedTo.length > 0) {
+      payloadItem.assigned_to = assignedTo;
     }
 
     return { payload: payloadItem };

@@ -1,0 +1,39 @@
+Before we start should we amend this request?
+
+I would like your help creating a modern, state of the art proposal & line, sales_order & line, invoice & line, purchase_order & line, work_order & line. 
+
+Proposal is an offer to sell.
+
+Sales_order is a promise to deliver.
+
+Invoice is a delivery.
+
+Work_order is an internal order to produce.
+
+Purchase_order is a promise to buy
+
+Each line record is linked to one item record. 
+
+The schema for lines and transaction records are intended to make transferring data between records easier. 
+
+The .metadata and .prefs are intended to store data for which there is no defined field. 
+
+.refs is intented to denormalize relationships. 
+
+The linkage model is connects multiple records so relationships can be easily transferred between transactions and line. Example: A proposal to sell a house may include multiple document records pointing to videos, floor plans, questions_answers, etc... When the proposal is converted to a sales_order, the linkage record is added to the .refs.links of the new record.
+
+In a list of proposals, users should be able to select multiples to convert into sales_order, the same is true for orders to invoices. In the Display layout, users should be able to select lines that are to be transferred when moving between transaction documents.
+
+A pending record will be created for every change in a line quantity in Django. 
+
+Commissions will be managed within metadata. 
+
+This modern order entry system used React2025 on the frontend and Webclerk3 on the backend. The previous Vue2020 and WebClerk2 can be used for reference only in looking at the feature and functions. 
+
+I do not want to transfer the schema of WebClerk2 (/Users/williamjames/Documents/CommerceExpert/000_webclerk2/WebClerk2) or Vue2020 (/Users/williamjames/Documents/CommerceExpert/vue2020). If there are unique or important features, then we should list them in a readme. That reame can also contain a comparision between Vue2020 and React2025.
+
+
+/// sales_order layout
+Here is a link to the 4D layout for order table. This equates to sales_order model in webclerk3(/Users/williamjames/Documents/CommerceExpert/000_webclerk2/WebClerk2/Project/Sources/TableForms/3/Input). The schema has changed. Please draft src/apps/transactions/models/sales_order/pages/SalesOrderDetail_test.tsx with your best guess as the changes in schema
+
+Here is a link to the 4D layout for invoice table. This equates to sales_order model in webclerk3(/Users/williamjames/Documents/CommerceExpert/000_webclerk2/WebClerk2/Project/Sources/TableForms/3/Input). The schema has changed. Please draft src/apps/transactions/models/invoice/pages/InvoiceDetail_test.tsx with your best guess as the changes in schema

@@ -362,7 +362,8 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
       }
 
       const columnColor = resolveColumnColor(column.title);
-      const task = mapKanbanTaskToSvarTask(kanbanTask, index, undefined, column.id, column.title);
+      const parentId = kanbanTask.refs?.links?.parent;
+      const task = mapKanbanTaskToSvarTask(kanbanTask, index, parentId, column.id, column.title);
       if (columnColor) {
         (task as unknown as { color?: string; progressColor?: string }).color = columnColor;
         (task as unknown as { color?: string; progressColor?: string }).progressColor = columnColor;
@@ -522,9 +523,70 @@ const SvarGanttPage: React.FC = () => {
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
   const progressUpdateQueueRef = useRef<Set<string>>(new Set());
   const pendingProgressPayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
-  const progressDebounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const updateLocalTaskProgress = useCallback((taskId: string, progressValue: number) => {
-    const progressRatio = toProgressRatio(progressValue) ?? 0;
+  const progressDebounceTimersRef = useRef<Map<string, number>>(new Map());
+  const sequenceUpdateQueueRef = useRef<Set<string>>(new Set());
+  const pendingSequencePayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+  const sequenceDebounceTimersRef = useRef<Map<string, number>>(new Map());
+
+  const scheduleProgressUpdate = useCallback(
+    (taskId: string, progressValue: number) => {
+      setBoard((currentBoard) => {
+        const kanbanTask = currentBoard.tasks[taskId];
+        if (!kanbanTask) {
+          return currentBoard;
+        }
+
+        const payload: Record<string, unknown> = {
+          model_name: "action",
+          id: kanbanTask.id,
+          "prefs.userdefined.progress": {
+            mode: "update",
+            value: progressValue,
+          },
+        };
+
+        pendingProgressPayloadRef.current.set(taskId, payload);
+        progressUpdateQueueRef.current.add(taskId);
+
+        const existingTimer = progressDebounceTimersRef.current.get(taskId);
+        if (existingTimer) {
+          window.clearTimeout(existingTimer);
+        }
+
+        const timer = window.setTimeout(() => {
+          progressDebounceTimersRef.current.delete(taskId);
+          if (!progressUpdateQueueRef.current.has(taskId)) {
+            return;
+          }
+
+          const queued = pendingProgressPayloadRef.current.get(taskId);
+          if (!queued) {
+            progressUpdateQueueRef.current.delete(taskId);
+            return;
+          }
+
+          patchAction(queued as any)
+            .then(() => {
+              console.log("Progress updated successfully for task", taskId, "to", progressValue);
+              progressUpdateQueueRef.current.delete(taskId);
+              pendingProgressPayloadRef.current.delete(taskId);
+            })
+            .catch((error) => {
+              console.error("Failed to update progress for task", taskId, error);
+              progressUpdateQueueRef.current.delete(taskId);
+              pendingProgressPayloadRef.current.delete(taskId);
+            });
+        }, 400);
+
+        progressDebounceTimersRef.current.set(taskId, timer);
+
+        return currentBoard;
+      });
+    },
+    []
+  );
+
+  const updateLocalTaskSequence = useCallback((taskId: string, sequenceValue: number) => {
     setBoard((prev) => {
       const existingTask = prev.tasks[taskId];
       if (!existingTask) {
@@ -534,7 +596,7 @@ const SvarGanttPage: React.FC = () => {
         ...prev,
         tasks: {
           ...prev.tasks,
-          [taskId]: { ...existingTask, progress: progressValue },
+          [taskId]: { ...existingTask, sequence: sequenceValue },
         },
       };
     });
@@ -544,69 +606,69 @@ const SvarGanttPage: React.FC = () => {
         return prev;
       }
       const updatedTasks = prev.tasks.map((task) =>
-        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
+        String(task.id) === taskId ? { ...task, sequence: sequenceValue } : task
       );
       return { ...prev, tasks: updatedTasks };
     });
-
-    setVisibleData((prev) => ({
-      tasks: prev.tasks.map((task) =>
-        String(task.id) === taskId ? { ...task, progress: progressRatio } : task
-      ),
-      links: prev.links,
-    }));
   }, []);
 
-  const resetProgressQueues = useCallback(() => {
-    progressUpdateQueueRef.current.clear();
-    pendingProgressPayloadRef.current.clear();
-    progressDebounceTimersRef.current.forEach((timer) => {
-      clearTimeout(timer);
-    });
-    progressDebounceTimersRef.current.clear();
-  }, []);
-
-  const processQueuedProgressUpdate = useCallback((taskId: string) => {
-    if (progressUpdateQueueRef.current.has(taskId)) {
-      return;
-    }
-    const payload = pendingProgressPayloadRef.current.get(taskId);
-    if (!payload) {
-      return;
-    }
-    pendingProgressPayloadRef.current.delete(taskId);
-    progressUpdateQueueRef.current.add(taskId);
-
-    const syncProgress = async () => {
-      try {
-        await patchAction(payload);
-      } catch (error) {
-        console.error("Failed to sync task progress", error);
-      } finally {
-        progressUpdateQueueRef.current.delete(taskId);
-        if (pendingProgressPayloadRef.current.has(taskId)) {
-          processQueuedProgressUpdate(taskId);
+  const scheduleSequenceUpdate = useCallback(
+    (taskId: string, sequenceValue: number) => {
+      // Use callback to get current board state
+      setBoard((currentBoard) => {
+        const kanbanTask = currentBoard.tasks[taskId];
+        if (!kanbanTask) {
+          return currentBoard;
         }
-      }
-    };
 
-    void syncProgress();
-  }, []);
+        const payload: Record<string, unknown> = {
+          model_name: "action",
+          id: kanbanTask.id,
+          sequence: {
+            mode: "update",
+            value: sequenceValue,
+          },
+        };
 
-  const scheduleProgressUpdate = useCallback(
-    (taskId: string, payload: Record<string, unknown>) => {
-      pendingProgressPayloadRef.current.set(taskId, payload);
-      const existingTimer = progressDebounceTimersRef.current.get(taskId);
-      if (existingTimer) {
-        clearTimeout(existingTimer);
-      }
-      const timer = setTimeout(() => {
-        progressDebounceTimersRef.current.delete(taskId);
-        processQueuedProgressUpdate(taskId);
-      }, 400);
-      progressDebounceTimersRef.current.set(taskId, timer);
+        pendingSequencePayloadRef.current.set(taskId, payload);
+        sequenceUpdateQueueRef.current.add(taskId);
+
+        const existingTimer = sequenceDebounceTimersRef.current.get(taskId);
+        if (existingTimer) {
+          window.clearTimeout(existingTimer);
+        }
+
+        const timer = window.setTimeout(() => {
+          sequenceDebounceTimersRef.current.delete(taskId);
+          if (!sequenceUpdateQueueRef.current.has(taskId)) {
+            return;
+          }
+
+          const queued = pendingSequencePayloadRef.current.get(taskId);
+          if (!queued) {
+            sequenceUpdateQueueRef.current.delete(taskId);
+            return;
+          }
+
+          patchAction(queued as any)
+            .then(() => {
+              console.log("Sequence updated successfully for task", taskId, "to", sequenceValue);
+              sequenceUpdateQueueRef.current.delete(taskId);
+              pendingSequencePayloadRef.current.delete(taskId);
+            })
+            .catch((error) => {
+              console.error("Failed to update sequence for task", taskId, error);
+              sequenceUpdateQueueRef.current.delete(taskId);
+              pendingSequencePayloadRef.current.delete(taskId);
+            });
+        }, 400);
+
+        sequenceDebounceTimersRef.current.set(taskId, timer);
+
+        return currentBoard; // Don't modify board here
+      });
     },
-    [processQueuedProgressUpdate]
+    []
   );
 
   const resolveDefaultColumnId = useCallback(
@@ -947,62 +1009,6 @@ const SvarGanttPage: React.FC = () => {
     [board.columns]
   );
 
-  const handleSvarTaskUpdate = useCallback(
-    (event?: { id?: string | number; task?: Partial<ITask>; inProgress?: boolean; eventSource?: string }) => {
-      if (!event || usingFallback || event.inProgress) {
-        return;
-      }
-
-      const taskId = event.id !== undefined ? String(event.id) : "";
-      if (!taskId) {
-        return;
-      }
-
-      const updatedProgress = event.task?.progress;
-      if (typeof updatedProgress !== "number") {
-        return;
-      }
-
-      const targetTask = board.tasks[taskId];
-      if (!targetTask) {
-        return;
-      }
-
-      const normalizedProgress = toProgressPercentage(updatedProgress);
-      const previousProgress =
-        typeof targetTask.progress === "number"
-          ? Math.max(0, Math.min(100, Math.round(targetTask.progress)))
-          : 0;
-
-      if (normalizedProgress === previousProgress) {
-        return;
-      }
-
-      updateLocalTaskProgress(taskId, normalizedProgress);
-
-      const updatedTask: KanbanTask = { ...targetTask, progress: normalizedProgress };
-      const derivedState = deriveFormStateFromTask(updatedTask, {
-        progress: String(normalizedProgress),
-      });
-      const payloadResult = buildEditActionPayload(derivedState, updatedTask);
-      if ("error" in payloadResult) {
-        console.warn("Unable to sync task progress", payloadResult.error);
-        return;
-      }
-
-      scheduleProgressUpdate(taskId, payloadResult.payload);
-      return true;
-    },
-    [
-      board.tasks,
-      buildEditActionPayload,
-      deriveFormStateFromTask,
-      scheduleProgressUpdate,
-      updateLocalTaskProgress,
-      usingFallback,
-    ]
-  );
-
   const handleOpenEditModal = useCallback(
     (task: KanbanTask | null) => {
       if (!task || usingFallback) {
@@ -1049,7 +1055,6 @@ const SvarGanttPage: React.FC = () => {
         setColumnFilters(fallback.filters);
         setUsingFallback(true);
         setBoard(createEmptyBoardData());
-        resetProgressQueues();
         return;
       }
 
@@ -1062,7 +1067,6 @@ const SvarGanttPage: React.FC = () => {
         setColumnFilters(fallback.filters);
         setUsingFallback(true);
         setBoard(createEmptyBoardData());
-        resetProgressQueues();
         return;
       }
 
@@ -1070,7 +1074,6 @@ const SvarGanttPage: React.FC = () => {
       setFullDataset(mapped);
       setColumnFilters(mapped.filters);
       setUsingFallback(false);
-      resetProgressQueues();
     } catch (error) {
       console.error("Failed to fetch gantt tasks", error);
       setFetchError("Unable to load tasks from the API. Showing sample data.");
@@ -1079,11 +1082,10 @@ const SvarGanttPage: React.FC = () => {
       setColumnFilters(fallback.filters);
       setUsingFallback(true);
       setBoard(createEmptyBoardData());
-      resetProgressQueues();
     } finally {
       setIsLoading(false);
     }
-  }, [resetProgressQueues]);
+  }, []);
 
   const handleEditTaskSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -1122,19 +1124,161 @@ const SvarGanttPage: React.FC = () => {
     [buildEditActionPayload, editTaskState, editingTask, fetchGanttTasks, handleCloseEditModal, isSavingEdit]
   );
 
+  // Track last click to distinguish between single and double clicks
+  const lastClickRef = useRef<{ id: string; time: number } | null>(null);
+
   const handleShowEditor = useCallback(
     (event?: { id?: string | number }) => {
       if (!event?.id || usingFallback) {
         return false;
       }
+      
       const resolvedId = String(event.id);
-      const targetTask = board.tasks[resolvedId];
-      if (targetTask) {
-        handleOpenEditModal(targetTask);
+      const now = Date.now();
+      const lastClick = lastClickRef.current;
+      
+      // Check if this is a double-click (within 300ms of last click on same task)
+      const isDoubleClick = 
+        lastClick && 
+        lastClick.id === resolvedId && 
+        now - lastClick.time < 300;
+      
+      if (isDoubleClick) {
+        // Reset click tracking
+        lastClickRef.current = null;
+        
+        // Open modal on double-click
+        const targetTask = board.tasks[resolvedId];
+        if (targetTask) {
+          handleOpenEditModal(targetTask);
+        }
+      } else {
+        // Track this click
+        lastClickRef.current = { id: resolvedId, time: now };
       }
+      
       return false;
     },
     [board.tasks, handleOpenEditModal, usingFallback]
+  );
+
+  const handleSvarUpdateTask = useCallback(
+    (event: { id?: string | number; task?: Partial<ITask>; inProgress?: boolean }) => {
+      if (!event?.id || !event?.task || usingFallback) {
+        return;
+      }
+
+      // Only process when drag is complete (inProgress === false)
+      if (event.inProgress) {
+        return;
+      }
+
+      const taskId = String(event.id);
+      const updatedTask = event.task;
+
+      // Handle progress changes
+      if (typeof updatedTask.progress === "number") {
+        const progressPercentage = toProgressPercentage(updatedTask.progress);
+        console.log("Progress changed for task", taskId, "to", progressPercentage);
+        
+        // Update fullDataset to persist the change
+        setFullDataset((prev) => {
+          if (!prev) {
+            return prev;
+          }
+          const updatedTasks = prev.tasks.map((task) =>
+            String(task.id) === taskId ? { ...task, progress: updatedTask.progress } : task
+          );
+          return { ...prev, tasks: updatedTasks };
+        });
+
+        // Update board state
+        setBoard((prev) => {
+          const existingTask = prev.tasks[taskId];
+          if (!existingTask) {
+            return prev;
+          }
+          return {
+            ...prev,
+            tasks: {
+              ...prev.tasks,
+              [taskId]: { ...existingTask, progress: progressPercentage },
+            },
+          };
+        });
+
+        // Trigger background API call
+        scheduleProgressUpdate(taskId, progressPercentage);
+      }
+    },
+    [scheduleProgressUpdate, usingFallback]
+  );
+
+  const handleSvarMoveTask = useCallback(
+    (event: { id?: string | number; mode?: string; target?: string | number; source?: number; inProgress?: boolean }) => {
+      console.log("onMoveTask triggered:", event);
+      
+      if (!event?.id || usingFallback) {
+        console.log("Move rejected - no id or using fallback");
+        return false;
+      }
+
+      const taskId = String(event.id);
+      const targetId = event.target ? String(event.target) : null;
+      
+      // Calculate new index and reorder
+      setFullDataset((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        
+        const tasks = [...prev.tasks];
+        const currentIdx = tasks.findIndex((t) => String(t.id) === taskId);
+        if (currentIdx === -1) {
+          console.log("Task not found in dataset");
+          return prev;
+        }
+
+        // Calculate target index based on mode and target
+        let newIndex: number;
+        if (targetId) {
+          const targetIdx = tasks.findIndex((t) => String(t.id) === targetId);
+          if (targetIdx === -1) {
+            console.log("Target task not found");
+            return prev;
+          }
+          // 'after' means insert after target, 'before' means insert before target
+          newIndex = event.mode === 'after' ? targetIdx + 1 : targetIdx;
+          // Adjust if current task is before target
+          if (currentIdx < targetIdx) {
+            newIndex--;
+          }
+        } else {
+          newIndex = typeof event.source === 'number' ? event.source : currentIdx;
+        }
+
+        console.log("Moving task", taskId, "from index", currentIdx, "to", newIndex);
+
+        const [moved] = tasks.splice(currentIdx, 1);
+        const clampedIndex = Math.max(0, Math.min(tasks.length, newIndex));
+        tasks.splice(clampedIndex, 0, moved);
+
+        // Update sequence and trigger API call
+        const newSequence = clampedIndex;
+        console.log("Scheduling sequence update to:", newSequence);
+        
+        // Schedule the API call
+        setTimeout(() => {
+          updateLocalTaskSequence(taskId, newSequence);
+          scheduleSequenceUpdate(taskId, newSequence);
+        }, 0);
+
+        return { ...prev, tasks };
+      });
+
+      return true;
+    },
+    [scheduleSequenceUpdate, updateLocalTaskSequence, usingFallback]
   );
 
   useEffect(() => {
@@ -1319,9 +1463,8 @@ const SvarGanttPage: React.FC = () => {
       if (ganttApiRef.current) {
         ganttApiRef.current.detach(GANTT_COLOR_EVENT_TAG);
       }
-      resetProgressQueues();
     };
-  }, [resetProgressQueues]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -1466,7 +1609,9 @@ const SvarGanttPage: React.FC = () => {
                   columns={ganttColumns}
                   scales={activeScales}
                   onShowEditor={handleShowEditor}
-                  onUpdateTask={handleSvarTaskUpdate}
+                  onItemDoubleClick={handleShowEditor}
+                  onMoveTask={handleSvarMoveTask}
+                  onUpdateTask={handleSvarUpdateTask}
                   init={(api) => {
                     ganttApiRef.current = api;
                     api.detach(GANTT_COLOR_EVENT_TAG);

@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Work Order Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\transactions\work_order' directory in Git.
+This model manages work orders.

@@ -139,7 +139,7 @@ export default function PhoneDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="number">Phone Number</Label>
+              <Label htmlFor="number">number</Label>
               <Input
                 type="text"
                 id="number"
@@ -151,7 +151,7 @@ export default function PhoneDetail({
               />
             </div>
             <div>
-              <Label htmlFor="country_code">Country Code</Label>
+              <Label htmlFor="country_code">country_code</Label>
               <DropDown
                 id="country_code"
                 options={countryCodeOptions}
@@ -165,7 +165,7 @@ export default function PhoneDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type">type</Label>
               <DropDown
                 id="type"
                 options={typeOptions}

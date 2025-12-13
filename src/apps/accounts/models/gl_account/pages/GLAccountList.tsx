@@ -1,14 +1,13 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import ComponentCard from "@/components/common/ComponentCard";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
-import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
-import { showToast } from "@/store/slices/toastSlice";
+import { fetchGLAccounts, deleteGLAccount } from "../services/glAccountApi";
+import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
-import GLAccountDisplay from "./GLAccountDisplay";
+import { useTheme } from "../../../../../context/ThemeContext";
+import GLAccountDetail from "./GLAccountDetail";
 
 export default function GLAccountList() {
   const { theme } = useTheme();
@@ -22,9 +21,14 @@ export default function GLAccountList() {
   const getGLAccountData = useCallback(async () => {
     try {
       setLoading(true);
-      const list = await getRecords('gl_account');
-      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
-      setData(recs);
+      const res = await fetchGLAccounts();
+      if (res.status === 200) {
+        setData(res.data.items);
+      } else {
+        dispatch(
+          showToast({ message: "Failed to fetch gl accounts", type: "error" })
+        );
+      }
     } catch (error) {
       console.error("Failed to fetch gl accounts", error);
       dispatch(showToast({ message: "Failed to fetch gl accounts", type: "error" }));
@@ -64,9 +68,9 @@ export default function GLAccountList() {
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete gl account ${row.id}?`)) {
+    if (window.confirm(`Delete gl account ${row.code}?`)) {
       try {
-        await deleteRecord('gl_account', row.id);
+        await deleteGLAccount(row.id);
         dispatch(showToast({ message: "GL Account deleted successfully", type: "success" }));
         getGLAccountData(); // Refresh data
       } catch (error) {
@@ -95,7 +99,7 @@ export default function GLAccountList() {
           <FaEdit className="text-green-600 hover:scale-110 transition" />
         </button>
         <button onClick={() => handleDelete(row)} title="Delete">
-          <FaTrashAlt className="text-red-600 hover:scale-110 transition" />
+          <FaTrash className="text-red-600 hover:scale-110 transition" />
         </button>
       </div>
     ),
@@ -133,13 +137,14 @@ export default function GLAccountList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading gl accounts...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <GLAccountDisplay
+            <GLAccountDetail
               inline
               modeProp={formMode}
               dataProp={selectedGLAccount}

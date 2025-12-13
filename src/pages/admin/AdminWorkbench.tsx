@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { NetworkInfo } from '../../routes/network';
-import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, getWorkbenchFieldsSetting, saveWorkbenchFieldsSetting } from '../../api/wcapi';
+import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, getWorkbenchFieldsSetting, saveWorkbenchFieldsSetting, getAllWorkbenchFieldsSettings } from '../../api/wcapi';
 
 //
 
@@ -19,6 +19,7 @@ const AdminWorkbench: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [allFields, setAllFields] = useState<string[]>([]);
   const [workbenchSetting, setWorkbenchSetting] = useState<{ list: string[]; detail: string[] } | null>(null);
+  const [workbenchSettingsMap, setWorkbenchSettingsMap] = useState<Record<string, { list: string[]; detail: string[] }>>({});
   const { isAuthenticated } = useAppSelector((s) => s.auth);
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
@@ -35,6 +36,15 @@ const AdminWorkbench: React.FC = () => {
         const names = Array.isArray(data.model_names) ? data.model_names : [];
         setModelNames(names);
         setLastModelsFetchAt(Date.now());
+
+        // Load all workbench fields settings
+        const settings = await getAllWorkbenchFieldsSettings();
+        const map: Record<string, { list: string[]; detail: string[] }> = {};
+        settings.forEach(s => {
+          map[s.model_name] = s.data;
+        });
+        setWorkbenchSettingsMap(map);
+
         // Auto-select first model to populate middle pane immediately
         if (!selectedModel && names.length > 0) {
           setSelectedModel(names[0]);
@@ -72,16 +82,15 @@ const AdminWorkbench: React.FC = () => {
         const recs = Array.isArray(list?.results) ? list.results : [];
         setRecords(recs);
 
-        // Fetch workbench fields setting
-        const setting = await getWorkbenchFieldsSetting(selectedModel);
-        setWorkbenchSetting(setting ? setting.data : null);
+        // Set workbench fields setting from map
+        setWorkbenchSetting(workbenchSettingsMap[selectedModel] || null);
       } catch (err: any) {
         setRecordsError(err?.message || 'Failed to load records');
       } finally {
         setRecordsLoading(false);
       }
     })();
-  }, [selectedModel]);
+  }, [selectedModel, workbenchSettingsMap]);
 
   useEffect(() => {
     if (!selectedModel || selectedId == null) return;
@@ -112,6 +121,8 @@ const AdminWorkbench: React.FC = () => {
     };
 
     setWorkbenchSetting(nextSetting);
+    // Update the map
+    setWorkbenchSettingsMap(prev => ({ ...prev, [selectedModel]: nextSetting }));
 
     // Save to API
     try {
@@ -137,6 +148,8 @@ const AdminWorkbench: React.FC = () => {
       [kind]: nextSet,
     };
     setWorkbenchSetting(nextSetting);
+    // Update the map
+    setWorkbenchSettingsMap(prev => ({ ...prev, [selectedModel]: nextSetting }));
 
     // Save to API
     try {

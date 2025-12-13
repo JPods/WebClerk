@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Org Item Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\org_item' directory in Git.
+This model manages organization-specific items.

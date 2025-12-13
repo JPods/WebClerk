@@ -65,13 +65,13 @@ export async function getModelDetail(model_name: string) {
   }
 }
 
-export async function getRecords(model_name: string) {
+export async function getRecords(model_name: string, params?: any) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params: { model_name, limit: 10 } });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { params: { model_name, limit: 10, ...params } });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params: { model_name, limit: 10 } });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { params: { model_name, limit: 10, ...params } });
       return res2.data.data;
     }
     throw err;
@@ -80,11 +80,11 @@ export async function getRecords(model_name: string) {
 
 export async function getRecord(model_name: string, id: number) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>('/wcapi/get/', { params: { model_name, id } });
+    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/wcapi/get/`, { params: { model_name, id } });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>('/api/wcapi/get/', { params: { model_name, id } });
+      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/api/wcapi/get/`, { params: { model_name, id } });
       return res2.data.data;
     }
     throw err;
@@ -159,6 +159,23 @@ export async function getWorkbenchFieldsSetting(model_name: string): Promise<Set
       });
       const results = res2.data.data.results || [];
       return results.length > 0 ? results[0] : null;
+    }
+    throw err;
+  }
+}
+
+export async function getAllWorkbenchFieldsSettings(): Promise<SettingRecord[]> {
+  try {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
+      params: { model_name: 'setting', purpose: 'workbench_fields' }
+    });
+    return res.data.data.results || [];
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', {
+        params: { model_name: 'setting', purpose: 'workbench_fields' }
+      });
+      return res2.data.data.results || [];
     }
     throw err;
   }

@@ -2,8 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchPhones } from "../services/phoneApi";
+import { fetchPhones, deletePhone } from "../services/phoneApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -15,10 +14,12 @@ export default function PhoneList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
   const getPhoneData = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetchPhones();
       if (res.status === 200) {
@@ -30,6 +31,8 @@ export default function PhoneList() {
       }
     } catch (error) {
       console.error("Failed to fetch phones", error);
+    } finally {
+      setLoading(false);
     }
   }, [dispatch]);
 
@@ -43,8 +46,8 @@ export default function PhoneList() {
   };
 
   const handleEdit = async (row: any) => {
-    const res = await fetchPhones(row.id);
-    if (res.status === 200) setSelectedPhone(res.data.item);
+    const res = await fetchPhones({ id: row.id });
+    if (res.status === 200) setSelectedPhone(res.data.items[0]);
     else setSelectedPhone(row);
     setFormMode("edit");
   };
@@ -57,7 +60,7 @@ export default function PhoneList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete phone ${row.number}?`)) {
       try {
-        await deleteAction(row.id);
+        await deletePhone(row.id);
         dispatch(
           showToast({
             message: "Phone deleted successfully",
@@ -72,7 +75,7 @@ export default function PhoneList() {
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete phone" + error,
+            message: "Failed to delete phone",
             type: "error",
           })
         );
@@ -161,10 +164,12 @@ export default function PhoneList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
+                progressPending={loading}
                 progressComponent={
                   <div className="p-8 text-center">Loading phones...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>

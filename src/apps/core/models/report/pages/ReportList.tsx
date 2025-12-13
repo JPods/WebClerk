@@ -2,8 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchReports } from "../services/reportApi";
+import { fetchReports, deleteReport } from "../services/reportApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -58,7 +57,7 @@ export default function ReportList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete report ${row.title}?`)) {
       try {
-        await deleteAction(row.id);
+        await deleteReport(row.id);
         dispatch(
           showToast({
             message: "Report deleted successfully",
@@ -70,10 +69,10 @@ export default function ReportList() {
           setFormMode(null);
           setSelectedReport(null);
         }
-      } catch (error) {
+      } catch {
         dispatch(
           showToast({
-            message: "Failed to delete report" + error,
+            message: "Failed to delete report",
             type: "error",
           })
         );

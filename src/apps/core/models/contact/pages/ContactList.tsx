@@ -3,8 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 //import { createTheme } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchContacts } from "../services/contactApi";
+import { getRecords, getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
@@ -29,8 +28,8 @@ export default function ContactList() {
     try {
       const res = await fetchContacts();
       if (res.status === 200) {
-        console.log(res.data.results);
-        setData(res.data.results);
+        console.log(res.data.items);
+        setData(res.data.items);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch contacts", type: "error" })
@@ -38,6 +37,7 @@ export default function ContactList() {
       }
     } catch (error) {
       console.error("Failed to fetch contacts", error);
+      dispatch(showToast({ message: "Failed to fetch contacts", type: "error" }));
     }
   }, [dispatch]);
 
@@ -51,11 +51,13 @@ export default function ContactList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchContacts(row.id);
-    if (res.status === 200) setSelectedContact(res.data.item);
-    else setSelectedContact(row);
+    try {
+      const res = await getRecord('contact', row.id);
+      setSelectedContact(res.record);
+    } catch (error) {
+      setSelectedContact(row);
+    }
     setFormMode("edit");
-    console.log("res", res);
   };
 
   console.log("res.data.items", selectedContact);
@@ -64,31 +66,6 @@ export default function ContactList() {
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete contact ${row.name_first}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(
-          showToast({
-            message: "Contact deleted successfully",
-            type: "success",
-          })
-        );
-        getContactData(); // Refresh data
-        if (selectedContact && selectedContact.id === row.id) {
-          setFormMode(null);
-          setSelectedContact(null);
-        }
-      } catch (error) {
-        dispatch(
-          showToast({
-            message: "Failed to delete contact" + error,
-            type: "error",
-          })
-        );
-      }
-    }
-  };
 
   const handleFormSaved = () => {
     getContactData();
@@ -113,19 +90,19 @@ export default function ContactList() {
       name: "Name First",
       selector: (row) => row.name_first || "--",
       sortable: true,
-      width: "15%",
+      width: "13%",
     },
     {
       name: "Name Last",
       selector: (row) => row.name_last || "--",
       sortable: true,
-      width: "15%",
+      width: "13%",
     },
     {
       name: "Company",
       selector: (row) => row.company || "--",
       sortable: true,
-      width: "10%",
+      width: "15%",
     },
     {
       name: "Role",

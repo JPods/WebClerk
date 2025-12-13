@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Item Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\item' directory in Git.
+This model manages individual items or products in the system.
