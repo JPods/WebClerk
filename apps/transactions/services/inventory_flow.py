@@ -3,14 +3,12 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from decimal import Decimal
 from django.db import transaction
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.transactions.models import SalesOrder, SalesOrderLine, Invoice, InvoiceLine, PurchaseOrder
 from apps.products.models.item import Item
 from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
-from apps.products.models.warehouse import Warehouse
 from apps.core.models.pending import Pending
 
 
@@ -168,7 +166,34 @@ def release_inventory_on_invoice(invoice: Invoice) -> Dict[str, float]:
                     layer.quantity['issued'] = float(issued + release_qty)
                     layer.save(update_fields=['quantity'])
                 except InventoryLayer.DoesNotExist:
-                    pass  # Layer might have been merged or removed
+                    # Layer might have been merged or removed - log this for audit purposes
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Inventory layer not found for item {reservation.item_id} "
+                        f"warehouse {reservation.warehouse_id} when releasing reservation "
+                        f"{reservation.id}. This may indicate data inconsistency or "
+                        f"manual inventory adjustments."
+                    )
+                    
+                    # Attempt to create a new layer with zero balance as fallback
+                    try:
+                        from apps.products.models.inventory_layer import InventoryLayer
+                        fallback_layer = InventoryLayer.objects.create(
+                            item=reservation.item,
+                            warehouse=reservation.warehouse,
+                            quantity={'available': 0, 'on_hand': 0, 'issued': 0},
+                            unit_cost=reservation.item.default_cost or 0
+                        )
+                        logger.info(
+                            f"Created fallback inventory layer {fallback_layer.id} "
+                            f"for item {reservation.item_id} warehouse {reservation.warehouse_id}"
+                        )
+                    except Exception as fallback_error:
+                        logger.error(
+                            f"Failed to create fallback inventory layer for "
+                            f"item {reservation.item_id} warehouse {reservation.warehouse_id}: {fallback_error}"
+                        )
 
                 qty_to_release -= release_qty
                 reservations_released += 1
@@ -263,7 +288,27 @@ def cancel_order_inventory_reservations(order: SalesOrder) -> Dict[str, int]:
             layer.quantity['available'] = float(available + qty_reserved)
             layer.save(update_fields=['quantity'])
         except InventoryLayer.DoesNotExist:
-            pass
+            # Layer not found - this could indicate:
+            # 1. Layer was manually deleted
+            # 2. Layer was merged into another layer
+            # 3. Data inconsistency
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Inventory layer not found when canceling reservation "
+                f"for item {reservation.item_id} warehouse {reservation.warehouse_id}. "
+                f"Reservation quantity {qty_reserved} will not be restored to inventory."
+            )
+            
+            # Create a pending task to investigate this discrepancy
+            _create_inventory_discrepancy_pending(
+                item_id=reservation.item_id,
+                warehouse_id=reservation.warehouse_id,
+                missing_quantity=float(qty_reserved),
+                source_reservation_id=reservation.id,
+                discrepancy_type='missing_layer_on_cancel'
+            )
 
         quantity_restored += qty_reserved
         reservation.delete()
@@ -478,6 +523,41 @@ def process_inventory_deltas_immediately(item_ids: List[int]) -> Dict[str, Any]:
         'updated_items': updated_items,
         'errors': errors
     }
+
+
+def _create_inventory_discrepancy_pending(
+    item_id: int,
+    warehouse_id: int,
+    missing_quantity: float,
+    source_reservation_id: int,
+    discrepancy_type: str
+) -> Pending:
+    """Create a pending task to investigate inventory discrepancies.
+    
+    This helps track data inconsistencies that need manual review.
+    """
+    import uuid
+    from django.utils import timezone
+    
+    record_id = f"discrepancy_{item_id}_{warehouse_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
+    
+    data = {
+        'item_id': item_id,
+        'warehouse_id': warehouse_id,
+        'missing_quantity': missing_quantity,
+        'source_reservation_id': source_reservation_id,
+        'discrepancy_type': discrepancy_type,
+        'detected_at': timezone.now().isoformat(),
+        'status': 'pending_investigation'
+    }
+    
+    return Pending.objects.create(
+        model_name='inventory_discrepancy',
+        record_id=record_id,
+        purpose='inventory_discrepancy',
+        name=f"Inventory discrepancy for item {item_id}",
+        data=data
+    )
 
 
 def validate_inventory_delta(delta: Pending) -> Dict[str, Any]:

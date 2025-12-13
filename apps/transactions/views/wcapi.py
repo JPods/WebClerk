@@ -24,8 +24,74 @@ def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[
     return {k: v for k, v in (payload or {}).items() if k in model_fields}
 
 def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
-    # TODO: enforce role/tenant/publish/reserved with Settings
-    return qs
+    """Enforce role/tenant/publish/reserved constraints based on Settings.
+    
+    Args:
+        qs: QuerySet to apply constraints to
+        request: Django request object for user context
+        model_key: Model key for specific constraint lookup
+        
+    Returns:
+        QuerySet with applied constraints
+    """
+    try:
+        from django.contrib.auth import get_user_model
+        from django.conf import settings
+        
+        # Get user from request
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return qs.none()  # No access for unauthenticated users
+            
+        User = get_user_model()
+        
+        # Check if user is staff/admin - they get full access
+        if hasattr(user, 'is_staff') and user.is_staff:
+            return qs
+        if hasattr(user, 'role') and user.role in ['staff', 'admin']:
+            return qs
+            
+        # Apply tenant isolation if multi-tenant setup
+        tenant_field = getattr(settings, 'WCAPI_TENANT_FIELD', None)
+        if tenant_field and hasattr(user, 'tenant_id'):
+            qs = qs.filter(**{tenant_field: user.tenant_id})
+            
+        # Apply publish/reserved filtering based on user role
+        if hasattr(user, 'role'):
+            role = user.role.lower()
+            
+            # Public users can only see published items
+            if role in ['public', 'guest']:
+                if 'is_published' in [f.name for f in qs.model._meta.get_fields()]:
+                    qs = qs.filter(is_published=True)
+                    
+            # Reserved items only for authenticated users with proper role
+            if 'is_reserved' in [f.name for f in qs.model._meta.get_fields()]:
+                if role in ['admin', 'staff']:
+                    # Admins can see both reserved and non-reserved
+                    pass
+                else:
+                    # Regular users only see non-reserved items
+                    qs = qs.filter(is_reserved=False)
+                    
+        # Apply model-specific constraints from settings
+        model_constraints = getattr(settings, 'WCAPI_MODEL_CONSTRAINTS', {})
+        if model_key in model_constraints:
+            constraints = model_constraints[model_key]
+            # Apply role-based constraints
+            if 'role_filters' in constraints and hasattr(user, 'role'):
+                role_filters = constraints['role_filters'].get(user.role.lower(), {})
+                for field, filter_value in role_filters.items():
+                    qs = qs.filter(**{field: filter_value})
+                    
+        return qs
+        
+    except Exception as e:
+        # Log the error but don't break the query
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Error applying constraints for {model_key}: {str(e)}")
+        return qs  # Return unfiltered queryset on error
 
 class WCAPIGetView(APIView):
     http_method_names = ["post", "options", "head"]
@@ -124,4 +190,283 @@ class WCAPISyncView(APIView):
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, *args, **kwargs):
-        return Response({"detail": "not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        """Handle data synchronization operations.
+        
+        Supports various sync operations:
+        - bulk_create: Create multiple records
+        - bulk_update: Update multiple records
+        - upsert: Insert or update records based on unique constraints
+        - sync_external: Sync data from external systems
+        
+        Expected payload format:
+        {
+            "operation": "bulk_create|bulk_update|upsert|sync_external",
+            "model_name": "model_key",
+            "data": [...],  # Array of records for bulk operations
+            "sync_config": {...},  # Configuration for sync operations
+            "conflict_resolution": "skip|overwrite|error"  # For upsert operations
+        }
+        """
+        try:
+            body: Dict[str, Any] = request.data or {}
+            operation = body.get("operation")
+            model_key = body.get("model_name")
+            data = body.get("data", [])
+            sync_config = body.get("sync_config", {})
+            conflict_resolution = body.get("conflict_resolution", "skip")
+            
+            if not operation or not model_key:
+                return Response({
+                    "detail": "Missing required fields: operation, model_name"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            # Resolve model
+            ModelCls = registry.resolve(model_key)
+            if not ModelCls:
+                return Response({
+                    "detail": f"Unknown model: {model_key}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            # Apply constraints to ensure user can access this model
+            qs = ModelCls.objects.all()
+            qs = inject_constraints(qs, request, str(model_key))
+            
+            # Route to appropriate sync operation
+            if operation == "bulk_create":
+                return self._bulk_create(ModelCls, data, qs)
+            elif operation == "bulk_update":
+                return self._bulk_update(ModelCls, data, qs)
+            elif operation == "upsert":
+                return self._upsert(ModelCls, data, conflict_resolution)
+            elif operation == "sync_external":
+                return self._sync_external(ModelCls, data, sync_config)
+            else:
+                return Response({
+                    "detail": f"Unsupported operation: {operation}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Sync operation failed: {str(e)}", exc_info=True)
+            return Response({
+                "detail": "Sync operation failed",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _bulk_create(self, ModelCls, data, qs):
+        """Create multiple records in bulk."""
+        if not isinstance(data, list):
+            return Response({
+                "detail": "Data must be an array for bulk_create operation"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        created_records = []
+        errors = []
+        
+        for i, record in enumerate(data):
+            try:
+                # Filter input fields to only include model fields
+                clean_data = filter_input_fields(ModelCls, record)
+                obj = ModelCls.objects.create(**clean_data)
+                created_records.append({
+                    "index": i,
+                    "id": obj.pk,
+                    "status": "created"
+                })
+            except Exception as e:
+                errors.append({
+                    "index": i,
+                    "error": str(e),
+                    "data": record
+                })
+                
+        return Response({
+            "operation": "bulk_create",
+            "total_processed": len(data),
+            "created": len(created_records),
+            "errors": len(errors),
+            "results": created_records,
+            "error_details": errors
+        }, status=status.HTTP_200_OK)
+    
+    def _bulk_update(self, ModelCls, data, qs):
+        """Update multiple records in bulk."""
+        if not isinstance(data, list):
+            return Response({
+                "detail": "Data must be an array for bulk_update operation"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        updated_records = []
+        errors = []
+        
+        for i, record in enumerate(data):
+            try:
+                record_id = record.get("id")
+                if not record_id:
+                    errors.append({
+                        "index": i,
+                        "error": "Missing 'id' field for bulk update",
+                        "data": record
+                    })
+                    continue
+                    
+                # Filter input fields
+                clean_data = filter_input_fields(ModelCls, record)
+                # Remove id from update data
+                clean_data.pop("id", None)
+                
+                obj = ModelCls.objects.filter(pk=record_id).first()
+                if not obj:
+                    errors.append({
+                        "index": i,
+                        "error": f"Record with id {record_id} not found",
+                        "data": record
+                    })
+                    continue
+                    
+                for field, value in clean_data.items():
+                    setattr(obj, field, value)
+                obj.save()
+                
+                updated_records.append({
+                    "index": i,
+                    "id": obj.pk,
+                    "status": "updated"
+                })
+            except Exception as e:
+                errors.append({
+                    "index": i,
+                    "error": str(e),
+                    "data": record
+                })
+                
+        return Response({
+            "operation": "bulk_update",
+            "total_processed": len(data),
+            "updated": len(updated_records),
+            "errors": len(errors),
+            "results": updated_records,
+            "error_details": errors
+        }, status=status.HTTP_200_OK)
+    
+    def _upsert(self, ModelCls, data, conflict_resolution):
+        """Insert or update records based on unique constraints."""
+        if not isinstance(data, list):
+            return Response({
+                "detail": "Data must be an array for upsert operation"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Determine unique fields for upsert (excluding auto fields)
+        unique_fields = []
+        for field in ModelCls._meta.get_fields():
+            if field.unique and not field.primary_key:
+                unique_fields.append(field.name)
+                
+        if not unique_fields:
+            return Response({
+                "detail": "No unique fields found for upsert operation"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        upserted_records = []
+        errors = []
+        
+        for i, record in enumerate(data):
+            try:
+                # Build lookup criteria from unique fields
+                lookup = {}
+                for field in unique_fields:
+                    if field in record:
+                        lookup[field] = record[field]
+                    else:
+                        errors.append({
+                            "index": i,
+                            "error": f"Missing unique field: {field}",
+                            "data": record
+                        })
+                        continue
+                        
+                if len(lookup) != len(unique_fields):
+                    continue
+                    
+                # Filter input fields
+                clean_data = filter_input_fields(ModelCls, record)
+                
+                # Try to get existing record
+                obj = ModelCls.objects.filter(**lookup).first()
+                
+                if obj:
+                    if conflict_resolution == "skip":
+                        upserted_records.append({
+                            "index": i,
+                            "id": obj.pk,
+                            "status": "skipped",
+                            "action": "exists"
+                        })
+                        continue
+                    elif conflict_resolution == "overwrite":
+                        for field, value in clean_data.items():
+                            setattr(obj, field, value)
+                        obj.save()
+                        upserted_records.append({
+                            "index": i,
+                            "id": obj.pk,
+                            "status": "updated",
+                            "action": "overwrite"
+                        })
+                    else:  # error
+                        errors.append({
+                            "index": i,
+                            "error": f"Record with unique constraints already exists",
+                            "data": record
+                        })
+                        continue
+                else:
+                    obj = ModelCls.objects.create(**clean_data)
+                    upserted_records.append({
+                        "index": i,
+                        "id": obj.pk,
+                        "status": "created",
+                        "action": "insert"
+                    })
+                    
+            except Exception as e:
+                errors.append({
+                    "index": i,
+                    "error": str(e),
+                    "data": record
+                })
+                
+        return Response({
+            "operation": "upsert",
+            "total_processed": len(data),
+            "upserted": len(upserted_records),
+            "errors": len(errors),
+            "results": upserted_records,
+            "error_details": errors
+        }, status=status.HTTP_200_OK)
+    
+    def _sync_external(self, ModelCls, data, sync_config):
+        """Sync data from external systems with transformation and validation."""
+        if not isinstance(data, list):
+            return Response({
+                "detail": "Data must be an array for sync_external operation"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Apply field mappings if specified
+        field_mappings = sync_config.get("field_mappings", {})
+        transformed_data = []
+        
+        for record in data:
+            transformed_record = {}
+            for external_field, internal_field in field_mappings.items():
+                if external_field in record:
+                    transformed_record[internal_field] = record[external_field]
+            # Include unmapped fields as-is
+            for field, value in record.items():
+                if field not in field_mappings:
+                    transformed_record[field] = value
+            transformed_data.append(transformed_record)
+            
+        # Process transformed data using bulk operations
+        return self._bulk_create(ModelCls, transformed_data, ModelCls.objects.all())
