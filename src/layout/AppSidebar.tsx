@@ -114,8 +114,8 @@ const navItems: NavItem[] = [
     name: "Domains",
     subItems: [
       {
-        name: "Add Domain",
-        path: "/domain-add",
+        name: "Domain Detail",
+        path: "/domain-detail",
       },
       {
         name: "Domain List",

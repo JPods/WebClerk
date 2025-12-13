@@ -22,7 +22,7 @@ export class PageRoutes {
   static readonly settingAdd: string = "/setting-add";
   static readonly settingList: string = "/setting-list";
 
-  static readonly domainAdd: string = "/domain-add";
+  static readonly domainAdd: string = "/domain-detail";
   static readonly domainList: string = "/domain-list";
 
   static readonly calendar: string = "/calendar";
@@ -63,7 +63,10 @@ export class PageRoutes {
   static readonly currencyList: string = "/accounts/currency/list";
   static readonly currencyDisplay: string = "/accounts/currency/display/:id?";
   static readonly exchangeRateList: string = "/accounts/exchange-rate/list";
-  static readonly exchangeRateDisplay: string = "/accounts/exchange-rate/display/:id?";
-  static readonly exchangeTransactionList: string = "/accounts/exchange-transaction/list";
-  static readonly exchangeTransactionDisplay: string = "/accounts/exchange-transaction/display/:id?";
+  static readonly exchangeRateDisplay: string =
+    "/accounts/exchange-rate/display/:id?";
+  static readonly exchangeTransactionList: string =
+    "/accounts/exchange-transaction/list";
+  static readonly exchangeTransactionDisplay: string =
+    "/accounts/exchange-transaction/display/:id?";
 }

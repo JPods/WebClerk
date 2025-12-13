@@ -5,14 +5,14 @@ import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 import ActionList from "./actions/ActionList";
 import ActionAdd from "./actions/ActionAdd";
-import ContactDetail from "../apps/core/models/contact/pages/ContactDetail.tsx";
+import ContactDetail from "../apps/core/models/contact/pages/ContactDetail";
 import ContactList from "../apps/core/models/contact/pages/ContactList";
-import CustomerDetailPage from "./contacts/CustomerDetailPage";
-import CustomerAddPage from "./contacts/CustomerAddPage";
+// import CustomerDetailPage from "./contacts/CustomerDetailPage";
+// import CustomerAddPage from "./contacts/CustomerAddPage";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
-import DomainAdd from "../apps/communications/domain/pages/domain";
-import DomainList from "./domain/DomainList";
+import DomainAdd from "../apps/communications/models/domain/pages/domain";
+import DomainList from "../apps/communications/models/domain/pages/domainList";
 
 // Accounts
 import AuditList from "../apps/accounts/models/audit/pages/AuditList";
@@ -48,8 +48,8 @@ export {
   ActionAdd,
   ContactDetail,
   ContactList,
-  CustomerDetailPage,
-  CustomerAddPage,
+  // CustomerDetailPage,
+  // CustomerAddPage,
   SettingAdd,
   SettingList,
   DomainAdd,

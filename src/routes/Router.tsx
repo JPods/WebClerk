@@ -10,8 +10,8 @@ import {
   Calendar,
   ContactDetail,
   ContactList,
-  CustomerAddPage,
-  CustomerDetailPage,
+  // CustomerAddPage,
+  // CustomerDetailPage,
   DomainAdd,
   DomainList,
   FormElements,
@@ -101,11 +101,11 @@ const Router: React.FC = () => {
             path={PageRoutes.ContactDetail + "/:id"}
             element={<ContactDetail />}
           />
-          <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
+          {/* <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
           <Route
             path={PageRoutes.customerDetail}
             element={<CustomerDetailPage />}
-          />
+          /> */}
           <Route path={PageRoutes.settingList} element={<SettingList />} />
           <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
           <Route path={PageRoutes.domainList} element={<DomainList />} />
@@ -162,11 +162,26 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.auditList} element={<AuditList />} />
           <Route path={PageRoutes.auditDisplay} element={<AuditDisplay />} />
           <Route path={PageRoutes.currencyList} element={<CurrencyList />} />
-          <Route path={PageRoutes.currencyDisplay} element={<CurrencyDisplay />} />
-          <Route path={PageRoutes.exchangeRateList} element={<ExchangeRateList />} />
-          <Route path={PageRoutes.exchangeRateDisplay} element={<ExchangeRateDisplay />} />
-          <Route path={PageRoutes.exchangeTransactionList} element={<ExchangeTransactionList />} />
-          <Route path={PageRoutes.exchangeTransactionDisplay} element={<ExchangeTransactionDisplay />} />
+          <Route
+            path={PageRoutes.currencyDisplay}
+            element={<CurrencyDisplay />}
+          />
+          <Route
+            path={PageRoutes.exchangeRateList}
+            element={<ExchangeRateList />}
+          />
+          <Route
+            path={PageRoutes.exchangeRateDisplay}
+            element={<ExchangeRateDisplay />}
+          />
+          <Route
+            path={PageRoutes.exchangeTransactionList}
+            element={<ExchangeTransactionList />}
+          />
+          <Route
+            path={PageRoutes.exchangeTransactionDisplay}
+            element={<ExchangeTransactionDisplay />}
+          />
         </Route>
 
         {/* 404 page */}

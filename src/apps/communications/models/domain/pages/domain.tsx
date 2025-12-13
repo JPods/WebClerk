@@ -3,36 +3,35 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../components/common/ComponentCard";
-import Label from "../../components/form/Label";
-import { Input } from "../../components/wrapper";
+import ComponentCard from "../../../../../components/common/ComponentCard";
+import Label from "../../../../../components/form/Label";
+import {
+  Input,
+  CustTextArea,
+  DropDown,
+} from "../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-
-import { contactSchema } from "../../validations/action";
-import { getByTypeAndId, patchAction, postAction } from "../../api/userProfile";
-import { showToast } from "../../store/slices/toastSlice";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import {
+  getByTypeAndId,
+  patchAction,
+  postAction,
+} from "../../../../../api/userProfile";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
-
-interface ContactAddProps {
-  modeProp?: "add" | "edit" | "view";
-  dataProp?: any; // TODO: Type this properly
-  hideBreadcrumb?: boolean;
-  onSaved?: () => void;
-  inline?: boolean;
-  onCancelInline?: () => void;
-}
-
-export default function ContactAdd({
+import { domainSchema, updateDomainSchema } from "../utils/domainSchema";
+import { DomainAddProps } from "../types/domainType";
+import { createDomain, updateDomain } from "../services/domainApi";
+export default function DomainAdd({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-}: ContactAddProps) {
+}: DomainAddProps) {
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
@@ -42,8 +41,8 @@ export default function ContactAdd({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof contactSchema>>({
-    resolver: zodResolver(contactSchema),
+  } = useForm<z.infer<typeof domainSchema>>({
+    resolver: zodResolver(domainSchema),
     defaultValues: {},
   });
 
@@ -96,13 +95,17 @@ export default function ContactAdd({
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof contactSchema>) => {
+  console.log("errors", errors);
+  const onSubmit = async (
+    formData: z.infer<typeof domainSchema> | z.infer<typeof updateDomainSchema>
+  ) => {
+    console.log("formData", formData);
     try {
       const res =
         mode === "add"
-          ? await postAction(formData)
-          : await patchAction(user?.name_first);
-      if (res.status === 201 || res.status === 200) {
+          ? await createDomain(formData)
+          : await updateDomain({ ...formData, id: data && data.id });
+      if (res) {
         dispatch(
           showToast({
             message: `Action ${
@@ -120,16 +123,65 @@ export default function ContactAdd({
     }
   };
 
+  // const comment = { notes: [], public: "", partner: "", process: "" };
+  // const refs = {
+  //   tags: [],
+  //   links: { items: [], contacts: [] },
+  //   keywords: [],
+  //   categories: [],
+  //   depends_on: {},
+  //   related_ids: [],
+  // };
+  // const prefs = { userdefined: {} };
+  // const metadata = {
+  //   flow: {},
+  //   flags: { schema_rev: 1 },
+  //   access: { edit: [], view: [] },
+  //   health: {
+  //     rating: 0,
+  //     accuracy: 0,
+  //     freshness: 0,
+  //     consistency: 0,
+  //     completeness: 0,
+  //   },
+  //   source: {},
+  //   history: {
+  //     synced: { dt: 0, contact_id: 0 },
+  //     created: { dt: 1764077312019, contact_id: 0 },
+  //     accessed: { dt: 1764077312019, contact_id: 0 },
+  //     modified: { dt: 1764077312019, contact_id: 0 },
+  //     verified: { dt: 0, contact_id: 0 },
+  //   },
+  //   publish: "",
+  //   version: "1.0",
+  //   priority: "",
+  //   security: "",
+  //   resources: { required: {}, allocated: {} },
+  //   undefined: {},
+  //   versioning: {},
+  // };
+
+  const options = [
+    { value: "website", label: "Website" },
+    { value: "linkedin", label: "Linkedin" },
+    { value: "facebook", label: "Facebook" },
+    { value: "twitter", label: "Twitter" },
+    { value: "github", label: "GitHub" },
+    { value: "other", label: "Other" },
+  ];
+  const handleSelectChange = (value: string) => {
+    console.log("Selected value:", value);
+  };
   return (
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Action"
+              ? "Edit Domain"
               : mode === "view"
-              ? "View Action"
-              : "Add Contact"
+              ? "View Domain"
+              : "Add Domain"
           }
         />
       )}
@@ -138,10 +190,10 @@ export default function ContactAdd({
           <div className="flex justify-between items-center mb-4">
             <h3 className=" dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Contact"
+                ? "Edit Domain"
                 : mode === "view"
-                ? "View Contact"
-                : "Add New Contact"}
+                ? "View Domain"
+                : "Add New Domain"}
             </h3>
             {onCancelInline && (
               <button
@@ -157,87 +209,30 @@ export default function ContactAdd({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name_first">name_first</Label>
+              <Label htmlFor="path">Path</Label>
               <Input
                 type="text"
-                id="name_first"
-                placeholder="name_first"
-                {...register("name_first")}
-                error={
-                  errors.name_first && errors.name_first.message ? true : false
-                }
-                hint={errors.name_first && errors.name_first.message}
+                id="path"
+                placeholder="URL or handle (indexed)"
+                {...register("path")}
+                error={errors.path && errors.path.message ? true : false}
+                hint={errors.path && errors.path.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="name_last">name_last</Label>
-              <Input
-                type="text"
-                id="name_last"
-                placeholder="name_last"
-                {...register("name_last")}
-                error={
-                  errors.name_last && errors.name_last.message ? true : false
-                }
-                hint={errors.name_last && errors.name_last.message}
-                disabled={mode === "view"}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="name_middle">name_middle</Label>
-              <Input
-                type="text"
-                id="name_middle"
-                placeholder="name_middle"
-                {...register("name_middle")}
-                error={
-                  errors.name_middle && errors.name_middle.message
-                    ? true
-                    : false
-                }
-                hint={errors.name_middle && errors.name_middle.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">email</Label>
-              <Input
-                type="email"
-                id="email"
-                placeholder="email"
-                {...register("email")}
-                error={errors.email && errors.email.message ? true : false}
-                hint={errors.email && errors.email.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">phone</Label>
-              <Input
-                type="tel"
-                id="phone"
-                placeholder="phone"
-                {...register("phone")}
-                error={errors.phone && errors.phone.message ? true : false}
-                hint={errors.phone && errors.phone.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="company">company</Label>
-              <Input
-                type="text"
-                id="company"
-                placeholder="company"
-                {...register("company")}
-                error={errors.company && errors.company.message ? true : false}
-                hint={errors.company && errors.company.message}
-                disabled={mode === "view"}
+              <Label htmlFor="type">Type</Label>
+              <DropDown
+                id="type"
+                options={options}
+                placeholder="Select Option"
+                {...register("type")}
+                onChange={handleSelectChange}
+                className="dark:bg-dark-900"
               />
             </div>
           </div>
+
           {mode !== "view" && (
             <div className="flex items-center gap-4">
               <button
@@ -259,7 +254,7 @@ export default function ContactAdd({
           )}
         </form>
         {/* Linked data lists */}
-        {mode !== "add" && (
+        {/* {mode !== "add" && (
           <div className="mt-6 space-y-4">
             {Object.keys(linkedLists).length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -294,7 +289,7 @@ export default function ContactAdd({
               ))
             )}
           </div>
-        )}
+        )} */}
       </ComponentCard>
     </>
   );
