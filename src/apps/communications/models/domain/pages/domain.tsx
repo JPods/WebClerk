@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
+import { Link } from "react-router";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import {
@@ -24,6 +24,7 @@ import { useLocation } from "react-router";
 import { domainSchema, updateDomainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
 import { createDomain, updateDomain } from "../services/domainApi";
+import { FaList } from "react-icons/fa";
 export default function DomainAdd({
   modeProp,
   dataProp,
@@ -181,11 +182,16 @@ export default function DomainAdd({
               ? "Edit Domain"
               : mode === "view"
               ? "View Domain"
-              : "Add Domain"
+              : "Domain Detail"
           }
         />
       )}
       <ComponentCard>
+        <Link to="/domain-list" className="flex justify-end mb-4">
+          <button className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50">
+            <FaList /> Domain List
+          </button>
+        </Link>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className=" dark:text-white text-lg font-semibold">
