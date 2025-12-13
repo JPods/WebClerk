@@ -9,3 +9,4 @@ include/
 *.cfg
 **/__pycache__/
 .celery_started
+/Scripts
