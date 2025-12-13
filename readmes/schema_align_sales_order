@@ -397,6 +397,8 @@ Based on the available types and API structure, WebClerk3 uses a more consolidat
 - `taxCost` → `metadata.costs.tax_cost`
 - `discountedPrice` → `metadata.pricing.discounted_price`
 
+change
+
 #### Shipping and Location
 - `unitWt` → `metadata.shipping.unit_weight`
 - `extendedWt` → `metadata.shipping.extended_weight`
