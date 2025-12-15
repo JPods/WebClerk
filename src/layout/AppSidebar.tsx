@@ -118,32 +118,19 @@ const navItems: NavItem[] = [
     subItems: [
       {
         name: "Domain Detail",
-<<<<<<< HEAD
         path: "/domain-detail",
-=======
-        path: "/domain-add",
->>>>>>> bill_dev_rs
       },
       {
         name: "Domain List",
         path: "/domain-list",
       },
       {
-<<<<<<< HEAD
         name: "Email Details",
         path: "/email-detail",
       },
       {
         name: "Email Addresses List",
         path: "/email-list",
-=======
-        name: "Email Detail",
-        path: "/domain-add",
-      },
-      {
-        name: "Email List",
-        path: "/domain-list",
->>>>>>> bill_dev_rs
       },
     ],
   },
@@ -183,7 +170,10 @@ const navItems: NavItem[] = [
       { name: "Audit", path: "/accounts/audit/list" },
       { name: "Currency", path: "/accounts/currency/list" },
       { name: "Exchange Rate", path: "/accounts/exchange-rate/list" },
-      { name: "Exchange Transaction", path: "/accounts/exchange-transaction/list" },
+      {
+        name: "Exchange Transaction",
+        path: "/accounts/exchange-transaction/list",
+      },
       { name: "GL Account", path: "/accounts/gl-account/list" },
       { name: "GL Journal", path: "/accounts/gl-journal/list" },
       { name: "Ledger", path: "/accounts/ledger/list" },
@@ -224,19 +214,19 @@ const navItems: NavItem[] = [
     ],
   },
   {
-  icon: <GridIcon />,
-  name: "Core",
-  subItems: [
-    { name: "Action", path: "/core/action/list" },
-    { name: "Audit", path: "/core/audit/list" },
-    { name: "Contact", path: "/core/contact/list" },
-    { name: "Notification", path: "/core/notification/list" },
-    { name: "Pending", path: "/core/pending/list" },
-    { name: "Report", path: "/core/report/list" },
-    { name: "Setting", path: "/core/setting/list" },
-    { name: "Template", path: "/core/template/list" },
-  ],
-},
+    icon: <GridIcon />,
+    name: "Core",
+    subItems: [
+      { name: "Action", path: "/core/action/list" },
+      { name: "Audit", path: "/core/audit/list" },
+      { name: "Contact", path: "/core/contact/list" },
+      { name: "Notification", path: "/core/notification/list" },
+      { name: "Pending", path: "/core/pending/list" },
+      { name: "Report", path: "/core/report/list" },
+      { name: "Setting", path: "/core/setting/list" },
+      { name: "Template", path: "/core/template/list" },
+    ],
+  },
   // {
   //   name: "Pages",
   //   icon: <PageIcon />,

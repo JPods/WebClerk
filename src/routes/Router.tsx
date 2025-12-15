@@ -10,7 +10,7 @@ import {
   ContactList,
   // CustomerAddPage,
   // CustomerDetailPage,
-  DomainAdd,
+  DomainDetail,
   DomainList,
   FormElements,
   Home,
@@ -49,8 +49,6 @@ import {
   TermList,
   TermDisplay,
   // Communications
-  AppDomainList,
-  AppDomainDetail,
   AppEmailList,
   AppEmailDetail,
   AppLocationList,
@@ -131,7 +129,7 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.domainList} element={<DomainList />} />
           <Route
             path={PageRoutes.domainAdd}
-            element={<AppDomainDetail modeProp="add" />}
+            element={<DomainDetail modeProp="add" />}
           />
           <Route
             path={PageRoutes.notionTracker}

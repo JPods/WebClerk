@@ -3,26 +3,14 @@ import SignIn from "./AuthPages/SignIn";
 import SignUp from "./AuthPages/SignUp";
 import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
-<<<<<<< HEAD
-import ActionList from "./actions/ActionList";
-import ActionAdd from "./actions/ActionAdd";
+//import ActionList from "./actions/ActionList";
+//import ActionAdd from "./actions/ActionAdd";
 import ContactDetail from "../apps/core/models/contact/pages/ContactDetail";
 import ContactList from "../apps/core/models/contact/pages/ContactList";
 // import CustomerDetailPage from "./contacts/CustomerDetailPage";
 // import CustomerAddPage from "./contacts/CustomerAddPage";
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
-import DomainAdd from "../apps/communications/models/domain/pages/domain";
-import DomainList from "../apps/communications/models/domain/pages/domainList";
-=======
-import ContactDetail from "../apps/core/models/contact/pages/ContactDetail.tsx";
-import ContactList from "../apps/core/models/contact/pages/ContactList";
-import CustomerDetail from "../apps/core/models/customer/pages/CustomerDetail";
-import SettingAdd from "./setting/SettingAdd";
-import SettingList from "./setting/SettingList";
-import DomainList from "../apps/communications/models/domain/pages/DomainList";
-import DomainDetail from "../apps/communications/models/domain/pages/DomainDetail";
->>>>>>> bill_dev_rs
 
 // Accounts
 import AuditList from "../apps/accounts/models/audit/pages/AuditList";
@@ -50,8 +38,8 @@ import TermList from "../apps/accounts/models/term/pages/TermList";
 import TermDisplay from "../apps/accounts/models/term/pages/TermDisplay";
 
 // Communications
-import AppDomainList from "../apps/communications/models/domain/pages/DomainList";
-import AppDomainDetail from "../apps/communications/models/domain/pages/DomainDetail";
+import DomainList from "../apps/communications/models/domain/pages/DomainList";
+import DomainDetail from "../apps/communications/models/domain/pages/Domain";
 import AppEmailList from "../apps/communications/models/email/pages/EmailList";
 import AppEmailDetail from "../apps/communications/models/email/pages/EmailDetail";
 import AppLocationList from "../apps/communications/models/location/pages/LocationList";
@@ -117,16 +105,10 @@ export {
   UserProfiles,
   ContactDetail,
   ContactList,
-<<<<<<< HEAD
   // CustomerDetailPage,
   // CustomerAddPage,
-=======
-  CustomerDetail,
->>>>>>> bill_dev_rs
   SettingAdd,
   SettingList,
-  DomainDetail,
-  DomainList,
   Calendar,
   FormElements,
   BasicTables,
@@ -161,8 +143,8 @@ export {
   TermList,
   TermDisplay,
   // Communications
-  AppDomainList,
-  AppDomainDetail,
+  DomainList,
+  DomainDetail,
   AppEmailList,
   AppEmailDetail,
   AppLocationList,

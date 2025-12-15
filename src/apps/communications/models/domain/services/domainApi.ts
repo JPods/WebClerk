@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
 import type {
@@ -60,27 +59,3 @@ export const fetchDomain = async (): Promise<DomainApiTask[]> => {
   const res = await apiClient.get(PostLoginURL.allTypes + "model_name=domain");
   return unwrap<DomainApiTask[]>(res);
 };
-=======
-import { getRecords, saveRecord, deleteRecord } from "../../../../../api/wcapi";
-import type {
-  CreateDomainRequest,
-  UpdateDomainRequest,
-} from "../types/domainType";
-
-export const createDomain = async (data: CreateDomainRequest) => {
-  return saveRecord('domain', data);
-};
-
-export const updateDomain = async (data: UpdateDomainRequest) => {
-  return saveRecord('domain', data);
-};
-
-export const deleteDomain = async (id: number) => {
-  return deleteRecord('domain', id);
-};
-
-export const fetchDomains = async (params?: any) => {
-  const res = await getRecords('domain', params);
-  return { status: 200, data: { items: res.results || [] } };
-};
->>>>>>> bill_dev_rs
