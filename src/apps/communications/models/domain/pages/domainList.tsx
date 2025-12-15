@@ -30,8 +30,8 @@ export default function DomainList() {
       const res = await fetchDomains();
       if (res.status === 200) {
         //alert("ddd");
-        console.log(res.data.items);
-        setData(res.data.items);
+        console.log("res.data.results", res.data.data.results);
+        setData(res.data.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch domains", type: "error" })
@@ -53,13 +53,13 @@ export default function DomainList() {
 
   const handleEdit = async (row: dynamicData) => {
     const res = await fetchDomains(row.id);
-    if (res.status === 200) setSelectedDomain(res.data.item);
+    if (res.status === 200) setSelectedDomain(res.data.data.record);
     else setSelectedDomain(row);
     setFormMode("edit");
     console.log("res", res);
   };
 
-  console.log("res.data.items", selectedDomain);
+  //console.log("res.data.results", selectedDomain);
   const handleAdd = () => {
     setSelectedDomain(null);
     setFormMode("add");
@@ -158,7 +158,7 @@ export default function DomainList() {
             <div className="flex justify-end mb-4">
               <button
                 onClick={handleAdd}
-                disabled={data.length === 0 && !data}
+                disabled={data?.length === 0}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
@@ -179,7 +179,7 @@ export default function DomainList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
-                progressPending={data.length === 0}
+                progressPending={data?.length === 0}
                 progressComponent={
                   <div className="p-8 text-center">Loading record...</div>
                 }

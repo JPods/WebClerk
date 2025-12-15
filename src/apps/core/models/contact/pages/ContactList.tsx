@@ -28,8 +28,8 @@ export default function ContactList() {
     try {
       const res = await fetchContacts();
       if (res.status === 200) {
-        console.log(res.data.items);
-        setData(res.data.items);
+        console.log(res.data.results);
+        setData(res.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch contacts", type: "error" })
