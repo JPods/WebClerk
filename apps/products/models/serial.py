@@ -15,24 +15,24 @@ class Serial(ItemLinkedBase):
     status = models.CharField(max_length=40, blank=True, db_index=True)
     # Current location / warehouse / inventory stack
     site = models.JSONField(default=dict, blank=True, help_text="Lightweight site/location snapshot (geo codes, address refs)")
-    inventory_stack = models.ForeignKey('products.InventoryLayer', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
+    inventorylayer_id = models.ForeignKey('products.InventoryLayer', on_delete=models.SET_NULL, null=True, blank=True, related_name="serials")
     data = models.JSONField(default=dict, blank=True)
     qr_code = models.CharField(max_length=255, blank=True, db_index=True)
-    # Access the parent item's primary key via `serial.item_id` (Django auto FK _id attribute).
+    # Access the parent item's primary key via `serial.item_id_id` (Django auto FK _id attribute).
     # ItemLinkedBase already defines an index on `item`; no need to duplicate here.
 
 
 class SerialLog(BaseModel):
     """Log of actions / state changes for a serialized unit."""
 
-    serial = models.ForeignKey(Serial, on_delete=models.CASCADE, related_name="logs")
+    serial_id = models.ForeignKey(Serial, on_delete=models.CASCADE, related_name="logs")
     action = models.CharField(max_length=60, db_index=True)
     dt = models.BigIntegerField(db_index=True)
     data = models.JSONField(default=dict, blank=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=("serial", "dt"), name="seriallog_serial_dt_idx"),
+            models.Index(fields=("serial_id", "dt"), name="seriallog_serial_dt_idx"),
         ]
 
 

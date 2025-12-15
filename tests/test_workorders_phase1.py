@@ -23,9 +23,9 @@ class WorkOrderPhase1Tests(TestCase):
         )
         # Ensure role and permissions for tx endpoints
         self.user.role = 'USER'; self.user.save(update_fields=['role'])
-        Setting.objects.create(purpose='view_edit', model_name='work_order', is_active=True,
+        Setting.objects.create(purpose='view_edit', model_target='work_order', is_active=True,
                                data={'USER': {'view': ['id','work_no','status'], 'edit': ['id','status']}})
-        Setting.objects.create(purpose='view_edit', model_name='work_order_line', is_active=True,
+        Setting.objects.create(purpose='view_edit', model_target='work_order_line', is_active=True,
                                data={'USER': {'view': ['id','parent_ref_id','status'], 'edit': ['id','status']}})
         self.client.login(email='wo@example.com', password='testpass123')
         self.wo = WorkOrder.objects.create(work_no='WO-1001')

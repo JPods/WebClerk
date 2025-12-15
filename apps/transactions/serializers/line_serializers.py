@@ -8,7 +8,7 @@ from apps.transactions.models import (
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
-from apps.transactions.models.projects import Project
+from apps.transactions.models.project import Project
 from .cost_validators import CostJSONField  # added
 
 

@@ -125,6 +125,9 @@ class TransactionBaseModel(BaseModel):
     vendor_id = models.BigIntegerField(default=0, db_index=True)
     cost = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
     sell = models.JSONField(default=dict, blank=True, null=True)  # new: { sell:{...}, cost:{...}, margin:{...} }
+    # Header-level cached totals for quick filtering and reporting. Persisted so
+    # services that compute totals can save results for queries and UI display.
+    totals = models.JSONField(default=default_totals, blank=True, null=True)
     finance = models.JSONField(default=dict, blank=True, null=True)
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)

@@ -269,17 +269,27 @@ def _resolve_item_id_from_line(line: PurchaseOrderLine | SalesOrderLine | Propos
 def receive_purchase_order(po: PurchaseOrder,
                            receipt_no: str,
                            lines: Sequence[ReceiveLine]) -> dict:
-    """Post a receipt for a PO and create inventory stacks accordingly.
+    """Post a receipt for a PO, create inventory stacks, and inventory deltas.
 
-    Returns a summary dict with created receipt id and stack ids.
+    When goods are received:
+    - Increases quantity_on_hand
+    - Decreases quantity_on_po
+    - Creates inventory layer stacks for warehouse tracking
+
+    Returns a summary dict with created receipt id, stack ids, and deltas created.
     """
     from apps.transactions.models.purchase_receipt import PurchaseReceipt
+    from apps.core.models.pending import Pending
+    from django.utils import timezone
+    import uuid
 
     if not receipt_no:
         raise ValidationError({'receipt_no': 'Required'})
 
     receipt = PurchaseReceipt.objects.create(receipt_no=receipt_no)
     created_stack_ids: list[int] = []
+    deltas_created = 0
+
     for rl in lines:
         try:
             pol = PurchaseOrderLine.objects.select_related('parent').get(pk=rl.po_line_id, parent=po)
@@ -297,6 +307,7 @@ def receive_purchase_order(po: PurchaseOrder,
         except Warehouse.DoesNotExist:
             raise ValidationError({'lines': f'Warehouse code {rl.warehouse_code} not found'})
 
+        # Create inventory layer stack for warehouse tracking
         stack = InventoryLayer.objects.create(
             item=item,
             warehouse=wh,
@@ -311,6 +322,31 @@ def receive_purchase_order(po: PurchaseOrder,
         stack.save()
         created_stack_ids.append(stack.id)
 
+        # Create inventory delta for item-level quantity tracking
+        qty_received = Decimal(str(rl.qty))
+        record_id = f"{item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
+
+        Pending.objects.create(
+            model_name='inventory_delta',
+            record_id=record_id,
+            purpose='inventory_delta',
+            name=f"Inventory delta for item {item_id}",
+            data={
+                'item_id': item_id,
+                'warehouse_id': wh.id,
+                'quantity_on_hand_delta': float(qty_received),  # Increase on-hand
+                'quantity_on_order_delta': 0,
+                'quantity_on_po_delta': -float(qty_received),  # Decrease on-PO
+                'source_type': 'purchase_receipt',
+                'source_id': receipt.id,
+                'source_line_id': pol.id,
+                'unit_cost': unit_cost,
+                'notes': f"Purchase receipt {receipt.receipt_no} - received {qty_received} units",
+                'created_at': timezone.now().isoformat()
+            }
+        )
+        deltas_created += 1
+
         # Optional: update PO line received quantity hint
         if isinstance(pol.quantity, dict):
             prev = pol.quantity.get('received') or 0
@@ -320,7 +356,11 @@ def receive_purchase_order(po: PurchaseOrder,
                 pol.quantity['received'] = float(rl.qty)
             pol.save(update_fields=['quantity', 'dt_modified', 'version'])
 
-    return {'receipt_id': receipt.id, 'stacks_created': created_stack_ids}  # type: ignore[attr-defined]
+    return {
+        'receipt_id': receipt.id,  # type: ignore[attr-defined]
+        'stacks_created': created_stack_ids,
+        'deltas_created': deltas_created
+    }
 
 
 __all__ = [

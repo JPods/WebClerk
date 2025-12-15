@@ -53,7 +53,7 @@ STANDARD_COST_KEYS = tuple(default_cost().keys())  # Exportable reference
 class InventoryLayer(ItemLinkedBase):
     """Received quantity at a specific unit cost (lot/stack)."""
 
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_layers")
+    warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_layers")
     source = models.JSONField(default=dict, blank=True)
     # dt_s in metadata.history
     #dt_received = models.BigIntegerField(db_index=True)
@@ -76,7 +76,7 @@ class InventoryLayer(ItemLinkedBase):
 
     class Meta:
         indexes = [
-            models.Index(fields=("item", "warehouse"), name="inv_item_wh_idx"),
+            models.Index(fields=("item_id", "warehouse_id"), name="inv_item_wh_idx"),
             models.Index(fields=("lot",), name="inv_lot_idx"),
             GinIndex(fields=["quantity"], name="invstack_quantity_gin_idx"),
         ]
@@ -153,7 +153,7 @@ class InventoryLayer(ItemLinkedBase):
         # We allow issuing only if (remaining_qty - active_reserved) >= qty so reserved holds are protected.
         if self.is_locked:
             pending = PendingInventoryAdjustment.objects.create(
-                stack=self,
+                inventorylayer_id=self,
                 qty=Decimal(str(qty)),
                 state=PendingInventoryAdjustment.STATE_PENDING,
                 reason=reason,
@@ -164,7 +164,7 @@ class InventoryLayer(ItemLinkedBase):
         request_qty = Decimal(str(qty))
         if remaining < request_qty:
             pending = PendingInventoryAdjustment.objects.create(
-                stack=self,
+                inventorylayer_id=self,
                 qty=request_qty,
                 state=PendingInventoryAdjustment.STATE_PENDING,
                 reason="insufficient_issue",
@@ -176,7 +176,7 @@ class InventoryLayer(ItemLinkedBase):
             from apps.products.models.inventory_reservation import InventoryReservation
             now = timezone.now()
             active_reserved = (InventoryReservation.objects
-                                .filter(stack=self, state='pending', expires_at__gt=now)
+                                .filter(inventorylayer_id=self, state='pending', expires_at__gt=now)
                                 .aggregate(total=Sum('qty'))['total'] or Decimal('0'))
             active_reserved = Decimal(str(active_reserved))
         except Exception:
@@ -186,7 +186,7 @@ class InventoryLayer(ItemLinkedBase):
         if request_qty > available_for_issue:
             # Would infringe reserved holds; enqueue with reserved_conflict reason
             pending = PendingInventoryAdjustment.objects.create(
-                stack=self,
+                inventorylayer_id=self,
                 qty=request_qty,
                 state=PendingInventoryAdjustment.STATE_PENDING,
                 reason="reserved_conflict",
@@ -211,7 +211,7 @@ class SiteInventory(ItemLinkedBase):
     quantity = models.JSONField(default=dict, blank=True)
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["item", "site_code"], name="uniq_item_site"),
+            models.UniqueConstraint(fields=["item_id", "site_code"], name="uniq_item_site"),
         ]
         indexes = [
             models.Index(fields=("site_code",), name="siteinv_site_idx"),
@@ -236,8 +236,8 @@ class InventoryMovement(ItemLinkedBase):
     ]
 
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES, db_index=True)
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_movements")
-    source_stack = models.ForeignKey(
+    warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_movements")
+    inventorylayer_id = models.ForeignKey(
         InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name="movements"
     )
     site_code = models.CharField(max_length=40, db_index=True, blank=True)
@@ -249,7 +249,7 @@ class InventoryMovement(ItemLinkedBase):
     class Meta:
         indexes = [
             models.Index(fields=("movement_type",), name="invmove_type_idx"),
-            models.Index(fields=("item", "warehouse"), name="invmove_item_wh_idx"),
+            models.Index(fields=("item_id", "warehouse_id"), name="invmove_item_wh_idx"),
         ]
 
 
@@ -268,7 +268,7 @@ class PendingInventoryAdjustment(models.Model):
         (STATE_APPLIED, "Applied"),
         (STATE_CANCELED, "Canceled"),
     ]
-    stack = models.ForeignKey(InventoryLayer, on_delete=models.CASCADE, related_name="pending_adjustments")
+    inventorylayer_id = models.ForeignKey(InventoryLayer, on_delete=models.CASCADE, related_name="pending_adjustments")
     qty = models.DecimalField(max_digits=14, decimal_places=4)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
     reason = models.CharField(max_length=80, blank=True)
@@ -280,13 +280,13 @@ class PendingInventoryAdjustment(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=("state",), name="pendinv_state_idx"),
-            models.Index(fields=("stack", "state"), name="pendinv_stack_state_idx"),
+            models.Index(fields=("inventorylayer_id", "state"), name="pendinv_stack_state_idx"),
         ]
 
     def apply_now(self):  # stub logic
         if self.state != self.STATE_PENDING:
             return False
-        stack = self.stack
+        stack = self.inventorylayer_id
         if stack.remaining_qty() < self.qty and not stack.is_locked:
             # insufficient still
             return False

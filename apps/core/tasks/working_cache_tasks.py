@@ -34,17 +34,17 @@ def update_all_settings_cache_working():
         
         for setting in settings_list:
             purpose = setting.purpose or 'general'
-            model_name = setting.model_name or 'general'
+            model_key = setting.model_target or 'general'
             data = setting.data or {}
             
             # Group by purpose
             if purpose not in settings_by_purpose:
                 settings_by_purpose[purpose] = {}
-            if model_name:
-                settings_by_purpose[purpose][model_name] = data
+            if model_key:
+                settings_by_purpose[purpose][model_key] = data
             
             # Add to all settings
-            key = f"{model_name}:{purpose}"
+            key = f"{model_key}:{purpose}"
             all_settings[key] = data
         
         # Cache results

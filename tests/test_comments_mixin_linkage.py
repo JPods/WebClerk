@@ -6,7 +6,7 @@ from apps.core.models.setting import Setting
 @pytest.mark.django_db
 def test_comments_mixin_routes_to_linkage(django_user_model):
     # minimal permission for proposal
-    Setting.objects.create(purpose='view_edit', model_name='proposal', is_active=True, data={'USER': {'view':['id'], 'edit':['id']}})
+    Setting.objects.create(purpose='view_edit', model_target='proposal', is_active=True, data={'USER': {'view':['id'], 'edit':['id']}})
     prop = Proposal.objects.create(name='CMT-PROP')
     pl = ProposalLine.objects.create(parent=prop, parent_ref_id=prop.pk, status='OPEN')
     # simulate linkage attachment

@@ -53,6 +53,13 @@ INSTALLED_APPS = [
     'drf_spectacular_sidecar',
 ]
 
+MIGRATION_MODULES = {
+    'admin': None,
+    'auth': None,
+    'contenttypes': None,
+    'sessions': None,
+}
+
 MIDDLEWARE = [
     "apps.core.utils.middleware.JSONOnlyMiddleware",
     'corsheaders.middleware.CorsMiddleware',
@@ -148,7 +155,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
-    "DEFAULT_SCHEMA_CLASS": "common.schema.WhitelistAutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 from datetime import timedelta
@@ -172,7 +179,7 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
 
     # === Generation hooks ===
-    'PREPROCESSING_HOOKS': ['common.schema_hooks.whitelist_preprocessor'],
+    # 'PREPROCESSING_HOOKS': ['common.schema_hooks.whitelist_preprocessor'],
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
 
     # === Authentication (global) ===
@@ -213,6 +220,24 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER or 'noreply@example.com')
+
+# Email Notification Settings
+COMPANY_NAME = config('COMPANY_NAME', default='WebClerk3')
+
+# Transaction Email Notifications
+# Enable/disable specific email notifications
+EMAIL_NOTIFICATIONS_ENABLED = config('EMAIL_NOTIFICATIONS_ENABLED', default=True, cast=bool)
+EMAIL_PROPOSAL_SUBMITTED_ENABLED = config('EMAIL_PROPOSAL_SUBMITTED_ENABLED', default=True, cast=bool)
+EMAIL_ORDER_CREATED_ENABLED = config('EMAIL_ORDER_CREATED_ENABLED', default=True, cast=bool)
+EMAIL_INVOICE_SENT_ENABLED = config('EMAIL_INVOICE_SENT_ENABLED', default=True, cast=bool)
+EMAIL_PAYMENT_RECEIVED_ENABLED = config('EMAIL_PAYMENT_RECEIVED_ENABLED', default=True, cast=bool)
+
+# Additional recipient emails for notifications (comma-separated)
+EMAIL_ADDITIONAL_RECIPIENTS = config('EMAIL_ADDITIONAL_RECIPIENTS', default='')
+
+# BCC all transaction emails to admin
+EMAIL_BCC_ADMIN = config('EMAIL_BCC_ADMIN', default=False, cast=bool)
+EMAIL_ADMIN_RECIPIENT = config('EMAIL_ADMIN_RECIPIENT', default='')
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -298,8 +323,86 @@ WRITE_GATE_ALLOWED_REGEX = (
 
 # WCAPI blessed models (present in your project)
 WCAPI_BLESSED_MODELS = {
+    # Core models
     "contact": "core.Contact",
     "action": "core.Action",
+    "audit": "core.Audit",
+    "notification": "core.Notification",
+    "pending": "core.Pending",
+    "report": "core.Report",
+    "setting": "core.Setting",
+    "template": "core.Template",
+
+    # Accounts models
+    "currency": "accounts.Currency",
+    "exchange_rate": "accounts.ExchangeRate",
+    "exchange_transaction": "accounts.ExchangeTransaction",
+    "gl_account": "accounts.GlAccount",
+    "gl_journal": "accounts.GlJournal",
+    "ledger": "accounts.Ledger",
+    "tax_jurisdiction": "accounts.TaxJurisdiction",
+    "term": "accounts.Term",
+
+    # Communications models
+    "domain": "communications.Domain",
+    "email": "communications.Email",
+    "location": "communications.Location",
+    "phone": "communications.Phone",
+
+    # Docs models
+    "document": "docs.Document",
+    "linkage": "docs.Linkage",
+    "linkage_index": "docs.LinkageIndex",
+    "question_answer": "docs.QuestionAnswer",
+    "tag": "docs.Tag",
+
+    # Products models
+    "bill_of_material": "products.BillOfMaterial",
+    "catalog": "products.Catalog",
+    "flow": "products.Flow",
+    "inventory_check": "products.InventoryCheck",
+    "inventory_layer": "products.InventoryLayer",
+    "inventory_reservation": "products.InventoryReservation",
+    "item": "products.Item",
+    "item_xref": "products.ItemXRef",
+    "metrics": "products.InventoryMetricsSnapshot",
+    "org_item": "products.OrgItem",
+    "processor_runs": "products.InventoryAdjustmentProcessorRun",
+    "serial": "products.Serial",
+    "service": "products.Service",
+    "specification": "products.Specification",
+    "usage": "products.ItemUsage",
+    "variant": "products.Variant",
+    "warehouse": "products.Warehouse",
+
+    # Support models
+    "campaign": "support.Campaign",
+
+    # Sync models
+    "bundle": "sync.Bundle",
+    "connection": "sync.Connection",
+
+    # Transaction models
+    "payment": "transactions.Payment",
+    "payment_method": "transactions.PaymentMethod",
+    "payment_term": "transactions.PaymentTerm",
+    "payment_application": "transactions.PaymentApplication",
+    "transaction": "transactions.SalesOrder",
+    "sales_order": "transactions.SalesOrder",
+    "sales_order_line": "transactions.SalesOrderLine",
+    "invoice": "transactions.Invoice",
+    "invoice_line": "transactions.InvoiceLine",
+    "purchase_order": "transactions.PurchaseOrder",
+    "purchase_order_line": "transactions.PurchaseOrderLine",
+    "purchase_receipt": "transactions.PurchaseReceipt",
+    "work_order": "transactions.WorkOrder",
+    "work_order_line": "transactions.WorkOrderLine",
+    "proposal": "transactions.Proposal",
+    "proposal_line": "transactions.ProposalLine",
+    "requisition": "transactions.Requisition",
+    "requisition_line": "transactions.RequisitionLine",
+    "project": "transactions.Project",
+    "project_links": "transactions.ProjectLinks",
 }
 
 # WCAPI per-model policies (opt-in, safe by default)
@@ -388,5 +491,22 @@ if _os.environ.get('PYTEST_CURRENT_TEST'):
 try:
     DATABASES["default"].setdefault("TEST", {})
     DATABASES["default"]["TEST"]["SERIALIZE"] = False
+    DATABASES["default"]["TEST"]["NAME"] = 'test_commerce_expert_new'
 except Exception:
     pass
+
+# Payment Gateway Settings
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID', default='')
+PAYPAL_CLIENT_SECRET = config('PAYPAL_CLIENT_SECRET', default='')
+PAYPAL_ENVIRONMENT = config('PAYPAL_ENVIRONMENT', default='sandbox')  # 'sandbox' or 'live'
+PAYPAL_WEBHOOK_ID = config('PAYPAL_WEBHOOK_ID', default='')
+
+# Payment Processing Settings
+PAYMENT_CURRENCY = config('PAYMENT_CURRENCY', default='USD')
+PAYMENT_SUCCESS_URL = config('PAYMENT_SUCCESS_URL', default='http://localhost:5173/payment/success')
+PAYMENT_CANCEL_URL = config('PAYMENT_CANCEL_URL', default='http://localhost:5173/payment/cancel')
+PAYMENT_WEBHOOK_URL = config('PAYMENT_WEBHOOK_URL', default='http://localhost:8000/api/payments/webhook/')

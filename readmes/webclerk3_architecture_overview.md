@@ -19,9 +19,10 @@ WebClerk3 is a Django-based backend application designed for managing commerce a
 ### 1. Core Infrastructure
 
 #### Base Model System
+
 WebClerk3 uses a composable model system built on Django's ORM:
 
-```
+```aaa
 CoreModel (minimal identity + timestamps + version)
 ├── MetadataMixin (historized metadata, flags, versioning)
 ├── RefsMixin (keywords, tags, lightweight links)
@@ -37,6 +38,7 @@ CoreModel (minimal identity + timestamps + version)
 ```
 
 #### Universal API System
+
 - **Endpoints**: `/wcapi/save/`, `/wcapi/manage/`, `/wcapi/get/`, `/wcapi/query/`
 - **Registry**: Explicit model allow-list in `apps/core/services/wcapi_registry.py`
 - **Envelope**: Consistent JSON response structure with `status`, `data`, `error`, `meta`
@@ -46,12 +48,14 @@ CoreModel (minimal identity + timestamps + version)
 ### 2. Business Domains
 
 #### Core Entities
+
 - **Contact**: Central entity with relationships to all other data
 - **Action**: Activity records with status and dependencies
 - **Communication**: Email, phone, location with verification flows
 - **Document**: File metadata with search vectors and linkage
 
 #### Transaction System
+
 - **Headers**: Proposal, SalesOrder, PurchaseOrder, Invoice, WorkOrder, Requisition
 - **Lines**: Corresponding line items with quantity, pricing, costing
 - **Flows**: Proposal → Sales Order → Invoice; Purchase Order → Invoice
@@ -59,12 +63,14 @@ CoreModel (minimal identity + timestamps + version)
 - **Aggregation**: Cached totals with automatic invalidation
 
 #### Product & Inventory
+
 - **Catalog**: Product definitions with pricing/costing structures
 - **Inventory**: Layer-based stock tracking with reservations
 - **BOM**: Bill of Materials for assemblies
 - **Reservations**: Soft holds with expiration
 
 #### Synchronization
+
 - **Connections**: External service integrations (Google Calendar, alerts)
 - **Verification**: Email, phone, domain verification flows
 - **Exchange**: Data transformation and conflict resolution
@@ -72,22 +78,26 @@ CoreModel (minimal identity + timestamps + version)
 ### 3. Technical Components
 
 #### Data Persistence
+
 - **PostgreSQL**: Primary database with JSONB, full-text search, GIN indexes
 - **Migrations**: Squashed and managed via Django migrations
 - **Caching**: Redis for session storage and Celery broker
 
 #### Asynchronous Processing
+
 - **Celery**: Background tasks for keyword refresh, email sending, sync operations
 - **Queues**: Dedicated queues for different operation types
 - **Monitoring**: Flower dashboard for task monitoring
 
 #### Security & Permissions
+
 - **Authentication**: JWT or session-based
 - **Authorization**: Field-level permissions via settings matrices
 - **Audit**: Request logging, change tracking in metadata
 - **Encryption**: Configurable for sensitive connection data
 
 #### API Features
+
 - **Pagination**: Universal with `limit`/`offset` parameters
 - **Projection**: Selective field retrieval with `fields` parameter
 - **Filtering**: Safe filter allow-list with strict mode option
@@ -148,6 +158,7 @@ erDiagram
 ## Key Workflows
 
 ### 1. Transaction Flow
+
 ```mermaid
 flowchart TD
     A[Create Proposal] --> B[Add Line Items]
@@ -161,6 +172,7 @@ flowchart TD
 ```
 
 ### 2. Universal Save Flow
+
 ```mermaid
 flowchart TD
     A[Client Request] --> B{Write Gate Check}
@@ -179,6 +191,7 @@ flowchart TD
 ```
 
 ### 3. Keyword Refresh Pipeline
+
 ```mermaid
 flowchart TD
     A[Model Save] --> B[Mark Keywords Dirty]

@@ -43,7 +43,7 @@ def test_envelope_presence_core_endpoints(api_client):
     body = r.json()
     assert isinstance(body, dict) and 'status' in body, body
 
-    # Raw escape hatch now disabled by default (API_ENVELOPE_ALLOW_RAW not set to 1)
+    # Raw query parameter is ignored; envelope must still be present
     raw_r = api_client.get(email_list_url + '?raw=1')
     raw_body = raw_r.json()
     assert 'status' in raw_body and isinstance(raw_body, dict)

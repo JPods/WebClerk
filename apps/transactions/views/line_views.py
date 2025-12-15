@@ -30,24 +30,25 @@ from apps.core.permissions import get_role_field_rules
 from apps.transactions.aggregation import compute_line_aggregate, DEFAULT_CACHE_TTL_SECONDS
 from apps.transactions.models.projects import Project
 from apps.core.constants.model_registry import get_model_meta, import_model
+from apps.transactions.pagination import TransactionPagination
+from apps.transactions.response_envelope import EnvelopeResponseMixin, ListResponseEnvelopeMixin
 
 class BasePermission(ViewEditPermission):
     """Combines auth + view_edit rule enforcement (ViewEditPermission already checks auth)."""
     pass
 
 # Parent (header) endpoints -------------------------------------------------
-class DefaultPagination(pagination.PageNumberPagination):
-    page_size = 25
-    page_size_query_param = 'page_size'
-    max_page_size = 500
+class DefaultPagination(TransactionPagination):
+    """Standard pagination with metadata envelope for transaction endpoints."""
+    pass
 
-class ProposalListCreate(generics.ListCreateAPIView):
+class ProposalListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = Proposal.objects.all().order_by('-id')
     serializer_class = ProposalSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class ProposalRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class ProposalRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Proposal.objects.all()
     serializer_class = ProposalSerializer
     permission_classes = [BasePermission]
@@ -56,7 +57,7 @@ class ProposalRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
     summary="List/Create proposal lines",
     parameters=[OpenApiParameter(name='parent_id', description='Filter by parent_id', required=False, type=int)],
 )
-class ProposalLineListCreate(generics.ListCreateAPIView):
+class ProposalLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = ProposalLine.objects.all().order_by('-id')
     serializer_class = ProposalLineSerializer
     permission_classes = [BasePermission]
@@ -66,25 +67,25 @@ class ProposalLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class ProposalLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class ProposalLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = ProposalLine.objects.all()
     serializer_class = ProposalLineSerializer
     permission_classes = [BasePermission]
 
 # SalesOrder
-class SalesOrderListCreate(generics.ListCreateAPIView):
+class SalesOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = SalesOrder.objects.all().order_by('-id')
     serializer_class = SalesOrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class SalesOrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class SalesOrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = SalesOrder.objects.all()
     serializer_class = SalesOrderSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create sales order lines")
-class SalesOrderLineListCreate(generics.ListCreateAPIView):
+class SalesOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = SalesOrderLine.objects.all().order_by('-id')
     serializer_class = SalesOrderLineSerializer
     permission_classes = [BasePermission]
@@ -94,25 +95,25 @@ class SalesOrderLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class SalesOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class SalesOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = SalesOrderLine.objects.all()
     serializer_class = SalesOrderLineSerializer
     permission_classes = [BasePermission]
 
 # Invoice
-class InvoiceListCreate(generics.ListCreateAPIView):
+class InvoiceListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = Invoice.objects.all().order_by('-id')
     serializer_class = InvoiceSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class InvoiceRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class InvoiceRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create invoice lines")
-class InvoiceLineListCreate(generics.ListCreateAPIView):
+class InvoiceLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = InvoiceLine.objects.all().order_by('-id')
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
@@ -122,25 +123,25 @@ class InvoiceLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class InvoiceLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = InvoiceLine.objects.all()
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
 
 # PurchaseOrder
-class PurchaseOrderListCreate(generics.ListCreateAPIView):
+class PurchaseOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = PurchaseOrder.objects.all().order_by('-id')
     serializer_class = PurchaseOrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class PurchaseOrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class PurchaseOrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create purchase order lines")
-class PurchaseOrderLineListCreate(generics.ListCreateAPIView):
+class PurchaseOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = PurchaseOrderLine.objects.all().order_by('-id')
     serializer_class = PurchaseOrderLineSerializer
     permission_classes = [BasePermission]
@@ -150,25 +151,25 @@ class PurchaseOrderLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class PurchaseOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class PurchaseOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseOrderLine.objects.all()
     serializer_class = PurchaseOrderLineSerializer
     permission_classes = [BasePermission]
 
 # WorkOrder
-class WorkOrderListCreate(generics.ListCreateAPIView):
+class WorkOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = WorkOrder.objects.all().order_by('-id')
     serializer_class = WorkOrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class WorkOrderRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class WorkOrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = WorkOrder.objects.all()
     serializer_class = WorkOrderSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create workorder lines")
-class WorkOrderLineListCreate(generics.ListCreateAPIView):
+class WorkOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = WorkOrderLine.objects.all().order_by('-id')
     serializer_class = WorkOrderLineSerializer
     permission_classes = [BasePermission]
@@ -178,25 +179,25 @@ class WorkOrderLineListCreate(generics.ListCreateAPIView):
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class WorkOrderLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = WorkOrderLine.objects.all()
     serializer_class = WorkOrderLineSerializer
     permission_classes = [BasePermission]
 
 # Requisition
-class RequisitionListCreate(generics.ListCreateAPIView):
+class RequisitionListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = Requisition.objects.all().order_by('-id')
     serializer_class = RequisitionSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class RequisitionRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class RequisitionRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Requisition.objects.all()
     serializer_class = RequisitionSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create requisition lines")
-class RequisitionLineListCreate(generics.ListCreateAPIView):
+class RequisitionLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = RequisitionLine.objects.all().order_by('-id')
     serializer_class = RequisitionLineSerializer
     permission_classes = [BasePermission]
@@ -346,7 +347,7 @@ class RequisitionLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
 
 
 # ---------------- Projects -------------------------------------------------
-class ProjectListCreate(generics.ListCreateAPIView):
+class ProjectListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
     queryset = Project.objects.all().order_by('-id')
     serializer_class = ProjectSerializer
     # Use plain IsAuthenticated to avoid needing dynamic view/edit settings for base project CRUD
@@ -370,7 +371,7 @@ class ProjectListCreate(generics.ListCreateAPIView):
         obj = Project.objects.create(**create_kwargs)
         return Response({"id": obj.id}, status=status.HTTP_201_CREATED)
 
-class ProjectRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
+class ProjectRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticated]

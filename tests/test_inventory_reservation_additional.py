@@ -73,17 +73,16 @@ class InventoryReservationAdditionalTests(TestCase):
         r_obj = InventoryReservation.objects.get(pk=rid)
         self.assertEqual(str(r_obj.qty), '1.2345')
 
-    def test_raw_flag(self):
-        # availability raw
+    def test_raw_param_is_ignored_and_enveloped(self):
+        # availability with raw query still returns envelope
         raw_avail = self.client.get(f'/products/inventory/availability/{self.stack.id}/?raw=1')
         payload = raw_avail.json()
-        if 'available_qty' in payload:  # truly raw
-            self.assertIsInstance(payload['available_qty'], (int, float))
-        else:  # envelope present
-            self.assertIn('data', payload)
-            self.assertIn('available_qty', payload['data'])
-            self.assertIsInstance(payload['data']['available_qty'], (int, float))
-        # reservation raw
+        self.assertIn('status', payload)
+        self.assertIn('data', payload)
+        self.assertIn('available_qty', payload['data'])
+        self.assertIsInstance(payload['data']['available_qty'], (int, float))
+
+        # reservation create with raw query still returns envelope
         raw_res = self.client.post(
             f'/products/inventory/reservations/?raw=1',
             {
@@ -93,13 +92,10 @@ class InventoryReservationAdditionalTests(TestCase):
             format='json'
         )
         self.assertEqual(raw_res.status_code, 201)
-        # If middleware forces envelope, we still treat as pass
         res_payload = raw_res.json()
-        if 'status' in res_payload:
-            self.assertIn('data', res_payload)
-            self.assertIn('qty', res_payload['data'])
-        else:
-            self.assertIn('qty', res_payload)
+        self.assertIn('status', res_payload)
+        self.assertIn('data', res_payload)
+        self.assertIn('qty', res_payload['data'])
 
     @pytest.mark.skip(reason='True concurrency race requires transactional locking not implemented yet')
     def test_concurrent_boundary_reservations(self):

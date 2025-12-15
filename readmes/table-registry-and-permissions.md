@@ -31,7 +31,7 @@ Between Sept 3–4 2025 we performed a domain naming and authorization hardening
 - Pluralized transactional header & line table physical names.
 - Removed temporary legacy alias fallbacks for permissions.
 - Introduced a canonical table registry for consistent `model_name` usage across backend, tests, and frontend.
-- Enforced strict validation of `Setting.model_name` values.
+- Enforced strict validation of `Setting.model_target` values.
 - Added endpoint to introspect registry & (optionally) field metadata.
 - Added purge utility for stale legacy `Setting` rows.
 
@@ -44,7 +44,7 @@ All tests: **156 passed, 1 skipped** after changes.
 | Inconsistent singular/plural names | Permission mismatches, cognitive load | Standardized plural for multi-row tables (`sales_orders`, `sales_order_lines`, etc.) |
 | Silent legacy alias mapping | Risk of drift & hidden coupling | Removed alias layer, forced explicit corrections |
 | No authoritative table metadata source | Duplication in serializers, views, docs | Added centralized registry (`TABLE_REGISTRY`) |
-| Unvalidated `Setting.model_name` | Typos caused 403s with little guidance | Model + serializer validation with explicit enum list |
+| Unvalidated `Setting.model_target` | Typos caused 403s with little guidance | Model + serializer validation with explicit enum list |
 | Hard to inspect allowed tables on frontend | Manual syncing, fragile | `/wcapi/tables/` endpoint (list & detail) |
 | Orphan legacy Setting rows | Noise & potential confusion | `purge_legacy_model_names` mgmt command |
 
@@ -58,14 +58,14 @@ Provides:
 
 - `TableMeta` dataclass
 - `MODEL_REGISTRY` (canonical singular key -> metadata)
-- `VALID_model_nameS` list
+- `VALID_MODEL_NAMES` list
 - Reverse endpoint lookup helpers
 - Lazy model import for field inspection
 
 ### Validation
 
-`apps/core/models/setting.py` – `clean()` enforces membership in `VALID_model_nameS`.
-`apps/core/serializers/setting.py` – serializer-level `validate_model_name` mirrors rule.
+`apps/core/models/setting.py` – `clean()` enforces membership in `VALID_MODEL_NAMES`.
+`apps/core/serializers/setting.py` – serializer-level validation mirrors rule.
 
 ### Permissions
 

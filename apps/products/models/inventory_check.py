@@ -63,9 +63,9 @@ class InventoryCheck(BaseModel):
     """Top-level inventory audit event.
 
     Key Fields:
-        org: Organization whose inventory is being verified.
-        catalog: Optional scoping object restricting which org items are *expected*.
-        performed_by: User (or system user) responsible for the check finalization.
+        orgbase_id: Organization whose inventory is being verified.
+        catalog_id: Optional scoping object restricting which org items are *expected*.
+        user_id: User (or system user) responsible for the check finalization.
         dt_performed: Epoch ms timestamp representing when the *count snapshot* was
             effectively captured (freeze point). For multi-hour counts consider
             storing a range inside `data` (e.g. {"window": {"start":..., "end":...}}).
@@ -94,9 +94,9 @@ class InventoryCheck(BaseModel):
         (STATUS_CANCELED, "Canceled"),
     ]
 
-    org = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='inventory_checks')
-    catalog = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')
-    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')
+    orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='inventory_checks')
+    catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')
+    user_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')
     dt_performed = models.BigIntegerField(help_text="Epoch ms when the primary count occurred / was finalized")
     status = models.CharField(max_length=20, choices=STATUSES, default=STATUS_PLANNED, db_index=True)
     notes = models.TextField(blank=True)
@@ -104,8 +104,8 @@ class InventoryCheck(BaseModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=("org", "dt_performed"), name="invchk_org_dt_idx"),
-            models.Index(fields=("catalog", "dt_performed"), name="invchk_cat_dt_idx"),
+            models.Index(fields=("orgbase_id", "dt_performed"), name="invchk_org_dt_idx"),
+            models.Index(fields=("catalog_id", "dt_performed"), name="invchk_cat_dt_idx"),
             models.Index(fields=("status",), name="invchk_status_idx"),
         ]
 
@@ -135,8 +135,8 @@ class InventoryCheckLine(BaseModel):
         * Support multi-count lines (store array of attempts and a resolved value).
     """
 
-    inventory_check = models.ForeignKey(InventoryCheck, on_delete=models.CASCADE, related_name='lines')
-    org_item = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='inventory_check_lines')
+    inventorycheck_id = models.ForeignKey(InventoryCheck, on_delete=models.CASCADE, related_name='lines')
+    orgitem_id = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='inventory_check_lines')
     counted_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
     prior_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="Optional previously known quantity for variance calc")
     variance_qty = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True, help_text="counted - prior if both available")
@@ -145,7 +145,7 @@ class InventoryCheckLine(BaseModel):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=("inventory_check", "org_item"), name="uniq_invchk_orgitem"),
+            models.UniqueConstraint(fields=("inventorycheck_id", "orgitem_id"), name="uniq_invchk_orgitem"),
         ]
         indexes = [
             models.Index(fields=("auto_flag",), name="invchkline_autoflag_idx"),

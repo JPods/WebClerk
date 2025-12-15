@@ -24,6 +24,11 @@ _MAPPING = {
     'Requisition': ('requisition', 'Requisition'),
     #'RequisitionStd': ('requisition', 'Requisition'),  # back-compat
     'RequisitionLine': ('requisition_line', 'RequisitionLine'),
+
+    'Payment': ('payment', 'Payment'),
+    'PaymentMethod': ('payment', 'PaymentMethod'),
+    'PaymentTerm': ('payment', 'PaymentTerm'),
+    'PaymentApplication': ('payment_application', 'PaymentApplication'),
 }
 
 def __getattr__(name: str):

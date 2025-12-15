@@ -1,4 +1,6 @@
 from __future__ import annotations
+import json
+from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from django.forms.models import model_to_dict
 from django.db.models import Model, QuerySet
@@ -6,7 +8,8 @@ from apps.core.utils import registry, policy
 
 def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     data = model_to_dict(obj)
-    return {k: data.get(k) for k in allow} if allow else data
+    filtered = {k: data.get(k) for k in allow} if allow else data
+    return filtered
 
 def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[str, Any]:
     fields = {f.name for f in getattr(ModelCls._meta, "fields", [])}
@@ -17,6 +20,11 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
     if not ModelCls:
         raise ValueError("invalid model")
     qs = ModelCls.objects.all()
+
+    # Prefetch lines for transaction models
+    if model_key in ['proposal', 'salesorder', 'purchaseorder']:
+        qs = qs.prefetch_related('lines')
+
     qs = policy.inject_constraints(qs, request=request, model_key=model_key)
     return ModelCls, qs
 
@@ -27,10 +35,12 @@ def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
     except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
         return None
 
-def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = None, limit: int = 500) -> List[Model]:
+def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = None, limit: int = 500, ordering: Optional[str] = None) -> List[Model]:
     ModelCls, qs = get_queryset(model_key, request=request)
     if filters:
         qs = qs.filter(**filters)
+    if ordering:
+        qs = qs.order_by(ordering)
     return list(qs[:limit])
 
 def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) -> Tuple[Any, str]:

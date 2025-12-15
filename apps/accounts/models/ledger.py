@@ -21,9 +21,9 @@ class Ledger(BaseModel):
     model_name = models.CharField(max_length=255, blank=True, null=True)
     # Strong linkage to parent (e.g., invoice)
     parent_id = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Parent primary key for fast lookup")
-    invoice = models.ForeignKey('transactions.Invoice', blank=True, null=True, on_delete=models.SET_NULL, db_column='invoice_id')
-    term = models.ForeignKey('accounts.Term', blank=True, null=True, on_delete=models.SET_NULL, db_column='term_id')
-    gl_account_fx_variance = models.ForeignKey('accounts.Gl_account', blank=True, null=True, on_delete=models.SET_NULL, db_column='gl_fx_variance_id', help_text="GL account for FX gain/loss applied to this entry, if any")
+    invoice_id = models.ForeignKey('transactions.Invoice', blank=True, null=True, on_delete=models.SET_NULL)
+    term_id = models.ForeignKey('accounts.Term', blank=True, null=True, on_delete=models.SET_NULL)
+    gl_account_id = models.ForeignKey('accounts.Gl_account', blank=True, null=True, on_delete=models.SET_NULL, help_text="GL account for FX gain/loss applied to this entry, if any")
     value_available = models.FloatField(blank=True, null=True)
     value_original = models.FloatField(blank=True, null=True)
 

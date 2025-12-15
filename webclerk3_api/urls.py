@@ -11,9 +11,16 @@ urlpatterns = [
     path('wcapi/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('wcapi/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('wcapi/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    
+
     # Core API endpoints
     path('', include('apps.core.urls')),
+    path('api/orgs/', include('apps.orgs.urls')),
+    path('api/docs/', include('apps.docs.urls')),
+    path('api/transactions/', include('apps.transactions.urls')),
+
+    # Admin swagger
+    path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),
+
     path('admin/', admin.site.urls),
 ]
 

@@ -163,9 +163,6 @@ class ItemUsage(ItemLinkedBase):
         return flat
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["item", "year", "month"], name="uniq_item_year_month"),
-        ]
         indexes = [
             models.Index(fields=("year", "month"), name="usage_year_month_idx"),
         ]
