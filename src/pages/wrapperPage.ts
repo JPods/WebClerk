@@ -40,8 +40,8 @@ import TermDisplay from "../apps/accounts/models/term/pages/TermDisplay";
 // Communications
 import DomainList from "../apps/communications/models/domain/pages/DomainList";
 import DomainDetail from "../apps/communications/models/domain/pages/Domain";
-import AppEmailList from "../apps/communications/models/email/pages/EmailList";
-import AppEmailDetail from "../apps/communications/models/email/pages/EmailDetail";
+import EmailList from "../apps/communications/models/email/pages/EmailList";
+import EmailDetail from "../apps/communications/models/email/pages/EmailDetail";
 import AppLocationList from "../apps/communications/models/location/pages/LocationList";
 import AppLocationDetail from "../apps/communications/models/location/pages/LocationDetail";
 import AppPhoneList from "../apps/communications/models/phone/pages/PhoneList";
@@ -145,8 +145,8 @@ export {
   // Communications
   DomainList,
   DomainDetail,
-  AppEmailList,
-  AppEmailDetail,
+  EmailList,
+  EmailDetail,
   AppLocationList,
   AppLocationDetail,
   AppPhoneList,

@@ -16,6 +16,7 @@ export class PageRoutes {
 
   static readonly ContactDetail: string = "/contact-detail";
   static readonly contactList: string = "/contact-list";
+
   static readonly customerDetail: string = "/contacts/:id";
   static readonly customerAdd: string = "/contacts/add";
 
@@ -24,6 +25,8 @@ export class PageRoutes {
 
   static readonly domainAdd: string = "/domain-detail";
   static readonly domainList: string = "/domain-list";
+  static readonly emailAdd: string = "/email-detail";
+  static readonly emailList: string = "/email-list";
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";

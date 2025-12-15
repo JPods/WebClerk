@@ -112,28 +112,7 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  {
-    icon: <GridIcon />,
-    name: "Communications",
-    subItems: [
-      {
-        name: "Domain Detail",
-        path: "/domain-detail",
-      },
-      {
-        name: "Domain List",
-        path: "/domain-list",
-      },
-      {
-        name: "Email Details",
-        path: "/email-detail",
-      },
-      {
-        name: "Email Addresses List",
-        path: "/email-list",
-      },
-    ],
-  },
+
   {
     icon: <GridIcon />,
     name: "Settings",
@@ -181,12 +160,34 @@ const navItems: NavItem[] = [
       { name: "Term", path: "/accounts/term/list" },
     ],
   },
+  // {
+  //   icon: <GridIcon />,
+  //   name: "Communications",
+  //   subItems: [
+  //     {
+  //       name: "Domain Detail",
+  //       path: "/domain-detail",
+  //     },
+  //     {
+  //       name: "Domain List",
+  //       path: "/domain-list",
+  //     },
+  //     {
+  //       name: "Email Details",
+  //       path: "/email-detail",
+  //     },
+  //     {
+  //       name: "Email Addresses List",
+  //       path: "/email-list",
+  //     },
+  //   ],
+  // },
   {
     icon: <GridIcon />,
     name: "Communications",
     subItems: [
-      { name: "Domain", path: "/communications/domain/list" },
-      { name: "Email", path: "/communications/email/list" },
+      { name: "Domain", path: "/domain-list" },
+      { name: "Email", path: "/email-list" },
       { name: "Location", path: "/communications/location/list" },
       { name: "Phone", path: "/communications/phone/list" },
     ],

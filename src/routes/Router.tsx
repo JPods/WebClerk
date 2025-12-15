@@ -10,8 +10,6 @@ import {
   ContactList,
   // CustomerAddPage,
   // CustomerDetailPage,
-  DomainDetail,
-  DomainList,
   FormElements,
   Home,
   KanbanBoardDataPage,
@@ -49,8 +47,10 @@ import {
   TermList,
   TermDisplay,
   // Communications
-  AppEmailList,
-  AppEmailDetail,
+  DomainDetail,
+  DomainList,
+  EmailList,
+  EmailDetail,
   AppLocationList,
   AppLocationDetail,
   AppPhoneList,
@@ -130,6 +130,11 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.domainAdd}
             element={<DomainDetail modeProp="add" />}
+          />
+          <Route path={PageRoutes.emailList} element={<EmailList />} />
+          <Route
+            path={PageRoutes.emailAdd}
+            element={<EmailDetail modeProp="add" />}
           />
           <Route
             path={PageRoutes.notionTracker}

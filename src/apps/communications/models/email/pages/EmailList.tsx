@@ -8,12 +8,16 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import EmailDetail from "./EmailDetail";
+import Badge from "@/components/ui/badge/Badge";
+import { dynamicData } from "../../../../../model/dynamicData";
 
 export default function EmailList() {
   const { theme } = useTheme();
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<dynamicData[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -23,7 +27,8 @@ export default function EmailList() {
     try {
       const res = await fetchEmails();
       if (res.status === 200) {
-        setData(res.data.items);
+        //console.log(res.data.data.results);
+        setData(res.data.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch emails", type: "error" })
@@ -45,10 +50,14 @@ export default function EmailList() {
     setFormMode("view");
   };
 
-  const handleEdit = async (row: any) => {
-     const res = await fetchEmails({ id: row.id });
-     if (res.status === 200) setSelectedEmail(res.data.items[0]);
-     else setSelectedEmail(row);
+  const handleEdit = async (row: dynamicData) => {
+    try {
+      const res = await fetchEmails(row.id);
+      if (res.status === 200) setSelectedEmail(res.data.data.record);
+      else setSelectedEmail(row);
+    } catch (error) {
+      setSelectedEmail(row);
+    }
     setFormMode("edit");
   };
 
@@ -57,10 +66,10 @@ export default function EmailList() {
     setFormMode("add");
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete email ${row.subject}?`)) {
+  const handleDelete = async (row: dynamicData) => {
+    if (window.confirm(`Delete email ${row.id}?`)) {
       try {
-        await deleteEmail(row.id);
+        await deleteEmail("email", row.id);
         dispatch(
           showToast({
             message: "Email deleted successfully",
@@ -100,7 +109,7 @@ export default function EmailList() {
       name: "Email",
       selector: (row) => row.email || "--",
       sortable: true,
-      width: "25%",
+      width: "15%",
     },
     {
       name: "Name",
@@ -112,13 +121,33 @@ export default function EmailList() {
       name: "Attention",
       selector: (row) => row.attention || "--",
       sortable: true,
-      width: "20%",
+      width: "25%",
     },
     {
-      name: "Type",
-      selector: (row) => row.type || "--",
+      name: "Is Primary",
+      selector: (row) => (row.is_primary ? "Yes" : "No"), // Plain string for filtering
+      cell: (row) => (
+        <>
+          <Badge size="sm" color={row.is_primary ? "success" : "warning"}>
+            {row.is_active ? "Yes" : "No"}
+          </Badge>
+        </>
+      ),
       sortable: true,
-      width: "15%",
+      width: "10%",
+    },
+    {
+      name: "Is Verified",
+      selector: (row) => (row.is_verified ? "Yes" : "No"), // Plain string for filtering
+      cell: (row) => (
+        <>
+          <Badge size="sm" color={row.is_verified ? "success" : "warning"}>
+            {row.is_active ? "Yes" : "No"}
+          </Badge>
+        </>
+      ),
+      sortable: true,
+      width: "10%",
     },
     {
       name: "Action",
