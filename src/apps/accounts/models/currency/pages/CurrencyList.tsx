@@ -1,14 +1,13 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import ComponentCard from "@/components/common/ComponentCard";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
-import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
-import { showToast } from "@/store/slices/toastSlice";
+import { fetchCurrencies, deleteCurrency } from "../services/currencyApi";
+import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
-import CurrencyDisplay from "./CurrencyDisplay";
+import { useTheme } from "../../../../../context/ThemeContext";
+import CurrencyDetail from "./CurrencyDetail";
 
 export default function CurrencyList() {
   const { theme } = useTheme();
@@ -22,9 +21,12 @@ export default function CurrencyList() {
   const getCurrencyData = useCallback(async () => {
     try {
       setLoading(true);
-      const list = await getRecords('currency');
-      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
-      setData(recs);
+      const res = await fetchCurrencies();
+      if (res.status === 200) {
+        setData(res.data.items);
+      } else {
+        dispatch(showToast({ message: "Failed to fetch currencies", type: "error" }));
+      }
     } catch (error) {
       console.error("Failed to fetch currencies", error);
       dispatch(showToast({ message: "Failed to fetch currencies", type: "error" }));
@@ -64,9 +66,9 @@ export default function CurrencyList() {
   };
 
   const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete currency ${row.id}?`)) {
+    if (window.confirm(`Delete currency ${row.code}?`)) {
       try {
-        await deleteRecord('currency', row.id);
+        await deleteCurrency(row.id);
         dispatch(showToast({ message: "Currency deleted successfully", type: "success" }));
         getCurrencyData(); // Refresh data
       } catch (error) {
@@ -75,33 +77,52 @@ export default function CurrencyList() {
     }
   };
 
-  // Hardcoded columns: id and common fields
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
-    { name: "Code", selector: (row) => row.code || "--", sortable: true, width: "20%" },
-    { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "30%" },
-    { name: "Symbol", selector: (row) => row.symbol || "--", sortable: true, width: "20%" },
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+    {
+      name: "Code",
+      selector: (row) => row.code || "--",
+      sortable: true,
+      width: "15%",
+    },
+    {
+      name: "Name",
+      selector: (row) => row.name || "--",
+      sortable: true,
+      width: "25%",
+    },
+    {
+      name: "Symbol",
+      selector: (row) => row.symbol || "--",
+      sortable: true,
+      width: "15%",
+    },
+    {
+      name: "Rate",
+      selector: (row) => row.rate || "--",
+      sortable: true,
+      width: "15%",
+    },
+    {
+      name: "Action",
+      cell: (row) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleView(row)} title="View">
+            <FaEye className="text-blue-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleEdit(row)} title="Edit">
+            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleDelete(row)} title="Delete">
+            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
   ];
-
-  userColumns.push({
-    name: "Action",
-    cell: (row) => (
-      <div className="flex gap-2">
-        <button onClick={() => handleView(row)} title="View">
-          <FaEye className="text-blue-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleEdit(row)} title="Edit">
-          <FaEdit className="text-green-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleDelete(row)} title="Delete">
-          <FaTrashAlt className="text-red-600 hover:scale-110 transition" />
-        </button>
-      </div>
-    ),
-    ignoreRowClick: true,
-    allowOverflow: true,
-    button: true,
-  });
 
   return (
     <>
@@ -132,13 +153,14 @@ export default function CurrencyList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading currencies...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <CurrencyDisplay
+            <CurrencyDetail
               inline
               modeProp={formMode}
               dataProp={selectedCurrency}

@@ -5,11 +5,11 @@ import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import 
 export const login = async (credentials:any) => {
   try {
   const res = await authClient.post(AuthURL.LOGIN, credentials);
-    return res.data;
+    return res.data.data;
   }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
+  catch (error: any) {
+    return error.response?.data || error.message
+  }
 };
 
 export const signup = async (userData: RegisterFormData) => {
@@ -23,11 +23,11 @@ export const logout = async () => {
   const res = await authClient.post(AuthURL.LOGOUT,{
             refresh:refreshToken,
         });
-        localStorage.clear();  
+        localStorage.clear();
         return res.data;
   } catch (error:any) {
-        return error.response?.status || error.message   
-  } 
+        return error.response?.status || error.message
+  }
 };
 
 export const userDetails = async () => {
@@ -35,9 +35,9 @@ export const userDetails = async () => {
   const res = await apiClient.get(PostLoginURL.getUser);
     return res;
   }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
+  catch (error: any) {
+    return error.response?.data || error.message
+  }
 };
 
 export const verifyEmail = async (userData:EmailVerifyFormData) => {
@@ -45,7 +45,7 @@ export const verifyEmail = async (userData:EmailVerifyFormData) => {
   const res = await authClient.post(AuthURL.verifyEmail, userData);
     return res;
   }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
+  catch (error: any) {
+    return error.response?.data || error.message
+  }
 };

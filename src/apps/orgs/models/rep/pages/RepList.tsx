@@ -1,0 +1,153 @@
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ComponentCard from "@/components/common/ComponentCard";
+import DataTable, { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback } from "react";
+import { getRecords } from "@/api/wcapi";
+import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
+import { showToast } from "@/store/slices/toastSlice";
+import { useDispatch } from "react-redux";
+import { useTheme } from "@/context/ThemeContext";
+import { deleteRecord } from "@/api/wcapi";
+import RepDisplay from "./RepDisplay";
+
+export default function RepList() {
+  const { theme } = useTheme();
+  const [data, setData] = useState<any[]>([]);
+  const [selectedRep, setSelectedRep] = useState<any | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const dispatch = useDispatch();
+
+  const getRepData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const list = await getRecords('rep');
+      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
+      setData(recs);
+    } catch (error) {
+      console.error("Failed to fetch reps", error);
+      dispatch(showToast({ message: "Failed to fetch reps", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    getRepData();
+  }, [getRepData]);
+
+  const handleView = (row: any) => {
+    setSelectedRep(row);
+    setFormMode("view");
+  };
+
+  const handleEdit = (row: any) => {
+    setSelectedRep(row);
+    setFormMode("edit");
+  };
+
+  const handleAdd = () => {
+    setSelectedRep(null);
+    setFormMode("add");
+  };
+
+  const handleFormSaved = () => {
+    getRepData();
+    setFormMode(null);
+    setSelectedRep(null);
+  };
+
+  const handleFormCancel = () => {
+    setFormMode(null);
+    setSelectedRep(null);
+  };
+
+  const handleDelete = async (row: any) => {
+    if (window.confirm(`Delete rep ${row.id}?`)) {
+      try {
+        await deleteRecord('rep', row.id);
+        dispatch(showToast({ message: "Rep deleted successfully", type: "success" }));
+        getRepData(); // Refresh data
+      } catch (error) {
+        dispatch(showToast({ message: "Failed to delete rep", type: "error" }));
+      }
+    }
+  };
+
+  // Hardcoded columns: id and common fields
+  const userColumns: TableColumn<any>[] = [
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
+    { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "40%" },
+    { name: "Region", selector: (row) => row.region || "--", sortable: true, width: "30%" },
+    { name: "Commission", selector: (row) => row.commission || "--", sortable: true, width: "20%" },
+  ];
+
+  userColumns.push({
+    name: "Action",
+    cell: (row) => (
+      <div className="flex gap-2">
+        <button onClick={() => handleView(row)} title="View">
+          <FaEye className="text-blue-600 hover:scale-110 transition" />
+        </button>
+        <button onClick={() => handleEdit(row)} title="Edit">
+          <FaEdit className="text-green-600 hover:scale-110 transition" />
+        </button>
+        <button onClick={() => handleDelete(row)} title="Delete">
+          <FaTrashAlt className="text-red-600 hover:scale-110 transition" />
+        </button>
+      </div>
+    ),
+    ignoreRowClick: true,
+    allowOverflow: true,
+    button: true,
+  });
+
+  return (
+    <>
+      <PageBreadcrumb pageTitle="Rep List" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+          <ComponentCard>
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={handleAdd}
+                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
+              >
+                <FaPlus />
+                Add Rep
+              </button>
+            </div>
+            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
+              <DataTable
+                columns={userColumns.map((col) => ({
+                  ...col,
+                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
+                }))}
+                data={data}
+                pagination
+                theme={theme === "dark" ? "tailwindDark" : "default"}
+                highlightOnHover
+                pointerOnHover
+                progressPending={loading}
+                progressComponent={<div className="p-8 text-center">Loading reps...</div>}
+                onRowClicked={(row) => handleView(row)}
+              />
+            </div>
+          </ComponentCard>
+        </div>
+        {formMode && (
+          <div className="lg:col-span-2">
+            <RepDisplay
+              inline
+              modeProp={formMode}
+              dataProp={selectedRep}
+              onSaved={handleFormSaved}
+              onCancelInline={handleFormCancel}
+            />
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

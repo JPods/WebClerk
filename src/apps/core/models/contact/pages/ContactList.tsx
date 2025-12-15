@@ -3,10 +3,9 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 //import { createTheme } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchContacts } from "../services/contactApi";
+import { getRecords, getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
-import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
@@ -24,7 +23,7 @@ export default function ContactList() {
   );
 
   const dispatch = useDispatch();
-
+  console.log("data", data);
   const getContactData = useCallback(async () => {
     try {
       const res = await fetchContacts();
@@ -38,6 +37,7 @@ export default function ContactList() {
       }
     } catch (error) {
       console.error("Failed to fetch contacts", error);
+      dispatch(showToast({ message: "Failed to fetch contacts", type: "error" }));
     }
   }, [dispatch]);
 
@@ -51,11 +51,13 @@ export default function ContactList() {
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchContacts(row.id);
-    if (res.status === 200) setSelectedContact(res.data.item);
-    else setSelectedContact(row);
+    try {
+      const res = await getRecord('contact', row.id);
+      setSelectedContact(res.record);
+    } catch (error) {
+      setSelectedContact(row);
+    }
     setFormMode("edit");
-    console.log("res", res);
   };
 
   console.log("res.data.items", selectedContact);
@@ -64,31 +66,6 @@ export default function ContactList() {
     setFormMode("add");
   };
 
-  const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete contact ${row.name_first}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(
-          showToast({
-            message: "Contact deleted successfully",
-            type: "success",
-          })
-        );
-        getContactData(); // Refresh data
-        if (selectedContact && selectedContact.id === row.id) {
-          setFormMode(null);
-          setSelectedContact(null);
-        }
-      } catch (error) {
-        dispatch(
-          showToast({
-            message: "Failed to delete contact" + error,
-            type: "error",
-          })
-        );
-      }
-    }
-  };
 
   const handleFormSaved = () => {
     getContactData();
@@ -135,7 +112,7 @@ export default function ContactList() {
     },
     {
       name: "Is Active",
-      selector: (row) => (row.is_active ? "Inactive" : "Active"), // Plain string for filtering
+      selector: (row) => (row.is_active ? "Active" : "Inactive"), // Plain string for filtering
       cell: (row) => (
         <>
           <Badge size="sm" color={row.is_active ? "success" : "warning"}>
@@ -148,7 +125,7 @@ export default function ContactList() {
     },
     {
       name: "Is Staff",
-      selector: (row) => (row.is_staff ? "Inactive" : "Active"), // Plain string for filtering
+      selector: (row) => (row.is_staff ? "Active" : "Inactive"), // Plain string for filtering
       cell: (row) => (
         <>
           <Badge size="sm" color={row.is_staff ? "success" : "warning"}>
@@ -189,7 +166,6 @@ export default function ContactList() {
             <div className="flex justify-end mb-4">
               <button
                 onClick={handleAdd}
-                disabled={data.length === 0 && !data}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
@@ -210,7 +186,6 @@ export default function ContactList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
-                progressPending={data.length === 0}
                 progressComponent={
                   <div className="p-8 text-center">Loading contacts...</div>
                 }

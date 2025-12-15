@@ -1,14 +1,14 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import ComponentCard from "@/components/common/ComponentCard";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
-import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
-import { showToast } from "@/store/slices/toastSlice";
+import { deleteAction } from "../../../../../api/userProfile";
+import { fetchExchangeRates } from "../services/exchangeRateApi";
+import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
-import ExchangeRateDisplay from "./ExchangeRateDisplay";
+import { useTheme } from "../../../../../context/ThemeContext";
+import ExchangeRateDetail from "./ExchangeRateDetail";
 
 export default function ExchangeRateList() {
   const { theme } = useTheme();
@@ -22,9 +22,14 @@ export default function ExchangeRateList() {
   const getExchangeRateData = useCallback(async () => {
     try {
       setLoading(true);
-      const list = await getRecords('exchange_rate');
-      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
-      setData(recs);
+      const res = await fetchExchangeRates();
+      if (res.status === 200) {
+        setData(res.data.items);
+      } else {
+        dispatch(
+          showToast({ message: "Failed to fetch exchange rates", type: "error" })
+        );
+      }
     } catch (error) {
       console.error("Failed to fetch exchange rates", error);
       dispatch(showToast({ message: "Failed to fetch exchange rates", type: "error" }));
@@ -66,7 +71,7 @@ export default function ExchangeRateList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete exchange rate ${row.id}?`)) {
       try {
-        await deleteRecord('exchange_rate', row.id);
+        await deleteAction(row.id);
         dispatch(showToast({ message: "Exchange Rate deleted successfully", type: "success" }));
         getExchangeRateData(); // Refresh data
       } catch (error) {
@@ -95,7 +100,7 @@ export default function ExchangeRateList() {
           <FaEdit className="text-green-600 hover:scale-110 transition" />
         </button>
         <button onClick={() => handleDelete(row)} title="Delete">
-          <FaTrashAlt className="text-red-600 hover:scale-110 transition" />
+          <FaTrash className="text-red-600 hover:scale-110 transition" />
         </button>
       </div>
     ),
@@ -133,13 +138,14 @@ export default function ExchangeRateList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading exchange rates...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <ExchangeRateDisplay
+            <ExchangeRateDetail
               inline
               modeProp={formMode}
               dataProp={selectedExchangeRate}

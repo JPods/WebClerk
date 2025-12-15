@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Specification Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\specification' directory in Git.
+This model manages product specifications and requirements.

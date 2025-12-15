@@ -46,6 +46,16 @@ export interface ApiKanbanItem {
   kanban_meta?: unknown;
   refs?: {
     tags?: string[];
+    links?: {
+      parent?: string;
+    };
+    [key: string]: unknown;
+  };
+  prefs?: {
+    userdefined?: {
+      progress?: number | string | null;
+      [key: string]: unknown;
+    };
     [key: string]: unknown;
   };
   comments?: {
@@ -58,6 +68,9 @@ export interface ApiKanbanItem {
   completion?: number | string | null;
   completion_percent?: number | string | null;
   completion_percentage?: number | string | null;
+  sequence?: number | null;
+  order?: number | null;
+  position?: number | null;
   [key: string]: unknown;
 }
 
@@ -98,6 +111,12 @@ const PROGRESS_FIELD_CANDIDATES = [
   "completion_percentage",
 ];
 
+const SEQUENCE_FIELD_CANDIDATES = [
+  "sequence",
+  "order",
+  "position",
+];
+
 const coerceNumericValue = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -124,10 +143,44 @@ const normalizeProgressInput = (value?: number): number | undefined => {
 };
 
 const extractProgressValue = (item: ApiKanbanItem): number | undefined => {
+  // First check root level
   for (const key of PROGRESS_FIELD_CANDIDATES) {
     const candidate = coerceNumericValue((item as Record<string, unknown>)[key]);
     if (candidate !== undefined) {
+      console.log(`Found progress in root [${key}]:`, candidate, "for task", item.id);
       return normalizeProgressInput(candidate);
+    }
+  }
+
+  // Then check nested sources
+  const metaSources = [
+    { name: 'kanban_meta', data: item.kanban_meta },
+    { name: 'refs', data: item.refs },
+    { name: 'prefs.userdefined', data: item.prefs?.userdefined }
+  ];
+  
+  for (const source of metaSources) {
+    if (!source.data || typeof source.data !== "object") {
+      continue;
+    }
+    for (const key of PROGRESS_FIELD_CANDIDATES) {
+      const candidate = coerceNumericValue((source.data as Record<string, unknown>)[key]);
+      if (candidate !== undefined) {
+        console.log(`Found progress in ${source.name}[${key}]:`, candidate, "for task", item.id);
+        return normalizeProgressInput(candidate);
+      }
+    }
+  }
+
+  console.log("No progress found for task", item.id, "prefs:", item.prefs);
+  return undefined;
+};
+
+const extractSequenceValue = (item: ApiKanbanItem): number | undefined => {
+  for (const key of SEQUENCE_FIELD_CANDIDATES) {
+    const candidate = coerceNumericValue((item as Record<string, unknown>)[key]);
+    if (candidate !== undefined) {
+      return Math.round(candidate);
     }
   }
 
@@ -136,10 +189,10 @@ const extractProgressValue = (item: ApiKanbanItem): number | undefined => {
     if (!source || typeof source !== "object") {
       continue;
     }
-    for (const key of PROGRESS_FIELD_CANDIDATES) {
+    for (const key of SEQUENCE_FIELD_CANDIDATES) {
       const candidate = coerceNumericValue((source as Record<string, unknown>)[key]);
       if (candidate !== undefined) {
-        return normalizeProgressInput(candidate);
+        return Math.round(candidate);
       }
     }
   }
@@ -310,6 +363,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
 
     const tags = item.refs?.tags ?? [];
     const progressValue = extractProgressValue(item);
+    const sequenceValue = extractSequenceValue(item);
 
     tasks[item.id] = {
       id: item.id,
@@ -345,6 +399,8 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       linkage: item.linkage ?? undefined,
       remarks: item.comments?.public || undefined,
       progress: progressValue,
+      sequence: sequenceValue,
+      refs: item.refs,
     };
   });
 

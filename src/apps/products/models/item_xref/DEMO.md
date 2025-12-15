@@ -1,3 +1,3 @@
-# Demo Placeholder
+# Item Xref Model
 
-This file keeps the 'C:\Users\LENOVO\OneDrive\Webclerk\React2025\src\apps\products\item_xref' directory in Git.
+This model manages cross-references or relationships between items.

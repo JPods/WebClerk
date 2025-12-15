@@ -2,13 +2,12 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
-import GLJournalDisplay from "./GLJournalDisplay";
+import { fetchGLJournals, deleteGLJournal } from "../services/glJournalApi";
+import GLJournalDetail from "./GLJournalDetail";
 
 export default function GLJournalList() {
   const { theme } = useTheme();
@@ -22,9 +21,14 @@ export default function GLJournalList() {
   const getGLJournalData = useCallback(async () => {
     try {
       setLoading(true);
-      const list = await getRecords('gl_journal');
-      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
-      setData(recs);
+      const res = await fetchGLJournals();
+      if (res.status === 200) {
+        setData(res.data.items);
+      } else {
+        dispatch(
+          showToast({ message: "Failed to fetch gl journals", type: "error" })
+        );
+      }
     } catch (error) {
       console.error("Failed to fetch gl journals", error);
       dispatch(showToast({ message: "Failed to fetch gl journals", type: "error" }));
@@ -66,21 +70,41 @@ export default function GLJournalList() {
   const handleDelete = async (row: any) => {
     if (window.confirm(`Delete gl journal ${row.id}?`)) {
       try {
-        await deleteRecord('gl_journal', row.id);
+        await deleteGLJournal(row.id);
         dispatch(showToast({ message: "GL Journal deleted successfully", type: "success" }));
         getGLJournalData(); // Refresh data
-      } catch (error) {
+      } catch {
         dispatch(showToast({ message: "Failed to delete gl journal", type: "error" }));
       }
     }
   };
 
-  // Hardcoded columns: id and common fields
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
-    { name: "Date", selector: (row) => row.date || "--", sortable: true, width: "20%" },
-    { name: "Description", selector: (row) => row.description || "--", sortable: true, width: "40%" },
-    { name: "Amount", selector: (row) => row.amount || "--", sortable: true, width: "20%" },
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+    {
+      name: "Date",
+      selector: (row) => row.date || "--",
+      sortable: true,
+      width: "15%",
+    },
+    {
+      name: "Description",
+      selector: (row) => row.description || "--",
+      sortable: true,
+      width: "35%",
+    },
+    {
+      name: "Amount",
+      selector: (row) => row.amount || "--",
+      sortable: true,
+      width: "15%",
+    },
+    {
+      name: "Type",
+      selector: (row) => row.type || "--",
+      sortable: true,
+      width: "15%",
+    },
   ];
 
   userColumns.push({
@@ -132,13 +156,14 @@ export default function GLJournalList() {
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading gl journals...</div>}
                 onRowClicked={(row) => handleView(row)}
+                keyField="id"
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <GLJournalDisplay
+            <GLJournalDetail
               inline
               modeProp={formMode}
               dataProp={selectedGLJournal}

@@ -13,7 +13,6 @@ import { getByTypeAndId } from "../../../../../api/userProfile";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
 import { contactSchema, updateContactSchema } from "../utils/contactSchema";
 import { ContactAddProps } from "../types/contactType";
@@ -72,34 +71,7 @@ export default function ContactDetail({
         }
       });
       // Fetch linked lists by ids if present: data.refs.links
-      const links = (data as any)?.refs?.links as
-        | Record<string, (string | number)[]>
-        | undefined;
-      if (links) {
-        const fetchAll = async () => {
-          const entries: Array<[string, any[]]> = await Promise.all(
-            Object.entries(links).map(
-              async ([key, ids]): Promise<[string, any[]]> => {
-                if (!Array.isArray(ids) || ids.length === 0) return [key, []];
-                // Fetch each id and flatten
-                const results = await Promise.all(
-                  ids.map((id) => getByTypeAndId(key, id))
-                );
-                const flat = (results as any[]).flat().filter(Boolean) as any[];
-                return [key, flat];
-              }
-            )
-          );
-          const map: Record<string, any[]> = {};
-          entries.forEach(([k, v]) => {
-            map[k] = v;
-          });
-          setLinkedLists(map);
-        };
-        fetchAll();
-      } else {
-        setLinkedLists({});
-      }
+      // Commented out as linked data is not displayed
     } else {
       reset({});
       setLinkedLists({});
@@ -188,7 +160,7 @@ export default function ContactDetail({
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">email</Label>
               <Input
                 type="email"
                 id="email"
@@ -204,7 +176,7 @@ export default function ContactDetail({
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">password</Label>
                   <Input
                     type="password"
                     id="password"
@@ -222,7 +194,7 @@ export default function ContactDetail({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
-                  <Label htmlFor="cnf_password">Confirm Password</Label>
+                  <Label htmlFor="cnf_password">cnf_password</Label>
                   <Input
                     type="password"
                     id="cnf_password"
