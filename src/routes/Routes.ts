@@ -14,8 +14,7 @@ export class PageRoutes {
   static readonly actionsTaskMarkerAdd: string = "/actions/task-markers/add";
   static readonly actionsTaskMarkerDetail: string = "/actions/task-markers/:id";
 
-  static readonly ContactDetail: string = "/contact-detail";
-  static readonly contactList: string = "/contact-list";
+  static readonly contactList: string = "/core/contact/list";
 
   static readonly customerDetail: string = "/contacts/:id";
   static readonly customerAdd: string = "/contacts/add";
@@ -23,10 +22,9 @@ export class PageRoutes {
   static readonly settingAdd: string = "/setting-add";
   static readonly settingList: string = "/setting-list";
 
-  static readonly domainAdd: string = "/domain-detail";
-  static readonly domainList: string = "/domain-list";
-  static readonly emailAdd: string = "/email-detail";
-  static readonly emailList: string = "/email-list";
+  static readonly domainList: string = "/communications/domain/list";
+  static readonly emailList: string = "/communications/email/list";
+  static readonly locationList: string = "/communications/location/list";
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";

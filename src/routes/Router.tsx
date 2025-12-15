@@ -6,7 +6,6 @@ import { ScrollToTop, Toster } from "../components/wrapper";
 import {
   BasicTables,
   Calendar,
-  ContactDetail,
   ContactList,
   // CustomerAddPage,
   // CustomerDetailPage,
@@ -47,14 +46,10 @@ import {
   TermList,
   TermDisplay,
   // Communications
-  DomainDetail,
   DomainList,
   EmailList,
-  EmailDetail,
   AppLocationList,
-  AppLocationDetail,
   AppPhoneList,
-  AppPhoneDetail,
   // Core
   CoreContactList,
   CoreContactDetail,
@@ -114,11 +109,7 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
           <Route path={PageRoutes.contactList} element={<ContactList />} />
-          <Route path={PageRoutes.ContactDetail} element={<ContactDetail />} />
-          <Route
-            path={PageRoutes.ContactDetail + "/:id"}
-            element={<ContactDetail />}
-          />
+
           {/* <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
           <Route
             path={PageRoutes.customerDetail}
@@ -126,16 +117,11 @@ const Router: React.FC = () => {
           /> */}
           <Route path={PageRoutes.settingList} element={<SettingList />} />
           <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
+
           <Route path={PageRoutes.domainList} element={<DomainList />} />
-          <Route
-            path={PageRoutes.domainAdd}
-            element={<DomainDetail modeProp="add" />}
-          />
           <Route path={PageRoutes.emailList} element={<EmailList />} />
-          <Route
-            path={PageRoutes.emailAdd}
-            element={<EmailDetail modeProp="add" />}
-          />
+          <Route path={PageRoutes.locationList} element={<AppLocationList />} />
+
           <Route
             path={PageRoutes.notionTracker}
             element={<NotionTrackerPage />}
