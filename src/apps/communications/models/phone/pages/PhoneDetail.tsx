@@ -168,7 +168,11 @@ export default function PhoneDetail({
               />
             </div>
           </div>
+<<<<<<< HEAD
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+=======
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
+>>>>>>> 18f293e (Location and phone functionality added2)
             <div>
               <Label htmlFor="attention">attention</Label>
               <Input
