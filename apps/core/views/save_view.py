@@ -434,6 +434,24 @@ class SaveWcapiView(APIView):
                 else:
                     if hasattr(obj, field):
                         setattr(obj, field, None)
+                    else:
+                        # Check if field is in prefs.userdefined and remove it
+                        try:
+                            prefs = getattr(obj, 'prefs', {}) or {}
+                            if isinstance(prefs, str):
+                                try:
+                                    prefs = json.loads(prefs)
+                                except json.JSONDecodeError:
+                                    prefs = {}
+                            userdefined = prefs.get('userdefined', {})
+                            if field in userdefined:
+                                del userdefined[field]
+                                # If userdefined is empty, remove it
+                                if not userdefined:
+                                    prefs.pop('userdefined', None)
+                                setattr(obj, 'prefs', prefs)
+                        except Exception:
+                            pass  # Ignore errors when deleting from prefs
                 continue
 
             # For update/insert, set the value
