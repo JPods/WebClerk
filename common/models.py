@@ -257,6 +257,55 @@ def default_refs() -> dict:
     }
 
 
+# Denormalization fields for links - maps model name to list of fields to include when denormalizing
+LINK_DENORMALIZE_FIELDS = {
+    "email": ["id", "email", "name", "type", "is_primary"],
+    "contact": ["id", "email", "name_first", "name_last", "company", "title", "role"],
+    "phone": ["id", "number", "format", "name"],
+    "location": ["id", "address1", "city", "state", "zip", "country", "full"],
+    "item": ["id", "name", "sku", "description", "kind", "uom"],
+    "domain": ["id", "path", "type"],
+    "orgbase": ["id", "display_name", "org_type", "status"],
+    "currency": ["id", "code", "name", "symbol"],
+    "term": ["id", "name"],
+    "glaccount": ["id", "account_credit"],
+    "taxjurisdiction": ["id", "name", "code"],
+    "exchangerate": ["id", "from_currency", "to_currency", "rate"],
+    "paymentmethod": ["id", "name", "type"],
+    "paymentterm": ["id", "name", "terms"],
+    "project": ["id", "name", "status"],
+    "catalog": ["id", "name", "code", "currency"],
+    "warehouse": ["id", "name", "code"],
+    "connection": ["id", "name", "type"],
+    "bundle": ["id", "name"],
+    "notification": ["id", "name"],
+    "setting": ["id", "name"],
+    "report": ["id", "name"],
+    "template": ["id", "purpose"],
+    "action": ["id", "name"],
+    "auditlog": ["id", "action"],
+    "document": ["id", "name", "type"],
+    "tag": ["id", "name"],
+    "linkage": ["id", "name"],
+    "questionanswer": ["id", "question"],
+    "seriallog": ["id", "serial_number"],
+    "inventorycheck": ["id", "name"],
+    "deliveryvisit": ["id", "status"],
+    "purchasereceipt": ["id", "receipt_number"],
+    "paymentapplication": ["id", "amount_applied"],
+    "projectassociation": ["id", "project_id"],
+    "inventoryreservation": ["id", "quantity_reserved"],
+    "inventoryadjustmentprocessor": ["id", "status"],
+    "inventorymetricssnapshot": ["id", "snapshot_date"],
+    "pendinginventoryadjustment": ["id", "adjustment_type"],
+    "variant": ["id", "name"],
+    "billofmaterial": ["id", "parent_item_id"],
+    "service": ["id", "name"],
+    "campaign": ["id", "name"],
+    "support": ["id", "name"],
+}
+
+
 def default_prefs() -> dict:
         """User / system preference seed; intentionally sparse to stay evolvable.
 
@@ -496,6 +545,60 @@ class RefsMixin(models.Model):
     def add_tag(self, tag: str):
         if tag not in self.refs.get("tags", []):
             self.refs.setdefault("tags", []).append(tag)
+
+    def denormalize_links(self) -> dict:
+        """Return refs.links with denormalized objects instead of just IDs.
+
+        For each model in links, fetches the related objects and includes
+        the specified fields from LINK_DENORMALIZE_FIELDS.
+        """
+        links = self.refs.get("links", {}) if isinstance(self.refs, dict) else {}
+        if not isinstance(links, dict):
+            return {}
+
+        denormalized = {}
+        for model_name, items in links.items():
+            if not isinstance(items, list):
+                denormalized[model_name] = items
+                continue
+
+            # Check if already denormalized (first item is dict)
+            if items and isinstance(items[0], dict):
+                denormalized[model_name] = items
+                continue
+
+            # It's a list of IDs, denormalize
+            ids = items
+            fields = LINK_DENORMALIZE_FIELDS.get(model_name.lower(), ["id"])
+            if not ids:
+                denormalized[model_name] = []
+                continue
+
+            # Get the model class
+            try:
+                from django.apps import apps
+                model_class = apps.get_model(model_name)
+            except Exception:
+                # If model not found, convert to dicts with just id
+                denormalized[model_name] = [{"id": id_} for id_ in ids]
+                continue
+
+            # Fetch objects
+            objects = model_class.objects.filter(id__in=ids).values(*fields)
+            obj_dict = {obj["id"]: obj for obj in objects}
+
+            # Build denormalized list in original order
+            denormalized[model_name] = [obj_dict.get(id_, {"id": id_}) for id_ in ids]
+
+        return denormalized
+
+    def ensure_links_denormalized(self):
+        """Ensure refs.links are denormalized, updating in place if needed."""
+        if not isinstance(self.refs, dict):
+            return
+        links = self.refs.get("links")
+        if isinstance(links, dict):
+            self.refs["links"] = self.denormalize_links()
 
 
 class PrefsMixin(models.Model):
@@ -1180,6 +1283,10 @@ class BaseModel(
             if changed_fields:
                 ver = self.metadata.setdefault("versioning", {})  # type: ignore[attr-defined]
                 ver["changed_fields"] = changed_fields
+
+        # Ensure links are denormalized
+        if isinstance(self, RefsMixin):
+            self.ensure_links_denormalized()
 
         super().save(*args, **kwargs)
         self._capture_original_state()  # refresh snapshot
