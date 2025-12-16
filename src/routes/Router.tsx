@@ -6,10 +6,9 @@ import { ScrollToTop, Toster } from "../components/wrapper";
 import {
   BasicTables,
   Calendar,
-  ContactDetail,
   ContactList,
-  CustomerDetail,
-  DomainList,
+  // CustomerAddPage,
+  // CustomerDetailPage,
   FormElements,
   Home,
   KanbanBoardDataPage,
@@ -47,14 +46,10 @@ import {
   TermList,
   TermDisplay,
   // Communications
-  AppDomainList,
-  AppDomainDetail,
-  AppEmailList,
-  AppEmailDetail,
+  DomainList,
+  EmailList,
   AppLocationList,
-  AppLocationDetail,
   AppPhoneList,
-  AppPhoneDetail,
   // Core
   CoreContactList,
   CoreContactDetail,
@@ -114,23 +109,19 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
           <Route path={PageRoutes.contactList} element={<ContactList />} />
-          <Route path={PageRoutes.ContactDetail} element={<ContactDetail />} />
-          <Route
-            path={PageRoutes.ContactDetail + "/:id"}
-            element={<ContactDetail />}
-          />
-          <Route
-            path={PageRoutes.customerAdd}
-            element={<CustomerDetail modeProp="add" />}
-          />
+
+          {/* <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
           <Route
             path={PageRoutes.customerDetail}
-            element={<CustomerDetail modeProp="edit" />}
-          />
+            element={<CustomerDetailPage />}
+          /> */}
           <Route path={PageRoutes.settingList} element={<SettingList />} />
           <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
+
           <Route path={PageRoutes.domainList} element={<DomainList />} />
-          <Route path={PageRoutes.domainAdd} element={<AppDomainDetail modeProp="add" />} />
+          <Route path={PageRoutes.emailList} element={<EmailList />} />
+          <Route path={PageRoutes.locationList} element={<AppLocationList />} />
+
           <Route
             path={PageRoutes.notionTracker}
             element={<NotionTrackerPage />}
@@ -187,8 +178,14 @@ const Router: React.FC = () => {
             path={PageRoutes.transactionsProposalDetail}
             element={<ProposalDetail />}
           />
-          <Route path="/transactions/proposals/vue" element={<ProposalDetailVue />} />
-          <Route path="/transactions/proposals/vuereact" element={<ProposalDetailVueReact />} />
+          <Route
+            path="/transactions/proposals/vue"
+            element={<ProposalDetailVue />}
+          />
+          <Route
+            path="/transactions/proposals/vuereact"
+            element={<ProposalDetailVueReact />}
+          />
           <Route
             path={PageRoutes.transactionsPurchaseOrders}
             element={<PurchaseOrderList />}
@@ -202,61 +199,26 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.auditDetail} element={<AuditDetail />} />
           <Route path={PageRoutes.auditDisplay} element={<AuditDisplay />} />
           <Route path={PageRoutes.currencyList} element={<CurrencyList />} />
-          <Route path={PageRoutes.currencyDetail} element={<CurrencyDetail />} />
-          <Route path={PageRoutes.currencyDisplay} element={<CurrencyDisplay />} />
-          <Route path={PageRoutes.exchangeRateList} element={<ExchangeRateList />} />
-          <Route path={PageRoutes.exchangeRateDetail} element={<ExchangeRateDetail />} />
-          <Route path={PageRoutes.exchangeRateDisplay} element={<ExchangeRateDisplay />} />
-          <Route path={PageRoutes.exchangeTransactionList} element={<ExchangeTransactionList />} />
-          <Route path={PageRoutes.exchangeTransactionDetail} element={<ExchangeTransactionDetail />} />
-          <Route path={PageRoutes.exchangeTransactionDisplay} element={<ExchangeTransactionDisplay />} />
-          <Route path={PageRoutes.glAccountList} element={<GLAccountList />} />
-          <Route path={PageRoutes.glAccountDetail} element={<GLAccountDetail />} />
-          <Route path={PageRoutes.glJournalList} element={<GLJournalList />} />
-          <Route path={PageRoutes.glJournalDetail} element={<GLJournalDetail />} />
-          <Route path={PageRoutes.glJournalDisplay} element={<GLJournalDisplay />} />
-          <Route path={PageRoutes.ledgerList} element={<LedgerList />} />
-          <Route path={PageRoutes.ledgerDisplay} element={<LedgerDisplay />} />
-          <Route path={PageRoutes.taxJurisdictionList} element={<TaxJurisdictionList />} />
-          <Route path={PageRoutes.taxJurisdictionDisplay} element={<TaxJurisdictionDisplay />} />
-          <Route path={PageRoutes.termList} element={<TermList />} />
-          <Route path={PageRoutes.termDisplay} element={<TermDisplay />} />
-
-          {/* Communications */}
-          <Route path={PageRoutes.commDomainList} element={<AppDomainList />} />
-          <Route path={PageRoutes.commDomainDetail} element={<AppDomainDetail />} />
-          <Route path={PageRoutes.commEmailList} element={<AppEmailList />} />
-          <Route path={PageRoutes.commEmailDetail} element={<AppEmailDetail />} />
-          <Route path={PageRoutes.commLocationList} element={<AppLocationList />} />
-          <Route path={PageRoutes.commLocationDetail} element={<AppLocationDetail />} />
-          <Route path={PageRoutes.commPhoneList} element={<AppPhoneList />} />
-          <Route path={PageRoutes.commPhoneDetail} element={<AppPhoneDetail />} />
-
-          {/* Core */}
-          <Route path={PageRoutes.coreContactList} element={<CoreContactList />} />
-          <Route path={PageRoutes.coreContactDetail} element={<CoreContactDetail />} />
-          <Route path={PageRoutes.coreReportList} element={<CoreReportList />} />
-          <Route path={PageRoutes.coreReportDetail} element={<CoreReportDetail />} />
-          <Route path={PageRoutes.coreReportDisplay} element={<CoreReportDisplay />} />
-          <Route path={PageRoutes.coreSettingList} element={<CoreSettingList />} />
-          <Route path={PageRoutes.coreSettingDetail} element={<CoreSettingDetail />} />
-          <Route path={PageRoutes.coreSettingDisplay} element={<CoreSettingDisplay />} />
-          <Route path={PageRoutes.coreTemplateList} element={<CoreTemplateList />} />
-          <Route path={PageRoutes.coreTemplateDetail} element={<CoreTemplateDetail />} />
-          <Route path={PageRoutes.coreTemplateDisplay} element={<CoreTemplateDisplay />} />
-
-          {/* Docs */}
-          <Route path={PageRoutes.documentList} element={<DocumentList />} />
-          <Route path={PageRoutes.documentDetail} element={<DocumentDetail />} />
-          <Route path={PageRoutes.documentDisplay} element={<DocumentDisplay />} />
-          <Route path={PageRoutes.linkageList} element={<LinkageList />} />
-          <Route path={PageRoutes.linkageDisplay} element={<LinkageDisplay />} />
-          <Route path={PageRoutes.linkageIndexList} element={<LinkageIndexList />} />
-          <Route path={PageRoutes.linkageIndexDisplay} element={<LinkageIndexDisplay />} />
-          <Route path={PageRoutes.questionAnswerList} element={<QuestionAnswerList />} />
-          <Route path={PageRoutes.questionAnswerDisplay} element={<QuestionAnswerDisplay />} />
-          <Route path={PageRoutes.tagList} element={<TagList />} />
-          <Route path={PageRoutes.tagDisplay} element={<TagDisplay />} />
+          <Route
+            path={PageRoutes.currencyDisplay}
+            element={<CurrencyDisplay />}
+          />
+          <Route
+            path={PageRoutes.exchangeRateList}
+            element={<ExchangeRateList />}
+          />
+          <Route
+            path={PageRoutes.exchangeRateDisplay}
+            element={<ExchangeRateDisplay />}
+          />
+          <Route
+            path={PageRoutes.exchangeTransactionList}
+            element={<ExchangeTransactionList />}
+          />
+          <Route
+            path={PageRoutes.exchangeTransactionDisplay}
+            element={<ExchangeTransactionDisplay />}
+          />
         </Route>
 
         {/* 404 page */}

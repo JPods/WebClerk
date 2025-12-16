@@ -1,11 +1,14 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
+import { useForm, Controller } from "react-hook-form";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import { Input, CustTextArea, DropDown } from "../../../../../components/wrapper";
+import {
+  Input,
+  CustTextArea,
+  DropDown,
+} from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createEmail, updateEmail } from "../services/emailApi";
@@ -14,7 +17,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { emailSchema } from "../utils/emailSchema";
 import { EmailAddProps } from "../types/emailType";
-
+import Checkbox from "../../../../../components/form/input/Checkbox";
 export default function EmailDetail({
   modeProp,
   dataProp,
@@ -31,10 +34,11 @@ export default function EmailDetail({
     handleSubmit,
     formState: { errors },
     reset,
+    control,
     watch,
   } = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { status: "draft" },
+    defaultValues: { is_primary: false, is_verified: false },
   });
 
   const location = useLocation();
@@ -80,13 +84,23 @@ export default function EmailDetail({
   };
 
   const statusOptions = [
-    { value: "draft", label: "Draft" },
-    { value: "sent", label: "Sent" },
-    { value: "failed", label: "Failed" },
+    { value: "", label: "Active" },
+    { value: "opted_out", label: "Opted Out" },
+    { value: "bounced", label: "Bounced" },
+    { value: "invalid", label: "Invalid" },
+    { value: "spam_complaint", label: "Spam Complaint" },
   ];
 
   const handleStatusChange = (value: string) => {
-    setValue("status", value as "draft" | "sent" | "failed");
+    setValue(
+      "opt_out",
+      value as
+        | "bounced"
+        | "opted_out"
+        | "invalid"
+        | "spam_complaint"
+        | undefined
+    );
   };
 
   return (
@@ -126,68 +140,85 @@ export default function EmailDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="subject">subject</Label>
+              <Label htmlFor="email">email</Label>
               <Input
-                type="text"
-                id="subject"
-                placeholder="Email Subject"
-                {...register("subject")}
-                error={errors.subject && errors.subject.message ? true : false}
-                hint={errors.subject && errors.subject.message}
+                type="email"
+                id="email"
+                placeholder="Email Address"
+                {...register("email")}
+                error={errors.email && errors.email.message ? true : false}
+                hint={errors.email && errors.email.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="status">status</Label>
+              <Label htmlFor="name">name</Label>
+              <Input
+                type="name"
+                id="name"
+                placeholder="Name"
+                {...register("name")}
+                error={errors.name && errors.name.message ? true : false}
+                hint={errors.name && errors.name.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="attention">attention</Label>
+              <Input
+                type="attention"
+                id="attention"
+                placeholder="Attention"
+                {...register("attention")}
+                error={
+                  errors.attention && errors.attention.message ? true : false
+                }
+                hint={errors.attention && errors.attention.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="opt_out">opt_out</Label>
               <DropDown
-                id="status"
+                id="opt_out"
                 options={statusOptions}
                 placeholder="Select Status"
-                value={watch("status")}
+                value={watch("opt_out")}
                 onChange={handleStatusChange}
                 className="dark:bg-dark-900"
                 disabled={mode === "view"}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="from_email">from_email</Label>
-              <Input
-                type="email"
-                id="from_email"
-                placeholder="From Email"
-                {...register("from_email")}
-                error={
-                  errors.from_email && errors.from_email.message ? true : false
-                }
-                hint={errors.from_email && errors.from_email.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="to_email">to_email</Label>
-              <Input
-                type="email"
-                id="to_email"
-                placeholder="To Email"
-                {...register("to_email")}
-                error={errors.to_email && errors.to_email.message ? true : false}
-                hint={errors.to_email && errors.to_email.message}
-                disabled={mode === "view"}
+              <Controller
+                name="is_primary"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_primary"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="Is Primary"
+                  />
+                )}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="body">body</Label>
-              <CustTextArea
-                id="body"
-                placeholder="Email Body"
-                {...register("body")}
-                error={errors.body && errors.body.message ? true : false}
-                hint={errors.body && errors.body.message}
-                disabled={mode === "view"}
+              <Controller
+                name="is_verified"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_verified"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="Is Verified"
+                  />
+                )}
               />
             </div>
           </div>

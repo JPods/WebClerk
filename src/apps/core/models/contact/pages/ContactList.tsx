@@ -11,7 +11,7 @@ import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import ContactAdd from "./ContactDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
-
+import { fetchContacts } from "../services/contactApi";
 export default function ContactList() {
   const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
@@ -28,8 +28,8 @@ export default function ContactList() {
     try {
       const res = await fetchContacts();
       if (res.status === 200) {
-        console.log(res.data.items);
-        setData(res.data.items);
+        console.log(res.data.results);
+        setData(res.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch contacts", type: "error" })
@@ -37,7 +37,9 @@ export default function ContactList() {
       }
     } catch (error) {
       console.error("Failed to fetch contacts", error);
-      dispatch(showToast({ message: "Failed to fetch contacts", type: "error" }));
+      dispatch(
+        showToast({ message: "Failed to fetch contacts", type: "error" })
+      );
     }
   }, [dispatch]);
 
@@ -52,7 +54,7 @@ export default function ContactList() {
 
   const handleEdit = async (row: dynamicData) => {
     try {
-      const res = await getRecord('contact', row.id);
+      const res = await getRecord("contact", row.id);
       setSelectedContact(res.record);
     } catch (error) {
       setSelectedContact(row);
@@ -65,7 +67,6 @@ export default function ContactList() {
     setSelectedContact(null);
     setFormMode("add");
   };
-
 
   const handleFormSaved = () => {
     getContactData();
@@ -172,7 +173,7 @@ export default function ContactList() {
                 Add Contact
               </button>
             </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
+            <div className="w-full overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
               <DataTable
                 columns={userColumns.map((col) => ({
                   ...col,
@@ -186,10 +187,13 @@ export default function ContactList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
+                progressPending={data.length === 0}
                 progressComponent={
-                  <div className="p-8 text-center">Loading contacts...</div>
+                  <div className="p-8 text-center">Loading record...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
+                responsive
+                // dense
               />
             </div>
           </ComponentCard>

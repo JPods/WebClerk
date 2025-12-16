@@ -17,7 +17,7 @@ import { useLocation } from "react-router";
 import { contactSchema, updateContactSchema } from "../utils/contactSchema";
 import { ContactAddProps } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
-
+import { useAppSelector } from "../../../../../store/hooks";
 export default function ContactDetail({
   modeProp,
   dataProp,
