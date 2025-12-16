@@ -129,7 +129,6 @@ export default function SalesOrderDetailTest({
         finance: data.finance || '',
         flow: data.flow || '',
         source: data.source || '',
-        action: data.action || '',
         
         // Timestamps
         dt_created: data.dt_created,

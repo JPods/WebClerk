@@ -1,6 +1,8 @@
+import { InvoiceFormData } from "../utils/invoiceSchema";
+
 export interface InvoiceAddProps {
   modeProp?: "add" | "edit" | "view";
-  dataProp?: any; // TODO: Type this properly
+  dataProp?: Partial<InvoiceFormData> | null;
   hideBreadcrumb?: boolean;
   onSaved?: () => void;
   inline?: boolean;
@@ -9,10 +11,67 @@ export interface InvoiceAddProps {
 
 export interface CreateInvoiceRequest {
   invoice_no: string;
+  status: string;
+  company: string;
+  attention: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  email?: string;
+  phoneCell?: string;
+  phone?: string;
+  vendor_id?: number;
+  manufacturer_id?: number;
+  price_level?: string;
+  actionBy?: string;
+  action?: string;
+  actionDate?: string;
+  actionTime?: string;
+  salesName?: string;
+  orderedBy?: string;
+  contractDetailTag?: string;
+  terms?: string;
+  typeSale?: string;
+  taxJuris?: string;
+  adSource?: string;
+  addComment?: string;
+  comment?: string;
+  contractDetail?: string;
 }
 
 export interface UpdateInvoiceRequest {
+  id?: number;
   invoice_no?: string;
+  status?: string;
+  company?: string;
+  attention?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  email?: string;
+  phoneCell?: string;
+  phone?: string;
+  vendor_id?: number;
+  manufacturer_id?: number;
+  price_level?: string;
+  actionBy?: string;
+  action?: string;
+  actionDate?: string;
+  actionTime?: string;
+  salesName?: string;
+  orderedBy?: string;
+  contractDetailTag?: string;
+  terms?: string;
+  typeSale?: string;
+  taxJuris?: string;
+  adSource?: string;
+  addComment?: string;
+  comment?: string;
+  contractDetail?: string;
 }
 
 export interface InvoiceApiTask {
