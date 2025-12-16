@@ -193,6 +193,8 @@ export default function PhoneDetail({
                 disabled={mode === "view"}
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
             <div>
               <Label htmlFor="attention">attention</Label>
               <Input
