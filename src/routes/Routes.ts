@@ -25,6 +25,7 @@ export class PageRoutes {
   static readonly domainList: string = "/communications/domain/list";
   static readonly emailList: string = "/communications/email/list";
   static readonly locationList: string = "/communications/location/list";
+  static readonly phoneList: string = "/communications/phone/list";
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";

@@ -109,7 +109,6 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
           <Route path={PageRoutes.contactList} element={<ContactList />} />
-
           {/* <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
           <Route
             path={PageRoutes.customerDetail}
@@ -117,10 +116,10 @@ const Router: React.FC = () => {
           /> */}
           <Route path={PageRoutes.settingList} element={<SettingList />} />
           <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
-
           <Route path={PageRoutes.domainList} element={<DomainList />} />
           <Route path={PageRoutes.emailList} element={<EmailList />} />
           <Route path={PageRoutes.locationList} element={<AppLocationList />} />
+          <Route path={PageRoutes.phoneList} element={<AppPhoneList />} />
 
           <Route
             path={PageRoutes.notionTracker}
@@ -133,7 +132,6 @@ const Router: React.FC = () => {
           />
           <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
           <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
-
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/form-elements" element={<FormElements />} />
           <Route path="/basic-models" element={<BasicTables />} />

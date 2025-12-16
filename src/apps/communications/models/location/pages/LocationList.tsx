@@ -8,12 +8,14 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import LocationDetail from "./LocationDetail";
-
+import { dynamicData } from "../../../../../model/dynamicData";
 export default function LocationList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -23,7 +25,7 @@ export default function LocationList() {
     try {
       const res = await fetchLocations();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch locations", type: "error" })
@@ -45,11 +47,13 @@ export default function LocationList() {
     setFormMode("view");
   };
 
-  const handleEdit = async (row: any) => {
-    const res = await fetchLocations({ id: row.id });
-    if (res.status === 200) setSelectedLocation(res.data.items[0]);
+  const handleEdit = async (row: dynamicData) => {
+    const res = await fetchLocations(row.id);
+    console.log("res.", res);
+    if (res.status === 200) setSelectedLocation(res.data.data.record);
     else setSelectedLocation(row);
     setFormMode("edit");
+    console.log("res", res);
   };
 
   const handleAdd = () => {
@@ -96,33 +100,16 @@ export default function LocationList() {
 
   const userColumns: TableColumn<any>[] = [
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+
     {
-      name: "Name",
-      selector: (row) => row.name || "--",
+      name: "Address1",
+      selector: (row) => row.address1 || "--",
       sortable: true,
-      width: "20%",
-    },
-    {
-      name: "Address",
-      selector: (row) => row.address || "--",
-      sortable: true,
-      width: "25%",
+      width: "30%",
     },
     {
       name: "City",
       selector: (row) => row.city || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "State",
-      selector: (row) => row.state || "--",
-      sortable: true,
-      width: "10%",
-    },
-    {
-      name: "ZIP",
-      selector: (row) => row.zip || "--",
       sortable: true,
       width: "10%",
     },
@@ -130,7 +117,13 @@ export default function LocationList() {
       name: "Country",
       selector: (row) => row.country || "--",
       sortable: true,
-      width: "10%",
+      width: "15%",
+    },
+    {
+      name: "Address Type",
+      selector: (row) => row.address_type || "--",
+      sortable: true,
+      width: "30%",
     },
     {
       name: "Action",

@@ -30,7 +30,6 @@ export default function DomainList() {
       const res = await fetchDomains();
       if (res.status === 200) {
         //alert("ddd");
-        console.log("res.data.results", res.data.data.results);
         setData(res.data.data.results);
       } else {
         dispatch(

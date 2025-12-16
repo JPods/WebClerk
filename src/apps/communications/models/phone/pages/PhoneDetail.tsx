@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { phoneSchema } from "../utils/phoneSchema";
 import { PhoneAddProps } from "../types/phoneType";
+import Checkbox from "../../../../../components/form/input/Checkbox";
 
 export default function PhoneDetail({
   modeProp,
@@ -31,9 +32,11 @@ export default function PhoneDetail({
     handleSubmit,
     formState: { errors },
     reset,
+    control,
     watch,
   } = useForm<z.infer<typeof phoneSchema>>({
     resolver: zodResolver(phoneSchema),
+    defaultValues: { opt_out: false },
   });
 
   const location = useLocation();
@@ -152,28 +155,72 @@ export default function PhoneDetail({
             </div>
             <div>
               <Label htmlFor="country_code">country_code</Label>
-              <DropDown
+              <Input
+                type="text"
                 id="country_code"
-                options={countryCodeOptions}
-                placeholder="Select Country Code"
-                value={watch("country_code")}
-                onChange={handleCountryCodeChange}
-                className="dark:bg-dark-900"
+                placeholder="country_code"
+                {...register("country_code")}
+                error={
+                  errors.country_code && errors.country_code.message
+                    ? true
+                    : false
+                }
+                hint={errors.country_code && errors.country_code.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="format">format</Label>
+              <Input
+                type="text"
+                id="format"
+                placeholder="Format"
+                {...register("format")}
+                error={errors.format && errors.format.message ? true : false}
+                hint={errors.format && errors.format.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name">name</Label>
+              <Input
+                type="text"
+                id="name"
+                placeholder="Name"
+                {...register("name")}
+                error={errors.name && errors.name.message ? true : false}
+                hint={errors.name && errors.name.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="attention">attention</Label>
+              <Input
+                type="text"
+                id="attention"
+                placeholder="Attention"
+                {...register("attention")}
+                error={
+                  errors.attention && errors.attention.message ? true : false
+                }
+                hint={errors.attention && errors.attention.message}
                 disabled={mode === "view"}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="type">type</Label>
-              <DropDown
-                id="type"
-                options={typeOptions}
-                placeholder="Select Type"
-                value={watch("type")}
-                onChange={handleTypeChange}
-                className="dark:bg-dark-900"
-                disabled={mode === "view"}
+              <Controller
+                name="opt_out"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="opt_out"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="Opt Out"
+                  />
+                )}
               />
             </div>
           </div>
