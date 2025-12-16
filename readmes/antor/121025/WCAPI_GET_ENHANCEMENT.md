@@ -19,7 +19,7 @@ The `/wcapi/get` endpoint has been enhanced to provide robust, universal query c
 
 ## API Endpoint
 
-```
+```aaa
 GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering]
 ```
 
@@ -42,7 +42,8 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 ### Filtering Parameters
 
 **Equality & Field Filters:**
-```
+
+```aaa
 ?field_name=value
 ?status=active
 ?priority=high
@@ -50,7 +51,8 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 ```
 
 **Comparison Operators:**
-```
+
+```aaa
 ?amount__gte=1000        # Greater than or equal
 ?amount__lte=5000        # Less than or equal
 ?amount__gt=1000         # Greater than
@@ -60,7 +62,8 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 ```
 
 **String Matching:**
-```
+
+```aaa
 ?name__icontains=john           # Case-insensitive contains
 ?email__startswith=admin        # Starts with
 ?code__endswith=_FINAL          # Ends with
@@ -69,7 +72,8 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 ```
 
 **Advanced:**
-```
+
+```aaa
 ?status__ne=canceled     # Not equal
 ?tags__in=urgent,high    # In list
 ?is_active__isnull=true  # IS NULL / IS NOT NULL
@@ -78,7 +82,8 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 ### Search Parameters
 
 **Full-Text Search:**
-```
+
+```aaa
 ?q=search_term               # Search across searchable fields
 ?search=search_term          # Alternative parameter name
 ?q=john+doe                  # Multi-word search (space-separated)
@@ -86,6 +91,7 @@ GET /api/wcapi/get/?model_name=<model>&[filters]&[pagination]&[search]&[ordering
 ```
 
 Search uses model's configured searchable fields from registry. Falls back to common fields like:
+
 - name, title, description
 - email, phone, code
 - reference, number, identifier
@@ -94,18 +100,21 @@ Search uses model's configured searchable fields from registry. Falls back to co
 ### Pagination Parameters
 
 **Limit/Offset Style (Default):**
-```
+
+```aaa
 ?limit=50&offset=100         # Get 50 records starting at position 100
 ?limit=25                    # Get 25 records (default offset=0)
 ```
 
 **Page-Based Style:**
-```
+
+```aaa
 ?page=1&page_size=25         # Page 1 with 25 items per page
 ?page=2&page_size=50         # Page 2 with 50 items per page
 ```
 
 **Constraints:**
+
 - Minimum limit: 1
 - Maximum limit: 1000 (enforced, higher values capped)
 - Default limit: 500
@@ -114,7 +123,7 @@ Search uses model's configured searchable fields from registry. Falls back to co
 
 ### Ordering Parameters
 
-```
+```aaa
 ?ordering=field_name         # Ascending order
 ?ordering=-field_name        # Descending order
 ?order_by=dt_created         # Alternative parameter name
@@ -138,6 +147,7 @@ Search uses model's configured searchable fields from registry. Falls back to co
 ## Usage Examples
 
 ### Example 1: Get All Invoices (Default)
+
 ```bash
 GET /api/wcapi/get/?model_name=invoice
 
@@ -156,6 +166,7 @@ Response:
 ```
 
 ### Example 2: Get Single Record by ID
+
 ```bash
 GET /api/wcapi/get/?model_name=invoice&id=42
 
@@ -171,6 +182,7 @@ Response:
 ```
 
 ### Example 3: Filter Invoices by Status and Amount Range
+
 ```bash
 GET /api/wcapi/get/?model_name=invoice&status=sent&total__gte=1000&total__lte=5000
 
@@ -193,6 +205,7 @@ Response:
 ```
 
 ### Example 4: Search with Pagination
+
 ```bash
 GET /api/wcapi/get/?model_name=proposal&q=customer%20john&page=1&page_size=10&ordering=-dt_created
 
@@ -214,6 +227,7 @@ Response:
 ```
 
 ### Example 5: Complex Filter with Multiple Conditions
+
 ```bash
 GET /api/wcapi/get/?model_name=salesorder&status=in_progress&priority__ne=low&customer_id=5&created_date__gte=2025-01-01&q=shipment
 
@@ -236,6 +250,7 @@ Response:
 ```
 
 ### Example 6: Transaction Model with Lines (Auto-Included)
+
 ```bash
 GET /api/wcapi/get/?model_name=salesorder&id=10
 
@@ -265,6 +280,7 @@ Response:
 ### Success Response (200 OK)
 
 **List Endpoint:**
+
 ```json
 {
   "results": [
@@ -299,6 +315,7 @@ Response:
 ```
 
 **Single Record Endpoint:**
+
 ```json
 {
   "record": {
@@ -313,6 +330,7 @@ Response:
 ### Error Responses
 
 **Invalid Model (400):**
+
 ```json
 {
   "detail": "invalid model"
@@ -320,6 +338,7 @@ Response:
 ```
 
 **Missing Required Parameter (400):**
+
 ```json
 {
   "detail": "model_name parameter is required"
@@ -327,6 +346,7 @@ Response:
 ```
 
 **Unauthorized (401):**
+
 ```json
 {
   "detail": "Authentication credentials were not provided."
@@ -436,6 +456,7 @@ If `search_fields` not configured, auto-detection finds searchable fields.
 - Response format extended with new pagination fields
 
 **Example: Old style still works:**
+
 ```bash
 # Old style (still works)
 GET /api/wcapi/get/?model_name=invoice&limit=100&offset=0
@@ -527,4 +548,3 @@ The enhanced `/wcapi/get` endpoint is now:
 ✅ **Backward Compatible** - No breaking changes  
 
 **Ready for production use as the primary data query interface.**
-
