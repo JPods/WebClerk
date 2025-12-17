@@ -34,7 +34,7 @@ export default function PhoneDetail({
     reset,
     control,
     watch,
-  } = useForm<z.infer<typeof phoneSchema>>({
+  } = useForm({
     resolver: zodResolver(phoneSchema),
     defaultValues: { opt_out: false },
   });
@@ -96,14 +96,6 @@ export default function PhoneDetail({
   //   { value: "+86", label: "+86 (China)" },
   //   { value: "+81", label: "+81 (Japan)" },
   // ];
-
-  const handleTypeChange = (value: string) => {
-    setValue("type", value);
-  };
-
-  const handleCountryCodeChange = (value: string) => {
-    setValue("country_code", value);
-  };
 
   return (
     <>
@@ -194,7 +186,7 @@ export default function PhoneDetail({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
             <div>
               <Label htmlFor="attention">attention</Label>
               <Input
