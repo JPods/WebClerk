@@ -7,7 +7,7 @@ import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import DomainDetail from "./DomainDetail";
+import DomainDetail from "./domain1";
 
 
 export default function DomainList() {

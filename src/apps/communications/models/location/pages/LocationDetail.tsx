@@ -52,8 +52,9 @@ export default function LocationDetail({
       reset({});
     }
   }, [data, reset, setValue, mode]);
-
+  console.log("errors", errors);
   const onSubmit = async (formData: z.infer<typeof locationSchema>) => {
+    console.log("formData", formData);
     try {
       const res =
         mode === "add"
@@ -112,33 +113,66 @@ export default function LocationDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="name">name</Label>
+              <Label htmlFor="address1">address1</Label>
               <Input
                 type="text"
-                id="name"
-                placeholder="Location Name"
-                {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
+                id="address1"
+                placeholder="Location address1"
+                {...register("address1")}
+                error={
+                  errors.address1 && errors.address1.message ? true : false
+                }
+                hint={errors.address1 && errors.address1.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="address">address</Label>
+              <Label htmlFor="address2">address22</Label>
               <Input
                 type="text"
-                id="address"
-                placeholder="Street Address"
-                {...register("address")}
-                error={errors.address && errors.address.message ? true : false}
-                hint={errors.address && errors.address.message}
+                id="address2"
+                placeholder="Address2"
+                {...register("address2")}
+                error={
+                  errors.address2 && errors.address2.message ? true : false
+                }
+                hint={errors.address2 && errors.address2.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="address_type">address_type</Label>
+              <Input
+                type="text"
+                id="address_type"
+                placeholder="Address Type"
+                {...register("address_type")}
+                error={
+                  errors.address_type && errors.address_type.message
+                    ? true
+                    : false
+                }
+                hint={errors.address_type && errors.address_type.message}
+                disabled={mode === "view"}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="full">full</Label>
+              <Input
+                type="text"
+                id="full"
+                placeholder="Full"
+                {...register("full")}
+                error={errors.full && errors.full.message ? true : false}
+                hint={errors.full && errors.full.message}
                 disabled={mode === "view"}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="city">city</Label>
               <Input
@@ -151,6 +185,20 @@ export default function LocationDetail({
                 disabled={mode === "view"}
               />
             </div>
+
+            <div>
+              <Label htmlFor="country">country</Label>
+              <Input
+                type="text"
+                id="country"
+                placeholder="Country"
+                {...register("country")}
+                error={errors.country && errors.country.message ? true : false}
+                hint={errors.country && errors.country.message}
+                disabled={mode === "view"}
+              />
+            </div>
+
             <div>
               <Label htmlFor="state">state</Label>
               <Input
@@ -178,14 +226,30 @@ export default function LocationDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="country">country</Label>
+              <Label htmlFor="latitude">latitude</Label>
               <Input
                 type="text"
-                id="country"
-                placeholder="Country"
-                {...register("country")}
-                error={errors.country && errors.country.message ? true : false}
-                hint={errors.country && errors.country.message}
+                id="latitude"
+                placeholder="Latitude"
+                {...register("latitude")}
+                error={
+                  errors.latitude && errors.latitude.message ? true : false
+                }
+                hint={errors.latitude && errors.latitude.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="longitude">longitude</Label>
+              <Input
+                type="text"
+                id="longitude"
+                placeholder="Longitude"
+                {...register("longitude")}
+                error={
+                  errors.longitude && errors.longitude.message ? true : false
+                }
+                hint={errors.longitude && errors.longitude.message}
                 disabled={mode === "view"}
               />
             </div>
