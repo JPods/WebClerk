@@ -1,10 +1,7 @@
 import { getRecords } from '../../../../../api/wcapi';
 import { patchAction } from '../../../../../api/userProfile';
-import {
-  Proposal,
-  CreateProposalRequest,
-  UpdateProposalRequest
-} from '../types/proposalType';
+import { Proposal } from '../types/proposalType';
+import { ProposalFormData } from "../utils/proposalSchema";
 import {
   ProposalLine,
   CreateProposalLineRequest,
@@ -21,7 +18,7 @@ export const fetchProposal = async (id: number): Promise<{ status: number; data:
   return { status: 200, data: res.results?.[0] || {} as Proposal };
 };
 
-export const createProposal = async (data: CreateProposalRequest): Promise<{ status: number; data: Proposal }> => {
+export const createProposal = async (data: Partial<ProposalFormData>): Promise<{ status: number; data: Proposal }> => {
   const payload = {
     model_name: 'proposal',
     ...data,
@@ -30,7 +27,7 @@ export const createProposal = async (data: CreateProposalRequest): Promise<{ sta
   return { status: res?.status || 200, data: res?.data || res };
 };
 
-export const updateProposal = async (id: number, data: UpdateProposalRequest): Promise<{ status: number; data: Proposal }> => {
+export const updateProposal = async (id: number, data: Partial<ProposalFormData>): Promise<{ status: number; data: Proposal }> => {
   const payload = {
     model_name: 'proposal',
     ...data,
