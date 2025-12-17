@@ -81,21 +81,21 @@ export default function PhoneDetail({
     }
   };
 
-  const typeOptions = [
-    { value: "mobile", label: "Mobile" },
-    { value: "home", label: "Home" },
-    { value: "work", label: "Work" },
-    { value: "fax", label: "Fax" },
-    { value: "other", label: "Other" },
-  ];
+  // const typeOptions = [
+  //   { value: "mobile", label: "Mobile" },
+  //   { value: "home", label: "Home" },
+  //   { value: "work", label: "Work" },
+  //   { value: "fax", label: "Fax" },
+  //   { value: "other", label: "Other" },
+  // ];
 
-  const countryCodeOptions = [
-    { value: "+1", label: "+1 (USA)" },
-    { value: "+44", label: "+44 (UK)" },
-    { value: "+91", label: "+91 (India)" },
-    { value: "+86", label: "+86 (China)" },
-    { value: "+81", label: "+81 (Japan)" },
-  ];
+  // const countryCodeOptions = [
+  //   { value: "+1", label: "+1 (USA)" },
+  //   { value: "+44", label: "+44 (UK)" },
+  //   { value: "+91", label: "+91 (India)" },
+  //   { value: "+86", label: "+86 (China)" },
+  //   { value: "+81", label: "+81 (Japan)" },
+  // ];
 
   const handleTypeChange = (value: string) => {
     setValue("type", value);

@@ -129,7 +129,7 @@ export default function EmailList() {
       cell: (row) => (
         <>
           <Badge size="sm" color={row.is_primary ? "success" : "warning"}>
-            {row.is_active ? "Yes" : "No"}
+            {row.is_primary ? "Yes" : "No"}
           </Badge>
         </>
       ),
@@ -142,7 +142,7 @@ export default function EmailList() {
       cell: (row) => (
         <>
           <Badge size="sm" color={row.is_verified ? "success" : "warning"}>
-            {row.is_active ? "Yes" : "No"}
+            {row.is_verified ? "Yes" : "No"}
           </Badge>
         </>
       ),

@@ -5,7 +5,7 @@ import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { getRecords, getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
-import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
+import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
@@ -113,26 +113,31 @@ export default function ContactList() {
     },
     {
       name: "Is Active",
-      selector: (row) => (row.is_active ? "Active" : "Inactive"), // Plain string for filtering
+      selector: (row) => (row.is_active ? "yes" : "no"), // Plain string for filtering
       cell: (row) => (
         <>
-          <Badge size="sm" color={row.is_active ? "success" : "warning"}>
-            {row.is_active ? "Active" : "Inactive"}
-          </Badge>
+          {row.is_active ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
         </>
       ),
       sortable: true,
       width: "10%",
     },
+
     {
       name: "Is Staff",
-      selector: (row) => (row.is_staff ? "Active" : "Inactive"), // Plain string for filtering
+      selector: (row) => (row.is_staff ? "yes" : "no"), // Plain string for filtering
       cell: (row) => (
-        <>
-          <Badge size="sm" color={row.is_staff ? "success" : "warning"}>
-            {row.is_staff ? "Active" : "Inactive"}
-          </Badge>
-        </>
+        <div className="flex justify-center">
+          {row.is_staff ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
+        </div>
       ),
       sortable: true,
       width: "10%",
