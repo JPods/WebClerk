@@ -1,16 +1,16 @@
 import { getRecords, saveRecord, deleteRecord } from '../../../../../api/wcapi';
-import { CreateInvoiceRequest, UpdateInvoiceRequest } from '../types/invoiceType';
+import { InvoiceFormData } from "../utils/invoiceSchema";
 
 export const fetchInvoices = async (params?: any) => {
   const res = await getRecords('tx_invoices', params);
   return { status: 200, data: { items: res.results || [] } };
 };
 
-export const createInvoice = async (data: CreateInvoiceRequest) => {
+export const createInvoice = async (data: Partial<InvoiceFormData>) => {
   return saveRecord('tx_invoices', data);
 };
 
-export const updateInvoice = async (id: number, data: UpdateInvoiceRequest) => {
+export const updateInvoice = async (id: number, data: Partial<InvoiceFormData>) => {
   return saveRecord('tx_invoices', { ...data, id });
 };
 
