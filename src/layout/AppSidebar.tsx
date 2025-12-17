@@ -157,17 +157,17 @@ const navItems: NavItem[] = [
       { name: "Phone", path: "/communications/phone/list" },
     ],
   },
-  {
-    icon: <GridIcon />,
-    name: "Core",
-    subItems: [
-      { name: "Action", path: "/core/action/list" },
-      { name: "Contact", path: "/core/contact/list" },
-      { name: "Report", path: "/core/report/list" },
-      { name: "Setting", path: "/core/setting/list" },
-      { name: "Template", path: "/core/template/list" },
-    ],
-  },
+  // {
+  //   icon: <GridIcon />,
+  //   name: "Core",
+  //   subItems: [
+  //     { name: "Action", path: "/core/action/list" },
+  //     { name: "Contact", path: "/core/contact/list" },
+  //     { name: "Report", path: "/core/report/list" },
+  //     { name: "Setting", path: "/core/setting/list" },
+  //     { name: "Template", path: "/core/template/list" },
+  //   ],
+  // },
   {
     icon: <GridIcon />,
     name: "Docs",

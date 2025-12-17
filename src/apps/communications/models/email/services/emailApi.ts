@@ -27,7 +27,7 @@ export const deleteEmail = async (model_name: string, id: number) => {
   }
 };
 
-export const fetchEmails = async (id: number) => {
+export const fetchEmails = async (id?: number) => {
   try {
     const res = await apiClient.get(
       PostLoginURL.allTypes + "model_name=email" + (id ? `&id=${id}` : "")
