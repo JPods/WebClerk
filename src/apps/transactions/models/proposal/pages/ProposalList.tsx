@@ -23,6 +23,7 @@ export default function ProposalList() {
     try {
       setLoading(true);
       const res = await fetchProposals();
+      console.log("Fetched proposals data:", res.data.results); // Debug log to check if contacts are returned
       if (res.status === 200) {
         setData(res.data.results);
       } else {
@@ -43,8 +44,10 @@ export default function ProposalList() {
   }, [getProposalData]);
 
   const handleView = (row: any) => {
+    console.log("Viewing proposal:", row); // Debug log
     setSelectedProposal(row);
     setFormMode("view");
+    console.log("Set formMode to view, selectedProposal:", row); // Debug log
   };
 
   const handleEdit = (row: any) => {

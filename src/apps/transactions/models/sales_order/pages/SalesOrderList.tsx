@@ -250,7 +250,7 @@ export default function SalesOrderList() {
                 pointerOnHover
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading sales orders...</div>}
-                onRowClicked={(row) => handleView(row)}
+                onRowClicked={(row) => handleEdit(row)}
               />
             </div>
           </ComponentCard>

@@ -14,16 +14,18 @@ export class PageRoutes {
   static readonly actionsTaskMarkerAdd: string = "/actions/task-markers/add";
   static readonly actionsTaskMarkerDetail: string = "/actions/task-markers/:id";
 
-  static readonly ContactDetail: string = "/contact-detail";
-  static readonly contactList: string = "/contact-list";
+  static readonly contactList: string = "/core/contact/list";
+
   static readonly customerDetail: string = "/contacts/:id";
   static readonly customerAdd: string = "/contacts/add";
 
   static readonly settingAdd: string = "/setting-add";
   static readonly settingList: string = "/setting-list";
 
-  static readonly domainAdd: string = "/domain-add";
-  static readonly domainList: string = "/domain-list";
+  static readonly domainList: string = "/communications/domain/list";
+  static readonly emailList: string = "/communications/email/list";
+  static readonly locationList: string = "/communications/location/list";
+  static readonly phoneList: string = "/communications/phone/list";
 
   static readonly calendar: string = "/calendar";
   static readonly formElements: string = "/form-elements";
@@ -43,6 +45,8 @@ export class PageRoutes {
 
   static readonly transactionsOrders: string = "/transactions/orders";
   static readonly transactionsOrderDetail: string = "/transactions/orders/:id";
+  static readonly transactionsOrderDetailTest: string =
+    "/transactions/orders-test";
 
   static readonly transactionsInvoices: string = "/transactions/invoices";
   static readonly transactionsInvoiceDetail: string =
@@ -65,30 +69,48 @@ export class PageRoutes {
   static readonly currencyDetail: string = "/accounts/currency/detail/:id?";
   static readonly currencyDisplay: string = "/accounts/currency/display/:id?";
   static readonly exchangeRateList: string = "/accounts/exchange-rate/list";
-  static readonly exchangeRateDetail: string = "/accounts/exchange-rate/detail/:id?";
-  static readonly exchangeRateDisplay: string = "/accounts/exchange-rate/display/:id?";
-  static readonly exchangeTransactionList: string = "/accounts/exchange-transaction/list";
-  static readonly exchangeTransactionDetail: string = "/accounts/exchange-transaction/detail/:id?";
-  static readonly exchangeTransactionDisplay: string = "/accounts/exchange-transaction/display/:id?";
+
+  // static readonly exchangeRateDisplay: string =
+  //   "/accounts/exchange-rate/display/:id?";
+  // static readonly exchangeTransactionList: string =
+  //   "/accounts/exchange-transaction/list";
+  // static readonly exchangeTransactionDisplay: string =
+  //   "/accounts/exchange-transaction/display/:id?";
+
+  static readonly exchangeRateDetail: string =
+    "/accounts/exchange-rate/detail/:id?";
+  static readonly exchangeRateDisplay: string =
+    "/accounts/exchange-rate/display/:id?";
+  static readonly exchangeTransactionList: string =
+    "/accounts/exchange-transaction/list";
+  static readonly exchangeTransactionDetail: string =
+    "/accounts/exchange-transaction/detail/:id?";
+  static readonly exchangeTransactionDisplay: string =
+    "/accounts/exchange-transaction/display/:id?";
   static readonly glAccountList: string = "/accounts/gl-account/list";
   static readonly glAccountDetail: string = "/accounts/gl-account/detail/:id?";
   static readonly glJournalList: string = "/accounts/gl-journal/list";
   static readonly glJournalDetail: string = "/accounts/gl-journal/detail/:id?";
-  static readonly glJournalDisplay: string = "/accounts/gl-journal/display/:id?";
+  static readonly glJournalDisplay: string =
+    "/accounts/gl-journal/display/:id?";
   static readonly ledgerList: string = "/accounts/ledger/list";
   static readonly ledgerDisplay: string = "/accounts/ledger/display/:id?";
-  static readonly taxJurisdictionList: string = "/accounts/tax-jurisdiction/list";
-  static readonly taxJurisdictionDisplay: string = "/accounts/tax-jurisdiction/display/:id?";
+  static readonly taxJurisdictionList: string =
+    "/accounts/tax-jurisdiction/list";
+  static readonly taxJurisdictionDisplay: string =
+    "/accounts/tax-jurisdiction/display/:id?";
   static readonly termList: string = "/accounts/term/list";
   static readonly termDisplay: string = "/accounts/term/display/:id?";
 
   // Communications
   static readonly commDomainList: string = "/communications/domain/list";
-  static readonly commDomainDetail: string = "/communications/domain/detail/:id?";
+  static readonly commDomainDetail: string =
+    "/communications/domain/detail/:id?";
   static readonly commEmailList: string = "/communications/email/list";
   static readonly commEmailDetail: string = "/communications/email/detail/:id?";
   static readonly commLocationList: string = "/communications/location/list";
-  static readonly commLocationDetail: string = "/communications/location/detail/:id?";
+  static readonly commLocationDetail: string =
+    "/communications/location/detail/:id?";
   static readonly commPhoneList: string = "/communications/phone/list";
   static readonly commPhoneDetail: string = "/communications/phone/detail/:id?";
 
@@ -113,9 +135,11 @@ export class PageRoutes {
   static readonly linkageList: string = "/docs/linkage/list";
   static readonly linkageDisplay: string = "/docs/linkage/display/:id?";
   static readonly linkageIndexList: string = "/docs/linkage-index/list";
-  static readonly linkageIndexDisplay: string = "/docs/linkage-index/display/:id?";
+  static readonly linkageIndexDisplay: string =
+    "/docs/linkage-index/display/:id?";
   static readonly questionAnswerList: string = "/docs/question-answer/list";
-  static readonly questionAnswerDisplay: string = "/docs/question-answer/display/:id?";
+  static readonly questionAnswerDisplay: string =
+    "/docs/question-answer/display/:id?";
   static readonly tagList: string = "/docs/tag/list";
   static readonly tagDisplay: string = "/docs/tag/display/:id?";
 }

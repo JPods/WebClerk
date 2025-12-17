@@ -32,14 +32,18 @@ export default function ProposalDetail({
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [newLine, setNewLine] = useState<any>({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
 
+  type ProposalFormData = z.infer<typeof proposalSchema>;
+
   const {
     register,
     setValue,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof proposalSchema>>({
+  } = useForm<ProposalFormData>({
     resolver: zodResolver(proposalSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
 
   const location = useLocation();
@@ -79,12 +83,30 @@ export default function ProposalDetail({
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof proposalSchema>) => {
+  const onSubmit = async (formData: ProposalFormData) => {
     try {
+      // Clean up the data - remove undefined and null values, but keep valid values
+      const cleanData: any = {};
+      Object.keys(formData).forEach(key => {
+        const value = (formData as any)[key];
+        // Skip undefined and null, but allow 0, false, and empty strings for text fields
+        if (value !== undefined && value !== null) {
+          // For empty strings, only include for string fields (ida, priority, price_level, status)
+          if (value === '' && ['ida', 'priority', 'price_level', 'status'].includes(key)) {
+            // Skip empty strings for optional text fields
+            return;
+          }
+          cleanData[key] = value;
+        }
+      });
+      
       const res =
         mode === "add"
-          ? await createProposal(formData)
-          : await updateProposal(data?.id, { ...formData, id: data?.id });
+          ? await createProposal(cleanData)
+          : await updateProposal(data?.id, { 
+              ...cleanData, 
+              id: data?.id
+            });
       if (res) {
         dispatch(
           showToast({
@@ -189,7 +211,7 @@ export default function ProposalDetail({
       dispatch(showToast({ message: error.message || "Failed to update status", type: "error" }));
     }
   };
-
+ console.log('Errors:', errors);
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -248,22 +270,24 @@ export default function ProposalDetail({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="planned">Planned</option>
-                <option value="released">Released</option>
-                <option value="in_progress">In Progress</option>
-                <option value="hold">Hold</option>
-                <option value="complete">Complete</option>
-                <option value="canceled">Canceled</option>
+                <option value="sent">Sent</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
               </select>
+              {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
             </div>
           </div>
 
           {/* Customer Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <Label htmlFor="id_customer">id_customer</Label>
+              <Label htmlFor="id_customer">id_customer *</Label>
               <CustomerSelect
                 value={data?.id_customer}
-                onChange={(value) => setValue("id_customer", value || 0)}
+                onChange={(value) => {
+                  setValue("id_customer", value as any, { shouldValidate: true });
+                }}
                 disabled={mode === "view"}
               />
               {errors.id_customer && <p className="text-red-500 text-sm">{errors.id_customer.message}</p>}
@@ -274,18 +298,20 @@ export default function ProposalDetail({
                 type="number"
                 id="id_manufacturer"
                 placeholder="Manufacturer ID"
-                {...register("id_manufacturer", { valueAsNumber: true })}
+                {...register("id_manufacturer")}
                 disabled={mode === "view"}
               />
+              {errors.id_manufacturer && <p className="text-red-500 text-sm">{errors.id_manufacturer.message}</p>}
             </div>
             <div>
               <Label htmlFor="id_vendor">id_vendor</Label>
               <CustomerSelect
                 value={data?.id_vendor}
-                onChange={(value) => setValue("id_vendor", value || 0)}
+                onChange={(value) => setValue("id_vendor", value as any)}
                 disabled={mode === "view"}
                 contactType="vendor"
               />
+              {errors.id_vendor && <p className="text-red-500 text-sm">{errors.id_vendor.message}</p>}
             </div>
           </div>
 
@@ -300,6 +326,7 @@ export default function ProposalDetail({
                 {...register("priority")}
                 disabled={mode === "view"}
               />
+              {errors.priority && <p className="text-red-500 text-sm">{errors.priority.message}</p>}
             </div>
             <div>
               <Label htmlFor="price_level">price_level</Label>
@@ -310,6 +337,7 @@ export default function ProposalDetail({
                 {...register("price_level")}
                 disabled={mode === "view"}
               />
+              {errors.price_level && <p className="text-red-500 text-sm">{errors.price_level.message}</p>}
             </div>
           </div>
 

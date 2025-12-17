@@ -3,17 +3,26 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { fetchPhones, deletePhone } from "../services/phoneApi";
-import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import {
+  FaEye,
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaCheck,
+  FaTimes,
+} from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import PhoneDetail from "./PhoneDetail";
-
+import { dynamicData } from "../../../../../model/dynamicData";
 export default function PhoneList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<any | null>(null);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -23,7 +32,7 @@ export default function PhoneList() {
     try {
       const res = await fetchPhones();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.data.results);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch phones", type: "error" })
@@ -45,13 +54,14 @@ export default function PhoneList() {
     setFormMode("view");
   };
 
-  const handleEdit = async (row: any) => {
-    const res = await fetchPhones({ id: row.id });
-    if (res.status === 200) setSelectedPhone(res.data.items[0]);
+  const handleEdit = async (row: dynamicData) => {
+    const res = await fetchPhones(row.id);
+    console.log("res.", res);
+    if (res.status === 200) setSelectedPhone(res.data.data.record);
     else setSelectedPhone(row);
     setFormMode("edit");
+    console.log("res", res);
   };
-
   const handleAdd = () => {
     setSelectedPhone(null);
     setFormMode("add");
@@ -95,7 +105,7 @@ export default function PhoneList() {
   };
 
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
     {
       name: "Number",
       selector: (row) => row.number || "--",
@@ -103,10 +113,10 @@ export default function PhoneList() {
       width: "25%",
     },
     {
-      name: "Type",
-      selector: (row) => row.type || "--",
+      name: "Name",
+      selector: (row) => row.name || "--",
       sortable: true,
-      width: "20%",
+      width: "25%",
     },
     {
       name: "Country Code",
@@ -114,6 +124,22 @@ export default function PhoneList() {
       sortable: true,
       width: "15%",
     },
+    {
+      name: "Opt Out",
+      selector: (row) => (row.opt_out ? "yes" : "no"),
+      cell: (row) => (
+        <>
+          {row.opt_out ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
+        </>
+      ),
+      sortable: true,
+      width: "15%",
+    },
+
     {
       name: "Action",
       cell: (row) => (

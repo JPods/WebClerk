@@ -5,13 +5,13 @@ import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { getRecords, getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
-import { FaEye, FaEdit, FaPlus } from "react-icons/fa";
+import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import ContactAdd from "./ContactDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
-
+import { fetchContacts } from "../services/contactApi";
 export default function ContactList() {
   const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
@@ -26,11 +26,20 @@ export default function ContactList() {
   console.log("data", data);
   const getContactData = useCallback(async () => {
     try {
-      const res = await getRecords('contact');
-      setData(res.results);
+      const res = await fetchContacts();
+      if (res.status === 200) {
+        console.log(res.data.results);
+        setData(res.data.results);
+      } else {
+        dispatch(
+          showToast({ message: "Failed to fetch contacts", type: "error" })
+        );
+      }
     } catch (error) {
       console.error("Failed to fetch contacts", error);
-      dispatch(showToast({ message: "Failed to fetch contacts", type: "error" }));
+      dispatch(
+        showToast({ message: "Failed to fetch contacts", type: "error" })
+      );
     }
   }, [dispatch]);
 
@@ -45,7 +54,7 @@ export default function ContactList() {
 
   const handleEdit = async (row: dynamicData) => {
     try {
-      const res = await getRecord('contact', row.id);
+      const res = await getRecord("contact", row.id);
       setSelectedContact(res.record);
     } catch (error) {
       setSelectedContact(row);
@@ -58,7 +67,6 @@ export default function ContactList() {
     setSelectedContact(null);
     setFormMode("add");
   };
-
 
   const handleFormSaved = () => {
     getContactData();
@@ -105,26 +113,31 @@ export default function ContactList() {
     },
     {
       name: "Is Active",
-      selector: (row) => (row.is_active ? "Active" : "Inactive"), // Plain string for filtering
+      selector: (row) => (row.is_active ? "yes" : "no"), // Plain string for filtering
       cell: (row) => (
         <>
-          <Badge size="sm" color={row.is_active ? "success" : "warning"}>
-            {row.is_active ? "Active" : "Inactive"}
-          </Badge>
+          {row.is_active ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
         </>
       ),
       sortable: true,
       width: "10%",
     },
+
     {
       name: "Is Staff",
-      selector: (row) => (row.is_staff ? "Active" : "Inactive"), // Plain string for filtering
+      selector: (row) => (row.is_staff ? "yes" : "no"), // Plain string for filtering
       cell: (row) => (
-        <>
-          <Badge size="sm" color={row.is_staff ? "success" : "warning"}>
-            {row.is_staff ? "Active" : "Inactive"}
-          </Badge>
-        </>
+        <div className="flex justify-center">
+          {row.is_staff ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
+        </div>
       ),
       sortable: true,
       width: "10%",
@@ -165,7 +178,7 @@ export default function ContactList() {
                 Add Contact
               </button>
             </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
+            <div className="w-full overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
               <DataTable
                 columns={userColumns.map((col) => ({
                   ...col,
@@ -179,10 +192,13 @@ export default function ContactList() {
                 theme={theme === "dark" ? "tailwindDark" : "default"}
                 highlightOnHover
                 pointerOnHover
+                progressPending={data.length === 0}
                 progressComponent={
-                  <div className="p-8 text-center">Loading contacts...</div>
+                  <div className="p-8 text-center">Loading record...</div>
                 }
                 onRowClicked={(row) => handleView(row)}
+                responsive
+                // dense
               />
             </div>
           </ComponentCard>

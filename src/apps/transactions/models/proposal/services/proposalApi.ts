@@ -1,4 +1,5 @@
-import { getRecords, saveRecord, deleteRecord } from '../../../../../api/wcapi';
+import { getRecords } from '../../../../../api/wcapi';
+import { patchAction } from '../../../../../api/userProfile';
 import {
   Proposal,
   CreateProposalRequest,
@@ -21,15 +22,32 @@ export const fetchProposal = async (id: number): Promise<{ status: number; data:
 };
 
 export const createProposal = async (data: CreateProposalRequest): Promise<{ status: number; data: Proposal }> => {
-  return saveRecord('proposal', data);
+  const payload = {
+    model_name: 'proposal',
+    ...data,
+  };
+  const res = await patchAction(payload);
+  return { status: res?.status || 200, data: res?.data || res };
 };
 
 export const updateProposal = async (id: number, data: UpdateProposalRequest): Promise<{ status: number; data: Proposal }> => {
-  return saveRecord('proposal', { ...data, id });
+  const payload = {
+    model_name: 'proposal',
+    ...data,
+    id,
+  };
+  const res = await patchAction(payload);
+  return { status: res?.status || 200, data: res?.data || res };
 };
 
 export const deleteProposal = async (id: number): Promise<{ status: number; data: any }> => {
-  return deleteRecord('proposal', id);
+  const payload = {
+    model_name: 'proposal',
+    id,
+    method: 'delete',
+  };
+  const res = await patchAction(payload);
+  return { status: res?.status || 200, data: res?.data || res };
 };
 
 // Proposal Actions - Note: Backend action endpoint may need implementation
@@ -51,15 +69,32 @@ export const fetchProposalLine = async (proposalId: number, lineId: number): Pro
 };
 
 export const createProposalLine = async (proposalId: number, data: CreateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
-  const payload = { ...data, parent: proposalId };
-  return saveRecord('proposal_line', payload);
+  const payload = {
+    model_name: 'proposal_line',
+    parent: proposalId,
+    ...data,
+  };
+  const res = await patchAction(payload);
+  return { status: res?.status || 200, data: res?.data || res };
 };
 
 export const updateProposalLine = async (proposalId: number, lineId: number, data: UpdateProposalLineRequest): Promise<{ status: number; data: ProposalLine }> => {
-  const payload = { ...data, parent: proposalId, id: lineId };
-  return saveRecord('proposal_line', payload);
+  const payload = {
+    model_name: 'proposal_line',
+    ...data,
+    parent: proposalId,
+    id: lineId,
+  };
+  const res = await patchAction(payload);
+  return { status: res?.status || 200, data: res?.data || res };
 };
 
-export const deleteProposalLine = async (proposalId: number, lineId: number): Promise<{ status: number; data: any }> => {
-  return deleteRecord('proposal_line', lineId);
+export const deleteProposalLine = async (_proposalId: number, lineId: number): Promise<{ status: number; data: any }> => {
+  const payload = {
+    model_name: 'proposal_line',
+    id: lineId,
+    method: 'delete',
+  };
+  const res = await patchAction(payload);
+  return { status: res?.status || 200, data: res?.data || res };
 };
