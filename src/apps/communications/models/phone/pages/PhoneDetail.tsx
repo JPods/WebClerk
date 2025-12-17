@@ -88,6 +88,13 @@ export default function PhoneDetail({
   //   { value: "fax", label: "Fax" },
   //   { value: "other", label: "Other" },
   // ];
+  // const typeOptions = [
+  //   { value: "mobile", label: "Mobile" },
+  //   { value: "home", label: "Home" },
+  //   { value: "work", label: "Work" },
+  //   { value: "fax", label: "Fax" },
+  //   { value: "other", label: "Other" },
+  // ];
 
   // const countryCodeOptions = [
   //   { value: "+1", label: "+1 (USA)" },
@@ -96,6 +103,14 @@ export default function PhoneDetail({
   //   { value: "+86", label: "+86 (China)" },
   //   { value: "+81", label: "+81 (Japan)" },
   // ];
+
+  const handleTypeChange = (value: string) => {
+    setValue("type", value);
+  };
+
+  const handleCountryCodeChange = (value: string) => {
+    setValue("country_code", value);
+  };
 
   return (
     <>
