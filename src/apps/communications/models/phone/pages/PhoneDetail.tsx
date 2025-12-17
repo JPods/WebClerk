@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -159,20 +158,43 @@ export default function PhoneDetail({
               <Input
                 type="text"
                 id="country_code"
-                options={countryCodeOptions}
-                placeholder="Select Country Code"
-                value={watch("country_code")}
-                onChange={handleCountryCodeChange}
-                className="dark:bg-dark-900"
+                placeholder="country_code"
+                {...register("country_code")}
+                error={
+                  errors.country_code && errors.country_code.message
+                    ? true
+                    : false
+                }
+                hint={errors.country_code && errors.country_code.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="format">format</Label>
+              <Input
+                type="text"
+                id="format"
+                placeholder="Format"
+                {...register("format")}
+                error={errors.format && errors.format.message ? true : false}
+                hint={errors.format && errors.format.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name">name</Label>
+              <Input
+                type="text"
+                id="name"
+                placeholder="Name"
+                {...register("name")}
+                error={errors.name && errors.name.message ? true : false}
+                hint={errors.name && errors.name.message}
                 disabled={mode === "view"}
               />
             </div>
           </div>
-<<<<<<< HEAD
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-=======
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
->>>>>>> 18f293e (Location and phone functionality added2)
             <div>
               <Label htmlFor="attention">attention</Label>
               <Input
