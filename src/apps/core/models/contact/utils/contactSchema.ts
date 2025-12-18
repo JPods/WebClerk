@@ -128,7 +128,7 @@ export const mapRefsFormToApi = (refs: RefsForm): RefsApi => ({
     customer: refs.links.customer,
     document: refs.links.document,
     location: refs.links.location.map((l) => {
-      return { id: l.id };
+      return { id: l.id, name: l.name, address: l.address };
     }),
     manufacturer: refs.links.manufacturer,
     project: refs.links.project,
