@@ -65,6 +65,9 @@ export const purchaseOrderSchema = baseTransactionSchema.extend({
   // PO-specific fields
   shipping_terms: z.string().max(255, "Shipping terms must be 255 characters or less").optional(),
   payment_terms: z.string().max(255, "Payment terms must be 255 characters or less").optional(),
+  receipt_id: z.string().max(100, "Receipt ID must be 100 characters or less").optional(),
+  vendor_pack_list: z.string().max(255, "Vendor pack list must be 255 characters or less").optional(),
+  vendor_pack_date: z.string().optional(), // ISO date string
 
   // Line items
   line_items: z.array(purchaseOrderLineSchema).optional(),

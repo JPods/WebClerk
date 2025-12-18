@@ -157,6 +157,43 @@ export default function PurchaseOrderDetail({
                {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
              </div>
            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <Label htmlFor="receipt_id">Receipt ID</Label>
+                <Input
+                  type="text"
+                  id="receipt_id"
+                  placeholder="Receipt ID"
+                  {...register("receipt_id")}
+                  error={!!errors.receipt_id?.message}
+                  hint={errors.receipt_id?.message}
+                  disabled={mode === "view"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="vendor_pack_list">Vendor Pack List</Label>
+                <Input
+                  type="text"
+                  id="vendor_pack_list"
+                  placeholder="Vendor Pack List"
+                  {...register("vendor_pack_list")}
+                  error={!!errors.vendor_pack_list?.message}
+                  hint={errors.vendor_pack_list?.message}
+                  disabled={mode === "view"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="vendor_pack_date">Vendor Pack Date</Label>
+                <Input
+                  type="date"
+                  id="vendor_pack_date"
+                  {...register("vendor_pack_date")}
+                  error={!!errors.vendor_pack_date?.message}
+                  hint={errors.vendor_pack_date?.message}
+                  disabled={mode === "view"}
+                />
+              </div>
+            </div>
           {mode === "view" && data && (
             <div className="space-y-6">
               <div>
