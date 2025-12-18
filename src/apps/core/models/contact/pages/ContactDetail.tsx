@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { Controller, useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -7,16 +7,27 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import Input from "../../../../../components/form/input/InputField";
 import DropDown from "../../../../../components/form/input/DropDown";
-
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { getByTypeAndId } from "../../../../../api/userProfile";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { contactSchema, updateContactSchema } from "../utils/contactSchema";
-import { ContactAddProps } from "../types/contactType";
+import {
+  contactSchema,
+  updateContactSchema,
+  mapRefsFormToApi,
+} from "../utils/contactSchema";
+import {
+  ContactAddProps,
+  CreateContactRequest,
+  UpdateContactRequest,
+} from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
+import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
+
+/* ----------------------------------
+   Types
+---------------------------------- */
 
 export default function ContactDetail({
   modeProp,
@@ -26,49 +37,81 @@ export default function ContactDetail({
   inline = false,
   onCancelInline,
 }: ContactAddProps) {
+  const [isEmailEdit, setIsEmailEdit] = useState<boolean>(false);
   const dispatch = useDispatch();
-
-  // const {
-  //   register,
-  //   setValue,
-  //   handleSubmit,
-  //   formState: { errors },
-  //   reset,
-  //   control,
-  // } = useForm({
-  //   resolver: zodResolver(contactSchema),
-  //   defaultValues: { is_staff: false, is_active: false },
-  // });
-
   const location = useLocation();
   const routeState = (location.state as any) || {};
+
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
-  const [linkedLists, setLinkedLists] = useState<Record<string, any[]>>({});
 
+  /* ----------------------------------
+     React Hook Form
+  ---------------------------------- */
   const {
     register,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-    reset,
     control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(
       mode === "edit" ? updateContactSchema : contactSchema
     ),
-    defaultValues: { is_staff: false, is_active: false },
+    defaultValues: {
+      refs: {
+        tags: [],
+        categories: [],
+        keywords: [],
+        depends_on: {},
+        related_ids: [],
+        links: {
+          rep: [],
+          item: [],
+          email: [],
+          order: [],
+          phone: [],
+          domain: [],
+          contact: [],
+          customer: [],
+          document: [],
+          location: [],
+          manufacturer: [],
+          project: [],
+          vendor: [],
+        },
+      },
+    },
   });
+
+  /* ----------------------------------
+     Field Array for Emails
+  ---------------------------------- */
+  const {
+    fields: emailFields,
+    append: appendEmail,
+    remove: removeEmail,
+  } = useFieldArray({
+    control,
+    name: "refs.links.email",
+  });
+  console.log("emailFields", emailFields, emailFields.length);
+  /* ----------------------------------
+     Load Edit Data
+  ---------------------------------- */
 
   useEffect(() => {
     if (mode === "add") {
       reset();
+      if (data?.refs) {
+        reset({ refs: data.refs });
+      }
     } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
-        }
-      });
+      reset(data);
+      if (data?.refs) {
+        reset({ ...data, refs: data.refs });
+      }
       // Fetch linked lists by ids if present: data.refs.links
       // Commented out as linked data is not displayed
     } else {
@@ -79,7 +122,15 @@ export default function ContactDetail({
       setValue("cnf_password", "");
     }
   }, [data, reset, setValue, mode]);
+  useEffect(() => {
+    setIsEmailEdit(false);
+  }, [data]);
+
+  /* ----------------------------------
+     Submit
+  ---------------------------------- */
   console.log("errors", errors);
+
   const onSubmit = async (
     formData:
       | z.infer<typeof contactSchema>
@@ -87,10 +138,38 @@ export default function ContactDetail({
   ) => {
     console.log("formData", formData);
     try {
+      const mappedRefs = formData.refs
+        ? mapRefsFormToApi(formData.refs)
+        : undefined;
+      const payload = {
+        email: formData.email,
+        name_first: formData.name_first,
+        name_last: formData.name_last,
+        name_middle: formData.name_middle,
+        name_prefix: formData.name_prefix,
+        name_suffix: formData.name_suffix,
+        company: formData.company,
+        title: formData.title,
+        department: formData.department,
+        role: formData.role,
+        is_active: formData.is_active,
+        is_staff: formData.is_staff,
+        refs: mappedRefs,
+        ...(mode === "add" || mode === "edit"
+          ? {
+              password: formData.password,
+              cnf_password: formData.cnf_password,
+            }
+          : {}),
+      };
+
       const res =
         mode === "add"
-          ? await createContact(formData)
-          : await updateContact({ ...formData, id: data && data.id });
+          ? await createContact(payload as CreateContactRequest)
+          : await updateContact({
+              ...payload,
+              id: data?.id,
+            } as UpdateContactRequest);
       if (res) {
         dispatch(
           showToast({
@@ -104,19 +183,20 @@ export default function ContactDetail({
           onSaved();
         }
       }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        dispatch(showToast({ message: error.message, type: "error" }));
+      }
     }
   };
 
-  const options = [
+  const roleOptions = [
     { value: "user", label: "User" },
     { value: "admin", label: "Administrator" },
     { value: "manager", label: "Manager" },
     { value: "staff", label: "Staff" },
     { value: "guest", label: "Guest" },
   ];
-
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -130,6 +210,7 @@ export default function ContactDetail({
           }
         />
       )}
+
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
@@ -349,7 +430,7 @@ export default function ContactDetail({
                 render={({ field }) => (
                   <DropDown
                     id="role"
-                    options={options}
+                    options={roleOptions}
                     placeholder="Select Role"
                     value={field.value}
                     onChange={field.onChange}
@@ -392,6 +473,144 @@ export default function ContactDetail({
               />
             </div>
           </div>
+
+          <h5 className="font-semibold">Contact Ref. Link</h5>
+
+          {/* ----------------------------------
+              LINKED EMAILS
+          ---------------------------------- */}
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex-2/3 me-2">
+              <Label>model_name: email</Label>
+            </div>
+
+            {mode !== "view" && (
+              <div className="flex items-end gap-2">
+                <button
+                  type="button"
+                  className="h-[38px] w-[38px] flex items-center justify-center
+                         border rounded-md hover:text-success-600"
+                  onClick={() => {
+                    setIsEmailEdit(true);
+                    appendEmail({ id: 0, name: "", address: "" });
+                  }}
+                >
+                  <FaPlus className="text-success-600 hover:scale-110" />
+                </button>
+                {emailFields.length && isEmailEdit ? (
+                  <button
+                    type="button"
+                    className="h-[38px] w-[38px] flex items-center justify-center
+                         border rounded-md hover:text-blue-600"
+                    onClick={() => {
+                      setIsEmailEdit(false);
+                    }}
+                  >
+                    <FaEye className="text-blue-600 hover:scale-110" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="h-[38px] w-[38px] flex items-center justify-center
+                         border rounded-md hover:text-blue-600"
+                    onClick={() => {
+                      setIsEmailEdit(true);
+                    }}
+                  >
+                    <FaEdit className="text-blue-600 hover:scale-110" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          {emailFields.length && isEmailEdit ? (
+            <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
+              {emailFields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="flex items-center justify-between py-2"
+                >
+                  <div className="flex-2/3 me-2">
+                    <Label htmlFor={`refs.links.email.${index}.address`}>
+                      address (.ref)
+                    </Label>
+                    <Input
+                      type="text"
+                      id={`refs.links.email.${index}.address`}
+                      {...register(`refs.links.email.${index}.address`)}
+                      disabled={mode === "view"}
+                    />
+                  </div>
+
+                  <div className="flex-1/3">
+                    <Label htmlFor={`refs.links.email.${index}.name`}>
+                      name (.ref)
+                    </Label>
+                    <Input
+                      type="text"
+                      id={`refs.links.email.${index}.name`}
+                      {...register(`refs.links.email.${index}.name`)}
+                      disabled={mode === "view"}
+                    />
+                  </div>
+
+                  {mode !== "view" && (
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => removeEmail(index)}
+                        className="p-2 text-red-600"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {emailFields.length ? (
+                <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
+                  {emailFields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="flex items-center justify-between py-2 border-b-2"
+                    >
+                      <div className="flex-2/3 me-2">
+                        <Label htmlFor={`refs.links.email.${index}.address`}>
+                          address (.ref)
+                        </Label>
+                        <h1>{field.address}</h1>
+                      </div>
+
+                      <div className="flex-1/3">
+                        <Label htmlFor={`refs.links.email.${index}.name`}>
+                          name (.ref)
+                        </Label>
+                        <h1>{field.name}</h1>
+                      </div>
+
+                      {mode !== "view" && (
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeEmail(index)}
+                            className="p-2 text-red-600"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No email record found!</p>
+              )}
+            </>
+          )}
+          {/* SUBMIT */}
           {mode !== "view" && (
             <div className="flex items-center gap-2">
               <button
@@ -412,43 +631,6 @@ export default function ContactDetail({
             </div>
           )}
         </form>
-        {/* Linked data lists */}
-        {/* {mode !== "add" && (
-          <div className="mt-6 space-y-4">
-            {Object.keys(linkedLists).length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No linked data.
-              </p>
-            ) : (
-              Object.entries(linkedLists).map(([section, items]) => (
-                <div key={section}>
-                  <h4 className="text-md font-semibold capitalize dark:text-white mb-2">
-                    {section.split("_").join(" ")}
-                  </h4>
-                  <ul className="text-sm divide-y divide-gray-200 dark:divide-gray-700 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
-                    {(items as any[]).map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="p-2 flex items-center justify-between"
-                      >
-                        <span className="truncate text-gray-500 dark:text-white">
-                          {item?.data?.record?.name ||
-                            item?.data?.record?.title ||
-                            item?.data?.record?.email ||
-                            item?.data?.record?.phone ||
-                            item?.data?.record?.id}
-                        </span>
-                        <span className="text-gray-400 text-xs">
-                          ID: {item?.data?.record?.id}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-          </div>
-        )} */}
       </ComponentCard>
     </>
   );

@@ -8,29 +8,41 @@ export interface LocationAddProps {
 }
 
 export interface CreateLocationRequest {
-  name: string;
-  address: string;
+  address1: string;
+  address2: string;
+  address_type: string;
+  full: string;
   city: string;
   state: string;
   zip: string;
   country: string;
+  latitude: string;
+  longitude: string;
 }
 
 export interface LocationApiTask {
-  name: string;
-  address: string;
+  address1: string;
+  address2: string;
+  address_type: string;
+  full: string;
   city: string;
   state: string;
   zip: string;
   country: string;
+  latitude: string;
+  longitude: string;
 }
 
 export interface UpdateLocationRequest {
   id: string;
-  name: string;
-  address: string;
+  address1: string;
+  address2: string;
+  address_type: string;
+  full: string;
   city: string;
   state: string;
   zip: string;
   country: string;
+  latitude: string;
+  longitude: string;
 }

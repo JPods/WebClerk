@@ -9,19 +9,28 @@ export interface PhoneAddProps {
 
 export interface CreatePhoneRequest {
   number: string;
-  type: string;
+  name: string;
   country_code: string;
+  opt_out: boolean;
+  attention: string;
+  format: string;
 }
 
 export interface PhoneApiTask {
   number: string;
-  type: string;
+  name: string;
   country_code: string;
+  opt_out: boolean;
+  attention: string;
+  format: string;
 }
 
 export interface UpdatePhoneRequest {
   id: string;
   number: string;
-  type: string;
+  name: string;
   country_code: string;
+  opt_out: boolean;
+  attention: string;
+  format: string;
 }

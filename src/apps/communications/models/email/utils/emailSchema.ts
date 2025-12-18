@@ -1,9 +1,13 @@
 import * as z from "zod";
 
 export const emailSchema = z.object({
-  subject: z.string().min(1, "Subject is required"),
-  status: z.enum(["draft", "sent", "failed"], { required_error: "Status is required" }),
-  from_email: z.string().email("Invalid from email").min(1, "From email is required"),
-  to_email: z.string().email("Invalid to email").min(1, "To email is required"),
-  body: z.string().min(1, "Body is required"),
+  email: z
+    .string()
+    .email("Invalid from email")
+    .min(1, "From email is required"),
+  name: z.string().min(1, "Name is required"),
+  attention: z.string().optional(),
+  opt_out: z.string().optional(),
+  is_primary: z.boolean().default(false),
+  is_verified: z.boolean().default(false),
 });
