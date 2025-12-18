@@ -69,53 +69,21 @@ export default function SalesOrderDetailTest({
     } else if (data) {
       // Log the data to check what's being received
       console.log('Sales Order Data received:', data);
-
-      const userDefined = data.prefs?.userdefined || {};
-
+      
       // Map API response to form structure
       const formData = {
         // Fields from prefs.userdefined
-        sales_order_no: userDefined.sales_order_no || data.sales_order_no || '',
-        id_customer: userDefined.id_customer || data.id_customer || 0,
-        total: userDefined.total || data.total || 0,
-        tax: userDefined.tax || data.tax || 0,
-        discount: userDefined.discount || data.discount || 0,
-        id_transaction: userDefined.id_transaction || data.id_transaction || '',
-        subtotal: userDefined.subtotal || data.subtotal || 0,
-        id_manufacturer: userDefined.id_manufacturer || data.id_manufacturer || 0,
-        id_vendor: userDefined.id_vendor || data.id_vendor || 0,
-        due_date: userDefined.due_date || data.due_date || '',
-        valid_until: userDefined.valid_until || data.valid_until || '',
-
-        // Contact / address fields
-        company: userDefined.company || data.company || '',
-        attention: userDefined.attention || data.attention || '',
-        address1: userDefined.address1 || data.address1 || '',
-        address2: userDefined.address2 || data.address2 || '',
-        city: userDefined.city || data.city || '',
-        state: userDefined.state || data.state || '',
-        zip: userDefined.zip || data.zip || '',
-        email: userDefined.email || data.email || '',
-        phoneCell: userDefined.phoneCell || data.phoneCell || '',
-        phone: userDefined.phone || data.phone || '',
-
-        // Workflow / assignment fields
-        actionBy: userDefined.actionBy || data.actionBy || '',
-        action: userDefined.action || data.action || '',
-        actionDate: userDefined.actionDate || data.actionDate || '',
-        actionTime: userDefined.actionTime || data.actionTime || '',
-        salesNameID: userDefined.salesNameID || data.salesNameID || '',
-        orderedBy: userDefined.orderedBy || data.orderedBy || '',
-        contractDetailTag: userDefined.contractDetailTag || data.contractDetailTag || '',
-        terms: userDefined.terms || data.terms || '',
-        typeSale: userDefined.typeSale || data.typeSale || '',
-        taxJuris: userDefined.taxJuris || data.taxJuris || '',
-        adSource: userDefined.adSource || data.adSource || '',
-
-        // Commenting
-        addComment: '',
-        comment: userDefined.comment || data.comment || '',
-        contractDetail: userDefined.contractDetail || data.contractDetail || '',
+        sales_order_no: data.prefs?.userdefined?.sales_order_no || '',
+        id_customer: data.prefs?.userdefined?.id_customer || 0,
+        total: data.prefs?.userdefined?.total || 0,
+        tax: data.prefs?.userdefined?.tax || 0,
+        discount: data.prefs?.userdefined?.discount || 0,
+        id_transaction: data.prefs?.userdefined?.id_transaction || '',
+        subtotal: data.prefs?.userdefined?.subtotal || 0,
+        id_manufacturer: data.prefs?.userdefined?.id_manufacturer || 0,
+        id_vendor: data.prefs?.userdefined?.id_vendor || 0,
+        due_date: data.prefs?.userdefined?.due_date || '',
+        valid_until: data.prefs?.userdefined?.valid_until || '',
         
         // Fields from root level
         status: data.status || 'draft',
@@ -129,6 +97,7 @@ export default function SalesOrderDetailTest({
         finance: data.finance || '',
         flow: data.flow || '',
         source: data.source || '',
+        action: data.action || '',
         
         // Timestamps
         dt_created: data.dt_created,
@@ -461,316 +430,6 @@ export default function SalesOrderDetailTest({
               />
             </div>
           </div>
-          {/* Contact & Address */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold dark:text-white">Contact & Address</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="company">company</Label>
-                <Input
-                  type="text"
-                  id="company"
-                  placeholder="Company"
-                  {...register("company")}
-                  error={!!errors.company}
-                  hint={errors.company?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="attention">attention</Label>
-                <Input
-                  type="text"
-                  id="attention"
-                  placeholder="Attention"
-                  {...register("attention")}
-                  error={!!errors.attention}
-                  hint={errors.attention?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="address1">address1</Label>
-                <Input
-                  type="text"
-                  id="address1"
-                  placeholder="Address line 1"
-                  {...register("address1")}
-                  error={!!errors.address1}
-                  hint={errors.address1?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="address2">address2</Label>
-                <Input
-                  type="text"
-                  id="address2"
-                  placeholder="Address line 2"
-                  {...register("address2")}
-                  error={!!errors.address2}
-                  hint={errors.address2?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="city">city</Label>
-                <Input
-                  type="text"
-                  id="city"
-                  placeholder="City"
-                  {...register("city")}
-                  error={!!errors.city}
-                  hint={errors.city?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">state</Label>
-                <Input
-                  type="text"
-                  id="state"
-                  placeholder="State"
-                  {...register("state")}
-                  error={!!errors.state}
-                  hint={errors.state?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="zip">zip</Label>
-                <Input
-                  type="text"
-                  id="zip"
-                  placeholder="Zip"
-                  {...register("zip")}
-                  error={!!errors.zip}
-                  hint={errors.zip?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">email</Label>
-                <Input
-                  type="email"
-                  id="email"
-                  placeholder="Email"
-                  {...register("email")}
-                  error={!!errors.email}
-                  hint={errors.email?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="phoneCell">phoneCell</Label>
-                <Input
-                  type="text"
-                  id="phoneCell"
-                  placeholder="Cell phone"
-                  {...register("phoneCell")}
-                  error={!!errors.phoneCell}
-                  hint={errors.phoneCell?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">phone</Label>
-                <Input
-                  type="text"
-                  id="phone"
-                  placeholder="Phone"
-                  {...register("phone")}
-                  error={!!errors.phone}
-                  hint={errors.phone?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Workflow / Assignment */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold dark:text-white">Workflow</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="actionBy">actionBy</Label>
-                <Input
-                  type="text"
-                  id="actionBy"
-                  placeholder="Action By"
-                  {...register("actionBy")}
-                  error={!!errors.actionBy}
-                  hint={errors.actionBy?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="action">action</Label>
-                <Input
-                  type="text"
-                  id="action"
-                  placeholder="Action"
-                  {...register("action")}
-                  error={!!errors.action && typeof errors.action !== 'string'}
-                  hint={typeof errors.action === 'object' && 'message' in errors.action ? String(errors.action.message) : undefined}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="actionDate">actionDate</Label>
-                <Input
-                  type="date"
-                  id="actionDate"
-                  {...register("actionDate")}
-                  error={!!errors.actionDate}
-                  hint={errors.actionDate?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="actionTime">actionTime</Label>
-                <Input
-                  type="time"
-                  id="actionTime"
-                  {...register("actionTime")}
-                  error={!!errors.actionTime}
-                  hint={errors.actionTime?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="salesNameID">salesNameID</Label>
-                <Input
-                  type="text"
-                  id="salesNameID"
-                  placeholder="Sales Name ID"
-                  {...register("salesNameID")}
-                  error={!!errors.salesNameID}
-                  hint={errors.salesNameID?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="orderedBy">orderedBy</Label>
-                <Input
-                  type="text"
-                  id="orderedBy"
-                  placeholder="Ordered By"
-                  {...register("orderedBy")}
-                  error={!!errors.orderedBy}
-                  hint={errors.orderedBy?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="contractDetailTag">contractDetailTag</Label>
-                <Input
-                  type="text"
-                  id="contractDetailTag"
-                  placeholder="Contract Detail Tag"
-                  {...register("contractDetailTag")}
-                  error={!!errors.contractDetailTag}
-                  hint={errors.contractDetailTag?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="terms">terms</Label>
-                <Input
-                  type="text"
-                  id="terms"
-                  placeholder="Terms"
-                  {...register("terms")}
-                  error={!!errors.terms}
-                  hint={errors.terms?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="typeSale">typeSale</Label>
-                <Input
-                  type="text"
-                  id="typeSale"
-                  placeholder="Type of Sale"
-                  {...register("typeSale")}
-                  error={!!errors.typeSale}
-                  hint={errors.typeSale?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="taxJuris">taxJuris</Label>
-                <Input
-                  type="text"
-                  id="taxJuris"
-                  placeholder="Tax Jurisdiction"
-                  {...register("taxJuris")}
-                  error={!!errors.taxJuris}
-                  hint={errors.taxJuris?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="adSource">adSource</Label>
-                <Input
-                  type="text"
-                  id="adSource"
-                  placeholder="Ad Source"
-                  {...register("adSource")}
-                  error={!!errors.adSource}
-                  hint={errors.adSource?.message as string}
-                  disabled={mode === "view"}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Comments */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold dark:text-white">Comments</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <Label htmlFor="addComment">addComment</Label>
-                <textarea
-                  id="addComment"
-                  {...register("addComment")}
-                  disabled={mode === "view"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="Append a new comment"
-                />
-                {errors.addComment && (
-                  <p className="text-red-500 text-sm mt-1">{errors.addComment.message as string}</p>
-                )}
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="comment">comment</Label>
-                <textarea
-                  id="comment"
-                  {...register("comment")}
-                  disabled={mode === "view"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="Existing comments"
-                />
-                {errors.comment && (
-                  <p className="text-red-500 text-sm mt-1">{errors.comment.message as string}</p>
-                )}
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="contractDetail">contractDetail</Label>
-                <textarea
-                  id="contractDetail"
-                  {...register("contractDetail")}
-                  disabled={mode === "view"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="Contract detail"
-                />
-                {errors.contractDetail && (
-                  <p className="text-red-500 text-sm mt-1">{errors.contractDetail.message as string}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* JSON fields as textareas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -836,6 +495,19 @@ export default function SalesOrderDetailTest({
               />
               {errors.source && typeof errors.source === 'object' && 'message' in errors.source && (
                 <p className="text-red-500 text-sm mt-1">{String(errors.source.message)}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="action">action (JSON)</Label>
+              <textarea
+                id="action"
+                {...register("action")}
+                disabled={mode === "view"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder='{"key": "value"}'
+              />
+              {errors.action && typeof errors.action === 'object' && 'message' in errors.action && (
+                <p className="text-red-500 text-sm mt-1">{String(errors.action.message)}</p>
               )}
             </div>
           </div>

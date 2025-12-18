@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+import { Input, TextArea } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createProposal, updateProposal, convertProposalToOrder, fetchProposalLines, createProposalLine, updateProposalLine, deleteProposalLine } from "../services/proposalApi";
@@ -28,11 +28,49 @@ export default function ProposalDetail({
   onCancelInline,
 }: ProposalAddProps) {
   const dispatch = useDispatch();
+  const [isNotesLocked, setIsNotesLocked] = useState(true);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [newLine, setNewLine] = useState<any>({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
 
   type ProposalFormData = z.infer<typeof proposalSchema>;
+
+  const defaultValues = useMemo(
+    () => ({
+      ida: "",
+      status: "planned",
+      priority: "",
+      price_level: "",
+      id_customer: undefined,
+      id_manufacturer: undefined,
+      id_vendor: undefined,
+      company: "",
+      attention: "",
+      address1: "",
+      address2: "",
+      city: "",
+      state: "",
+      zip: "",
+      email: "",
+      phoneCell: "",
+      phone: "",
+      actionBy: "",
+      action: "",
+      actionDate: "",
+      actionTime: "",
+      salesNameId: "",
+      orderedBy: "",
+      contractDetailTag: "",
+      terms: "",
+      typeSale: "",
+      taxJuris: "",
+      adSource: "",
+      addComment: "",
+      comment: "",
+      contractDetail: "",
+    }),
+    []
+  );
 
   const {
     register,
@@ -44,6 +82,7 @@ export default function ProposalDetail({
     resolver: zodResolver(proposalSchema),
     mode: "onSubmit",
     reValidateMode: "onChange",
+    defaultValues,
   });
 
   const location = useLocation();
@@ -65,8 +104,9 @@ export default function ProposalDetail({
 
   useEffect(() => {
     if (mode === "add") {
-      reset();
+      reset(defaultValues);
       setLineItems([]);
+      setIsNotesLocked(true);
     } else if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
@@ -77,11 +117,13 @@ export default function ProposalDetail({
       if (data.id) {
         loadLineItems(data.id);
       }
+      setIsNotesLocked(true);
     } else {
-      reset({});
+      reset(defaultValues);
       setLineItems([]);
+      setIsNotesLocked(true);
     }
-  }, [data, reset, setValue, mode]);
+  }, [data, defaultValues, reset, setValue, mode]);
 
   const onSubmit = async (formData: ProposalFormData) => {
     try {
@@ -89,16 +131,17 @@ export default function ProposalDetail({
       const cleanData: any = {};
       Object.keys(formData).forEach(key => {
         const value = (formData as any)[key];
-        // Skip undefined and null, but allow 0, false, and empty strings for text fields
-        if (value !== undefined && value !== null) {
-          // For empty strings, only include for string fields (ida, priority, price_level, status)
-          if (value === '' && ['ida', 'priority', 'price_level', 'status'].includes(key)) {
-            // Skip empty strings for optional text fields
-            return;
-          }
+        if (value !== undefined && value !== null && value !== "") {
           cleanData[key] = value;
         }
       });
+
+      if (formData.addComment) {
+        const timestamp = new Date().toISOString();
+        const existing = formData.comment ? `\n${formData.comment}` : "";
+        cleanData.comment = `${timestamp}: ${formData.addComment}${existing}`;
+      }
+      delete cleanData.addComment;
       
       const res =
         mode === "add"
@@ -256,8 +299,8 @@ export default function ProposalDetail({
                 id="ida"
                 placeholder="Proposal ID"
                 {...register("ida")}
-                error={errors.ida && errors.ida.message ? true : false}
-                hint={errors.ida && errors.ida.message}
+                error={Boolean(errors.ida?.message)}
+                hint={errors.ida?.message}
                 disabled={mode === "view"}
               />
             </div>
@@ -276,6 +319,133 @@ export default function ProposalDetail({
                 <option value="cancelled">Cancelled</option>
               </select>
               {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+            </div>
+          </div>
+
+          {/* Contact & address (legacy Vue proposal form) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="company">company</Label>
+              <Input
+                type="text"
+                id="company"
+                placeholder="Company"
+                {...register("company")}
+                error={Boolean(errors.company?.message)}
+                hint={errors.company?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="attention">attention</Label>
+              <Input
+                type="text"
+                id="attention"
+                placeholder="Attention"
+                {...register("attention")}
+                error={Boolean(errors.attention?.message)}
+                hint={errors.attention?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="address1">address1</Label>
+              <Input
+                type="text"
+                id="address1"
+                placeholder="Address line 1"
+                {...register("address1")}
+                error={Boolean(errors.address1?.message)}
+                hint={errors.address1?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="address2">address2</Label>
+              <Input
+                type="text"
+                id="address2"
+                placeholder="Address line 2"
+                {...register("address2")}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label htmlFor="city">city</Label>
+              <Input
+                type="text"
+                id="city"
+                placeholder="City"
+                {...register("city")}
+                error={Boolean(errors.city?.message)}
+                hint={errors.city?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="state">state</Label>
+              <Input
+                type="text"
+                id="state"
+                placeholder="State"
+                {...register("state")}
+                error={Boolean(errors.state?.message)}
+                hint={errors.state?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="zip">zip</Label>
+              <Input
+                type="text"
+                id="zip"
+                placeholder="Zip"
+                {...register("zip")}
+                error={Boolean(errors.zip?.message)}
+                hint={errors.zip?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label htmlFor="email">email</Label>
+              <Input
+                type="email"
+                id="email"
+                placeholder="Email"
+                {...register("email")}
+                error={Boolean(errors.email?.message)}
+                hint={errors.email?.message}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phoneCell">phoneCell</Label>
+              <Input
+                type="text"
+                id="phoneCell"
+                placeholder="Cell Phone"
+                {...register("phoneCell")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">phone</Label>
+              <Input
+                type="text"
+                id="phone"
+                placeholder="Phone"
+                {...register("phone")}
+                disabled={mode === "view"}
+              />
             </div>
           </div>
 
@@ -316,6 +486,123 @@ export default function ProposalDetail({
           </div>
 
           {/* Additional Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+              <Label htmlFor="actionBy">actionBy</Label>
+              <Input
+                type="text"
+                id="actionBy"
+                placeholder="Action By"
+                {...register("actionBy")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="action">action</Label>
+              <Input
+                type="text"
+                id="action"
+                placeholder="Action"
+                {...register("action")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="actionDate">actionDate</Label>
+              <Input
+                type="date"
+                id="actionDate"
+                {...register("actionDate")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="actionTime">actionTime</Label>
+              <Input
+                type="time"
+                id="actionTime"
+                {...register("actionTime")}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+              <Label htmlFor="salesNameId">salesNameId</Label>
+              <Input
+                type="text"
+                id="salesNameId"
+                placeholder="Sales Name"
+                {...register("salesNameId")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="orderedBy">orderedBy</Label>
+              <Input
+                type="text"
+                id="orderedBy"
+                placeholder="Ordered By"
+                {...register("orderedBy")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="contractDetailTag">contractDetailTag</Label>
+              <Input
+                type="text"
+                id="contractDetailTag"
+                placeholder="Contract Detail"
+                {...register("contractDetailTag")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="terms">terms</Label>
+              <Input
+                type="text"
+                id="terms"
+                placeholder="Terms"
+                {...register("terms")}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label htmlFor="typeSale">typeSale</Label>
+              <Input
+                type="text"
+                id="typeSale"
+                placeholder="Type of Sale"
+                {...register("typeSale")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="taxJuris">taxJuris</Label>
+              <Input
+                type="text"
+                id="taxJuris"
+                placeholder="Tax Jurisdiction"
+                {...register("taxJuris")}
+                disabled={mode === "view"}
+              />
+            </div>
+            <div>
+              <Label htmlFor="adSource">adSource</Label>
+              <Input
+                type="text"
+                id="adSource"
+                placeholder="Ad Source"
+                {...register("adSource")}
+                disabled={mode === "view"}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="priority">priority</Label>
@@ -324,9 +611,10 @@ export default function ProposalDetail({
                 id="priority"
                 placeholder="Priority"
                 {...register("priority")}
+                error={Boolean(errors.priority?.message)}
+                hint={errors.priority?.message}
                 disabled={mode === "view"}
               />
-              {errors.priority && <p className="text-red-500 text-sm">{errors.priority.message}</p>}
             </div>
             <div>
               <Label htmlFor="price_level">price_level</Label>
@@ -335,9 +623,60 @@ export default function ProposalDetail({
                 id="price_level"
                 placeholder="Price Level"
                 {...register("price_level")}
+                error={Boolean(errors.price_level?.message)}
+                hint={errors.price_level?.message}
                 disabled={mode === "view"}
               />
-              {errors.price_level && <p className="text-red-500 text-sm">{errors.price_level.message}</p>}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="addComment">addComment</Label>
+            <TextArea
+              rows={3}
+              placeholder="Add comment"
+              register={register("addComment")}
+              disabled={mode === "view"}
+              error={errors.addComment as any}
+              hint={errors.addComment?.message as string}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-semibold dark:text-white">Notes</h4>
+            {mode !== "view" && (
+              <button
+                type="button"
+                onClick={() => setIsNotesLocked((prev) => !prev)}
+                className="px-3 py-1 text-sm rounded-md border border-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-700"
+              >
+                {isNotesLocked ? "Edit" : "Lock"}
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="comment">comment</Label>
+              <TextArea
+                rows={4}
+                placeholder="Comment"
+                register={register("comment")}
+                disabled={mode === "view" || isNotesLocked}
+                error={errors.comment as any}
+                hint={errors.comment?.message as string}
+              />
+            </div>
+            <div>
+              <Label htmlFor="contractDetail">contractDetail</Label>
+              <TextArea
+                rows={4}
+                placeholder="Contract Detail"
+                register={register("contractDetail")}
+                disabled={mode === "view" || isNotesLocked}
+                error={errors.contractDetail as any}
+                hint={errors.contractDetail?.message as string}
+              />
             </div>
           </div>
 

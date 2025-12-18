@@ -34,7 +34,7 @@ export default function PhoneDetail({
     reset,
     control,
     watch,
-  } = useForm<z.infer<typeof phoneSchema>>({
+  } = useForm({
     resolver: zodResolver(phoneSchema),
     defaultValues: { opt_out: false },
   });
@@ -81,6 +81,13 @@ export default function PhoneDetail({
     }
   };
 
+  // const typeOptions = [
+  //   { value: "mobile", label: "Mobile" },
+  //   { value: "home", label: "Home" },
+  //   { value: "work", label: "Work" },
+  //   { value: "fax", label: "Fax" },
+  //   { value: "other", label: "Other" },
+  // ];
   // const typeOptions = [
   //   { value: "mobile", label: "Mobile" },
   //   { value: "home", label: "Home" },
