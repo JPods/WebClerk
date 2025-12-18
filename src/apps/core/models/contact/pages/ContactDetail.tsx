@@ -1,47 +1,36 @@
 import { useEffect, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Select from "react-select";
-import { FaPlus, FaTrash } from "react-icons/fa";
-import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-
-import { contactSchema, updateContactSchema } from "../utils/contactSchema";
-import { createContact, updateContact } from "../services/contactApi";
-import { fetchEmails } from "@/apps/communications/models/email/services/emailApi";
-import { showToast } from "../../../../../store/slices/toastSlice";
-import { ContactAddProps } from "../types/contactType";
-import Checkbox from "@/components/form/input/Checkbox";
 import Label from "../../../../../components/form/Label";
 import Input from "../../../../../components/form/input/InputField";
 import DropDown from "../../../../../components/form/input/DropDown";
+
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+
+import { createContact, updateContact } from "../services/contactApi";
+import { showToast } from "../../../../../store/slices/toastSlice";
+import { useDispatch } from "react-redux";
+import { useLocation } from "react-router";
+import { contactSchema, updateContactSchema } from "../utils/contactSchema";
+import { ContactAddProps } from "../types/contactType";
+import Checkbox from "../../../../../components/form/input/Checkbox";
+import { useAppSelector } from "../../../../../store/hooks";
+import { FaPlus, FaTrash } from "react-icons/fa";
+
 /* ----------------------------------
    Types
 ---------------------------------- */
-type EmailRecord = {
-  id: number;
-  name: string;
-  email: string;
-};
-
-type EmailOption = {
-  value: number;
-  label: string;
-  raw: {
-    id: number;
-    name: string;
-    address: string;
-  };
-};
 
 export default function ContactDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
+  inline = false,
+  onCancelInline,
 }: ContactAddProps) {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -49,10 +38,6 @@ export default function ContactDetail({
 
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
-  const [linkedLists, setLinkedLists] = useState<Record<string, any[]>>({});
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
-  const [emailOptions, setEmailOptions] = useState<EmailOption[]>([]);
-  const [selectedEmails, setSelectedEmails] = useState<EmailOption[]>([]);
 
   /* ----------------------------------
      React Hook Form
@@ -61,9 +46,8 @@ export default function ContactDetail({
     register,
     control,
     handleSubmit,
-    setValue,
-    getValues,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(
@@ -79,7 +63,7 @@ export default function ContactDetail({
         links: {
           rep: [],
           item: [],
-          email: [], // OBJECTS
+          email: [],
           order: [],
           phone: [],
           domain: [],
@@ -96,22 +80,31 @@ export default function ContactDetail({
   });
 
   /* ----------------------------------
-     Watch linked emails (OBJECTS)
+     Field Array for Emails
   ---------------------------------- */
-  const linkedEmails = useWatch({
+  const {
+    fields: emailFields,
+    append: appendEmail,
+    remove: removeEmail,
+  } = useFieldArray({
     control,
     name: "refs.links.email",
   });
-
+  console.log("emailFields", emailFields);
   /* ----------------------------------
-     Load edit data
+     Load Edit Data
   ---------------------------------- */
   // useEffect(() => {
-  //   if (data?.refs) {
-  //     setValue("refs", data.refs);
+  //   if (data) {
+  //     reset(data);
+  //     if (mode === "edit") {
+  //       setValue("password", "");
+  //       setValue("cnf_password", "");
+  //     }
+  //   } else {
+  //     reset();
   //   }
-  // }, [data, setValue]);
-
+  // }, [data, reset, setValue, mode]);
   useEffect(() => {
     if (mode === "add") {
       reset();
@@ -131,9 +124,7 @@ export default function ContactDetail({
       // Commented out as linked data is not displayed
     } else {
       reset({});
-      setLinkedLists({});
     }
-
     if (mode === "edit") {
       setValue("password", "");
       setValue("cnf_password", "");
@@ -141,81 +132,39 @@ export default function ContactDetail({
   }, [data, reset, setValue, mode]);
 
   /* ----------------------------------
-     Fetch emails
-  ---------------------------------- */
-  useEffect(() => {
-    (async () => {
-      const res = await fetchEmails();
-      if (res?.status === 200) {
-        const results = res.data.data.results as EmailRecord[];
-        setEmailOptions(
-          results
-            .map((e) => ({
-              value: e.id,
-              label: e.email && `${e.email} (${e.name})`,
-              raw: {
-                id: e.id,
-                name: e.name,
-                address: e.email || "",
-              },
-            }))
-            .filter((item: { label: string }) => item.label.trim() !== "")
-        );
-      }
-    })();
-  }, []);
-
-  /* ----------------------------------
-     Add emails (OBJECT BASED)
-  ---------------------------------- */
-  const addEmails = () => {
-    const selected = selectedEmails.map((e) => e.raw);
-    const current = getValues("refs.links.email") || [];
-
-    const merged = [
-      ...current,
-      ...selected.filter((s) => !current.some((c: any) => c.id === s.id)),
-    ];
-
-    setValue("refs.links.email", merged);
-    setSelectedEmails([]);
-  };
-  console.log("getValues", getValues("refs.links.email") || []);
-  /* ----------------------------------
-     Remove email
-  ---------------------------------- */
-  const removeEmail = (id: number) => {
-    setValue(
-      "refs.links.email",
-      linkedEmails?.filter((e: any) => e.id !== id)
-    );
-  };
-
-  /* ----------------------------------
      Submit
   ---------------------------------- */
-  const onSubmit = async (formData: any) => {
+  console.log("errors", errors);
+  const onSubmit = async (
+    formData:
+      | z.infer<typeof contactSchema>
+      | z.infer<typeof updateContactSchema>
+  ) => {
+    console.log("formData", formData);
     try {
       const res =
         mode === "add"
           ? await createContact(formData)
-          : await updateContact({ ...formData, id: data.id });
-
-      dispatch(
-        showToast({
-          message: `Contact ${
-            mode === "add" ? "created" : "updated"
-          } successfully`,
-          type: "success",
-        })
-      );
-
-      onSaved?.();
-    } catch (e: any) {
-      dispatch(showToast({ message: e.message, type: "error" }));
+          : await updateContact({ ...formData, id: data && data.id });
+      if (res) {
+        dispatch(
+          showToast({
+            message: `Action ${
+              mode === "add" ? "saved" : "updated"
+            } successfully`,
+            type: "success",
+          })
+        );
+        if (onSaved) {
+          onSaved();
+        }
+      }
+    } catch (error: any) {
+      dispatch(showToast({ message: error.message, type: "error" }));
     }
   };
-  const options = [
+
+  const roleOptions = [
     { value: "user", label: "User" },
     { value: "admin", label: "Administrator" },
     { value: "manager", label: "Manager" },
@@ -224,19 +173,39 @@ export default function ContactDetail({
   ];
   return (
     <>
-      {!hideBreadcrumb && (
+      {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
               ? "Edit Contact"
               : mode === "view"
               ? "View Contact"
-              : "Add Contact"
+              : "Contact Detail"
           }
         />
       )}
 
       <ComponentCard>
+        {inline && (
+          <div className="flex justify-between items-center mb-4">
+            <h3 className=" dark:text-white text-lg font-semibold">
+              {mode === "edit"
+                ? "Edit Contact"
+                : mode === "view"
+                ? "View Contact"
+                : "Add New Contact"}
+            </h3>
+            {onCancelInline && (
+              <button
+                type="button"
+                onClick={onCancelInline}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                &times;
+              </button>
+            )}
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <h5 className=" dark:text-white text-md font-semibold">
             After you’ve created a user, you’ll be able to edit more user
@@ -435,7 +404,7 @@ export default function ContactDetail({
                 render={({ field }) => (
                   <DropDown
                     id="role"
-                    options={options}
+                    options={roleOptions}
                     placeholder="Select Role"
                     value={field.value}
                     onChange={field.onChange}
@@ -481,55 +450,87 @@ export default function ContactDetail({
 
           <h5 className="font-semibold">Contact Ref. Link</h5>
 
-          {/* SELECT */}
-          <div>
-            <Label htmlFor="ref_email">Ref Email</Label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Select
-                  id="ref_email"
-                  isMulti
-                  options={emailOptions}
-                  value={selectedEmails}
-                  onChange={(v) => setSelectedEmails(v as EmailOption[])}
-                  placeholder="Select email(s)"
-                />
-              </div>
-
+          {/* ----------------------------------
+              LINKED EMAILS
+          ---------------------------------- */}
+          <div className="flex items-center justify-between mb-1">
+            <Label>Email Addresses</Label>
+            {mode !== "view" && (
               <button
                 type="button"
-                onClick={addEmails}
                 className="h-[38px] w-[38px] flex items-center justify-center
                          border rounded-md hover:text-blue-600"
+                onClick={() => appendEmail({ id: 0, name: "", address: "" })}
               >
-                <FaPlus />
+                <FaPlus className="text-blue-600 hover:scale-110" />
               </button>
-            </div>
+            )}
           </div>
+          {emailFields.length ? (
+            <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
+              {emailFields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="flex items-center justify-between py-2"
+                >
+                  <div className="flex-2/3 me-2">
+                    <Label htmlFor={`refs.links.email.${index}.address`}>
+                      address (.ref)
+                    </Label>
+                    <Input
+                      type="text"
+                      id={`refs.links.email.${index}.address`}
+                      {...register(`refs.links.email.${index}.address`)}
+                      disabled={mode === "view"}
+                    />
+                  </div>
 
-          {/* LINKED EMAILS */}
-          {linkedEmails?.map((email: any) => (
-            <div
-              key={email.id}
-              className="flex justify-between items-center text-blue-500"
-            >
-              <span>{email.address}</span>
-              <span>{email.name}</span>
+                  <div className="flex-1/3">
+                    <Label htmlFor={`refs.links.email.${index}.name`}>
+                      name (.ref)
+                    </Label>
+                    <Input
+                      type="text"
+                      id={`refs.links.email.${index}.name`}
+                      {...register(`refs.links.email.${index}.name`)}
+                      disabled={mode === "view"}
+                    />
+                  </div>
 
-              <button type="button" onClick={() => removeEmail(email.id)}>
-                <FaTrash className="text-red-600 hover:scale-110 transition" />
-              </button>
+                  {mode !== "view" && (
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => removeEmail(index)}
+                        className="p-2 text-red-600"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-
+          ) : null}
           {/* SUBMIT */}
           {mode !== "view" && (
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              {mode === "edit" ? "Update" : "Submit"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+              >
+                {mode === "edit" ? "Update" : "Submit"}
+              </button>
+              {inline && onCancelInline && (
+                <button
+                  type="button"
+                  onClick={onCancelInline}
+                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           )}
         </form>
       </ComponentCard>

@@ -11,6 +11,9 @@ export const phoneRefSchema = z.object({
   name: z.string(),
   number: z.string(),
 });
+export const locationRefSchema = z.object({
+  id: z.number(),
+});
 export const refsSchema = z.object({
   tags: z.array(z.string()).default([]),
   categories: z.array(z.string()).default([]),
@@ -27,7 +30,7 @@ export const refsSchema = z.object({
     contact: z.array(z.string()).default([]),
     customer: z.array(z.string()).default([]),
     document: z.array(z.string()).default([]),
-    location: z.array(z.string()).default([]),
+    location: z.array(locationRefSchema).default([]),
     manufacturer: z.array(z.string()).default([]),
     project: z.array(z.string()).default([]),
     vendor: z.array(z.string()).default([]),
