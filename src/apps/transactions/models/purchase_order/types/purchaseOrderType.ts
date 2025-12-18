@@ -9,11 +9,17 @@ export interface PurchaseOrderAddProps {
 
 export interface CreatePurchaseOrderRequest {
   purchase_order_no: string;
+  receipt_id?: string;
+  vendor_pack_list?: string;
+  vendor_pack_date?: string;
 }
 
 export interface UpdatePurchaseOrderRequest {
   id: number;
   purchase_order_no?: string;
+  receipt_id?: string;
+  vendor_pack_list?: string;
+  vendor_pack_date?: string;
 }
 
 export interface PurchaseOrderApiTask {
