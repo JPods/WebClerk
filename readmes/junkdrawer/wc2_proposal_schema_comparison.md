@@ -21,7 +21,7 @@ The legacy WC2 schema used a flat structure with individual database fields for 
 | salesNameID | cost.commissions.salesNameID |
 | salesCommission | cost.commissions.salesCommission |
 | company | .refs.links.company |
-| address1 | .refs.links.address |
+| address1 | .refs.links.address | collection to be pulled from
 | address2 | .refs.links.address |
 | city | .refs.links.address |
 | state | .refs.links.address |
