@@ -7,18 +7,23 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import Input from "../../../../../components/form/input/InputField";
 import DropDown from "../../../../../components/form/input/DropDown";
-
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { contactSchema, updateContactSchema } from "../utils/contactSchema";
-import { ContactAddProps } from "../types/contactType";
+import {
+  contactSchema,
+  updateContactSchema,
+  mapRefsFormToApi,
+} from "../utils/contactSchema";
+import {
+  ContactAddProps,
+  CreateContactRequest,
+  UpdateContactRequest,
+} from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
-import { useAppSelector } from "../../../../../store/hooks";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
 
 /* ----------------------------------
    Types
@@ -32,6 +37,7 @@ export default function ContactDetail({
   inline = false,
   onCancelInline,
 }: ContactAddProps) {
+  const [isEmailEdit, setIsEmailEdit] = useState<boolean>(false);
   const dispatch = useDispatch();
   const location = useLocation();
   const routeState = (location.state as any) || {};
@@ -90,35 +96,21 @@ export default function ContactDetail({
     control,
     name: "refs.links.email",
   });
-  console.log("emailFields", emailFields);
+  console.log("emailFields", emailFields, emailFields.length);
   /* ----------------------------------
      Load Edit Data
   ---------------------------------- */
-  // useEffect(() => {
-  //   if (data) {
-  //     reset(data);
-  //     if (mode === "edit") {
-  //       setValue("password", "");
-  //       setValue("cnf_password", "");
-  //     }
-  //   } else {
-  //     reset();
-  //   }
-  // }, [data, reset, setValue, mode]);
+
   useEffect(() => {
     if (mode === "add") {
       reset();
       if (data?.refs) {
-        setValue("refs", data.refs);
+        reset({ refs: data.refs });
       }
     } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
-        }
-      });
+      reset(data);
       if (data?.refs) {
-        setValue("refs", data.refs);
+        reset({ ...data, refs: data.refs });
       }
       // Fetch linked lists by ids if present: data.refs.links
       // Commented out as linked data is not displayed
@@ -130,11 +122,15 @@ export default function ContactDetail({
       setValue("cnf_password", "");
     }
   }, [data, reset, setValue, mode]);
+  useEffect(() => {
+    setIsEmailEdit(false);
+  }, [data]);
 
   /* ----------------------------------
      Submit
   ---------------------------------- */
   console.log("errors", errors);
+
   const onSubmit = async (
     formData:
       | z.infer<typeof contactSchema>
@@ -142,10 +138,38 @@ export default function ContactDetail({
   ) => {
     console.log("formData", formData);
     try {
+      const mappedRefs = formData.refs
+        ? mapRefsFormToApi(formData.refs)
+        : undefined;
+      const payload = {
+        email: formData.email,
+        name_first: formData.name_first,
+        name_last: formData.name_last,
+        name_middle: formData.name_middle,
+        name_prefix: formData.name_prefix,
+        name_suffix: formData.name_suffix,
+        company: formData.company,
+        title: formData.title,
+        department: formData.department,
+        role: formData.role,
+        is_active: formData.is_active,
+        is_staff: formData.is_staff,
+        refs: mappedRefs,
+        ...(mode === "add" || mode === "edit"
+          ? {
+              password: formData.password,
+              cnf_password: formData.cnf_password,
+            }
+          : {}),
+      };
+
       const res =
         mode === "add"
-          ? await createContact(formData)
-          : await updateContact({ ...formData, id: data && data.id });
+          ? await createContact(payload as CreateContactRequest)
+          : await updateContact({
+              ...payload,
+              id: data?.id,
+            } as UpdateContactRequest);
       if (res) {
         dispatch(
           showToast({
@@ -159,8 +183,10 @@ export default function ContactDetail({
           onSaved();
         }
       }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        dispatch(showToast({ message: error.message, type: "error" }));
+      }
     }
   };
 
@@ -454,19 +480,50 @@ export default function ContactDetail({
               LINKED EMAILS
           ---------------------------------- */}
           <div className="flex items-center justify-between mb-1">
-            <Label>Email Addresses</Label>
+            <div className="flex-2/3 me-2">
+              <Label>model_name: email</Label>
+            </div>
+
             {mode !== "view" && (
-              <button
-                type="button"
-                className="h-[38px] w-[38px] flex items-center justify-center
+              <div className="flex items-end gap-2">
+                <button
+                  type="button"
+                  className="h-[38px] w-[38px] flex items-center justify-center
+                         border rounded-md hover:text-success-600"
+                  onClick={() => {
+                    setIsEmailEdit(true);
+                    appendEmail({ id: 0, name: "", address: "" });
+                  }}
+                >
+                  <FaPlus className="text-success-600 hover:scale-110" />
+                </button>
+                {emailFields.length && isEmailEdit ? (
+                  <button
+                    type="button"
+                    className="h-[38px] w-[38px] flex items-center justify-center
                          border rounded-md hover:text-blue-600"
-                onClick={() => appendEmail({ id: 0, name: "", address: "" })}
-              >
-                <FaPlus className="text-blue-600 hover:scale-110" />
-              </button>
+                    onClick={() => {
+                      setIsEmailEdit(false);
+                    }}
+                  >
+                    <FaEye className="text-blue-600 hover:scale-110" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="h-[38px] w-[38px] flex items-center justify-center
+                         border rounded-md hover:text-blue-600"
+                    onClick={() => {
+                      setIsEmailEdit(true);
+                    }}
+                  >
+                    <FaEdit className="text-blue-600 hover:scale-110" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
-          {emailFields.length ? (
+          {emailFields.length && isEmailEdit ? (
             <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
               {emailFields.map((field, index) => (
                 <div
@@ -511,7 +568,48 @@ export default function ContactDetail({
                 </div>
               ))}
             </div>
-          ) : null}
+          ) : (
+            <>
+              {emailFields.length ? (
+                <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
+                  {emailFields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="flex items-center justify-between py-2 border-b-2"
+                    >
+                      <div className="flex-2/3 me-2">
+                        <Label htmlFor={`refs.links.email.${index}.address`}>
+                          address (.ref)
+                        </Label>
+                        <h1>{field.address}</h1>
+                      </div>
+
+                      <div className="flex-1/3">
+                        <Label htmlFor={`refs.links.email.${index}.name`}>
+                          name (.ref)
+                        </Label>
+                        <h1>{field.name}</h1>
+                      </div>
+
+                      {mode !== "view" && (
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeEmail(index)}
+                            className="p-2 text-red-600"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No email record found!</p>
+              )}
+            </>
+          )}
           {/* SUBMIT */}
           {mode !== "view" && (
             <div className="flex items-center gap-2">

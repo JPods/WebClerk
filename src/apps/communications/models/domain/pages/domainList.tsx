@@ -7,7 +7,7 @@ import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import DomainDetail from "./domain1";
+import DomainDetail from "./DomainDetail";
 
 
 export default function DomainList() {
@@ -24,8 +24,7 @@ export default function DomainList() {
     try {
       const res = await fetchDomains();
       if (res.status === 200) {
-        //alert("ddd");
-        setData(res.data.data.results);
+        setData(res.data.items);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch domains", type: "error" })
