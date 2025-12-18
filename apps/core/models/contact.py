@@ -101,6 +101,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     name_middle = models.CharField(max_length=100, blank=True, help_text="Middle name")
     name_prefix = models.CharField(max_length=20, blank=True, help_text="Title (Mr., Ms., Dr.)")
     name_suffix = models.CharField(max_length=20, blank=True, help_text="Suffix (Jr., Sr., III)")
+    attention = models.CharField(max_length=201, blank=True, help_text="Auto-filled attention line from first and last name")
     
     
     # Business Fields
@@ -173,7 +174,8 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         self.name_last = value
     
 
-    def save(self, *args, **kwargs):  # ensure role sync
+    def save(self, *args, **kwargs):  # ensure role and attention sync
+        self.attention = f"{self.name_first} {self.name_last}".strip()
         if self.is_superuser and self.role != 'admin':
             self.role = 'admin'
         super().save(*args, **kwargs)
