@@ -3,19 +3,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../components/common/ComponentCard";
-import Label from "../../../../components/form/Label";
-import { Input, CustTextArea, DropDown } from "../../../../components/wrapper";
+import ComponentCard from "../../../../../components/common/ComponentCard";
+import Label from "../../../../../components/form/Label";
+import { Input, CustTextArea, DropDown } from "../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import {
   getByTypeAndId,
   patchAction,
   postAction,
-} from "../../../../api/userProfile";
-import { showToast } from "../../../../store/slices/toastSlice";
+} from "../../../../../api/userProfile";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useAppSelector } from "../../../../store/hooks";
+import { useAppSelector } from "../../../../../store/hooks";
 import { useLocation } from "react-router";
 import { domainSchema } from "../utils/domainSchema";
 import { DomainAddProps } from "../types/domainType";
