@@ -23,7 +23,14 @@ export default function ContactListMob({
             key={contact.id}
             title={`Email: ${contact.email ?? "--"} (ID: ${contact.id})`}
             isOpen={openIndex === index}
-            onToggle={() => setOpenIndex(openIndex === index ? null : index)}
+            onToggle={() => {
+              const willOpen = openIndex !== index;
+              setOpenIndex(willOpen ? index : null);
+
+              if (willOpen) {
+                handleView(contact); // 👈 FIXED
+              }
+            }}
           >
             {/* Accordion Content */}
             <div className="flex flex-col min-h-[220px]">

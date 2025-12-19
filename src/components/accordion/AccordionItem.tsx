@@ -14,16 +14,24 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
   children,
 }) => {
   return (
-    <div className="border-b border-gray-200 my-3">
+    <div
+      className={`my-3 rounded-md border transition-all duration-300 ${
+        isOpen
+          ? "border-blue-500 bg-blue-50 shadow-sm"
+          : "border-gray-200 bg-white"
+      }`}
+    >
       <button
-        className="flex justify-between items-center w-full p-4 text-left font-medium bg-gray-100 hover:bg-gray-200 transition"
+        className={`flex justify-between items-center w-full p-4 text-left font-medium transition ${
+          isOpen ? "bg-blue-100 text-blue-700" : "bg-gray-100 hover:bg-gray-200"
+        }`}
         onClick={onToggle}
       >
         <span>{title}</span>
 
         <svg
           className={`w-4 h-4 transition-transform duration-300 ${
-            isOpen ? "rotate-180" : "rotate-0"
+            isOpen ? "rotate-180 text-blue-600" : "rotate-0"
           }`}
           fill="none"
           stroke="currentColor"
