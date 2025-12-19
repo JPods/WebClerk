@@ -21,6 +21,7 @@ export default function ContactList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   const dispatch = useDispatch();
   console.log("data", data);
@@ -46,6 +47,28 @@ export default function ContactList() {
   useEffect(() => {
     getContactData();
   }, [getContactData]);
+
+  useEffect(() => {
+    // Function to check if the screen is mobile or not
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setIsMobile(true); // Considered mobile screen if width <= 768px
+      } else {
+        setIsMobile(false); // Otherwise, consider it as desktop
+      }
+    };
+
+    // Call the function once to set the initial state
+    handleResize();
+
+    // Set up the event listener for window resize
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   const handleView = (row: dynamicData) => {
     setSelectedContact(row);
