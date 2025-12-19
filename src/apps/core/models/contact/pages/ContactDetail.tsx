@@ -38,6 +38,7 @@ export default function ContactDetail({
   onCancelInline,
 }: ContactAddProps) {
   const [isEmailEdit, setIsEmailEdit] = useState<boolean>(false);
+
   const dispatch = useDispatch();
   const location = useLocation();
   const routeState = (location.state as any) || {};
