@@ -45,18 +45,18 @@ export default function ContactListMob({
                 <div className="flex items-center gap-2">
                   <strong>Active:</strong>
                   {contact.is_active ? (
-                    <FaCheck className="text-green-600" />
+                    <p className="text-green-600">Yes</p>
                   ) : (
-                    <FaTimes className="text-red-500" />
+                    <p className="text-red-500">No</p>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2">
                   <strong>Staff:</strong>
                   {contact.is_staff ? (
-                    <FaCheck className="text-green-600" />
+                    <p className="text-green-600">Yes</p>
                   ) : (
-                    <FaTimes className="text-red-500" />
+                    <p className="text-red-500">No</p>
                   )}
                 </div>
               </div>
