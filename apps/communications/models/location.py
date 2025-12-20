@@ -16,7 +16,7 @@ class Location(BaseModel):
     longitude = models.FloatField(blank=True, null=True)
     state = models.CharField(max_length=255, blank=True)
     zip = models.CharField(max_length=255, blank=True)
-    full = models.CharField(max_length=255, blank=True)
+    full = models.CharField(max_length=1000, blank=True)
     
 
     # all metadata changes occur in common.models.BaseModel

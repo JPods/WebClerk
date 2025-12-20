@@ -10,7 +10,9 @@ Implemented automatic denormalization of links in the `refs.links` object to inc
 - Covers all major models in the project with appropriate fields for display and identification
 - Fields are selected based on common display requirements (name, email, type, etc.)
 
-### 2. Enhanced RefsMixin (`common/models.py`)
+### 2. Enhanced RefsMixin (`common/models.py` 
+[LINK_DENORMALIZE_FIELDS](common/models.py#L261)
+
 - **`denormalize_links()`**: Fetches related objects and returns denormalized data
 - **`ensure_links_denormalized()`**: Updates `refs.links` in place, converting ID lists to object lists
 - Handles both existing ID lists and already-denormalized data

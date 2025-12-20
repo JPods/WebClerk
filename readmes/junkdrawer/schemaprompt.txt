@@ -1,0 +1,4 @@
+Extract from (catalog.4DCatalog) the schema from table Item into a json in (readmes/junkdrawer/wc2_item.md). Ignore all uuid, type, id. Do this similar to readmes/junkdrawer/wc2_proposal_line_schema_comparison.md
+
+Draft a field by field comparison in the document with apps/products/models/item.py
+

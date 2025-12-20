@@ -1,0 +1,278 @@
+JSON{
+  "ProposalLine": {
+    "tableId": 43,
+    "schema": "DEFAULT_SCHEMA",
+    "fields": {
+      "idNumProposal": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "itemNum": {
+        "typeName": "alpha",
+        "limiting_length": 35,
+        "never_null": true
+      },
+      "qty": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "description": {
+        "typeName": "alpha",
+        "limiting_length": 255,
+        "never_null": true,
+        "multi_line": false
+      },
+      "costUnitofMeasure": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "costTaxable": {
+        "typeName": "boolean",
+        "never_null": true
+      },
+      "unitCost": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "extendedCost": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "probability": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "costValueAddedTax": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "costFreight": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "location": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "unitofMeasure": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "taxJuris": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "unitPrice": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "extendedPrice": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "discount": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "salesTax": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "extendedWt": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "calculateLine": {
+        "typeName": "boolean",
+        "never_null": true
+      },
+      "commRateSales": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "unitWeight": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "flag1": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "flag2": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "note": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "leadTime": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "commRateRep": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "commRep": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "commSales": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "status": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "serialized": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "typeSale": {
+        "typeName": "alpha",
+        "limiting_length": 20,
+        "never_null": true
+      },
+      "seq": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "altItemNum": {
+        "typeName": "alpha",
+        "limiting_length": 35,
+        "never_null": true
+      },
+      "complete": {
+        "typeName": "boolean",
+        "never_null": true
+      },
+      "producedBy": {
+        "typeName": "alpha",
+        "limiting_length": 25,
+        "never_null": true
+      },
+      "comment": {
+        "typeName": "alpha",
+        "never_null": true
+      },
+      "profile1": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "profile2": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "profile3": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "dateExpected": {
+        "typeName": "date",
+        "never_null": true
+      },
+      "customerID": {
+        "typeName": "alpha",
+        "limiting_length": 25,
+        "never_null": true
+      },
+      "lineNum": {
+        "typeName": "longint",
+        "never_null": true,
+        "multi_line": false
+      },
+      "vendorID": {
+        "typeName": "alpha",
+        "limiting_length": 25,
+        "never_null": true
+      },
+      "itemType": {
+        "typeName": "alpha",
+        "limiting_length": 40,
+        "never_null": true
+      },
+      "itemProfile1": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "itemProfile2": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "itemProfile3": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "itemProfile4": {
+        "typeName": "alpha",
+        "limiting_length": 80,
+        "never_null": true
+      },
+      "divisionNum": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "qtyOpen": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "idNum": {
+        "typeName": "longint (autosequence)",
+        "unique": true,
+        "autosequence": true,
+        "never_null": true
+      },
+      "taxCost": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "printNot": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "locationBin": {
+        "typeName": "alpha",
+        "limiting_length": 35,
+        "never_null": true
+      },
+      "discountedPrice": {
+        "typeName": "real",
+        "never_null": true
+      },
+      "dtLastSync": {
+        "typeName": "longint",
+        "never_null": true
+      },
+      "id": {
+        "typeName": "alpha (UUID)",
+        "unique": true,
+        "autogenerate": true,
+        "store_as_UUID": true
+      },
+      "obGeneral": {
+        "typeName": "blob",
+        "never_null": true
+      },
+      "salesTaxRate": {
+        "typeName": "real",
+        "never_null": true
+      }
+    },
+    "primary_key": "id"
+  }
+}
