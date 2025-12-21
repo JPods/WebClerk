@@ -24,7 +24,10 @@ import {
 } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 import { FaEdit, FaEye, FaPlus, FaSave, FaTrash } from "react-icons/fa";
-import { updateEmail } from "@/apps/communications/models/email/services/emailApi";
+import {
+  createEmail,
+  updateEmail,
+} from "@/apps/communications/models/email/services/emailApi";
 
 /* ----------------------------------
    Types
@@ -217,10 +220,12 @@ export default function ContactDetail({
         name: emailRow.name || undefined,
       };
 
-      const res = await updateEmail({
-        ...payload,
-        id: emailRow?.id,
-      });
+      const res = emailRow.id
+        ? await updateEmail({
+            ...payload,
+            id: emailRow?.id,
+          })
+        : await createEmail({ ...payload, id: "" });
 
       if (res) {
         dispatch(
@@ -613,9 +618,9 @@ export default function ContactDetail({
                       <button
                         type="button"
                         onClick={() => handleEmailEdit(index)}
-                        disabled={
-                          !getValues(`refs.links.email.${index}.address`)
-                        }
+                        // disabled={
+                        //   !getValues(`refs.links.email.${index}.address`)
+                        // }
                         className="p-2 text-blue-500 hover:scale-110 disabled:text-gray-300"
                         title="Save"
                       >
@@ -626,6 +631,7 @@ export default function ContactDetail({
                         type="text"
                         {...register(`refs.links.email.${index}.address`)}
                         disabled={mode === "view"}
+                        className="w-100"
                       />
                     </div>
                   </div>
