@@ -24,7 +24,7 @@ Capability table (representative sample)
 | core | Setting | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
 | communications | Email | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
 | communications | Phone | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
-| communications | Location | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
+| communications | Address | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
 | docs | Document | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
 | products | Catalog | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |
 | transactions | TransactionBaseModel | BaseModel | metadata, refs, prefs, comments, actions, keywords, atomic_json, lifecycle, health, universal_dict |

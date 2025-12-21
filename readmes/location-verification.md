@@ -1,10 +1,10 @@
-# Location verification via sync connections
+# Address verification via sync connections
 
 <!-- TOC START -->
 
 ## Table of Contents
 
-- [Location verification via sync connections](#location-verification-via-sync-connections)
+- [Address verification via sync connections](#address-verification-via-sync-connections)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Connection](#connection)
@@ -16,7 +16,7 @@
 
 ## Overview
 
-Locations are verified via `sync.Connection` with type `location_verification`. By default we stub an OSM-like result, creating an auditable `sync.Bundle` with `review.status=pending`.
+Addresses are verified via `sync.Connection` with type `location_verification`. By default we stub an OSM-like result, creating an auditable `sync.Bundle` with `review.status=pending`.
 
 ## Connection
 
@@ -35,7 +35,7 @@ Locations are verified via `sync.Connection` with type `location_verification`. 
 
 ## Review and apply
 
-- On acceptance, update `Location.metadata.versioning.validation` fields and optionally set normalized address/lat/long.
+- On acceptance, update `Address.metadata.versioning.validation` fields and optionally set normalized address/lat/long.
 
 ## Next steps
 

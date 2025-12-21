@@ -11,7 +11,7 @@ from apps.core.models.contact import Contact
 from apps.communications.models.domain import Domain
 from apps.communications.models.phone import Phone
 from apps.communications.models.email import Email
-from apps.communications.models.location import Location
+from apps.communications.models.address import Address
 from apps.orgs.models.base_org_model import Customer
 
 
@@ -26,7 +26,7 @@ class Command(BaseCommand):
         domains = list(Domain.objects.all())
         phones = list(Phone.objects.all())
         emails = list(Email.objects.all())
-        locations = list(Location.objects.all())
+        locations = list(Address.objects.all())
         try:
             customers = list(Customer.objects.all())
         except Exception as e:

@@ -59,7 +59,7 @@ See `apps/core/services/view_edit_access.py` – dev bypass returns `['*']` wild
 Single canonical command: `reseed`.
 
 - Full destructive reset + seed: `python manage.py reseed --full`
-- Targeted reseed (no flush): `python manage.py reseed --no-flush --per-model 3 --model communications.Location`
+- Targeted reseed (no flush): `python manage.py reseed --no-flush --per-model 3 --model communications.Address`
 
 ## 6. Stats & Periodic Tasks
 

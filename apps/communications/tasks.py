@@ -31,8 +31,8 @@ def validate_location_osm(location_id: int, connection_name: str | None = None) 
     Builds a minimal location payload and verifies through a Connection of
     type 'location_verification'. Records review pending bundle in metadata.
     """
-    Location = apps.get_model('communications', 'Location')
-    loc = Location.objects.filter(pk=location_id).first()
+    Address = apps.get_model('communications', 'Address')
+    loc = Address.objects.filter(pk=location_id).first()
     if not loc:
         return {"ok": False, "error": "not_found"}
     payload = {

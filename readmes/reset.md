@@ -72,7 +72,7 @@ Do NOT use:
 6. Performs a light synthetic backfill via `reseed_all_models` to add sample rows across sparse tables. By default, `reseed_all_models` will flush and seed all models and create 3 patterned superusers unless you target a specific model.
 7. Creates 1–N patterned superusers: `i@i.com` / `1111pass` with names `first_i` / `last_i`.
 8. Ensures default `sync.Connection` entries exist (safety alert + verification stubs). Currency records can link to a provider `Connection` for external rate updates.
-9. Backfills `Location.metadata.display` by saving each Location (ensures `full_location` is populated).
+9. Backfills `Address.metadata.display` by saving each Address (ensures `full_location` is populated).
 10. Summary output printed with seeds actually applied.
 
 ---
@@ -253,7 +253,7 @@ A: Use existing seed commands directly (e.g., `python manage.py seed_orgs`). `fu
 Use the unified command to reseed only a specific model/table without flushing:
 
 ```bash
-python manage.py reseed --no-flush --per-model 3 --model communications.Location
+python manage.py reseed --no-flush --per-model 3 --model communications.Address
 # or by db table name
 python manage.py reseed --no-flush --per-model 3 --table locations
 ```

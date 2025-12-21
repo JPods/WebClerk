@@ -8,7 +8,7 @@ These are categorized by directory and need to be transferred or rewritten one a
 
 To facilitate transfer/rewrite, here's a mapping of common WebClerk2 table names to current WebClerk3 Django models. This helps identify existing equivalents and avoid duplicates.
 
-| WebClerk2 Table | WebClerk3 Model | Location |
+| WebClerk2 Table | WebClerk3 Model | Address |
 |-----------------|-----------------|----------|
 | Customers | Customer | `apps/orgs/models/base_org_model.py` |
 | Contacts | Contact | `apps/core/models/contact.py` |

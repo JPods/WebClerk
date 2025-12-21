@@ -1,12 +1,12 @@
 import pytest
-from apps.communications.models.location import Location
+from apps.communications.models.address import Address
 from django.db import transaction
 
 pytestmark = pytest.mark.unit
 
 
 def make_loc(**kw):
-    return Location(**{
+    return Address(**{
         'address1': '123 Main St',
         'address2': 'Apt 5',
         'city': 'Springfield',
@@ -50,7 +50,7 @@ def test_as_standard_auto_switches():
 
 
 def test_metadata_display_full_location_is_set(db):
-    loc = Location(
+    loc = Address(
         address1='1600 Pennsylvania Ave NW',
         city='Washington', state='DC', zip='20500', country='USA'
     )
@@ -62,7 +62,7 @@ def test_metadata_display_full_location_is_set(db):
 
 
 def test_metadata_display_for_eu_example(db):
-    loc = Location(
+    loc = Address(
         address1='55 Rue du Faubourg Saint-Honoré',
         city='Paris', state='Île-de-France', zip='75008', country='France'
     )

@@ -66,7 +66,7 @@ Prefer clean plural “table keys” (registry keys) ending in 's'. Minimize 'es
 | purchase_order        | purchase_orders               | purchase_orders   |
 | sales_order_line      | sales_order_lines             | sales_order_lines |
 | invoice_line          | invoice_line                  | invoice_line      |
-| location              | locations                     | locations         |
+| address               | locations                     | locations         |
 
 Notes:
 
@@ -76,7 +76,7 @@ Notes:
 ## Display metadata conventions
 
 - When a model has a common user-facing one-line label derived from multiple fields, persist it under `metadata.display.<name>` to avoid recomputing per request.
-- For `Location`, we store `metadata.display.full_location` along with `standard` and `country_code`.
+- For `Address`, we store `metadata.display.full_location` along with `standard` and `country_code`.
 - Bulk updates that bypass model `save()` won’t recompute display; follow up with a refresh or a backfill job.
 
 Field / verbose names may use 'es' if needed; restriction applies to registry keys/db_table only.

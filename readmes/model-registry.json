@@ -296,7 +296,7 @@
   {
     "key": "location",
     "app": "communications",
-    "model": "apps.communications.models.location.Location",
+    "model": "apps.communications.models.address.Address",
     "endpoint": "locations",
     "kind": "support",
     "aliases": [
