@@ -265,7 +265,7 @@ LINK_DENORMALIZE_FIELDS = {
     "location": ["id", "address1", "city", "state", "zip", "country", "full"],
     "item": ["id", "name", "sku", "description", "kind", "uom"],
     "domain": ["id", "path", "type"],
-    "orgbase": ["id", "display_name", "org_type", "status"],
+    "orgbase": ["id", "company", "org_type", "status"],
     "currency": ["id", "code", "name", "symbol"],
     "term": ["id", "name"],
     "glaccount": ["id", "account_credit"],

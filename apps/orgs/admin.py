@@ -41,7 +41,8 @@ class OrgBaseAdminForm(forms.ModelForm):
 @admin.register(OrgBase)
 class OrgBaseAdmin(admin.ModelAdmin):
     form = OrgBaseAdminForm
-    list_display = ("id", "display_name", "org_type", "status", "is_active", "version")
+    # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
+    list_display = ("id", "company", "org_type", "status", "is_active", "version")
     list_filter = ("org_type", "status", "is_active")
     search_fields = ("display_name", "domains", "contacts")
     readonly_fields = ("version", "dt_created", "dt_modified")

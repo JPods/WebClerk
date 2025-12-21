@@ -40,7 +40,18 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
 	display_name = models.CharField(max_length=255, db_index=True)
+	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
+	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
 	status = models.CharField(max_length=30, blank=True, db_index=True)  # e.g. active, prospect, retired
+
+	@property
+	def company(self) -> str:
+		"""Alias for `display_name`. Prefer using `company` in code; `display_name` retained on DB."""
+		return getattr(self, 'display_name', '')
+
+	@company.setter
+	def company(self, value: str) -> None:
+		setattr(self, 'display_name', value)
 
 	# Aspect JSONB fields -------------------------------------------------
 	# denormalized hybrid of table data into a flatter structure
@@ -164,7 +175,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		Returns (ok, errors). Delegates to validate_aspects with partial flag for updates.
 		Filters patch payload to aspect + core fields so unrelated metadata fields do not cause noise.
 		"""
-		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","display_name","status","is_active"}
+		aspect_keys = set(self.ASPECT_LIMITS.keys()) | {"org_type","company","display_name","status","is_active"}
 		if is_update:
 			patch_subset = {k: v for k, v in data.items() if k in aspect_keys}
 			return self.validate_aspects(partial=True, data=patch_subset)
@@ -176,7 +187,8 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		base = super().to_universal_dict()
 		base.update({
 			"org_type": self.org_type,
-			"display_name": self.display_name,
+			"company": self.company,
+			"display_name": self.display_name,  # deprecated; kept for compatibility
 			"status": self.status,
 			"is_active": self.is_active,
 		})
@@ -197,8 +209,8 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 				dm = d.get('domain')
 				if dm:
 					domain_list.append(dm)
-		return " ".join(filter(None, [self.display_name, self.status] + contact_names + domain_list))
-
+		# Prefer `company` for external use; keep display_name as fallback
+		return " ".join(filter(None, [self.company or self.display_name, self.status] + contact_names + domain_list))
 	# -------- Aspect governance helpers ---------------------------------
 	def _prune_aspect(self, aspect: str):
 		"""Prune list-like aspect to its ASPECT_LIMITS count (in-place, keep earliest items).

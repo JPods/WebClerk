@@ -82,7 +82,7 @@ The following fields are included for each model type:
 - **Location**: id, address1, city, state, zip, country, full
 - **Item**: id, name, sku, description, kind, uom
 - **Domain**: id, path, type
-- **OrgBase**: id, display_name, org_type, status
+- **OrgBase**: id, company, org_type, status
 - **Currency**: id, code, name, symbol
 - **Term**: id, name
 - **GlAccount**: id, account_credit
