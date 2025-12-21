@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Controller, useForm, useFieldArray, useWatch } from "react-hook-form";
+import { Controller, useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -23,7 +23,8 @@ import {
   UpdateContactRequest,
 } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
-import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus, FaSave, FaTrash } from "react-icons/fa";
+import { updateEmail } from "@/apps/communications/models/email/services/emailApi";
 
 /* ----------------------------------
    Types
@@ -36,6 +37,7 @@ export default function ContactDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  getContactData,
 }: ContactAddProps) {
   const [isEmailEdit, setIsEmailEdit] = useState<boolean>(false);
 
@@ -55,6 +57,7 @@ export default function ContactDetail({
     handleSubmit,
     reset,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(
@@ -123,6 +126,7 @@ export default function ContactDetail({
       setValue("cnf_password", "");
     }
   }, [data, reset, setValue, mode]);
+
   useEffect(() => {
     setIsEmailEdit(false);
   }, [data]);
@@ -198,6 +202,74 @@ export default function ContactDetail({
     { value: "staff", label: "Staff" },
     { value: "guest", label: "Guest" },
   ];
+
+  const handleEmailEdit = async (index: number) => {
+    try {
+      const emailRow = getValues(`refs.links.email.${index}`);
+
+      if (!emailRow?.address) {
+        throw new Error("Email address is required");
+      }
+
+      const payload = {
+        id: emailRow.id || undefined,
+        email: emailRow.address,
+        name: emailRow.name || undefined,
+      };
+
+      const res = await updateEmail({
+        ...payload,
+        id: emailRow?.id,
+      });
+
+      if (res) {
+        dispatch(
+          showToast({
+            message: "Email saved successfully",
+            type: "success",
+          })
+        );
+
+        setIsEmailEdit(false);
+
+        // Get existing email list
+        const currentEmails = getValues("refs.links.email") || [];
+
+        // Update only edited index
+        const updatedEmails = currentEmails.map((item: any, i: number) =>
+          i === index
+            ? {
+                ...item,
+                id: res.id ?? item.id,
+                address: emailRow.address,
+                name: emailRow.name,
+              }
+            : item
+        );
+
+        // Reset form with updated refs
+        reset({
+          ...getValues(),
+          refs: {
+            ...getValues("refs"),
+            links: {
+              ...getValues("refs.links"),
+              email: updatedEmails,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Email save failed", error);
+      dispatch(
+        showToast({
+          message: "Email save failed",
+          type: "error",
+        })
+      );
+    }
+  };
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -529,38 +601,54 @@ export default function ContactDetail({
               {emailFields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="flex items-center justify-between py-2"
+                  className="grid grid-cols-12 gap-3 items-end py-2"
                 >
-                  <div className="flex-2/3 me-2">
+                  {/* Address */}
+                  <div className="col-span-12 md:col-span-7">
                     <Label htmlFor={`refs.links.email.${index}.address`}>
                       address (.ref)
                     </Label>
-                    <Input
-                      type="text"
-                      id={`refs.links.email.${index}.address`}
-                      {...register(`refs.links.email.${index}.address`)}
-                      disabled={mode === "view"}
-                    />
+
+                    <div className="flex gap-2 items-center">
+                      <button
+                        type="button"
+                        onClick={() => handleEmailEdit(index)}
+                        disabled={
+                          !getValues(`refs.links.email.${index}.address`)
+                        }
+                        className="p-2 text-blue-500 hover:scale-110 disabled:text-gray-300"
+                        title="Save"
+                      >
+                        <FaSave />
+                      </button>
+
+                      <Input
+                        type="text"
+                        {...register(`refs.links.email.${index}.address`)}
+                        disabled={mode === "view"}
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex-1/3">
+                  {/* Name */}
+                  <div className="col-span-12 md:col-span-4">
                     <Label htmlFor={`refs.links.email.${index}.name`}>
                       name (.ref)
                     </Label>
                     <Input
                       type="text"
-                      id={`refs.links.email.${index}.name`}
                       {...register(`refs.links.email.${index}.name`)}
                       disabled={mode === "view"}
                     />
                   </div>
 
-                  {mode !== "view" && (
-                    <div className="flex items-end">
+                  {/* Delete */}
+                  {mode !== "view" && isEmailEdit && (
+                    <div className="col-span-12 md:col-span-1 flex justify-end">
                       <button
                         type="button"
                         onClick={() => removeEmail(index)}
-                        className="p-2 text-red-600"
+                        className="p-2 text-red-600 hover:scale-110"
                       >
                         <FaTrash />
                       </button>
@@ -592,7 +680,7 @@ export default function ContactDetail({
                         <h1>{field.name}</h1>
                       </div>
 
-                      {mode !== "view" && (
+                      {mode !== "view" && isEmailEdit && (
                         <div className="flex items-end">
                           <button
                             type="button"
