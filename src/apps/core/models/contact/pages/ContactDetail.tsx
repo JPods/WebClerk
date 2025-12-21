@@ -211,7 +211,13 @@ export default function ContactDetail({
       const emailRow = getValues(`refs.links.email.${index}`);
 
       if (!emailRow?.address) {
-        throw new Error("Email address is required");
+        dispatch(
+          showToast({
+            message: "Email address is required",
+            type: "error",
+          })
+        );
+        return false;
       }
 
       const payload = {
@@ -618,9 +624,6 @@ export default function ContactDetail({
                       <button
                         type="button"
                         onClick={() => handleEmailEdit(index)}
-                        // disabled={
-                        //   !getValues(`refs.links.email.${index}.address`)
-                        // }
                         className="p-2 text-blue-500 hover:scale-110 disabled:text-gray-300"
                         title="Save"
                       >

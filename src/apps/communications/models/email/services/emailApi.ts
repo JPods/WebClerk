@@ -18,7 +18,7 @@ export const deleteEmail = async (model_name: string, id: number) => {
     const res = await apiClient.post(PostLoginURL.allSave, {
       model_name,
       id,
-      mode: "delete",
+      action: { mode: "delete" },
     });
     return res;
   } catch (error) {
