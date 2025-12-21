@@ -9,6 +9,7 @@ export interface ContactAddProps {
   onSaved?: () => void;
   inline?: boolean;
   onCancelInline?: () => void;
+  getContactData?: (contactId?: number) => Promise<void>;
 }
 
 /* -----------------------------

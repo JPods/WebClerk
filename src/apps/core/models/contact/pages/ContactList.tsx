@@ -5,8 +5,6 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
-import { showToast } from "../../../../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import ContactAdd from "./ContactDetail";
 import { fetchContacts } from "../services/contactApi";
@@ -14,7 +12,6 @@ import ContactListMob from "./ContactListMob";
 
 export default function ContactList() {
   const { theme } = useTheme();
-  const dispatch = useDispatch();
 
   const [data, setData] = useState<dynamicData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -27,32 +24,20 @@ export default function ContactList() {
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   /* ---------------- Fetch Contacts ---------------- */
-  const getContactData = useCallback(async () => {
+  const getContactData = useCallback(async (contactId?: number) => {
     setLoading(true);
     try {
       const res = await fetchContacts();
-      if (res.status === 200) {
-        setData(res.data.results);
-      } else {
-        dispatch(
-          showToast({
-            message: "Failed to fetch contacts",
-            type: "error",
-          })
-        );
+      setData(res.data.results);
+
+      if (contactId) {
+        const contactRes = await getRecord("contact", contactId);
+        setSelectedContact(contactRes.record);
       }
-    } catch (error) {
-      console.error(error);
-      dispatch(
-        showToast({
-          message: "Failed to fetch contacts",
-          type: "error",
-        })
-      );
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, []);
 
   useEffect(() => {
     getContactData();
@@ -244,6 +229,7 @@ export default function ContactList() {
               dataProp={selectedContact}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
+              getContactData={getContactData}
             />
           </div>
         )}
