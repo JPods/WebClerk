@@ -151,20 +151,19 @@ class WCAPISaveView(APIView):
         if not ModelCls or not isinstance(data, dict):
             return Response({"detail": "invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
 
-        clean = filter_input_fields(ModelCls, data)
-
-        if record_id:
-            try:
-                obj = ModelCls.objects.get(pk=record_id)
-            except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
-                return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
-            for k, v in clean.items():
-                setattr(obj, k, v)
-            obj.save()
-            return Response({"id": obj.pk, "action": "updated"}, status=status.HTTP_200_OK)
-
-        obj = ModelCls.objects.create(**clean)
-        return Response({"id": obj.pk, "action": "created"}, status=status.HTTP_201_CREATED)
+        # Delegate to core save_item to centralize save behavior (including linking hooks)
+        try:
+            from apps.core.services.wcapi import save_item as core_save_item
+            obj_id, action = core_save_item(model_key, request=request, data=data, id=record_id)
+            status_code = status.HTTP_200_OK if action == "updated" else status.HTTP_201_CREATED
+            return Response({"id": obj_id, "action": action}, status=status_code)
+        except LookupError:
+            return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception("Error saving via core save_item")
+            return Response({"detail": "save failed", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class WCAPIDeleteView(APIView):
     http_method_names = ["post", "options", "head"]
