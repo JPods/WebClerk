@@ -21,7 +21,7 @@ export default function ContactListMob({
         dataProp.map((contact, index) => (
           <AccordionItem
             key={contact.id}
-            title={`Email: ${contact.email ?? "--"} (ID: ${contact.id})`}
+            title={`email: ${contact.email ?? "--"} (id: ${contact.id})`}
             isOpen={openIndex === index}
             onToggle={() => {
               const willOpen = openIndex !== index;
@@ -37,29 +37,31 @@ export default function ContactListMob({
               {/* Content */}
               <div className="space-y-1 text-sm">
                 <p>
-                  <strong>First Name:</strong> {contact.name_first || "--"}
+                  <strong>name_first:</strong> {contact.name_first || "--"}
                 </p>
                 <p>
-                  <strong>Last Name:</strong> {contact.name_last || "--"}
+                  <strong>name_last:</strong> {contact.name_last || "--"}
                 </p>
                 <p>
-                  <strong>Company:</strong> {contact.company || "--"}
-                </p>
-                <p>
-                  <strong>Role:</strong> {contact.role || "--"}
+                  <strong>attention:</strong> {contact.attention || "--"}
                 </p>
 
+                <p>
+                  <strong>company:</strong> {contact.company || "--"}
+                </p>
+                <p>
+                  <strong>role:</strong> {contact.role || "--"}
+                </p>
                 <div className="flex items-center gap-2">
-                  <strong>Active:</strong>
+                  <strong>is_active:</strong>
                   {contact.is_active ? (
                     <p className="text-green-600">Yes</p>
                   ) : (
                     <p className="text-red-500">No</p>
                   )}
                 </div>
-
                 <div className="flex items-center gap-2">
-                  <strong>Staff:</strong>
+                  <strong>is_staff:</strong>
                   {contact.is_staff ? (
                     <p className="text-green-600">Yes</p>
                   ) : (
