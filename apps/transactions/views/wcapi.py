@@ -98,7 +98,7 @@ class WCAPIGetView(APIView):
 
     def post(self, request, *args, **kwargs):
         body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model_name")
+        model_key = body.get("model_name") or body.get("model") or body.get("modelName")
         record_id = body.get("id")
         filters = body.get("filters") or {}
         fields: Optional[List[str]] = body.get("fields")
@@ -143,7 +143,7 @@ class WCAPISaveView(APIView):
 
     def post(self, request, *args, **kwargs):
         body: Dict[str, Any] = request.data or {}
-        model_key = body.get("model_name")
+        model_key = body.get("model_name") or body.get("model") or body.get("modelName")
         record_id = body.get("id")
         data = body.get("data") or {}
 
@@ -154,9 +154,9 @@ class WCAPISaveView(APIView):
         # Delegate to core save_item to centralize save behavior (including linking hooks)
         try:
             from apps.core.services.wcapi import save_item as core_save_item
-            obj_id, action = core_save_item(model_key, request=request, data=data, id=record_id)
+            obj_id, action, linked = core_save_item(model_key, request=request, data=data, id=record_id)
             status_code = status.HTTP_200_OK if action == "updated" else status.HTTP_201_CREATED
-            return Response({"id": obj_id, "action": action}, status=status_code)
+            return Response({"id": obj_id, "action": action, "linked": bool(linked)}, status=status_code)
         except LookupError:
             return Response({"detail": "not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -209,7 +209,7 @@ class WCAPISyncView(APIView):
         try:
             body: Dict[str, Any] = request.data or {}
             operation = body.get("operation")
-            model_key = body.get("model_name")
+            model_key = body.get("model_name") or body.get("model") or body.get("modelName")
             data = body.get("data", [])
             sync_config = body.get("sync_config", {})
             conflict_resolution = body.get("conflict_resolution", "skip")

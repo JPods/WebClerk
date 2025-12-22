@@ -43,9 +43,37 @@ def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = N
         qs = qs.order_by(ordering)
     return list(qs[:limit])
 
-def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) -> Tuple[Any, str]:
+def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) -> Tuple[Any, str, bool]:
     ModelCls, qs = get_queryset(model_key, request=request)
     clean = filter_input_fields(ModelCls, data)
+
+    # Log and attempt tolerant mapping when nothing matched (helps with casing/formatting mismatches)
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug("wcapi.save_item: incoming payload keys=%s filtered=%s", list((data or {}).keys()), list(clean.keys()))
+    except Exception:
+        logger = None
+
+    if not clean and isinstance(data, dict):
+        # Build a normalization helper to match keys like 'Email' -> 'email', 'email_address' -> 'emailaddress'
+        def _normalize_key(s: str) -> str:
+            return ''.join(ch.lower() for ch in str(s) if ch.isalnum())
+        fields = {f.name for f in getattr(ModelCls._meta, "fields", [])}
+        norm_map = {_normalize_key(f): f for f in fields}
+        tolerant: dict = {}
+        for k, v in data.items():
+            nk = _normalize_key(k)
+            if nk in norm_map:
+                tolerant[norm_map[nk]] = v
+        if tolerant:
+            clean = tolerant
+            try:
+                if logger:
+                    logger.info("wcapi.save_item: applied tolerant mapping for %s -> %s", model_key, list(clean.keys()))
+            except Exception:
+                pass
+
     if id is not None:
         obj = qs.filter(pk=id).first()
         if obj is None:
@@ -53,10 +81,14 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
         for k, v in clean.items():
             setattr(obj, k, v)
         obj.save()
-        return obj.pk, "updated"
+        # For updates we do not currently attempt auto-linking; return linked=False
+        return obj.pk, "updated", False
 
     # Create the object
     obj = ModelCls.objects.create(**clean)
+
+    # Track whether we successfully linked this creation to a contact
+    linked = False
 
     # Auto-link newly created communication records to a Contact (if present)
     try:
@@ -82,12 +114,37 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
                     contact_id = None
             # Fallback to authenticated request user when available
             user = getattr(request, "user", None)
+            try:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug("wcapi.save_item: created %s id=%s requested by user id=%s auth=%s payload_contact_id=%s",
+                             model_key, getattr(obj, "pk", None), getattr(user, "pk", None) or getattr(user, "id", None), getattr(user, "is_authenticated", None), contact_id)
+            except Exception:
+                logger = None
+
             if not contact_id and user and getattr(user, "is_authenticated", False):
-                # The project uses Contact as the auth user model in most places
-                if getattr(user, "__class__", None) and getattr(user, "_meta", None) and getattr(user._meta, "model_name", None) == "contact":
-                    contact = user
+                # If the authenticated user is a Contact instance (AUTH_USER_MODEL='core.Contact'), use it.
+                try:
+                    if isinstance(user, Contact):
+                        contact = user
+                    else:
+                        # Try to resolve a Contact record matching the auth user's pk (in case of proxy or linkage)
+                        possible = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
+                        if possible:
+                            contact = possible
+                except Exception:
+                    # Defensive: if contact resolution fails, continue without contact
+                    contact = None
+
             if contact_id:
                 contact = Contact.objects.filter(pk=contact_id).first()
+
+            # Log when no contact was found so it is easier to debug client reports
+            try:
+                if logger and not contact and model_key and model_key.lower() in comm_models:
+                    logger.info("wcapi.save_item: no contact resolved for created %s id=%s (payload_contact_id=%s, auth_user=%s)", model_key, getattr(obj, "pk", None), contact_id, getattr(user, "pk", None) or getattr(user, "id", None))
+            except Exception:
+                pass
 
             if contact:
                 # Build denormalized object from LINK_DENORMALIZE_FIELDS
@@ -111,6 +168,7 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
                         break
                 if not existing_found:
                     bucket_list.append(denorm)
+                    linked = True
 
                 links[bucket] = bucket_list
                 refs["links"] = links
@@ -127,12 +185,14 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
                     if contact.pk not in contact_list:
                         contact_list.append(contact.pk)
                         obj.save(update_fields=["refs"])
+                        linked = True
                 except Exception:
                     pass
 
                 # Also ensure a lightweight bidirectional link entry exists for quick lookup
                 try:
-                    ensure_bidirectional(contact, obj, kind="contact")
+                    if ensure_bidirectional(contact, obj, kind="contact"):
+                        linked = True
                 except Exception:
                     # Non-fatal if link helper fails
                     pass
@@ -140,7 +200,7 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
         # Defensive: do not block creation on linking errors
         pass
 
-    return obj.pk, "created"
+    return obj.pk, "created", linked
 
 def delete_item(model_key: str, *, request, id: Any) -> bool:
     ModelCls, qs = get_queryset(model_key, request=request)
