@@ -37,6 +37,9 @@ import logging
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 from typing import Type, cast
+from common.refs.links import ensure_bidirectional
+from common.models import LINK_DENORMALIZE_FIELDS
+from apps.core.models import Contact
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -273,6 +276,12 @@ class SaveWcapiView(APIView):
         except json.JSONDecodeError as e:
             console_logger.error(f"[SAVE_VIEW] JSON parse error: {e}")
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
+
+        # Handle nested 'data' key for compatibility with some clients
+        if 'data' in data and isinstance(data['data'], dict):
+            data.update(data['data'])
+            del data['data']
+            console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
         # Required: model_name (singular)
         raw_model_name = data.get('model_name')
@@ -549,6 +558,58 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
+        # Auto-link communication records to a Contact
+        linked = False
+        try:
+            comm_models = {"email", "phone", "address", "location", "domain"}
+            if model_key.lower() in comm_models:
+                bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+                contact = None
+                if user and getattr(user, "is_authenticated", False):
+                    contact = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
+                if contact:
+                    fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
+                    denorm = {f: getattr(obj, f, None) for f in fields}
+                    refs = getattr(contact, "refs", {}) or {}
+                    links = refs.get("links") or {}
+                    bucket_list = links.get(bucket) or []
+                    existing_found = False
+                    for idx, it in enumerate(list(bucket_list)):
+                        if isinstance(it, dict) and it.get("id") == getattr(obj, "pk"):
+                            bucket_list[idx] = denorm
+                            existing_found = True
+                            linked = True
+                            break
+                        if isinstance(it, int) and it == getattr(obj, "pk"):
+                            bucket_list[idx] = denorm
+                            existing_found = True
+                            linked = True
+                            break
+                    if not existing_found:
+                        bucket_list.append(denorm)
+                        linked = True
+                    links[bucket] = bucket_list
+                    refs["links"] = links
+                    contact.refs = refs
+                    Contact.objects.filter(pk=contact.pk).update(refs=contact.refs, version=models.F('version') + 1, dt_modified=int(timezone.now().timestamp() * 1000))
+                    try:
+                        if not isinstance(getattr(obj, "refs", None), dict):
+                            obj.refs = {}
+                        obj_links = obj.refs.setdefault("links", {})
+                        contact_list = obj_links.setdefault("contact", [])
+                        if contact.pk not in contact_list:
+                            contact_list.append(contact.pk)
+                            obj.save()
+                            linked = True
+                    except Exception:
+                        pass
+                    try:
+                        ensure_bidirectional(contact, obj, kind="contact")
+                    except Exception:
+                        pass
+        except Exception:
+            pass  # Defensive
+
         # Append contact link for action saves
         if model_key == 'action':
             try:
@@ -665,7 +726,8 @@ class SaveWcapiView(APIView):
             'id': obj_id,
             'record': record,
             'model_name': model_key,
-            'version': getattr(obj, 'version', None)
+            'version': getattr(obj, 'version', None),
+            'linked': linked
         }
         messages = []
         if field_size_errors:
