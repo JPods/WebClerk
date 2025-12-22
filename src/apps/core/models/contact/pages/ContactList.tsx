@@ -5,8 +5,6 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
-import { showToast } from "../../../../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import ContactAdd from "./ContactDetail";
 import { fetchContacts } from "../services/contactApi";
@@ -14,7 +12,6 @@ import ContactListMob from "./ContactListMob";
 
 export default function ContactList() {
   const { theme } = useTheme();
-  const dispatch = useDispatch();
 
   const [data, setData] = useState<dynamicData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -27,32 +24,20 @@ export default function ContactList() {
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   /* ---------------- Fetch Contacts ---------------- */
-  const getContactData = useCallback(async () => {
+  const getContactData = useCallback(async (contactId?: number) => {
     setLoading(true);
     try {
       const res = await fetchContacts();
-      if (res.status === 200) {
-        setData(res.data.results);
-      } else {
-        dispatch(
-          showToast({
-            message: "Failed to fetch contacts",
-            type: "error",
-          })
-        );
+      setData(res.data.results);
+
+      if (contactId) {
+        const contactRes = await getRecord("contact", contactId);
+        setSelectedContact(contactRes.record);
       }
-    } catch (error) {
-      console.error(error);
-      dispatch(
-        showToast({
-          message: "Failed to fetch contacts",
-          type: "error",
-        })
-      );
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, []);
 
   useEffect(() => {
     getContactData();
@@ -104,39 +89,39 @@ export default function ContactList() {
   /* ---------------- Columns ---------------- */
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+      { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
       {
-        name: "Email",
+        name: "email",
         selector: (row) => row.email || "--",
         sortable: true,
         width: "15%",
       },
       {
-        name: "First Name",
+        name: "name_first",
         selector: (row) => row.name_first || "--",
         sortable: true,
         width: "13%",
       },
       {
-        name: "Last Name",
+        name: "name_last",
         selector: (row) => row.name_last || "--",
         sortable: true,
         width: "13%",
       },
       {
-        name: "Company",
+        name: "company",
         selector: (row) => row.company || "--",
         sortable: true,
         width: "15%",
       },
       {
-        name: "Role",
+        name: "role",
         selector: (row) => row.role || "--",
         sortable: true,
         width: "10%",
       },
       {
-        name: "Active",
+        name: "is_active",
         selector: (row) => (row.is_active ? "yes" : "no"),
         cell: (row) =>
           row.is_active ? (
@@ -148,7 +133,7 @@ export default function ContactList() {
         width: "8%",
       },
       {
-        name: "Staff",
+        name: "is_staff",
         selector: (row) => (row.is_staff ? "yes" : "no"),
         cell: (row) =>
           row.is_staff ? (
@@ -160,7 +145,7 @@ export default function ContactList() {
         width: "8%",
       },
       {
-        name: "Action",
+        name: "action",
         cell: (row) => (
           <div className="flex gap-3">
             <button onClick={() => handleView(row)} title="View">
@@ -211,10 +196,7 @@ export default function ContactList() {
                 <DataTable
                   columns={userColumns.map((col) => ({
                     ...col,
-                    name:
-                      typeof col.name === "string"
-                        ? col.name.toUpperCase()
-                        : col.name,
+                    name: typeof col.name === "string" && col.name,
                   }))}
                   data={data}
                   pagination
@@ -229,6 +211,7 @@ export default function ContactList() {
                     </div>
                   }
                   onRowClicked={handleView}
+                  className="text-2xl"
                 />
               )}
             </div>
@@ -244,6 +227,7 @@ export default function ContactList() {
               dataProp={selectedContact}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
+              getContactData={getContactData}
             />
           </div>
         )}
