@@ -1,50 +1,67 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import ComponentCard from "@/components/common/ComponentCard";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
-import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
-import { showToast } from "@/store/slices/toastSlice";
+import { fetchEmployees, deleteEmployee } from "../services/employeeApi";
+import {
+  FaEye,
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaCheck,
+  FaTimes,
+} from "react-icons/fa";
+import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
-import EmployeeDisplay from "./EmployeeDisplay";
-
+import { useTheme } from "../../../../../context/ThemeContext";
+import EmployeeDetail from "./EmployeeDisplay";
+import { dynamicData } from "../../../../../model/dynamicData";
+import EmployeeListMob from "./EmployeeListMob";
 export default function EmployeeList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
-  const getEmployeeData = useCallback(async () => {
+  const getLocationData = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const list = await getRecords('employee');
-      const recs = Array.isArray(list?.results) ? list.results : Array.isArray(list) ? list : [];
-      setData(recs);
+      const res = await fetchEmployees();
+      if (res.status === 200) {
+        setData(res.data.data.results);
+      } else {
+        dispatch(
+          showToast({ message: "Failed to fetch locations", type: "error" })
+        );
+      }
     } catch (error) {
-      console.error("Failed to fetch employees", error);
-      dispatch(showToast({ message: "Failed to fetch employees", type: "error" }));
+      console.error("Failed to fetch locations", error);
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getEmployeeData();
-  }, [getEmployeeData]);
+    getLocationData();
+  }, [getLocationData]);
 
   const handleView = (row: any) => {
     setSelectedEmployee(row);
     setFormMode("view");
   };
 
-  const handleEdit = (row: any) => {
-    setSelectedEmployee(row);
+  const handleEdit = async (row: dynamicData) => {
+    const res = await fetchEmployees(row.id);
+    console.log("res.", res);
+    if (res.status === 200) setSelectedEmployee(res.data.data.record);
+    else setSelectedEmployee(row);
     setFormMode("edit");
+    console.log("res", res);
   };
 
   const handleAdd = () => {
@@ -52,8 +69,34 @@ export default function EmployeeList() {
     setFormMode("add");
   };
 
+  const handleDelete = async (row: any) => {
+    if (window.confirm(`Delete location ${row.name}?`)) {
+      try {
+        await deleteEmployee(row.id);
+        dispatch(
+          showToast({
+            message: "Location deleted successfully",
+            type: "success",
+          })
+        );
+        getLocationData(); // Refresh data
+        if (selectedEmployee && selectedEmployee.id === row.id) {
+          setFormMode(null);
+          setSelectedEmployee(null);
+        }
+      } catch (error) {
+        dispatch(
+          showToast({
+            message: "Failed to delete location",
+            type: "error",
+          })
+        );
+      }
+    }
+  };
+
   const handleFormSaved = () => {
-    getEmployeeData();
+    getLocationData();
     setFormMode(null);
     setSelectedEmployee(null);
   };
@@ -63,45 +106,69 @@ export default function EmployeeList() {
     setSelectedEmployee(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete employee ${row.id}?`)) {
-      try {
-        await deleteRecord('employee', row.id);
-        dispatch(showToast({ message: "Employee deleted successfully", type: "success" }));
-        getEmployeeData(); // Refresh data
-      } catch (error) {
-        dispatch(showToast({ message: "Failed to delete employee", type: "error" }));
-      }
-    }
-  };
-
-  // Hardcoded columns: id and common fields
   const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
-    { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "30%" },
-    { name: "Position", selector: (row) => row.position || "--", sortable: true, width: "30%" },
-    { name: "Department", selector: (row) => row.department || "--", sortable: true, width: "20%" },
-  ];
+    { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
 
-  userColumns.push({
-    name: "Action",
-    cell: (row) => (
-      <div className="flex gap-2">
-        <button onClick={() => handleView(row)} title="View">
-          <FaEye className="text-blue-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleEdit(row)} title="Edit">
-          <FaEdit className="text-green-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleDelete(row)} title="Delete">
-          <FaTrashAlt className="text-red-600 hover:scale-110 transition" />
-        </button>
-      </div>
-    ),
-    ignoreRowClick: true,
-    allowOverflow: true,
-    button: true,
-  });
+    {
+      name: "display_name",
+      selector: (row) => row.display_name || "--",
+      sortable: true,
+      width: "25%",
+    },
+    {
+      name: "org_type",
+      selector: (row) => row.org_type || "--",
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "status",
+      selector: (row) => row.status || "--",
+      sortable: true,
+      width: "30%",
+    },
+
+    {
+      name: "is_active",
+      selector: (row) => (row.is_active ? "yes" : "no"),
+      cell: (row) => (
+        <>
+          {row.is_active ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
+        </>
+      ),
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "version",
+      selector: (row) => row.version || "--",
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "Action",
+      cell: (row) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleView(row)} title="View">
+            <FaEye className="text-blue-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleEdit(row)} title="Edit">
+            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleDelete(row)} title="Delete">
+            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+  ];
 
   return (
     <>
@@ -118,27 +185,40 @@ export default function EmployeeList() {
                 Add Employee
               </button>
             </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading employees...</div>}
-                onRowClicked={(row) => handleView(row)}
-              />
+            <div className="w-full overflow-x-auto rounded-md bg-white dark:bg-gray-900 h-[calc(100vh-260px)]">
+              {formMode ? (
+                <div className="flex flex-col">
+                  <EmployeeListMob
+                    dataProp={data}
+                    handleView={handleView}
+                    handleEdit={handleEdit}
+                  />
+                </div>
+              ) : (
+                <DataTable
+                  columns={userColumns.map((col) => ({
+                    ...col,
+                    name: typeof col.name === "string" && col.name,
+                  }))}
+                  data={data}
+                  pagination
+                  theme={theme === "dark" ? "tailwindDark" : "default"}
+                  highlightOnHover
+                  pointerOnHover
+                  progressPending={loading}
+                  progressComponent={
+                    <div className="p-8 text-center">Loading locations...</div>
+                  }
+                  onRowClicked={(row) => handleView(row)}
+                  keyField="id"
+                />
+              )}
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <EmployeeDisplay
+            <EmployeeDetail
               inline
               modeProp={formMode}
               dataProp={selectedEmployee}

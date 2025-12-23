@@ -8,35 +8,27 @@ export interface EmployeeAddProps {
 }
 
 export interface CreateEmployeeRequest {
-  name: string;
-  employee_id: string;
-  email: string;
-  phone: string;
-  hire_date: string;
-  department: string;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }
 
 export interface EmployeeApiTask {
   id: number;
-  uuid: string | null;
-  name: string;
-  employee_id: string;
-  email: string;
-  phone: string;
-  hire_date: string;
-  department: string;
-  dt_created?: number;
-  dt_modified?: number;
-  version?: number;
-  is_active?: boolean;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }
 
 export interface UpdateEmployeeRequest {
   id: number;
-  name: string;
-  employee_id: string;
-  email: string;
-  phone: string;
-  hire_date: string;
-  department: string;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }

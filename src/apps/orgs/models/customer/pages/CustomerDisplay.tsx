@@ -156,7 +156,7 @@ export default function CustomerDetail({
                     id="is_active"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Is Verified"
+                    label="is_active"
                   />
                 )}
               />
