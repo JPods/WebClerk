@@ -29,6 +29,7 @@ _MAPPING = {
     'PaymentMethod': ('payment', 'PaymentMethod'),
     'PaymentTerm': ('payment', 'PaymentTerm'),
     'PaymentApplication': ('payment_application', 'PaymentApplication'),
+    'Project': ('project', 'Project'),
 }
 
 def __getattr__(name: str):

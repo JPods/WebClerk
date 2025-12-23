@@ -605,7 +605,11 @@ class SaveWcapiView(APIView):
                 if contact:
                     # Build denormalized object from LINK_DENORMALIZE_FIELDS
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
+                    obj.refresh_from_db()
                     denorm = {f: getattr(obj, f, None) for f in fields}
+                    # Ensure all standard link buckets exist
+                    for std_bucket in LINK_DENORMALIZE_FIELDS.keys():
+                        links.setdefault(std_bucket, [])
                     # Ensure refs.links shaped correctly
                     refs = getattr(contact, "refs", {}) or {}
                     links = refs.get("links") or {}
@@ -629,6 +633,7 @@ class SaveWcapiView(APIView):
                     links[bucket] = bucket_list
                     refs["links"] = links
                     contact.refs = refs
+                    contact.ensure_links_denormalized()
                     # Persist contact refs with full save to ensure data is written
                     try:
                         contact.save()

@@ -3,6 +3,7 @@ from .models import (
     Invoice, InvoiceLine,
     WorkOrderLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine,
     Proposal, ProposalLine, Requisition, RequisitionLine, WorkOrder,
+    Project,
 )
 from .models.purchase_receipt import PurchaseReceipt
 
@@ -115,6 +116,11 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("id",)
 
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ("id", "intent", "status", "priority", "dt_created")
+    list_filter = ("status", "priority")
+    search_fields = ("id", "intent", "slug")
 
 @admin.register(PurchaseOrderLine)
 class PurchaseOrderLineAdmin(admin.ModelAdmin):
