@@ -4,6 +4,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "../../components/kanban/KanbanColumn";
+import { KanbanDragLayer } from "../../components/kanban/KanbanDragLayer";
 import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
 import type { DragItem, DropResult } from "../../components/kanban/dndTypes";
 import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
@@ -408,14 +409,51 @@ const KanbanBoardPage: React.FC = () => {
     [board.columnOrder]
   );
 
+  const persistTaskReorder = useCallback(
+    async (boardSnapshot: BoardData, taskId: string, dropResult: DropResult | null) => {
+      if (!dropResult) {
+        return;
+      }
+
+      const targetColumn = boardSnapshot.columns[dropResult.columnId];
+      const task = boardSnapshot.tasks[taskId];
+      if (!targetColumn || !task) {
+        return;
+      }
+
+      const position = Math.max(0, dropResult.index ?? 0);
+
+      try {
+        await patchAction({
+          id: task.id,
+          model_name: "action",
+          kanban_column: targetColumn.title,
+          kanban_column_id: targetColumn.id,
+          sequence: position,
+          order: position,
+          position,
+        });
+      } catch (error) {
+        console.error("Failed to persist kanban reorder", error);
+      }
+    },
+    []
+  );
+
   const handleDragEnd = useCallback(
     (item: DragItem, dropResult: DropResult | null) => {
       if (item.type !== DRAG_TYPE_TASK) {
         return;
       }
-      setBoard((prev) => handleBoardMove(prev, { item, result: dropResult }));
+      setBoard((prev) => {
+        const next = handleBoardMove(prev, { item, result: dropResult });
+        if (next !== prev) {
+          void persistTaskReorder(next, item.taskId, dropResult);
+        }
+        return next;
+      });
     },
-    []
+    [persistTaskReorder]
   );
 
   const fetchActions = useCallback(async () => {
@@ -1091,6 +1129,7 @@ const KanbanBoardPage: React.FC = () => {
       </div>
 
       <DndProvider backend={HTML5Backend}>
+        <KanbanDragLayer tasks={board.tasks} />
         {isLoading ? (
           <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
             Loading kanban board...
