@@ -8,35 +8,26 @@ export interface CustomerAddProps {
 }
 
 export interface CreateCustomerRequest {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  customer_number: string;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }
 
 export interface CustomerApiTask {
-  id: number;
-  uuid: string | null;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  customer_number: string;
-  dt_created?: number;
-  dt_modified?: number;
-  version?: number;
-  is_active?: boolean;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }
 
 export interface UpdateCustomerRequest {
   id: number;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  customer_number: string;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }

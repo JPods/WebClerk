@@ -1,10 +1,9 @@
 import * as z from "zod";
 
 export const customerSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  address: z.string().min(1, "Address is required"),
-  phone: z.string().min(1, "Phone is required"),
-  email: z.string().email("Invalid email"),
-  website: z.string().url().optional().or(z.literal("")),
-  customer_number: z.string().min(1, "Customer number is required"),
+  display_name: z.string().min(1, "Name is required"),
+  org_type: z.string().default("customer"),
+  status: z.string().min(1, "Phone is required"),
+  version: z.number().default(1),
+  is_active: z.boolean().default(false),
 });
