@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import CustomerDetail from "./CustomerDisplay";
 import { dynamicData } from "../../../../../model/dynamicData";
+import CustomerListMob from "./CustomerListMob";
 export default function CustomerList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
@@ -184,24 +185,34 @@ export default function CustomerList() {
                 Add Customer
               </button>
             </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" && col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={
-                  <div className="p-8 text-center">Loading locations...</div>
-                }
-                onRowClicked={(row) => handleView(row)}
-                keyField="id"
-              />
+            <div className="w-full overflow-x-auto rounded-md bg-white dark:bg-gray-900 h-[calc(100vh-260px)]">
+              {formMode ? (
+                <div className="flex flex-col">
+                  <CustomerListMob
+                    dataProp={data}
+                    handleView={handleView}
+                    handleEdit={handleEdit}
+                  />
+                </div>
+              ) : (
+                <DataTable
+                  columns={userColumns.map((col) => ({
+                    ...col,
+                    name: typeof col.name === "string" && col.name,
+                  }))}
+                  data={data}
+                  pagination
+                  theme={theme === "dark" ? "tailwindDark" : "default"}
+                  highlightOnHover
+                  pointerOnHover
+                  progressPending={loading}
+                  progressComponent={
+                    <div className="p-8 text-center">Loading locations...</div>
+                  }
+                  onRowClicked={(row) => handleView(row)}
+                  keyField="id"
+                />
+              )}
             </div>
           </ComponentCard>
         </div>
