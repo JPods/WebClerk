@@ -86,6 +86,15 @@ export const createEmptyBoardData = (): BoardData => ({
   columnOrder: ["column-uncategorized"],
 });
 
+const PREFERRED_COLUMN_GROUPS: string[][] = [
+  ["backlog"],
+  ["progress", "inprogress", "in-process", "inprocess"],
+  ["review"],
+  ["complete", "completed", "done"],
+];
+
+const normalizeColumnKey = (input: string): string => input.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+
 const mapPriorityValue = (value?: number | null): TaskPriority => {
   if (typeof value !== "number") return "medium";
   if (value >= 4) return "critical";
@@ -100,6 +109,24 @@ const slugifyColumn = (rawTitle: string): string => {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `column-${cleaned || "uncategorized"}`;
+};
+
+const getColumnWeight = (column: KanbanColumnType): number => {
+  const normalizedTitle = normalizeColumnKey(column.title);
+  const normalizedId = normalizeColumnKey(column.id.replace(/^column-/, ""));
+
+  for (let index = 0; index < PREFERRED_COLUMN_GROUPS.length; index += 1) {
+    const group = PREFERRED_COLUMN_GROUPS[index];
+    const matches = group.some((key) => {
+      const normalizedKey = normalizeColumnKey(key);
+      return normalizedTitle === normalizedKey || normalizedId === normalizedKey;
+    });
+    if (matches) {
+      return index;
+    }
+  }
+
+  return PREFERRED_COLUMN_GROUPS.length;
 };
 
 const PROGRESS_FIELD_CANDIDATES = [
@@ -404,30 +431,19 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
     };
   });
 
-  // Define the desired column order with specific priority
-  const getColumnPriority = (columnId: string): number => {
-    const normalized = columnId.replace("column-", "").toLowerCase();
-    
-    if (normalized.includes("backlog")) return 1;
-    if (normalized.includes("inprogress") || normalized.includes("in-progress") || normalized.includes("progress")) return 2;
-    if (normalized.includes("review")) return 3;
-    if (normalized.includes("complete") || normalized.includes("completed") || normalized.includes("done")) return 4;
-    
-    return 999; // Other columns go last
-  };
-  
-  // Sort columnOrder based on priority
-  const sortedColumnOrder = [...columnOrder].sort((a, b) => {
-    const priorityA = getColumnPriority(a);
-    const priorityB = getColumnPriority(b);
-    
-    if (priorityA !== priorityB) {
-      return priorityA - priorityB;
-    }
-    
-    // If same priority, maintain original order
-    return columnOrder.indexOf(a) - columnOrder.indexOf(b);
-  });
+  const sortedColumnOrder = columnOrder
+    .map((id, index) => {
+      const column = columns[id];
+      const weight = column ? getColumnWeight(column) : PREFERRED_COLUMN_GROUPS.length;
+      return { id, weight, index };
+    })
+    .sort((a, b) => {
+      if (a.weight !== b.weight) {
+        return a.weight - b.weight;
+      }
+      return a.index - b.index;
+    })
+    .map(({ id }) => id);
 
   return { tasks, columns, columnOrder: sortedColumnOrder };
 };
