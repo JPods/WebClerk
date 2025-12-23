@@ -7,8 +7,8 @@ import {
   BasicTables,
   Calendar,
   ContactList,
-  // CustomerAddPage,
-  // CustomerDetailPage,
+  CustomerList,
+  EmployeeList,
   FormElements,
   Home,
   KanbanBoardDataPage,
@@ -109,8 +109,9 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
           <Route path={PageRoutes.contactList} element={<ContactList />} />
-          {/* <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
-          <Route
+          <Route path={PageRoutes.customerList} element={<CustomerList />} />
+          <Route path={PageRoutes.employeeList} element={<EmployeeList />} />
+          {/* <Route
             path={PageRoutes.customerDetail}
             element={<CustomerDetailPage />}
           /> */}

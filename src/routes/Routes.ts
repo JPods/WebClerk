@@ -15,9 +15,8 @@ export class PageRoutes {
   static readonly actionsTaskMarkerDetail: string = "/actions/task-markers/:id";
 
   static readonly contactList: string = "/core/contact/list";
-
-  static readonly customerDetail: string = "/contacts/:id";
-  static readonly customerAdd: string = "/contacts/add";
+  static readonly customerList: string = "/org/customer/list";
+  static readonly employeeList: string = "/org/employee/list";
 
   static readonly settingAdd: string = "/setting-add";
   static readonly settingList: string = "/setting-list";

@@ -5,10 +5,7 @@ import Home from "./Dashboard/Home";
 import UserProfiles from "./UserProfile";
 //import ActionList from "./actions/ActionList";
 //import ActionAdd from "./actions/ActionAdd";
-import ContactDetail from "../apps/core/models/contact/pages/ContactDetail";
-import ContactList from "../apps/core/models/contact/pages/ContactList";
-// import CustomerDetailPage from "./contacts/CustomerDetailPage";
-// import CustomerAddPage from "./contacts/CustomerAddPage";
+
 import SettingAdd from "./setting/SettingAdd";
 import SettingList from "./setting/SettingList";
 
@@ -46,7 +43,15 @@ import AppLocationList from "../apps/communications/models/location/pages/Locati
 import AppLocationDetail from "../apps/communications/models/location/pages/LocationDetail";
 import AppPhoneList from "../apps/communications/models/phone/pages/PhoneList";
 import AppPhoneDetail from "../apps/communications/models/phone/pages/PhoneDetail";
+//Contact
+import ContactDetail from "../apps/core/models/contact/pages/ContactDetail";
+import ContactList from "../apps/core/models/contact/pages/ContactList";
 
+//Orgs
+import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDisplay";
+import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
+import EmployeeDetail from "../apps/orgs/models/employee/pages/EmployeeDisplay";
+import EmployeeList from "../apps/orgs/models/employee/pages/EmployeeList";
 // Core
 import CoreAction from "../apps/core/models/action/pages/Action";
 import CoreContactList from "../apps/core/models/contact/pages/ContactList";
@@ -105,8 +110,10 @@ export {
   UserProfiles,
   ContactDetail,
   ContactList,
-  // CustomerDetailPage,
-  // CustomerAddPage,
+  CustomerDetail,
+  CustomerList,
+  EmployeeDetail,
+  EmployeeList,
   SettingAdd,
   SettingList,
   Calendar,

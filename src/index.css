@@ -791,3 +791,25 @@ span.flatpickr-weekday,
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
 }
+/* Samir on 2025-12-23 */
+.rdt_TableHeadRow {
+  font-size: 14px;
+  background-color: #dde7ff !important;
+}
+
+.cus-bg-purple-light {
+  background: #f1f0ff;
+  border: 1px dashed #3b4863cc;
+}
+.cus-bg-theme-purple-medium {
+  background: #ffffff;
+  color: #a600c2 !important;
+}
+.bg-cust-default-body {
+  background-color: #f1f0ff;
+}
+.custom-header-inner {
+  border-bottom: 1px solid #cbcbcb;
+  padding-bottom: 6px;
+}
+/* Samir on 2025-12-23 end */

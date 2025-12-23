@@ -183,7 +183,7 @@ export default function ContactList() {
               </button>
             </div>
 
-            <div className="w-full overflow-x-auto rounded-md bg-white dark:bg-gray-900 h-[calc(100vh-260px)]">
+            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-gray-900 h-[calc(100vh-260px)]">
               {isMobile || formMode ? (
                 <div className="flex flex-col">
                   <ContactListMob
@@ -211,7 +211,7 @@ export default function ContactList() {
                     </div>
                   }
                   onRowClicked={handleView}
-                  className="text-2xl"
+                  className="text-2xl p-2"
                 />
               )}
             </div>

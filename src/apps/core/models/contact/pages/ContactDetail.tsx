@@ -317,11 +317,7 @@ export default function ContactDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <h5 className=" dark:text-white text-md font-semibold">
-            After you’ve created a user, you’ll be able to edit more user
-            options.
-          </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <Label htmlFor="email">email</Label>
               <Input
@@ -337,7 +333,7 @@ export default function ContactDetail({
           </div>
           {(mode === "add" || mode === "edit") && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                 <div>
                   <Label htmlFor="password">password</Label>
                   <Input
@@ -355,7 +351,7 @@ export default function ContactDetail({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                 <div>
                   <Label htmlFor="cnf_password">cnf_password</Label>
                   <Input
@@ -377,10 +373,10 @@ export default function ContactDetail({
               </div>
             </>
           )}
-          <h5 className=" dark:text-white text-md font-semibold">
+          <h5 className=" dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
             Personal info
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <Label htmlFor="name_first">name_first</Label>
               <Input
@@ -459,10 +455,10 @@ export default function ContactDetail({
               />
             </div>
           </div>
-          <h5 className=" dark:text-white text-md font-semibold">
+          <h5 className="dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
             Company info
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <Label htmlFor="company">company</Label>
               <Input
@@ -502,10 +498,10 @@ export default function ContactDetail({
               />
             </div>
           </div>
-          <h5 className=" dark:text-white text-md font-semibold">
+          <h5 className=" dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
             Permissions
           </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <Label htmlFor="role">role</Label>
               <Controller
@@ -525,7 +521,7 @@ export default function ContactDetail({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <Controller
                 name="is_active"
@@ -535,13 +531,13 @@ export default function ContactDetail({
                     id="is_active"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Is Active"
+                    label="is_active"
                   />
                 )}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <Controller
                 name="is_staff"
@@ -551,14 +547,16 @@ export default function ContactDetail({
                     id="is_staff"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Is Staff"
+                    label="is_staff"
                   />
                 )}
               />
             </div>
           </div>
 
-          <h5 className="font-semibold">Contact Ref. Link</h5>
+          <h5 className="dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
+            Contact Ref. Link
+          </h5>
 
           {/* ----------------------------------
               LINKED EMAILS
