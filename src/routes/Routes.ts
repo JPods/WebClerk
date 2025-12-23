@@ -16,7 +16,7 @@ export class PageRoutes {
 
   static readonly contactList: string = "/core/contact/list";
 
-  static readonly customerDetail: string = "/contacts/:id";
+  static readonly customerList: string = "/org/customer/list";
   static readonly customerAdd: string = "/contacts/add";
 
   static readonly settingAdd: string = "/setting-add";
