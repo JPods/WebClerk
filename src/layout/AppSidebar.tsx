@@ -183,7 +183,7 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Orgs",
     subItems: [
-      { name: "Customer", path: "/org/customer/list" },
+      { name: "Customers", path: "/org/customer/list" },
       { name: "Employees", path: "/org/employee/list" },
     ],
   },

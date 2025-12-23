@@ -50,6 +50,8 @@ import ContactList from "../apps/core/models/contact/pages/ContactList";
 //Orgs
 import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDisplay";
 import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
+import EmployeeDetail from "../apps/orgs/models/employee/pages/EmployeeDisplay";
+import EmployeeList from "../apps/orgs/models/employee/pages/EmployeeList";
 // Core
 import CoreAction from "../apps/core/models/action/pages/Action";
 import CoreContactList from "../apps/core/models/contact/pages/ContactList";
@@ -110,6 +112,8 @@ export {
   ContactList,
   CustomerDetail,
   CustomerList,
+  EmployeeDetail,
+  EmployeeList,
   SettingAdd,
   SettingList,
   Calendar,
