@@ -564,34 +564,86 @@ class SaveWcapiView(APIView):
             comm_models = {"email", "phone", "address", "location", "domain"}
             if model_key.lower() in comm_models:
                 bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
+                
+                # Resolve contact id from payload or authenticated user
                 contact = None
-                if user and getattr(user, "is_authenticated", False):
-                    contact = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
+                contact_id = None
+                if isinstance(data, dict):
+                    # common variations
+                    contact_id = data.get("contact_id") or data.get("contactId") or (data.get("contact") if isinstance(data.get("contact"), (int, str)) else None)
+                    try:
+                        if isinstance(contact_id, (str,)):
+                            contact_id = int(contact_id)
+                    except Exception:
+                        contact_id = None
+                
+                # Fallback to authenticated request user when available
+                if not contact_id and request.user and getattr(request.user, "is_authenticated", False):
+                    # If the authenticated user is a Contact instance (AUTH_USER_MODEL='core.Contact'), use it.
+                    try:
+                        if isinstance(request.user, Contact):
+                            contact = request.user
+                        else:
+                            # Try to resolve a Contact record matching the auth user's pk (in case of proxy or linkage)
+                            possible = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
+                            if possible:
+                                contact = possible
+                    except Exception:
+                        # Defensive: if contact resolution fails, continue without contact
+                        contact = None
+                
+                if contact_id:
+                    contact = Contact.objects.filter(pk=contact_id).first()
+
+                # Log when no contact was found so it is easier to debug client reports
+                try:
+                    if not contact and model_key and model_key.lower() in comm_models:
+                        console_logger.info("wcapi.save_item: no contact resolved for created %s id=%s (payload_contact_id=%s, auth_user=%s)", model_key, getattr(obj, "pk", None), contact_id, getattr(request.user, "pk", None) or getattr(request.user, "id", None))
+                except Exception:
+                    pass
+
                 if contact:
+                    # Build denormalized object from LINK_DENORMALIZE_FIELDS
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
                     denorm = {f: getattr(obj, f, None) for f in fields}
+                    # Ensure refs.links shaped correctly
                     refs = getattr(contact, "refs", {}) or {}
                     links = refs.get("links") or {}
                     bucket_list = links.get(bucket) or []
+
+                    # Replace existing entry with same id (dict or int) to avoid dupes, else append
                     existing_found = False
                     for idx, it in enumerate(list(bucket_list)):
                         if isinstance(it, dict) and it.get("id") == getattr(obj, "pk"):
                             bucket_list[idx] = denorm
                             existing_found = True
-                            linked = True
                             break
                         if isinstance(it, int) and it == getattr(obj, "pk"):
                             bucket_list[idx] = denorm
                             existing_found = True
-                            linked = True
                             break
                     if not existing_found:
                         bucket_list.append(denorm)
                         linked = True
+
                     links[bucket] = bucket_list
                     refs["links"] = links
                     contact.refs = refs
-                    Contact.objects.filter(pk=contact.pk).update(refs=contact.refs, version=models.F('version') + 1, dt_modified=int(timezone.now().timestamp() * 1000))
+                    # Persist contact refs with full save to ensure data is written
+                    try:
+                        contact.save()
+                        console_logger.info(f"[SAVE_VIEW] Contact saved successfully with version: {contact.version}")
+                    except Exception as e:
+                        console_logger.error(f"[SAVE_VIEW] Error saving contact: {e}")
+                        import traceback
+                        console_logger.error(f"[SAVE_VIEW] Save error traceback: {traceback.format_exc()}")
+                        raise
+                    
+                    # Verify the save worked
+                    contact.refresh_from_db()
+                    updated_bucket_list = contact.refs.get("links", {}).get(bucket, [])
+                    console_logger.info(f"[SAVE_VIEW] Verified bucket_list after save: {updated_bucket_list}")
+                    
                     try:
                         if not isinstance(getattr(obj, "refs", None), dict):
                             obj.refs = {}

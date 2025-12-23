@@ -31,7 +31,10 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
 def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
     ModelCls, qs = get_queryset(model_key, request=request)
     try:
-        return qs.get(pk=id)
+        obj = qs.get(pk=id)
+        # Force refresh from database to get latest data
+        obj.refresh_from_db()
+        return obj
     except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
         return None
 
@@ -174,7 +177,7 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
                 refs["links"] = links
                 contact.refs = refs
                 # Persist contact refs with minimal update fields
-                contact.save(update_fields=["refs", "dt_modified", "version"])                
+                contact.save()                
 
                 # Also ensure the created object's refs.links.contact contains the contact id
                 try:
