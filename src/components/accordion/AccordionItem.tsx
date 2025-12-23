@@ -1,7 +1,7 @@
 import React from "react";
 
 interface AccordionItemProps {
-  title: string;
+  title?: string;
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
@@ -15,19 +15,21 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
 }) => {
   return (
     <div
-      className={`my-3 rounded-md border transition-all duration-300 ${
+      className={`my-3 border transition-all duration-300 ${
         isOpen
-          ? "border-blue-500 bg-blue-50 shadow-sm"
+          ? "border-purple-500 bg-blue-50 shadow-sm"
           : "border-gray-200 bg-white"
       }`}
     >
       <button
-        className={`flex justify-between items-center w-full p-4 text-left font-medium transition ${
-          isOpen ? "bg-blue-100 text-blue-700" : "bg-gray-100 hover:bg-gray-200"
+        className={`flex justify-between items-center w-full p-2 text-left font-medium transition ${
+          isOpen
+            ? "bg-blue-100 cus-bg-theme-purple-medium"
+            : "cus-bg-theme-purple-medium hover:bg-gray-200"
         }`}
         onClick={onToggle}
       >
-        <span>{title}</span>
+        <span className="ps-2">{title}</span>
 
         <svg
           className={`w-4 h-4 transition-transform duration-300 ${
