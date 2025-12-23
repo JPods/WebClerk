@@ -1,5 +1,5 @@
 from django.db import models
-from .projects import Project
+from .project import Project
 from common.models import BaseModel
 
 LINK_MODEL_CHOICES = [
