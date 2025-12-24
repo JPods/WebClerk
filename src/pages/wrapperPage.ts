@@ -35,8 +35,8 @@ import TermList from "../apps/accounts/models/term/pages/TermList";
 import TermDisplay from "../apps/accounts/models/term/pages/TermDisplay";
 
 // Communications
-import DomainList from "../apps/communications/models/domain/pages/DomainList";
-import DomainDetail from "../apps/communications/models/domain/pages/Domain";
+import DomainList from "../apps/communications/models/domain/pages/domainList";
+import DomainDetail from "../apps/communications/models/domain/pages/domain";
 import EmailList from "../apps/communications/models/email/pages/EmailList";
 import EmailDetail from "../apps/communications/models/email/pages/EmailDetail";
 import AppLocationList from "../apps/communications/models/location/pages/LocationList";

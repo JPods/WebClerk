@@ -1,4 +1,4 @@
-import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { CSSProperties, ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -10,7 +10,7 @@ import type { DragItem, DropResult } from "../../components/kanban/dndTypes";
 import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
-import { Actions, patchAction } from "../../api/userProfile";
+import { Actions, Projects, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
 import { PageRoutes } from "../../routes/Routes";
@@ -57,6 +57,123 @@ const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
 
 const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
 const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
+
+interface ProjectOption {
+  id: string;
+  slug: string;
+  intent?: string;
+}
+
+const isRecordObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const findFirstObjectArray = (root: unknown): Record<string, unknown>[] => {
+  if (!root) {
+    return [];
+  }
+
+  const queue: unknown[] = [root];
+  const visited = new Set<object>();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (current === undefined || current === null) {
+      continue;
+    }
+
+    if (typeof current === "object") {
+      const asObject = current as object;
+      if (visited.has(asObject)) {
+        continue;
+      }
+      visited.add(asObject);
+    }
+
+    if (Array.isArray(current)) {
+      const objects = current.filter(isRecordObject);
+      if (objects.length) {
+        return objects;
+      }
+      current.forEach((value) => {
+        if (value && (isRecordObject(value) || Array.isArray(value))) {
+          queue.push(value);
+        }
+      });
+      continue;
+    }
+
+    if (isRecordObject(current)) {
+      Object.values(current).forEach((value) => {
+        if (value && (isRecordObject(value) || Array.isArray(value))) {
+          queue.push(value);
+        }
+      });
+    }
+  }
+
+  return [];
+};
+
+const mapProjectsFromResponse = (raw: unknown): ProjectOption[] => {
+  if (!raw) {
+    return [];
+  }
+
+  const roots: unknown[] = [raw];
+  if (isRecordObject(raw) && "data" in raw) {
+    roots.push((raw as Record<string, unknown>).data);
+    const dataLayer = (raw as Record<string, unknown>).data;
+    if (isRecordObject(dataLayer) && "data" in dataLayer) {
+      roots.push((dataLayer as Record<string, unknown>).data);
+    }
+  }
+
+  for (const root of roots) {
+    const records = findFirstObjectArray(root);
+    if (!records.length) {
+      continue;
+    }
+
+    const uniqueBySlug = new Map<string, ProjectOption>();
+    records.forEach((record) => {
+      const slugCandidate = record.slug ?? record.project_slug ?? record.code ?? record.name ?? record.intent;
+      const slug =
+        typeof record.slug === "string"
+          ? record.slug
+          : typeof slugCandidate === "string"
+          ? slugCandidate
+          : typeof slugCandidate === "number"
+          ? String(slugCandidate)
+          : undefined;
+      if (!slug) {
+        return;
+      }
+      const idCandidate = record.id ?? record.pk ?? record.uuid ?? slug;
+      const option: ProjectOption = {
+        id: String(idCandidate),
+        slug,
+      };
+      const intentValue =
+        typeof record.intent === "string" && record.intent.trim()
+          ? record.intent.trim()
+          : typeof record.name === "string" && record.name.trim()
+          ? record.name.trim()
+          : undefined;
+      if (intentValue) {
+        option.intent = intentValue;
+      }
+      if (!uniqueBySlug.has(option.slug)) {
+        uniqueBySlug.set(option.slug, option);
+      }
+    });
+
+    if (uniqueBySlug.size) {
+      return Array.from(uniqueBySlug.values()).sort((a, b) => a.slug.localeCompare(b.slug));
+    }
+  }
+
+  return [];
+};
 
 const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
   id: createLocalId(),
@@ -380,6 +497,15 @@ const KanbanBoardPage: React.FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [columnsPerRow, setColumnsPerRow] = useState<number>(4);
 
+  const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
+  const [selectedProjectSlug, setSelectedProjectSlug] = useState<string>("");
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
+  const [projectFetchError, setProjectFetchError] = useState<string | null>(null);
+
+  const handleProjectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectSlug(event.target.value);
+  };
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
@@ -456,11 +582,42 @@ const KanbanBoardPage: React.FC = () => {
     [persistTaskReorder]
   );
 
-  const fetchActions = useCallback(async () => {
+  const fetchProjects = useCallback(async () => {
+    setIsLoadingProjects(true);
+    setProjectFetchError(null);
+    try {
+      const response = await Projects({ status: "active" });
+      if (!response || response.status !== 200) {
+        throw new Error("Request failed");
+      }
+
+      let options = mapProjectsFromResponse((response as any)?.data);
+      if (!options.length) {
+        options = mapProjectsFromResponse(response);
+      }
+
+      setProjectOptions(options);
+      setSelectedProjectSlug((previous) => {
+        if (previous && options.some((option) => option.slug === previous)) {
+          return previous;
+        }
+        return previous ? "" : previous;
+      });
+    } catch (error) {
+      console.error("Failed to fetch active projects", error);
+      setProjectOptions([]);
+      setProjectFetchError("Unable to load project list.");
+      setSelectedProjectSlug("");
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  }, []);
+
+  const fetchActions = useCallback(async (projectSlug?: string) => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await Actions();
+      const response = await Actions(projectSlug ? { project_name: projectSlug } : undefined);
       if (!response || response.status !== 200) {
         throw new Error("Request failed");
       }
@@ -473,7 +630,10 @@ const KanbanBoardPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to fetch kanban actions", error);
-      setFetchError("Unable to load kanban data. Displaying local state only.");
+      const message = projectSlug
+        ? `Unable to load kanban data for project ${projectSlug}. Displaying local state only.`
+        : "Unable to load kanban data. Displaying local state only.";
+      setFetchError(message);
       setBoard(createEmptyBoardData());
     } finally {
       setIsLoading(false);
@@ -481,8 +641,12 @@ const KanbanBoardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchActions();
-  }, [fetchActions]);
+    void fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    void fetchActions(selectedProjectSlug || undefined);
+  }, [fetchActions, selectedProjectSlug]);
 
   useEffect(() => {
     if (board.columnOrder.length === 0) {
@@ -953,6 +1117,21 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.assigned_to = assignedTo;
     }
 
+    const resolvedProjectName = (() => {
+      const selected = selectedProjectSlug.trim();
+      if (selected) {
+        return selected;
+      }
+      if (mode === "edit" && baseTask?.projectName) {
+        return baseTask.projectName;
+      }
+      return undefined;
+    })();
+
+    if (resolvedProjectName) {
+      payloadItem.project_name = resolvedProjectName;
+    }
+
     return { payload: payloadItem };
   };
 
@@ -976,7 +1155,7 @@ const KanbanBoardPage: React.FC = () => {
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to save task.");
       }
-      await fetchActions();
+      await fetchActions(selectedProjectSlug || undefined);
       handleCloseCreateModal();
     } catch (error) {
       console.error("Failed to create kanban task", error);
@@ -1010,7 +1189,7 @@ const KanbanBoardPage: React.FC = () => {
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to update task.");
       }
-      await fetchActions();
+      await fetchActions(selectedProjectSlug || undefined);
       handleCloseEditModal();
     } catch (error) {
       console.error("Failed to update kanban task", error);
@@ -1062,6 +1241,24 @@ const KanbanBoardPage: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <span>Project</span>
+            <select
+              value={selectedProjectSlug}
+              onChange={handleProjectFilterChange}
+              disabled={isLoadingProjects}
+              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
+            >
+              <option value="">
+                {isLoadingProjects ? "Loading..." : "All projects"}
+              </option>
+              {projectOptions.map((option) => (
+                <option key={option.slug} value={option.slug}>
+                  {option.intent ? `${option.slug} - ${option.intent}` : option.slug}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <span>Columns</span>
             <select
               value={columnsPerRow}
@@ -1097,12 +1294,25 @@ const KanbanBoardPage: React.FC = () => {
         </div>
       </div>
 
+      {projectFetchError && (
+        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+          <span>{projectFetchError}</span>
+          <button
+            type="button"
+            onClick={() => void fetchProjects()}
+            className="rounded-md border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {fetchError && (
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
           <span>{fetchError}</span>
           <button
             type="button"
-            onClick={() => fetchActions()}
+            onClick={() => fetchActions(selectedProjectSlug || undefined)}
             className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/50"
           >
             Retry

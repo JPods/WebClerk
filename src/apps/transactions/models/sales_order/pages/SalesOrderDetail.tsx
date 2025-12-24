@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Plus, 
   Trash2, 
   Printer, 
-  Download, 
   Settings, 
   User, 
   Calendar,

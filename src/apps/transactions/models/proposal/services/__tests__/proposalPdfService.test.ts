@@ -73,9 +73,12 @@ describe('Proposal PDF Service', () => {
       proposal: {
         id: 1,
         ida: 'PROP-001',
+        uuid: 'mock-uuid',
         status: 'planned',
+        id_customer: 42,
         dt_created: '2024-01-01T00:00:00Z',
         dt_modified: '2024-01-01T00:00:00Z',
+        version: 1,
       },
       lines: [],
     };
@@ -93,9 +96,12 @@ describe('Proposal PDF Service', () => {
       proposal: {
         id: 1,
         ida: 'PROP-001',
+        uuid: 'mock-uuid',
         status: 'planned',
+        id_customer: 42,
         dt_created: '2024-01-01T00:00:00Z',
         dt_modified: '2024-01-01T00:00:00Z',
+        version: 1,
       },
       lines: [],
     };
@@ -295,9 +301,12 @@ describe('Proposal PDF Service', () => {
     const proposalData = {
       proposal: {
         id: 123,
+        uuid: 'missing-ida-uuid',
         status: 'planned',
+        id_customer: 42,
         dt_created: '2024-01-01T00:00:00Z',
         dt_modified: '2024-01-01T00:00:00Z',
+        version: 1,
         // No ida field
       },
       lines: [],
@@ -319,9 +328,12 @@ describe('Proposal PDF Service', () => {
       proposal: {
         id: 1,
         ida: 'PROP-001',
+        uuid: 'mock-uuid',
         status: 'planned',
+        id_customer: 42,
         dt_created: '2024-01-01T00:00:00Z',
         dt_modified: '2024-01-01T00:00:00Z',
+        version: 1,
       },
       lines: [
         {
