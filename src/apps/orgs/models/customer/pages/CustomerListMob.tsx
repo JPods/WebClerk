@@ -37,7 +37,7 @@ export default function CustomerListMob({
             {/* Accordion Content */}
             <div className="flex flex-col min-h-[220px]">
               {/* Content */}
-              <div className="space-y-1 text-sm">
+              <div className="space-y-1 text-sm border-t">
                 <p>
                   <strong>org_type:</strong> {customer.org_type || "--"}
                 </p>
@@ -63,7 +63,7 @@ export default function CustomerListMob({
                 <button
                   onClick={() => handleView(customer)}
                   title="View"
-                  className="h-[38px] w-[38px] flex items-center justify-center
+                  className="h-[25px] w-[25px] flex items-center justify-center
                          border rounded-md hover:text-green-600"
                 >
                   <FaEye className="text-green-600 hover:scale-110" />
@@ -72,7 +72,7 @@ export default function CustomerListMob({
                 <button
                   onClick={() => handleEdit(customer)}
                   title="Edit"
-                  className="h-[38px] w-[38px] flex items-center justify-center
+                  className="h-[25px] w-[25px] flex items-center justify-center
                          border rounded-md hover:text-blue-600"
                 >
                   <FaEdit className="text-blue-600 hover:scale-110" />
