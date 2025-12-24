@@ -2,9 +2,13 @@ import jsPDF from 'jspdf';
 import { Proposal } from '../types/proposalType';
 import { ProposalLine } from '../types/proposalLineType';
 
+type ProposalSummary = Pick<Proposal, 'id' | 'status' | 'dt_created' | 'dt_modified'> & {
+  ida?: Proposal['ida'];
+};
+
 interface ProposalPdfData {
-  proposal: Proposal;
-  lines: ProposalLine[];
+  proposal: ProposalSummary;
+  lines: Array<Partial<ProposalLine>>;
   customerName?: string;
   vendorName?: string;
 }
