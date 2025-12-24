@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from django.forms.models import model_to_dict
+import logging
 from django.db.models import QuerySet, Model
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -115,6 +116,11 @@ class WCAPIGetView(APIView):
                 obj = qs.get(pk=record_id)
             except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
                 return Response({"item": None}, status=status.HTTP_200_OK)
+            logger = logging.getLogger(__name__)
+            try:
+                logger.debug("WCAPIGetView: returning item id=%s refs_keys=%s", getattr(obj, 'pk', None), list((getattr(obj, 'refs', {}) or {}).get('links', {}).keys()))
+            except Exception:
+                pass
             data = to_dict(obj)
             if fields:
                 data = {k: data.get(k) for k in fields}
@@ -125,6 +131,11 @@ class WCAPIGetView(APIView):
 
         items: List[Dict[str, Any]] = []
         for obj in qs[:500]:
+            logger = logging.getLogger(__name__)
+            try:
+                logger.debug("WCAPIGetView: list item id=%s refs_links_preview=%s", getattr(obj, 'pk', None), (getattr(obj, 'refs', {}) or {}).get('links'))
+            except Exception:
+                pass
             data = to_dict(obj)
             if fields:
                 data = {k: data.get(k) for k in fields}

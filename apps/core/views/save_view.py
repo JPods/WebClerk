@@ -253,7 +253,7 @@ class SaveWcapiView(APIView):
 
     def post(self, request):
         # Enhanced logging for debugging
-        console_logger.info(f"[SAVE_VIEW] Starting save operation for request ID: {getattr(request, 'request_id', 'unknown')}")
+        console_logger.debug(f"[SAVE_VIEW] Starting save operation for request ID: {getattr(request, 'request_id', 'unknown')}")
         
         # Auth: allow session or JWT; env flag WCAPI_JWT_ONLY can enforce JWT-only.
         require_jwt = getattr(settings, 'WCAPI_JWT_ONLY', False)
@@ -270,9 +270,8 @@ class SaveWcapiView(APIView):
 
         # Parse JSON body
         try:
-            console_logger.info(f"[SAVE_VIEW] Parsing JSON body...")
+            console_logger.debug(f"[SAVE_VIEW] Parsing JSON body...")
             data = json.loads(request.body)
-            console_logger.info(f"[SAVE_VIEW] JSON parsed successfully, keys: {list(data.keys())}")
         except json.JSONDecodeError as e:
             console_logger.error(f"[SAVE_VIEW] JSON parse error: {e}")
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
@@ -281,7 +280,7 @@ class SaveWcapiView(APIView):
         if 'data' in data and isinstance(data['data'], dict):
             data.update(data['data'])
             del data['data']
-            console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
+            console_logger.debug(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
         # Required: model_name (singular)
         raw_model_name = data.get('model_name')
@@ -289,7 +288,7 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Missing model_name")
             return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})
 
-        console_logger.info(f"[SAVE_VIEW] Processing model_name: {raw_model_name}")
+        console_logger.debug(f"[SAVE_VIEW] Processing model_name: {raw_model_name}")
 
         # Normalize and resolve model
         norm_key = normalize_table_key(raw_model_name) # to make is singular form
@@ -303,7 +302,7 @@ class SaveWcapiView(APIView):
             return api_response(success=False, status_code=400, message=f'Unknown model: {raw_model_name}', error={'code':'unknown_model','details':f'Unknown model: {raw_model_name}'})
         model_cls = cast(Type[models.Model], model)
         model_key = to_model_name(model_cls) or raw_model_name
-        console_logger.info(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
+        console_logger.debug(f"[SAVE_VIEW] Model resolved: {model_key} (class: {model_cls.__name__})")
 
         # Concurrency: If-Match header > body.version > expected_version (deprecated)
         header_if_match = request.META.get('HTTP_IF_MATCH')
@@ -327,37 +326,37 @@ class SaveWcapiView(APIView):
             deprecation_flag = True
 
         record_id = data.get('id')
-        console_logger.info(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
+        console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
 
         # Create or update
         is_update = bool(record_id)
         if is_update:
-            console_logger.info(f"[SAVE_VIEW] Loading existing record with ID: {record_id}")
+            console_logger.debug(f"[SAVE_VIEW] Loading existing record with ID: {record_id}")
             try:
                 obj = model_cls.objects.get(id=record_id)
-                console_logger.info(f"[SAVE_VIEW] Record loaded successfully: {obj}")
+                console_logger.debug(f"[SAVE_VIEW] Record loaded successfully: {obj}")
             except model_cls.DoesNotExist:  # type: ignore[attr-defined]
                 console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
                 return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
             if expected_version is not None:
                 current_version = getattr(obj, 'version', None)
-                console_logger.info(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
+                console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
                 if current_version != expected_version:
                     console_logger.error(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
                     return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
         else:
-            console_logger.info(f"[SAVE_VIEW] Creating new record")
+            console_logger.debug(f"[SAVE_VIEW] Creating new record")
             obj = model_cls()
 
         try:
-            console_logger.info(f"[SAVE_VIEW] Getting JSON field names...")
+            console_logger.debug(f"[SAVE_VIEW] Getting JSON field names...")
             #QQQ explain why we have this
             # list all flatten fields of the model
             json_field_names = {
                 f.name for f in obj._meta.get_fields()
                 if hasattr(f, 'attname') and isinstance(f, models.JSONField)
             }
-            console_logger.info(f"[SAVE_VIEW] JSON fields found: {json_field_names}")
+            console_logger.debug(f"[SAVE_VIEW] JSON fields found: {json_field_names}")
         except Exception as e:
             console_logger.warning(f"[SAVE_VIEW] Error getting JSON field names: {e}")
             json_field_names = set()
@@ -544,13 +543,13 @@ class SaveWcapiView(APIView):
                 )
                 return api_response(success=False, status_code=400, message='Validation failed', error={'code':'validation_failed','details': errors})
 
-        console_logger.info(f"[SAVE_VIEW] Starting database save...")
+        console_logger.debug(f"[SAVE_VIEW] Starting database save...")
 
         # Save
         try:
-            console_logger.info(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
+            console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
-            console_logger.info(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
+            console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
@@ -564,7 +563,7 @@ class SaveWcapiView(APIView):
             comm_models = {"email", "phone", "address", "location", "domain"}
             if model_key.lower() in comm_models:
                 bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
-                
+
                 # Resolve contact id from payload or authenticated user
                 contact = None
                 contact_id = None
@@ -576,7 +575,7 @@ class SaveWcapiView(APIView):
                             contact_id = int(contact_id)
                     except Exception:
                         contact_id = None
-                
+
                 # Fallback to authenticated request user when available
                 if not contact_id and request.user and getattr(request.user, "is_authenticated", False):
                     # If the authenticated user is a Contact instance (AUTH_USER_MODEL='core.Contact'), use it.
@@ -591,14 +590,14 @@ class SaveWcapiView(APIView):
                     except Exception:
                         # Defensive: if contact resolution fails, continue without contact
                         contact = None
-                
+
                 if contact_id:
                     contact = Contact.objects.filter(pk=contact_id).first()
 
                 # Log when no contact was found so it is easier to debug client reports
                 try:
                     if not contact and model_key and model_key.lower() in comm_models:
-                        console_logger.info("wcapi.save_item: no contact resolved for created %s id=%s (payload_contact_id=%s, auth_user=%s)", model_key, getattr(obj, "pk", None), contact_id, getattr(request.user, "pk", None) or getattr(request.user, "id", None))
+                        console_logger.debug("wcapi.save_item: no contact resolved for created %s id=%s (payload_contact_id=%s, auth_user=%s)", model_key, getattr(obj, "pk", None), contact_id, getattr(request.user, "pk", None) or getattr(request.user, "id", None))
                 except Exception:
                     pass
 
@@ -607,12 +606,17 @@ class SaveWcapiView(APIView):
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
                     obj.refresh_from_db()
                     denorm = {f: getattr(obj, f, None) for f in fields}
-                    # Ensure all standard link buckets exist
-                    for std_bucket in LINK_DENORMALIZE_FIELDS.keys():
-                        links.setdefault(std_bucket, [])
-                    # Ensure refs.links shaped correctly
+
+                    # Ensure refs.links shaped correctly and initialize buckets
                     refs = getattr(contact, "refs", {}) or {}
+                    if not isinstance(refs, dict):
+                        refs = {}
                     links = refs.get("links") or {}
+                    # Ensure all standard link buckets exist (preserve existing lists)
+                    for std_bucket in LINK_DENORMALIZE_FIELDS.keys():
+                        if std_bucket not in links:
+                            links[std_bucket] = []
+
                     bucket_list = links.get(bucket) or []
 
                     # Replace existing entry with same id (dict or int) to avoid dupes, else append
@@ -632,38 +636,26 @@ class SaveWcapiView(APIView):
 
                     links[bucket] = bucket_list
                     refs["links"] = links
-                    contact.refs = refs
-                    contact.ensure_links_denormalized()
-                    # Persist contact refs with full save to ensure data is written
+                    # Defer persisting contact.refs until after post-save hooks and keyword updates
                     try:
-                        contact.save()
-                        console_logger.info(f"[SAVE_VIEW] Contact saved successfully with version: {contact.version}")
+                        from django.utils import timezone
+                        console_logger.debug(f"[SAVE_VIEW] Marking contact.refs pending save for contact id={contact.pk} (links size={len(links.get(bucket, []))})")
+                        contact.refs = refs
+                        # bump local version to reflect change
+                        try:
+                            contact.version = (contact.version or 0) + 1
+                        except Exception:
+                            contact.version = 1
+                        try:
+                            contact.dt_modified = int(timezone.now().timestamp() * 1000)
+                        except Exception:
+                            pass
+                        # flag to indicate deferred save
+                        setattr(contact, '_refs_pending_save', True)
                     except Exception as e:
-                        console_logger.error(f"[SAVE_VIEW] Error saving contact: {e}")
+                        console_logger.error(f"[SAVE_VIEW] Error marking contact.refs for deferred save: {e}")
                         import traceback
-                        console_logger.error(f"[SAVE_VIEW] Save error traceback: {traceback.format_exc()}")
-                        raise
-                    
-                    # Verify the save worked
-                    contact.refresh_from_db()
-                    updated_bucket_list = contact.refs.get("links", {}).get(bucket, [])
-                    console_logger.info(f"[SAVE_VIEW] Verified bucket_list after save: {updated_bucket_list}")
-                    
-                    try:
-                        if not isinstance(getattr(obj, "refs", None), dict):
-                            obj.refs = {}
-                        obj_links = obj.refs.setdefault("links", {})
-                        contact_list = obj_links.setdefault("contact", [])
-                        if contact.pk not in contact_list:
-                            contact_list.append(contact.pk)
-                            obj.save()
-                            linked = True
-                    except Exception:
-                        pass
-                    try:
-                        ensure_bidirectional(contact, obj, kind="contact")
-                    except Exception:
-                        pass
+                        console_logger.error(f"[SAVE_VIEW] Marking error traceback: {traceback.format_exc()}")
         except Exception:
             pass  # Defensive
 
@@ -674,20 +666,20 @@ class SaveWcapiView(APIView):
                 user_id = getattr(request.user, 'id', None)
                 if user_id:
                     append_contact_link(obj, user_id)
-                    console_logger.info(f"[SAVE_VIEW] Appended contact link for action ID: {obj.id}")
+                    console_logger.debug(f"[SAVE_VIEW] Appended contact link for action ID: {obj.id}")
             except Exception as e:
                 console_logger.error(f"[SAVE_VIEW] Failed to append contact link: {e}")
 
         obj_id = getattr(obj, 'id', None)
-        console_logger.info(f"[SAVE_VIEW] Save completed, object ID: {obj_id}")
+        console_logger.debug(f"[SAVE_VIEW] Save completed, object ID: {obj_id}")
 
-        console_logger.info(f"[SAVE_VIEW] Starting post-save hooks...")
+        console_logger.debug(f"[SAVE_VIEW] Starting post-save hooks...")
 
         # Post-save hook or task
         post_hook_note = None
         post_hook = getattr(obj, 'post_save_hook', None)
         if callable(post_hook):
-            console_logger.info(f"[SAVE_VIEW] Executing custom post_save_hook...")
+            console_logger.debug(f"[SAVE_VIEW] Executing custom post_save_hook...")
             try:
                 context = {
                     'model_name': model_key,
@@ -701,18 +693,18 @@ class SaveWcapiView(APIView):
                         post_hook_note = post_hook(data, is_update)  # type: ignore[misc]
                     except TypeError:
                         post_hook_note = post_hook(data)  # type: ignore[misc]
-                console_logger.info(f"[SAVE_VIEW] Custom post_save_hook completed")
+                console_logger.debug(f"[SAVE_VIEW] Custom post_save_hook completed")
             except Exception as e:
                 console_logger.error(f"[SAVE_VIEW] Error in custom post_save_hook: {e}")
                 post_hook_note = f'post_save_hook error: {e}'
         else:
-            console_logger.info(f"[SAVE_VIEW] No custom post_save_hook, checking Setting hooks...")
+            console_logger.debug(f"[SAVE_VIEW] No custom post_save_hook, checking Setting hooks...")
             # Execute save hooks from Setting records
             try:
-                console_logger.info(f"[SAVE_VIEW] Executing save_post hook from Settings...")
+                console_logger.debug(f"[SAVE_VIEW] Executing save_post hook from Settings...")
                 from apps.core.constants.save_hooks import execute_save_hook
                 hook_result = execute_save_hook(model_key, 'save_post', obj, data)
-                console_logger.info(f"[SAVE_VIEW] save_post hook result: {hook_result}")
+                console_logger.debug(f"[SAVE_VIEW] save_post hook result: {hook_result}")
                 if not hook_result['success']:
                     post_hook_note = f'Post-save hook failed: {hook_result["errors"]}'
                     console_logger.warning(f"[SAVE_VIEW] Post-save hook failed: {post_hook_note}")
@@ -723,7 +715,7 @@ class SaveWcapiView(APIView):
                 console_logger.error(f"[SAVE_VIEW] Error executing save_post hook: {e}")
                 post_hook_note = f'Post-save hook error: {e}'
 
-            console_logger.info(f"[SAVE_VIEW] Checking for async save hooks...")
+            console_logger.debug(f"[SAVE_VIEW] Checking for async save hooks...")
             # Execute save_async hooks asynchronously
             try:
                 from apps.core.constants.save_hooks import get_save_hooks
@@ -734,15 +726,15 @@ class SaveWcapiView(APIView):
                         async_hook_found = True
                         break
 
-                console_logger.info(f"[SAVE_VIEW] Async hooks found: {async_hook_found}")
+                console_logger.debug(f"[SAVE_VIEW] Async hooks found: {async_hook_found}")
                 if async_hook_found:
-                    console_logger.info(f"[SAVE_VIEW] Executing execute_save_async_hooks (this might be the hanging point)...")
+                    console_logger.info(f"[SAVE_VIEW] Executing execute_save_async_hooks...")
                     try:
                         from apps.core.tasks.cache_tasks import execute_save_async_hooks
                         if obj_id is not None:
-                            console_logger.info(f"[SAVE_VIEW] Calling execute_save_async_hooks with model={model_key}, id={obj_id}")
+                            console_logger.debug(f"[SAVE_VIEW] Calling execute_save_async_hooks with model={model_key}, id={obj_id}")
                             execute_save_async_hooks(model_key, obj_id, data)
-                            console_logger.info(f"[SAVE_VIEW] execute_save_async_hooks completed")
+                            console_logger.debug(f"[SAVE_VIEW] execute_save_async_hooks completed")
                     except ImportError:
                         console_logger.warning(f"[SAVE_VIEW] cache_tasks module not available")
                         pass  # Graceful degradation if tasks module not available
@@ -756,26 +748,65 @@ class SaveWcapiView(APIView):
                 console_logger.error(f"[SAVE_VIEW] Error checking async hooks: {e}")
                 pass
 
-        console_logger.info(f"[SAVE_VIEW] Starting keyword updates...")
+        console_logger.debug(f"[SAVE_VIEW] Starting keyword updates...")
         # Update keywords synchronously so the response contains latest keywords
         try:
             update_keywords_method = getattr(obj, 'update_keywords', None)
             if update_keywords_method is not None and callable(update_keywords_method):
-                console_logger.info(f"[SAVE_VIEW] Executing update_keywords...")
+                console_logger.debug(f"[SAVE_VIEW] Executing update_keywords...")
                 update_keywords_method()
-                console_logger.info(f"[SAVE_VIEW] update_keywords completed, doing keyword save...")
+                console_logger.debug(f"[SAVE_VIEW] update_keywords completed, doing keyword save...")
                 obj.save(update_fields=['refs', 'metadata'])
-                console_logger.info(f"[SAVE_VIEW] Keyword save completed")
+                console_logger.debug(f"[SAVE_VIEW] Keyword save completed")
+        except Exception as e:
+            console_logger.error(f"[SAVE_VIEW] Error persisting deferred contact refs: {e}")
+            logging.getLogger(__name__).exception('Error persisting deferred contact refs for %s id=%s', model_key, obj_id)
+
+        # Persist deferred contact.refs (if earlier code marked them for deferred save)
+        try:
+            if contact and getattr(contact, '_refs_pending_save', False):
+                console_logger.debug(f"[SAVE_VIEW] Persisting deferred contact.refs for contact id={contact.pk} (links size={len(contact.refs.get('links', {}).get(bucket, []))})")
+                try:
+                    contact.save(update_fields=['refs', 'version', 'dt_modified'])
+                    contact.refresh_from_db()
+                    try:
+                        import json as _json
+                        db_refs = contact.__class__.objects.filter(pk=contact.pk).values_list('refs', flat=True).first()
+                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(contact.refs.get('links', {}).get(bucket, []))} db_refs_preview={_json.dumps(db_refs)[:200]}")
+                    except Exception:
+                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(contact.refs.get('links', {}).get(bucket, []))}")
+                except Exception as e:
+                    console_logger.error(f"[SAVE_VIEW] Error saving deferred contact refs: {e}")
+
+                # Update obj.refs with contact link and ensure bidirectional link
+                try:
+                    if not isinstance(getattr(obj, 'refs', None), dict):
+                        obj.refs = {}
+                    obj_links = obj.refs.setdefault('links', {})
+                    contact_list = obj_links.setdefault('contact', [])
+                    if contact.pk not in contact_list:
+                        contact_list.append(contact.pk)
+                        obj.save(update_fields=['refs'])
+                except Exception:
+                    pass
+                    try:
+                        ensure_bidirectional(contact, obj, kind='contact')
+                    except Exception:
+                        pass
+                try:
+                    delattr(contact, '_refs_pending_save')
+                except Exception:
+                    pass
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Failed to update keywords: {e}")
             logging.getLogger(__name__).exception('Failed to update keywords for %s id=%s', model_key, obj_id)
 
-        console_logger.info(f"[SAVE_VIEW] Generating response payload...")
+        console_logger.debug(f"[SAVE_VIEW] Generating response payload...")
         # this is needed to pass out to id of a new record
         try:
             safe_fields = [f.name for f in obj._meta.concrete_fields]
             record = model_to_dict(obj, fields=safe_fields)
-            console_logger.info(f"[SAVE_VIEW] Record dict generated with {len(record)} fields")
+            console_logger.debug(f"[SAVE_VIEW] Record dict generated with {len(record)} fields")
         except Exception as e:
             console_logger.warning(f"[SAVE_VIEW] Error generating record dict: {e}")
             record = {'id': getattr(obj, 'id', None)}
@@ -788,18 +819,18 @@ class SaveWcapiView(APIView):
         }
         messages = []
         if field_size_errors:
-            console_logger.info(f"[SAVE_VIEW] Adding {len(field_size_errors)} field size errors to messages")
+            console_logger.debug(f"[SAVE_VIEW] Adding {len(field_size_errors)} field size errors to messages")
             messages.extend(field_size_errors)
         if post_hook_note:
-            console_logger.info(f"[SAVE_VIEW] Adding post hook note to messages: {post_hook_note}")
+            console_logger.debug(f"[SAVE_VIEW] Adding post hook note to messages: {post_hook_note}")
             messages.append(post_hook_note)
         if deprecation_flag:
-            console_logger.info(f"[SAVE_VIEW] Adding deprecation warning to messages")
+            console_logger.debug(f"[SAVE_VIEW] Adding deprecation warning to messages")
             messages.append("'expected_version' is deprecated; use 'version' or If-Match header")
             logging.getLogger(__name__).warning("Deprecated expected_version field used in save payload for %s", model_key)
         if messages:
             payload['messages'] = messages
-            console_logger.info(f"[SAVE_VIEW] Response will include {len(messages)} messages")
+            console_logger.debug(f"[SAVE_VIEW] Response will include {len(messages)} messages")
         
         console_logger.info(f"[SAVE_VIEW] Returning successful response for {model_key} ID: {obj_id}")
         return api_response(data=payload)

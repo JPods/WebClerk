@@ -49,17 +49,17 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
             }
         }
     """
-    print(f"[HOOK DEBUG] get_save_hooks called for model '{model_name}'")
+    logger.debug("[HOOK DEBUG] get_save_hooks called for model '%s'", model_name)
 
     cache_key = cache_service.make_key('save_hooks', model_name)
     cached_data = cache_service.get(cache_key)
 
-    print(f"[HOOK DEBUG] Cache key: {cache_key}")
-    print(f"[HOOK DEBUG] Cached data found: {cached_data is not None}")
+    logger.debug("[HOOK DEBUG] Cache key: %s", cache_key)
+    logger.debug("[HOOK DEBUG] Cached data found: %s", cached_data is not None)
 
     if cached_data is None:
         # Load from database
-        print(f"[HOOK DEBUG] Loading hooks from database for model '{model_name}'")
+        logger.debug("[HOOK DEBUG] Loading hooks from database for model '%s'", model_name)
 
         hooks: Dict[str, Dict[str, Any]] = {}
         settings_qs = Setting.objects.filter(
@@ -68,24 +68,25 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
             is_active=True
         ).only('name', 'data')
 
-        print(f"[HOOK DEBUG] Found {settings_qs.count()} setting records")
+        logger.debug("[HOOK DEBUG] Found %d setting records", settings_qs.count())
 
         for setting in settings_qs:
             hook_name = setting.name
-            print(
-                f"[HOOK DEBUG] Processing setting: name='{hook_name}', data keys="
-                f"{list(setting.data.keys()) if setting.data else 'None'}"
-            )
+                logger.debug(
+                    "[HOOK DEBUG] Processing setting: name='%s', data keys=%s",
+                    hook_name,
+                    list(setting.data.keys()) if setting.data else 'None',
+                )
             if hook_name and setting.data:
                 hooks[hook_name] = setting.data
 
-        print(f"[HOOK DEBUG] Loaded {len(hooks)} hooks: {list(hooks.keys())}")
+        logger.debug("[HOOK DEBUG] Loaded %d hooks: %s", len(hooks), list(hooks.keys()))
 
         # Cache the result
         cache_service.set(cache_key, hooks, ttl=3600)  # 1 hour cache
         cached_data = hooks
 
-    print(f"[HOOK DEBUG] Returning {len(cached_data)} hooks")
+    logger.debug("[HOOK DEBUG] Returning %d hooks", len(cached_data))
     return cached_data
 
 
@@ -114,18 +115,18 @@ def execute_save_hook(model_name: str, hook_type: str, instance, data: Optional[
         'scripts_executed': []  # Track actual scripts for debugging
     }
 
-    print(f"[HOOK DEBUG] Looking for hooks for model '{model_name}' and type '{hook_type}'")
+    logger.debug("[HOOK DEBUG] Looking for hooks for model '%s' and type '%s'", model_name, hook_type)
 
     hooks = get_save_hooks(model_name)
-    print(f"[HOOK DEBUG] Found {len(hooks)} hooks for {model_name}")
+    logger.debug("[HOOK DEBUG] Found %d hooks for %s", len(hooks), model_name)
 
     for hook_name, hook_data in hooks.items():
         script = hook_data.get(hook_type)
         if not script:
-            print(f"[HOOK DEBUG] No {hook_type} script for hook '{hook_name}'")
+            logger.debug("[HOOK DEBUG] No %s script for hook '%s'", hook_type, hook_name)
             continue
 
-        print(f"[HOOK DEBUG] Processing hook '{hook_name}' with {hook_type} script")
+        logger.debug("[HOOK DEBUG] Processing hook '%s' with %s script", hook_name, hook_type)
 
         try:
             # Create execution context with access to instance
@@ -140,18 +141,18 @@ def execute_save_hook(model_name: str, hook_type: str, instance, data: Optional[
             # Execute the script
             # Note: In production, you might want to use a safer execution method
             # like restricted Python execution or a scripting engine
-            print(f"[HOOK DEBUG] Executing {hook_type} hook '{hook_name}' for {model_name}")
-            print(f"[HOOK DEBUG] Script: {script}")
-            print(f"[HOOK DEBUG] Instance metadata before execution: {getattr(instance, 'metadata', {})}")
+            logger.debug("[HOOK DEBUG] Executing %s hook '%s' for %s", hook_type, hook_name, model_name)
+            logger.debug("[HOOK DEBUG] Script: %s", script)
+            logger.debug("[HOOK DEBUG] Instance metadata before execution: %s", getattr(instance, 'metadata', {}))
 
             exec(script, {'__builtins__': {}}, context)
 
-            print(f"[HOOK DEBUG] Successfully executed {hook_type} hook '{hook_name}'")
-            print(f"[HOOK DEBUG] Instance metadata after execution: {getattr(instance, 'metadata', {})}")
+            logger.debug("[HOOK DEBUG] Successfully executed %s hook '%s'", hook_type, hook_name)
+            logger.debug("[HOOK DEBUG] Instance metadata after execution: %s", getattr(instance, 'metadata', {}))
 
             # Check if the script modified the instance
             if hasattr(instance, '_meta'):
-                print(f"[HOOK DEBUG] Instance fields that may have changed: {[f.name for f in instance._meta.fields if f.name in ['metadata', 'refs', 'prefs', 'comments', 'actions']]}")
+                logger.debug("[HOOK DEBUG] Instance fields that may have changed: %s", [f.name for f in instance._meta.fields if f.name in ['metadata', 'refs', 'prefs', 'comments', 'actions']])
 
             results['executed'].append(hook_name)
             results['scripts_executed'].append(script)

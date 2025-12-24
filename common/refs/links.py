@@ -53,6 +53,23 @@ def upsert_link(obj, *, to_model: str, to_id: int, kind: str, direction: str) ->
     direction: 'out' for forward (e.g., parent->line), 'in' for reverse (line->parent)
     Returns True if mutated.
     """
+    # Support both legacy list-of-links and newer dict-of-buckets formats.
+    # If refs.links is a dict of buckets (e.g., {'email': [...]}), upsert into the specific bucket.
+    refs = getattr(obj, 'refs', None) or {}
+    links_field = refs.get('links') if isinstance(refs, dict) else None
+    if isinstance(links_field, dict):
+        bucket = links_field.setdefault(to_model.split('.')[-1], [])
+        # bucket entries may be dicts or ints; normalize check by id
+        for e in bucket:
+            if isinstance(e, dict) and e.get('id') == to_id:
+                return False
+            if isinstance(e, int) and e == to_id:
+                return False
+        bucket.append(to_id)
+        _set_links_list(obj, links_field)
+        return True
+
+    # Fallback to legacy list behavior
     links = _get_links_list(obj)
     entry = {"model": to_model, "id": to_id, "kind": kind, "dir": direction, "ts": timezone.now().isoformat()}
     key = _link_key(entry)
@@ -63,6 +80,18 @@ def upsert_link(obj, *, to_model: str, to_id: int, kind: str, direction: str) ->
     return True
 
 def remove_link(obj, *, to_model: str, to_id: int, kind: str, direction: str) -> bool:
+    refs = getattr(obj, 'refs', None) or {}
+    links_field = refs.get('links') if isinstance(refs, dict) else None
+    if isinstance(links_field, dict):
+        bucket = links_field.get(to_model.split('.')[-1]) or []
+        before = len(bucket)
+        bucket = [e for e in bucket if not (isinstance(e, int) and e == to_id) and not (isinstance(e, dict) and e.get('id') == to_id)]
+        if len(bucket) == before:
+            return False
+        links_field[to_model.split('.')[-1]] = bucket
+        _set_links_list(obj, links_field)
+        return True
+
     links = _get_links_list(obj)
     before = len(links)
     key = (to_model, to_id, kind, direction)

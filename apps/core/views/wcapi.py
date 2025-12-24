@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
+import logging
 
 from django.db.models import Q
 from rest_framework import serializers, status
@@ -288,6 +289,24 @@ class WCAPIGetView(APIView):
                 )
 
             allow = policy.field_allowlist(type(obj), request=request)
+            # Debug: log refs content read from DB to diagnose denormalization visibility
+            logger = logging.getLogger(__name__)
+            try:
+                refs = getattr(obj, 'refs', {}) or {}
+                # Only log refs when there is meaningful content
+                email_bucket = refs.get('links', {}).get('email') if isinstance(refs.get('links', {}), dict) else None
+                if email_bucket:
+                    logger.info("WCAPIGetView: id=%s has %d denorm email links", getattr(obj, 'pk', None), len(email_bucket))
+                # Also fetch authoritative DB-stored refs for comparison when non-empty
+                try:
+                    from apps.core.models import Contact as _Contact
+                    db_refs = _Contact.objects.filter(pk=getattr(obj, 'pk', None)).values_list('refs', flat=True).first()
+                    if isinstance(db_refs, dict) and db_refs.get('links', {}).get('email'):
+                        logger.info("WCAPIGetView: id=%s DB has %d denorm email links", getattr(obj, 'pk', None), len(db_refs.get('links', {}).get('email')))
+                except Exception:
+                    pass
+            except Exception:
+                pass
             return Response(
                 {"record": services.to_dict(obj, allow=allow)}, 
                 status=status.HTTP_200_OK
