@@ -50,7 +50,7 @@ export interface Proposal {
   finance?: ProposalFinance;
   flow?: ProposalFlow;
   source?: ProposalSource;
-  action?: ProposalAction;
+  action?: string | ProposalAction;
   dt_created: string;
   dt_modified: string;
   version: number;
@@ -76,7 +76,7 @@ export interface CreateProposalRequest {
   phoneCell?: string;
   phone?: string;
   actionBy?: string;
-  action?: string;
+  action?: string | ProposalAction;
   actionDate?: string;
   actionTime?: string;
   salesNameId?: string;
@@ -94,7 +94,6 @@ export interface CreateProposalRequest {
   finance?: ProposalFinance;
   flow?: ProposalFlow;
   source?: ProposalSource;
-  action?: ProposalAction;
 }
 
 export interface UpdateProposalRequest {
@@ -117,7 +116,7 @@ export interface UpdateProposalRequest {
   phoneCell?: string;
   phone?: string;
   actionBy?: string;
-  action?: string;
+  action?: string | ProposalAction;
   actionDate?: string;
   actionTime?: string;
   salesNameId?: string;
@@ -135,7 +134,6 @@ export interface UpdateProposalRequest {
   finance?: ProposalFinance;
   flow?: ProposalFlow;
   source?: ProposalSource;
-  action?: ProposalAction;
 }
 
 // API response interfaces
@@ -151,7 +149,7 @@ export interface ProposalApiResponse {
   finance?: ProposalFinance;
   flow?: ProposalFlow;
   source?: ProposalSource;
-  action?: ProposalAction;
+  action?: string | ProposalAction;
   dt_created: string;
   dt_modified: string;
   version: number;

@@ -14,6 +14,7 @@ export interface ApiKanbanAssignment {
 
 export interface ApiKanbanItem {
   id: string;
+  project_name?: string | null;
   action_en?: string | null;
   action_ar?: string | null;
   action_bn?: string | null;
@@ -411,6 +412,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
         item.description_es ??
         undefined,
       priority: mapPriorityValue(item.priority),
+      projectName: item.project_name ?? undefined,
       priorityValue: item.priority ?? undefined,
       difficulty: item.difficulty ?? undefined,
       status: item.status ?? undefined,

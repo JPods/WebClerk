@@ -19,6 +19,7 @@ export interface KanbanTask {
   title: string;
   description?: string;
   priority: TaskPriority;
+  projectName?: string;
   assignee?: string;
   assigneeAvatarUrl?: string;
   dueDate?: string;

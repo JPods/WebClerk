@@ -45,7 +45,7 @@ export const proposalSchema = z
 
     // Actioning and sales metadata
     actionBy: z.string().optional(),
-    action: z.string().optional(),
+    action: z.union([z.string(), z.record(z.any())]).optional(),
     actionDate: z.string().optional(),
     actionTime: z.string().optional(),
     salesNameId: z.string().optional(),
@@ -67,7 +67,6 @@ export const proposalSchema = z
     finance: z.record(z.any()).optional(),
     flow: z.record(z.any()).optional(),
     source: z.record(z.any()).optional(),
-    action: z.record(z.any()).optional(),
 
     // Timestamps (readonly) - can be string or number (timestamps)
     dt_created: z.union([z.string(), z.number()]).optional(),

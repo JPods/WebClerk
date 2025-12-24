@@ -144,14 +144,55 @@ export const Contacts = async (id:any = '') => {
   }  
 };
 
-export const Actions = async () => {
+type WcapiQueryValue = string | number | boolean | null | undefined;
+
+const buildWcapiQuery = (modelName: string, params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>): string => {
+  const searchParams = new URLSearchParams();
+  searchParams.set("model_name", modelName);
+
+  if (params) {
+    Object.entries(params).forEach(([key, rawValue]) => {
+      if (rawValue === undefined || rawValue === null) {
+        return;
+      }
+      const appendValue = (value: WcapiQueryValue) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        searchParams.append(key, String(value));
+      };
+
+      if (Array.isArray(rawValue)) {
+        rawValue.forEach((value) => appendValue(value));
+        return;
+      }
+
+      appendValue(rawValue);
+    });
+  }
+
+  const queryString = searchParams.toString();
+  return `${PostLoginURL.allTypes}${queryString}`;
+};
+
+export const Actions = async (params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>) => {
   try {
-  const res = await apiClient.get(PostLoginURL.allTypes + 'model_name=action' );
+    const res = await apiClient.get(buildWcapiQuery("action", params));
     return res;
   }
   catch (error: any) { 
     return error.response?.data || error.message   
   }  
+};
+
+export const Projects = async (params?: Record<string, WcapiQueryValue | WcapiQueryValue[]>) => {
+  try {
+    const res = await apiClient.get(buildWcapiQuery("project", params));
+    return res;
+  }
+  catch (error: any) {
+    return error.response?.data || error.message;
+  }
 };
 
 export const patchAction = async (data: any) => {
