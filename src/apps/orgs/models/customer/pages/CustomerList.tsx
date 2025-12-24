@@ -176,7 +176,7 @@ export default function CustomerList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-2">
               <button
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
@@ -185,7 +185,7 @@ export default function CustomerList() {
                 Add Customer
               </button>
             </div>
-            <div className="w-full overflow-x-auto rounded-md bg-white dark:bg-gray-900 h-[calc(100vh-260px)]">
+            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:bg-gray-900 h-[calc(100vh-265px)]">
               {formMode ? (
                 <div className="flex flex-col">
                   <CustomerListMob
@@ -207,7 +207,9 @@ export default function CustomerList() {
                   pointerOnHover
                   progressPending={loading}
                   progressComponent={
-                    <div className="p-8 text-center">Loading locations...</div>
+                    <div className="p-8 text-center text-gray-500">
+                      Loading locations...
+                    </div>
                   }
                   onRowClicked={(row) => handleView(row)}
                   keyField="id"
