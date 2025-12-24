@@ -11,6 +11,7 @@ import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
 import { Actions, Projects, patchAction } from "../../api/userProfile";
+import { getRecords } from "../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
 import { PageRoutes } from "../../routes/Routes";
@@ -63,6 +64,111 @@ interface ProjectOption {
   slug: string;
   intent?: string;
 }
+
+interface StaffOption {
+  id: string;
+  label: string;
+  searchName: string;
+  email?: string;
+}
+
+interface FetchActionsOptions {
+  projectSlug?: string;
+  staffId?: string;
+}
+
+type RawContactRecord = Record<string, unknown>;
+
+const toBoolean = (value: unknown): boolean => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+    return ["true", "1", "yes", "y"].includes(normalized);
+  }
+  return false;
+};
+
+const buildContactName = (record: RawContactRecord): string => {
+  const firstRaw = record["name_first"];
+  const lastRaw = record["name_last"];
+  const first = typeof firstRaw === "string" ? firstRaw.trim() : "";
+  const last = typeof lastRaw === "string" ? lastRaw.trim() : "";
+  const full = [first, last].filter(Boolean).join(" ").trim();
+  if (full) {
+    return full;
+  }
+  const primaryRaw = record["name"];
+  const primary = typeof primaryRaw === "string" ? primaryRaw.trim() : "";
+  if (primary) {
+    return primary;
+  }
+  const companyRaw = record["company"];
+  const company = typeof companyRaw === "string" ? companyRaw.trim() : "";
+  if (company) {
+    return company;
+  }
+  return "";
+};
+
+const createStaffOptionFromRecord = (record: RawContactRecord): StaffOption | null => {
+  const staffFlag =
+    toBoolean(record["is_staff"]) ||
+    toBoolean(record["isStaff"]) ||
+    toBoolean(record["staff"]);
+
+  if (!staffFlag) {
+    return null;
+  }
+
+  const activeRaw = record["is_active"];
+  const isActive = activeRaw === undefined ? true : toBoolean(activeRaw);
+  if (!isActive) {
+    return null;
+  }
+
+  const idCandidate =
+    record["id"] ??
+    record["contact_id"] ??
+    record["pk"] ??
+    record["uuid"] ??
+    record["slug"];
+
+  if (idCandidate === undefined || idCandidate === null) {
+    return null;
+  }
+
+  const name = buildContactName(record) || String(idCandidate);
+  const roleRaw = record["role"];
+  const emailRaw = record["email"];
+  const role = typeof roleRaw === "string" ? roleRaw.trim() : "";
+  const email = typeof emailRaw === "string" ? emailRaw.trim() : "";
+
+  const labelParts: string[] = [];
+  if (name) {
+    labelParts.push(name);
+  }
+  if (role) {
+    labelParts.push(role);
+  }
+
+  const baseLabel = labelParts.join(" · ");
+  const label = email ? `${baseLabel || name} (${email})` : baseLabel || name;
+
+  return {
+    id: String(idCandidate),
+    label: label || String(idCandidate),
+    searchName: name.toLowerCase(),
+    email: email || undefined,
+  };
+};
 
 const isRecordObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -502,9 +608,54 @@ const KanbanBoardPage: React.FC = () => {
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
   const [projectFetchError, setProjectFetchError] = useState<string | null>(null);
 
+  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
+  const [staffFetchError, setStaffFetchError] = useState<string | null>(null);
+
   const handleProjectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedProjectSlug(event.target.value);
   };
+
+  const handleStaffFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedStaffId(event.target.value);
+  };
+
+  const fetchStaffContacts = useCallback(async () => {
+    setIsLoadingStaff(true);
+    setStaffFetchError(null);
+    try {
+      const response = await getRecords("contact", { is_staff: true, is_active: true, limit: 500 });
+      const records = Array.isArray(response?.results) ? response.results : [];
+
+      const options = records
+        .map((record) => createStaffOptionFromRecord((record ?? {}) as RawContactRecord))
+        .filter((option): option is StaffOption => Boolean(option));
+
+      const uniqueById = new Map<string, StaffOption>();
+      options.forEach((option) => {
+        if (!uniqueById.has(option.id)) {
+          uniqueById.set(option.id, option);
+        }
+      });
+
+      const sorted = Array.from(uniqueById.values()).sort((a, b) => a.label.localeCompare(b.label));
+      setStaffOptions(sorted);
+      setSelectedStaffId((previous) => {
+        if (previous && sorted.some((option) => option.id === previous)) {
+          return previous;
+        }
+        return "";
+      });
+    } catch (error) {
+      console.error("Failed to fetch staff contacts", error);
+      setStaffOptions([]);
+      setStaffFetchError("Unable to load staff list.");
+      setSelectedStaffId("");
+    } finally {
+      setIsLoadingStaff(false);
+    }
+  }, []);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -613,40 +764,106 @@ const KanbanBoardPage: React.FC = () => {
     }
   }, []);
 
-  const fetchActions = useCallback(async (projectSlug?: string) => {
+  const fetchActions = useCallback(async ({ projectSlug, staffId }: FetchActionsOptions = {}) => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await Actions(projectSlug ? { project_name: projectSlug } : undefined);
+      const params: Record<string, string> = {};
+      if (projectSlug) {
+        params.project_name = projectSlug;
+      }
+      if (staffId) {
+        params.assigned_to_id = staffId;
+        params.status = "active";
+      }
+
+      const response = await Actions(Object.keys(params).length ? params : undefined);
       if (!response || response.status !== 200) {
         throw new Error("Request failed");
       }
 
       const items = extractKanbanItems(response);
-      if (items.length === 0) {
+      const targetStaff = staffId ? staffOptions.find((option) => option.id === staffId) : undefined;
+
+      const filteredItems = !staffId
+        ? items
+        : items.filter((item) => {
+            const statusValue = typeof item.status === "string" ? item.status.trim().toLowerCase() : "";
+            if (statusValue && statusValue !== "active") {
+              return false;
+            }
+
+            const assignments = Array.isArray(item.assigned_to) ? item.assigned_to : [];
+            if (!assignments.length) {
+              return false;
+            }
+
+            const normalizedTargetName = targetStaff?.searchName ?? "";
+
+            return assignments.some((assignment) => {
+              const assignmentRecord = (assignment ?? {}) as Record<string, unknown>;
+              const assignmentId =
+                assignmentRecord["id"] ??
+                assignmentRecord["contact_id"] ??
+                assignmentRecord["pk"] ??
+                assignmentRecord["uuid"];
+              if (assignmentId !== undefined && assignmentId !== null && String(assignmentId) === staffId) {
+                return true;
+              }
+              if (normalizedTargetName) {
+                const nameRaw =
+                  assignmentRecord["name"] ??
+                  assignmentRecord["full_name"] ??
+                  assignmentRecord["display_name"] ??
+                  assignmentRecord["label"];
+                if (typeof nameRaw === "string" && nameRaw.trim().toLowerCase() === normalizedTargetName) {
+                  return true;
+                }
+              }
+              return false;
+            });
+          });
+
+      if (filteredItems.length === 0) {
         setBoard(createEmptyBoardData());
       } else {
-        setBoard(createBoardDataFromApi(items));
+        setBoard(createBoardDataFromApi(filteredItems));
       }
     } catch (error) {
       console.error("Failed to fetch kanban actions", error);
-      const message = projectSlug
-        ? `Unable to load kanban data for project ${projectSlug}. Displaying local state only.`
+      const parts: string[] = [];
+      if (projectSlug) {
+        parts.push(`project ${projectSlug}`);
+      }
+      if (staffId) {
+        const staffLabel = staffOptions.find((option) => option.id === staffId)?.label ?? staffId;
+        parts.push(`staff ${staffLabel}`);
+      }
+      const contextLabel = parts.length === 0 ? "" : parts.length === 1 ? parts[0] : `${parts[0]} and ${parts[1]}`;
+      const message = contextLabel
+        ? `Unable to load kanban data for ${contextLabel}. Displaying local state only.`
         : "Unable to load kanban data. Displaying local state only.";
       setFetchError(message);
       setBoard(createEmptyBoardData());
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [staffOptions]);
 
   useEffect(() => {
     void fetchProjects();
   }, [fetchProjects]);
 
   useEffect(() => {
-    void fetchActions(selectedProjectSlug || undefined);
-  }, [fetchActions, selectedProjectSlug]);
+    void fetchStaffContacts();
+  }, [fetchStaffContacts]);
+
+  useEffect(() => {
+    void fetchActions({
+      projectSlug: selectedProjectSlug || undefined,
+      staffId: selectedStaffId || undefined,
+    });
+  }, [fetchActions, selectedProjectSlug, selectedStaffId]);
 
   useEffect(() => {
     if (board.columnOrder.length === 0) {
@@ -1155,7 +1372,10 @@ const KanbanBoardPage: React.FC = () => {
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to save task.");
       }
-      await fetchActions(selectedProjectSlug || undefined);
+      await fetchActions({
+        projectSlug: selectedProjectSlug || undefined,
+        staffId: selectedStaffId || undefined,
+      });
       handleCloseCreateModal();
     } catch (error) {
       console.error("Failed to create kanban task", error);
@@ -1189,7 +1409,10 @@ const KanbanBoardPage: React.FC = () => {
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to update task.");
       }
-      await fetchActions(selectedProjectSlug || undefined);
+      await fetchActions({
+        projectSlug: selectedProjectSlug || undefined,
+        staffId: selectedStaffId || undefined,
+      });
       handleCloseEditModal();
     } catch (error) {
       console.error("Failed to update kanban task", error);
@@ -1259,6 +1482,24 @@ const KanbanBoardPage: React.FC = () => {
             </select>
           </label>
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <span>Staff</span>
+            <select
+              value={selectedStaffId}
+              onChange={handleStaffFilterChange}
+              disabled={isLoadingStaff}
+              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
+            >
+              <option value="">
+                {isLoadingStaff ? "Loading..." : "All staff"}
+              </option>
+              {staffOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <span>Columns</span>
             <select
               value={columnsPerRow}
@@ -1307,12 +1548,30 @@ const KanbanBoardPage: React.FC = () => {
         </div>
       )}
 
+      {staffFetchError && (
+        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+          <span>{staffFetchError}</span>
+          <button
+            type="button"
+            onClick={() => void fetchStaffContacts()}
+            className="rounded-md border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {fetchError && (
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
           <span>{fetchError}</span>
           <button
             type="button"
-            onClick={() => fetchActions(selectedProjectSlug || undefined)}
+            onClick={() =>
+              void fetchActions({
+                projectSlug: selectedProjectSlug || undefined,
+                staffId: selectedStaffId || undefined,
+              })
+            }
             className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/50"
           >
             Retry
