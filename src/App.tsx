@@ -6,7 +6,7 @@ export default function App() {
   return (
     <>
       <Provider store={store}>
-        <div className="min-h-screen bg-[#F5F5F5] dark:bg-gray-900 bg-cust-default-body">
+        <div className="min-h-screen bg-[#f1f0ff] dark:bg-gray-900 ">
           <Router />
         </div>
       </Provider>

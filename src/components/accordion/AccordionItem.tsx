@@ -17,7 +17,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
     <div
       className={`my-3 border transition-all duration-300 ${
         isOpen
-          ? "border-purple-500 bg-blue-50 shadow-sm"
+          ? "border-purple-500 dark:!border-white bg-blue-50 shadow-sm"
           : "border-gray-200 bg-white"
       }`}
     >
