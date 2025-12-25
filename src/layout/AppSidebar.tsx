@@ -151,10 +151,10 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Communications",
     subItems: [
-      { name: "Domain", path: "/communications/domain/list" },
-      { name: "Email", path: "/communications/email/list" },
-      { name: "Location", path: "/communications/location/list" },
-      { name: "Phone", path: "/communications/phone/list" },
+      { name: "Addresss", path: "/communications/location/list" },
+      { name: "Domains", path: "/communications/domain/list" },
+      { name: "Email Addresss", path: "/communications/email/list" },
+      { name: "Phone Numbers", path: "/communications/phone/list" },
     ],
   },
   // {
