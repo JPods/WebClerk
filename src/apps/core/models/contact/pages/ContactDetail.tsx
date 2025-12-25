@@ -26,9 +26,10 @@ import Checkbox from "../../../../../components/form/input/Checkbox";
 import { FaEdit, FaEye, FaPlus, FaSave, FaTrash } from "react-icons/fa";
 import {
   createEmail,
+  fetchEmails,
   updateEmail,
 } from "@/apps/communications/models/email/services/emailApi";
-
+import { dynamicData } from "../../../../../model/dynamicData";
 /* ----------------------------------
    Types
 ---------------------------------- */
@@ -220,55 +221,78 @@ export default function ContactDetail({
         return false;
       }
 
-      const payload = {
-        id: emailRow.id || undefined,
-        email: emailRow.address,
-        name: emailRow.name || undefined,
-      };
+      if (emailRow.id) {
+        try {
+          const response = await fetchEmails(emailRow.id);
+          if (response.status === 200) {
+            const result: dynamicData = response.data.data.record;
+            console.log("result", result);
+            const payload = {
+              id: emailRow.id,
+              email: emailRow.address,
+              name: emailRow.name,
+              attention: result.attention,
+              opt_out: result.opt_out,
+              type: result.type,
+              is_primary: result.is_primary,
+              is_verified: result.is_verified,
+            };
 
-      const res = emailRow.id
-        ? await updateEmail({
-            ...payload,
-            id: emailRow?.id,
-          })
-        : await createEmail({ ...payload, id: "" });
+            const res = emailRow.id
+              ? await updateEmail({
+                  ...payload,
+                  id: emailRow?.id,
+                })
+              : await createEmail({ ...payload, id: "" });
 
-      if (res) {
+            if (res) {
+              dispatch(
+                showToast({
+                  message: "Email saved successfully",
+                  type: "success",
+                })
+              );
+
+              setIsEmailEdit(false);
+
+              // Get existing email list
+              const currentEmails = getValues("refs.links.email") || [];
+
+              // Update only edited index
+              const updatedEmails = currentEmails.map((item: any, i: number) =>
+                i === index
+                  ? {
+                      ...item,
+                      id: res?.id ?? item.id,
+                      address: emailRow.address,
+                      name: emailRow.name,
+                    }
+                  : item
+              );
+
+              // Reset form with updated refs
+              reset({
+                ...getValues(),
+                refs: {
+                  ...getValues("refs"),
+                  links: {
+                    ...getValues("refs.links"),
+                    email: updatedEmails,
+                  },
+                },
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch emails", error);
+        }
+      } else {
         dispatch(
           showToast({
-            message: "Email saved successfully",
-            type: "success",
+            message: "Email not found",
+            type: "error",
           })
         );
-
-        setIsEmailEdit(false);
-
-        // Get existing email list
-        const currentEmails = getValues("refs.links.email") || [];
-
-        // Update only edited index
-        const updatedEmails = currentEmails.map((item: any, i: number) =>
-          i === index
-            ? {
-                ...item,
-                id: res.id ?? item.id,
-                address: emailRow.address,
-                name: emailRow.name,
-              }
-            : item
-        );
-
-        // Reset form with updated refs
-        reset({
-          ...getValues(),
-          refs: {
-            ...getValues("refs"),
-            links: {
-              ...getValues("refs.links"),
-              email: updatedEmails,
-            },
-          },
-        });
       }
     } catch (error) {
       console.error("Email save failed", error);

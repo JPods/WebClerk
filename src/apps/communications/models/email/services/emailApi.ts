@@ -1,18 +1,40 @@
 import apiClient from "../../../../../api/axios";
-import { getRecords, saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import { PostLoginURL } from "../../../../../routes/network";
-export const createEmail = async (data: any) => {
-  return saveRecord("email", data);
+import {
+  CreateEmailRequest,
+  EmailApiTask,
+  UpdateEmailRequest,
+} from "../types/emailType";
+
+const unwrap = <T>(response: any): T => {
+  if (!response) return [] as unknown as T;
+  if (response.data?.data) return response.data.data as T;
+  if (response.data) return response.data as T;
+  return response as T;
 };
 
-export const updateEmail = async (data: any) => {
-  return saveRecord("email", data);
+export const createEmail = async (
+  payload: CreateEmailRequest
+): Promise<EmailApiTask> => {
+  const model_name: string = "email";
+  const res = await apiClient.post(PostLoginURL.allSave, {
+    ...payload,
+    model_name,
+  });
+  return unwrap<EmailApiTask>(res);
 };
 
-// export const deleteEmail = async (id: number) => {
-//   return deleteRecord("email", id);
+export const updateEmail = async (
+  payload: UpdateEmailRequest
+): Promise<EmailApiTask> => {
+  const model_name: string = "email";
+  const res = await apiClient.post(`${PostLoginURL.allSave}`, {
+    ...payload,
+    model_name,
+  });
+  return unwrap<EmailApiTask>(res);
+};
 
-// };
 export const deleteEmail = async (model_name: string, id: number) => {
   try {
     const res = await apiClient.post(PostLoginURL.allSave, {
