@@ -59,7 +59,7 @@ export default function CustomerListMob({
               </div>
 
               {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-4 bg-white sticky bottom-0">
+              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
                 <button
                   onClick={() => handleView(customer)}
                   title="View"

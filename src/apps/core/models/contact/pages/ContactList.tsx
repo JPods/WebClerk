@@ -24,7 +24,6 @@ export default function ContactList() {
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
-  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   /* ---------------- Fetch Contacts ---------------- */
   const getContactData = useCallback(async (contactId?: number) => {
@@ -46,17 +45,6 @@ export default function ContactList() {
   useEffect(() => {
     getContactData();
   }, [getContactData]);
-
-  /* ---------------- Mobile Detection ---------------- */
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 1024);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   /* ---------------- Handlers ---------------- */
   const handleView = (row: dynamicData) => {
@@ -277,12 +265,12 @@ export default function ContactList() {
                   className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
                 >
                   <FaPlus />
-                  Add Contact
+                  Contact
                 </button>
               </div>
             </div>
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:!bg-[#1e2636] dark:bg-gray-900 h-[calc(100vh-265px)]">
-              {isMobile || formMode ? (
+              {formMode ? (
                 <div className="flex flex-col">
                   <ContactListMob
                     dataProp={filteredData}
@@ -304,11 +292,12 @@ export default function ContactList() {
                   theme={theme === "dark" ? "tailwindDark" : "default"}
                   progressPending={loading}
                   progressComponent={
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-sm text-center text-gray-500">
                       Loading contacts...
                     </div>
                   }
                   onRowClicked={handleView}
+                  keyField="id"
                   className="text-2xl p-2"
                 />
               )}
