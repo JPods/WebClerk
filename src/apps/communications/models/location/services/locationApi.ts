@@ -16,7 +16,7 @@ const unwrap = <T>(response: any): T => {
 export const createLocation = async (
   payload: CreateLocationRequest
 ): Promise<LocationApiTask> => {
-  const model_name: string = "location";
+  const model_name: string = "address";
   const res = await apiClient.post(PostLoginURL.allSave, {
     ...payload,
     model_name,
@@ -27,7 +27,7 @@ export const createLocation = async (
 export const updateLocation = async (
   payload: UpdateLocationRequest
 ): Promise<LocationApiTask> => {
-  const model_name: string = "location";
+  const model_name: string = "address";
   const res = await apiClient.post(`${PostLoginURL.allSave}`, {
     ...payload,
     model_name,
@@ -36,13 +36,13 @@ export const updateLocation = async (
 };
 
 export const deleteLocation = async (id: number) => {
-  return deleteRecord("location", id);
+  return deleteRecord("address", id);
 };
 
 export const fetchLocations = async (id: any = "") => {
   try {
     const res = await apiClient.get(
-      PostLoginURL.allTypes + "model_name=location" + (id ? `&id=${id}` : "")
+      PostLoginURL.allTypes + "model_name=address" + (id ? `&id=${id}` : "")
     );
     return res;
   } catch (error: any) {
