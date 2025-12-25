@@ -30,7 +30,7 @@ export default function EmployeeListMob({
               setOpenIndex(willOpen ? index : null);
 
               if (willOpen) {
-                handleView(employee); // 👈 FIXED
+                handleView(employee);
               }
             }}
           >
@@ -59,11 +59,11 @@ export default function EmployeeListMob({
               </div>
 
               {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-4 bg-white sticky bottom-0">
+              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
                 <button
                   onClick={() => handleView(employee)}
                   title="View"
-                  className="h-[38px] w-[38px] flex items-center justify-center
+                  className="h-[25px] w-[25px] flex items-center justify-center
                          border rounded-md hover:text-green-600"
                 >
                   <FaEye className="text-green-600 hover:scale-110" />
@@ -72,7 +72,7 @@ export default function EmployeeListMob({
                 <button
                   onClick={() => handleEdit(employee)}
                   title="Edit"
-                  className="h-[38px] w-[38px] flex items-center justify-center
+                  className="h-[25px] w-[25px] flex items-center justify-center
                          border rounded-md hover:text-blue-600"
                 >
                   <FaEdit className="text-blue-600 hover:scale-110" />
