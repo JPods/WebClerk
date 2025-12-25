@@ -8,26 +8,34 @@ export interface EmailAddProps {
 }
 
 export interface CreateEmailRequest {
-  subject: string;
-  status: "draft" | "sent" | "failed";
-  from_email: string;
-  to_email: string;
-  body: string;
+  id: number | string;
+  email: string;
+  name: string;
+  attention?: string;
+  type?: string;
+  opt_out?: string;
+  is_primary?: boolean;
+  is_verified?: boolean;
 }
 
 export interface EmailApiTask {
-  subject: string;
-  status: "draft" | "sent" | "failed";
-  from_email: string;
-  to_email: string;
-  body: string;
+  id: number | string;
+  email: string;
+  name: string;
+  attention: string;
+  type?: string;
+  opt_out: string;
+  is_primary: boolean;
+  is_verified: boolean;
 }
 
 export interface UpdateEmailRequest {
-  id: string;
-  subject: string;
-  status: "draft" | "sent" | "failed";
-  from_email: string;
-  to_email: string;
-  body: string;
+  id: number | string;
+  email: string;
+  name: string;
+  attention?: string;
+  type?: string;
+  opt_out?: string;
+  is_primary?: boolean;
+  is_verified?: boolean;
 }
