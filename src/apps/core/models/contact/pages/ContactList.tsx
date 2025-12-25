@@ -297,6 +297,7 @@ export default function ContactList() {
                     </div>
                   }
                   onRowClicked={handleView}
+                  keyField="id"
                   className="text-2xl p-2"
                 />
               )}

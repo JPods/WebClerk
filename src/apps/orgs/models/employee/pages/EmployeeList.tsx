@@ -305,10 +305,13 @@ export default function EmployeeList() {
                   pointerOnHover
                   progressPending={loading}
                   progressComponent={
-                    <div className="p-8 text-center">Loading locations...</div>
+                    <div className="p-8 text-sm text-center text-gray-500">
+                      Loading locations...
+                    </div>
                   }
                   onRowClicked={(row) => handleView(row)}
                   keyField="id"
+                  className="text-2xl p-2"
                 />
               )}
             </div>
