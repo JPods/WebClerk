@@ -2,12 +2,12 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IApi, IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
-import { Actions, patchAction } from "../../api/userProfile";
-import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import type { BoardData, KanbanTask } from "../../type/kanban";
+import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import { Actions, patchAction } from "../../../api/userProfile";
+import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "../kanban/kanbanDataMapper";
+import type { BoardData, KanbanTask } from "../../../type/kanban";
 import {
   DEFAULT_LANGUAGE_ORDER,
   DEFAULT_DIFFICULTY,
@@ -29,7 +29,7 @@ import {
   priorityOptions,
   toTimestampMilliseconds,
   updateTaskFormState,
-} from "./KanbanGanttPage";
+} from "../kanban/KanbanGanttPage";
 const screenshotInspiredTasks = [
   { id: 1, text: "Project planning", start: new Date(2024, 3, 2), duration: 16, type: "summary", progress: 65 },
   { id: 2, parent: 1, text: "Marketing analysis", start: new Date(2024, 3, 3), duration: 3, type: "task" },

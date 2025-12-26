@@ -90,10 +90,10 @@ import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalD
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
 import NotionTrackerPage from "./notion/NotionTrackerPage.tsx";
-import KanbanBoardPage from "./kanban/KanbanBoardPage";
-import KanbanBoardDataPage from "./kanban/KanbanBoardDataPage";
-import KanbanGanttPage from "./kanban/KanbanGanttPage";
-import SvarGanttPage from "./kanban/SvarGanttPage";
+import KanbanBoardPage from "../apps/utils/kanban/KanbanBoardPage";
+import KanbanBoardDataPage from "../apps/utils/kanban/KanbanBoardDataPage";
+import KanbanGanttPage from "../apps/utils/kanban/KanbanGanttPage";
+import SvarGanttPage from "../apps/utils/gantt/SvarGanttPage.tsx";
 import SalesOrderDetailTest from "../apps/transactions/models/sales_order/pages/SalesOrderDetail.tsx";
 
 export {

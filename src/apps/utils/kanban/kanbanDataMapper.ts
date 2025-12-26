@@ -4,7 +4,7 @@ import type {
   KanbanTask,
   LocalizedTextMap,
   TaskPriority,
-} from "../../type/kanban";
+} from "../../../type/kanban";
 
 export interface ApiKanbanAssignment {
   id?: string | number;
