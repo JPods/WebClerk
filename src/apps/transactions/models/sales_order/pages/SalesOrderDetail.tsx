@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Plus, 
   Trash2, 
@@ -20,6 +21,15 @@ import {
  */
 
 const SalesOrderDetail = () => {
+  const productCatalog = [
+    { label: 'Web Development Services', price: 1200 },
+    { label: 'UI/UX Design Consultation', price: 150 },
+    { label: 'SEO Optimization Package', price: 300 },
+    { label: 'Content Strategy Workshop', price: 450 },
+    { label: 'Mobile App Prototype', price: 900 },
+    { label: 'API Integration Support', price: 650 }
+  ];
+
   // --- State ---
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${new Date().getFullYear()}-001`);
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
@@ -30,7 +40,18 @@ const SalesOrderDetail = () => {
     { id: crypto.randomUUID(), description: 'Web Development Services', quantity: 1, price: 1200 },
     { id: crypto.randomUUID(), description: 'UI/UX Design Consultation', quantity: 5, price: 150 }
   ]);
+  const [descriptionSearch, setDescriptionSearch] = useState<Record<string, string>>({});
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownAnchor, setDropdownAnchor] = useState<{ id: string; top: number; left: number; width: number } | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+
+  const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim();
+  const selectedLabels = useMemo(() => {
+    const labels = items
+      .map(i => normalize(i.description))
+      .filter(Boolean);
+    return new Set(labels);
+  }, [items]);
 
   // --- Calculations ---
   const totals = useMemo(() => {
@@ -82,7 +103,7 @@ const SalesOrderDetail = () => {
         {/* Header Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 print:hidden">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">Invoice Editor</h1>
+            <h1 className="text-3xl font-bold text-slate-800">Sales Invoice</h1>
             <p className="text-slate-500 mt-1">Create and manage your professional sales invoices.</p>
           </div>
           <div className="flex items-center gap-3">
@@ -106,7 +127,7 @@ const SalesOrderDetail = () => {
         </div>
 
         {/* Main Invoice Card */}
-        <div className="bg-white shadow-xl shadow-slate-200/60 rounded-2xl overflow-hidden border border-slate-100 print:shadow-none print:border-none">
+        <div className="bg-white shadow-xl shadow-slate-200/60 rounded-2xl overflow-visible border border-slate-100 print:shadow-none print:border-none">
           
           {/* Invoice Visual Header */}
           <div className="bg-slate-900 p-8 md:p-12 text-white">
@@ -216,7 +237,7 @@ const SalesOrderDetail = () => {
             </div>
 
             {/* Line Items Table */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-visible">
               <table className="w-full text-left border-separate border-spacing-y-2">
                 <thead>
                   <tr className="text-slate-400 text-xs font-bold uppercase tracking-widest">
@@ -229,15 +250,68 @@ const SalesOrderDetail = () => {
                 </thead>
                 <tbody>
                   {items.map((item, index) => (
-                    <tr key={item.id} className="group bg-white hover:bg-slate-50/50 transition-colors">
+                    <tr key={item.id} className="group bg-white hover:bg-slate-50/50 transition-colors relative">
                       <td className="py-4 pl-2 border-b border-slate-100">
-                        <input 
-                          type="text" 
-                          placeholder="What was provided?"
-                          className="w-full bg-transparent font-medium text-slate-700 placeholder:text-slate-300 outline-none"
-                          value={item.description}
-                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                        />
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            placeholder="Search or select service"
+                            className="w-full bg-transparent font-medium text-slate-700 placeholder:text-slate-300 outline-none border-b border-transparent hover:border-slate-200 focus:border-indigo-500"
+                            value={descriptionSearch[item.id] ?? item.description}
+                            onFocus={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setOpenDropdown(item.id);
+                              setDropdownAnchor({ id: item.id, top: rect.bottom, left: rect.left, width: rect.width });
+                            }}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setDescriptionSearch(prev => ({ ...prev, [item.id]: value }));
+                              updateItem(item.id, 'description', value);
+                            }}
+                            onBlur={() => setTimeout(() => {
+                              setOpenDropdown(null);
+                              setDropdownAnchor(null);
+                            }, 100)}
+                          />
+                          {openDropdown === item.id && dropdownAnchor?.id === item.id && (() => {
+                            const availableOptions = productCatalog.filter(option => {
+                              const search = normalize(descriptionSearch[item.id] ?? '');
+                              const optionKey = normalize(option.label);
+                              const currentKey = normalize(item.description);
+                              const matchesSearch = optionKey.includes(search);
+                              const inUseElsewhere = selectedLabels.has(optionKey) && currentKey !== optionKey;
+                              return matchesSearch && !inUseElsewhere;
+                            });
+                            return createPortal(
+                              <div
+                                className="fixed z-50 bg-white border border-slate-100 rounded-lg shadow-xl max-h-48 overflow-y-auto"
+                                style={{ top: dropdownAnchor.top, left: dropdownAnchor.left, width: dropdownAnchor.width }}
+                              >
+                                {availableOptions.map(option => (
+                                  <button
+                                    key={option.label}
+                                    type="button"
+                                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-slate-700"
+                                    onMouseDown={() => {
+                                      setDescriptionSearch(prev => ({ ...prev, [item.id]: option.label }));
+                                      updateItem(item.id, 'description', option.label);
+                                      updateItem(item.id, 'price', option.price);
+                                      setOpenDropdown(null);
+                                      setDropdownAnchor(null);
+                                    }}
+                                  >
+                                    <div className="font-medium">{option.label}</div>
+                                    <div className="text-xs text-slate-400">${option.price.toLocaleString()} base</div>
+                                  </button>
+                                ))}
+                                {availableOptions.length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-slate-400">No matches</div>
+                                )}
+                              </div>,
+                              document.body
+                            );
+                          })()}
+                        </div>
                       </td>
                       <td className="py-4 px-4 border-b border-slate-100 text-center">
                         <input 
