@@ -1,16 +1,16 @@
 import { CSSProperties, useCallback, useMemo, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { KanbanColumn } from "../../components/kanban/KanbanColumn";
+import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import { KanbanColumn } from "../../../components/kanban/KanbanColumn";
 import type {
   BoardData,
   KanbanColumn as KanbanColumnType,
   KanbanTask,
   TaskPriority,
-} from "../../type/kanban";
-import type { DragItem, DropResult } from "../../components/kanban/dndTypes";
-import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
+} from "../../../type/kanban";
+import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
+import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
 import { ApiKanbanItem, createBoardDataFromApi } from "./kanbanDataMapper";
 
 const rawKanbanData: ApiKanbanItem[] = [

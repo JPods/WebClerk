@@ -2,19 +2,19 @@ import { CSSProperties, ChangeEvent, FormEvent, useCallback, useEffect, useMemo,
 import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { KanbanColumn } from "../../components/kanban/KanbanColumn";
-import { KanbanDragLayer } from "../../components/kanban/KanbanDragLayer";
-import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
-import type { DragItem, DropResult } from "../../components/kanban/dndTypes";
-import { DRAG_TYPE_TASK } from "../../components/kanban/dndTypes";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
-import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../type/kanban";
-import { Actions, Projects, patchAction } from "../../api/userProfile";
-import { getRecords } from "../../api/wcapi";
+import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import { KanbanColumn } from "../../../components/kanban/KanbanColumn";
+import { KanbanDragLayer } from "../../../components/kanban/KanbanDragLayer";
+import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
+import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
+import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
+import { Actions, Projects, patchAction } from "../../../api/userProfile";
+import { getRecords } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
-import { PageRoutes } from "../../routes/Routes";
+import { PageRoutes } from "../../../routes/Routes";
 
 const priorityPalette: Record<TaskPriority, string> = {
   low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",

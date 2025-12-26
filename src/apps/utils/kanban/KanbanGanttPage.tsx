@@ -1,16 +1,16 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
-import type { BoardData } from "../../type/kanban";
-import { KanbanTask, TaskPriority } from "../../type/kanban";
+import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
+import type { BoardData } from "../../../type/kanban";
+import { KanbanTask, TaskPriority } from "../../../type/kanban";
 import clsx from "clsx";
-import { Actions, patchAction } from "../../api/userProfile";
+import { Actions, patchAction } from "../../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
 import { Link } from "react-router";
-import { PageRoutes } from "../../routes/Routes";
+import { PageRoutes } from "../../../routes/Routes";
 
 // Sample data used as a fallback when the API is unavailable
 // const FALLBACK_GANTT_TASKS: KanbanTask[] = [
