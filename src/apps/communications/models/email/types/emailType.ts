@@ -14,8 +14,8 @@ export interface CreateEmailRequest {
   attention?: string;
   type?: string;
   opt_out?: string;
-  is_primary?: boolean;
-  is_verified?: boolean;
+  is_primary: boolean;
+  is_verified: boolean;
 }
 
 export interface EmailApiTask {
@@ -36,6 +36,6 @@ export interface UpdateEmailRequest {
   attention?: string;
   type?: string;
   opt_out?: string;
-  is_primary?: boolean;
-  is_verified?: boolean;
+  is_primary: boolean;
+  is_verified: boolean;
 }

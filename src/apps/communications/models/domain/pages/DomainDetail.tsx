@@ -1,31 +1,27 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import {
-  Input,
-  CustTextArea,
-  DropDown,
-} from "../../../../../components/wrapper";
+import { Input, DropDown } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createEmail, updateEmail } from "../services/emailApi";
+import { createDomain, updateDomain } from "../services/domainApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { emailSchema } from "../utils/emailSchema";
-import { EmailAddProps } from "../types/emailType";
-import Checkbox from "../../../../../components/form/input/Checkbox";
-export default function EmailDetail({
+import { domainSchema } from "../utils/domainSchema";
+import { DomainAddProps } from "../types/domainType";
+
+export default function DomainDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-}: EmailAddProps) {
+}: DomainAddProps) {
   const dispatch = useDispatch();
 
   const {
@@ -34,11 +30,9 @@ export default function EmailDetail({
     handleSubmit,
     formState: { errors },
     reset,
-    control,
     watch,
-  } = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { is_primary: false, is_verified: false },
+  } = useForm<z.infer<typeof domainSchema>>({
+    resolver: zodResolver(domainSchema),
   });
 
   const location = useLocation();
@@ -59,16 +53,16 @@ export default function EmailDetail({
     }
   }, [data, reset, setValue, mode]);
 
-  const onSubmit = async (formData: z.infer<typeof emailSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof domainSchema>) => {
     try {
       const res =
         mode === "add"
-          ? await createEmail({ ...formData, id: "" })
-          : await updateEmail({ ...formData, id: data && data.id });
+          ? await createDomain({ ...formData })
+          : await updateDomain({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
-            message: `Email ${
+            message: `Domain ${
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
@@ -83,23 +77,25 @@ export default function EmailDetail({
     }
   };
 
-  const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "opted_out", label: "Opted Out" },
-    { value: "bounced", label: "Bounced" },
-    { value: "invalid", label: "Invalid" },
-    { value: "spam_complaint", label: "Spam Complaint" },
+  const typeOptions = [
+    { value: "website", label: "Website" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "facebook", label: "Facebook" },
+    { value: "twitter", label: "Twitter" },
+    { value: "github", label: "GitHub" },
+    { value: "other", label: "Other" },
   ];
 
   const handleStatusChange = (value: string) => {
     setValue(
-      "opt_out",
+      "type",
       value as
-        | "bounced"
-        | "opted_out"
-        | "invalid"
-        | "spam_complaint"
-        | undefined
+        | "website"
+        | "linkedin"
+        | "facebook"
+        | "twitter"
+        | "github"
+        | "other"
     );
   };
 
@@ -121,10 +117,10 @@ export default function EmailDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Email"
+                ? "Edit Domain"
                 : mode === "view"
-                ? "View Email"
-                : "Add New Email"}
+                ? "View Domain"
+                : "Add New Domain"}
             </h3>
             {onCancelInline && (
               <button
@@ -140,88 +136,31 @@ export default function EmailDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="email">email</Label>
+              <Label htmlFor="path">path</Label>
               <Input
-                type="email"
-                id="email"
-                placeholder="Email Address"
-                {...register("email")}
-                error={errors.email && errors.email.message ? true : false}
-                hint={errors.email && errors.email.message}
+                type="path"
+                id="path"
+                placeholder="Path Address"
+                {...register("path")}
+                error={errors.path && errors.path.message ? true : false}
+                hint={errors.path && errors.path.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="name">name</Label>
-              <Input
-                type="name"
-                id="name"
-                placeholder="Name"
-                {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="attention">attention</Label>
-              <Input
-                type="attention"
-                id="attention"
-                placeholder="Attention"
-                {...register("attention")}
-                error={
-                  errors.attention && errors.attention.message ? true : false
-                }
-                hint={errors.attention && errors.attention.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="opt_out">opt_out</Label>
+              <Label htmlFor="type">type</Label>
               <DropDown
-                id="opt_out"
-                options={statusOptions}
+                id="type"
+                options={typeOptions}
                 placeholder="Select Status"
-                value={watch("opt_out")}
+                value={watch("type")}
                 onChange={handleStatusChange}
                 className="dark:bg-dark-900"
                 disabled={mode === "view"}
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Controller
-                name="is_primary"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_primary"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="Is Primary"
-                  />
-                )}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Controller
-                name="is_verified"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_verified"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="Is Verified"
-                  />
-                )}
-              />
-            </div>
-          </div>
+
           {mode !== "view" && (
             <div className="flex items-center gap-2">
               <button

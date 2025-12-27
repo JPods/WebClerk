@@ -16,8 +16,8 @@ export interface CreateLocationRequest {
   state: string;
   zip: string;
   country: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface LocationApiTask {
@@ -29,8 +29,8 @@ export interface LocationApiTask {
   state: string;
   zip: string;
   country: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface UpdateLocationRequest {
@@ -43,6 +43,6 @@ export interface UpdateLocationRequest {
   state: string;
   zip: string;
   country: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
 }
