@@ -36,7 +36,7 @@ import TermDisplay from "../apps/accounts/models/term/pages/TermDisplay";
 
 // Communications
 import DomainList from "../apps/communications/models/domain/pages/domainList";
-import DomainDetail from "../apps/communications/models/domain/pages/domain";
+import DomainDetail from "../apps/communications/models/domain/pages/DomainDetail.tsx";
 import EmailList from "../apps/communications/models/email/pages/EmailList";
 import EmailDetail from "../apps/communications/models/email/pages/EmailDetail";
 import AppLocationList from "../apps/communications/models/location/pages/LocationList";

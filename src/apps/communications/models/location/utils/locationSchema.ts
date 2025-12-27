@@ -9,6 +9,6 @@ export const locationSchema = z.object({
   state: z.string().min(1, "State is required"),
   zip: z.string().min(1, "ZIP code is required"),
   country: z.string().min(1, "Country is required"),
-  latitude: z.string().min(1, "Latitude is required"),
-  longitude: z.string().min(1, "longitude is required"),
+  latitude: z.number().min(1, "Latitude is required"),
+  longitude: z.number().min(1, "longitude is required"),
 });
