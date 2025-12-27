@@ -63,7 +63,7 @@ export default function EmailDetail({
     try {
       const res =
         mode === "add"
-          ? await createEmail(formData)
+          ? await createEmail({ ...formData, id: "" })
           : await updateEmail({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
