@@ -816,7 +816,7 @@ class SaveWcapiView(APIView):
             'model_name': model_key,
             'version': getattr(obj, 'version', None),
             'linked': linked
-        }
+        } 
         messages = []
         if field_size_errors:
             console_logger.debug(f"[SAVE_VIEW] Adding {len(field_size_errors)} field size errors to messages")
