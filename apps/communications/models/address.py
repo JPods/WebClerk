@@ -127,6 +127,8 @@ class Address(BaseModel):
             pass
 
     def save(self, *args, **kwargs):  # type: ignore[override]
+        # Auto-populate full field from address components
+        self.full = self.format_auto()
         # Persist computed display bits prior to saving
         self._refresh_display_metadata()
         return super().save(*args, **kwargs)

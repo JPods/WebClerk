@@ -11,7 +11,7 @@ class AddressAdmin(admin.ModelAdmin):
     list_display = ('id', 'address1', 'city', 'country', 'address_type')
     list_filter = ('address_type', 'country', 'state')
     search_fields = ('address1', 'address2', 'city', 'zip', 'full')
-    #readonly_fields = ('uuid')
+    readonly_fields = ('full',)
     fieldsets = (
         (None, {
             'fields': ('address1', 'address2', 'address_type', 'city', 'country', 'state', 'zip', 'full')
