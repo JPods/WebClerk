@@ -9,24 +9,24 @@ import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import {
-  createManufacturer,
-  updateManufacturer,
-} from "../services/manufacturerApi";
+  createOrganization,
+  updateOrganization,
+} from "../services/organizationApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { manufacturerSchema } from "../utils/manufacturerSchema";
-import { ManufacturerAddProps } from "../types/manufacturerType";
+import { organizationSchema } from "../utils/organizationSchema";
+import { OrganizationAddProps } from "../types/organizationType";
 import Checkbox from "@/components/form/input/Checkbox";
 
-export default function ManufacturerDetail({
+export default function OrganizationDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-}: ManufacturerAddProps) {
+}: OrganizationAddProps) {
   const dispatch = useDispatch();
 
   const {
@@ -36,9 +36,9 @@ export default function ManufacturerDetail({
     formState: { errors },
     reset,
     control,
-  } = useForm<z.infer<typeof manufacturerSchema>>({
-    resolver: zodResolver(manufacturerSchema),
-    defaultValues: { is_active: false, version: 1, org_type: "Manufacturer" },
+  } = useForm<z.infer<typeof organizationSchema>>({
+    resolver: zodResolver(organizationSchema),
+    defaultValues: { is_active: false, version: 1, org_type: "Organization" },
   });
 
   const location = useLocation();
@@ -59,17 +59,17 @@ export default function ManufacturerDetail({
     }
   }, [data, reset, setValue, mode]);
   console.log("errors", errors);
-  const onSubmit = async (formData: z.infer<typeof manufacturerSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof organizationSchema>) => {
     console.log("formData", formData);
     try {
       const res =
         mode === "add"
-          ? await createManufacturer(formData)
-          : await updateManufacturer({ ...formData, id: data && data.id });
+          ? await createOrganization(formData)
+          : await updateOrganization({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
-            message: `Manufacturer ${
+            message: `Organization ${
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
@@ -90,10 +90,10 @@ export default function ManufacturerDetail({
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Manufacturer"
+              ? "Edit Organization"
               : mode === "view"
-              ? "View Manufacturer"
-              : "Manufacturer Detail"
+              ? "View Organization"
+              : "Organization Detail"
           }
         />
       )}
@@ -102,10 +102,10 @@ export default function ManufacturerDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Manufacturer"
+                ? "Edit Organization"
                 : mode === "view"
-                ? "View Manufacturer"
-                : "Add New Manufacturer"}
+                ? "View Organization"
+                : "Add New Organization"}
             </h3>
             {onCancelInline && (
               <button

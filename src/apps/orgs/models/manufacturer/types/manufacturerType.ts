@@ -8,35 +8,27 @@ export interface ManufacturerAddProps {
 }
 
 export interface CreateManufacturerRequest {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  manufacturer_code: string;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }
 
 export interface ManufacturerApiTask {
   id: number;
-  uuid: string | null;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  manufacturer_code: string;
-  dt_created?: number;
-  dt_modified?: number;
-  version?: number;
-  is_active?: boolean;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }
 
 export interface UpdateManufacturerRequest {
   id: number;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  manufacturer_code: string;
+  display_name: string;
+  status: string;
+  org_type: string;
+  is_active: boolean;
+  version: number;
 }

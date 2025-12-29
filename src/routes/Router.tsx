@@ -9,6 +9,10 @@ import {
   ContactList,
   CustomerList,
   EmployeeList,
+  ManufacturerList,
+  OrganizationsList,
+  RepList,
+  VendorList,
   FormElements,
   Home,
   KanbanBoardDataPage,
@@ -111,6 +115,16 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.contactList} element={<ContactList />} />
           <Route path={PageRoutes.customerList} element={<CustomerList />} />
           <Route path={PageRoutes.employeeList} element={<EmployeeList />} />
+          <Route
+            path={PageRoutes.manufacturerList}
+            element={<ManufacturerList />}
+          />
+          <Route
+            path={PageRoutes.organizationList}
+            element={<OrganizationsList />}
+          />
+          <Route path={PageRoutes.repList} element={<RepList />} />
+          <Route path={PageRoutes.vendorList} element={<VendorList />} />
           {/* <Route
             path={PageRoutes.customerDetail}
             element={<CustomerDetailPage />}
