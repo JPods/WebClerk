@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { vendorSchema } from "../utils/vendorSchema";
 import { VendorAddProps } from "../types/vendorType";
+import Checkbox from "@/components/form/input/Checkbox";
 
 export default function VendorDetail({
   modeProp,
@@ -31,8 +32,10 @@ export default function VendorDetail({
     handleSubmit,
     formState: { errors },
     reset,
+    control,
   } = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
+    defaultValues: { is_active: false, version: 1, org_type: "Rep" },
   });
 
   const location = useLocation();
@@ -52,8 +55,9 @@ export default function VendorDetail({
       reset({});
     }
   }, [data, reset, setValue, mode]);
-
+  console.log("errors", errors);
   const onSubmit = async (formData: z.infer<typeof vendorSchema>) => {
+    console.log("formData", formData);
     try {
       const res =
         mode === "add"
@@ -112,81 +116,51 @@ export default function VendorDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="display_name">display_name</Label>
               <Input
                 type="text"
-                id="name"
-                placeholder="Vendor Name"
-                {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
+                id="display_name"
+                placeholder="Display Name"
+                {...register("display_name")}
+                error={
+                  errors.display_name && errors.display_name.message
+                    ? true
+                    : false
+                }
+                hint={errors.display_name && errors.display_name.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="vendor_number">Vendor Number</Label>
+              <Label htmlFor="status">status</Label>
               <Input
                 type="text"
-                id="vendor_number"
-                placeholder="Vendor Number"
-                {...register("vendor_number")}
-                error={errors.vendor_number && errors.vendor_number.message ? true : false}
-                hint={errors.vendor_number && errors.vendor_number.message}
+                id="status"
+                placeholder="status"
+                {...register("status")}
+                error={errors.status && errors.status.message ? true : false}
+                hint={errors.status && errors.status.message}
                 disabled={mode === "view"}
               />
             </div>
           </div>
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Input
-              type="text"
-              id="address"
-              placeholder="Vendor Address"
-              {...register("address")}
-              error={errors.address && errors.address.message ? true : false}
-              hint={errors.address && errors.address.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                type="text"
-                id="phone"
-                placeholder="Phone Number"
-                {...register("phone")}
-                error={errors.phone && errors.phone.message ? true : false}
-                hint={errors.phone && errors.phone.message}
-                disabled={mode === "view"}
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="is_active"
+                    checked={field.value ?? false}
+                    onChange={field.onChange}
+                    label="is_active"
+                  />
+                )}
               />
             </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                type="email"
-                id="email"
-                placeholder="Email Address"
-                {...register("email")}
-                error={errors.email && errors.email.message ? true : false}
-                hint={errors.email && errors.email.message}
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="website">Website</Label>
-            <Input
-              type="url"
-              id="website"
-              placeholder="Website URL"
-              {...register("website")}
-              error={errors.website && errors.website.message ? true : false}
-              hint={errors.website && errors.website.message}
-              disabled={mode === "view"}
-            />
           </div>
           {mode !== "view" && (
             <div className="flex items-center gap-2">

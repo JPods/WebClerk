@@ -3,7 +3,10 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { getRecord } from "../../../../../api/wcapi";
-import { fetchVendors, deleteVendor } from "../services/vendorApi";
+import {
+  fetchOrganizations,
+  deleteOrganization,
+} from "../services/organizationApi";
 import {
   FaEye,
   FaEdit,
@@ -15,18 +18,16 @@ import {
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import VendorDetail from "./VendorDetail";
+import OrganizationDetail from "./OrganizationDisplay";
 import { dynamicData } from "../../../../../model/dynamicData";
-import VendorListMob from "./VendorListMob";
-
-export default function VendorList() {
+import OrganizationListMob from "./OrganizationListMob";
+export default function OrganizationList() {
   const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
   const [filteredData, setFilteredData] = useState<dynamicData[]>([]);
   const [filteredSearch, setFilteredSearch] = useState<string>("");
-  const [selectedVendor, setSelectedVendor] = useState<dynamicData | null>(
-    null
-  );
+  const [selectedOrganization, setSelectedOrganization] =
+    useState<dynamicData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
@@ -34,15 +35,15 @@ export default function VendorList() {
 
   const dispatch = useDispatch();
 
-  const getLocationData = useCallback(async (vendorId?: number) => {
+  const getLocationData = useCallback(async (organizationId?: number) => {
     setLoading(true);
     try {
-      const res = await fetchVendors();
+      const res = await fetchOrganizations();
       setData(res.data.data.results);
       setFilteredData(res.data.data.results);
-      if (vendorId) {
-        const contactRes = await getRecord("vendor", vendorId);
-        setSelectedVendor(contactRes.record);
+      if (organizationId) {
+        const contactRes = await getRecord("other", organizationId);
+        setSelectedOrganization(contactRes.record);
         setFilteredData(contactRes.record);
       }
     } finally {
@@ -56,43 +57,43 @@ export default function VendorList() {
   }, [getLocationData]);
 
   const handleView = (row: dynamicData) => {
-    setSelectedVendor(row);
+    setSelectedOrganization(row);
     setFormMode("view");
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchVendors(row.id);
+    const res = await fetchOrganizations(row.id);
     console.log("res.", res);
-    if (res.status === 200) setSelectedVendor(res.data.data.record);
-    else setSelectedVendor(row);
+    if (res.status === 200) setSelectedOrganization(res.data.data.record);
+    else setSelectedOrganization(row);
     setFormMode("edit");
     console.log("res", res);
   };
 
   const handleAdd = () => {
-    setSelectedVendor(null);
+    setSelectedOrganization(null);
     setFormMode("add");
   };
 
   const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete Vendor ${row.name}?`)) {
+    if (window.confirm(`Delete Organization ${row.name}?`)) {
       try {
-        await deleteVendor(row.id);
+        await deleteOrganization(row.id);
         dispatch(
           showToast({
-            message: "Vendor deleted successfully",
+            message: "Organization deleted successfully",
             type: "success",
           })
         );
         getLocationData(); // Refresh data
-        if (selectedVendor && selectedVendor.id === row.id) {
+        if (selectedOrganization && selectedOrganization.id === row.id) {
           setFormMode(null);
-          setSelectedVendor(null);
+          setSelectedOrganization(null);
         }
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete Vendor",
+            message: "Failed to delete Organization",
             type: "error",
           })
         );
@@ -103,12 +104,12 @@ export default function VendorList() {
   const handleFormSaved = () => {
     getLocationData();
     setFormMode(null);
-    setSelectedVendor(null);
+    setSelectedOrganization(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedVendor(null);
+    setSelectedOrganization(null);
   };
 
   // --------------- Global Filtered ---------------------------//
@@ -230,7 +231,7 @@ export default function VendorList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Vendor List" />
+      <PageBreadcrumb pageTitle="Organization List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -280,7 +281,7 @@ export default function VendorList() {
                   className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
                 >
                   <FaPlus />
-                  Vendor
+                  Organization
                 </button>
               </div>
             </div>
@@ -288,7 +289,7 @@ export default function VendorList() {
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:!bg-[#1e2636] dark:bg-gray-900 h-[calc(100vh-265px)]">
               {formMode ? (
                 <div className="flex flex-col">
-                  <VendorListMob
+                  <OrganizationListMob
                     dataProp={filteredData}
                     handleView={handleView}
                     handleEdit={handleEdit}
@@ -321,10 +322,10 @@ export default function VendorList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <VendorDetail
+            <OrganizationDetail
               inline
               modeProp={formMode}
-              dataProp={selectedVendor}
+              dataProp={selectedOrganization}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

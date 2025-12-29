@@ -35,7 +35,7 @@ import TermList from "../apps/accounts/models/term/pages/TermList";
 import TermDisplay from "../apps/accounts/models/term/pages/TermDisplay";
 
 // Communications
-import DomainList from "../apps/communications/models/domain/pages/domainList";
+import DomainList from "../apps/communications/models/domain/pages/DomainList";
 import DomainDetail from "../apps/communications/models/domain/pages/DomainDetail.tsx";
 import EmailList from "../apps/communications/models/email/pages/EmailList";
 import EmailDetail from "../apps/communications/models/email/pages/EmailDetail";
@@ -52,6 +52,10 @@ import CustomerDetail from "../apps/orgs/models/customer/pages/CustomerDisplay";
 import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
 import EmployeeDetail from "../apps/orgs/models/employee/pages/EmployeeDisplay";
 import EmployeeList from "../apps/orgs/models/employee/pages/EmployeeList";
+import ManufacturerList from "../apps/orgs/models/manufacturer/pages/ManufacturerList";
+import OrganizationsList from "../apps/orgs/models/organization/pages/OrganizationList";
+import RepList from "../apps/orgs/models/rep/pages/RepList";
+import VendorList from "../apps/orgs/models/vendor/pages/VendorList";
 // Core
 import CoreAction from "../apps/core/models/action/pages/Action";
 import CoreContactList from "../apps/core/models/contact/pages/ContactList";
@@ -114,6 +118,10 @@ export {
   CustomerList,
   EmployeeDetail,
   EmployeeList,
+  ManufacturerList,
+  OrganizationsList,
+  RepList,
+  VendorList,
   SettingAdd,
   SettingList,
   Calendar,

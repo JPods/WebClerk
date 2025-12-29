@@ -1,10 +1,10 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
 import type {
-  CreateOtherRequest,
-  OtherApiTask,
-  UpdateOtherRequest,
-} from "../types/otherType";
+  CreateOrganizationRequest,
+  OrganizationApiTask,
+  UpdateOrganizationRequest,
+} from "../types/organizationType";
 
 const unwrap = <T>(response: any): T => {
   if (!response) return [] as unknown as T;
@@ -13,29 +13,29 @@ const unwrap = <T>(response: any): T => {
   return response as T;
 };
 
-export const createOther = async (
-  payload: CreateOtherRequest
-): Promise<OtherApiTask> => {
+export const createOrganization = async (
+  payload: CreateOrganizationRequest
+): Promise<OrganizationApiTask> => {
   const model_name: string = "other";
   const res = await apiClient.post(PostLoginURL.allSave, {
     ...payload,
     model_name,
   });
-  return unwrap<OtherApiTask>(res);
+  return unwrap<OrganizationApiTask>(res);
 };
 
-export const updateOther = async (
-  payload: UpdateOtherRequest
-): Promise<OtherApiTask> => {
+export const updateOrganization = async (
+  payload: UpdateOrganizationRequest
+): Promise<OrganizationApiTask> => {
   const model_name: string = "other";
   const res = await apiClient.post(`${PostLoginURL.allSave}`, {
     ...payload,
     model_name,
   });
-  return unwrap<OtherApiTask>(res);
+  return unwrap<OrganizationApiTask>(res);
 };
 
-export const deleteOther = async (id: any) => {
+export const deleteOrganization = async (id: any) => {
   try {
     const res = await apiClient.delete(PostLoginURL.allTypes + id + "/");
     return res;
@@ -44,7 +44,7 @@ export const deleteOther = async (id: any) => {
   }
 };
 
-export const fetchOthers = async (id: any = "") => {
+export const fetchOrganizations = async (id: any = "") => {
   try {
     const res = await apiClient.get(
       PostLoginURL.allTypes + "model_name=other" + (id ? `&id=${id}` : "")
@@ -55,7 +55,7 @@ export const fetchOthers = async (id: any = "") => {
   }
 };
 
-export const fetchOther = async (): Promise<OtherApiTask[]> => {
+export const fetchOrganization = async (): Promise<OrganizationApiTask[]> => {
   const res = await apiClient.get(PostLoginURL.allTypes + "model_name=other");
-  return unwrap<OtherApiTask[]>(res);
+  return unwrap<OrganizationApiTask[]>(res);
 };
