@@ -1,8 +1,6 @@
 # path: apps/communications/admin.py
 from django.contrib import admin
 from .models import Address, Email, Phone, Domain
-from django.utils import timezone
-from common.models import default_metadata 
 
 
 @admin.register(Address)

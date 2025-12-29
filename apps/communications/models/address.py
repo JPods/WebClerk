@@ -1,7 +1,6 @@
 from django.db import models
 from common.models import BaseModel
 from django.utils import timezone
-import uuid
 from typing import Any, Dict, Optional
 
 class Address(BaseModel):
