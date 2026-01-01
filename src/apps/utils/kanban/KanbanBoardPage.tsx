@@ -698,23 +698,28 @@ const KanbanBoardPage: React.FC = () => {
         return;
       }
 
-      const position = Math.max(0, dropResult.index ?? 0);
-
-      try {
-        await patchAction({
-          id: task.id,
+      // Build full ordering payload for the target column so backend receives complete sequence.
+      const payload = targetColumn.taskIds.map((id, index) => {
+        const targetTask = boardSnapshot.tasks[id];
+        return {
+          id: targetTask?.id ?? id,
           model_name: "action",
           kanban_column: targetColumn.title,
           kanban_column_id: targetColumn.id,
-          sequence: position,
-          order: position,
-          position,
-        });
+          sequence: index,
+          order: index,
+          position: index,
+          ...(selectedProjectSlug ? { project: selectedProjectSlug } : {}),
+        };
+      });
+
+      try {
+        await patchAction(payload);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
       }
     },
-    []
+    [selectedProjectSlug]
   );
 
   const handleDragEnd = useCallback(

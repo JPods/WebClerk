@@ -1,0 +1,23 @@
+[
+    {
+      
+    "id": 74,
+    "model_name": "action",
+    "kanban_column": "InProcess",
+    "kanban_column_id": "column-inprocess",
+    "sequence": 3,
+    "order": 3,
+    "position": 3
+
+    },
+     {
+        "id": 75,
+        "model_name": "action",
+        "kanban_column": "InProcess",
+        "kanban_column_id": "column-inprocess",
+        "sequence": 3,
+        "order": 3,
+        "position": 3
+     }  
+]
+payload of kanban drag upload
