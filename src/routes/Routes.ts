@@ -17,6 +17,10 @@ export class PageRoutes {
   static readonly contactList: string = "/core/contact/list";
   static readonly customerList: string = "/org/customer/list";
   static readonly employeeList: string = "/org/employee/list";
+  static readonly manufacturerList: string = "/org/manufacturer/list";
+  static readonly organizationList: string = "/org/organization/list";
+  static readonly repList: string = "/org/rep/list";
+  static readonly vendorList: string = "/org/vendor/list";
 
   static readonly settingAdd: string = "/setting-add";
   static readonly settingList: string = "/setting-list";

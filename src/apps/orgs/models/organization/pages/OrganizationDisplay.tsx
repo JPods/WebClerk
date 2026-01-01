@@ -1,31 +1,32 @@
 import { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useForm, Controller } from "react-hook-form";
+
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import {
-  Input,
-  CustTextArea,
-  DropDown,
-} from "../../../../../components/wrapper";
+import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createEmail, updateEmail } from "../services/emailApi";
+import {
+  createOrganization,
+  updateOrganization,
+} from "../services/organizationApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { emailSchema } from "../utils/emailSchema";
-import { EmailAddProps } from "../types/emailType";
-import Checkbox from "../../../../../components/form/input/Checkbox";
-export default function EmailDetail({
+import { organizationSchema } from "../utils/organizationSchema";
+import { OrganizationAddProps } from "../types/organizationType";
+import Checkbox from "@/components/form/input/Checkbox";
+
+export default function OrganizationDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-}: EmailAddProps) {
+}: OrganizationAddProps) {
   const dispatch = useDispatch();
 
   const {
@@ -35,10 +36,9 @@ export default function EmailDetail({
     formState: { errors },
     reset,
     control,
-    watch,
-  } = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { is_primary: false, is_verified: false },
+  } = useForm<z.infer<typeof organizationSchema>>({
+    resolver: zodResolver(organizationSchema),
+    defaultValues: { is_active: false, version: 1, org_type: "Organization" },
   });
 
   const location = useLocation();
@@ -58,17 +58,18 @@ export default function EmailDetail({
       reset({});
     }
   }, [data, reset, setValue, mode]);
-
-  const onSubmit = async (formData: z.infer<typeof emailSchema>) => {
+  console.log("errors", errors);
+  const onSubmit = async (formData: z.infer<typeof organizationSchema>) => {
+    console.log("formData", formData);
     try {
       const res =
         mode === "add"
-          ? await createEmail({ ...formData, id: "" })
-          : await updateEmail({ ...formData, id: data && data.id });
+          ? await createOrganization(formData)
+          : await updateOrganization({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
-            message: `Email ${
+            message: `Organization ${
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
@@ -83,36 +84,16 @@ export default function EmailDetail({
     }
   };
 
-  const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "opted_out", label: "Opted Out" },
-    { value: "bounced", label: "Bounced" },
-    { value: "invalid", label: "Invalid" },
-    { value: "spam_complaint", label: "Spam Complaint" },
-  ];
-
-  const handleStatusChange = (value: string) => {
-    setValue(
-      "opt_out",
-      value as
-        | "bounced"
-        | "opted_out"
-        | "invalid"
-        | "spam_complaint"
-        | undefined
-    );
-  };
-
   return (
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Email"
+              ? "Edit Organization"
               : mode === "view"
-              ? "View Email"
-              : "Email Detail"
+              ? "View Organization"
+              : "Organization Detail"
           }
         />
       )}
@@ -121,10 +102,10 @@ export default function EmailDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Email"
+                ? "Edit Organization"
                 : mode === "view"
-                ? "View Email"
-                : "Add New Email"}
+                ? "View Organization"
+                : "Add New Organization"}
             </h3>
             {onCancelInline && (
               <button
@@ -138,54 +119,32 @@ export default function EmailDetail({
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="email">email</Label>
+              <Label htmlFor="display_name">display_name</Label>
               <Input
-                type="email"
-                id="email"
-                placeholder="Email Address"
-                {...register("email")}
-                error={errors.email && errors.email.message ? true : false}
-                hint={errors.email && errors.email.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="name">name</Label>
-              <Input
-                type="name"
-                id="name"
-                placeholder="Name"
-                {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
-                disabled={mode === "view"}
-              />
-            </div>
-            <div>
-              <Label htmlFor="attention">attention</Label>
-              <Input
-                type="attention"
-                id="attention"
-                placeholder="Attention"
-                {...register("attention")}
+                type="text"
+                id="display_name"
+                placeholder="Display Name"
+                {...register("display_name")}
                 error={
-                  errors.attention && errors.attention.message ? true : false
+                  errors.display_name && errors.display_name.message
+                    ? true
+                    : false
                 }
-                hint={errors.attention && errors.attention.message}
+                hint={errors.display_name && errors.display_name.message}
                 disabled={mode === "view"}
               />
             </div>
             <div>
-              <Label htmlFor="opt_out">opt_out</Label>
-              <DropDown
-                id="opt_out"
-                options={statusOptions}
-                placeholder="Select Status"
-                value={watch("opt_out")}
-                onChange={handleStatusChange}
-                className="dark:bg-dark-900"
+              <Label htmlFor="status">status</Label>
+              <Input
+                type="text"
+                id="status"
+                placeholder="status"
+                {...register("status")}
+                error={errors.status && errors.status.message ? true : false}
+                hint={errors.status && errors.status.message}
                 disabled={mode === "view"}
               />
             </div>
@@ -193,30 +152,14 @@ export default function EmailDetail({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <Controller
-                name="is_primary"
+                name="is_active"
                 control={control}
                 render={({ field }) => (
                   <Checkbox
-                    id="is_primary"
+                    id="is_active"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="Is Primary"
-                  />
-                )}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Controller
-                name="is_verified"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_verified"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="Is Verified"
+                    label="is_active"
                   />
                 )}
               />

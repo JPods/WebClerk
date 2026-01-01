@@ -1,88 +1,99 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getRecord } from "../../../../../api/wcapi";
-import { fetchLocations, deleteLocation } from "../services/locationApi";
-import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import {
+  fetchOrganizations,
+  deleteOrganization,
+} from "../services/organizationApi";
+import {
+  FaEye,
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaCheck,
+  FaTimes,
+} from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
-import LocationDetail from "./LocationDetail";
+import OrganizationDetail from "./OrganizationDisplay";
 import { dynamicData } from "../../../../../model/dynamicData";
-import LocationListMob from "./LocationListMob";
-export default function LocationList() {
+import OrganizationListMob from "./OrganizationListMob";
+export default function OrganizationList() {
   const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
   const [filteredData, setFilteredData] = useState<dynamicData[]>([]);
   const [filteredSearch, setFilteredSearch] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState<dynamicData | null>(
-    null
-  );
+  const [selectedOrganization, setSelectedOrganization] =
+    useState<dynamicData | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
-  const getLocationData = useCallback(async (locationId?: number) => {
+
+  const getLocationData = useCallback(async (organizationId?: number) => {
     setLoading(true);
     try {
-      const res = await fetchLocations();
+      const res = await fetchOrganizations();
       setData(res.data.data.results);
       setFilteredData(res.data.data.results);
-      if (locationId) {
-        const contactRes = await getRecord("contact", locationId);
-        setSelectedLocation(contactRes.record);
+      if (organizationId) {
+        const contactRes = await getRecord("other", organizationId);
+        setSelectedOrganization(contactRes.record);
         setFilteredData(contactRes.record);
       }
     } finally {
       setLoading(false);
     }
   }, []);
+  //console.log("filteredData,data", filteredData, data);
 
   useEffect(() => {
     getLocationData();
   }, [getLocationData]);
 
   const handleView = (row: dynamicData) => {
-    setSelectedLocation(row);
+    setSelectedOrganization(row);
     setFormMode("view");
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchLocations(row.id);
+    const res = await fetchOrganizations(row.id);
     console.log("res.", res);
-    if (res.status === 200) setSelectedLocation(res.data.data.record);
-    else setSelectedLocation(row);
+    if (res.status === 200) setSelectedOrganization(res.data.data.record);
+    else setSelectedOrganization(row);
     setFormMode("edit");
     console.log("res", res);
   };
 
   const handleAdd = () => {
-    setSelectedLocation(null);
+    setSelectedOrganization(null);
     setFormMode("add");
   };
 
   const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete location ${row.name}?`)) {
+    if (window.confirm(`Delete Organization ${row.name}?`)) {
       try {
-        await deleteLocation(row.id);
+        await deleteOrganization(row.id);
         dispatch(
           showToast({
-            message: "Location deleted successfully",
+            message: "Organization deleted successfully",
             type: "success",
           })
         );
         getLocationData(); // Refresh data
-        if (selectedLocation && selectedLocation.id === row.id) {
+        if (selectedOrganization && selectedOrganization.id === row.id) {
           setFormMode(null);
-          setSelectedLocation(null);
+          setSelectedOrganization(null);
         }
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete location",
+            message: "Failed to delete Organization",
             type: "error",
           })
         );
@@ -93,12 +104,12 @@ export default function LocationList() {
   const handleFormSaved = () => {
     getLocationData();
     setFormMode(null);
-    setSelectedLocation(null);
+    setSelectedOrganization(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedLocation(null);
+    setSelectedOrganization(null);
   };
 
   // --------------- Global Filtered ---------------------------//
@@ -109,9 +120,10 @@ export default function LocationList() {
       const filtered = data.filter((element) => {
         // Combine all columns you want to search in as strings
         const valuesToSearch = [
-          element.email,
-          element.name,
-          element.attention,
+          element.display_name,
+          element.org_type,
+          element.status,
+          element.version,
         ].map((value) => value && value.toString().trim().toLowerCase()); // Trim and lowercase each value
 
         // Check if any of the column values includes the search query
@@ -144,65 +156,82 @@ export default function LocationList() {
     },
     [filteredSearch]
   );
-  /* ---------------- Columns ---------------- */
-  const userColumns: TableColumn<dynamicData>[] = useMemo(
-    () => [
-      { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
-      {
-        name: "address1",
-        selector: (row) => row.address1 || "--",
-        cell: (row) =>
-          row.address1 ? highlightMatch(row.address1.toString()) : "--",
-        sortable: true,
-        width: "30%",
-      },
-      {
-        name: "city",
-        selector: (row) => row.city || "--",
-        cell: (row) => (row.city ? highlightMatch(row.city.toString()) : "--"),
-        sortable: true,
-        width: "10%",
-      },
 
-      {
-        name: "country",
-        selector: (row) => row.country || "--",
-        cell: (row) =>
-          row.country ? highlightMatch(row.country.toString()) : "--",
-        sortable: true,
-        width: "15%",
-      },
-      {
-        name: "address_type",
-        selector: (row) => row.address_type || "--",
-        cell: (row) =>
-          row.address_type ? highlightMatch(row.address_type.toString()) : "--",
-        sortable: true,
-        width: "30%",
-      },
-      {
-        name: "action",
-        cell: (row) => (
-          <div className="flex gap-3">
-            <button onClick={() => handleView(row)} title="View">
-              <FaEye className="text-blue-600 hover:scale-110 transition" />
-            </button>
-            <button onClick={() => handleEdit(row)} title="Edit">
-              <FaEdit className="text-green-600 hover:scale-110 transition" />
-            </button>
-          </div>
-        ),
-        ignoreRowClick: true,
-        allowOverflow: true,
-        button: true,
-      },
-    ],
-    [highlightMatch]
-  );
+  const userColumns: TableColumn<dynamicData>[] = [
+    { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
+
+    {
+      name: "display_name",
+      selector: (row) => row.display_name || "--",
+      cell: (row) =>
+        row.display_name ? highlightMatch(row.display_name.toString()) : "--",
+      sortable: true,
+      width: "25%",
+    },
+    {
+      name: "org_type",
+      selector: (row) => row.org_type || "--",
+      cell: (row) =>
+        row.org_type ? highlightMatch(row.org_type.toString()) : "--",
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "status",
+      selector: (row) => row.status || "--",
+      cell: (row) =>
+        row.status ? highlightMatch(row.status.toString()) : "--",
+      sortable: true,
+      width: "30%",
+    },
+
+    {
+      name: "is_active",
+      selector: (row) => (row.is_active ? "yes" : "no"),
+      cell: (row) => (
+        <>
+          {row.is_active ? (
+            <FaCheck className="text-success-600 hover:scale-110 transition" />
+          ) : (
+            <FaTimes className="text-warning-600 hover:scale-110 transition" />
+          )}
+        </>
+      ),
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "version",
+      selector: (row) => row.version || "--",
+      cell: (row) =>
+        row.version ? highlightMatch(row.version.toString()) : "--",
+      sortable: true,
+      width: "10%",
+    },
+    {
+      name: "Action",
+      cell: (row) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleView(row)} title="View">
+            <FaEye className="text-blue-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleEdit(row)} title="Edit">
+            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleDelete(row)} title="Delete">
+            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+  ];
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Location List" />
+      <PageBreadcrumb pageTitle="Organization List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -252,7 +281,7 @@ export default function LocationList() {
                   className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
                 >
                   <FaPlus />
-                  Location
+                  Organization
                 </button>
               </div>
             </div>
@@ -260,7 +289,7 @@ export default function LocationList() {
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:!bg-[#1e2636] dark:bg-gray-900 h-[calc(100vh-265px)]">
               {formMode ? (
                 <div className="flex flex-col">
-                  <LocationListMob
+                  <OrganizationListMob
                     dataProp={filteredData}
                     handleView={handleView}
                     handleEdit={handleEdit}
@@ -270,10 +299,7 @@ export default function LocationList() {
                 <DataTable
                   columns={userColumns.map((col) => ({
                     ...col,
-                    name:
-                      typeof col.name === "string"
-                        ? col.name.toUpperCase()
-                        : col.name,
+                    name: typeof col.name === "string" && col.name,
                   }))}
                   data={filteredData}
                   pagination
@@ -296,10 +322,10 @@ export default function LocationList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <LocationDetail
+            <OrganizationDetail
               inline
               modeProp={formMode}
-              dataProp={selectedLocation}
+              dataProp={selectedOrganization}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

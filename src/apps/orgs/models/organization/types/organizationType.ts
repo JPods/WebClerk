@@ -1,4 +1,4 @@
-export interface RepAddProps {
+export interface OrganizationAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any; // TODO: Type this properly
   hideBreadcrumb?: boolean;
@@ -7,28 +7,28 @@ export interface RepAddProps {
   onCancelInline?: () => void;
 }
 
-export interface CreateRepRequest {
+export interface CreateOrganizationRequest {
   display_name: string;
   status: string;
-  org_type?: string;
+  org_type: string;
   is_active: boolean;
-  version?: number;
+  version: number;
 }
 
-export interface RepApiTask {
+export interface OrganizationApiTask {
   id: number;
   display_name: string;
   status: string;
-  org_type?: string;
+  org_type: string;
   is_active: boolean;
-  version?: number;
+  version: number;
 }
 
-export interface UpdateRepRequest {
+export interface UpdateOrganizationRequest {
   id: number;
   display_name: string;
   status: string;
-  org_type?: string;
+  org_type: string;
   is_active: boolean;
-  version?: number;
+  version: number;
 }

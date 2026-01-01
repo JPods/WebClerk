@@ -8,35 +8,27 @@ export interface VendorAddProps {
 }
 
 export interface CreateVendorRequest {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  vendor_number: string;
+  display_name: string;
+  status: string;
+  org_type?: string;
+  is_active: boolean;
+  version?: number;
 }
 
 export interface VendorApiTask {
   id: number;
-  uuid: string | null;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  vendor_number: string;
-  dt_created?: number;
-  dt_modified?: number;
+  display_name: string;
+  status: string;
+  org_type?: string;
+  is_active: boolean;
   version?: number;
-  is_active?: boolean;
 }
 
 export interface UpdateVendorRequest {
   id: number;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-  website?: string;
-  vendor_number: string;
+  display_name: string;
+  status: string;
+  org_type?: string;
+  is_active: boolean;
+  version?: number;
 }
