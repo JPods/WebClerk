@@ -94,6 +94,15 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
         logger.warning(f"Error applying constraints for {model_key}: {str(e)}")
         return qs  # Return unfiltered queryset on error
 
+TRANSACTION_MODELS_WITH_LINES = {
+    "proposal",
+    "salesorder",
+    "invoice",
+    "purchaseorder",
+    "workorder",
+}
+
+
 class WCAPIGetView(APIView):
     http_method_names = ["post", "options", "head"]
 
@@ -124,6 +133,21 @@ class WCAPIGetView(APIView):
             data = to_dict(obj)
             if fields:
                 data = {k: data.get(k) for k in fields}
+            model_name = getattr(getattr(ModelCls, "_meta", None), "model_name", "").lower()
+            if model_name in TRANSACTION_MODELS_WITH_LINES:
+                try:
+                    related_manager = getattr(obj, "lines", None)
+                    if hasattr(related_manager, "all"):
+                        line_qs = related_manager.all()
+                        try:
+                            line_qs = line_qs.order_by("id")
+                        except Exception:
+                            pass
+                        data["lines"] = [to_dict(line_obj) for line_obj in line_qs]
+                    else:
+                        data["lines"] = []
+                except Exception:
+                    data["lines"] = []
             return Response({"item": data}, status=status.HTTP_200_OK)
 
         if isinstance(filters, dict) and filters:
