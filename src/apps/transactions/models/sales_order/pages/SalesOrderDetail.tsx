@@ -1,421 +1,845 @@
-import { useState, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { 
-  Plus, 
-  Trash2, 
-  Printer, 
-  Settings, 
-  User, 
-  Calendar,
-  DollarSign,
-  FileText,
-  CheckCircle
-} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useDispatch } from "react-redux";
+import { useLocation } from "react-router";
 
-/**
- * @typedef {Object} LineItem
- * @property {string} id
- * @property {string} description
- * @property {number} quantity
- * @property {number} price
- */
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
+import Label from "../../../../../components/form/Label";
+import { Input } from "../../../../../components/wrapper";
+import { showToast } from "../../../../../store/slices/toastSlice";
 
-const SalesOrderDetail = () => {
-  const productCatalog = [
-    { label: 'Web Development Services', price: 1200 },
-    { label: 'UI/UX Design Consultation', price: 150 },
-    { label: 'SEO Optimization Package', price: 300 },
-    { label: 'Content Strategy Workshop', price: 450 },
-    { label: 'Mobile App Prototype', price: 900 },
-    { label: 'API Integration Support', price: 650 }
-  ];
+import { salesOrderSchema } from "../utils/salesOrderSchema";
+import { createSalesOrder, updateSalesOrder, fetchSalesOrderDetail } from "../services/salesOrderApi";
+import { SalesOrderAddProps } from "../types/salesOrderType";
+import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
+import SalesOrderStatus from "../components/SalesOrderStatus";
+import type { SalesOrderLine } from "../types/salesOrderLineType";
 
-  // --- State ---
-  const [invoiceNumber, setInvoiceNumber] = useState(`INV-${new Date().getFullYear()}-001`);
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
-  const [clientName, setClientName] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [taxRate, setTaxRate] = useState(10);
-  const [items, setItems] = useState([
-    { id: crypto.randomUUID(), description: 'Web Development Services', quantity: 1, price: 1200 },
-    { id: crypto.randomUUID(), description: 'UI/UX Design Consultation', quantity: 5, price: 150 }
-  ]);
-  const [descriptionSearch, setDescriptionSearch] = useState<Record<string, string>>({});
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [dropdownAnchor, setDropdownAnchor] = useState<{ id: string; top: number; left: number; width: number } | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
+const STATUS_OPTIONS = [
+  { value: "planned", label: "planned" },
+  { value: "released", label: "released" },
+  { value: "in_progress", label: "in_progress" },
+  { value: "hold", label: "hold" },
+  { value: "complete", label: "complete" },
+  { value: "canceled", label: "canceled" },
+];
 
-  const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim();
-  const selectedLabels = useMemo(() => {
-    const labels = items
-      .map(i => normalize(i.description))
-      .filter(Boolean);
-    return new Set(labels);
-  }, [items]);
+type FieldType = "text" | "number" | "select";
 
-  // --- Calculations ---
-  const totals = useMemo(() => {
-    const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-    const taxAmount = (subtotal * taxRate) / 100;
-    const total = subtotal + taxAmount;
-    return { subtotal, taxAmount, total };
-  }, [items, taxRate]);
+interface FieldConfig {
+  name: string;
+  label: string;
+  type: FieldType;
+  options?: { value: string; label: string }[];
+  step?: number;
+  min?: number;
+}
 
-  // --- Handlers ---
-  const addItem = () => {
-    const newItem = {
-      id: crypto.randomUUID(),
-      description: '',
-      quantity: 1,
-      price: 0
+interface FieldGroup {
+  title: string;
+  fields: FieldConfig[];
+}
+
+const FIELD_GROUPS: FieldGroup[] = [
+  {
+    title: "Primary",
+    fields: [
+      { name: "sales_order_no", label: "sales_order_no", type: "text" },
+      { name: "status", label: "status", type: "select", options: STATUS_OPTIONS },
+      { name: "priority", label: "priority", type: "text" },
+      { name: "price_level", label: "price_level", type: "text" },
+    ],
+  },
+  {
+    title: "Associations",
+    fields: [
+      { name: "id_customer", label: "id_customer", type: "number", min: 1 },
+      { name: "id_manufacturer", label: "id_manufacturer", type: "number", min: 0 },
+      { name: "id_vendor", label: "id_vendor", type: "number", min: 0 },
+    ],
+  },
+  {
+    title: "Financial",
+    fields: [
+      { name: "subtotal", label: "subtotal", type: "number", step: 0.01 },
+      { name: "tax", label: "tax", type: "number", step: 0.01 },
+      { name: "discount", label: "discount", type: "number", step: 0.01 },
+      { name: "total", label: "total", type: "number", step: 0.01 },
+    ],
+  },
+  {
+    title: "Metadata",
+    fields: [{ name: "metadata.priority", label: "metadata.priority", type: "text" }],
+  },
+];
+
+const JSON_FIELD_PATHS = [
+  "cost",
+  "sell",
+  "finance",
+  "flow",
+  "source",
+  "subtotals",
+  "prefs.userdefined",
+  "refs.links",
+] as const;
+
+type JsonFieldPath = (typeof JSON_FIELD_PATHS)[number];
+
+type SalesOrderForm = z.infer<typeof salesOrderSchema>;
+
+type SalesOrderLineRecord = SalesOrderLine & Record<string, unknown>;
+
+function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
+  if (!raw) {
+    return [];
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return normalizeLines(parsed);
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(raw)) {
+    return raw as SalesOrderLineRecord[];
+  }
+  if (typeof raw === "object") {
+    const container = raw as Record<string, unknown>;
+    if (Array.isArray(container.results)) {
+      return container.results as SalesOrderLineRecord[];
+    }
+    if (Array.isArray(container.data)) {
+      return container.data as SalesOrderLineRecord[];
+    }
+    if (Array.isArray(container.items)) {
+      return container.items as SalesOrderLineRecord[];
+    }
+    const keys = Object.keys(container);
+    if (keys.length > 0 && keys.every((key) => /^\d+$/.test(key))) {
+      return Object.values(container) as SalesOrderLineRecord[];
+    }
+  }
+  return [];
+}
+
+const DEFAULT_FORM_VALUES: SalesOrderForm = {
+  company: "",
+  attention: "",
+  address1: "",
+  address2: "",
+  city: "",
+  state: "",
+  zip: "",
+  email: "",
+  phoneCell: "",
+  phone: "",
+  actionBy: "",
+  action: "",
+  actionDate: "",
+  actionTime: "",
+  salesNameID: "",
+  orderedBy: "",
+  contractDetailTag: "",
+  terms: "",
+  typeSale: "",
+  taxJuris: "",
+  adSource: "",
+  addComment: "",
+  comment: "",
+  contractDetail: "",
+  id_transaction: "",
+  id_customer: 0,
+  subtotal: 0,
+  total: 0,
+  tax: 0,
+  discount: 0,
+  metadata: { priority: "" },
+  prefs: { userdefined: {} },
+  refs: { links: { contact: [], customer: [] } },
+  sales_order_no: "",
+  status: "planned",
+  priority: "",
+  price_level: "",
+  id_manufacturer: 0,
+  id_vendor: 0,
+  cost: {},
+  sell: {},
+  finance: {},
+  flow: {},
+  source: {},
+  subtotals: {},
+  lines: [],
+  dt_created: undefined,
+  dt_updated: undefined,
+  dt_modified: undefined,
+  due_date: undefined,
+  valid_until: undefined,
+  version: undefined,
+};
+
+function serializeJson(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    return "";
+  }
+}
+
+function extractValue(source: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc === undefined || acc === null) {
+      return undefined;
+    }
+    if (typeof acc !== "object") {
+      return undefined;
+    }
+    return (acc as Record<string, unknown>)[key];
+  }, source);
+}
+
+function setDeepValue(target: Record<string, unknown>, path: string, value: unknown) {
+  const segments = path.split(".");
+  let cursor: Record<string, unknown> = target;
+  segments.forEach((segment, index) => {
+    if (index === segments.length - 1) {
+      if (value === undefined) {
+        delete cursor[segment];
+      } else {
+        cursor[segment] = value;
+      }
+      return;
+    }
+    if (!cursor[segment] || typeof cursor[segment] !== "object") {
+      cursor[segment] = {};
+    }
+    cursor = cursor[segment] as Record<string, unknown>;
+  });
+}
+
+function getErrorMessage(errors: Record<string, unknown>, path: string): string | undefined {
+  const segments = path.split(".");
+  let cursor: unknown = errors;
+  for (const segment of segments) {
+    if (!cursor || typeof cursor !== "object") {
+      return undefined;
+    }
+    cursor = (cursor as Record<string, unknown>)[segment];
+  }
+  if (!cursor || typeof cursor !== "object") {
+    return undefined;
+  }
+  const message = (cursor as { message?: unknown }).message;
+  return typeof message === "string" ? message : undefined;
+}
+
+function formatNumber(value: unknown): string {
+  if (typeof value === "number") {
+    return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (typeof value === "string" && !Number.isNaN(Number(value))) {
+    const numeric = Number(value);
+    return numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  return "";
+}
+
+function toNumeric(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+interface AggregatedFinancials {
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  costTotal: number;
+  costDetails: Record<string, number>;
+  sellDetails: Record<string, number>;
+}
+
+function SalesOrderLinesPanel({ lines }: { lines: SalesOrderLineRecord[] }) {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return (
+      <ComponentCard>
+        <div className="text-sm text-gray-500 dark:text-gray-400">No line items available.</div>
+      </ComponentCard>
+    );
+  }
+
+  return (
+    <ComponentCard>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold dark:text-white">Line Items</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">item.ida_item</th>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">item.description</th>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">quantity.placed</th>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">quantity.remaining</th>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">price.unit</th>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">price.discount_percent</th>
+                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">price.extended</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => {
+                const item = (line as Record<string, unknown>).item as Record<string, unknown> | undefined;
+                const quantity = (line as Record<string, unknown>).quantity as Record<string, unknown> | number | undefined;
+                const price = (line as Record<string, unknown>).price as Record<string, unknown> | undefined;
+                const idaItem = extractValue(item ?? {}, "ida_item") ?? "";
+                const itemDescription = extractValue(item ?? {}, "description") ?? "";
+                const placed = typeof quantity === "number" ? quantity : extractValue(quantity ?? {}, "placed");
+                const remaining = typeof quantity === "number" ? undefined : extractValue(quantity ?? {}, "remaining");
+                const priceUnit = extractValue(price ?? {}, "unit");
+                const priceDiscountPercent = extractValue(price ?? {}, "discount_percent");
+                const priceExtended = extractValue(price ?? {}, "extended");
+
+                return (
+                  <tr key={(line.id ?? crypto.randomUUID()).toString()} className="border-b border-gray-100 dark:border-gray-700">
+                    <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{String(idaItem || "")}</td>
+                    <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{String(itemDescription || "")}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(placed)}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(remaining)}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(priceUnit)}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(priceDiscountPercent)}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(priceExtended)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+    </ComponentCard>
+  );
+}
+
+export default function SalesOrderDetail({
+  modeProp,
+  dataProp,
+  hideBreadcrumb,
+  onSaved,
+  inline = false,
+  onCancelInline,
+}: SalesOrderAddProps) {
+  const dispatch = useDispatch();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<SalesOrderForm>({
+    resolver: zodResolver(salesOrderSchema),
+    defaultValues: DEFAULT_FORM_VALUES,
+    mode: "onBlur",
+  });
+
+  const [jsonDrafts, setJsonDrafts] = useState<Record<JsonFieldPath, string>>(() => {
+    const base: Record<JsonFieldPath, string> = {
+      cost: "",
+      sell: "",
+      finance: "",
+      flow: "",
+      source: "",
+      subtotals: "",
+      "prefs.userdefined": "",
+      "refs.links": "",
     };
-    setItems([...items, newItem]);
+    return base;
+  });
+  const [jsonErrors, setJsonErrors] = useState<Record<JsonFieldPath, string | undefined>>({
+    cost: undefined,
+    sell: undefined,
+    finance: undefined,
+    flow: undefined,
+    source: undefined,
+    subtotals: undefined,
+    "prefs.userdefined": undefined,
+    "refs.links": undefined,
+  });
+
+  const location = useLocation();
+  const routeState = (location.state as Record<string, unknown>) || {};
+  const mode = (modeProp || routeState.mode || "add") as "add" | "edit" | "view";
+  const data = (dataProp || routeState.data || null) as (SalesOrderForm & { id?: number }) | null;
+  const isReadOnly = mode === "view";
+
+  const [recordData, setRecordData] = useState<(SalesOrderForm & { id?: number }) | null>(data);
+
+  useEffect(() => {
+    setRecordData(data);
+  }, [data]);
+
+  const dispatchToastError = useCallback(
+    (message: string) => {
+      dispatch(showToast({ message, type: "error" }));
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    if (!data?.id) {
+      return;
+    }
+    if (normalizeLines((data as Record<string, unknown>)?.lines).length > 0) {
+      return;
+    }
+    let cancelled = false;
+    const loadDetail = async () => {
+      try {
+        const detail = await fetchSalesOrderDetail(data.id);
+        if (!cancelled) {
+          setRecordData(detail as SalesOrderForm & { id?: number });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "Failed to load sales order";
+          dispatchToastError(message);
+        }
+      }
+    };
+    loadDetail();
+    return () => {
+      cancelled = true;
+    };
+  }, [data, dispatchToastError]);
+
+  const mergedDefaults = useMemo(() => {
+    if (!recordData) {
+      return DEFAULT_FORM_VALUES;
+    }
+    return {
+      ...DEFAULT_FORM_VALUES,
+      ...recordData,
+      metadata: {
+        ...DEFAULT_FORM_VALUES.metadata,
+        ...(typeof recordData.metadata === "object" && recordData.metadata ? recordData.metadata : {}),
+      },
+      prefs: {
+        ...DEFAULT_FORM_VALUES.prefs,
+        ...(typeof recordData.prefs === "object" && recordData.prefs ? recordData.prefs : {}),
+      },
+      refs: {
+        ...DEFAULT_FORM_VALUES.refs,
+        ...(typeof recordData.refs === "object" && recordData.refs ? recordData.refs : {}),
+      },
+      cost: typeof recordData.cost === "object" && recordData.cost ? recordData.cost : {},
+      sell: typeof recordData.sell === "object" && recordData.sell ? recordData.sell : {},
+      finance: typeof recordData.finance === "object" && recordData.finance ? recordData.finance : {},
+      flow: typeof recordData.flow === "object" && recordData.flow ? recordData.flow : {},
+      source: typeof recordData.source === "object" && recordData.source ? recordData.source : {},
+      subtotals: typeof recordData.subtotals === "object" && recordData.subtotals ? recordData.subtotals : {},
+      lines: normalizeLines((recordData as Record<string, unknown>).lines),
+    } as SalesOrderForm;
+  }, [recordData]);
+
+  useEffect(() => {
+    reset(mergedDefaults);
+    const drafts: Partial<Record<JsonFieldPath, string>> = {};
+    JSON_FIELD_PATHS.forEach((path) => {
+      drafts[path] = serializeJson(extractValue(mergedDefaults as Record<string, unknown>, path));
+      setValue(path as any, extractValue(mergedDefaults as Record<string, unknown>, path) as any);
+    });
+    setJsonDrafts((prev) => ({ ...prev, ...drafts } as Record<JsonFieldPath, string>));
+    setJsonErrors({
+      cost: undefined,
+      sell: undefined,
+      finance: undefined,
+      flow: undefined,
+      source: undefined,
+      subtotals: undefined,
+      "prefs.userdefined": undefined,
+      "refs.links": undefined,
+    });
+  }, [mergedDefaults, reset, setValue]);
+
+  const lineItems = useMemo(() => {
+    if (recordData && typeof recordData === "object") {
+      return normalizeLines((recordData as Record<string, unknown>).lines);
+    }
+    return [];
+  }, [recordData]);
+
+  const aggregatedFinancials = useMemo<AggregatedFinancials>(() => {
+    let subtotal = 0;
+    let discount = 0;
+    let tax = 0;
+    let total = 0;
+    let costTotal = 0;
+
+    lineItems.forEach((line) => {
+      const quantityPlaced = toNumeric(
+        extractValue(line as Record<string, unknown>, "quantity.placed") ??
+          extractValue(line as Record<string, unknown>, "quantity.ordered") ??
+          (line as Record<string, unknown>).quantity
+      );
+      const quantity = quantityPlaced || 0;
+
+      const unitSell = toNumeric(
+        extractValue(line as Record<string, unknown>, "price.unit") ??
+          extractValue(line as Record<string, unknown>, "price.sell") ??
+          extractValue(line as Record<string, unknown>, "sell.unit")
+      );
+      const lineSubtotal = quantity ? quantity * unitSell : unitSell;
+
+      let lineDiscount = toNumeric(
+        extractValue(line as Record<string, unknown>, "price.discount_amount") ??
+          extractValue(line as Record<string, unknown>, "discount_amount")
+      );
+      if (!lineDiscount) {
+        const discountPercent = toNumeric(
+          extractValue(line as Record<string, unknown>, "price.discount_percent")
+        );
+        if (discountPercent && lineSubtotal) {
+          lineDiscount = (lineSubtotal * discountPercent) / 100;
+        }
+      }
+
+      const lineTax = toNumeric(
+        extractValue(line as Record<string, unknown>, "price.tax") ??
+          extractValue(line as Record<string, unknown>, "tax")
+      );
+
+      const extractedExtended = toNumeric(
+        extractValue(line as Record<string, unknown>, "price.extended") ??
+          extractValue(line as Record<string, unknown>, "price.total") ??
+          extractValue(line as Record<string, unknown>, "extended_price")
+      );
+      const lineSellBeforeTax = extractedExtended || Math.max(lineSubtotal - lineDiscount, 0);
+      const lineTotal = lineSellBeforeTax + lineTax;
+
+      const unitCost = toNumeric(
+        extractValue(line as Record<string, unknown>, "cost.unit") ??
+          extractValue(line as Record<string, unknown>, "price.cost") ??
+          extractValue(line as Record<string, unknown>, "cost")
+      );
+      const extractedCostExtended = toNumeric(
+        extractValue(line as Record<string, unknown>, "cost.extended") ??
+          extractValue(line as Record<string, unknown>, "cost.total") ??
+          extractValue(line as Record<string, unknown>, "extended_cost")
+      );
+      const lineCost = extractedCostExtended || (unitCost && quantity ? unitCost * quantity : unitCost);
+
+      subtotal += Number.isFinite(lineSubtotal) ? lineSubtotal : 0;
+      discount += Number.isFinite(lineDiscount) ? lineDiscount : 0;
+      tax += Number.isFinite(lineTax) ? lineTax : 0;
+      total += Number.isFinite(lineTotal) ? lineTotal : 0;
+      costTotal += Number.isFinite(lineCost) ? lineCost : 0;
+    });
+
+    const sellDetails: Record<string, number> = {
+      subtotal: Number(subtotal.toFixed(2)),
+      discount: Number(discount.toFixed(2)),
+      tax: Number(tax.toFixed(2)),
+      total: Number(total.toFixed(2)),
+    };
+
+    const costDetails: Record<string, number> = {
+      subtotal: Number(costTotal.toFixed(2)),
+      total: Number(costTotal.toFixed(2)),
+    };
+
+    return {
+      subtotal: Number(subtotal.toFixed(2)),
+      discount: Number(discount.toFixed(2)),
+      tax: Number(tax.toFixed(2)),
+      total: Number(total.toFixed(2)),
+      costTotal: Number(costTotal.toFixed(2)),
+      costDetails,
+      sellDetails,
+    };
+  }, [lineItems]);
+
+  useEffect(() => {
+    setValue("subtotal", aggregatedFinancials.subtotal, { shouldDirty: false, shouldValidate: false });
+    setValue("discount", aggregatedFinancials.discount, { shouldDirty: false, shouldValidate: false });
+    setValue("tax", aggregatedFinancials.tax, { shouldDirty: false, shouldValidate: false });
+    setValue("total", aggregatedFinancials.total, { shouldDirty: false, shouldValidate: false });
+    setValue("cost" as any, aggregatedFinancials.costDetails as any, { shouldDirty: false, shouldValidate: false });
+    setValue("sell" as any, aggregatedFinancials.sellDetails as any, { shouldDirty: false, shouldValidate: false });
+
+    const nextCost = serializeJson(aggregatedFinancials.costDetails);
+    const nextSell = serializeJson(aggregatedFinancials.sellDetails);
+
+    setJsonDrafts((prev) => {
+      if (prev.cost === nextCost && prev.sell === nextSell) {
+        return prev;
+      }
+      return {
+        ...prev,
+        cost: nextCost,
+        sell: nextSell,
+      };
+    });
+  }, [aggregatedFinancials, setValue]);
+
+  const handleJsonDraftChange = (path: JsonFieldPath, value: string) => {
+    setJsonDrafts((prev) => ({ ...prev, [path]: value }));
   };
 
-  const removeItem = (id: string) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+  const handleJsonBlur = (path: JsonFieldPath) => {
+    const raw = jsonDrafts[path];
+    if (!raw.trim()) {
+      setJsonErrors((prev) => ({ ...prev, [path]: undefined }));
+      setValue(path as any, undefined);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      setValue(path as any, parsed);
+      setJsonErrors((prev) => ({ ...prev, [path]: undefined }));
+    } catch (error) {
+      setJsonErrors((prev) => ({ ...prev, [path]: "Invalid JSON" }));
     }
   };
 
-  const updateItem = (id: string, field: string, value: string | number) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        return { ...item, [field]: value };
+  const applyJsonDraftsToPayload = (payload: SalesOrderForm) => {
+    JSON_FIELD_PATHS.forEach((path) => {
+      const draft = jsonDrafts[path];
+      if (!draft || !draft.trim()) {
+        setDeepValue(payload as unknown as Record<string, unknown>, path, undefined);
+        return;
       }
-      return item;
-    }));
+      try {
+        const parsed = JSON.parse(draft);
+        setDeepValue(payload as unknown as Record<string, unknown>, path, parsed);
+      } catch (error) {
+        throw new Error(`Invalid JSON for ${path}`);
+      }
+    });
   };
 
-  const handleSave = () => {
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+  const onSubmit = async (formData: SalesOrderForm) => {
+    try {
+      applyJsonDraftsToPayload(formData);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid JSON payload";
+      dispatchToastError(message);
+      return;
+    }
+
+    try {
+      const result =
+        mode === "add"
+          ? await createSalesOrder(formData)
+          : await updateSalesOrder(recordData?.id as number, formData);
+
+      if (result) {
+        dispatch(
+          showToast({
+            message: `Sales order ${mode === "add" ? "created" : "updated"} successfully`,
+            type: "success",
+          })
+        );
+        if (onSaved) {
+          onSaved();
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Operation failed";
+      dispatchToastError(message);
+    }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleStatusChange = async (newStatus: string) => {
+    if (!recordData?.id) {
+      return;
+    }
+    try {
+      await updateSalesOrder(recordData.id, { ...mergedDefaults, status: newStatus });
+      dispatch(showToast({ message: `Sales order marked as ${newStatus}`, type: "success" }));
+      if (onSaved) {
+        onSaved();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update status";
+      dispatchToastError(message);
+    }
+  };
+
+  const renderField = (field: FieldConfig) => {
+    const inputId = field.name.replace(/\./g, "-");
+    const errorMessage = getErrorMessage(errors as unknown as Record<string, unknown>, field.name);
+
+    if (field.type === "select" && field.options) {
+      return (
+        <div key={field.name}>
+          <Label htmlFor={inputId}>{field.label}</Label>
+          <select
+            id={inputId}
+            disabled={isReadOnly}
+            className={`h-10 w-full rounded-lg border px-3 text-sm focus:outline-hidden focus:ring-2 dark:bg-gray-900 dark:text-white/90 ${
+              errorMessage ? "border-error-500" : "border-gray-300"
+            }`}
+            {...register(field.name as any)}
+          >
+            <option value="">--</option>
+            {field.options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {errorMessage && <p className="mt-1 text-xs text-error-500">{errorMessage}</p>}
+        </div>
+      );
+    }
+
+    const registerOptions = field.type === "number" ? { valueAsNumber: true } : undefined;
+
+    return (
+      <div key={field.name}>
+        <Label htmlFor={inputId}>{field.label}</Label>
+        <Input
+          id={inputId}
+          type={field.type === "number" ? "number" : "text"}
+          step={field.step}
+          min={field.min}
+          disabled={isReadOnly && field.name !== "metadata.priority"}
+          error={Boolean(errorMessage)}
+          hint={errorMessage}
+          {...register(field.name as any, registerOptions)}
+        />
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-slate-900">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* Header Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 print:hidden">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Sales Invoice</h1>
-            <p className="text-slate-500 mt-1">Create and manage your professional sales invoices.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleSave}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all ${
-                isSaved ? 'bg-green-100 text-green-700' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm'
-              }`}
-            >
-              {isSaved ? <CheckCircle size={18} /> : <FileText size={18} />}
-              {isSaved ? 'Saved!' : 'Save Draft'}
-            </button>
-            <button 
-              onClick={handlePrint}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-md shadow-indigo-200 transition-all active:scale-95"
-            >
-              <Printer size={18} />
-              Print / PDF
-            </button>
-          </div>
-        </div>
+    <>
+      {!hideBreadcrumb && !inline && (
+        <PageBreadcrumb
+          pageTitle={
+            mode === "edit"
+              ? "Edit Sales Order"
+              : mode === "view"
+              ? "View Sales Order"
+              : "Sales Order Detail"
+          }
+        />
+      )}
 
-        {/* Main Invoice Card */}
-        <div className="bg-white shadow-xl shadow-slate-200/60 rounded-2xl overflow-visible border border-slate-100 print:shadow-none print:border-none">
-          
-          {/* Invoice Visual Header */}
-          <div className="bg-slate-900 p-8 md:p-12 text-white">
-            <div className="flex flex-col md:flex-row justify-between gap-8">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-2xl shadow-lg shadow-indigo-500/20">
-                    S
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold tracking-tight">SOLUTIONS LTD.</h2>
-                    <p className="text-slate-400 text-sm">Fintech & Design Services</p>
-                  </div>
-                </div>
-                <div className="text-slate-400 text-sm leading-relaxed max-w-xs">
-                  123 Innovation Drive, Silicon Valley<br />
-                  CA 94043, United States<br />
-                  contact@solutions.io
-                </div>
-              </div>
-              
-              <div className="text-left md:text-right space-y-2">
-                <h3 className="text-4xl font-extralight tracking-widest text-slate-300 uppercase">Invoice</h3>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-md text-slate-300 text-sm border border-slate-700">
-                  <span className="font-semibold">{invoiceNumber}</span>
-                </div>
-                <div className="flex md:justify-end items-center gap-2 text-slate-400 text-sm mt-4">
-                  <Calendar size={14} />
-                  <span>Issued on {invoiceDate}</span>
-                </div>
-              </div>
-            </div>
+      <ComponentCard>
+        {inline && (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-white">
+              {mode === "edit" ? "Edit Sales Order" : mode === "view" ? "View Sales Order" : "Add Sales Order"}
+            </h3>
+            {onCancelInline && (
+              <button
+                type="button"
+                onClick={onCancelInline}
+                className="text-2xl leading-none text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            )}
           </div>
+        )}
 
-          <div className="p-8 md:p-12 space-y-12">
-            
-            {/* Client & Metadata Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-slate-100">
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  <User size={14} /> Bill To
-                </label>
-                <div className="space-y-3">
-                  <input 
-                    type="text" 
-                    placeholder="Client Name"
-                    className="w-full text-lg font-semibold bg-transparent border-b border-transparent hover:border-slate-200 focus:border-indigo-500 outline-none transition-colors"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                  />
-                  <input 
-                    type="email" 
-                    placeholder="client@email.com"
-                    className="w-full text-slate-500 bg-transparent border-b border-transparent hover:border-slate-200 focus:border-indigo-500 outline-none transition-colors"
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                  />
-                </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {FIELD_GROUPS.map((group) => (
+            <section key={group.title}>
+              <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
+                {group.title}
+              </h4>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {group.fields.map(renderField)}
               </div>
+            </section>
+          ))}
 
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  <Settings size={14} /> Invoice Details
-                </label>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Invoice #</span>
-                    <input 
-                      type="text" 
-                      className="text-right font-medium text-slate-700 w-32 border-b border-transparent hover:border-slate-200 focus:border-indigo-500 outline-none"
-                      value={invoiceNumber}
-                      onChange={(e) => setInvoiceNumber(e.target.value)}
+          <section>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
+              JSON envelopes
+            </h4>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {JSON_FIELD_PATHS.map((path) => {
+                const inputId = path.replace(/\./g, "-");
+                const errorMessage = jsonErrors[path];
+                return (
+                  <div key={path}>
+                    <Label htmlFor={inputId}>{path}</Label>
+                    <textarea
+                      id={inputId}
+                      className={`min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-hidden focus:ring-2 dark:bg-gray-900 dark:text-white/90 ${
+                        errorMessage ? "border-error-500" : "border-gray-300"
+                      }`}
+                      placeholder={`{ /* ${path} payload */ }`}
+                      value={jsonDrafts[path] ?? ""}
+                      onChange={(event) => handleJsonDraftChange(path, event.target.value)}
+                      onBlur={() => handleJsonBlur(path)}
+                      disabled={isReadOnly}
                     />
+                    {errorMessage && <p className="mt-1 text-xs text-error-500">{errorMessage}</p>}
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Date</span>
-                    <input 
-                      type="date" 
-                      className="text-right font-medium text-slate-700 border-b border-transparent hover:border-slate-200 focus:border-indigo-500 outline-none"
-                      value={invoiceDate}
-                      onChange={(e) => setInvoiceDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                   Currency & Tax
-                </label>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Currency</span>
-                    <span className="font-medium text-slate-700">USD ($)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Tax Rate (%)</span>
-                    <input 
-                      type="number" 
-                      className="text-right font-medium text-slate-700 w-16 border-b border-transparent hover:border-slate-200 focus:border-indigo-500 outline-none"
-                      value={taxRate}
-                      onChange={(e) => setTaxRate(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
+          </section>
 
-            {/* Line Items Table */}
-            <div className="overflow-x-auto overflow-y-visible">
-              <table className="w-full text-left border-separate border-spacing-y-2">
-                <thead>
-                  <tr className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-                    <th className="pb-4 pl-2">Description</th>
-                    <th className="pb-4 w-24 px-4 text-center">Qty</th>
-                    <th className="pb-4 w-32 px-4 text-right">Price</th>
-                    <th className="pb-4 w-32 px-4 text-right">Amount</th>
-                    <th className="pb-4 w-12 print:hidden"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
-                    <tr key={item.id} className="group bg-white hover:bg-slate-50/50 transition-colors relative">
-                      <td className="py-4 pl-2 border-b border-slate-100">
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            placeholder="Search or select service"
-                            className="w-full bg-transparent font-medium text-slate-700 placeholder:text-slate-300 outline-none border-b border-transparent hover:border-slate-200 focus:border-indigo-500"
-                            value={descriptionSearch[item.id] ?? item.description}
-                            onFocus={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setOpenDropdown(item.id);
-                              setDropdownAnchor({ id: item.id, top: rect.bottom, left: rect.left, width: rect.width });
-                            }}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setDescriptionSearch(prev => ({ ...prev, [item.id]: value }));
-                              updateItem(item.id, 'description', value);
-                            }}
-                            onBlur={() => setTimeout(() => {
-                              setOpenDropdown(null);
-                              setDropdownAnchor(null);
-                            }, 100)}
-                          />
-                          {openDropdown === item.id && dropdownAnchor?.id === item.id && (() => {
-                            const availableOptions = productCatalog.filter(option => {
-                              const search = normalize(descriptionSearch[item.id] ?? '');
-                              const optionKey = normalize(option.label);
-                              const currentKey = normalize(item.description);
-                              const matchesSearch = optionKey.includes(search);
-                              const inUseElsewhere = selectedLabels.has(optionKey) && currentKey !== optionKey;
-                              return matchesSearch && !inUseElsewhere;
-                            });
-                            return createPortal(
-                              <div
-                                className="fixed z-50 bg-white border border-slate-100 rounded-lg shadow-xl max-h-48 overflow-y-auto"
-                                style={{ top: dropdownAnchor.top, left: dropdownAnchor.left, width: dropdownAnchor.width }}
-                              >
-                                {availableOptions.map(option => (
-                                  <button
-                                    key={option.label}
-                                    type="button"
-                                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-slate-700"
-                                    onMouseDown={() => {
-                                      setDescriptionSearch(prev => ({ ...prev, [item.id]: option.label }));
-                                      updateItem(item.id, 'description', option.label);
-                                      updateItem(item.id, 'price', option.price);
-                                      setOpenDropdown(null);
-                                      setDropdownAnchor(null);
-                                    }}
-                                  >
-                                    <div className="font-medium">{option.label}</div>
-                                    <div className="text-xs text-slate-400">${option.price.toLocaleString()} base</div>
-                                  </button>
-                                ))}
-                                {availableOptions.length === 0 && (
-                                  <div className="px-3 py-2 text-sm text-slate-400">No matches</div>
-                                )}
-                              </div>,
-                              document.body
-                            );
-                          })()}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 border-b border-slate-100 text-center">
-                        <input 
-                          type="number" 
-                          min="1"
-                          className="w-full bg-transparent text-center font-medium text-slate-700 outline-none"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                        />
-                      </td>
-                      <td className="py-4 px-4 border-b border-slate-100 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="text-slate-400 text-sm">$</span>
-                          <input 
-                            type="number" 
-                            className="w-24 bg-transparent text-right font-medium text-slate-700 outline-none"
-                            value={item.price}
-                            onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 border-b border-slate-100 text-right font-bold text-slate-700">
-                        ${(item.quantity * item.price).toLocaleString()}
-                      </td>
-                      <td className="py-4 border-b border-slate-100 text-center print:hidden">
-                        <button 
-                          onClick={() => removeItem(item.id)}
-                          disabled={items.length <= 1}
-                          className="text-slate-300 hover:text-red-500 transition-colors disabled:opacity-0"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Footer / Summary Area */}
-            <div className="flex flex-col md:flex-row justify-between gap-12 pt-4">
-              <div className="flex-1 space-y-6">
-                <button 
-                  onClick={addItem}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-indigo-600 font-semibold bg-indigo-50 hover:bg-indigo-100 transition-colors print:hidden"
-                >
-                  <Plus size={18} />
-                  Add Line Item
-                </button>
-                
-                <div className="bg-slate-50 rounded-xl p-6 space-y-3">
-                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Notes & Terms</h4>
-                  <textarea 
-                    className="w-full bg-transparent text-sm text-slate-600 leading-relaxed min-h-[100px] outline-none border-none resize-none"
-                    placeholder="Payment is due within 30 days. Please include the invoice number on your check or wire transfer."
-                  />
+          {mode === "view" && recordData?.id && (
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div>
+                <Label>dt_created</Label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  {mergedDefaults.dt_created ? new Date(Number(mergedDefaults.dt_created) * (String(mergedDefaults.dt_created).length === 13 ? 1 : 1000)).toLocaleString() : "--"}
                 </div>
               </div>
-
-              <div className="w-full md:w-80">
-                <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span className="text-sm font-medium">Subtotal</span>
-                    <span className="font-semibold text-slate-700">${totals.subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span className="text-sm font-medium">Tax ({taxRate}%)</span>
-                    <span className="font-semibold text-slate-700">${totals.taxAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                    <span className="text-base font-bold text-slate-800">Grand Total</span>
-                    <div className="text-right">
-                      <span className="text-3xl font-black text-indigo-600">
-                        ${totals.total.toLocaleString()}
-                      </span>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">USD Currency</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-8 flex items-center gap-3 justify-center text-slate-400 border-2 border-dashed border-slate-100 rounded-xl p-6">
-                  <DollarSign size={24} className="opacity-20" />
-                  <p className="text-xs font-medium text-center">Please make all payments payable to <br/><span className="text-slate-500 font-bold italic">SOLUTIONS LTD.</span></p>
+              <div>
+                <Label>dt_modified</Label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  {mergedDefaults.dt_modified ? new Date(Number(mergedDefaults.dt_modified) * (String(mergedDefaults.dt_modified).length === 13 ? 1 : 1000)).toLocaleString() : "--"}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Help Footer */}
-        <div className="mt-12 text-center text-slate-400 text-sm print:hidden">
-          <p>Need help? Contact support at <a href="#" className="text-indigo-500 hover:underline">billing@solutions.io</a></p>
-        </div>
-      </div>
+              <div>
+                <Label>Audit</Label>
+                <AuditTrail transactionId={recordData.id} model="sales_order" />
+              </div>
+              <div>
+                <Label>Status flow</Label>
+                <SalesOrderStatus
+                  currentStatus={(mergedDefaults.status ?? "draft") as any}
+                  onStatusChange={handleStatusChange}
+                  readonly={false}
+                  showHistory
+                />
+              </div>
+            </section>
+          )}
 
-      <style>{`
-        @media print {
-          body { background: white; }
-          .print\\:hidden { display: none !important; }
-          @page { margin: 20mm; }
-        }
-      `}</style>
-    </div>
+          {mode !== "view" && (
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                className="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
+              >
+                {mode === "edit" ? "Save" : "Create"}
+              </button>
+            </div>
+          )}
+        </form>
+      </ComponentCard>
+
+      <SalesOrderLinesPanel lines={lineItems} />
+    </>
   );
-};
-
-export default SalesOrderDetail;
+}
