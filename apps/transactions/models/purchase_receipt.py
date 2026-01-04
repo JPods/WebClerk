@@ -8,7 +8,7 @@ class PurchaseReceipt(BaseModel):
 	dt_received = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
-		db_table = "purchase_receipts"
+		db_table = "inventory_receipt"
 
 	def __str__(self) -> str:  # pragma: no cover
 		return f"PR:{self.receipt_no}" if self.receipt_no else f"PR:{self.pk}"

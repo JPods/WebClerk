@@ -60,13 +60,15 @@ def default_finance() -> Dict[str, Any]:
 
 
 def default_tax() -> Dict[str, Any]:
-    # Legacy helper retained for line-model imports; kept minimal.
+    # Legacy helper retained for line-model imports; kept minimal. 
+    #tax_service_id is used to link to tax engine records.
     return {
         "sales_rate": None,
         "sales": None,
         "cost_rate": None,
         "cost": None,
         "shipping": None,
+        "tax_service_id": 0,
     }
 
 
@@ -125,7 +127,10 @@ class TransactionBaseModel(BaseModel):
         ('work_order', 'Work Order'),
         ('requisition', 'Requisition'),
     )
-
+    #denormalized from record.totals.total for indexing and quick queries
+    total = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
+    #denormalized from record.totals.balance for indexing and quick queries
+    balance = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)
