@@ -1,4 +1,5 @@
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import { formatNumberValue, formatQuantityValue } from "../../common/numberFormat";
 import ProposalLineForm from "./ProposalLineForm";
 
 interface ProposalLine {
@@ -47,6 +48,9 @@ export default function ProposalLineList({
     onSave(line);
   };
 
+  const extendedTotal = lines.reduce((sum, item) => sum + (item.extended_price || 0), 0);
+  const marginTotal = lines.reduce((sum, item) => sum + (item.line_margin || 0), 0);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -86,11 +90,11 @@ export default function ProposalLineList({
                     <div className="font-medium dark:text-white">{item.item_name || 'Manual Entry'}</div>
                   </td>
                   <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.description || ''}</td>
-                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{item.quantity || 0}</td>
-                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.price?.sell ? Number(item.price.sell).toFixed(2) : '0.00'}</td>
-                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.price?.cost ? Number(item.price.cost).toFixed(2) : '0.00'}</td>
-                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.discount_amount ? Number(item.discount_amount).toFixed(2) : '0.00'}</td>
-                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${item.extended_price ? Number(item.extended_price).toFixed(2) : '0.00'}</td>
+                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{formatQuantityValue(item.quantity ?? 0)}</td>
+                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${formatNumberValue(item.price?.sell ?? 0)}</td>
+                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${formatNumberValue(item.price?.cost ?? 0)}</td>
+                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${formatNumberValue(item.discount_amount ?? 0)}</td>
+                  <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${formatNumberValue(item.extended_price ?? 0)}</td>
                   <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-center">
                     <div className="flex gap-1 justify-center">
                       <button type="button" onClick={() => onEdit(item)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded">
@@ -130,15 +134,15 @@ export default function ProposalLineList({
           <div className="w-64 space-y-2">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>${lines.reduce((sum, item) => sum + (item.extended_price || 0), 0).toFixed(2)}</span>
+              <span>${formatNumberValue(extendedTotal)}</span>
             </div>
             <div className="flex justify-between text-green-600 dark:text-green-400">
               <span>Margin:</span>
-              <span>${lines.reduce((sum, item) => sum + (item.line_margin || 0), 0).toFixed(2)}</span>
+              <span>${formatNumberValue(marginTotal)}</span>
             </div>
             <div className="flex justify-between font-semibold text-lg border-t pt-2">
               <span>Total:</span>
-              <span>${lines.reduce((sum, item) => sum + (item.extended_price || 0), 0).toFixed(2)}</span>
+              <span>${formatNumberValue(extendedTotal)}</span>
             </div>
           </div>
         </div>

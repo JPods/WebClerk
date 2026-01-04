@@ -17,6 +17,7 @@ import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
 import type { SalesOrderLine } from "../types/salesOrderLineType";
+import { formatNumberValue, formatQuantityValue } from "../../common/numberFormat";
 
 const STATUS_OPTIONS = [
   { value: "planned", label: "planned" },
@@ -240,17 +241,6 @@ function getErrorMessage(errors: Record<string, unknown>, path: string): string 
   return typeof message === "string" ? message : undefined;
 }
 
-function formatNumber(value: unknown): string {
-  if (typeof value === "number") {
-    return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  if (typeof value === "string" && !Number.isNaN(Number(value))) {
-    const numeric = Number(value);
-    return numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  return "";
-}
-
 function toNumeric(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -260,6 +250,92 @@ function toNumeric(value: unknown): number {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+function cloneLine(line: SalesOrderLineRecord): SalesOrderLineRecord {
+  try {
+    return JSON.parse(JSON.stringify(line)) as SalesOrderLineRecord;
+  } catch (error) {
+    return { ...(line as Record<string, unknown>) } as SalesOrderLineRecord;
+  }
+}
+
+function recalculateLineFinancials(line: SalesOrderLineRecord): void {
+  const container = line as Record<string, unknown>;
+
+  const quantityRaw = container.quantity;
+  if (typeof quantityRaw === "number") {
+    container.quantity = toNumeric(quantityRaw);
+  } else {
+    const quantityObject =
+      quantityRaw && typeof quantityRaw === "object"
+        ? { ...(quantityRaw as Record<string, unknown>) }
+        : {};
+    const placedValue = toNumeric(
+      extractValue(quantityObject, "placed") ?? extractValue(quantityObject, "ordered") ?? 0
+    );
+    quantityObject.placed = placedValue;
+    if ("ordered" in quantityObject) {
+      const orderedValue = toNumeric(quantityObject.ordered);
+      quantityObject.remaining = Math.max(orderedValue - placedValue, 0);
+    }
+    container.quantity = quantityObject;
+  }
+
+  const resolvedQuantity = (() => {
+    if (typeof container.quantity === "number") {
+      return toNumeric(container.quantity);
+    }
+    if (container.quantity && typeof container.quantity === "object") {
+      const quantityObject = container.quantity as Record<string, unknown>;
+      return toNumeric(
+        extractValue(quantityObject, "placed") ?? extractValue(quantityObject, "ordered") ?? 0
+      );
+    }
+    return 0;
+  })();
+
+  const priceRaw = container.price;
+  const priceObject =
+    priceRaw && typeof priceRaw === "object"
+      ? { ...(priceRaw as Record<string, unknown>) }
+      : {
+          unit: toNumeric(priceRaw),
+          sell: toNumeric(priceRaw),
+          discount_amount: 0,
+          precision: 2,
+        };
+
+  const unitValue = toNumeric(priceObject.unit ?? priceObject.sell ?? 0);
+  priceObject.unit = unitValue;
+  if (!("sell" in priceObject) || priceObject.sell === undefined) {
+    priceObject.sell = unitValue;
+  }
+  const discountAmount = toNumeric(priceObject.discount_amount);
+  const pricePrecision = typeof priceObject.precision === "number" ? priceObject.precision : 2;
+  const priceFactor = 10 ** Math.max(0, pricePrecision);
+  const extendedRaw = Math.max(unitValue * resolvedQuantity - discountAmount, 0);
+  const extendedValue = Number.isFinite(extendedRaw)
+    ? Math.round(extendedRaw * priceFactor) / priceFactor
+    : 0;
+  priceObject.extended = extendedValue;
+  container.price = priceObject;
+
+  const costRaw = container.cost;
+  if (costRaw && typeof costRaw === "object") {
+    const costObject = { ...(costRaw as Record<string, unknown>) };
+    const unitCost = toNumeric(costObject.unit);
+    const costPrecision = typeof costObject.precision === "number" ? costObject.precision : 2;
+    const costFactor = 10 ** Math.max(0, costPrecision);
+    const costExtendedRaw = unitCost * resolvedQuantity;
+    if (Number.isFinite(unitCost)) {
+      costObject.unit = unitCost;
+    }
+    if (Number.isFinite(costExtendedRaw)) {
+      costObject.extended = Math.round(costExtendedRaw * costFactor) / costFactor;
+    }
+    container.cost = costObject;
+  }
 }
 
 interface AggregatedFinancials {
@@ -272,7 +348,15 @@ interface AggregatedFinancials {
   sellDetails: Record<string, number>;
 }
 
-function SalesOrderLinesPanel({ lines }: { lines: SalesOrderLineRecord[] }) {
+function SalesOrderLinesPanel({
+  lines,
+  isReadOnly,
+  onFieldChange,
+}: {
+  lines: SalesOrderLineRecord[];
+  isReadOnly: boolean;
+  onFieldChange?: (index: number, field: "quantity.placed" | "price.unit", value: number) => void;
+}) {
   if (!Array.isArray(lines) || lines.length === 0) {
     return (
       <ComponentCard>
@@ -292,35 +376,80 @@ function SalesOrderLinesPanel({ lines }: { lines: SalesOrderLineRecord[] }) {
               <tr>
                 <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">item.ida_item</th>
                 <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">item.description</th>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">quantity.placed</th>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">quantity.remaining</th>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">price.unit</th>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">price.discount_percent</th>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">price.extended</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">quantity.placed</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">quantity.remaining</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">price.unit</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">price.discount_percent</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">price.extended</th>
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => {
+              {lines.map((line, index) => {
                 const item = (line as Record<string, unknown>).item as Record<string, unknown> | undefined;
                 const quantity = (line as Record<string, unknown>).quantity as Record<string, unknown> | number | undefined;
                 const price = (line as Record<string, unknown>).price as Record<string, unknown> | undefined;
                 const idaItem = extractValue(item ?? {}, "ida_item") ?? "";
                 const itemDescription = extractValue(item ?? {}, "description") ?? "";
-                const placed = typeof quantity === "number" ? quantity : extractValue(quantity ?? {}, "placed");
+                const placedNumeric =
+                  typeof quantity === "number"
+                    ? toNumeric(quantity)
+                    : toNumeric(extractValue(quantity ?? {}, "placed"));
                 const remaining = typeof quantity === "number" ? undefined : extractValue(quantity ?? {}, "remaining");
-                const priceUnit = extractValue(price ?? {}, "unit");
+                const priceUnit = toNumeric(
+                  extractValue(price ?? {}, "unit") ?? extractValue(price ?? {}, "sell") ?? 0
+                );
                 const priceDiscountPercent = extractValue(price ?? {}, "discount_percent");
                 const priceExtended = extractValue(price ?? {}, "extended");
 
+                const handleQuantityChange = (value: number) => {
+                  if (!onFieldChange) {
+                    return;
+                  }
+                  onFieldChange(index, "quantity.placed", value);
+                };
+
+                const handleUnitPriceChange = (value: number) => {
+                  if (!onFieldChange) {
+                    return;
+                  }
+                  onFieldChange(index, "price.unit", value);
+                };
+
+                const rowKey = (line.id ?? index).toString();
+
                 return (
-                  <tr key={(line.id ?? crypto.randomUUID()).toString()} className="border-b border-gray-100 dark:border-gray-700">
+                  <tr key={rowKey} className="border-b border-gray-100 dark:border-gray-700">
                     <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{String(idaItem || "")}</td>
                     <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{String(itemDescription || "")}</td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(placed)}</td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(remaining)}</td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(priceUnit)}</td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(priceDiscountPercent)}</td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{formatNumber(priceExtended)}</td>
+                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                      {isReadOnly ? (
+                        formatQuantityValue(placedNumeric)
+                      ) : (
+                        <input
+                          type="number"
+                          className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                          step={0.01}
+                          value={Number.isFinite(placedNumeric) ? placedNumeric : 0}
+                          onChange={(event) => handleQuantityChange(Number(event.target.value) || 0)}
+                        />
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{formatQuantityValue(remaining)}</td>
+                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                      {isReadOnly ? (
+                        formatNumberValue(priceUnit)
+                      ) : (
+                        <input
+                          type="number"
+                          className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                          step={0.01}
+                          value={Number.isFinite(priceUnit) ? priceUnit : 0}
+                          onChange={(event) => handleUnitPriceChange(Number(event.target.value) || 0)}
+                        />
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{formatNumberValue(priceDiscountPercent)}</td>
+                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{formatNumberValue(priceExtended)}</td>
                   </tr>
                 );
               })}
@@ -376,6 +505,7 @@ export default function SalesOrderDetail({
     "prefs.userdefined": undefined,
     "refs.links": undefined,
   });
+  const [lineDrafts, setLineDrafts] = useState<SalesOrderLineRecord[]>([]);
 
   const location = useLocation();
   const routeState = (location.state as Record<string, unknown>) || {};
@@ -479,6 +609,12 @@ export default function SalesOrderDetail({
     return [];
   }, [recordData]);
 
+  useEffect(() => {
+    const clonedLines = lineItems.map((line) => cloneLine(line));
+    setLineDrafts(clonedLines);
+    setValue("lines" as any, clonedLines as any, { shouldDirty: false, shouldValidate: false });
+  }, [lineItems, setValue]);
+
   const aggregatedFinancials = useMemo<AggregatedFinancials>(() => {
     let subtotal = 0;
     let discount = 0;
@@ -486,7 +622,7 @@ export default function SalesOrderDetail({
     let total = 0;
     let costTotal = 0;
 
-    lineItems.forEach((line) => {
+    lineDrafts.forEach((line) => {
       const quantityPlaced = toNumeric(
         extractValue(line as Record<string, unknown>, "quantity.placed") ??
           extractValue(line as Record<string, unknown>, "quantity.ordered") ??
@@ -567,7 +703,56 @@ export default function SalesOrderDetail({
       costDetails,
       sellDetails,
     };
-  }, [lineItems]);
+  }, [lineDrafts]);
+
+  const handleLineFieldChange = useCallback(
+    (index: number, field: "quantity.placed" | "price.unit", rawValue: number) => {
+      const value = Number.isFinite(rawValue) ? rawValue : 0;
+      setLineDrafts((prev) => {
+        const next = prev.map((line, idx) => {
+          if (idx !== index) {
+            return line;
+          }
+          const nextLine = cloneLine(line);
+          const container = nextLine as Record<string, unknown>;
+
+          if (field === "quantity.placed") {
+            const quantityRaw = container.quantity;
+            if (typeof quantityRaw === "number") {
+              container.quantity = value;
+            } else {
+              const quantityObject =
+                quantityRaw && typeof quantityRaw === "object"
+                  ? { ...(quantityRaw as Record<string, unknown>) }
+                  : {};
+              quantityObject.placed = value;
+              if ("ordered" in quantityObject) {
+                const orderedValue = toNumeric(quantityObject.ordered);
+                quantityObject.remaining = Math.max(orderedValue - value, 0);
+              }
+              container.quantity = quantityObject;
+            }
+          } else if (field === "price.unit") {
+            const priceRaw = container.price;
+            const priceObject =
+              priceRaw && typeof priceRaw === "object"
+                ? { ...(priceRaw as Record<string, unknown>) }
+                : { discount_amount: 0, precision: 2 };
+            priceObject.unit = value;
+            priceObject.sell = value;
+            container.price = priceObject;
+          }
+
+          recalculateLineFinancials(nextLine);
+          return nextLine;
+        });
+
+        setValue("lines" as any, next as any, { shouldDirty: true, shouldValidate: false });
+        return next;
+      });
+    },
+    [setValue]
+  );
 
   useEffect(() => {
     setValue("subtotal", aggregatedFinancials.subtotal, { shouldDirty: false, shouldValidate: false });
@@ -839,7 +1024,11 @@ export default function SalesOrderDetail({
         </form>
       </ComponentCard>
 
-      <SalesOrderLinesPanel lines={lineItems} />
+      <SalesOrderLinesPanel
+        lines={lineDrafts}
+        isReadOnly={isReadOnly}
+        onFieldChange={isReadOnly ? undefined : handleLineFieldChange}
+      />
     </>
   );
 }
