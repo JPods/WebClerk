@@ -1,0 +1,17 @@
+In transactions, we will calculate line transactions and totol them in the transaction record (related purchase_order_line records into a purchase_order record, related invoice_line records into an invoice record, etc...)
+
+I would like to check that the following is true in apps/transactions/models/base_line_model.py, apps/transactions/models/base_transaction_model.py, and associated services
+
+We will need to create React functions so users can see changes in their browsers and have the Django assure proper values before saving. Could we check behaviors on the sales_order table 
+
+record.quantity.placed is the total quantity of the line
+record.quantity.[received,packed,invoiced,orderd] is the quantity that has been converted to child transaction record.
+record.quantity.remaining is the quantity remaining the be managed by this parent transaction record
+
+record.cost.unit_base is the standard cost for this item at the time the line is copied from item.cost.standard
+record.cost.unit is the standard cost for this item at the time the line is copied from item.cost.standard. it might be adjusted in the transaction
+If there is a difference between record.cost.unit_base and record.cost.unit, the record.cost.discount_percent and record.cost.discount_amount account for the difference within the defined precision.
+record.cost.extended is the record.cost.unit times record.quantity.placed within the defined precision.
+
+Is this your understanding?
+

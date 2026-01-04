@@ -91,6 +91,18 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "is_blanket": False,
             "increment": 0
             }
+    
+    elif kind == "purchase" or kind == "work_order":
+        # Invoices track packing/ship confirmation at line-level
+        return {
+            "placed": 0,
+            "received": 0,
+            "remaining": 0,
+            "is_fixed": False,
+            "precision": 2,
+            "is_blanket": False,
+            "increment": 0
+            }
     else:
         # Default structure
         return {
@@ -107,6 +119,9 @@ def default_cost() -> Dict[str, Any]:
     return {
         # per-line unit and extended
         "unit": 0.0,
+        "unit_base": 0.0,
+        "discount_percent": 0.0,
+        "discount_amount": 0.0,
         "extended": 0.0,
         # surcharges and logistics
         "shipping": 0.0,
@@ -122,12 +137,14 @@ def default_cost() -> Dict[str, Any]:
         # optional metadata (stable keys, keep but don’t rely on for math)
         "tax_code": "",
         "tax_code_id": 0,
+        "tax_lookup_id": 0,
     }
 
 def default_price() -> Dict[str, Any]:
     """Firm price schema per line (authoritative keys and defaults)."""
     return {
         "unit": 0.0,
+        "unit_base": 0.0,
         "discount_percent": 0.0,
         "discount_amount": 0.0,
         "extended": 0.0,
