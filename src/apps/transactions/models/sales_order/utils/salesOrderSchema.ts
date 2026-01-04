@@ -1,7 +1,7 @@
 import * as z from "zod";
 
 // Valid status values for sales orders
-const validStatuses = ['draft', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
+const validStatuses = ['planned', 'released', 'in_progress', 'hold', 'complete', 'canceled'] as const;
 
 // Price structure schema
 const priceSchema = z.object({
@@ -85,9 +85,9 @@ export const salesOrderSchema = z.object({
   total: z.coerce.number(),
   tax: z.coerce.number(),
   discount: z.coerce.number(),
-  metadata: z.any().optional(),
-  prefs: z.any().optional(),
-  refs: z.any().optional(),
+  metadata: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  prefs: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  refs: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
 
   // Sales order specific fields
   sales_order_no: z.string().optional(),
@@ -110,7 +110,7 @@ export const salesOrderSchema = z.object({
   finance: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
   flow: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
   source: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
-  action: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
+  subtotals: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
 
   // Line items
   lines: z.array(salesOrderLineSchema).optional(),
