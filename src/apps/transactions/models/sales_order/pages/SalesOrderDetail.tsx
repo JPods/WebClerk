@@ -16,7 +16,16 @@ import { createSalesOrder, updateSalesOrder, fetchSalesOrderDetail } from "../se
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
+import SalesOrderItemSearch from "../components/SalesOrderItemSearch";
+import type { ItemSearchResult } from "../types/itemSearchType";
 import type { SalesOrderLine } from "../types/salesOrderLineType";
+import {
+  resolveItemCode,
+  resolveItemDescription,
+  resolveItemKey,
+  resolveUnitCost,
+  resolveUnitPrice,
+} from "../utils/itemSearchHelpers";
 import { formatNumberValue, formatQuantityValue } from "../../common/numberFormat";
 
 const STATUS_OPTIONS = [
@@ -336,6 +345,90 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
     }
     container.cost = costObject;
   }
+}
+
+function resolveLineKey(line: SalesOrderLineRecord): string {
+  const container = line as Record<string, unknown>;
+  const item = container.item as Record<string, unknown> | undefined;
+  const candidates: unknown[] = [
+    container.item_id,
+    container.item_code,
+    container.item_key,
+    item?.id,
+    item?.ida_item,
+    item?.["ida_item"],
+    item?.["item_num"],
+    item?.["itemNum"],
+    item?.["code"],
+    item?.["sku"],
+    line.id,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined) {
+      continue;
+    }
+    const text = String(candidate).trim();
+    if (text) {
+      return text;
+    }
+  }
+  return "";
+}
+
+function buildLineFromItem(item: ItemSearchResult, quantity: number): SalesOrderLineRecord {
+  const normalizedQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+  const description = resolveItemDescription(item) || "Item";
+  const itemCode = resolveItemCode(item);
+  const unitPrice = resolveUnitPrice(item);
+  const unitCost = resolveUnitCost(item);
+
+  const line = {
+    description,
+    quantity: normalizedQuantity,
+    price: {
+      sell: unitPrice,
+      cost: unitCost,
+    },
+    discount_amount: 0,
+  } as unknown as SalesOrderLineRecord;
+
+  const container = line as Record<string, unknown>;
+  const itemId = item.id ?? item.item_id ?? item.itemId ?? undefined;
+
+  container.item_id = itemId ?? undefined;
+  container.item_code = itemCode || undefined;
+  container.item_key = resolveItemKey(item) || undefined;
+  container.item_name = description;
+  container.key_tags = item.key_tags ?? item.keyTags ?? undefined;
+  container.item = {
+    id: itemId,
+    ida_item: itemCode || undefined,
+    code: itemCode || undefined,
+    description,
+    sku: item.sku ?? undefined,
+    key_tags: item.key_tags ?? item.keyTags ?? undefined,
+  };
+  container.quantity = {
+    placed: normalizedQuantity,
+    ordered: normalizedQuantity,
+    remaining: 0,
+  };
+  container.price = {
+    unit: unitPrice,
+    sell: unitPrice,
+    discount_amount: 0,
+    discount_percent: 0,
+    precision: 2,
+  };
+  container.cost = {
+    unit: unitCost,
+    precision: 2,
+  };
+
+  recalculateLineFinancials(line);
+
+  return line;
 }
 
 interface AggregatedFinancials {
@@ -705,6 +798,106 @@ export default function SalesOrderDetail({
     };
   }, [lineDrafts]);
 
+  const handleAddSearchedItem = useCallback(
+    (item: ItemSearchResult, rawQuantity: number) => {
+      const quantity = Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 0;
+      if (!quantity) {
+        return;
+      }
+      const identifier = resolveItemKey(item) || resolveItemCode(item) || "";
+
+      setLineDrafts((previousLines) => {
+        const currentLines = Array.isArray(previousLines) ? previousLines : [];
+        const existingIndex = identifier
+          ? currentLines.findIndex((line) => resolveLineKey(line) === identifier)
+          : -1;
+
+        if (existingIndex >= 0) {
+          const nextLines = currentLines.map((line, index) => {
+            if (index !== existingIndex) {
+              return line;
+            }
+            const updated = cloneLine(line);
+            const container = updated as Record<string, unknown>;
+
+            const resolvedQuantity = (() => {
+              if (typeof container.quantity === "number") {
+                return {
+                  placed: toNumeric(container.quantity),
+                  ordered: toNumeric(container.quantity),
+                  remaining: 0,
+                } as Record<string, unknown>;
+              }
+              if (container.quantity && typeof container.quantity === "object") {
+                return { ...(container.quantity as Record<string, unknown>) };
+              }
+              return {} as Record<string, unknown>;
+            })();
+
+            const previousPlaced = toNumeric(extractValue(resolvedQuantity, "placed") ?? resolvedQuantity.placed);
+            const previousOrdered = Math.max(
+              previousPlaced,
+              toNumeric(extractValue(resolvedQuantity, "ordered") ?? resolvedQuantity.ordered)
+            );
+            const nextPlaced = previousPlaced + quantity;
+            const nextOrdered = previousOrdered + quantity;
+
+            resolvedQuantity.placed = nextPlaced;
+            resolvedQuantity.ordered = nextOrdered;
+            resolvedQuantity.remaining = Math.max(nextOrdered - nextPlaced, 0);
+            container.quantity = resolvedQuantity;
+
+            const priceRaw = container.price;
+            const priceObject =
+              priceRaw && typeof priceRaw === "object"
+                ? { ...(priceRaw as Record<string, unknown>) }
+                : { unit: 0, sell: 0, discount_amount: 0, discount_percent: 0, precision: 2 };
+            if (!toNumeric(priceObject.unit)) {
+              priceObject.unit = resolveUnitPrice(item);
+            }
+            if (!toNumeric(priceObject.sell)) {
+              priceObject.sell = priceObject.unit;
+            }
+            if (priceObject.discount_amount === undefined) {
+              priceObject.discount_amount = 0;
+            }
+            if (priceObject.discount_percent === undefined) {
+              priceObject.discount_percent = 0;
+            }
+            if (priceObject.precision === undefined) {
+              priceObject.precision = 2;
+            }
+            container.price = priceObject;
+
+            const costRaw = container.cost;
+            const costObject =
+              costRaw && typeof costRaw === "object"
+                ? { ...(costRaw as Record<string, unknown>) }
+                : { unit: resolveUnitCost(item), precision: 2 };
+            if (!toNumeric(costObject.unit)) {
+              costObject.unit = resolveUnitCost(item);
+            }
+            if (costObject.precision === undefined) {
+              costObject.precision = 2;
+            }
+            container.cost = costObject;
+
+            recalculateLineFinancials(updated);
+            return updated;
+          });
+
+          setValue("lines" as any, nextLines as any, { shouldDirty: true, shouldValidate: false });
+          return nextLines;
+        }
+
+        const nextLines = [...currentLines, buildLineFromItem(item, quantity)];
+        setValue("lines" as any, nextLines as any, { shouldDirty: true, shouldValidate: false });
+        return nextLines;
+      });
+    },
+    [setValue]
+  );
+
   const handleLineFieldChange = useCallback(
     (index: number, field: "quantity.placed" | "price.unit", rawValue: number) => {
       const value = Number.isFinite(rawValue) ? rawValue : 0;
@@ -1023,6 +1216,18 @@ export default function SalesOrderDetail({
           )}
         </form>
       </ComponentCard>
+
+      {!isReadOnly && (
+        <ComponentCard>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold dark:text-white">Add Items</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Search the catalog and append matching items to this sales order.
+            </p>
+          </div>
+          <SalesOrderItemSearch onAddItem={handleAddSearchedItem} />
+        </ComponentCard>
+      )}
 
       <SalesOrderLinesPanel
         lines={lineDrafts}

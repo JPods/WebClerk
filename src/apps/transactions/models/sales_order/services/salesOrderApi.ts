@@ -64,3 +64,30 @@ export const fetchSalesOrderDetail = async (id: number): Promise<any> => {
   const res = await getRecord('salesorder', id);
   return res?.record ?? res;
 };
+
+export const searchItems = async (
+  query: string,
+  options?: { limit?: number; extraParams?: Record<string, unknown> }
+): Promise<{ status: number; data: { results: any[]; total: number } }> => {
+  const trimmed = query?.trim?.() ?? '';
+  const params: Record<string, unknown> = {
+    limit: options?.limit ?? 25,
+    ...(options?.extraParams ?? {}),
+  };
+
+  if (trimmed) {
+    params.search = trimmed;
+    params.key_tags = trimmed;
+    params.q = trimmed;
+  }
+
+  const res = await getRecords('item', params);
+  const results = (res?.results ?? res?.items ?? []) as any[];
+  return {
+    status: 200,
+    data: {
+      results,
+      total: (res?.total as number | undefined) ?? results.length,
+    },
+  };
+};
