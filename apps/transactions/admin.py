@@ -165,7 +165,7 @@ class PurchaseOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "name", "intent", "status", "priority", "dt_created")
+    list_display = ("id", "name", "is_active","intent", "status", "priority", "dt_created")
     list_filter = ("status", "priority")
     search_fields = ("id", "name", "intent", "slug")
     details_fieldset_title = "Project Details"
