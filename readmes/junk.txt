@@ -21,3 +21,55 @@
      }  
 ]
 payload of kanban drag upload
+
+
+wcapi/save/?model_name=project&id=1&action_id=15&
+
+ref.project.tasks.actions
+
+{"model_name":"project","id":1,"backlog":
+
+  [{
+      
+    "id": 74,
+    "model_name": "action",
+    "kanban_column": "InProcess",
+    "kanban_column_id": "column-inprocess",
+    "sequence": 3,
+    "order": 3,
+    "position": 3
+
+    },
+     {
+        "id": 75,
+        "model_name": "action",
+        "kanban_column": "InProcess",
+        "kanban_column_id": "column-inprocess",
+        "sequence": 3,
+        "order": 3,
+        "position": 3
+     }
+   ],
+   "InProcess":[
+         {
+      
+            "id": 74,
+            "model_name": "action",
+            "kanban_column": "InProcess",
+            "kanban_column_id": "column-inprocess",
+            "sequence": 3,
+            "order": 3,
+            "position": 3
+
+         },
+     {
+        "id": 75,
+        "model_name": "action",
+        "kanban_column": "InProcess",
+        "kanban_column_id": "column-inprocess",
+        "sequence": 3,
+        "order": 3,
+        "position": 3
+     }
+     ]
+ },
