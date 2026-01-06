@@ -1,4 +1,5 @@
 from django.contrib import admin, messages
+from django.db import models as dj_models
 from .models import (
     Invoice, InvoiceLine,
     WorkOrderLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine,
@@ -11,6 +12,51 @@ from .models.purchase_receipt import PurchaseReceipt
 # Scoped: other model admin registrations are deferred for now
 
 
+class JSONBFieldsetMixin:
+    """Group JSON-heavy fields at the end of the admin form."""
+
+    readonly_auto_fields: tuple[str, ...] = ("id", "uuid", "dt_created", "dt_modified", "version")
+    details_fieldset_title = "Record Details"
+    jsonb_fieldset_title = "JSONB Payloads"
+
+    def get_readonly_fields(self, request, obj=None):  # type: ignore[override]
+        readonly = list(super().get_readonly_fields(request, obj))
+        for field_name in self.readonly_auto_fields:
+            if hasattr(self.model, field_name) and field_name not in readonly:
+                readonly.append(field_name)
+        return tuple(readonly)
+
+    def _jsonb_field_names(self) -> tuple[str, ...]:
+        names: list[str] = []
+        for field in self.model._meta.get_fields():
+            if getattr(field, "auto_created", False):
+                continue
+            if isinstance(field, dj_models.JSONField):
+                names.append(field.name)
+        return tuple(sorted(dict.fromkeys(names)))
+
+    def _non_jsonb_field_names(self) -> tuple[str, ...]:
+        json_fields = set(self._jsonb_field_names())
+        names: list[str] = []
+        for field in self.model._meta.fields:
+            if field.name in json_fields:
+                continue
+            names.append(field.name)
+        return tuple(names)
+
+    def get_fieldsets(self, request, obj=None):  # type: ignore[override]
+        detail_fields = self._non_jsonb_field_names()
+        json_fields = self._jsonb_field_names()
+        fieldsets: list[tuple[str, dict]] = []
+        if detail_fields:
+            fieldsets.append((self.details_fieldset_title, {"fields": detail_fields}))
+        if json_fields:
+            fieldsets.append((self.jsonb_fieldset_title, {"fields": json_fields}))
+        if fieldsets:
+            return tuple(fieldsets)
+        return super().get_fieldsets(request, obj)
+
+
 ##
 
 
@@ -20,13 +66,13 @@ from .models.purchase_receipt import PurchaseReceipt
 ##
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
+class InvoiceAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created")
     search_fields = ("id",)
 
 
 @admin.register(InvoiceLine)
-class InvoiceLineAdmin(admin.ModelAdmin):
+class InvoiceLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "invoice_id", "status")
     list_filter = ("status",)
 
@@ -40,7 +86,7 @@ class InvoiceLineAdmin(admin.ModelAdmin):
 ##
 
 @admin.register(WorkOrderLine)
-class WorkOrderLineAdmin(admin.ModelAdmin):
+class WorkOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "workorder_id", "status")
     list_filter = ("status",)
 
@@ -98,70 +144,72 @@ class WorkOrderLineAdmin(admin.ModelAdmin):
 
 
 @admin.register(SalesOrder)
-class SalesOrderAdmin(admin.ModelAdmin):
+class SalesOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
 
 
 @admin.register(SalesOrderLine)
-class SalesOrderLineAdmin(admin.ModelAdmin):
+class SalesOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "salesorder_id", "status")
     list_filter = ("status",)
 
 
 @admin.register(PurchaseOrder)
-class PurchaseOrderAdmin(admin.ModelAdmin):
+class PurchaseOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
 
+
 @admin.register(Project)
-class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("id", "intent", "status", "priority", "dt_created")
+class ProjectAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "name", "intent", "status", "priority", "dt_created")
     list_filter = ("status", "priority")
-    search_fields = ("id", "intent", "slug")
+    search_fields = ("id", "name", "intent", "slug")
+    details_fieldset_title = "Project Details"
 
 @admin.register(PurchaseOrderLine)
-class PurchaseOrderLineAdmin(admin.ModelAdmin):
+class PurchaseOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "purchaseorder_id", "status")
     list_filter = ("status",)
 
 
 @admin.register(Proposal)
-class ProposalAdmin(admin.ModelAdmin):
+class ProposalAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
 
 
 @admin.register(ProposalLine)
-class ProposalLineAdmin(admin.ModelAdmin):
+class ProposalLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "proposal_id", "status")
     list_filter = ("status",)
 
 
 @admin.register(Requisition)
-class RequisitionAdmin(admin.ModelAdmin):
+class RequisitionAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
 
 
 @admin.register(RequisitionLine)
-class RequisitionLineAdmin(admin.ModelAdmin):
+class RequisitionLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "requisition_id", "status")
     list_filter = ("status",)
 
 
 @admin.register(PurchaseReceipt)
-class PurchaseReceiptAdmin(admin.ModelAdmin):
+class PurchaseReceiptAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_received")
     search_fields = ("id",)
 
 
 @admin.register(WorkOrder)
-class WorkOrderAdmin(admin.ModelAdmin):
+class WorkOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)

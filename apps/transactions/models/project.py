@@ -56,7 +56,7 @@ class Project(BaseModel):
     a single planning / governance artifact. Uses BaseModel envelopes for
     metadata, prefs, refs, comments, etc.
     """
-
+    name = models.CharField(max_length=255, blank=True, default="", help_text="Short name or title")
     situation = models.TextField(blank=True, default="", help_text="Current context / problem narrative")
     objective = models.JSONField(default=default_objective, help_text="Structured goal & success metrics")
     priority = models.PositiveSmallIntegerField(default=3, help_text="1 (highest) – 5 (lowest)")
