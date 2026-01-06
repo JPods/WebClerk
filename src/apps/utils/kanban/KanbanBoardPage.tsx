@@ -10,7 +10,7 @@ import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
 import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
-import { Actions, Projects, patchAction } from "../../../api/userProfile";
+import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
@@ -759,12 +759,23 @@ const KanbanBoardPage: React.FC = () => {
     setIsLoadingProjects(true);
     setProjectFetchError(null);
     try {
-      const response = await Projects({ status: "active" });
-      if (!response || response.status !== 200) {
-        throw new Error("Request failed");
-      }
+      const response = await getRecords("project", { active: true, limit: 500 });
+      const rawRecords = findFirstObjectArray(response);
+      const activeRecords = rawRecords.filter((record) => {
+        const activeField = record["active"] ?? record["is_active"] ?? record["status"];
+        if (typeof activeField === "string") {
+          const normalized = activeField.trim().toLowerCase();
+          if (normalized === "active") {
+            return true;
+          }
+          if (normalized === "inactive" || normalized === "archived" || normalized === "false") {
+            return false;
+          }
+        }
+        return toBoolean(activeField);
+      });
 
-      let options = mapProjectsFromResponse((response as any)?.data);
+      let options = mapProjectsFromResponse(activeRecords.length ? activeRecords : response);
       if (!options.length) {
         options = mapProjectsFromResponse(response);
       }
@@ -774,8 +785,11 @@ const KanbanBoardPage: React.FC = () => {
         if (previous && options.some((option) => option.slug === previous)) {
           return previous;
         }
-        return previous ? "" : previous;
+        return "";
       });
+      if (!options.length) {
+        setProjectFetchError("No active projects found.");
+      }
     } catch (error) {
       console.error("Failed to fetch active projects", error);
       setProjectOptions([]);
