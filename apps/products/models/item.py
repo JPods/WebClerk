@@ -63,7 +63,7 @@ def default_cost():
         "landed": None,
         "currency": "USD",
         "components": {},
-        "breaks": [],
+        "qty_breaks": [],
         "history": [],  # parallel to price.history; records cost field changes
     }
 

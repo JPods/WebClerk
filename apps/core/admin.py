@@ -1,8 +1,14 @@
+from types import MethodType
+
 from django import forms
 from django.contrib import admin
 from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.admin.helpers import ActionForm
+from django.contrib.admin.utils import display_for_field
+from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
 from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
 
@@ -133,3 +139,109 @@ class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     list_filter = ('contenttype_id', 'dt_purge')
     search_fields = ('contenttype_id__model', 'object_id')
     readonly_fields = ('dt_created',)
+
+
+def _three_column_index(self, request, extra_context=None):
+    if not self.has_permission(request):
+        return self.login(request)
+
+    app_list = self.get_app_list(request)
+    selected_model_label = request.GET.get("model")
+    selected_object_id = request.GET.get("object")
+
+    selected_model_dict = None
+    selected_model_admin = None
+    selected_model_meta = None
+
+    if selected_model_label:
+        for app in app_list:
+            for model_dict in app.get("models", []):
+                model_class = model_dict.get("model")
+                if not model_class:
+                    continue
+                if model_class._meta.label_lower == selected_model_label:
+                    selected_model_dict = model_dict
+                    selected_model_admin = self._registry.get(model_class)
+                    selected_model_meta = model_class._meta
+                    break
+            if selected_model_dict:
+                break
+
+    object_entries = []
+    detail_rows = []
+    detail_obj = None
+    detail_change_url = None
+    permission_denied = False
+
+    if selected_model_admin:
+        has_view_perm = (
+            selected_model_admin.has_view_permission(request)
+            or selected_model_admin.has_change_permission(request)
+        )
+        if has_view_perm:
+            queryset = selected_model_admin.get_queryset(request)
+            ordering = selected_model_admin.get_ordering(request)
+            if ordering:
+                queryset = queryset.order_by(*ordering)
+            queryset = queryset[:50]
+            if selected_model_meta:
+                list_url_base = reverse('admin:index')
+                for obj in queryset:
+                    pk_value = obj.pk
+                    object_entries.append({
+                        "pk": pk_value,
+                        "label": str(obj),
+                        "is_selected": selected_object_id is not None and str(pk_value) == str(selected_object_id),
+                        "url": f"{list_url_base}?model={selected_model_meta.label_lower}&object={pk_value}",
+                    })
+
+                if selected_object_id:
+                    target_obj = selected_model_admin.get_object(request, selected_object_id)
+                    if target_obj and (
+                        selected_model_admin.has_view_permission(request, target_obj)
+                        or selected_model_admin.has_change_permission(request, target_obj)
+                    ):
+                        detail_obj = target_obj
+                        detail_change_url = reverse(
+                            f"admin:{selected_model_meta.app_label}_{selected_model_meta.model_name}_change",
+                            args=[target_obj.pk],
+                        )
+                        for field in selected_model_meta.concrete_fields:
+                            if not hasattr(target_obj, field.name):
+                                continue
+                            value = getattr(target_obj, field.name)
+                            rendered = display_for_field(value, field, self.empty_value_display)
+                            detail_rows.append({
+                                "label": getattr(field, "verbose_name", field.name),
+                                "value": rendered,
+                            })
+        else:
+            permission_denied = True
+    elif selected_model_label:
+        permission_denied = True
+
+    context = {
+        **self.each_context(request),
+        "title": _("Site administration"),
+        "app_list": app_list,
+        "selected_model_label": selected_model_meta.label_lower if selected_model_meta else None,
+        "selected_model_name": selected_model_meta.verbose_name if selected_model_meta else None,
+        "selected_model_plural": selected_model_meta.verbose_name_plural if selected_model_meta else None,
+        "object_entries": object_entries,
+        "object_detail_obj": detail_obj,
+        "object_detail_rows": detail_rows,
+        "object_change_url": detail_change_url,
+        "selected_model_add_url": selected_model_dict.get("add_url") if selected_model_dict else None,
+        "permission_denied_model": permission_denied,
+    }
+
+    if extra_context:
+        context.update(extra_context)
+
+    request.current_app = self.name
+    template = self.index_template or "admin/index.html"
+    return TemplateResponse(request, template, context)
+
+
+admin.site.index_template = "core_admin/index.html"
+admin.site.index = MethodType(_three_column_index, admin.site)
