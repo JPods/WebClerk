@@ -110,6 +110,31 @@ export const ProposalForm: React.FC<ProposalFormProps> = ({
     setLines(prev => prev.filter((_, i) => i !== index));
   };
 
+  const prepareLinePayload = (line: TransactionLine): Record<string, unknown> => {
+    const rawPrice = (line as unknown as { price?: unknown }).price;
+    const resolveNumeric = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+
+    let numericPrice = resolveNumeric(rawPrice);
+    if (typeof rawPrice !== "number") {
+      if (rawPrice && typeof rawPrice === "object" && !Array.isArray(rawPrice) && "base" in rawPrice) {
+        numericPrice = resolveNumeric((rawPrice as Record<string, unknown>).base);
+      } else {
+        numericPrice = resolveNumeric((line as unknown as Record<string, unknown>).unit_price);
+      }
+    }
+
+    const pricePayload =
+      rawPrice && typeof rawPrice === "object" && rawPrice !== null && !Array.isArray(rawPrice)
+        ? { ...(rawPrice as Record<string, unknown>), base: numericPrice }
+        : { base: numericPrice };
+
+    return {
+      ...line,
+      price: pricePayload,
+      unit_price: numericPrice,
+    };
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -127,16 +152,11 @@ export const ProposalForm: React.FC<ProposalFormProps> = ({
       if (savedProposal) {
         // Save lines
         for (const line of lines) {
+          const linePayload = { ...prepareLinePayload(line), parent: savedProposal.id };
           if (line.id) {
-            await update('proposal_line', line.id, {
-              ...line,
-              parent: savedProposal.id,
-            });
+            await update('proposal_line', line.id, linePayload);
           } else {
-            await create('proposal_line', {
-              ...line,
-              parent: savedProposal.id,
-            });
+            await create('proposal_line', linePayload);
           }
         }
 

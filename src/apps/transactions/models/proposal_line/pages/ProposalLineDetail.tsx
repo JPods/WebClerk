@@ -53,12 +53,29 @@ export default function ProposalLineDetail({
     }
   }, [data, reset, setValue, mode]);
 
+  const preparePayload = (formValues: z.infer<typeof proposalLineSchema>): Record<string, unknown> => {
+    const numericPrice =
+      typeof formValues.unit_price === "number" && Number.isFinite(formValues.unit_price) ? formValues.unit_price : 0;
+    const existingPriceRaw = (data as Record<string, unknown> | null)?.price as unknown;
+    const existingPrice =
+      existingPriceRaw && typeof existingPriceRaw === "object" && !Array.isArray(existingPriceRaw)
+        ? (existingPriceRaw as Record<string, unknown>)
+        : undefined;
+    const pricePayload = existingPrice ? { ...existingPrice, base: numericPrice } : { base: numericPrice };
+    return {
+      ...formValues,
+      price: pricePayload,
+      unit_price: numericPrice,
+    };
+  };
+
   const onSubmit = async (formData: z.infer<typeof proposalLineSchema>) => {
     try {
+      const payload = preparePayload(formData);
       const res =
         mode === "add"
-          ? await createProposalLine(formData)
-          : await updateProposalLine(data && data.id, formData);
+          ? await createProposalLine(payload)
+          : await updateProposalLine(data && data.id, payload);
       if (res) {
         dispatch(
           showToast({

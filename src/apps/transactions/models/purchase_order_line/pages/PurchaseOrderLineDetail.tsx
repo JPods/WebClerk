@@ -53,12 +53,29 @@ export default function PurchaseOrderLineDetail({
     }
   }, [data, reset, setValue, mode]);
 
+  const preparePayload = (formValues: z.infer<typeof purchaseOrderLineSchema>): Record<string, unknown> => {
+    const numericPrice =
+      typeof formValues.unit_price === "number" && Number.isFinite(formValues.unit_price) ? formValues.unit_price : 0;
+    const existingCostRaw = (data as Record<string, unknown> | null)?.cost as unknown;
+    const existingCost =
+      existingCostRaw && typeof existingCostRaw === "object" && !Array.isArray(existingCostRaw)
+        ? (existingCostRaw as Record<string, unknown>)
+        : undefined;
+    const costPayload = existingCost ? { ...existingCost, last: numericPrice } : { last: numericPrice };
+    return {
+      ...formValues,
+      cost: costPayload,
+      unit_price: numericPrice,
+    };
+  };
+
   const onSubmit = async (formData: z.infer<typeof purchaseOrderLineSchema>) => {
     try {
+      const payload = preparePayload(formData);
       const res =
         mode === "add"
-          ? await createPurchaseOrderLine(formData)
-          : await updatePurchaseOrderLine(data && data.id, formData);
+          ? await createPurchaseOrderLine(payload)
+          : await updatePurchaseOrderLine(data && data.id, payload);
       if (res) {
         dispatch(
           showToast({
