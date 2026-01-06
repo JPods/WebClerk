@@ -607,6 +607,12 @@ const KanbanBoardPage: React.FC = () => {
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string>("");
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
   const [projectFetchError, setProjectFetchError] = useState<string | null>(null);
+  const selectedProject = useMemo(
+    () => projectOptions.find((option) => option.slug === selectedProjectSlug),
+    [projectOptions, selectedProjectSlug]
+  );
+  const selectedProjectId = selectedProject?.id ?? "";
+  const selectedProjectName = selectedProject?.slug ?? selectedProjectSlug;
 
   const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
@@ -699,27 +705,38 @@ const KanbanBoardPage: React.FC = () => {
       }
 
       // Build full ordering payload for the target column so backend receives complete sequence.
+      const wrap = (value: unknown) => ({ mode: "update", value });
       const payload = targetColumn.taskIds.map((id, index) => {
         const targetTask = boardSnapshot.tasks[id];
-        return {
-          id: targetTask?.id ?? id,
+        const base: Record<string, unknown> = {
           model_name: "action",
-          kanban_column: targetColumn.title,
-          kanban_column_id: targetColumn.id,
-          sequence: index,
-          order: index,
-          position: index,
-          ...(selectedProjectSlug ? { project: selectedProjectSlug } : {}),
+          kanban_column: wrap(targetColumn.title),
+          kanban_column_id: wrap(targetColumn.id),
+          sequence: wrap(index),
+          order: wrap(index),
+          position: wrap(index),
         };
+        if (targetTask?.id) {
+          base.id = targetTask.id;
+        }
+        if (selectedProjectName) {
+          base.project_name = wrap(selectedProjectName);
+        }
+        return base;
       });
 
       try {
-        await patchAction(payload);
+        const projectPayload: Record<string, unknown> = {
+          model_name: "project",
+          ...(selectedProjectId ? { id: selectedProjectId } : {}),
+          bulk: payload,
+        };
+        await patchAction(projectPayload);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
       }
     },
-    [selectedProjectSlug]
+    [selectedProjectId, selectedProjectName]
   );
 
   const handleDragEnd = useCallback(
@@ -1280,16 +1297,19 @@ const KanbanBoardPage: React.FC = () => {
       return { error: "Add at least one language with a title." };
     }
 
+    const fieldMode = mode === "create" ? "insert" : "update";
+    const wrap = (value: unknown) => ({ mode: fieldMode, value });
+
     // Build action and description with dot notation keys (e.g., action.en, description.en)
-    const translationFields: Record<string, string | string[]> = {};
+    const translationFields: Record<string, { mode: string; value: unknown }> = {};
     
     normalized.forEach((value, language) => {
-      translationFields[`action.${language}`] = value.title || "";
-      translationFields[`description.${language}`] = value.description || "";
+      translationFields[`action.${language}`] = wrap(value.title || "");
+      translationFields[`description.${language}`] = wrap(value.description || "");
     });
 
     // Add languages array
-    translationFields.languages = Array.from(normalized.keys());
+    translationFields.languages = wrap(Array.from(normalized.keys()));
 
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
@@ -1320,15 +1340,15 @@ const KanbanBoardPage: React.FC = () => {
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
       ...translationFields,
-      kanban_column: columnTitle,
-      kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
-      priority: PRIORITY_TO_VALUE[state.priority],
-      difficulty: resolvedDifficulty,
-      status: baseTask?.status ?? "In progress",
-      dt_due: dueTimestamp,
-      dt_start: startTimestamp,
-      dt_end: endTimestamp,
-      progress: resolvedProgress,
+      kanban_column: wrap(columnTitle),
+      kanban_column_id: wrap(column?.id ?? FALLBACK_COLUMN_ID),
+      priority: wrap(PRIORITY_TO_VALUE[state.priority]),
+      difficulty: wrap(resolvedDifficulty),
+      status: wrap(baseTask?.status ?? "In progress"),
+      dt_due: wrap(dueTimestamp ?? null),
+      dt_start: wrap(startTimestamp ?? null),
+      dt_end: wrap(endTimestamp ?? null),
+      progress: wrap(resolvedProgress),
     };
 
     if (mode === "edit" && baseTask) {
@@ -1336,11 +1356,11 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     if (assignedTo.length > 0) {
-      payloadItem.assigned_to = assignedTo;
+      payloadItem.assigned_to = wrap(assignedTo);
     }
 
     const resolvedProjectName = (() => {
-      const selected = selectedProjectSlug.trim();
+      const selected = selectedProjectName.trim();
       if (selected) {
         return selected;
       }
@@ -1351,10 +1371,20 @@ const KanbanBoardPage: React.FC = () => {
     })();
 
     if (resolvedProjectName) {
-      payloadItem.project_name = resolvedProjectName;
+      payloadItem.project_name = wrap(resolvedProjectName);
     }
 
-    return { payload: payloadItem };
+    const projectPayload: Record<string, unknown> = {
+      model_name: "project",
+      ...(selectedProjectId ? { id: selectedProjectId } : {}),
+      bulk: [payloadItem],
+    };
+
+    if (selectedProjectId) {
+      projectPayload.id = selectedProjectId;
+    }
+
+    return { payload: projectPayload };
   };
 
   const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
