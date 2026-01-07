@@ -39,88 +39,8 @@ const navItems: NavItem[] = [
   },
   {
     icon: <CalenderIcon />,
-    name: "Kanban Gantt",
-    path: "/kanban-gantt",
-  },
-  {
-    icon: <CalenderIcon />,
     name: "SVAR Gantt",
     path: "/svar-gantt",
-  },
-  {
-    icon: <GridIcon />,
-    name: "Kanban API",
-    path: "/kanban-board-data",
-  },
-  {
-    icon: <GridIcon />,
-    name: "Admin Workbench",
-    path: "/admin-wb",
-  },
-  {
-    icon: <GridIcon />,
-    name: "Whitelist Tester",
-    path: "/whitelist",
-  },
-  {
-    icon: <GridIcon />,
-    name: "Products",
-    path: "/products",
-  },
-  {
-    icon: <GridIcon />,
-    name: "Transactions",
-    subItems: [
-      { name: "Orders", path: "/transactions/orders" },
-      { name: "Invoices", path: "/transactions/invoices" },
-      { name: "Proposals", path: "/transactions/proposals" },
-      { name: "Purchase Orders", path: "/transactions/purchase-orders" },
-      { name: "Orders Test", path: "/transactions/orders-test" },
-    ],
-  },
-  {
-    icon: <CalenderIcon />,
-    name: "Actions",
-    subItems: [
-      {
-        name: "Add Action",
-        path: "/action-add",
-      },
-      {
-        name: "Action List",
-        path: "/action-list",
-      },
-    ],
-  },
-
-  {
-    icon: <GridIcon />,
-    name: "Settings",
-    subItems: [
-      {
-        name: "Add Setting",
-        path: "/setting-add",
-      },
-      {
-        name: "Setting List",
-        path: "/setting-list",
-      },
-    ],
-  },
-  {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
-  },
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
-  {
-    name: "Tables",
-    icon: <TableIcon />,
-    subItems: [{ name: "Basic Models", path: "/basic-models", pro: false }],
   },
   {
     icon: <GridIcon />,
@@ -138,6 +58,20 @@ const navItems: NavItem[] = [
       { name: "Ledger", path: "/accounts/ledger/list" },
       { name: "Tax Jurisdiction", path: "/accounts/tax-jurisdiction/list" },
       { name: "Term", path: "/accounts/term/list" },
+    ],
+  },
+  {
+    icon: <GridIcon />,
+    name: "Core",
+    subItems: [
+      { name: "Action", path: "/core/action/list" },
+      { name: "Audit", path: "/core/audit/list" },
+      { name: "Contact", path: "/core/contact/list" },
+      { name: "Notification", path: "/core/notification/list" },
+      { name: "Pending", path: "/core/pending/list" },
+      { name: "Report", path: "/core/report/list" },
+      { name: "Setting", path: "/core/setting/list" },
+      { name: "Template", path: "/core/template/list" },
     ],
   },
 
@@ -185,19 +119,43 @@ const navItems: NavItem[] = [
       { name: "Vendors", path: "/org/vendor/list" },
     ],
   },
+
   {
     icon: <GridIcon />,
-    name: "Core",
+    name: "Products",
+    path: "/products",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Transactions",
     subItems: [
-      { name: "Action", path: "/core/action/list" },
-      { name: "Audit", path: "/core/audit/list" },
-      { name: "Contact", path: "/core/contact/list" },
-      { name: "Notification", path: "/core/notification/list" },
-      { name: "Pending", path: "/core/pending/list" },
-      { name: "Report", path: "/core/report/list" },
-      { name: "Setting", path: "/core/setting/list" },
-      { name: "Template", path: "/core/template/list" },
+      { name: "Orders", path: "/transactions/orders" },
+      { name: "Invoices", path: "/transactions/invoices" },
+      { name: "Proposals", path: "/transactions/proposals" },
+      { name: "Purchase Orders", path: "/transactions/purchase-orders" },
+      { name: "Orders Test", path: "/transactions/orders-test" },
     ],
+  },
+
+  {
+    icon: <GridIcon />,
+    name: "Admin Workbench",
+    path: "/admin-wb",
+  },
+  {
+    icon: <GridIcon />,
+    name: "Whitelist Tester",
+    path: "/whitelist",
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "User Profile",
+    path: "/profile",
+  },
+  {
+    name: "Forms",
+    icon: <ListIcon />,
+    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
   },
   // {
   //   name: "Pages",
