@@ -92,7 +92,7 @@ const toBoolean = (value: unknown): boolean => {
     if (!normalized) {
       return false;
     }
-    return ["true", "1", "yes", "y"].includes(normalized);
+    return ["true", "1", "yes", "y", "t", "on"].includes(normalized);
   }
   return false;
 };
@@ -129,8 +129,10 @@ const createStaffOptionFromRecord = (record: RawContactRecord): StaffOption | nu
     return null;
   }
 
-  const activeRaw = record["is_active"];
-  const isActive = activeRaw === undefined ? true : toBoolean(activeRaw);
+  const activeRaw = record["is_active"] ?? record["isActive"] ?? record["active"];
+  const statusRaw = record["status"];
+  const statusIsActive = typeof statusRaw === "string" && statusRaw.trim().toLowerCase() === "active";
+  const isActive = activeRaw === undefined ? statusIsActive : toBoolean(activeRaw) || statusIsActive;
   if (!isActive) {
     return null;
   }
@@ -147,26 +149,16 @@ const createStaffOptionFromRecord = (record: RawContactRecord): StaffOption | nu
   }
 
   const name = buildContactName(record) || String(idCandidate);
-  const roleRaw = record["role"];
+  const attentionRaw = record["attention"];
+  const attention = typeof attentionRaw === "string" ? attentionRaw.trim() : "";
+  const label = attention || name;
   const emailRaw = record["email"];
-  const role = typeof roleRaw === "string" ? roleRaw.trim() : "";
   const email = typeof emailRaw === "string" ? emailRaw.trim() : "";
-
-  const labelParts: string[] = [];
-  if (name) {
-    labelParts.push(name);
-  }
-  if (role) {
-    labelParts.push(role);
-  }
-
-  const baseLabel = labelParts.join(" · ");
-  const label = email ? `${baseLabel || name} (${email})` : baseLabel || name;
 
   return {
     id: String(idCandidate),
     label: label || String(idCandidate),
-    searchName: name.toLowerCase(),
+    searchName: (attention || name || String(idCandidate)).toLowerCase(),
     email: email || undefined,
   };
 };
@@ -738,8 +730,8 @@ const KanbanBoardPage: React.FC = () => {
     setStaffFetchError(null);
     try {
       const response = await getRecords("contact", { is_staff: true, is_active: true, limit: 500 });
-      const records = Array.isArray(response?.results) ? response.results : [];
-
+      const records = extractContactArray(response);
+      console.log("Fetched staff response:", response);
       const options = records
         .map((record) => createStaffOptionFromRecord((record ?? {}) as RawContactRecord))
         .filter((option): option is StaffOption => Boolean(option));
@@ -752,6 +744,7 @@ const KanbanBoardPage: React.FC = () => {
       });
 
       const sorted = Array.from(uniqueById.values()).sort((a, b) => a.label.localeCompare(b.label));
+      console.log("Normalized staff options:", options);
       setStaffOptions(sorted);
       setSelectedStaffId((previous) => {
         if (previous && sorted.some((option) => option.id === previous)) {
