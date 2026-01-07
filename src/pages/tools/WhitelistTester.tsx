@@ -91,7 +91,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Order Detail + Lines (GET)',
     method: 'GET',
-    url: '/wcapi/get/?model_name=sales_order&id=1',
+    url: '/wcapi/get/?model_name=sales_order&id=22',
     body: {},
     info: {
       description: 'Order detail response embeds line items under data.related.*_lines.',
@@ -99,6 +99,42 @@ const PRESETS: Preset[] = [
       notes: [
         'No separate call needed for order lines.',
         'Canonical key: related.sales_order_lines. Legacy fallbacks may include related.order_lines or related.orderlines depending on environment.',
+      ],
+    },
+  },
+  {
+    label: 'Invoice Detail + Lines (GET)',
+    method: 'GET',
+    url: '/wcapi/get/?model_name=invoice&id=22',
+    body: {},
+    info: {
+      description: 'Invoice detail response embeds line items under data.related.*_lines.',
+      requires: { query: ['model_name', 'id'], headers: ['Authorization (Bearer …) when auth enforced'] },
+      notes: [
+      ],
+    },
+  },
+  {
+    label: 'Proposal Detail + Lines (GET)',
+    method: 'GET',
+    url: '/wcapi/get/?model_name=proposal&id=44',
+    body: {},
+    info: {
+      description: 'Proposal detail response embeds line items under data.related.*_lines.',
+      requires: { query: ['model_name', 'id'], headers: ['Authorization (Bearer …) when auth enforced'] },
+      notes: [
+      ],
+    },
+  },
+  {
+    label: 'Purchase Detail + Lines (GET)',
+    method: 'GET',
+    url: '/wcapi/get/?model_name=purchase&id=22',
+    body: {},
+    info: {
+      description: 'Purchase detail response embeds line items under data.related.*_lines.',
+      requires: { query: ['model_name', 'id'], headers: ['Authorization (Bearer …) when auth enforced'] },
+      notes: [
       ],
     },
   },

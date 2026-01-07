@@ -10,7 +10,7 @@ import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
 import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
-import { Actions, Projects, patchAction } from "../../../api/userProfile";
+import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
@@ -61,7 +61,8 @@ const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
 
 interface ProjectOption {
   id: string;
-  slug: string;
+  slug?: string;
+  name?: string;
   intent?: string;
 }
 
@@ -73,7 +74,7 @@ interface StaffOption {
 }
 
 interface FetchActionsOptions {
-  projectSlug?: string;
+  projectId?: string;
   staffId?: string;
 }
 
@@ -212,90 +213,171 @@ const findFirstObjectArray = (root: unknown): Record<string, unknown>[] => {
   return [];
 };
 
-const extractContactArray = (response: unknown): Record<string, unknown>[] => {
-  if (!response) {
-    return [];
+const preferString = (value: unknown): string | undefined => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
   }
-
-  if (Array.isArray(response)) {
-    return response.filter(isRecordObject);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
   }
-
-  if (isRecordObject(response)) {
-    if (Array.isArray((response as any).results)) {
-      return (response as any).results.filter(isRecordObject);
-    }
-    const dataLayer = (response as any).data;
-    if (Array.isArray(dataLayer)) {
-      return dataLayer.filter(isRecordObject);
-    }
-    if (isRecordObject(dataLayer) && Array.isArray((dataLayer as any).results)) {
-      return (dataLayer as any).results.filter(isRecordObject);
-    }
-  }
-
-  return findFirstObjectArray(response);
+  return undefined;
 };
 
-const mapProjectsFromResponse = (raw: unknown): ProjectOption[] => {
-  if (!raw) {
-    return [];
+const extractRecordArray = (payload: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(payload)) {
+    return payload.filter(isRecordObject);
+  }
+  if (isRecordObject(payload)) {
+    const firstLevelArrays: unknown[] = [];
+    if (Array.isArray((payload as Record<string, unknown>).results)) {
+      firstLevelArrays.push((payload as Record<string, unknown>).results);
+    }
+    if (Array.isArray((payload as Record<string, unknown>).items)) {
+      firstLevelArrays.push((payload as Record<string, unknown>).items);
+    }
+    if (Array.isArray((payload as Record<string, unknown>).data)) {
+      firstLevelArrays.push((payload as Record<string, unknown>).data);
+    }
+    for (const arrayCandidate of firstLevelArrays) {
+      if (Array.isArray(arrayCandidate)) {
+        const records = arrayCandidate.filter(isRecordObject);
+        if (records.length) {
+          return records;
+        }
+      }
+    }
+  }
+  return findFirstObjectArray(payload);
+};
+
+const resolveProjectActivity = (record: Record<string, unknown>): boolean => {
+  const candidates: unknown[] = [];
+  candidates.push(record.active);
+  candidates.push(record.is_active);
+  candidates.push(record.status);
+  candidates.push(record.state);
+  candidates.push(record.enabled);
+  candidates.push(record.active_flag);
+  if ("project.active" in record) {
+    candidates.push((record as Record<string, unknown>)["project.active"]);
+  }
+  if ("project_is_active" in record) {
+    candidates.push((record as Record<string, unknown>)["project_is_active"]);
+  }
+  const nestedProject = record.project;
+  if (nestedProject && typeof nestedProject === "object" && !Array.isArray(nestedProject)) {
+    const nestedRecord = nestedProject as Record<string, unknown>;
+    candidates.push(nestedRecord.active);
+    candidates.push(nestedRecord.is_active);
+    candidates.push(nestedRecord.status);
   }
 
-  const roots: unknown[] = [raw];
-  if (isRecordObject(raw) && "data" in raw) {
-    roots.push((raw as Record<string, unknown>).data);
-    const dataLayer = (raw as Record<string, unknown>).data;
-    if (isRecordObject(dataLayer) && "data" in dataLayer) {
-      roots.push((dataLayer as Record<string, unknown>).data);
+  return candidates.some((value) => {
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) {
+        return false;
+      }
+      if (["active", "enabled"].includes(normalized)) {
+        return true;
+      }
+      if (["inactive", "archived", "disabled", "false", "0", "no"].includes(normalized)) {
+        return false;
+      }
+    }
+    return toBoolean(value);
+  });
+};
+
+const createProjectOption = (record: Record<string, unknown>): ProjectOption | null => {
+  const nestedProject = record.project && typeof record.project === "object" && !Array.isArray(record.project)
+    ? (record.project as Record<string, unknown>)
+    : undefined;
+
+  const idCandidates: Array<unknown> = [
+    record.id,
+    record.pk,
+    record.uuid,
+    record.project_id,
+    record.projectId,
+    nestedProject?.id,
+    nestedProject?.uuid,
+  ];
+
+  let parsedId: string | undefined;
+  for (const candidate of idCandidates) {
+    const value = preferString(candidate);
+    if (value) {
+      parsedId = value;
+      break;
     }
   }
 
-  for (const root of roots) {
-    const records = findFirstObjectArray(root);
-    if (!records.length) {
-      continue;
-    }
+  if (!parsedId) {
+    return null;
+  }
 
-    const uniqueBySlug = new Map<string, ProjectOption>();
-    records.forEach((record) => {
-      const slugCandidate = record.slug ?? record.project_slug ?? record.code ?? record.name ?? record.intent;
-      const slug =
-        typeof record.slug === "string"
-          ? record.slug
-          : typeof slugCandidate === "string"
-          ? slugCandidate
-          : typeof slugCandidate === "number"
-          ? String(slugCandidate)
-          : undefined;
-      if (!slug) {
-        return;
-      }
-      const idCandidate = record.id ?? record.pk ?? record.uuid ?? slug;
-      const option: ProjectOption = {
-        id: String(idCandidate),
-        slug,
-      };
-      const intentValue =
-        typeof record.intent === "string" && record.intent.trim()
-          ? record.intent.trim()
-          : typeof record.name === "string" && record.name.trim()
-          ? record.name.trim()
-          : undefined;
-      if (intentValue) {
-        option.intent = intentValue;
-      }
-      if (!uniqueBySlug.has(option.slug)) {
-        uniqueBySlug.set(option.slug, option);
-      }
-    });
+  const slugCandidates: Array<unknown> = [
+    record.slug,
+    record.project_slug,
+    record.code,
+    record.project_code,
+    record.identifier,
+    nestedProject?.slug,
+    nestedProject?.code,
+  ];
 
-    if (uniqueBySlug.size) {
-      return Array.from(uniqueBySlug.values()).sort((a, b) => a.slug.localeCompare(b.slug));
+  let slug: string | undefined;
+  for (const candidate of slugCandidates) {
+    const value = preferString(candidate);
+    if (value) {
+      slug = value;
+      break;
     }
   }
 
-  return [];
+  const nameCandidates: Array<unknown> = [
+    record.name,
+    record.project_name,
+    record.title,
+    record.label,
+    nestedProject?.name,
+    nestedProject?.title,
+    nestedProject?.label,
+  ];
+
+  let resolvedName: string | undefined;
+  for (const candidate of nameCandidates) {
+    const value = preferString(candidate);
+    if (value) {
+      resolvedName = value;
+      break;
+    }
+  }
+
+  const intentCandidates: Array<unknown> = [
+    record.intent,
+    record.description,
+    nestedProject?.intent,
+    nestedProject?.description,
+  ];
+
+  let intent: string | undefined;
+  for (const candidate of intentCandidates) {
+    const value = preferString(candidate);
+    if (value) {
+      intent = value;
+      break;
+    }
+  }
+
+  return {
+    id: parsedId,
+    slug,
+    name: resolvedName,
+    intent,
+  };
 };
 
 const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
@@ -621,15 +703,14 @@ const KanbanBoardPage: React.FC = () => {
   const [columnsPerRow, setColumnsPerRow] = useState<number>(4);
 
   const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
-  const [selectedProjectSlug, setSelectedProjectSlug] = useState<string>("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
   const [projectFetchError, setProjectFetchError] = useState<string | null>(null);
   const selectedProject = useMemo(
-    () => projectOptions.find((option) => option.slug === selectedProjectSlug),
-    [projectOptions, selectedProjectSlug]
+    () => projectOptions.find((option) => option.id === selectedProjectId),
+    [projectOptions, selectedProjectId]
   );
-  const selectedProjectId = selectedProject?.id ?? "";
-  const selectedProjectName = selectedProject?.slug ?? selectedProjectSlug;
+  const selectedProjectName = selectedProject?.name ?? selectedProject?.intent ?? "";
 
   const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
@@ -637,7 +718,7 @@ const KanbanBoardPage: React.FC = () => {
   const [staffFetchError, setStaffFetchError] = useState<string | null>(null);
 
   const handleProjectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedProjectSlug(event.target.value);
+    setSelectedProjectId(event.target.value);
   };
 
   const handleStaffFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -777,40 +858,65 @@ const KanbanBoardPage: React.FC = () => {
     setIsLoadingProjects(true);
     setProjectFetchError(null);
     try {
-      const response = await Projects({ status: "active" });
-      if (!response || response.status !== 200) {
-        throw new Error("Request failed");
+      const response = await getRecords("project", {
+        active: true,
+        is_active: true,
+        status: "active",
+        limit: 500,
+      });
+      const rawRecords = extractRecordArray(response);
+      const activeRecords = rawRecords.filter((record) => resolveProjectActivity(record));
+      const fallbackRecords = activeRecords.length ? activeRecords : rawRecords;
+
+      const uniqueById = new Map<string, ProjectOption>();
+      fallbackRecords.forEach((record) => {
+        const option = createProjectOption(record);
+        if (!option) {
+          return;
+        }
+        if (!uniqueById.has(option.id)) {
+          uniqueById.set(option.id, option);
+        }
+      });
+
+      const nextOptions = Array.from(uniqueById.values()).sort((a, b) => {
+        const aLabel = a.name ?? a.intent ?? a.id;
+        const bLabel = b.name ?? b.intent ?? b.id;
+        return aLabel.localeCompare(bLabel);
+      });
+
+      if (!nextOptions.length) {
+        setProjectOptions([]);
+        setSelectedProjectId("");
+        setProjectFetchError("No active projects found.");
+        return;
       }
 
-      let options = mapProjectsFromResponse((response as any)?.data);
-      if (!options.length) {
-        options = mapProjectsFromResponse(response);
-      }
-
-      setProjectOptions(options);
-      setSelectedProjectSlug((previous) => {
-        if (previous && options.some((option) => option.slug === previous)) {
+      setProjectOptions(nextOptions);
+      setProjectFetchError(null);
+      setSelectedProjectId((previous) => {
+        if (previous && nextOptions.some((option) => option.id === previous)) {
           return previous;
         }
-        return previous ? "" : previous;
+        return "";
       });
     } catch (error) {
       console.error("Failed to fetch active projects", error);
       setProjectOptions([]);
       setProjectFetchError("Unable to load project list.");
-      setSelectedProjectSlug("");
+      setSelectedProjectId("");
     } finally {
       setIsLoadingProjects(false);
     }
   }, []);
 
-  const fetchActions = useCallback(async ({ projectSlug, staffId }: FetchActionsOptions = {}) => {
+  const fetchActions = useCallback(async ({ projectId, staffId }: FetchActionsOptions = {}) => {
     setIsLoading(true);
     setFetchError(null);
     try {
       const params: Record<string, string> = {};
-      if (projectSlug) {
-        params.project_name = projectSlug;
+      if (projectId) {
+        params.project_id = projectId;
       }
       if (staffId) {
         params.assigned_to_id = staffId;
@@ -872,8 +978,8 @@ const KanbanBoardPage: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch kanban actions", error);
       const parts: string[] = [];
-      if (projectSlug) {
-        parts.push(`project ${projectSlug}`);
+      if (projectId) {
+        parts.push(`project ${projectId}`);
       }
       if (staffId) {
         const staffLabel = staffOptions.find((option) => option.id === staffId)?.label ?? staffId;
@@ -900,10 +1006,10 @@ const KanbanBoardPage: React.FC = () => {
 
   useEffect(() => {
     void fetchActions({
-      projectSlug: selectedProjectSlug || undefined,
+      projectId: selectedProjectId || undefined,
       staffId: selectedStaffId || undefined,
     });
-  }, [fetchActions, selectedProjectSlug, selectedStaffId]);
+  }, [fetchActions, selectedProjectId, selectedStaffId]);
 
   useEffect(() => {
     if (board.columnOrder.length === 0) {
@@ -1426,7 +1532,7 @@ const KanbanBoardPage: React.FC = () => {
         throw new Error("Failed to save task.");
       }
       await fetchActions({
-        projectSlug: selectedProjectSlug || undefined,
+        projectId: selectedProjectId || undefined,
         staffId: selectedStaffId || undefined,
       });
       handleCloseCreateModal();
@@ -1463,7 +1569,7 @@ const KanbanBoardPage: React.FC = () => {
         throw new Error("Failed to update task.");
       }
       await fetchActions({
-        projectSlug: selectedProjectSlug || undefined,
+        projectId: selectedProjectId || undefined,
         staffId: selectedStaffId || undefined,
       });
       handleCloseEditModal();
@@ -1519,7 +1625,7 @@ const KanbanBoardPage: React.FC = () => {
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <span>Project</span>
             <select
-              value={selectedProjectSlug}
+              value={selectedProjectId}
               onChange={handleProjectFilterChange}
               disabled={isLoadingProjects}
               className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
@@ -1528,8 +1634,8 @@ const KanbanBoardPage: React.FC = () => {
                 {isLoadingProjects ? "Loading..." : "All projects"}
               </option>
               {projectOptions.map((option) => (
-                <option key={option.slug} value={option.slug}>
-                  {option.intent ? `${option.slug} - ${option.intent}` : option.slug}
+                <option key={option.id} value={option.id}>
+                  {option.name ?? option.intent ?? option.id}
                 </option>
               ))}
             </select>
@@ -1621,7 +1727,7 @@ const KanbanBoardPage: React.FC = () => {
             type="button"
             onClick={() =>
               void fetchActions({
-                projectSlug: selectedProjectSlug || undefined,
+                projectId: selectedProjectId || undefined,
                 staffId: selectedStaffId || undefined,
               })
             }

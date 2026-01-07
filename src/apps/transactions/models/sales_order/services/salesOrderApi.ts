@@ -1,4 +1,4 @@
-import { getRecords, saveRecord, deleteRecord } from '../../../../../api/wcapi';
+import { getRecords, saveRecord, deleteRecord, getRecord } from '../../../../../api/wcapi';
 import { patchAction } from '../../../../../api/userProfile';
 import {
   SalesOrderLine,
@@ -25,13 +25,13 @@ export const deleteSalesOrder = async (id: number) => {
 
 // Sales Order Lines API
 export const fetchSalesOrderLines = async (salesOrderId: number): Promise<{ status: number; data: { results: SalesOrderLine[]; total: number } }> => {
-  const res = await getRecords('salesorder_line', { parent: salesOrderId });
+  const res = await getRecords('sales_order_line', { parent: salesOrderId });
   return { status: 200, data: { results: res.results || [], total: res.total || 0 } };
 };
 
 export const createSalesOrderLine = async (salesOrderId: number, data: CreateSalesOrderLineRequest): Promise<{ status: number; data: SalesOrderLine }> => {
   const payload = {
-    model_name: 'salesorder_line',
+    model_name: 'sales_order_line',
     ...data,
     parent: salesOrderId,
   };
@@ -41,7 +41,7 @@ export const createSalesOrderLine = async (salesOrderId: number, data: CreateSal
 
 export const updateSalesOrderLine = async (salesOrderId: number, lineId: number, data: UpdateSalesOrderLineRequest): Promise<{ status: number; data: SalesOrderLine }> => {
   const payload = {
-    model_name: 'salesorder_line',
+    model_name: 'sales_order_line',
     ...data,
     parent: salesOrderId,
     id: lineId,
@@ -52,10 +52,42 @@ export const updateSalesOrderLine = async (salesOrderId: number, lineId: number,
 
 export const deleteSalesOrderLine = async (_salesOrderId: number, lineId: number): Promise<{ status: number; data: any }> => {
   const payload = {
-    model_name: 'salesorder_line',
+    model_name: 'sales_order_line',
     id: lineId,
     method: 'delete',
   };
   const res = await patchAction(payload);
   return { status: res?.status || 200, data: res?.data || res };
+};
+
+export const fetchSalesOrderDetail = async (id: number): Promise<any> => {
+  const res = await getRecord('salesorder', id);
+  return res?.record ?? res;
+};
+
+export const searchItems = async (
+  query: string,
+  options?: { limit?: number; extraParams?: Record<string, unknown> }
+): Promise<{ status: number; data: { results: any[]; total: number } }> => {
+  const trimmed = query?.trim?.() ?? '';
+  const params: Record<string, unknown> = {
+    limit: options?.limit ?? 25,
+    ...(options?.extraParams ?? {}),
+  };
+
+  if (trimmed) {
+    params.search = trimmed;
+    params.key_tags = trimmed;
+    params.q = trimmed;
+  }
+
+  const res = await getRecords('item', params);
+  const results = (res?.results ?? res?.items ?? []) as any[];
+  return {
+    status: 200,
+    data: {
+      results,
+      total: (res?.total as number | undefined) ?? results.length,
+    },
+  };
 };
