@@ -12,19 +12,6 @@ from apps.core.services import wcapi as services
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
 
-# Import serializers for transaction models to include lines
-try:
-    from apps.transactions.serializers.transaction_serializers import (
-        ProposalSerializer, SalesOrderSerializer, PurchaseOrderSerializer
-    )
-    TRANSACTION_SERIALIZERS = {
-        'proposal': ProposalSerializer,
-        'salesorder': SalesOrderSerializer,
-        'purchaseorder': PurchaseOrderSerializer,
-    }
-except ImportError:
-    TRANSACTION_SERIALIZERS = {}
-
 try:  # pragma: no cover - optional dependency in some deployments
     from apps.core.utils.model_policies import model_policies as mp  # noqa: F401
 except Exception:  # pragma: no cover - fallback if policies unavailable
@@ -49,6 +36,42 @@ class WCAPIGetView(APIView):
     """Read-only WCAPI endpoint supporting query-parameter access with filtering, pagination, and search."""
 
     http_method_names = ["get", "options", "head"]
+
+    LINE_MODEL_KEYS = {"proposal", "salesorder", "invoice", "purchaseorder", "workorder"}
+
+    @staticmethod
+    def _normalize_model_key(model_key: str | None) -> str:
+        return (model_key or "").replace("/", "").replace("_", "").lower()
+
+    def _should_include_lines(self, model_key: str | None) -> bool:
+        return self._normalize_model_key(model_key) in self.LINE_MODEL_KEYS
+
+    def _serialize_lines(self, obj, request) -> List[Dict[str, Any]]:
+        manager = getattr(obj, "lines", None)
+        if not hasattr(manager, "all"):
+            return []
+        try:
+            qs = manager.all()
+            try:
+                qs = qs.order_by("id")
+            except Exception:
+                pass
+        except Exception:
+            return []
+
+        results: List[Dict[str, Any]] = []
+        for line in qs:
+            try:
+                allow = policy.field_allowlist(type(line), request=request)
+                payload = services.to_dict(line, allow=allow)
+            except Exception:
+                payload = {}
+            if not isinstance(payload, dict):
+                continue
+            if payload.get("is_deleted") is True:
+                continue
+            results.append(payload)
+        return results
 
     def _parse_filters(self, request, model_key: str, ModelCls) -> Dict[str, Any]:
         """
@@ -279,15 +302,6 @@ class WCAPIGetView(APIView):
                     status=status.HTTP_200_OK
                 )
 
-            # Use serializer for transaction models to include lines
-            if model_key in TRANSACTION_SERIALIZERS:
-                serializer_class = TRANSACTION_SERIALIZERS[model_key]
-                serializer = serializer_class(obj, context={'request': request})
-                return Response(
-                    {"record": serializer.data}, 
-                    status=status.HTTP_200_OK
-                )
-
             allow = policy.field_allowlist(type(obj), request=request)
             # Debug: log refs content read from DB to diagnose denormalization visibility
             logger = logging.getLogger(__name__)
@@ -307,10 +321,11 @@ class WCAPIGetView(APIView):
                     pass
             except Exception:
                 pass
-            return Response(
-                {"record": services.to_dict(obj, allow=allow)}, 
-                status=status.HTTP_200_OK
-            )
+
+            payload = services.to_dict(obj, allow=allow)
+            if self._should_include_lines(model_key):
+                payload["lines"] = self._serialize_lines(obj, request)
+            return Response({"record": payload}, status=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination
         ModelCls, qs = services.get_queryset(model_key, request=request)

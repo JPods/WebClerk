@@ -1,5 +1,9 @@
+from django import forms
 from django.contrib import admin
+from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.admin.helpers import ActionForm
+from apps.transactions.models import Project
 from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
 
 
@@ -58,15 +62,41 @@ class ContactAdmin(BaseUserAdmin):
 @admin.register(Action)
 class ActionAdmin(admin.ModelAdmin):
     """Admin interface for Action model."""
-    list_display = ('id', 'get_action_title', 'kanban_column', 'status', 'priority', 'dt_created')
+    list_display = ('id', 'get_action_title', 'project_id', 'project_name', 'kanban_column', 'status', 'priority', 'dt_created')
     list_filter = ('kanban_column', 'status', 'priority')
-    search_fields = ('id_project', 'action')
+    search_fields = ('project_id', 'action')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    actions = ['assign_project_id']
+
+    class AssignProjectIdActionForm(ActionForm):
+        project_id = forms.CharField(required=True, label='Project ID')
+
+    action_form = AssignProjectIdActionForm
     
     def get_action_title(self, obj):
         action_dict = obj.action or {}
         return action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
     get_action_title.short_description = 'Action'
+
+    @admin.action(description='Assign project ID to selected actions')
+    def assign_project_id(self, request, queryset):
+        project_id_raw = request.POST.get('project_id')
+        if not project_id_raw:
+            messages.error(request, 'Project ID is required to update selected actions.')
+            return
+        try:
+            project_id_clean = int(project_id_raw)
+        except (TypeError, ValueError):
+            messages.error(request, f'Invalid project ID "{project_id_raw}" provided.')
+            return
+        try:
+            project = Project.objects.get(id=project_id_clean)
+        except Project.DoesNotExist:
+            messages.error(request, f'No project found with ID "{project_id_clean}".')
+            return
+        project_name = project.slug or project.intent or str(project.id)
+        updated = queryset.update(project_id=project.id, project_name=project_name)
+        messages.success(request, f'Assigned project ID {project.id} ({project_name}) to {updated} action(s).')
 
 
 @admin.register(Setting)

@@ -9,7 +9,33 @@ from apps.core.utils import registry, policy
 def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     data = model_to_dict(obj)
     filtered = {k: data.get(k) for k in allow} if allow else data
-    return filtered
+
+    field_map = {}
+    try:
+        field_map = {f.name: f for f in obj._meta.get_fields() if getattr(f, "name", None)}
+    except Exception:
+        field_map = {}
+
+    json_field_names = set()
+    for name, field in field_map.items():
+        kind = ""
+        if hasattr(field, "get_internal_type"):
+            try:
+                kind = (field.get_internal_type() or "")
+            except Exception:
+                kind = ""
+        if "JSON" in kind.upper():
+            json_field_names.add(name)
+
+    schema_keys = sorted(k for k in filtered.keys() if k not in json_field_names)
+    json_keys = sorted(k for k in filtered.keys() if k in json_field_names)
+
+    ordered: Dict[str, Any] = {}
+    for key in schema_keys:
+        ordered[key] = filtered[key]
+    for key in json_keys:
+        ordered[key] = filtered[key]
+    return ordered
 
 def filter_input_fields(ModelCls: type[Model], payload: Dict[str, Any]) -> Dict[str, Any]:
     fields = {f.name for f in getattr(ModelCls._meta, "fields", [])}
@@ -21,8 +47,9 @@ def get_queryset(model_key: str, *, request) -> Tuple[type[Model], QuerySet]:
         raise ValueError("invalid model")
     qs = ModelCls.objects.all()
 
+    normalized_key = (model_key or "").replace("_", "").lower()
     # Prefetch lines for transaction models
-    if model_key in ['proposal', 'salesorder', 'purchaseorder']:
+    if normalized_key in {'proposal', 'salesorder', 'invoice', 'purchaseorder', 'workorder'}:
         qs = qs.prefetch_related('lines')
 
     qs = policy.inject_constraints(qs, request=request, model_key=model_key)

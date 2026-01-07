@@ -1,0 +1,3 @@
+Create an action in the apps/core/admin.py
+
+for action model so we can assign a project_id to selected action records

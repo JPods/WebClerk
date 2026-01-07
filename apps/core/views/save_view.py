@@ -40,6 +40,9 @@ from typing import Type, cast, List, Dict, Any
 from common.refs.links import ensure_bidirectional
 from common.models import LINK_DENORMALIZE_FIELDS
 from apps.core.models import Contact
+from common.refs.links import ensure_bidirectional
+from common.models import LINK_DENORMALIZE_FIELDS
+from apps.core.models import Contact
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -793,7 +796,7 @@ class SaveWcapiView(APIView):
         if 'data' in data and isinstance(data['data'], dict):
             data.update(data['data'])
             del data['data']
-            console_logger.debug(f"[SAVE_VIEW] Merged 'data' fields into payload")
+            console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
         # Required: model_name (singular)
         raw_model_name = data.get('model_name')
@@ -1076,99 +1079,49 @@ class SaveWcapiView(APIView):
             comm_models = {"email", "phone", "address", "location", "domain"}
             if model_key.lower() in comm_models:
                 bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
-
-                # Resolve contact id from payload or authenticated user
                 contact = None
-                contact_id = None
-                if isinstance(data, dict):
-                    # common variations
-                    contact_id = data.get("contact_id") or data.get("contactId") or (data.get("contact") if isinstance(data.get("contact"), (int, str)) else None)
-                    try:
-                        if isinstance(contact_id, (str,)):
-                            contact_id = int(contact_id)
-                    except Exception:
-                        contact_id = None
-
-                # Fallback to authenticated request user when available
-                if not contact_id and request.user and getattr(request.user, "is_authenticated", False):
-                    # If the authenticated user is a Contact instance (AUTH_USER_MODEL='core.Contact'), use it.
-                    try:
-                        if isinstance(request.user, Contact):
-                            contact = request.user
-                        else:
-                            # Try to resolve a Contact record matching the auth user's pk (in case of proxy or linkage)
-                            possible = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
-                            if possible:
-                                contact = possible
-                    except Exception:
-                        # Defensive: if contact resolution fails, continue without contact
-                        contact = None
-
-                if contact_id:
-                    contact = Contact.objects.filter(pk=contact_id).first()
-
-                # Log when no contact was found so it is easier to debug client reports
-                try:
-                    if not contact and model_key and model_key.lower() in comm_models:
-                        console_logger.debug("wcapi.save_item: no contact resolved for created %s id=%s (payload_contact_id=%s, auth_user=%s)", model_key, getattr(obj, "pk", None), contact_id, getattr(request.user, "pk", None) or getattr(request.user, "id", None))
-                except Exception:
-                    pass
-
+                if user and getattr(user, "is_authenticated", False):
+                    contact = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
                 if contact:
-                    # Build denormalized object from LINK_DENORMALIZE_FIELDS
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
-                    obj.refresh_from_db()
                     denorm = {f: getattr(obj, f, None) for f in fields}
-
-                    # Ensure refs.links shaped correctly and initialize buckets
                     refs = getattr(contact, "refs", {}) or {}
-                    if not isinstance(refs, dict):
-                        refs = {}
                     links = refs.get("links") or {}
-                    # Ensure all standard link buckets exist (preserve existing lists)
-                    for std_bucket in LINK_DENORMALIZE_FIELDS.keys():
-                        if std_bucket not in links:
-                            links[std_bucket] = []
-
                     bucket_list = links.get(bucket) or []
-
-                    # Replace existing entry with same id (dict or int) to avoid dupes, else append
                     existing_found = False
                     for idx, it in enumerate(list(bucket_list)):
                         if isinstance(it, dict) and it.get("id") == getattr(obj, "pk"):
                             bucket_list[idx] = denorm
                             existing_found = True
+                            linked = True
                             break
                         if isinstance(it, int) and it == getattr(obj, "pk"):
                             bucket_list[idx] = denorm
                             existing_found = True
+                            linked = True
                             break
                     if not existing_found:
                         bucket_list.append(denorm)
                         linked = True
-
                     links[bucket] = bucket_list
                     refs["links"] = links
-                    # Defer persisting contact.refs until after post-save hooks and keyword updates
+                    contact.refs = refs
+                    Contact.objects.filter(pk=contact.pk).update(refs=contact.refs, version=models.F('version') + 1, dt_modified=int(timezone.now().timestamp() * 1000))
                     try:
-                        from django.utils import timezone
-                        console_logger.debug(f"[SAVE_VIEW] Marking contact.refs pending save for contact id={contact.pk} (links size={len(links.get(bucket, []))})")
-                        contact.refs = refs
-                        # bump local version to reflect change
-                        try:
-                            contact.version = (contact.version or 0) + 1
-                        except Exception:
-                            contact.version = 1
-                        try:
-                            contact.dt_modified = int(timezone.now().timestamp() * 1000)
-                        except Exception:
-                            pass
-                        # flag to indicate deferred save
-                        setattr(contact, '_refs_pending_save', True)
-                    except Exception as e:
-                        console_logger.error(f"[SAVE_VIEW] Error marking contact.refs for deferred save: {e}")
-                        import traceback
-                        console_logger.error(f"[SAVE_VIEW] Marking error traceback: {traceback.format_exc()}")
+                        if not isinstance(getattr(obj, "refs", None), dict):
+                            obj.refs = {}
+                        obj_links = obj.refs.setdefault("links", {})
+                        contact_list = obj_links.setdefault("contact", [])
+                        if contact.pk not in contact_list:
+                            contact_list.append(contact.pk)
+                            obj.save()
+                            linked = True
+                    except Exception:
+                        pass
+                    try:
+                        ensure_bidirectional(contact, obj, kind="contact")
+                    except Exception:
+                        pass
         except Exception:
             pass  # Defensive
 
@@ -1329,7 +1282,7 @@ class SaveWcapiView(APIView):
             'model_name': model_key,
             'version': getattr(obj, 'version', None),
             'linked': linked
-        } 
+        }
         messages = []
         if field_size_errors:
             console_logger.debug(f"[SAVE_VIEW] Adding {len(field_size_errors)} field size errors to messages")
