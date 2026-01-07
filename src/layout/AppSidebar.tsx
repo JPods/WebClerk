@@ -8,7 +8,6 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  PlugInIcon,
   TableIcon,
   UserCircleIcon,
 } from "../icons";
@@ -32,11 +31,6 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     path: "/dashboard",
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Notion Tracker",
-    path: "/notion-tracker",
   },
   {
     icon: <GridIcon />,
