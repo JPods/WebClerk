@@ -13,6 +13,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 
 import { salesOrderSchema } from "../utils/salesOrderSchema";
 import { createSalesOrder, updateSalesOrder, fetchSalesOrderDetail, searchCustomers } from "../services/salesOrderApi";
+import { saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
@@ -57,6 +58,7 @@ const FIELD_GROUPS: FieldGroup[] = [
   {
     title: "Primary",
     fields: [
+      { name: "ida", label: "ida", type: "text" },
       { name: "sales_order_no", label: "ida_sales_order", type: "text" },
       { name: "status", label: "status", type: "select", options: STATUS_OPTIONS },
       { name: "priority", label: "priority", type: "text" },
@@ -66,9 +68,9 @@ const FIELD_GROUPS: FieldGroup[] = [
   {
     title: "Associations",
     fields: [
-      { name: "id_customer", label: "id_customer", type: "number", min: 1 },
-      { name: "id_manufacturer", label: "id_manufacturer", type: "number", min: 0 },
-      { name: "id_vendor", label: "id_vendor", type: "number", min: 0 },
+      { name: "customer_id", label: "customer_id", type: "number", min: 1 },
+      { name: "manufacturer_id", label: "manufacturer_id", type: "number", min: 0 },
+      { name: "vendor_id", label: "vendor_id", type: "number", min: 0 },
     ],
   },
   {
@@ -129,7 +131,7 @@ interface ContactLinkDisplayRow {
   raw: ContactLinkRecord;
 }
 
-const READONLY_FIELD_NAMES = new Set(["sales_order_no", "subtotal"]);
+const READONLY_FIELD_NAMES = new Set(["ida", "sales_order_no", "subtotal"]);
 const READONLY_JSON_FIELDS = new Set<JsonFieldPath>(["cost", "sell", "finance", "flow"]);
 
 function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
@@ -167,6 +169,7 @@ function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
 }
 
 const DEFAULT_FORM_VALUES: SalesOrderForm = {
+  ida: "",
   company: "",
   attention: "",
   address1: "",
@@ -192,7 +195,7 @@ const DEFAULT_FORM_VALUES: SalesOrderForm = {
   comment: "",
   contractDetail: "",
   id_transaction: "",
-  id_customer: 0,
+  customer_id: 0,
   subtotal: 0,
   total: 0,
   tax: 0,
@@ -204,8 +207,8 @@ const DEFAULT_FORM_VALUES: SalesOrderForm = {
   status: "planned",
   priority: "",
   price_level: "",
-  id_manufacturer: 0,
-  id_vendor: 0,
+  manufacturer_id: 0,
+  vendor_id: 0,
   cost: {},
   sell: {},
   finance: {},
@@ -404,6 +407,17 @@ function getErrorMessage(errors: Record<string, unknown>, path: string): string 
   return typeof message === "string" ? message : undefined;
 }
 
+function extractNumericId(candidate: unknown): number | null {
+  if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+    return candidate;
+  }
+  if (typeof candidate === "string") {
+    const parsed = Number.parseInt(candidate, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
 function toNumeric(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -421,6 +435,13 @@ function cloneLine(line: SalesOrderLineRecord): SalesOrderLineRecord {
   } catch (error) {
     return { ...(line as Record<string, unknown>) } as SalesOrderLineRecord;
   }
+}
+
+function resolveLineId(line: SalesOrderLineRecord): number | null {
+  if (!line || typeof line !== "object") {
+    return null;
+  }
+  return extractNumericId((line as Record<string, unknown>).id);
 }
 
 function recalculateLineFinancials(line: SalesOrderLineRecord): void {
@@ -770,12 +791,12 @@ export default function SalesOrderDetail({
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [customerSearchError, setCustomerSearchError] = useState<string | null>(null);
 
-  const rawCustomerId = watch("id_customer");
+  const rawCustomerId = watch("customer_id");
   const refsValue = watch("refs");
   const customerIdValue =
-    typeof rawCustomerId === "number"
-      ? rawCustomerId
-      : Number.parseInt(String(rawCustomerId ?? 0), 10) || 0;
+      typeof rawCustomerId === "number"
+        ? rawCustomerId
+        : Number.parseInt(String(rawCustomerId ?? 0), 10) || 0;
   const showCustomerSearchPanel = !isReadOnly && customerIdValue <= 0;
 
     const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
@@ -917,7 +938,7 @@ export default function SalesOrderDetail({
         return;
       }
 
-      setValue("id_customer", resolvedId, { shouldDirty: true, shouldValidate: true });
+      setValue("customer_id", resolvedId, { shouldDirty: true, shouldValidate: true });
 
       const label = resolveCustomerLabel(record);
       const existingCompany = watch("company");
@@ -940,9 +961,35 @@ export default function SalesOrderDetail({
     if (!recordData) {
       return DEFAULT_FORM_VALUES;
     }
+
+    const recordContainer = recordData as Record<string, unknown>;
+
+    const resolvedCustomerId = extractNumericId(
+      recordContainer.customer_id ?? recordContainer.id_customer
+    );
+    const resolvedManufacturerId = extractNumericId(
+      recordContainer.manufacturer_id ?? recordContainer.id_manufacturer
+    );
+    const resolvedVendorId = extractNumericId(
+      recordContainer.vendor_id ?? recordContainer.id_vendor
+    );
+    const resolvedIda = (() => {
+      const candidates = [recordContainer.ida, recordContainer.sales_order_no, recordContainer.ida_sales_order];
+      for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim()) {
+          return candidate.trim();
+        }
+      }
+      return DEFAULT_FORM_VALUES.ida;
+    })();
+
     return {
       ...DEFAULT_FORM_VALUES,
       ...recordData,
+      ida: resolvedIda,
+      customer_id: resolvedCustomerId ?? DEFAULT_FORM_VALUES.customer_id,
+      manufacturer_id: resolvedManufacturerId ?? DEFAULT_FORM_VALUES.manufacturer_id,
+      vendor_id: resolvedVendorId ?? DEFAULT_FORM_VALUES.vendor_id,
       metadata: {
         ...DEFAULT_FORM_VALUES.metadata,
         ...(typeof recordData.metadata === "object" && recordData.metadata ? recordData.metadata : {}),
@@ -961,7 +1008,7 @@ export default function SalesOrderDetail({
       flow: typeof recordData.flow === "object" && recordData.flow ? recordData.flow : {},
       source: typeof recordData.source === "object" && recordData.source ? recordData.source : {},
       subtotals: typeof recordData.subtotals === "object" && recordData.subtotals ? recordData.subtotals : {},
-      lines: normalizeLines((recordData as Record<string, unknown>).lines),
+      lines: normalizeLines(recordContainer.lines),
     } as SalesOrderForm;
   }, [recordData]);
 
@@ -1296,7 +1343,11 @@ export default function SalesOrderDetail({
     });
   };
 
-  const onSubmit = async (formData: SalesOrderForm) => {
+    const onSubmit = async (formData: SalesOrderForm) => {
+      const linesForSync = Array.isArray(formData.lines)
+        ? formData.lines.map((line) => cloneLine(line))
+        : [];
+
     try {
       applyJsonDraftsToPayload(formData);
     } catch (error) {
@@ -1306,21 +1357,111 @@ export default function SalesOrderDetail({
     }
 
     try {
-      const result =
+        const { lines: _unsentLines, ...rest } = formData;
+        const orderPayload = JSON.parse(JSON.stringify(rest)) as Record<string, unknown>;
+        delete orderPayload.ida;
+        delete orderPayload.id_customer;
+        delete orderPayload.id_vendor;
+        delete orderPayload.id_manufacturer;
+      const saveResult =
         mode === "add"
-          ? await createSalesOrder(formData)
-          : await updateSalesOrder(recordData?.id as number, formData);
+            ? await createSalesOrder(orderPayload)
+          : await (async () => {
+              const existingId = extractNumericId(recordData?.id);
+              if (!existingId) {
+                throw new Error("Sales order id missing");
+              }
+                return updateSalesOrder(existingId, orderPayload);
+            })();
 
-      if (result) {
-        dispatch(
-          showToast({
-            message: `Sales order ${mode === "add" ? "created" : "updated"} successfully`,
-            type: "success",
-          })
-        );
-        if (onSaved) {
-          onSaved();
+      const orderIdCandidates: unknown[] = [
+        (saveResult as Record<string, unknown>)?.id,
+        (saveResult as Record<string, unknown>)?.record?.id,
+        (saveResult as Record<string, unknown>)?.data?.id,
+        (saveResult as Record<string, unknown>)?.data?.record?.id,
+        recordData?.id,
+        (formData as unknown as Record<string, unknown>)?.id,
+      ];
+
+      const resolvedOrderId = orderIdCandidates.reduce<number | null>((acc, value) => {
+        if (acc) {
+          return acc;
         }
+        return extractNumericId(value);
+      }, null);
+
+      if (!resolvedOrderId) {
+        throw new Error("Sales order id missing after save");
+      }
+
+      const originalLineIds = new Set<number>();
+      lineItems.forEach((line) => {
+        const existingId = resolveLineId(line);
+        if (existingId) {
+          originalLineIds.add(existingId);
+        }
+      });
+
+      const retainedLineIds = new Set<number>();
+      const lineOperations: Promise<unknown>[] = [];
+
+        linesForSync.forEach((line) => {
+        if (!line || typeof line !== "object") {
+          return;
+        }
+        const payload = line as Record<string, unknown>;
+        const lineId = resolveLineId(line);
+        payload.parent = resolvedOrderId;
+        if (lineId) {
+          retainedLineIds.add(lineId);
+          payload.id = lineId;
+        } else {
+          delete payload.id;
+        }
+          lineOperations.push(
+            (async () => {
+              await saveRecord("sales_order_line", JSON.parse(JSON.stringify(payload)));
+            })()
+          );
+      });
+
+      originalLineIds.forEach((lineId) => {
+        if (!retainedLineIds.has(lineId)) {
+            lineOperations.push(
+              (async () => {
+                await deleteRecord("sales_order_line", lineId);
+              })()
+            );
+        }
+      });
+
+      if (lineOperations.length > 0) {
+          const results = await Promise.allSettled(lineOperations);
+          const rejected = results.find((result) => result.status === "rejected");
+          if (rejected && rejected.status === "rejected") {
+            throw rejected.reason instanceof Error
+              ? rejected.reason
+              : new Error("Failed syncing line items");
+          }
+      }
+
+      try {
+        const refreshed = await fetchSalesOrderDetail(resolvedOrderId);
+        if (refreshed && typeof refreshed === "object") {
+          setRecordData(refreshed as SalesOrderForm & { id?: number });
+        }
+      } catch {
+        // Best-effort refresh; ignore errors so a successful save is not blocked.
+      }
+
+      dispatch(
+        showToast({
+          message: `Sales order ${mode === "add" ? "created" : "updated"} successfully`,
+          type: "success",
+        })
+      );
+      if (onSaved) {
+        onSaved();
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Operation failed";
