@@ -1,6 +1,12 @@
 import uuid
 from django.db import models
+
 from common.models import BaseModel
+from apps.sync.choices import (
+    CONNECTION_PURPOSE_CHOICES,
+    CONNECTION_STATUS_CHOICES,
+    CONNECTION_TYPE_CHOICES,
+)
 
 # Mapping Tables
 # Store relationships between local IDs and remote IDs (or UUIDs) for synchronization.
@@ -30,7 +36,7 @@ from common.models import BaseModel
 
 class Connection(BaseModel):
     name = models.CharField(max_length=255)
-    type = models.CharField(max_length=255)
+    type = models.CharField(max_length=255, choices=CONNECTION_TYPE_CHOICES)
     config = models.JSONField()
     comment = models.TextField(blank=True, default="", help_text="General notes")
         #endpoints = models.JSONField(blank=True, null=True)
@@ -41,11 +47,21 @@ class Connection(BaseModel):
         #path_working = models.CharField(max_length=255, blank=True, null=True)
         #key = models.CharField(max_length=255, blank=True, null=True)
         #pin = models.CharField(max_length=255, blank=True, null=True)
-    status = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=CONNECTION_STATUS_CHOICES,
+    )
     scripts = models.JSONField(blank=True, null=True)
     relationships = models.JSONField(blank=True, null=True)
     action = models.CharField(max_length=255, blank=True)
-    purpose = models.CharField(max_length=255, blank=True, null=True)
+    purpose = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=CONNECTION_PURPOSE_CHOICES,
+    )
     #rules and paths for converting between datasets
     maps = models.JSONField(blank=True, null=True)
     encryption = models.JSONField(blank=True, null=True)

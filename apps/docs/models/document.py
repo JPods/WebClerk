@@ -7,6 +7,11 @@ from django.contrib.postgres.indexes import GinIndex
 from apps.core.models.pending import Pending
 from apps.core.constants.keyword_requirements import get_keyword_requirements
 from apps.core.models.setting import Setting
+from apps.docs.choices import (
+    DOCUMENT_CONFIDENTIALITY_CHOICES,
+    DOCUMENT_MODEL_CHOICES,
+    DOCUMENT_STATUS_CHOICES,
+)
 # this table provides a path to documents
 # example use is to link line items in orders, proposals, etc.
 # with one document that passes on specs, paths, comments, and other details
@@ -29,17 +34,34 @@ class Document(BaseModel):
 
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     slug = models.SlugField(max_length=255, blank=True, null=True, unique=True, help_text="Stable slug (for readmes / API consumption)")
-    status = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    status = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=DOCUMENT_STATUS_CHOICES,
+        db_index=True,
+    )
     description = models.CharField(max_length=255, blank=True, null=True)
     body = models.TextField(blank=True, null=True)
     comment = models.TextField(blank=True, default="", help_text="General notes")
     data = models.JSONField(blank=True, null=True)
     
-    confidential = models.CharField(max_length=255, blank=True, null=True)
+    confidential = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=DOCUMENT_CONFIDENTIALITY_CHOICES,
+    )
     copyright = models.JSONField(blank=True, null=True, help_text="{level:int,path:str,holder:str,notes:[]} structure")
     count_accessed = models.IntegerField(default=0)
     # Canonical model identifier
-    model_name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    model_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=DOCUMENT_MODEL_CHOICES,
+        db_index=True,
+    )
     retention_period = models.IntegerField(blank=True, null=True)
     sequence = models.IntegerField(blank=True, null=True)
     size_bytes = models.IntegerField(blank=True, null=True)

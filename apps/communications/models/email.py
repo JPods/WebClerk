@@ -1,25 +1,23 @@
 # path: apps/communications/models/email.py
 from django.db import models
+from django.utils import timezone
+
 from common.models import BaseModel
-from django.utils import timezone  # Add this import
-import uuid
+from apps.communications.choices import EMAIL_OPT_OUT_CHOICES, EMAIL_TYPE_CHOICES
 
 class Email(BaseModel):
     email = models.EmailField(max_length=254, blank=False, help_text="Email address")
     name = models.CharField(max_length=100, blank=True, help_text="Display name for this email")
     attention = models.CharField(max_length=100, blank=True, help_text="Person or department attention line")
-    type = models.CharField(max_length=50, blank=True, help_text="Type of email (e.g., work, personal)")
+    type = models.CharField(
+        max_length=50,
+        blank=True,
+        choices=EMAIL_TYPE_CHOICES,
+        default="",
+        help_text="Type of email (e.g., work, personal)",
+    )
 
-    
-    # Use choices for better data integrity
-    OPT_OUT_CHOICES = [
-        ('', 'Active'),
-        ('opted_out', 'Opted Out'),
-        ('bounced', 'Bounced'),
-        ('invalid', 'Invalid'),
-        ('spam_complaint', 'Spam Complaint'),
-    ]
-    opt_out = models.CharField(max_length=20, choices=OPT_OUT_CHOICES, blank=True, default='')
+    opt_out = models.CharField(max_length=20, choices=EMAIL_OPT_OUT_CHOICES, blank=True, default='')
     
     
     # Add useful tracking fields
@@ -61,7 +59,7 @@ class Email(BaseModel):
     @property
     def status_display(self):
         """Human-readable status derived from opt_out state."""
-        return dict(self.OPT_OUT_CHOICES).get(self.opt_out, 'Active')
+        return dict(EMAIL_OPT_OUT_CHOICES).get(self.opt_out, 'Active')
 
     # --- Verification helpers (async + decision gate) -------------------
     def queue_verification(self, connection_name: str | None = None) -> None:

@@ -1,0 +1,22 @@
+{% load i18n admin_urls %}
+
+<div class="tp-detail-inner" style="display:flex; flex-direction:column; gap:12px;">
+  <div style="display:flex; align-items:center; gap:8px; justify-content:space-between;">
+    <h2 style="margin:0; font-size:16px;">{{ object }}</h2>
+    <div style="display:flex; gap:6px;">
+      <a class="button" href="{% url opts|admin_urlname:'change' object.pk %}" target="_blank">{% trans "Open full form" %}</a>
+      <a class="button" href="{% url opts|admin_urlname:'history' object.pk %}" target="_blank">{% trans "History" %}</a>
+    </div>
+  </div>
+
+  <table class="tp-detail-table" style="width:100%; border-collapse:collapse;">
+    <tbody>
+      {% for row in field_rows %}
+        <tr style="border-bottom:1px solid var(--hairline-color, #eee);">
+          <th scope="row" style="text-align:left; padding:6px 8px; width:35%; font-weight:600;">{{ row.label|capfirst }}</th>
+          <td style="padding:6px 8px;">{{ row.value|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

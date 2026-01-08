@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from django.db import models
 from django.utils import timezone
+from apps.products.choices import (
+    ORG_ITEM_AVAILABILITY_CHOICES,
+    ORG_ITEM_INVENTORY_FREQUENCY_CHOICES,
+)
 from .item_base_model import ItemLinkedBase
 
 
@@ -80,22 +84,13 @@ class OrgItem(ItemLinkedBase):
     STATE_ENABLED = "enabled"
     STATE_PAUSED = "paused"
     STATE_RETIRED = "retired"
-    AVAILABILITY_STATES = [
-        (STATE_ENABLED, "Enabled"),
-        (STATE_PAUSED, "Paused"),
-        (STATE_RETIRED, "Retired"),
-    ]
+    AVAILABILITY_STATES = ORG_ITEM_AVAILABILITY_CHOICES
 
     FREQ_DAILY = "daily"
     FREQ_WEEKLY = "weekly"
     FREQ_MONTHLY = "monthly"
     FREQ_30D = "30d"
-    INVENTORY_FREQUENCIES = [
-        (FREQ_DAILY, "Daily"),
-        (FREQ_WEEKLY, "Weekly"),
-        (FREQ_MONTHLY, "Monthly"),
-        (FREQ_30D, "Every 30 Days"),
-    ]
+    INVENTORY_FREQUENCIES = ORG_ITEM_INVENTORY_FREQUENCY_CHOICES
 
     availability_state = models.CharField(
         max_length=20,

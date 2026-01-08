@@ -1,5 +1,7 @@
 from django.db import models
+
 from common.models import BaseModel
+from apps.accounts.choices import TAX_SERVICE_PROVIDER_CHOICES
 
 
 # build up predefined metadata and refs and prefs
@@ -20,7 +22,12 @@ class TaxJurisdiction(BaseModel):
     scripts = models.JSONField(default=dict, blank=True, null=True)
     # costs, sales, shipping, import, etc...
     service_id = models.BigIntegerField
-    service_provider = models.CharField(max_length=255, blank=True, null=True)
+    service_provider = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=TAX_SERVICE_PROVIDER_CHOICES,
+    )
     tax_name = models.CharField(max_length=255, blank=True, null=True)
     tax_rate_cost = models.FloatField(blank=True, null=True)
     tax_rate_on_shipping = models.FloatField(blank=True, null=True)

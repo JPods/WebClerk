@@ -1,23 +1,8 @@
 from django.db import models
+
 from common.models import BaseModel
+from apps.core.choices import ACTION_DIFFICULTY_LEVELS, ACTION_KANBAN_COLUMNS
 from apps.core.services.keywords import build_keywords_for_record
-
-KANBAN_COLUMNS = [
-    ('Backlog', 'Backlog'),
-    ('Planning', 'Planning'),
-    ('InProcess', 'In Process'),
-    ('Review', 'Review'),
-    ('Complete', 'Complete'),
-]
-
-DIFFICULTY_LEVELS = [
-    (100, 'Extreme'),
-    (50, 'Hard'),
-    (15, 'Moderate'),
-    (10, 'Normal'),
-    (4, 'Easy'),
-    (1, 'Trivial'),
-]
 
 class Action(BaseModel):
     # Parent-child relationship
@@ -36,9 +21,9 @@ class Action(BaseModel):
 
     # Kanban board and workflow management
     sequence = models.PositiveIntegerField(default=0)
-    kanban_column = models.CharField(max_length=50, choices=KANBAN_COLUMNS, default='Backlog')
+    kanban_column = models.CharField(max_length=50, choices=ACTION_KANBAN_COLUMNS, default='Backlog')
     priority = models.PositiveIntegerField(default=1)
-    difficulty = models.PositiveIntegerField(choices=DIFFICULTY_LEVELS, default=10)
+    difficulty = models.PositiveIntegerField(choices=ACTION_DIFFICULTY_LEVELS, default=10)
     status = models.CharField(max_length=100, blank=True, null=True)
 
     # Date fields with detailed meta info

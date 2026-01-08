@@ -1,5 +1,7 @@
 from django.db import models
+
 from common.models import BaseModel
+from apps.accounts.choices import LEDGER_MODEL_CHOICES, LEDGER_SOURCE_CHOICES
 
 # build up predefined metadata and refs and prefs
 # capture incremental value changes
@@ -16,9 +18,19 @@ class Ledger(BaseModel):
     is_settled = models.BooleanField(default=False)
     is_cleared = models.BooleanField(default=False)
     is_void = models.BooleanField(default=False)
-    source = models.CharField(max_length=255, blank=True, null=True)
+    source = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=LEDGER_SOURCE_CHOICES,
+    )
     # Canonical model identifier
-    model_name = models.CharField(max_length=255, blank=True, null=True)
+    model_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=LEDGER_MODEL_CHOICES,
+    )
     # Strong linkage to parent (e.g., invoice)
     parent_id = models.BigIntegerField(blank=True, null=True, db_index=True, help_text="Parent primary key for fast lookup")
     invoice_id = models.ForeignKey('transactions.Invoice', blank=True, null=True, on_delete=models.SET_NULL)

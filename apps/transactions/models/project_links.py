@@ -1,15 +1,10 @@
 from django.db import models
+
 from .project import Project
 from common.models import BaseModel
+from apps.transactions.choices import PROJECT_LINK_MODEL_CHOICES
 
-LINK_MODEL_CHOICES = [
-    ("proposal", "Proposal"),
-    ("order", "Order"),
-    ("invoice", "Invoice"),
-    ("purchase", "Purchase"),
-    ("workorder", "WorkOrder"),
-    ("requisition", "Requisition"),
-]
+LINK_MODEL_CHOICES = PROJECT_LINK_MODEL_CHOICES
 
 
 class ProjectAssociation(BaseModel):

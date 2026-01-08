@@ -21,6 +21,7 @@ from django.utils import timezone
 
 from common.models import BaseModel
 from common.link_mixins import StandardLinksMixin
+from apps.core.choices import CONTACT_ROLE_CHOICES
 from apps.core.services.keywords import build_keywords_for_record
 
 # Django requires a custom manager for custom user models.
@@ -82,15 +83,6 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     Uses JSON metadata field instead of inheriting BaseModel to avoid dt_created conflicts
     """
     
-    # Role choices for Universal API and serializers
-    ROLE_CHOICES = [
-        ('user', 'User'),
-        ('admin', 'Administrator'),
-        ('manager', 'Manager'),
-        ('staff', 'Staff'),
-        ('guest', 'Guest'),
-    ]
-    
     # Core Identity Fields - Django auto-creates 'id' as primary key
     # REMOVED: id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     email = models.EmailField(unique=True, help_text="Primary email address for login")
@@ -113,7 +105,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     # System Fields
     role = models.CharField(
         max_length=50, 
-        choices=ROLE_CHOICES, 
+        choices=CONTACT_ROLE_CHOICES,
         default='user', 
         help_text="User role in system"
     )
@@ -209,7 +201,7 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     
     def get_role_display_name(self):
         """Get human-readable role name"""
-        return dict(self.ROLE_CHOICES).get(self.role, self.role)
+        return dict(CONTACT_ROLE_CHOICES).get(self.role, self.role)
     
     def save_before(self, data):
         # Custom logic before save

@@ -1,8 +1,17 @@
+from types import MethodType
+from urllib.parse import urlencode
+
 from django import forms
 from django.contrib import admin
 from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.admin.helpers import ActionForm
+from django.contrib.admin.utils import display_for_field
+from django.core.exceptions import PermissionDenied
+from django.http import Http404, HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
+from django.utils.translation import gettext_lazy as _
 from apps.transactions.models import Project
 from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
 
@@ -133,3 +142,223 @@ class SoftDeleteLedgerAdmin(admin.ModelAdmin):
     list_filter = ('contenttype_id', 'dt_purge')
     search_fields = ('contenttype_id__model', 'object_id')
     readonly_fields = ('dt_created',)
+
+def _threepane_redirect(self, request, extra_context=None):
+    if not self.has_permission(request):
+        return self.login(request)
+
+    return HttpResponseRedirect(reverse("admin:threepane"))
+
+
+def _resolve_registered_model(admin_site, app_label, model_name):
+    for model, model_admin in admin_site._registry.items():
+        opts = model._meta
+        if opts.app_label == app_label and opts.model_name == model_name:
+            return model, model_admin
+    raise Http404
+
+
+def _threepane_view(self, request):
+    if not self.has_permission(request):
+        return self.login(request)
+
+    raw_app_list = self.get_app_list(request)
+    enriched_app_list = []
+    selected_app_label = request.GET.get("app")
+    selected_model_name = request.GET.get("model")
+    selected_object_id = request.GET.get("object")
+    selected_model_entry = None
+    selected_app_entry = None
+
+    for app in raw_app_list:
+        models = []
+        for model_dict in app.get("models", []):
+            model_class = model_dict.get("model")
+            if not model_class:
+                continue
+            opts = model_class._meta
+            new_dict = dict(model_dict)
+            new_dict["tp_app_label"] = opts.app_label
+            new_dict["tp_model_name"] = opts.model_name
+            models.append(new_dict)
+            if (
+                selected_model_entry is None
+                and selected_app_label == opts.app_label
+                and selected_model_name == opts.model_name
+            ):
+                selected_model_entry = new_dict
+                selected_app_entry = {**app, "models": models}
+        enriched_app_list.append({**app, "models": models})
+
+    if selected_app_entry is None and selected_app_label:
+        for app in enriched_app_list:
+            if app.get("app_label") == selected_app_label:
+                selected_app_entry = app
+                break
+
+    if selected_model_entry is None and selected_app_entry:
+        for model_dict in selected_app_entry.get("models", []):
+            perms = model_dict.get("perms") or {}
+            if perms.get("view") or perms.get("change"):
+                selected_model_entry = model_dict
+                break
+
+    if selected_model_entry is None:
+        for app in enriched_app_list:
+            for model_dict in app.get("models", []):
+                perms = model_dict.get("perms") or {}
+                if perms.get("view") or perms.get("change"):
+                    selected_model_entry = model_dict
+                    selected_app_entry = app
+                    break
+            if selected_model_entry:
+                break
+
+    initial_app_label = ""
+    initial_model_name = ""
+    initial_list_url = ""
+    initial_detail_url = ""
+
+    if selected_model_entry:
+        initial_app_label = selected_model_entry.get("tp_app_label") or ""
+        initial_model_name = selected_model_entry.get("tp_model_name") or ""
+        if initial_app_label and initial_model_name:
+            initial_list_url = reverse(
+                "admin:threepane_model_list",
+                args=(initial_app_label, initial_model_name),
+            )
+            if selected_object_id:
+                try:
+                    model, model_admin = _resolve_registered_model(self, initial_app_label, initial_model_name)
+                    obj = model_admin.get_object(request, selected_object_id)
+                    if obj and (
+                        model_admin.has_view_permission(request, obj=obj)
+                        or model_admin.has_change_permission(request, obj=obj)
+                    ):
+                        initial_detail_url = reverse(
+                            "admin:threepane_model_detail",
+                            args=(initial_app_label, initial_model_name, selected_object_id),
+                        )
+                except Http404:
+                    initial_detail_url = ""
+
+    context = {
+        **self.each_context(request),
+        "app_list": enriched_app_list,
+        "title": _("Admin (Three Pane)"),
+        "initial_app_label": initial_app_label,
+        "initial_model_name": initial_model_name,
+        "initial_list_url": initial_list_url,
+        "initial_detail_url": initial_detail_url,
+    }
+
+    request.current_app = self.name
+    return TemplateResponse(request, "admin/threepane.html", context)
+
+
+def _threepane_model_list(self, request, app_label, model_name):
+    model, model_admin = _resolve_registered_model(self, app_label, model_name)
+
+    if not (
+        model_admin.has_view_permission(request)
+        or model_admin.has_change_permission(request)
+    ):
+        raise PermissionDenied
+
+    request.current_app = self.name
+    response = model_admin.changelist_view(request)
+
+    if isinstance(response, TemplateResponse):
+        ctx = response.context_data or {}
+        ctx.update(
+            {
+                "threepane": True,
+                "threepane_list_url": request.get_full_path().split("?")[0],
+                "threepane_app_label": app_label,
+                "threepane_model_name": model_name,
+            }
+        )
+        response.context_data = ctx
+        response.template_name = "admin/threepane/changelist.html"
+
+    return response
+
+
+def _threepane_model_detail(self, request, app_label, model_name, object_id):
+    model, model_admin = _resolve_registered_model(self, app_label, model_name)
+
+    obj = model_admin.get_object(request, object_id)
+    if not obj:
+        raise Http404
+    if not (
+        model_admin.has_view_permission(request, obj=obj)
+        or model_admin.has_change_permission(request, obj=obj)
+    ):
+        raise PermissionDenied
+
+    fields_to_show = model_admin.get_fields(request, obj) or [field.name for field in obj._meta.local_fields]
+    field_rows = []
+
+    for field_name in fields_to_show:
+        try:
+            field = obj._meta.get_field(field_name)
+        except Exception:
+            continue
+
+        raw_value = getattr(obj, field_name, None)
+
+        if field.many_to_many:
+            value = ", ".join(str(item) for item in raw_value.all()) if raw_value is not None else model_admin.empty_value_display
+        else:
+            value = display_for_field(raw_value, field, model_admin.empty_value_display)
+
+        field_rows.append({"label": getattr(field, "verbose_name", field_name), "value": value})
+
+    context = {
+        **self.each_context(request),
+        "opts": model._meta,
+        "object": obj,
+        "field_rows": field_rows,
+        "threepane": True,
+    }
+
+    request.current_app = self.name
+    return TemplateResponse(request, "admin/threepane/detail.html", context)
+
+
+_original_get_urls = admin.site.get_urls
+
+
+def _threepane_get_urls(self):
+    urls = list(_original_get_urls())
+    custom = [
+        path("threepane/", self.admin_view(self.threepane_view), name="threepane"),
+        path(
+            "threepane/<str:app_label>/<str:model_name>/list/",
+            self.admin_view(self.threepane_model_list),
+            name="threepane_model_list",
+        ),
+        path(
+            "threepane/<str:app_label>/<str:model_name>/<str:object_id>/",
+            self.admin_view(self.threepane_model_detail),
+            name="threepane_model_detail",
+        ),
+    ]
+    return custom + urls
+
+
+def _threepane_app_index(self, request, app_label, extra_context=None):
+    if not self.has_permission(request):
+        return self.login(request)
+
+    base_url = reverse("admin:threepane")
+    query = urlencode({"app": app_label})
+    return HttpResponseRedirect(f"{base_url}?{query}")
+
+
+admin.site.threepane_view = MethodType(_threepane_view, admin.site)
+admin.site.threepane_model_list = MethodType(_threepane_model_list, admin.site)
+admin.site.threepane_model_detail = MethodType(_threepane_model_detail, admin.site)
+admin.site.get_urls = MethodType(_threepane_get_urls, admin.site)
+admin.site.index = MethodType(_threepane_redirect, admin.site)
+admin.site.app_index = MethodType(_threepane_app_index, admin.site)
