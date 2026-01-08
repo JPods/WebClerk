@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +12,7 @@ import { Input } from "../../../../../components/wrapper";
 import { showToast } from "../../../../../store/slices/toastSlice";
 
 import { salesOrderSchema } from "../utils/salesOrderSchema";
-import { createSalesOrder, updateSalesOrder, fetchSalesOrderDetail } from "../services/salesOrderApi";
+import { createSalesOrder, updateSalesOrder, fetchSalesOrderDetail, searchCustomers } from "../services/salesOrderApi";
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
@@ -57,7 +57,7 @@ const FIELD_GROUPS: FieldGroup[] = [
   {
     title: "Primary",
     fields: [
-      { name: "sales_order_no", label: "sales_order_no", type: "text" },
+      { name: "sales_order_no", label: "ida_sales_order", type: "text" },
       { name: "status", label: "status", type: "select", options: STATUS_OPTIONS },
       { name: "priority", label: "priority", type: "text" },
       { name: "price_level", label: "price_level", type: "text" },
@@ -102,6 +102,35 @@ type JsonFieldPath = (typeof JSON_FIELD_PATHS)[number];
 type SalesOrderForm = z.infer<typeof salesOrderSchema>;
 
 type SalesOrderLineRecord = SalesOrderLine & Record<string, unknown>;
+
+type CustomerSearchResult = Record<string, unknown> & {
+  id?: number | string;
+  display_name?: string;
+  org_type?: string;
+  status?: string;
+  email?: string;
+  phone?: string;
+  ida_customer?: string;
+  ida?: string;
+};
+
+type ContactLinkRecord = Record<string, unknown> & {
+  id?: number | string;
+  contact?: Record<string, unknown>;
+};
+
+interface ContactLinkDisplayRow {
+  id: number | null;
+  alias: string;
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+  raw: ContactLinkRecord;
+}
+
+const READONLY_FIELD_NAMES = new Set(["sales_order_no", "subtotal"]);
+const READONLY_JSON_FIELDS = new Set<JsonFieldPath>(["cost", "sell", "finance", "flow"]);
 
 function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
   if (!raw) {
@@ -232,6 +261,131 @@ function setDeepValue(target: Record<string, unknown>, path: string, value: unkn
     }
     cursor = cursor[segment] as Record<string, unknown>;
   });
+}
+
+function resolveStringField(record: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return "";
+}
+
+function resolveCustomerId(record: Record<string, unknown>): number | null {
+  const candidates = [
+    record.id,
+    record.id_customer,
+    record.customer_id,
+    record.customerId,
+    record.pk,
+    record.org_id,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+      return candidate;
+    }
+    if (typeof candidate === "string") {
+      const parsed = Number.parseInt(candidate, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveCustomerLabel(record: Record<string, unknown>): string {
+  const nameFirst = resolveStringField(record, ["name_first", "first_name"]);
+  const nameLast = resolveStringField(record, ["name_last", "last_name"]);
+  const combined = `${nameFirst} ${nameLast}`.trim();
+  if (combined) {
+    return combined;
+  }
+
+  const label = resolveStringField(record, ["display_name", "company", "name", "organization_name"]);
+  if (label) {
+    return label;
+  }
+
+  const id = resolveCustomerId(record);
+  return id ? `Customer #${id}` : "Customer";
+}
+
+function resolveCustomerAlias(record: Record<string, unknown>): string {
+  return resolveStringField(record, ["ida_customer", "ida", "customer_code", "customer_number"]);
+}
+
+function resolveContactRecord(entry: ContactLinkRecord): Record<string, unknown> {
+  if (entry.contact && typeof entry.contact === "object" && entry.contact) {
+    return entry.contact;
+  }
+  return entry;
+}
+
+function resolveContactId(entry: ContactLinkRecord): number | null {
+  const record = resolveContactRecord(entry);
+  const candidates = [
+    entry.id,
+    record.id,
+    record.contact_id,
+    record.id_contact,
+    record.contactId,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+      return candidate;
+    }
+    if (typeof candidate === "string") {
+      const parsed = Number.parseInt(candidate, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+}
+
+function resolveContactName(entry: ContactLinkRecord): string {
+  const record = resolveContactRecord(entry);
+  const first = resolveStringField(record, ["name_first", "first_name", "given_name"]);
+  const last = resolveStringField(record, ["name_last", "last_name", "family_name"]);
+  const combined = `${first} ${last}`.trim();
+  if (combined) {
+    return combined;
+  }
+  const display = resolveStringField(record, ["display_name", "label", "name"]);
+  if (display) {
+    return display;
+  }
+  const id = resolveContactId(entry);
+  return id ? `Contact #${id}` : "Contact";
+}
+
+function resolveContactAlias(entry: ContactLinkRecord): string {
+  const record = resolveContactRecord(entry);
+  return resolveStringField(record, ["ida_contact", "ida", "contact_code"]);
+}
+
+function resolveContactEmail(entry: ContactLinkRecord): string {
+  const record = resolveContactRecord(entry);
+  return resolveStringField(record, ["email", "email_primary", "contact_email"]);
+}
+
+function resolveContactPhone(entry: ContactLinkRecord): string {
+  const record = resolveContactRecord(entry);
+  return resolveStringField(record, ["phone", "phone_primary", "phoneCell", "phone_number"]);
+}
+
+function resolveContactRole(entry: ContactLinkRecord): string {
+  const record = resolveContactRecord(entry);
+  return resolveStringField(record, ["role", "relation", "type", "category"]);
 }
 
 function getErrorMessage(errors: Record<string, unknown>, path: string): string | undefined {
@@ -568,6 +722,7 @@ export default function SalesOrderDetail({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<SalesOrderForm>({
     resolver: zodResolver(salesOrderSchema),
@@ -608,6 +763,50 @@ export default function SalesOrderDetail({
 
   const [recordData, setRecordData] = useState<(SalesOrderForm & { id?: number }) | null>(data);
 
+  const [customerSearchKeyword, setCustomerSearchKeyword] = useState("");
+  const [customerSearchId, setCustomerSearchId] = useState("");
+  const [customerSearchIda, setCustomerSearchIda] = useState("");
+  const [customerSearchResults, setCustomerSearchResults] = useState<CustomerSearchResult[]>([]);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [customerSearchError, setCustomerSearchError] = useState<string | null>(null);
+
+  const rawCustomerId = watch("id_customer");
+  const refsValue = watch("refs");
+  const customerIdValue =
+    typeof rawCustomerId === "number"
+      ? rawCustomerId
+      : Number.parseInt(String(rawCustomerId ?? 0), 10) || 0;
+  const showCustomerSearchPanel = !isReadOnly && customerIdValue <= 0;
+
+    const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
+    if (!refsValue || typeof refsValue !== "object") {
+      return [];
+    }
+    const container = refsValue as Record<string, unknown>;
+    const links = container.links;
+    if (!links || typeof links !== "object") {
+      return [];
+    }
+      const contacts = (links as Record<string, unknown>).contact;
+    if (!Array.isArray(contacts)) {
+      return [];
+    }
+    return contacts
+      .map((entry) => (typeof entry === "object" && entry ? (entry as ContactLinkRecord) : ({} as ContactLinkRecord)))
+      .map((entry) => {
+        const id = resolveContactId(entry);
+        return {
+          id,
+          alias: resolveContactAlias(entry),
+          name: resolveContactName(entry),
+          role: resolveContactRole(entry),
+          email: resolveContactEmail(entry),
+          phone: resolveContactPhone(entry),
+          raw: entry,
+        };
+      });
+  }, [refsValue]);
+
   useEffect(() => {
     setRecordData(data);
   }, [data]);
@@ -645,6 +844,97 @@ export default function SalesOrderDetail({
       cancelled = true;
     };
   }, [data, dispatchToastError]);
+
+  const handleCustomerSearchReset = useCallback(() => {
+    setCustomerSearchKeyword("");
+    setCustomerSearchId("");
+    setCustomerSearchIda("");
+    setCustomerSearchResults([]);
+    setCustomerSearchError(null);
+    setCustomerSearchLoading(false);
+  }, []);
+
+  const handleCustomerSearch = useCallback(
+    async (event?: FormEvent<HTMLFormElement>) => {
+      event?.preventDefault();
+      if (isReadOnly) {
+        return;
+      }
+
+      if (customerSearchLoading) {
+        return;
+      }
+
+      const keyword = customerSearchKeyword.trim();
+      const idaValue = customerSearchIda.trim();
+      const rawId = customerSearchId.trim();
+      const parsedId = rawId ? Number.parseInt(rawId, 10) : Number.NaN;
+
+      if (!keyword && !idaValue && (Number.isNaN(parsedId) || parsedId <= 0)) {
+        setCustomerSearchError("Enter a keyword, id, or ida value");
+        setCustomerSearchResults([]);
+        return;
+      }
+
+      setCustomerSearchLoading(true);
+      setCustomerSearchError(null);
+
+      try {
+        const response = await searchCustomers({
+          keyword: keyword || undefined,
+          ida: idaValue || undefined,
+          id: Number.isNaN(parsedId) || parsedId <= 0 ? undefined : parsedId,
+          limit: 25,
+        });
+        const results = (response?.data?.results ?? []) as CustomerSearchResult[];
+        setCustomerSearchResults(results);
+        if (results.length === 0) {
+          setCustomerSearchError("No matching customers found");
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Customer search failed";
+        setCustomerSearchError(message);
+        dispatchToastError(message);
+      } finally {
+        setCustomerSearchLoading(false);
+      }
+    },
+    [
+      customerSearchId,
+      customerSearchIda,
+      customerSearchKeyword,
+      customerSearchLoading,
+      dispatchToastError,
+      isReadOnly,
+    ]
+  );
+
+  const handleAssignCustomer = useCallback(
+    (record: CustomerSearchResult) => {
+      const resolvedId = resolveCustomerId(record);
+      if (!resolvedId) {
+        dispatchToastError("Unable to assign customer without an id");
+        return;
+      }
+
+      setValue("id_customer", resolvedId, { shouldDirty: true, shouldValidate: true });
+
+      const label = resolveCustomerLabel(record);
+      const existingCompany = watch("company");
+      if ((!existingCompany || !String(existingCompany).trim()) && label) {
+        setValue("company", label, { shouldDirty: true, shouldValidate: false });
+      }
+
+      handleCustomerSearchReset();
+      dispatch(
+        showToast({
+          message: `Customer #${resolvedId} assigned`,
+          type: "success",
+        })
+      );
+    },
+    [dispatch, dispatchToastError, handleCustomerSearchReset, setValue, watch]
+  );
 
   const mergedDefaults = useMemo(() => {
     if (!recordData) {
@@ -1057,6 +1347,7 @@ export default function SalesOrderDetail({
   const renderField = (field: FieldConfig) => {
     const inputId = field.name.replace(/\./g, "-");
     const errorMessage = getErrorMessage(errors as unknown as Record<string, unknown>, field.name);
+    const isFieldReadOnly = READONLY_FIELD_NAMES.has(field.name);
 
     if (field.type === "select" && field.options) {
       return (
@@ -1065,6 +1356,7 @@ export default function SalesOrderDetail({
           <select
             id={inputId}
             disabled={isReadOnly}
+            aria-readonly={isReadOnly}
             className={`h-10 w-full rounded-lg border px-3 text-sm focus:outline-hidden focus:ring-2 dark:bg-gray-900 dark:text-white/90 ${
               errorMessage ? "border-error-500" : "border-gray-300"
             }`}
@@ -1083,6 +1375,7 @@ export default function SalesOrderDetail({
     }
 
     const registerOptions = field.type === "number" ? { valueAsNumber: true } : undefined;
+    const isDisabled = isReadOnly && field.name !== "metadata.priority";
 
     return (
       <div key={field.name}>
@@ -1092,7 +1385,9 @@ export default function SalesOrderDetail({
           type={field.type === "number" ? "number" : "text"}
           step={field.step}
           min={field.min}
-          disabled={isReadOnly && field.name !== "metadata.priority"}
+          disabled={isDisabled}
+          readOnly={isFieldReadOnly || isDisabled}
+          aria-readonly={isFieldReadOnly || isDisabled}
           error={Boolean(errorMessage)}
           hint={errorMessage}
           {...register(field.name as any, registerOptions)}
@@ -1134,6 +1429,159 @@ export default function SalesOrderDetail({
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {showCustomerSearchPanel && (
+            <section className="rounded-lg border border-dashed border-blue-300 bg-blue-50/60 p-4 dark:border-blue-500/50 dark:bg-blue-900/10">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-200">
+                Assign customer
+              </h4>
+              <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+                No customer is linked to this order. Search by keyword, id, or ida to attach one.
+              </p>
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+                <div>
+                  <Label htmlFor="customer-search-keyword">keyword</Label>
+                  <input
+                    id="customer-search-keyword"
+                    type="text"
+                    value={customerSearchKeyword}
+                    onChange={(event) => setCustomerSearchKeyword(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        handleCustomerSearch();
+                      }
+                    }}
+                    placeholder="Company, name, or tag"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customer-search-id">id</Label>
+                  <input
+                    id="customer-search-id"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={customerSearchId}
+                    onChange={(event) => setCustomerSearchId(event.target.value.replace(/[^0-9]/g, ""))}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        handleCustomerSearch();
+                      }
+                    }}
+                    placeholder="Internal id"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customer-search-ida">ida</Label>
+                  <input
+                    id="customer-search-ida"
+                    type="text"
+                    value={customerSearchIda}
+                    onChange={(event) => setCustomerSearchIda(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        handleCustomerSearch();
+                      }
+                    }}
+                    placeholder="Legacy identifier"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCustomerSearch()}
+                    className="h-10 flex-1 rounded-md bg-blue-500 px-4 text-sm font-medium text-white hover:bg-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-400 disabled:cursor-not-allowed disabled:bg-blue-400"
+                    disabled={customerSearchLoading}
+                  >
+                    {customerSearchLoading ? "Searching…" : "Search"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCustomerSearchReset}
+                    className="h-10 rounded-md border border-blue-200 px-4 text-sm font-medium text-blue-700 hover:bg-blue-100 focus:outline-hidden focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed dark:border-blue-500/60 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                    disabled={customerSearchLoading}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              {customerSearchError && (
+                <div className="mt-3 rounded-md border border-error-200 bg-error-50 px-3 py-2 text-xs text-error-700 dark:border-error-500/60 dark:bg-error-900/20 dark:text-error-200">
+                  {customerSearchError}
+                </div>
+              )}
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-100">
+                    <tr>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">id</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">ida</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">display_name</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">org_type</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">status</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">contact</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs text-right">actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerSearchLoading ? (
+                      <tr>
+                        <td className="px-3 py-3 text-center text-sm text-blue-700 dark:text-blue-200" colSpan={7}>
+                          Looking for customers…
+                        </td>
+                      </tr>
+                    ) : customerSearchResults.length === 0 ? (
+                      <tr>
+                        <td className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400" colSpan={7}>
+                          Enter criteria above and run a search to locate a customer.
+                        </td>
+                      </tr>
+                    ) : (
+                      customerSearchResults.map((record, index) => {
+                        const resolvedId = resolveCustomerId(record);
+                        const alias = resolveCustomerAlias(record);
+                        const label = resolveCustomerLabel(record);
+                        const orgType = resolveStringField(record, ["org_type", "type", "category"]);
+                        const status = resolveStringField(record, ["status", "state"]);
+                        const email = resolveStringField(record, ["email", "contact_email", "primary_email"]);
+                        const phone = resolveStringField(record, ["phone", "phoneCell", "phone_primary", "phone_number"]);
+                        const rowKey = resolvedId ? `customer-${resolvedId}` : `customer-row-${index}`;
+                        return (
+                          <tr key={rowKey} className="border-b border-blue-100 last:border-none dark:border-blue-900/40">
+                            <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{resolvedId ?? "--"}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{alias || "--"}</td>
+                            <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{label}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{orgType || "--"}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{status || "--"}</td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
+                              {email && <div>{email}</div>}
+                              {phone && <div>{phone}</div>}
+                              {!email && !phone && "--"}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleAssignCustomer(record)}
+                                disabled={!resolvedId}
+                                className="rounded-md bg-green-500 px-3 py-1 text-sm font-medium text-white hover:bg-green-600 focus:outline-hidden focus:ring-2 focus:ring-green-400 disabled:cursor-not-allowed disabled:bg-gray-400 dark:disabled:bg-gray-700"
+                              >
+                                Assign
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
           {FIELD_GROUPS.map((group) => (
             <section key={group.title}>
               <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
@@ -1153,24 +1601,73 @@ export default function SalesOrderDetail({
               {JSON_FIELD_PATHS.map((path) => {
                 const inputId = path.replace(/\./g, "-");
                 const errorMessage = jsonErrors[path];
+                const isJsonReadOnly = READONLY_JSON_FIELDS.has(path);
                 return (
                   <div key={path}>
                     <Label htmlFor={inputId}>{path}</Label>
                     <textarea
                       id={inputId}
-                      className={`min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-hidden focus:ring-2 dark:bg-gray-900 dark:text-white/90 ${
+                      className={`min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-hidden focus:ring-2 dark:text-white/90 ${
                         errorMessage ? "border-error-500" : "border-gray-300"
-                      }`}
+                      } ${isJsonReadOnly ? "bg-gray-50 dark:bg-gray-900/30" : "dark:bg-gray-900"}`}
                       placeholder={`{ /* ${path} payload */ }`}
                       value={jsonDrafts[path] ?? ""}
                       onChange={(event) => handleJsonDraftChange(path, event.target.value)}
                       onBlur={() => handleJsonBlur(path)}
+                      readOnly={isJsonReadOnly || isReadOnly}
+                      aria-readonly={isJsonReadOnly || isReadOnly}
                       disabled={isReadOnly}
                     />
                     {errorMessage && <p className="mt-1 text-xs text-error-500">{errorMessage}</p>}
                   </div>
                 );
               })}
+            </div>
+          </section>
+
+            <section>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
+                refs.links.contact
+            </h4>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                  <tr>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">id</th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">ida_contact</th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">display_name</th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">role</th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">email</th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">phone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contactLinkRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        No linked contacts.
+                      </td>
+                    </tr>
+                  ) : (
+                    contactLinkRows.map((row, index) => (
+                      <tr
+                        key={row.id ? `contact-row-${row.id}` : `contact-row-${index}`}
+                        className="border-b border-gray-100 last:border-none dark:border-gray-700"
+                      >
+                        <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{row.id ?? "--"}</td>
+                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.alias || "--"}</td>
+                        <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{row.name}</td>
+                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.role || "--"}</td>
+                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.email || "--"}</td>
+                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{row.phone || "--"}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </section>
 

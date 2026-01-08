@@ -44,6 +44,20 @@ const PRESETS: Preset[] = [
     },
   },
   {
+    label: 'Choice Catalog (GET)',
+    method: 'GET',
+    url: '/wcapi/choices/',
+    body: {},
+    info: {
+      description: 'Aggregates DEFAULT_SELECT_LISTS from all app-level choices modules.',
+      notes: [
+        'Add ?app=core&app=transactions to focus specific apps.',
+        'Use ?refresh=1 to rebuild the cached registry before responding.',
+        'Response shape: { apps: { app_label: { model: { field: [{ value, label }]}}}, meta: {...} }',
+      ],
+    },
+  },
+  {
     label: 'Model Detail (GET)',
     method: 'GET',
     url: '/wcapi/model_name/detail/?model_name=contact',
