@@ -4,22 +4,45 @@ import * as z from "zod";
 const validStatuses = ['planned', 'released', 'in_progress', 'hold', 'complete', 'canceled'] as const;
 
 // Price structure schema
-const priceSchema = z.object({
-  sell: z.number().min(0, "Sell price must be non-negative"),
-  cost: z.number().min(0, "Cost price must be non-negative").optional(),
-}).optional();
+const nonNaNNumber = z.coerce.number().refine((value) => Number.isFinite(value), {
+  message: "Value must be a valid number",
+});
+
+const priceSchema = z
+  .object({
+    sell: nonNaNNumber,
+    cost: nonNaNNumber.optional(),
+  })
+  .optional();
+
+const quantitySchema = z.union([
+  z.coerce.number().positive("Quantity must be greater than zero"),
+  z
+    .object({
+      placed: z.coerce.number().min(0, "Quantity placed must be non-negative").optional(),
+      ordered: z.coerce.number().min(0, "Quantity ordered must be non-negative").optional(),
+      remaining: z.coerce.number().min(0, "Quantity remaining must be non-negative").optional(),
+    })
+    .passthrough()
+    .refine((value) => {
+      const placed = typeof value.placed === "number" ? value.placed : undefined;
+      const ordered = typeof value.ordered === "number" ? value.ordered : undefined;
+      const effective = placed ?? ordered;
+      return effective === undefined || effective > 0;
+    }, { message: "Quantity must be greater than zero" }),
+]);
 
 // Sales Order Line schema
 export const salesOrderLineSchema = z.object({
   // Required fields
   description: z.string().min(1, "Description is required").max(255, "Description must be 255 characters or less"),
-  quantity: z.number().positive("Quantity must be greater than zero"),
+  quantity: quantitySchema,
 
   // Price structure
   price: priceSchema,
 
   // Optional fields
-  discount_amount: z.number().min(0, "Discount cannot be negative"),
+  discount_amount: z.coerce.number().min(0, "Discount cannot be negative").optional(),
 
   // Readonly fields (for validation of existing data)
   extended_price: z.number().optional(),

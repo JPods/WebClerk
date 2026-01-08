@@ -31,6 +31,9 @@ export type AdminFieldDescriptor = {
   searchable?: boolean;
   editable?: boolean;
   readOnly?: boolean;
+  required?: boolean;
+  hasChoices?: boolean;
+  locked?: boolean;
   placeholder?: string;
   format?: (value: unknown, record: AdminRecord) => ReactNode;
   renderListCell?: (value: unknown, record: AdminRecord) => ReactNode;

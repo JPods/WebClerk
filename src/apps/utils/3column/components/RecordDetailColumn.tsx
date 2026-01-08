@@ -394,10 +394,61 @@ export const RecordDetailColumn = () => {
                     const rawValue = detail.record?.[field.id];
                     const formatted = formatDetailValue(rawValue, field, detail.record ?? null);
                     const formattedArray = Array.isArray(formatted) ? formatted : null;
+                    const isRequired = field.required === true;
+                    const isSelectField =
+                      field.hasChoices === true || field.kind === "status" || field.kind === "badge" || field.kind === "relation";
+                    const isLocked = field.locked === true || field.editable === false || field.readOnly === true;
+                    const labelClasses = [
+                      "text-xs font-semibold uppercase tracking-wide",
+                      isRequired ? "text-rose-600 dark:text-rose-300" : "text-slate-500 dark:text-slate-400",
+                    ];
+                    if (isSelectField) {
+                      labelClasses.push("underline decoration-dotted decoration-slate-400 underline-offset-4");
+                    }
+                    if (isLocked) {
+                      labelClasses.push("italic");
+                    }
+                    const labelTitleDetails: string[] = [];
+                    if (isRequired) {
+                      labelTitleDetails.push("required");
+                    }
+                    if (isSelectField) {
+                      labelTitleDetails.push("selectable");
+                    }
+                    if (isLocked) {
+                      labelTitleDetails.push("locked");
+                    }
+                    const labelTitle = labelTitleDetails.length
+                      ? `${field.label} (${labelTitleDetails.join(", ")})`
+                      : field.label;
                     return (
                       <Fragment key={field.id}>
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        <dt className={labelClasses.join(" ")} title={labelTitle}>
                           {field.label}
+                          {isRequired && (
+                            <>
+                              <span aria-hidden="true" className="ml-1 text-rose-500 dark:text-rose-300">
+                                *
+                              </span>
+                              <span className="sr-only">required</span>
+                            </>
+                          )}
+                          {isSelectField && (
+                            <>
+                              <span className="sr-only">select field</span>
+                              <span className="ml-2 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold normal-case text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+                                Select
+                              </span>
+                            </>
+                          )}
+                          {isLocked && (
+                            <>
+                              <span className="sr-only">locked</span>
+                              <span className="ml-1 rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold normal-case text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                                Locked
+                              </span>
+                            </>
+                          )}
                         </dt>
                         <dd className="text-sm text-slate-800 dark:text-slate-100">
                           {isEditing && field.editable !== false && selectedTable?.dataSource.update
