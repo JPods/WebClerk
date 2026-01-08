@@ -67,11 +67,11 @@ export async function getModelDetail(model_name: string) {
 
 export async function getRecords(model_name: string, params?: any) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { params: { model_name, limit: 10, ...params } });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { params: { model_name, ...params } });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { params: { model_name, limit: 10, ...params } });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { params: { model_name, ...params } });
       return res2.data.data;
     }
     throw err;
