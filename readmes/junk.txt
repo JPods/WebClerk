@@ -83,3 +83,4 @@ finance, sell, cost, subtotal, flow should be readonly. sales_order_no should be
 
 wcapi/save/?model_name=sales_order (or any transaction with associated lines) on saving should loop the the .lines object and update the associated line record. If there is no id, a new line record should be created.
 
+OK, lets add some features to column 2 of Admin Workbench. We need these to a standard that can be added to any model list:

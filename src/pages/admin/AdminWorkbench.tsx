@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 import { NetworkInfo } from '../../routes/network';
@@ -112,6 +112,11 @@ const AdminWorkbench: React.FC = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const previousModelParam = useRef<string | null>(null);
+
+  const handleSelectModel = useCallback((name: string) => {
+    setSelectedModel((prev) => (prev === name ? prev : name));
+  }, []);
 
   const modelParam = searchParams.get('model');
   const totalModelCount = modelNames.length;
@@ -129,15 +134,21 @@ const AdminWorkbench: React.FC = () => {
       setRecords([]);
       setSelectedId(null);
       setSelectedRecord(null);
+      previousModelParam.current = modelParam;
       return;
     }
 
     if (modelParam && modelNames.includes(modelParam)) {
-      if (modelParam !== selectedModel) {
-        setSelectedModel(modelParam);
+      if (previousModelParam.current !== modelParam) {
+        previousModelParam.current = modelParam;
+        if (selectedModel !== modelParam) {
+          setSelectedModel(modelParam);
+        }
       }
       return;
     }
+
+    previousModelParam.current = modelParam;
 
     if (!selectedModel || !modelNames.includes(selectedModel)) {
       setSelectedModel(modelNames[0]);
@@ -347,7 +358,51 @@ const AdminWorkbench: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden p-4 md:p-6">
           <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
-            <div className={`${colBase} w-full md:w-[26rem] xl:w-[28rem] md:flex-none`}>
+            <div className={`${colBase} w-full md:basis-[20%] md:max-w-xs md:flex-none`}>
+              <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Models</span>
+                  <p className="text-xs text-gray-400">Choose a model to inspect</p>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {loadingModels && (
+                  <div className="text-xs text-gray-500">Loading models…</div>
+                )}
+                {!loadingModels && modelsError && (
+                  <div className="text-xs text-red-600">{modelsError}</div>
+                )}
+                {!loadingModels && !modelsError && modelNames.length === 0 && (
+                  <div className="text-xs text-gray-500">No models available.</div>
+                )}
+                {!loadingModels && !modelsError && modelNames.length > 0 && (
+                  <ul className="space-y-1">
+                    {modelNames.map((name) => {
+                      const isActive = name === selectedModel;
+                      const parts = name.split('.');
+                      const label = toTitleCase(parts[parts.length - 1] || name);
+                      return (
+                        <li key={name}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectModel(name)}
+                            className={`flex w-full flex-col rounded px-3 py-2 text-left transition ${
+                              isActive
+                                ? 'bg-blue-600 text-white shadow'
+                                : 'bg-white text-slate-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <span className="text-sm font-medium">{label}</span>
+                            <span className={`text-xs ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>{name}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div className={`${colBase} w-full md:basis-[30%] md:max-w-2xl md:flex-none`}>
               <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
                 <div>
                   <span className="text-sm font-medium text-gray-700">
@@ -382,15 +437,15 @@ const AdminWorkbench: React.FC = () => {
                       const rowKey = recordId ?? `${selectedModel || 'record'}-${index}`;
                       const isActive = recordId !== null && selectedId === recordId;
                       return (
-                      <tr
+                        <tr
                           key={rowKey}
-                          className={`border-t hover:bg-gray-50 cursor-pointer ${isActive ? 'bg-blue-50' : ''}`}
+                          className={`cursor-pointer border-t hover:bg-gray-50 ${isActive ? 'bg-blue-50' : ''}`}
                           onClick={() => {
                             if (recordId !== null) {
                               setSelectedId(recordId);
                             }
                           }}
-                      >
+                        >
                           {visibleListFields.map((field) => {
                             const value = record[field];
                             const displayValue = typeof value === 'object' && value !== null
@@ -400,7 +455,7 @@ const AdminWorkbench: React.FC = () => {
                               <td key={field} className="py-1 pr-3 align-top">{displayValue}</td>
                             );
                           })}
-                      </tr>
+                        </tr>
                       );
                     })}
                   </tbody>
@@ -430,7 +485,7 @@ const AdminWorkbench: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className={`${colBase} w-full flex-1`}>
+            <div className={`${colBase} w-full flex-1 md:basis-[50%]`}>
               <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
                 <div>
                   <span className="text-sm font-medium text-gray-700">
