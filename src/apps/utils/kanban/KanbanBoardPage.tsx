@@ -1403,7 +1403,7 @@ const KanbanBoardPage: React.FC = () => {
     const normalized = new Map<string, { title: string; description: string }>();
 
     state.translations.forEach((entry) => {
-      const language = normalizeLanguageCode(entry.language);
+      const language = typeof entry.language === "string" ? normalizeLanguageCode(entry.language) : "";
       if (!language) {
         return;
       }
@@ -1421,24 +1421,40 @@ const KanbanBoardPage: React.FC = () => {
       return { error: "Add at least one language with a title." };
     }
 
-    const fieldMode = mode === "create" ? "insert" : "update";
-    const wrap = (value: unknown) => ({ mode: fieldMode, value });
-
-    // Build action and description with dot notation keys (e.g., action.en, description.en)
-    const translationFields: Record<string, { mode: string; value: unknown }> = {};
-    
+    const translationFields: Record<string, string> = {};
     normalized.forEach((value, language) => {
-      translationFields[`action.${language}`] = wrap(value.title || "");
-      translationFields[`description.${language}`] = wrap(value.description || "");
+      translationFields[`action_${language}`] = value.title || "";
+      translationFields[`description_${language}`] = value.description || "";
     });
 
-    // Add languages array
-    translationFields.languages = wrap(Array.from(normalized.keys()));
+    const languages = Array.from(normalized.keys());
+
+    const removalTokens: string[] = [];
+    if (mode === "edit" && baseTask) {
+      const originalLanguages = new Set<string>();
+      baseTask.languageCodes?.forEach((code) => {
+        if (typeof code === "string") {
+          originalLanguages.add(normalizeLanguageCode(code));
+        }
+      });
+      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
+      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) =>
+        originalLanguages.add(normalizeLanguageCode(code))
+      );
+
+      originalLanguages.forEach((language) => {
+        if (language && !normalized.has(language)) {
+          removalTokens.push(`action_${language}`);
+          removalTokens.push(`description_${language}`);
+        }
+      });
+    }
 
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
-    const assignedTo = state.assignee
-      ? [{ name: state.assignee }]
+    const assigneeValue = typeof state.assignee === "string" ? state.assignee.trim() : "";
+    const assignedTo = assigneeValue
+      ? [{ name: assigneeValue }]
       : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
     const startTimestamp = toTimestampMilliseconds(state.startDate);
@@ -1464,15 +1480,18 @@ const KanbanBoardPage: React.FC = () => {
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
       ...translationFields,
-      kanban_column: wrap(columnTitle),
-      kanban_column_id: wrap(column?.id ?? FALLBACK_COLUMN_ID),
-      priority: wrap(PRIORITY_TO_VALUE[state.priority]),
-      difficulty: wrap(resolvedDifficulty),
-      status: wrap(baseTask?.status ?? "In progress"),
-      dt_due: wrap(dueTimestamp ?? null),
-      dt_start: wrap(startTimestamp ?? null),
-      dt_end: wrap(endTimestamp ?? null),
-      progress: wrap(resolvedProgress),
+      languages,
+      needtoremove: removalTokens.join(","),
+      kanban_column: columnTitle,
+      kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
+      priority: PRIORITY_TO_VALUE[state.priority],
+      difficulty: resolvedDifficulty,
+      status: baseTask?.status ?? "In progress",
+      dt_due: dueTimestamp ?? null,
+      dt_start: startTimestamp ?? null,
+      dt_end: endTimestamp ?? null,
+      progress: resolvedProgress,
+      burndown: 0,
     };
 
     if (mode === "edit" && baseTask) {
@@ -1480,7 +1499,11 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     if (assignedTo.length > 0) {
-      payloadItem.assigned_to = wrap(assignedTo);
+      payloadItem.assigned_to = assignedTo;
+    }
+
+    if (!removalTokens.length) {
+      payloadItem.needtoremove = "";
     }
 
     const resolvedProjectName = (() => {
@@ -1491,24 +1514,34 @@ const KanbanBoardPage: React.FC = () => {
       if (mode === "edit" && baseTask?.projectName) {
         return baseTask.projectName;
       }
-      return undefined;
+      return "";
     })();
 
     if (resolvedProjectName) {
-      payloadItem.project_name = wrap(resolvedProjectName);
+      payloadItem.project_name = resolvedProjectName;
     }
-
-    const projectPayload: Record<string, unknown> = {
-      model_name: "project",
-      ...(selectedProjectId ? { id: selectedProjectId } : {}),
-      bulk: [payloadItem],
-    };
 
     if (selectedProjectId) {
-      projectPayload.id = selectedProjectId;
+      const numericId = Number(selectedProjectId);
+      payloadItem.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
     }
 
-    return { payload: projectPayload };
+    if (selectedProjectId) {
+      const numericId = Number(selectedProjectId);
+      const projectPayload: Record<string, unknown> = {
+        model_name: "project",
+        id: Number.isNaN(numericId) ? selectedProjectId : numericId,
+        bulk: [payloadItem],
+      };
+
+      if (resolvedProjectName) {
+        projectPayload.project_name = resolvedProjectName;
+      }
+
+      return { payload: projectPayload };
+    }
+
+    return { payload: payloadItem };
   };
 
   const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {

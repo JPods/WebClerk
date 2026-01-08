@@ -1,24 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 import { NetworkInfo } from '../../routes/network';
 import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, getWorkbenchFieldsSetting, saveWorkbenchFieldsSetting, getAllWorkbenchFieldsSettings } from '../../api/wcapi';
 
-//
-
-type ModelListItem = {
-  name: string;
-  label: string;
-};
-
-type ModelGroup = {
-  appId: string;
-  appLabel: string;
-  models: ModelListItem[];
-};
-
 const toTitleCase = (value: string): string => {
   return value
-    .replace(/[_\-]+/g, ' ')
+    .replace(/[-_]+/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\s+/g, ' ')
     .trim()
@@ -28,65 +16,151 @@ const toTitleCase = (value: string): string => {
     .join(' ');
 };
 
-const ALPHA_OPTIONS: Intl.CollatorOptions = { sensitivity: 'base', numeric: false };
+const colBase = 'flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm';
 
-const groupModelNames = (names: string[]): ModelGroup[] => {
-  const groups = new Map<string, ModelGroup>();
-
-  names.forEach((fullName) => {
-    const hasSeparator = fullName.includes('.');
-    const [rawApp, rawModel] = hasSeparator ? fullName.split('.') : ['default', fullName];
-    const appId = (rawApp || 'default').toLowerCase();
-    const appLabel = toTitleCase(rawApp || 'Default');
-    const modelLabelSource = rawModel || fullName;
-    const modelLabel = toTitleCase(modelLabelSource);
-
-    if (!groups.has(appId)) {
-      groups.set(appId, {
-        appId,
-        appLabel,
-        models: [],
-      });
-    }
-
-    groups.get(appId)?.models.push({
-      name: fullName,
-      label: modelLabel,
-    });
-  });
-
-  return Array.from(groups.values())
-    .map((group) => ({
-      ...group,
-      models: group.models
-        .slice()
-        .sort((a, b) => a.label.localeCompare(b.label, undefined, ALPHA_OPTIONS)),
-    }))
-    .sort((a, b) => a.appLabel.localeCompare(b.appLabel, undefined, ALPHA_OPTIONS));
+type WorkbenchRecord = {
+  id?: number | string;
+  [key: string]: unknown;
 };
 
-const colBase = 'flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm';
+type WorkbenchFieldsSetting = {
+  list: string[];
+  detail: string[];
+};
+
+type ModelDetailData = {
+  model?: {
+    fields?: unknown;
+  };
+};
+
+type ModelRecordsData = {
+  results?: unknown;
+};
+
+type ModelRecordData = {
+  record?: unknown;
+};
+
+const defaultFieldsSetting: WorkbenchFieldsSetting = { list: [], detail: [] };
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const toWorkbenchRecord = (value: unknown): WorkbenchRecord | null => {
+  if (!isPlainObject(value)) return null;
+  return value as WorkbenchRecord;
+};
+
+const toWorkbenchRecordList = (value: unknown): WorkbenchRecord[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => toWorkbenchRecord(item))
+    .filter((item): item is WorkbenchRecord => item !== null);
+};
+
+const toFieldName = (field: unknown): string | null => {
+  if (typeof field === 'string') return field;
+  if (isPlainObject(field)) {
+    const name = field['name'];
+    if (typeof name === 'string') {
+      return name;
+    }
+  }
+  return null;
+};
+
+const toNumericId = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (isPlainObject(error)) {
+    const message = error['message'];
+    if (typeof message === 'string') {
+      return message;
+    }
+  }
+  return fallback;
+};
 
 const AdminWorkbench: React.FC = () => {
   const [modelNames, setModelNames] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState<boolean>(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<WorkbenchRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState<boolean>(false);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<WorkbenchRecord | null>(null);
   const [allFields, setAllFields] = useState<string[]>([]);
-  const [workbenchSetting, setWorkbenchSetting] = useState<{ list: string[]; detail: string[] } | null>(null);
-  const [workbenchSettingsMap, setWorkbenchSettingsMap] = useState<Record<string, { list: string[]; detail: string[] }>>({});
+  const [workbenchSetting, setWorkbenchSetting] = useState<WorkbenchFieldsSetting | null>(null);
+  const [workbenchSettingsMap, setWorkbenchSettingsMap] = useState<Record<string, WorkbenchFieldsSetting>>({});
   const { isAuthenticated } = useAppSelector((s) => s.auth);
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
-  const [isModelNavOpen, setIsModelNavOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const modelGroups = useMemo(() => groupModelNames(modelNames), [modelNames]);
-  const totalModelCount = useMemo(() => modelGroups.reduce((sum, group) => sum + group.models.length, 0), [modelGroups]);
+  const modelParam = searchParams.get('model');
+  const totalModelCount = modelNames.length;
+  const selectedModelLabel = useMemo(() => {
+    if (!selectedModel) return '';
+    const parts = selectedModel.split('.');
+    return toTitleCase(parts[parts.length - 1] || selectedModel);
+  }, [selectedModel]);
+
+  useEffect(() => {
+    if (!modelNames.length) {
+      if (selectedModel) {
+        setSelectedModel('');
+      }
+      setRecords([]);
+      setSelectedId(null);
+      setSelectedRecord(null);
+      return;
+    }
+
+    if (modelParam && modelNames.includes(modelParam)) {
+      if (modelParam !== selectedModel) {
+        setSelectedModel(modelParam);
+      }
+      return;
+    }
+
+    if (!selectedModel || !modelNames.includes(selectedModel)) {
+      setSelectedModel(modelNames[0]);
+    }
+  }, [modelNames, modelParam, selectedModel]);
+
+  useEffect(() => {
+    if (!selectedModel && !modelParam) return;
+
+    const next = new URLSearchParams(searchParams);
+
+    if (selectedModel) {
+      if (modelParam === selectedModel) return;
+      next.set('model', selectedModel);
+      setSearchParams(next, { replace: true });
+      return;
+    }
+
+    if (modelParam) {
+      next.delete('model');
+      setSearchParams(next, { replace: true });
+    }
+  }, [modelParam, searchParams, selectedModel, setSearchParams]);
 
   // Load model names only when a token is present (avoids 401s pre-login)
   useEffect(() => {
@@ -109,17 +183,17 @@ const AdminWorkbench: React.FC = () => {
           map[s.model_name] = s.data;
         });
         setWorkbenchSettingsMap(map);
-      } catch (err: any) {
-        setModelsError(err?.message || 'Failed to load models');
+      } catch (error) {
+        setModelsError(getErrorMessage(error, 'Failed to load models'));
       } finally {
         setLoadingModels(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
     if (!selectedModel) return;
+    if (modelNames.length && !modelNames.includes(selectedModel)) return;
     (async () => {
       try {
         setRecordsLoading(true);
@@ -128,106 +202,37 @@ const AdminWorkbench: React.FC = () => {
         setSelectedId(null);
         setSelectedRecord(null);
 
-        const md = await getModelDetail(selectedModel);
-        const rawFields = md?.model?.fields as any;
+        const md = (await getModelDetail(selectedModel)) as ModelDetailData;
+        const rawFields = md?.model?.fields;
         let fields: string[] = [];
         if (Array.isArray(rawFields)) {
-          fields = rawFields.map((f: any) => (typeof f === 'string' ? f : (f?.name ?? ''))).filter(Boolean);
-        } else if (rawFields && typeof rawFields === 'object') {
+          fields = rawFields
+            .map((field) => toFieldName(field))
+            .filter((name): name is string => Boolean(name));
+        } else if (isPlainObject(rawFields)) {
           fields = Object.keys(rawFields);
         }
         setAllFields(fields);
 
-        const list = await getRecords(selectedModel);
-        const recs = Array.isArray(list?.results) ? list.results : [];
-        setRecords(recs);
+        const list = (await getRecords(selectedModel)) as ModelRecordsData;
+        setRecords(toWorkbenchRecordList(list?.results));
 
         // Set workbench fields setting from map
         setWorkbenchSetting(workbenchSettingsMap[selectedModel] || null);
-      } catch (err: any) {
-        setRecordsError(err?.message || 'Failed to load records');
+      } catch (error) {
+        setRecordsError(getErrorMessage(error, 'Failed to load records'));
       } finally {
         setRecordsLoading(false);
       }
     })();
-  }, [selectedModel, workbenchSettingsMap]);
-
-  useEffect(() => {
-    if (selectedModel || modelGroups.length === 0) return;
-    const first = modelGroups[0]?.models[0];
-    if (first) {
-      setSelectedModel(first.name);
-    }
-  }, [modelGroups, selectedModel]);
-
-  const handleSelectModel = (modelName: string) => {
-    setSelectedModel(modelName);
-    setIsModelNavOpen(false);
-  };
-
-  const modelListContent = (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
-        <span className="text-sm font-medium text-gray-700">WebClerk3 apps</span>
-        <button
-          type="button"
-          onClick={() => setIsModelNavOpen(false)}
-          className="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-100 md:hidden"
-        >
-          Close
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto px-2 py-3">
-        {loadingModels && (
-          <div className="px-2 text-xs text-gray-500">Loading models…</div>
-        )}
-        {modelsError && (
-          <div className="px-2 text-xs text-red-600">{modelsError}</div>
-        )}
-        {!loadingModels && !modelsError && modelGroups.length === 0 && (
-          <div className="px-2 text-xs text-gray-500">No models available.</div>
-        )}
-        {!loadingModels && !modelsError && (
-          <ul className="space-y-4">
-            {modelGroups.map((group) => (
-              <li key={group.appId}>
-                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {group.appLabel} ({group.models.length})
-                </p>
-                <ul className="mt-1 space-y-1">
-                  {group.models.map((model) => {
-                    const active = selectedModel === model.name;
-                    return (
-                      <li key={model.name}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectModel(model.name)}
-                          className={`w-full rounded-md px-3 py-2 text-left text-sm transition ${
-                            active
-                              ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="font-medium">{model.label}</div>
-                          <div className="text-xs text-gray-400">{model.name}</div>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
+  }, [modelNames, selectedModel, workbenchSettingsMap]);
 
   useEffect(() => {
     if (!selectedModel || selectedId == null) return;
     (async () => {
-      const det = await getRecord(selectedModel, selectedId);
-      setSelectedRecord(det.record || null);
+      const det = (await getRecord(selectedModel, selectedId)) as ModelRecordData;
+      const nextRecord = toWorkbenchRecord(det?.record);
+      setSelectedRecord(nextRecord);
     })();
   }, [selectedModel, selectedId]);
 
@@ -235,7 +240,7 @@ const AdminWorkbench: React.FC = () => {
     if (!selectedModel) return;
 
     // Get current setting or create default
-    const current = workbenchSetting || { list: [], detail: [] };
+    const current = workbenchSetting ?? defaultFieldsSetting;
     const currentList = current[kind] || [];
 
     // If no explicit prefs yet, seed from visible set
@@ -246,7 +251,7 @@ const AdminWorkbench: React.FC = () => {
     const has = base.includes(field);
     const updated = has ? base.filter((f: string) => f !== field) : [...base, field];
 
-    const nextSetting = {
+    const nextSetting: WorkbenchFieldsSetting = {
       ...current,
       [kind]: updated,
     };
@@ -265,16 +270,16 @@ const AdminWorkbench: React.FC = () => {
         data: nextSetting,
       };
       await saveWorkbenchFieldsSetting(settingToSave);
-    } catch (err) {
-      console.error('Failed to save field settings:', err);
+    } catch (error) {
+      console.error('Failed to save field settings:', error);
     }
   };
 
   const bulkSetFields = async (kind: 'list' | 'detail', mode: 'all' | 'clear') => {
     if (!selectedModel) return;
-    const current = workbenchSetting || { list: [], detail: [] };
+    const current = workbenchSetting ?? defaultFieldsSetting;
     const nextSet = mode === 'all' ? allFields : [];
-    const nextSetting = {
+    const nextSetting: WorkbenchFieldsSetting = {
       ...current,
       [kind]: nextSet,
     };
@@ -292,8 +297,8 @@ const AdminWorkbench: React.FC = () => {
         data: nextSetting,
       };
       await saveWorkbenchFieldsSetting(settingToSave);
-    } catch (err) {
-      console.error('Failed to save field settings:', err);
+    } catch (error) {
+      console.error('Failed to save field settings:', error);
     }
   };
 
@@ -308,33 +313,22 @@ const AdminWorkbench: React.FC = () => {
 
   const handleSave = async () => {
     if (!selectedModel || !selectedRecord) return;
-    const payload = { id: selectedRecord.id, ...selectedRecord };
+    const payload: WorkbenchRecord = { ...selectedRecord };
     await saveRecord(selectedModel, payload);
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsModelNavOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition hover:bg-slate-100 md:hidden"
-            aria-label="Open model navigation"
-          >
-            <span className="flex flex-col items-center gap-1.5">
-              <span className="block h-0.5 w-5 bg-current" />
-              <span className="block h-0.5 w-5 bg-current" />
-              <span className="block h-0.5 w-5 bg-current" />
-            </span>
-          </button>
-          <div>
-            <p className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">TailAdmin</p>
-            <h1 className="text-lg font-semibold text-slate-900">Admin Workbench</h1>
-          </div>
+        <div>
+          <p className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">TailAdmin</p>
+          <h1 className="text-lg font-semibold text-slate-900">Admin Workbench</h1>
         </div>
-        <div className="text-xs text-slate-500">
-          {totalModelCount ? `${totalModelCount} models` : 'No models'}
+        <div className="text-right text-xs text-slate-500">
+          <div>{totalModelCount ? `${totalModelCount} models` : 'No models'}</div>
+          {selectedModel && (
+            <div className="mt-0.5 text-[11px] text-slate-400">{selectedModel}</div>
+          )}
         </div>
       </header>
       <div className="border-b border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
@@ -351,135 +345,154 @@ const AdminWorkbench: React.FC = () => {
         </div>
       </div>
       <div className="flex flex-1 overflow-hidden">
-        {isModelNavOpen && (
-          <div className="fixed inset-0 z-40 flex md:hidden">
-            <div className="absolute inset-0 bg-slate-900/40" onClick={() => setIsModelNavOpen(false)} aria-hidden="true" />
-            <div className="relative z-10 h-full w-72">
-              <div className={`${colBase} h-full rounded-none shadow-lg`}>{modelListContent}</div>
-            </div>
-          </div>
-        )}
         <div className="flex flex-1 flex-col overflow-hidden p-4 md:p-6">
           <div className="flex h-full min-h-0 flex-col gap-4 md:flex-row">
-            <div className="hidden md:flex md:w-64 md:flex-shrink-0">
-              <div className={colBase}>{modelListContent}</div>
-            </div>
-            <div className="flex flex-1 flex-col gap-4 md:flex-row">
-              <div className={`flex w-full flex-col md:w-96 xl:w-[24rem] ${colBase}`}>
-                <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+            <div className={`${colBase} w-full md:w-[26rem] xl:w-[28rem] md:flex-none`}>
+              <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                <div>
                   <span className="text-sm font-medium text-gray-700">
-                    Records {selectedModel ? `(${selectedModel})` : ''}
+                    {selectedModelLabel ? `Records (${selectedModelLabel})` : 'Records'}
                   </span>
-                </div>
-                <div className="flex-1 overflow-y-auto px-4 py-4">
-                  {recordsLoading && (
-                    <div className="text-xs text-gray-500">Loading records…</div>
+                  {selectedModel && (
+                    <p className="text-xs text-gray-400">{selectedModel}</p>
                   )}
-                  {recordsError && (
-                    <div className="text-xs text-red-600">{recordsError}</div>
-                  )}
-                  {!recordsLoading && !recordsError && records.length === 0 && (
-                    <div className="text-xs text-gray-500">No records found.</div>
-                  )}
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-gray-500">
-                        {visibleListFields.map((f) => (
-                          <th key={f} className="py-1 pr-3">{f}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {records.map((r) => (
-                        <tr
-                          key={r.id}
-                          className={`border-t hover:bg-gray-50 cursor-pointer ${selectedId === r.id ? 'bg-blue-50' : ''}`}
-                          onClick={() => setSelectedId(r.id)}
-                        >
-                          {visibleListFields.map((f) => (
-                            <td key={f} className="py-1 pr-3 align-top">{String(r?.[f] ?? '')}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="text-xs font-semibold">List fields</div>
-                    <div className="space-x-2">
-                      <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'all')}>Select all</button>
-                      <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'clear')}>Clear</button>
-                    </div>
-                  </div>
-                  <div className="flex max-h-40 flex-wrap gap-2 overflow-auto">
-                    {allFields.map((f: string) => {
-                      const active = workbenchSetting?.list.includes(f) || false;
-                      return (
-                        <button
-                          key={f}
-                          onClick={() => toggleField('list', f)}
-                          className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
-                        >
-                          {f}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
-              <div className={`flex flex-1 flex-col ${colBase}`}>
-                <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
-                  <span className="text-sm font-medium text-gray-700">Detail {selectedId ? `#${selectedId}` : ''}</span>
-                  <div className="space-x-2">
-                    <button className="px-3 py-1 text-sm rounded border hover:bg-gray-100" onClick={handleSave} disabled={!selectedRecord}>Save</button>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto px-4 py-4">
-                  {selectedRecord ? (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {visibleDetailFields
-                        .filter((k) => k in (selectedRecord || {}))
-                        .map((k) => {
-                          const v = (selectedRecord as any)[k];
-                          return (
-                            <label key={k} className="text-sm">
-                              <div className="mb-1 text-gray-600">{k}</div>
-                              <input
-                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                                value={typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v ?? '')}
-                                onChange={(e) => setSelectedRecord({ ...selectedRecord, [k]: e.target.value })}
-                              />
-                            </label>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">Select a record to edit.</div>
-                  )}
-                </div>
-                <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="text-xs font-semibold">Detail fields</div>
-                    <div className="space-x-2">
-                      <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'all')}>Select all</button>
-                      <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'clear')}>Clear</button>
-                    </div>
-                  </div>
-                  <div className="flex max-h-40 flex-wrap gap-2 overflow-auto">
-                    {allFields.map((f) => {
-                      const active = visibleDetailFields.includes(f);
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {recordsLoading && (
+                  <div className="text-xs text-gray-500">Loading records…</div>
+                )}
+                {recordsError && (
+                  <div className="text-xs text-red-600">{recordsError}</div>
+                )}
+                {!recordsLoading && !recordsError && records.length === 0 && (
+                  <div className="text-xs text-gray-500">No records found.</div>
+                )}
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500">
+                      {visibleListFields.map((f) => (
+                        <th key={f} className="py-1 pr-3">{f}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((record, index) => {
+                      const recordId = toNumericId(record.id);
+                      const rowKey = recordId ?? `${selectedModel || 'record'}-${index}`;
+                      const isActive = recordId !== null && selectedId === recordId;
                       return (
-                        <button
-                          key={f}
-                          onClick={() => toggleField('detail', f)}
-                          className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
-                        >
-                          {f}
-                        </button>
+                      <tr
+                          key={rowKey}
+                          className={`border-t hover:bg-gray-50 cursor-pointer ${isActive ? 'bg-blue-50' : ''}`}
+                          onClick={() => {
+                            if (recordId !== null) {
+                              setSelectedId(recordId);
+                            }
+                          }}
+                      >
+                          {visibleListFields.map((field) => {
+                            const value = record[field];
+                            const displayValue = typeof value === 'object' && value !== null
+                              ? JSON.stringify(value)
+                              : String(value ?? '');
+                            return (
+                              <td key={field} className="py-1 pr-3 align-top">{displayValue}</td>
+                            );
+                          })}
+                      </tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-xs font-semibold">List fields</div>
+                  <div className="space-x-2">
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'all')}>Select all</button>
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'clear')}>Clear</button>
                   </div>
+                </div>
+                <div className="flex max-h-40 flex-wrap gap-2 overflow-auto">
+                  {allFields.map((f: string) => {
+                    const active = workbenchSetting?.list.includes(f) || false;
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => toggleField('list', f)}
+                        className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
+                      >
+                        {f}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className={`${colBase} w-full flex-1`}>
+              <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+                <div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Detail{selectedModelLabel ? ` (${selectedModelLabel})` : ''}
+                  </span>
+                  {selectedId ? (
+                    <p className="text-xs text-gray-400">Record #{selectedId}</p>
+                  ) : null}
+                </div>
+                <div className="space-x-2">
+                  <button className="px-3 py-1 text-sm rounded border hover:bg-gray-100" onClick={handleSave} disabled={!selectedRecord}>Save</button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {selectedRecord ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {visibleDetailFields
+                      .filter((field) => Object.prototype.hasOwnProperty.call(selectedRecord, field))
+                      .map((field) => {
+                        const value = selectedRecord[field];
+                        const displayValue = typeof value === 'object' && value !== null
+                          ? JSON.stringify(value)
+                          : String(value ?? '');
+                        return (
+                          <label key={field} className="text-sm">
+                            <div className="mb-1 text-gray-600">{field}</div>
+                            <input
+                              className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                              value={displayValue}
+                              onChange={(event) =>
+                                setSelectedRecord((prev) => (prev ? { ...prev, [field]: event.target.value } : prev))
+                              }
+                            />
+                          </label>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Select a record to edit.</div>
+                )}
+              </div>
+              <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-xs font-semibold">Detail fields</div>
+                  <div className="space-x-2">
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'all')}>Select all</button>
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'clear')}>Clear</button>
+                  </div>
+                </div>
+                <div className="flex max-h-40 flex-wrap gap-2 overflow-auto">
+                  {allFields.map((f) => {
+                    const active = visibleDetailFields.includes(f);
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => toggleField('detail', f)}
+                        className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
+                      >
+                        {f}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

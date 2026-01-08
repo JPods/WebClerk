@@ -13,6 +13,15 @@ type ModelField = {
   help_text?: string;
   read_only?: boolean;
   editable?: boolean;
+  required?: boolean;
+  blank?: boolean;
+  allow_blank?: boolean;
+  null?: boolean;
+  allow_null?: boolean;
+  has_default?: boolean;
+  default?: unknown;
+  choices?: unknown;
+  locked_to_entry?: boolean;
 };
 
 const SAMPLE_WORKSPACE_CONFIG: AdminWorkspaceConfig = {
@@ -191,18 +200,35 @@ const normalizeFields = (fields: unknown): ModelField[] => {
 
 const buildFieldDescriptors = (fields: ModelField[]): AdminFieldDescriptor[] =>
   fields.map((field) => {
-    const label = field.verbose_name || toTitle(field.name);
+    const label = field.name;
     const kind = guessFieldKind(field.type);
+    const rawChoices = field.choices;
+    const hasChoices = Array.isArray(rawChoices)
+      ? rawChoices.length > 0
+      : rawChoices && typeof rawChoices === "object"
+      ? Object.keys(rawChoices as Record<string, unknown>).length > 0
+      : false;
+    const required =
+      field.required === true ||
+      field.blank === false ||
+      field.allow_blank === false ||
+      field.null === false ||
+      field.allow_null === false;
+    const isEditable = field.read_only === true ? false : field.editable === false ? false : true;
+    const locked = field.locked_to_entry === true || field.read_only === true || isEditable === false;
     return {
       id: field.name,
       label,
       kind,
-      description: field.help_text,
+      description: field.help_text || field.verbose_name,
       sortable: true,
       filterable: kind !== "json",
       searchable: kind === "text" || kind === "email",
-      editable: field.read_only === true ? false : true,
+      editable: isEditable,
       readOnly: field.read_only === true,
+      required,
+      hasChoices,
+      locked,
     } satisfies AdminFieldDescriptor;
   });
 
@@ -231,13 +257,10 @@ const buildTableDefinition = (model: ModelDetailPayload["model"]): AdminTableDef
     ])
   );
 
-  const tableLabelSource = model?.verbose_name || model?.object_name || modelName.split(".").pop() || modelName;
-  const tableLabel = toTitle(tableLabelSource);
-
   return {
     id: modelName,
-    label: tableLabel,
-    description: model?.verbose_name_plural,
+    label: modelName,
+    description: model?.verbose_name || model?.object_name || model?.verbose_name_plural,
     primaryKey,
     fields,
     defaultListFields,

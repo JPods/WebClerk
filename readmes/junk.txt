@@ -73,3 +73,6 @@ ref.project.tasks.actions
      }
      ]
  },
+
+
+This stylesheet will be univeral across all apps and models. Perhaps an apps/shared? Where do you recommend we store universal items. I am not sure if we should use src/shared, or some other folder. What do you think?

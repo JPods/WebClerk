@@ -9,12 +9,18 @@ export const formatPhoneNum = (phoneNumberString: string): string | null => {
   return null;
 };
 
-export const formatPhoneNums = (rows: any[]): any[] => {
-  rows.forEach(element => {
-    if (Object.prototype.hasOwnProperty.call(element, "phone") && element.phone) {
+type PhoneLike = {
+  phone?: string | null;
+  phoneCell?: string | null;
+  [key: string]: unknown;
+};
+
+export const formatPhoneNums = <T extends PhoneLike>(rows: T[]): T[] => {
+  rows.forEach((element) => {
+    if (typeof element.phone === 'string' && element.phone) {
       element.phone = formatPhoneNum(element.phone);
     }
-    if (Object.prototype.hasOwnProperty.call(element, "phoneCell") && element.phoneCell) {
+    if (typeof element.phoneCell === 'string' && element.phoneCell) {
       element.phoneCell = formatPhoneNum(element.phoneCell);
     }
   });
@@ -24,7 +30,7 @@ export const formatPhoneNums = (rows: any[]): any[] => {
 export const formatDate = (d: Date): string => {
   let month = '' + (d.getMonth() + 1);
   let day = '' + d.getDate();
-  let year = d.getFullYear();
+  const year = d.getFullYear();
 
   if (month.length < 2) month = '0' + month;
   if (day.length < 2) day = '0' + day;
@@ -35,7 +41,7 @@ export const formatDate = (d: Date): string => {
 export const getDateAsStr = (d: Date): string => {
   let month = '' + (d.getMonth() + 1);
   let day = '' + d.getDate();
-  let year = d.getFullYear();
+  const year = d.getFullYear();
 
   if (month.length < 2) month = '0' + month;
   if (day.length < 2) day = '0' + day;
@@ -98,16 +104,28 @@ export const isLoggedIn = (): boolean => {
 };
 
 // Search persistence
-export const setLastSearch = (lastSearch: any): void => {
+export const setLastSearch = (lastSearch: unknown): void => {
   window.localStorage.setItem("lastSearch", JSON.stringify(lastSearch));
 };
 
-export const getLastSearch = (): any => {
+export const getLastSearch = <T = unknown>(): T | null => {
   const item = window.localStorage.getItem("lastSearch");
-  return item ? JSON.parse(item) : null;
+  if (!item) {
+    return null;
+  }
+  try {
+    return JSON.parse(item) as T;
+  } catch {
+    return null;
+  }
 };
 
-export const convertToArray = (src: any[]): [string, string][] => {
+type LabeledValue = {
+  value: string;
+  label: string;
+};
+
+export const convertToArray = (src?: LabeledValue[] | null): [string, string][] => {
   const target: [string, string][] = [];
   if (typeof src === 'undefined') {
     console.log('Variable is undefined');
@@ -116,9 +134,8 @@ export const convertToArray = (src: any[]): [string, string][] => {
   if (src == null) {
     return target;
   }
-
-  src.forEach(element => {
-    target.push([element.value, element.label]);
+  src.forEach(({ value, label }) => {
+    target.push([value, label]);
   });
   return target;
 };

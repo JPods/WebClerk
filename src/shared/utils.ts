@@ -19,12 +19,18 @@ export function formatPhoneNum(phoneNumberString: string): string | null {
  * @param rows - Array of objects that may contain phone or phoneCell properties
  * @returns The modified array with formatted phone numbers
  */
-export function formatPhoneNums(rows: any[]): any[] {
-  rows.forEach(element => {
-    if (Object.prototype.hasOwnProperty.call(element, "phone")) {
+interface PhoneRecord {
+  phone?: string | null;
+  phoneCell?: string | null;
+  [key: string]: unknown;
+}
+
+export function formatPhoneNums<T extends PhoneRecord>(rows: T[]): T[] {
+  rows.forEach((element) => {
+    if (typeof element.phone === 'string' && element.phone) {
       element.phone = formatPhoneNum(element.phone);
     }
-    if (Object.prototype.hasOwnProperty.call(element, "phoneCell")) {
+    if (typeof element.phoneCell === 'string' && element.phoneCell) {
       element.phoneCell = formatPhoneNum(element.phoneCell);
     }
   });
@@ -81,8 +87,13 @@ export function emailValidator(v: string | null): boolean {
  * @param src - Source array
  * @returns Converted array
  */
-export function convertToArray(src: any[] | undefined | null): [any, any][] {
-  const target: [any, any][] = [];
+type LabeledValue = {
+  value: string;
+  label: string;
+};
+
+export function convertToArray(src?: LabeledValue[] | null): [string, string][] {
+  const target: [string, string][] = [];
   if (typeof src === 'undefined') {
     console.log('Variable is undefined');
     return target;
@@ -91,20 +102,28 @@ export function convertToArray(src: any[] | undefined | null): [any, any][] {
     return target;
   }
 
-  src.forEach(element => {
-    target.push([element.value, element.label]);
+  src.forEach(({ value, label }) => {
+    target.push([value, label]);
   });
   return target;
 }
 
 // Local storage utilities
 export const localStorageUtils = {
-  setLastSearch: (lastSearch: any) => {
+  setLastSearch: (lastSearch: unknown) => {
     window.localStorage.setItem("lastSearch", JSON.stringify(lastSearch));
   },
 
-  getLastSearch: () => {
-    return window.localStorage.getItem("lastSearch");
+  getLastSearch: <T = unknown>() => {
+    const item = window.localStorage.getItem("lastSearch");
+    if (!item) {
+      return null;
+    }
+    try {
+      return JSON.parse(item) as T;
+    } catch {
+      return null;
+    }
   },
 
   setLoggedIn: () => {
