@@ -104,7 +104,7 @@ export const salesOrderSchema = z.object({
   id_transaction: z.string().optional(),
   dt_created: z.union([z.string(), z.number()]).optional(),
   dt_updated: z.union([z.string(), z.number()]).optional(),
-  id_customer: z.coerce.number().min(1, "Customer ID is required"),
+    customer_id: z.coerce.number().min(1, "Customer ID is required"),
   total: z.coerce.number(),
   tax: z.coerce.number(),
   discount: z.coerce.number(),
@@ -113,6 +113,7 @@ export const salesOrderSchema = z.object({
   refs: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
 
   // Sales order specific fields
+    ida: z.string().optional(),
   sales_order_no: z.string().optional(),
   status: z.enum(validStatuses, {
     errorMap: () => ({ message: `Status must be one of: ${validStatuses.join(', ')}` })
@@ -121,8 +122,8 @@ export const salesOrderSchema = z.object({
   price_level: z.string().max(50, "Price level must be 50 characters or less").optional(),
 
   // Customer/Vendor references
-  id_manufacturer: z.coerce.number().int().min(0, "Manufacturer ID must be non-negative").optional(),
-  id_vendor: z.coerce.number().int().min(0, "Vendor ID must be non-negative").optional(),
+    manufacturer_id: z.coerce.number().int().min(0, "Manufacturer ID must be non-negative").optional(),
+    vendor_id: z.coerce.number().int().min(0, "Vendor ID must be non-negative").optional(),
 
   // Financial summary fields
   subtotal: z.coerce.number().optional(),
@@ -145,13 +146,13 @@ export const salesOrderSchema = z.object({
   version: z.coerce.number().optional(),
 }).refine((data) => {
   // Cross-field validation: customer and vendor cannot be the same
-  if (data.id_customer && data.id_vendor && data.id_customer === data.id_vendor) {
+    if (data.customer_id && data.vendor_id && data.customer_id === data.vendor_id) {
     return false;
   }
   return true;
 }, {
   message: "Customer and vendor cannot be the same entity",
-  path: ["id_vendor"]
+    path: ["vendor_id"]
 });
 
 // Type exports
