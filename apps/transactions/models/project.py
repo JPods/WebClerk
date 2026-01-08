@@ -57,7 +57,7 @@ class Project(BaseModel):
     category = models.CharField(max_length=128, blank=True, default="", db_index=True)
     intent = models.CharField(max_length=255, blank=True, default="", help_text="Short intent tagline / elevator pitch")
     logistics = models.JSONField(default=default_logistics, help_text="Budget / schedule / resource data")
-    slug = models.CharField(max_length=180, blank=True, db_index=True, help_text="URL / human friendly identifier derived from intent (unique)")
+    slug = models.CharField(max_length=180, blank=True, null=True, db_index=True, help_text="URL / human friendly identifier derived from intent")
     profit = models.DecimalField(default=Decimal('0.00'), max_digits=14, decimal_places=2, help_text="Projected or realized profit (base currency with cents)")
     profit_velocity = models.IntegerField(default=0, help_text="Profit per time unit (arbitrary) for trend")
     # Allow NULL so callers can intentionally distinguish "no payload yet" vs empty structure
@@ -78,7 +78,6 @@ class Project(BaseModel):
             models.CheckConstraint(check=models.Q(priority__gte=PRIORITY_MIN, priority__lte=PRIORITY_MAX), name="project_priority_range"),
             models.CheckConstraint(check=models.Q(burndown__gte=0, burndown__lte=100), name="project_burndown_range"),
         ]
-        unique_together = (("slug",),)
 
     # -------- Derived / validation helpers ---------------------------------
     def _recompute_task_counters(self):
