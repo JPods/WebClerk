@@ -57,6 +57,7 @@ Future Ideas
 from django.db import models
 from django.conf import settings
 from common.models import BaseModel
+from apps.products.choices import INVENTORY_CHECK_STATUS_CHOICES
 
 
 class InventoryCheck(BaseModel):
@@ -87,12 +88,7 @@ class InventoryCheck(BaseModel):
     STATUS_IN_PROGRESS = "in_progress"
     STATUS_COMPLETED = "completed"
     STATUS_CANCELED = "canceled"
-    STATUSES = [
-        (STATUS_PLANNED, "Planned"),
-        (STATUS_IN_PROGRESS, "In Progress"),
-        (STATUS_COMPLETED, "Completed"),
-        (STATUS_CANCELED, "Canceled"),
-    ]
+    STATUSES = INVENTORY_CHECK_STATUS_CHOICES
 
     orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='inventory_checks')
     catalog_id = models.ForeignKey('products.Catalog', on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_checks')

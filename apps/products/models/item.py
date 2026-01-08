@@ -7,6 +7,7 @@ from django.utils.text import slugify
 from datetime import datetime, timezone
 from common.models import BaseModel
 from common.stats_mixin import StatsMixin
+from apps.products.choices import ITEM_KIND_CHOICES
 from apps.products.uom import normalize_uom, can_convert, convert
 from apps.products.variant_utils import (
     derive_variant_set_uuid,
@@ -197,11 +198,7 @@ class Item(StatsMixin, BaseModel):
     KIND_PHYSICAL = "physical"
     KIND_SERVICE = "service"
     KIND_BUNDLE = "bundle"
-    KIND_CHOICES = [
-        (KIND_PHYSICAL, "Physical"),
-        (KIND_SERVICE, "Service"),
-        (KIND_BUNDLE, "Bundle"),
-    ]
+    KIND_CHOICES = ITEM_KIND_CHOICES
 
     name = models.CharField(max_length=160, db_index=True)
     # SKU & QR codes are NOT globally unique (external systems may reuse); kept for search/reference only.

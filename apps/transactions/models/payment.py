@@ -1,5 +1,7 @@
 from django.db import models
+
 from common.models import BaseModel
+from apps.transactions.choices import PAYMENT_GATEWAY_CHOICES, PAYMENT_STATUS_CHOICES
 
 
 def default_refs() -> dict:
@@ -95,22 +97,6 @@ class Payment(BaseModel):
     notes = models.TextField(blank=True, help_text="Additional notes about the payment")
 
     # Payment gateway integration fields
-    PAYMENT_STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('cancelled', 'Cancelled'),
-        ('refunded', 'Refunded'),
-        ('partially_refunded', 'Partially Refunded'),
-    ]
-
-    PAYMENT_GATEWAY_CHOICES = [
-        ('stripe', 'Stripe'),
-        ('paypal', 'PayPal'),
-        ('manual', 'Manual'),
-    ]
-
     gateway = models.CharField(
         max_length=20,
         choices=PAYMENT_GATEWAY_CHOICES,

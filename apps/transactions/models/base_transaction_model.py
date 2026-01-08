@@ -1,6 +1,10 @@
 from django.db import models
 from typing import Callable, Dict, Any
 from common.models import BaseModel
+from apps.transactions.choices import (
+    TRANSACTION_PARENT_TYPE_CHOICES,
+    TRANSACTION_STATUS_CHOICES,
+)
 
 
 def default_prefs() -> Dict[str, Any]:
@@ -110,23 +114,9 @@ class TransactionBaseModel(BaseModel):
     STATUS_HOLD = "hold"
     STATUS_COMPLETE = "complete"
     STATUS_CANCELED = "canceled"
-    STATUS_CHOICES = (
-        (STATUS_PLANNED, "Planned"),
-        (STATUS_RELEASED, "Released"),
-        (STATUS_IN_PROGRESS, "In Progress"),
-        (STATUS_HOLD, "Hold"),
-        (STATUS_COMPLETE, "Complete"),
-        (STATUS_CANCELED, "Canceled"),
-    )
+    STATUS_CHOICES = TRANSACTION_STATUS_CHOICES
 
-    PARENT_TYPE_CHOICES = (
-        ('proposal', 'Proposal'),
-        ('sales_order', 'Sales Order'),
-        ('invoice', 'Invoice'),
-        ('purchase_order', 'Purchase Order'),
-        ('work_order', 'Work Order'),
-        ('requisition', 'Requisition'),
-    )
+    PARENT_TYPE_CHOICES = TRANSACTION_PARENT_TYPE_CHOICES
     #denormalized from record.totals.total for indexing and quick queries
     total = models.DecimalField(max_digits=18, decimal_places=6, blank=True, null=True, db_index=True)
     #denormalized from record.totals.balance for indexing and quick queries

@@ -4,6 +4,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from decimal import Decimal
 
+from apps.products.choices import INVENTORY_RESERVATION_STATE_CHOICES
 from .inventory_layer import InventoryLayer
 from .item import Item
 from .warehouse import Warehouse
@@ -31,12 +32,7 @@ class InventoryReservation(models.Model):
     STATE_COMMITTED = 'committed'
     STATE_CANCELED = 'canceled'
     STATE_EXPIRED = 'expired'
-    STATES = [
-        (STATE_PENDING, 'Pending'),
-        (STATE_COMMITTED, 'Committed'),
-        (STATE_CANCELED, 'Canceled'),
-        (STATE_EXPIRED, 'Expired'),
-    ]
+    STATES = INVENTORY_RESERVATION_STATE_CHOICES
 
     item_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations')
     warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')

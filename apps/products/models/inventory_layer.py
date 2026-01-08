@@ -3,6 +3,10 @@ from __future__ import annotations
 from decimal import Decimal
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
+from apps.products.choices import (
+    INVENTORY_MOVEMENT_TYPE_CHOICES,
+    PENDING_INVENTORY_STATE_CHOICES,
+)
 from .item_base_model import ItemLinkedBase
 from .warehouse import Warehouse
 
@@ -229,11 +233,7 @@ class InventoryMovement(ItemLinkedBase):
     MOVEMENT_RECEIPT = "receipt"
     MOVEMENT_ISSUE = "issue"
     MOVEMENT_ADJUST = "adjust"
-    MOVEMENT_TYPES = [
-        (MOVEMENT_RECEIPT, "Receipt"),
-        (MOVEMENT_ISSUE, "Issue"),
-        (MOVEMENT_ADJUST, "Adjust"),
-    ]
+    MOVEMENT_TYPES = INVENTORY_MOVEMENT_TYPE_CHOICES
 
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES, db_index=True)
     warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_movements")
@@ -263,11 +263,7 @@ class PendingInventoryAdjustment(models.Model):
     STATE_PENDING = "pending"
     STATE_APPLIED = "applied"
     STATE_CANCELED = "canceled"
-    STATE_CHOICES = [
-        (STATE_PENDING, "Pending"),
-        (STATE_APPLIED, "Applied"),
-        (STATE_CANCELED, "Canceled"),
-    ]
+    STATE_CHOICES = PENDING_INVENTORY_STATE_CHOICES
     inventorylayer_id = models.ForeignKey(InventoryLayer, on_delete=models.CASCADE, related_name="pending_adjustments")
     qty = models.DecimalField(max_digits=14, decimal_places=4)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
