@@ -10,6 +10,7 @@ Choice = Tuple[object, str]
 ChoiceList = Tuple[Choice, ...]
 
 CONTACT_ROLE_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("user", "User"),
     ("admin", "Administrator"),
     ("manager", "Manager"),
@@ -18,6 +19,7 @@ CONTACT_ROLE_CHOICES: Final[ChoiceList] = (
 )
 
 ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
+    ("", "---------"),
     ("Backlog", "Backlog"),
     ("Planning", "Planning"),
     ("InProcess", "In Process"),
@@ -26,6 +28,7 @@ ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
 )
 
 ACTION_DIFFICULTY_LEVELS: Final[ChoiceList] = (
+    (None, "---------"),
     (100, "Extreme"),
     (50, "Hard"),
     (15, "Moderate"),
@@ -35,6 +38,7 @@ ACTION_DIFFICULTY_LEVELS: Final[ChoiceList] = (
 )
 
 SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("view_edit", "View / Edit Matrix"),
     ("constants", "User Constants"),
     ("db_defaults", "Database Defaults"),

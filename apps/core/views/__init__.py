@@ -1,4 +1,5 @@
 from apps.core.views.save_view import SaveWcapiView
+from apps.core.views.choices import ChoiceCatalogView
 
 # Alias for backward compatibility
 WcapiView = SaveWcapiView
@@ -46,4 +47,5 @@ WcapiView = SaveWcapiView
 # Export all views
 __all__ = [
     'WcapiView',
+    'ChoiceCatalogView',
 ]

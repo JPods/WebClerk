@@ -30,6 +30,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from common.decorators import allow_write
 from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
+from apps.core.constants.model_registry import get_model_meta
 import json
 from django.db import IntegrityError
 from django.forms.models import model_to_dict
@@ -559,6 +560,31 @@ class SaveWcapiView(APIView):
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
+
+        # Handle associated lines for header models
+        from apps.core.constants.model_registry import get_model_meta
+        meta = get_model_meta(model_key)
+        if meta and meta.kind == 'header' and 'lines' in data and isinstance(data['lines'], list):
+            console_logger.debug(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
+            line_errors = []
+            for idx, line_data in enumerate(data['lines']):
+                try:
+                    line_model_key = model_key + '_line'
+                    line_data_copy = dict(line_data)
+                    line_data_copy['model_name'] = line_model_key
+                    # Set parent FK
+                    parent_fk = model_key.replace('_', '') + '_id'
+                    line_data_copy[parent_fk] = obj.id
+                    # Save the line
+                    from apps.core.services import wcapi
+                    wcapi.save_item(line_model_key, request=request, data=line_data_copy)
+                    console_logger.debug(f"[SAVE_VIEW] Saved line {idx+1} for {model_key}")
+                except Exception as e:
+                    error_msg = f"Error saving line {idx+1}: {str(e)}"
+                    console_logger.error(f"[SAVE_VIEW] {error_msg}")
+                    line_errors.append(error_msg)
+            if line_errors:
+                messages.extend(line_errors)
 
         # Auto-link communication records to a Contact
         linked = False

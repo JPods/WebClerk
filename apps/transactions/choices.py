@@ -6,6 +6,7 @@ Choice = Tuple[str, str]
 ChoiceList = Tuple[Choice, ...]
 
 TRANSACTION_STATUS_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("planned", "Planned"),
     ("released", "Released"),
     ("in_progress", "In Progress"),
@@ -24,6 +25,7 @@ TRANSACTION_PARENT_TYPE_CHOICES: Final[ChoiceList] = (
 )
 
 PROJECT_STATUS_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("draft", "Draft"),
     ("active", "Active"),
     ("onhold", "On Hold"),
@@ -33,6 +35,7 @@ PROJECT_STATUS_CHOICES: Final[ChoiceList] = (
 )
 
 PROJECT_ATTENTION_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("low", "Low"),
     ("normal", "Normal"),
     ("high", "High"),
@@ -40,12 +43,14 @@ PROJECT_ATTENTION_CHOICES: Final[ChoiceList] = (
 )
 
 PAYMENT_GATEWAY_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("manual", "Manual"),
     ("stripe", "Stripe"),
     ("paypal", "PayPal"),
 )
 
 PAYMENT_STATUS_CHOICES: Final[ChoiceList] = (
+    ("", "---------"),
     ("pending", "Pending"),
     ("processing", "Processing"),
     ("completed", "Completed"),

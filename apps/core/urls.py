@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from apps.core.views.save_view import SaveWcapiView
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
 from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailView
+from apps.core.views.choices import ChoiceCatalogView
 
 urlpatterns = [
     # Auth API
@@ -20,4 +21,5 @@ urlpatterns = [
     path("wcapi/save/", SaveWcapiView.as_view(), name="wcapi-save"),
     path("wcapi/model_name/list/", ModelNameListView.as_view(), name="model-name-list"),
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
+    path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
 ]
