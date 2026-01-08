@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from django.db import models
 
+from apps.products.choices import PROCESSOR_RUN_TYPE_CHOICES
+
 
 class InventoryAdjustmentProcessorRun(models.Model):
     """Audit log of each pending adjustment processor invocation."""
 
     RUN_GLOBAL = 'global'
     RUN_STACK = 'stack'
-    RUN_TYPES = [
-        (RUN_GLOBAL, 'Global'),
-        (RUN_STACK, 'Stack'),
-    ]
+    RUN_TYPES = PROCESSOR_RUN_TYPE_CHOICES
 
     run_type = models.CharField(max_length=12, choices=RUN_TYPES, db_index=True)
     stack_id = models.IntegerField(null=True, blank=True, db_index=True)

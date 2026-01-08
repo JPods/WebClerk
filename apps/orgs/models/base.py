@@ -10,6 +10,7 @@ from common.stats_mixin import StatsMixin
 from common.relationship_stats_mixin import RelationshipStatsMixin
 
 from .constants import *
+from apps.orgs.choices import ORG_STATUS_CHOICES
 
 
 # ---------------- Unified model -----------------
@@ -42,7 +43,12 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	display_name = models.CharField(max_length=255, db_index=True)
 	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
 	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
-	status = models.CharField(max_length=30, blank=True, db_index=True)  # e.g. active, prospect, retired
+	status = models.CharField(
+		max_length=30,
+		blank=True,
+		choices=ORG_STATUS_CHOICES,
+		db_index=True,
+	)  # e.g. active, prospect, retired
 
 	@property
 	def company(self) -> str:

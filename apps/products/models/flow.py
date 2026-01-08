@@ -33,7 +33,12 @@ Forward-looking:
 """
 
 from django.db import models
+
 from common.models import BaseModel
+from apps.products.choices import (
+    DELIVERY_LINE_STATUS_CHOICES,
+    DELIVERY_VISIT_STATUS_CHOICES,
+)
 
 
 class DeliveryVisit(BaseModel):
@@ -61,13 +66,7 @@ class DeliveryVisit(BaseModel):
     STATUS_ARRIVED = "arrived"
     STATUS_CLOSED = "closed"
     STATUS_CANCELED = "canceled"
-    STATUSES = [
-        (STATUS_PLANNED, "Planned"),
-        (STATUS_EN_ROUTE, "En Route"),
-        (STATUS_ARRIVED, "Arrived"),
-        (STATUS_CLOSED, "Closed"),
-        (STATUS_CANCELED, "Canceled"),
-    ]
+    STATUSES = DELIVERY_VISIT_STATUS_CHOICES
 
     orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_vendor')
     customer_orgbase_id = models.ForeignKey('orgs.OrgBase', on_delete=models.CASCADE, related_name='delivery_visits_as_customer')
@@ -124,13 +123,7 @@ class DeliveryLine(BaseModel):
     STATUS_DELIVERED = "delivered"
     STATUS_SKIPPED = "skipped"
     STATUS_PARTIAL = "partial"
-    STATUSES = [
-        (STATUS_PLANNED, "Planned"),
-        (STATUS_LOADED, "Loaded"),
-        (STATUS_DELIVERED, "Delivered"),
-        (STATUS_SKIPPED, "Skipped"),
-        (STATUS_PARTIAL, "Partial"),
-    ]
+    STATUSES = DELIVERY_LINE_STATUS_CHOICES
 
     deliveryvisit_id = models.ForeignKey(DeliveryVisit, on_delete=models.CASCADE, related_name='lines')
     orgitem_id = models.ForeignKey('products.OrgItem', on_delete=models.CASCADE, related_name='delivery_lines')

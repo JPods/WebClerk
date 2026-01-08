@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from decimal import Decimal
 from common.models import BaseModel
+from apps.transactions.choices import PROJECT_ATTENTION_CHOICES, PROJECT_STATUS_CHOICES
 
 
 def default_objective():  # lightweight structured goal definition
@@ -29,21 +30,9 @@ def default_data():  # project-specific arbitrary data (kept distinct from BaseM
     return {}
 
 
-STATUS_CHOICES = [
-    ("draft", "Draft"),
-    ("active", "Active"),
-    ("onhold", "On Hold"),
-    ("blocked", "Blocked"),
-    ("done", "Done"),
-    ("canceled", "Canceled"),
-]
+STATUS_CHOICES = PROJECT_STATUS_CHOICES
 
-ATTENTION_CHOICES = [
-    ("low", "Low"),
-    ("normal", "Normal"),
-    ("high", "High"),
-    ("critical", "Critical"),
-]
+ATTENTION_CHOICES = PROJECT_ATTENTION_CHOICES
 
 PRIORITY_MIN = 1
 PRIORITY_MAX = 5

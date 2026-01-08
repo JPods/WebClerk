@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db import models
 from typing import Optional, Dict, Any
+from apps.products.choices import ITEM_XREF_SOURCE_CHOICES
 from .item_base_model import ItemLinkedBase
 
 
@@ -11,11 +12,7 @@ class ItemXRef(ItemLinkedBase):
     SOURCE_MANUFACTURER = "manufacturer"
     SOURCE_WHOLESALER = "wholesaler"
     SOURCE_OTHER = "other"
-    SOURCE_CHOICES = [
-        (SOURCE_MANUFACTURER, "Manufacturer"),
-        (SOURCE_WHOLESALER, "Wholesaler"),
-        (SOURCE_OTHER, "Other"),
-    ]
+    SOURCE_CHOICES = ITEM_XREF_SOURCE_CHOICES
 
     # Source system classification (manufacturer, wholesaler, other)
     source = models.CharField(max_length=40, choices=SOURCE_CHOICES, db_index=True)
