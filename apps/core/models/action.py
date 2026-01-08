@@ -25,7 +25,9 @@ class Action(BaseModel):
     priority = models.PositiveIntegerField(default=1)
     difficulty = models.PositiveIntegerField(choices=ACTION_DIFFICULTY_LEVELS, default=10)
     status = models.CharField(max_length=100, blank=True, null=True)
-
+    percent_complete = models.PositiveIntegerField(default=0)
+    #set value between 0-100 based on difficulty and percent_complete
+    burndown = models.SmallIntegerField(default=0)
     # Date fields with detailed meta info
     dt_created = models.BigIntegerField(default=0, db_index=True)
     dt_updated = models.BigIntegerField(default=0, db_index=True)
