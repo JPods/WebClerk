@@ -76,3 +76,10 @@ ref.project.tasks.actions
 
 
 This stylesheet will be univeral across all apps and models. Perhaps an apps/shared? Where do you recommend we store universal items. I am not sure if we should use src/shared, or some other folder. What do you think?
+
+finance, sell, cost, subtotal, flow should be readonly. sales_order_no should be ida and be readonly
+
+.refs.links.contacts should be displayed in a table.
+
+wcapi/save/?model_name=sales_order (or any transaction with associated lines) on saving should loop the the .lines object and update the associated line record. If there is no id, a new line record should be created.
+
