@@ -44,6 +44,7 @@ from apps.core.models import Contact
 from common.refs.links import ensure_bidirectional
 from common.models import LINK_DENORMALIZE_FIELDS
 from apps.core.models import Contact
+from django.utils import timezone
 
 ALLOWED_NESTED_KEYS = {
     'refs': {'tags'},
@@ -139,6 +140,20 @@ def delete_nested_value(obj, path: str):
     else:
         return False
     return True
+
+
+def coerce_int(value):
+    """Attempt to coerce stringified integers into int; return original on failure."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.isdigit():
+            try:
+                return int(stripped)
+            except (TypeError, ValueError):  # defensive
+                return value
+    return value
 
 # Deprecated: dynamic model discovery replaced by explicit allow-list registry (see wcapi_registry.py)
 # def find_model_for_table(model_name: str):
@@ -310,8 +325,8 @@ class SaveWcapiView(APIView):
 
         # Concurrency: If-Match header > body.version > expected_version (deprecated)
         header_if_match = request.META.get('HTTP_IF_MATCH')
-        body_version = data.get('version')
-        legacy_expected = data.get('expected_version')
+        body_version = coerce_int(data.get('version'))
+        legacy_expected = coerce_int(data.get('expected_version'))
         deprecation_flag = False
         expected_version = None
         if header_if_match:
@@ -330,6 +345,8 @@ class SaveWcapiView(APIView):
             deprecation_flag = True
 
         record_id = data.get('id')
+        record_id = coerce_int(record_id)
+        data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
 
         # Create or update
@@ -407,6 +424,7 @@ class SaveWcapiView(APIView):
 
         # Assign fields
         field_size_errors = []
+        field_value_errors = []
         raw_password = None
         for field, field_data in data.items():
             # ignore these fields
@@ -477,54 +495,62 @@ class SaveWcapiView(APIView):
                 field_size_errors.append(str(e))
                 continue
 
-            if '.' in field:
-                # Nested field
-                set_nested_value(obj, field, value)
-            else:
-                # Regular field
-                if hasattr(obj, field):
-                    current = getattr(obj, field)
-                    is_json_field = field in json_field_names or isinstance(current, dict)
-                    if isinstance(value, dict) and is_json_field:
-                        if isinstance(current, str):
-                            try:
-                                current = json.loads(current)
-                            except json.JSONDecodeError:
-                                current = {}
-                        if not isinstance(current, dict):
-                            current = {}
-                        merged = deep_merge_dict(current, value)
-                        setattr(obj, field, merged)
-                    else:
-                        setattr(obj, field, value)
+            try:
+                if '.' in field:
+                    # Nested field
+                    set_nested_value(obj, field, value)
                 else:
-                    # Unknown field, move to prefs.userdefined
-                    try:
-                        prefs = getattr(obj, 'prefs', {}) or {}
-                        if isinstance(prefs, str):
-                            try:
-                                prefs = json.loads(prefs)
-                            except json.JSONDecodeError:
-                                prefs = {}
-                        userdefined = prefs.setdefault('userdefined', {})
-                        storable = value
+                    # Regular field
+                    if hasattr(obj, field):
+                        current = getattr(obj, field)
+                        is_json_field = field in json_field_names or isinstance(current, dict)
+                        if isinstance(value, dict) and is_json_field:
+                            if isinstance(current, str):
+                                try:
+                                    current = json.loads(current)
+                                except json.JSONDecodeError:
+                                    current = {}
+                            if not isinstance(current, dict):
+                                current = {}
+                            merged = deep_merge_dict(current, value)
+                            setattr(obj, field, merged)
+                        else:
+                            setattr(obj, field, value)
+                    else:
+                        # Unknown field, move to prefs.userdefined
                         try:
-                            raw_json = json.dumps(storable)
-                            if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
+                            prefs = getattr(obj, 'prefs', {}) or {}
+                            if isinstance(prefs, str):
+                                try:
+                                    prefs = json.loads(prefs)
+                                except json.JSONDecodeError:
+                                    prefs = {}
+                            userdefined = prefs.setdefault('userdefined', {})
+                            storable = value
+                            try:
+                                raw_json = json.dumps(storable)
+                                if len(raw_json.encode('utf-8')) > MAX_FIELD_SIZE:
+                                    storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
+                            except Exception:
                                 storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                        except Exception:
-                            storable = str(storable)[:UNKNOWN_FIELD_MAX_CHARS]
-                        userdefined[field] = storable
-                        check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
-                        setattr(obj, 'prefs', prefs)
-                    except ValueError as e:
-                        field_size_errors.append(str(e))
+                            userdefined[field] = storable
+                            check_field_size(prefs, MAX_FIELD_SIZE, 'prefs')
+                            setattr(obj, 'prefs', prefs)
+                        except ValueError as e:
+                            field_size_errors.append(str(e))
+            except (ValueError, TypeError) as e:
+                field_value_errors.append(f"{field}: {e}")
+                continue
 
         if raw_password is not None and hasattr(obj, 'set_password'):
             try:
                 obj.set_password(raw_password)  # type: ignore[attr-defined]
             except Exception as e:
                 return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
+
+        if field_value_errors:
+            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {field_value_errors}")
+            return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': field_value_errors})
 
         ### QQQ what is this?
         # Optional model-level payload validation
@@ -557,6 +583,9 @@ class SaveWcapiView(APIView):
         except IntegrityError as e:
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
+        except ValueError as e:
+            console_logger.error(f"[SAVE_VIEW] Value error during save: {e}")
+            return api_response(success=False, status_code=400, message='Invalid field values', error={'code':'invalid_field','details': str(e)})
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
@@ -588,11 +617,12 @@ class SaveWcapiView(APIView):
 
         # Auto-link communication records to a Contact
         linked = False
+        contact = None
+        bucket = None
         try:
             comm_models = {"email", "phone", "address", "location", "domain"}
             if model_key.lower() in comm_models:
                 bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
-                contact = None
                 if user and getattr(user, "is_authenticated", False):
                     contact = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
                 if contact:
@@ -744,16 +774,23 @@ class SaveWcapiView(APIView):
         # Persist deferred contact.refs (if earlier code marked them for deferred save)
         try:
             if contact and getattr(contact, '_refs_pending_save', False):
-                console_logger.debug(f"[SAVE_VIEW] Persisting deferred contact.refs for contact id={contact.pk} (links size={len(contact.refs.get('links', {}).get(bucket, []))})")
+                links_bucket = bucket or ''
+                current_links = contact.refs.get('links', {}) if isinstance(getattr(contact, 'refs', {}), dict) else {}
+                bucket_links = current_links.get(links_bucket, []) if isinstance(current_links, dict) else []
+                console_logger.debug(f"[SAVE_VIEW] Persisting deferred contact.refs for contact id={contact.pk} (links size={len(bucket_links)})")
                 try:
                     contact.save(update_fields=['refs', 'version', 'dt_modified'])
                     contact.refresh_from_db()
                     try:
                         import json as _json
                         db_refs = contact.__class__.objects.filter(pk=contact.pk).values_list('refs', flat=True).first()
-                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(contact.refs.get('links', {}).get(bucket, []))} db_refs_preview={_json.dumps(db_refs)[:200]}")
+                        refreshed_links = contact.refs.get('links', {}) if isinstance(contact.refs, dict) else {}
+                        refreshed_bucket = refreshed_links.get(links_bucket, []) if isinstance(refreshed_links, dict) else []
+                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(refreshed_bucket)} db_refs_preview={_json.dumps(db_refs)[:200] if db_refs else ''}")
                     except Exception:
-                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(contact.refs.get('links', {}).get(bucket, []))}")
+                        refreshed_links = contact.refs.get('links', {}) if isinstance(contact.refs, dict) else {}
+                        refreshed_bucket = refreshed_links.get(links_bucket, []) if isinstance(refreshed_links, dict) else []
+                        console_logger.debug(f"[SAVE_VIEW] Deferred contact saved; new version={getattr(contact,'version',None)} links_count={len(refreshed_bucket)}")
                 except Exception as e:
                     console_logger.error(f"[SAVE_VIEW] Error saving deferred contact refs: {e}")
 
