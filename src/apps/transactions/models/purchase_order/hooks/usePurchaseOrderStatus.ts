@@ -98,25 +98,41 @@ const STATUS_CONFIG: Record<PurchaseOrderStatus, StatusConfig> = {
   }
 };
 
-export function usePurchaseOrderStatus(initialStatus: PurchaseOrderStatus = 'draft') {
-  const [currentStatus, setCurrentStatus] = useState<PurchaseOrderStatus>(initialStatus);
+const PURCHASE_ORDER_STATUSES: PurchaseOrderStatus[] = ['draft', 'approved', 'rejected', 'received', 'closed'];
 
-  const getStatusConfig = useCallback((status: PurchaseOrderStatus) => {
-    return STATUS_CONFIG[status];
+export const isPurchaseOrderStatus = (value: unknown): value is PurchaseOrderStatus => {
+  return typeof value === 'string' && PURCHASE_ORDER_STATUSES.includes(value as PurchaseOrderStatus);
+};
+
+export const normalizePurchaseOrderStatus = (value: unknown): PurchaseOrderStatus => {
+  return isPurchaseOrderStatus(value) ? (value as PurchaseOrderStatus) : 'draft';
+};
+
+export function usePurchaseOrderStatus(initialStatus: PurchaseOrderStatus | string | null | undefined = 'draft') {
+  const normalizedInitial = normalizePurchaseOrderStatus(initialStatus);
+  const [currentStatus, setCurrentStatus] = useState<PurchaseOrderStatus>(normalizedInitial);
+
+  const getStatusConfig = useCallback((status: PurchaseOrderStatus | string | null | undefined) => {
+    const safeStatus = normalizePurchaseOrderStatus(status);
+    return STATUS_CONFIG[safeStatus];
   }, []);
 
-  const getAvailableTransitions = useCallback((status: PurchaseOrderStatus) => {
-    return STATUS_CONFIG[status].transitions;
+  const getAvailableTransitions = useCallback((status: PurchaseOrderStatus | string | null | undefined) => {
+    const safeStatus = normalizePurchaseOrderStatus(status);
+    return STATUS_CONFIG[safeStatus].transitions;
   }, []);
 
-  const canTransitionTo = useCallback((fromStatus: PurchaseOrderStatus, toStatus: PurchaseOrderStatus) => {
-    const transitions = getAvailableTransitions(fromStatus);
-    return transitions.some(t => t.to === toStatus);
+  const canTransitionTo = useCallback((fromStatus: PurchaseOrderStatus | string | null | undefined, toStatus: PurchaseOrderStatus | string | null | undefined) => {
+    const safeFrom = normalizePurchaseOrderStatus(fromStatus);
+    const safeTo = normalizePurchaseOrderStatus(toStatus);
+    const transitions = getAvailableTransitions(safeFrom);
+    return transitions.some(t => t.to === safeTo);
   }, [getAvailableTransitions]);
 
-  const transitionTo = useCallback((newStatus: PurchaseOrderStatus) => {
-    if (canTransitionTo(currentStatus, newStatus)) {
-      setCurrentStatus(newStatus);
+  const transitionTo = useCallback((newStatus: PurchaseOrderStatus | string | null | undefined) => {
+    const safeStatus = normalizePurchaseOrderStatus(newStatus);
+    if (canTransitionTo(currentStatus, safeStatus)) {
+      setCurrentStatus(safeStatus);
       return true;
     }
     return false;
@@ -151,4 +167,4 @@ export function usePurchaseOrderStatus(initialStatus: PurchaseOrderStatus = 'dra
 }
 
 // Export STATUS_CONFIG separately
-export { STATUS_CONFIG };
+export { STATUS_CONFIG, PURCHASE_ORDER_STATUSES };

@@ -16,6 +16,9 @@ import { purchaseOrderSchema } from "../utils/purchaseOrderSchema";
 import { PurchaseOrderAddProps } from "../types/purchaseOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import PurchaseOrderStatus from "../components/PurchaseOrderStatus";
+import { coerceFormValue, sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericPurchaseOrderKeys = ["dt_created", "id_vendor"];
 
 export default function PurchaseOrderDetail({
   modeProp,
@@ -39,6 +42,10 @@ export default function PurchaseOrderDetail({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const resolvedData = dataProp ?? routeData ?? fetchedData;
+  const normalizedResolvedData = useMemo(
+    () => sanitizeRecord(resolvedData, numericPurchaseOrderKeys),
+    [resolvedData]
+  );
 
   const mode: "add" | "edit" | "view" = modeProp || routeMode || (routeId ? "view" : "add");
   const pageTitle =
@@ -78,10 +85,10 @@ export default function PurchaseOrderDetail({
   }, [dataProp, routeData]);
 
   useEffect(() => {
-    if (resolvedData) {
+    if (normalizedResolvedData) {
       setLoadError(null);
     }
-  }, [resolvedData]);
+  }, [normalizedResolvedData]);
 
   useEffect(() => {
     if (dataProp || routeData || !routeId) {
@@ -110,7 +117,7 @@ export default function PurchaseOrderDetail({
           setLoadError("Purchase order not found");
           return;
         }
-        setFetchedData(detail);
+        setFetchedData(sanitizeRecord(detail, numericPurchaseOrderKeys));
       })
       .catch((error: unknown) => {
         if (cancelled) {
@@ -137,12 +144,13 @@ export default function PurchaseOrderDetail({
       return;
     }
 
-    if (resolvedData && typeof resolvedData === "object") {
+    if (normalizedResolvedData && typeof normalizedResolvedData === "object") {
       const nextValues = { ...defaultValues } as Record<string, unknown>;
       Object.keys(defaultValues).forEach((key) => {
-        const value = (resolvedData as Record<string, unknown>)[key];
-        if (value !== undefined) {
-          nextValues[key] = value;
+        const value = (normalizedResolvedData as Record<string, unknown>)[key];
+        const sanitized = coerceFormValue(value);
+        if (sanitized !== undefined) {
+          nextValues[key] = sanitized === null ? "" : (sanitized as unknown);
         }
       });
       reset(nextValues);
@@ -150,7 +158,7 @@ export default function PurchaseOrderDetail({
     }
 
     reset(defaultValues);
-  }, [resolvedData, reset, mode, defaultValues]);
+  }, [normalizedResolvedData, reset, mode, defaultValues]);
 
   const onSubmit = async (formData: z.infer<typeof purchaseOrderSchema>) => {
     try {
@@ -320,24 +328,24 @@ export default function PurchaseOrderDetail({
                 />
               </div>
             </div>
-          {mode === "view" && resolvedData && (
+          {mode === "view" && normalizedResolvedData && (
             <div className="space-y-6">
               <div>
                 <Label htmlFor="dt_created">dt_created</Label>
                 <Input
                   type="text"
                   id="dt_created"
-                  value={resolvedData.dt_created ? new Date(resolvedData.dt_created * 1000).toLocaleString() : ""}
+                  value={formatDateTimeValue(normalizedResolvedData.dt_created)}
                   disabled
                 />
-                {resolvedData.id && <AuditTrail transactionId={resolvedData.id} model="purchase_order" />}
+                {normalizedResolvedData.id && <AuditTrail transactionId={normalizedResolvedData.id} model="purchase_order" />}
               </div>
 
               {/* Status Management */}
               <div>
                 <Label>Purchase Order Status</Label>
                 <PurchaseOrderStatus
-                  currentStatus={resolvedData.status || 'draft'}
+                  currentStatus={normalizedResolvedData.status || 'draft'}
                   onStatusChange={handleStatusChange}
                   showHistory={true}
                 />
