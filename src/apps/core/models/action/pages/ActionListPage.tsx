@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
 import { FaPlus, FaEye, FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
-import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
-import ComponentCard from "../../../components/common/ComponentCard";
-import AdvancedDataTable, { ColumnFilter } from "../../../components/common/AdvancedDataTable";
-import { Actions, patchAction } from "../../../api/userProfile";
+import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../components/common/ComponentCard";
+import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import { Actions, patchAction } from "../../../../../api/userProfile";
 import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
-import { showToast } from "../../../store/slices/toastSlice";
-import Badge from "../../../components/ui/badge/Badge";
+import { showToast } from "../../../../../store/slices/toastSlice";
+import Badge from "../../../../../components/ui/badge/Badge";
 
 interface ActionData {
   id: string | number;

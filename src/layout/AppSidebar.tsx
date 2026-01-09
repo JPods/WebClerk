@@ -12,6 +12,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
+import { PageRoutes } from "@/routes/Routes";
 //import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
@@ -64,7 +65,7 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Core",
     subItems: [
-      { name: "Action", path: "/core/action/list" },
+      { name: "Action", path: PageRoutes.actionList },
       { name: "Audit", path: "/core/audit/list" },
       { name: "Contact", path: "/core/contact/list" },
       { name: "Notification", path: "/core/notification/list" },
