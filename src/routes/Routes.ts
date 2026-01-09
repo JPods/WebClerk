@@ -45,22 +45,37 @@ export class PageRoutes {
 
   // Products & Transactions
   static readonly products: string = "/products";
+  static readonly productsBillOfMaterialList: string =
+    "/products/bill-of-material/list";
+  static readonly productsCatalogList: string = "/products/catalog/list";
+  static readonly productsFlowList: string = "/products/flow/list";
+  static readonly productsItemList: string = "/products/item/list";
+  static readonly productsItemXrefList: string = "/products/item-xref/list";
+  static readonly productsMatricsList: string = "/products/matrics/list";
+  static readonly productsOrgItemList: string = "/products/org-item/list";
+  static readonly productsSerialList: string = "/products/serial/list";
+  static readonly productsServiceList: string = "/products/service/list";
+  static readonly productsSpecificationList: string =
+    "/products/specification/list";
+  static readonly productsUsageList: string = "/products/usage/list";
+  static readonly productsVariantList: string = "/products/variant/list";
+  static readonly productsWarehouseList: string = "/products/warehouse/list";
 
-  static readonly transactionsOrders: string = "/transactions/orders";
+  static readonly transactionsOrders: string = "/transactions/orders/list";
   static readonly transactionsOrderDetail: string = "/transactions/orders/:id";
   static readonly transactionsOrderDetailTest: string =
     "/transactions/orders-test";
 
-  static readonly transactionsInvoices: string = "/transactions/invoices";
+  static readonly transactionsInvoices: string = "/transactions/invoices/list";
   static readonly transactionsInvoiceDetail: string =
     "/transactions/invoices/:id";
 
   static readonly transactionsPurchaseOrders: string =
-    "/transactions/purchase-orders";
+    "/transactions/purchase-orders/list";
   static readonly transactionsPurchaseOrderDetail: string =
     "/transactions/purchase-orders/:id";
 
-  static readonly transactionsProposals: string = "/transactions/proposals";
+  static readonly transactionsProposals: string = "/transactions/proposals/list";
   static readonly transactionsProposalDetail: string =
     "/transactions/proposals/:id";
 

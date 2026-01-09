@@ -105,3 +105,7 @@ purchase_order, invoice, proposal call the correct wcapi/get/?model_name=model_n
 and the window goes blank
 
 model_nameDetail.tsx pages should not calling contact models
+
+At the top of list pages we need a keyword search, button to wider search, script, help (link to web), show all, show subset, print, 
+
+In detail form CRUD, transfer between associated transactions, selectlists, read-only, buttons (green)
