@@ -108,7 +108,8 @@ import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesO
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
-import { ActionListPage } from "../apps/utils/actions";
+import ActionListPage from "../apps/core/models/action/pages/ActionListPage";
+import ActionAdd from "../apps/core/models/action/pages/ActionAdd";
 
 const Router: React.FC = () => {
   return (
@@ -161,6 +162,7 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
           <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
           <Route path={PageRoutes.actionList} element={<ActionListPage />} />
+          <Route path="/apps/core/models/action/pages/new" element={<ActionAdd />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/form-elements" element={<FormElements />} />
           <Route path="/basic-models" element={<BasicTables />} />
