@@ -1,4 +1,4 @@
-import { getRecords } from '../../../../../api/wcapi';
+import { getRecords, getRecord } from '../../../../../api/wcapi';
 import { patchAction } from '../../../../../api/userProfile';
 import { Proposal } from '../types/proposalType';
 import { ProposalFormData } from "../utils/proposalSchema";
@@ -14,8 +14,9 @@ export const fetchProposals = async (params?: any): Promise<{ status: number; da
 };
 
 export const fetchProposal = async (id: number): Promise<{ status: number; data: Proposal }> => {
-  const res = await getRecords('proposal', { id });
-  return { status: 200, data: res.results?.[0] || {} as Proposal };
+  const res = await getRecord('proposal', id);
+  const record = (res as any)?.record ?? res;
+  return { status: 200, data: (record as Proposal) || ({} as Proposal) };
 };
 
 export const createProposal = async (data: Partial<ProposalFormData>): Promise<{ status: number; data: Proposal }> => {

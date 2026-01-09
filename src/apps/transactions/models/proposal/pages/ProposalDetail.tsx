@@ -8,16 +8,101 @@ import Label from "../../../../../components/form/Label";
 import { Input, TextArea } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createProposal, updateProposal, convertProposalToOrder, fetchProposalLines, createProposalLine, updateProposalLine, deleteProposalLine } from "../services/proposalApi";
+import {
+  createProposal,
+  updateProposal,
+  convertProposalToOrder,
+  createProposalLine,
+  updateProposalLine,
+  deleteProposalLine,
+  fetchProposal,
+  fetchProposalLines,
+} from "../services/proposalApi";
 import { generateProposalPdf } from "../services/proposalPdfService";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { proposalSchema } from "../utils/proposalSchema";
 import { ProposalAddProps } from "../types/proposalType";
 import ProposalLineList from "../components/ProposalLineList";
 import ProposalStatus from "../components/ProposalStatus";
 import CustomerSelect from "../components/CustomerSelect";
+
+const extractNumericValue = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const numeric = extractNumericValue(entry);
+      if (numeric !== null) {
+        return numeric;
+      }
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const nested of Object.values(record)) {
+      const numeric = extractNumericValue(nested);
+      if (numeric !== null) {
+        return numeric;
+      }
+    }
+  }
+
+  return null;
+};
+
+const coerceNumber = (value: unknown, fallback = 0): number => {
+  const numeric = extractNumericValue(value);
+  return numeric !== null ? numeric : fallback;
+};
+
+const formatQuantity = (value: unknown): string => {
+  const numeric = coerceNumber(value);
+  return Number.isInteger(numeric) ? `${numeric}` : numeric.toFixed(2);
+};
+
+const formatCurrency = (value: unknown): string => coerceNumber(value).toFixed(2);
+
+const normalizeLineItem = (line: any) => {
+  const safeLine = { ...(line || {}) };
+  const quantity = coerceNumber(safeLine.quantity);
+  const extendedPrice = coerceNumber(safeLine.extended_price);
+  const discountAmount = coerceNumber(safeLine.discount_amount);
+
+  const priceSource =
+    safeLine.price && typeof safeLine.price === "object" && !Array.isArray(safeLine.price)
+      ? { ...safeLine.price }
+      : {};
+
+  return {
+    ...safeLine,
+    quantity,
+    extended_price: extendedPrice,
+    discount_amount: discountAmount,
+    price: {
+      ...priceSource,
+      sell: coerceNumber(priceSource.sell ?? safeLine.sell_price ?? safeLine.price_sell),
+      cost: coerceNumber(priceSource.cost ?? safeLine.cost_price ?? safeLine.price_cost),
+    },
+  };
+};
+
+const normalizeLineItems = (lines: unknown[]): any[] =>
+  Array.isArray(lines) ? lines.map((line) => normalizeLineItem(line)) : [];
 
 export default function ProposalDetail({
   modeProp,
@@ -28,10 +113,33 @@ export default function ProposalDetail({
   onCancelInline,
 }: ProposalAddProps) {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { id: routeId } = useParams<{ id?: string }>();
+  const routeState = (location.state as any) || {};
+  const routeData = routeState?.data;
+  const routeMode = routeState?.mode;
+  const shouldPrefetch = Boolean(routeId && !dataProp && !routeData);
+
   const [isNotesLocked, setIsNotesLocked] = useState(true);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
   const [newLine, setNewLine] = useState<any>({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+  const [loading, setLoading] = useState(shouldPrefetch);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fetchedData, setFetchedData] = useState<any>(null);
+
+  const resolvedData = dataProp ?? routeData ?? fetchedData;
+
+  const mode: "add" | "edit" | "view" =
+    modeProp || routeMode || (routeId ? "view" : "add");
+  const pageTitle =
+    mode === "edit"
+      ? "Edit Proposal"
+      : mode === "view"
+      ? "View Proposal"
+      : "Proposal Detail";
+  const inlineTitle = mode === "add" ? "Add New Proposal" : pageTitle;
 
   type ProposalFormData = z.infer<typeof proposalSchema>;
 
@@ -85,45 +193,125 @@ export default function ProposalDetail({
     defaultValues,
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
-  // Load line items when viewing/editing existing proposal
-  const loadLineItems = async (proposalId: number) => {
-    try {
-      const response = await fetchProposalLines(proposalId);
-      if (response.status === 200) {
-        setLineItems(response.data.results || []);
-      }
-    } catch (error) {
-      console.error('Failed to load line items:', error);
+  useEffect(() => {
+    if (dataProp || routeData) {
+      setFetchedData(null);
     }
-  };
+  }, [dataProp, routeData]);
 
+  useEffect(() => {
+    if (resolvedData) {
+      setLoadError(null);
+    }
+  }, [resolvedData]);
+
+  useEffect(() => {
+    if (dataProp || routeData || !routeId) {
+      return;
+    }
+
+    const idNumber = Number.parseInt(routeId, 10);
+    if (Number.isNaN(idNumber)) {
+      setLoadError("Invalid proposal id");
+      setLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    setFetchedData(null);
+    setLineItems([]);
+    setIsNotesLocked(true);
+    setLoading(true);
+    setLoadError(null);
+
+    fetchProposal(idNumber)
+      .then((response) => {
+        if (isCancelled) return;
+        const detail = response?.data;
+        if (!detail || Object.keys(detail).length === 0) {
+          setLoadError("Proposal not found");
+          return;
+        }
+        setFetchedData(detail);
+      })
+      .catch((error: any) => {
+        if (isCancelled) return;
+        const message = error?.message || "Failed to load proposal";
+        setLoadError(message);
+        dispatch(showToast({ message, type: "error" }));
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dataProp, routeData, routeId, dispatch]);
+
+  // Load line items when viewing/editing existing proposal
   useEffect(() => {
     if (mode === "add") {
       reset(defaultValues);
       setLineItems([]);
       setIsNotesLocked(true);
-    } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
+      return;
+    }
+
+    if (resolvedData && typeof resolvedData === "object") {
+      const nextValues = { ...defaultValues } as Partial<ProposalFormData>;
+      Object.keys(defaultValues).forEach((key) => {
+        const value = (resolvedData as Record<string, unknown>)[key];
+        if (value !== undefined) {
+          (nextValues as Record<string, unknown>)[key] = value as unknown;
         }
       });
-      // Load line items for existing proposals
-      if (data.id) {
-        loadLineItems(data.id);
-      }
+      reset(nextValues);
+      const providedLines = Array.isArray((resolvedData as any).lines) ? (resolvedData as any).lines : [];
+      setLineItems(normalizeLineItems(providedLines));
       setIsNotesLocked(true);
-    } else {
-      reset(defaultValues);
-      setLineItems([]);
-      setIsNotesLocked(true);
+      return;
     }
-  }, [data, defaultValues, reset, setValue, mode]);
+
+    reset(defaultValues);
+    setLineItems([]);
+    setIsNotesLocked(true);
+  }, [resolvedData, defaultValues, reset, mode]);
+
+  useEffect(() => {
+    if (!resolvedData?.id || inline) {
+      return;
+    }
+
+    if (Array.isArray((resolvedData as any).lines) && (resolvedData as any).lines.length > 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    fetchProposalLines(resolvedData.id)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+          const items = response?.data?.results ?? [];
+          setLineItems(normalizeLineItems(items));
+      })
+      .catch((error: any) => {
+        if (cancelled) {
+          return;
+        }
+        const message = error?.message || "Failed to load proposal line items";
+        dispatch(showToast({ message, type: "error" }));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedData?.id, inline, dispatch]);
 
   const onSubmit = async (formData: ProposalFormData) => {
     try {
@@ -146,9 +334,9 @@ export default function ProposalDetail({
       const res =
         mode === "add"
           ? await createProposal(cleanData)
-          : await updateProposal(data?.id, { 
+            : await updateProposal(resolvedData?.id, { 
               ...cleanData, 
-              id: data?.id
+              id: resolvedData?.id
             });
       if (res) {
         dispatch(
@@ -169,10 +357,10 @@ export default function ProposalDetail({
   };
 
   const handleConvertToOrder = async () => {
-    if (!data?.id) return;
+    if (!resolvedData?.id) return;
 
     try {
-      const res = await convertProposalToOrder(data.id);
+      const res = await convertProposalToOrder(resolvedData.id);
       if (res.status === 200) {
         dispatch(
           showToast({
@@ -196,41 +384,86 @@ export default function ProposalDetail({
 
   const handleEditLine = (line: any) => {
     setEditingLineId(line.id);
-    setNewLine({ ...line });
+    setNewLine(normalizeLineItem(line));
   };
 
   const handleSaveLine = async () => {
+    if (!resolvedData?.id) {
+      return;
+    }
+
     try {
-      if (editingLineId === -1) {
-        // New line
-        if (data?.id) {
-          await createProposalLine(data.id, newLine);
-          dispatch(showToast({ message: "Line item added successfully", type: "success" }));
+      const linePayload = normalizeLineItem(newLine);
+      const saveResponse =
+        editingLineId === -1
+          ? await createProposalLine(resolvedData.id, linePayload)
+          : await updateProposalLine(resolvedData.id, editingLineId!, linePayload);
+
+      const responsePayload = saveResponse?.data ?? saveResponse;
+      const savedLine =
+        responsePayload && typeof responsePayload === "object"
+          ? (responsePayload as Record<string, unknown>)
+          : null;
+
+      setLineItems((prev) => {
+        if (editingLineId === -1) {
+          const createdWithId = normalizeLineItem({
+            ...linePayload,
+            ...(savedLine ?? {}),
+            id:
+              (savedLine && savedLine.id) ||
+              (linePayload.id ? linePayload.id : Date.now()),
+          });
+          return [...prev, createdWithId];
         }
-      } else {
-        // Update line
-        if (data?.id) {
-          await updateProposalLine(data.id, editingLineId!, newLine);
-          dispatch(showToast({ message: "Line item updated successfully", type: "success" }));
-        }
-      }
+
+        return prev.map((line) =>
+          line.id === editingLineId
+            ? normalizeLineItem({
+                ...line,
+                ...linePayload,
+                ...(savedLine ?? {}),
+              })
+            : line
+        );
+      });
+
+      dispatch(
+        showToast({
+          message:
+            editingLineId === -1
+              ? "Line item added successfully"
+              : "Line item updated successfully",
+          type: "success",
+        })
+      );
+
       setEditingLineId(null);
-      // Refresh line items
-      if (data?.id) {
-        loadLineItems(data.id);
-      }
+      setNewLine({
+        item_id: undefined,
+        item_name: "",
+        description: "",
+        quantity: 1,
+        price: { sell: 0, cost: 0 },
+        discount_amount: 0,
+      });
     } catch (error: any) {
-      dispatch(showToast({ message: error.message || "Failed to save line item", type: "error" }));
+      dispatch(
+        showToast({
+          message: error.message || "Failed to save line item",
+          type: "error",
+        })
+      );
     }
   };
 
   const handleDeleteLine = async (lineId: number) => {
-    if (!data?.id) return;
+    if (!resolvedData?.id) return;
     if (window.confirm('Delete this line item?')) {
       try {
-        await deleteProposalLine(data.id, lineId);
+        await deleteProposalLine(resolvedData.id, lineId);
         dispatch(showToast({ message: "Line item deleted successfully", type: "success" }));
-        loadLineItems(data.id);
+        setLineItems((prev) => prev.filter((line) => line.id !== lineId));
       } catch (error: any) {
         dispatch(showToast({ message: error.message || "Failed to delete line item", type: "error" }));
       }
@@ -243,9 +476,9 @@ export default function ProposalDetail({
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!data?.id) return;
+    if (!resolvedData?.id) return;
     try {
-      await updateProposal(data.id, { ...data, status: newStatus });
+      await updateProposal(resolvedData.id, { ...resolvedData, status: newStatus });
       dispatch(showToast({ message: `Proposal marked as ${newStatus}`, type: "success" }));
       if (onSaved) {
         onSaved();
@@ -254,29 +487,61 @@ export default function ProposalDetail({
       dispatch(showToast({ message: error.message || "Failed to update status", type: "error" }));
     }
   };
- console.log('Errors:', errors);
+  if (!inline && loading) {
+    return (
+      <>
+        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
+        <ComponentCard>
+          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            Loading proposal...
+          </div>
+        </ComponentCard>
+      </>
+    );
+  }
+
+  if (!inline && loadError && !resolvedData) {
+    return (
+      <>
+        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
+        <ComponentCard>
+          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-4">
+            <div>{loadError}</div>
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </ComponentCard>
+      </>
+    );
+  }
+
+  if (inline && mode !== "add" && !resolvedData) {
+    return (
+      <ComponentCard>
+        <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          Loading proposal...
+        </div>
+      </ComponentCard>
+    );
+  }
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Proposal"
-              : mode === "view"
-              ? "View Proposal"
-              : "Proposal Detail"
-          }
-        />
+        <PageBreadcrumb pageTitle={pageTitle} />
       )}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Proposal"
-                : mode === "view"
-                ? "View Proposal"
-                : "Add New Proposal"}
+              {inlineTitle}
             </h3>
             {onCancelInline && (
               <button
@@ -454,7 +719,7 @@ export default function ProposalDetail({
             <div>
               <Label htmlFor="id_customer">id_customer *</Label>
               <CustomerSelect
-                value={data?.id_customer}
+                value={resolvedData?.id_customer}
                 onChange={(value) => {
                   setValue("id_customer", value as any, { shouldValidate: true });
                 }}
@@ -476,7 +741,7 @@ export default function ProposalDetail({
             <div>
               <Label htmlFor="id_vendor">id_vendor</Label>
               <CustomerSelect
-                value={data?.id_vendor}
+                value={resolvedData?.id_vendor}
                 onChange={(value) => setValue("id_vendor", value as any)}
                 disabled={mode === "view"}
                 contactType="vendor"
@@ -695,7 +960,7 @@ export default function ProposalDetail({
             />
           )}
 
-          {mode === "view" && data && (
+          {mode === "view" && resolvedData && (
             <div className="space-y-6">
               {/* Line Items Display for View Mode */}
               {lineItems.length > 0 && (
@@ -717,9 +982,9 @@ export default function ProposalDetail({
                           <tr key={item.id || index}>
                             <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.item_name || 'Unknown'}</td>
                             <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.description || ''}</td>
-                            <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{item.quantity || 0}</td>
-                            <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.price?.sell ? Number(item.price.sell).toFixed(2) : '0.00'}</td>
-                            <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${item.extended_price ? Number(item.extended_price).toFixed(2) : '0.00'}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{formatQuantity(item.quantity)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${formatCurrency(item.price?.sell)}</td>
+                            <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${formatCurrency(item.extended_price)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -770,7 +1035,7 @@ export default function ProposalDetail({
                   <Label>Customer</Label>
                   <Input
                     type="text"
-                    value={data.customer_name || 'Not specified'}
+                    value={resolvedData.customer_name || 'Not specified'}
                     disabled
                   />
                 </div>
@@ -778,7 +1043,7 @@ export default function ProposalDetail({
                   <Label>Vendor</Label>
                   <Input
                     type="text"
-                    value={data.vendor_name || 'Not specified'}
+                    value={resolvedData.vendor_name || 'Not specified'}
                     disabled
                   />
                 </div>
@@ -790,7 +1055,7 @@ export default function ProposalDetail({
                   <Input
                     type="text"
                     id="dt_created"
-                    value={data.dt_created ? new Date(data.dt_created).toLocaleString() : ''}
+                    value={resolvedData.dt_created ? new Date(resolvedData.dt_created).toLocaleString() : ''}
                     disabled
                   />
                 </div>
@@ -799,7 +1064,7 @@ export default function ProposalDetail({
                   <Input
                     type="text"
                     id="dt_modified"
-                    value={data.dt_modified ? new Date(data.dt_modified).toLocaleString() : ''}
+                    value={resolvedData.dt_modified ? new Date(resolvedData.dt_modified).toLocaleString() : ''}
                     disabled
                   />
                 </div>
@@ -809,7 +1074,7 @@ export default function ProposalDetail({
               <div>
                 <Label>Proposal Status</Label>
                 <ProposalStatus
-                  currentStatus={data.status || 'planned'}
+                  currentStatus={resolvedData.status || 'planned'}
                   onStatusChange={handleStatusChange}
                   showHistory={true}
                 />
@@ -819,17 +1084,17 @@ export default function ProposalDetail({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => generateProposalPdf({
-                    proposal: data,
+                    onClick={() => generateProposalPdf({
+                    proposal: resolvedData,
                     lines: lineItems,
-                    customerName: data.customer_name,
-                    vendorName: data.vendor_name
+                    customerName: resolvedData.customer_name,
+                    vendorName: resolvedData.vendor_name
                   })}
                   className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
                 >
                   Download PDF
                 </button>
-                {data.status === 'accepted' && (
+                {resolvedData.status === 'accepted' && (
                   <button
                     type="button"
                     onClick={handleConvertToOrder}
@@ -847,7 +1112,7 @@ export default function ProposalDetail({
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       ${(() => {
-                        const total = lineItems.reduce((sum, item) => sum + (item.extended_price || 0), 0);
+                        const total = lineItems.reduce((sum, item) => sum + coerceNumber(item.extended_price), 0);
                         return total.toFixed(2);
                       })()}
                     </div>
@@ -856,8 +1121,8 @@ export default function ProposalDetail({
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       ${(() => {
-                        const totalSell = lineItems.reduce((sum, item) => sum + ((item.price?.sell || 0) * (item.quantity || 0)), 0);
-                        const totalCost = lineItems.reduce((sum, item) => sum + ((item.price?.cost || 0) * (item.quantity || 0)), 0);
+                        const totalSell = lineItems.reduce((sum, item) => sum + coerceNumber(item.price?.sell) * coerceNumber(item.quantity), 0);
+                        const totalCost = lineItems.reduce((sum, item) => sum + coerceNumber(item.price?.cost) * coerceNumber(item.quantity), 0);
                         const margin = totalSell - totalCost;
                         return margin.toFixed(2);
                       })()}
@@ -867,8 +1132,8 @@ export default function ProposalDetail({
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                       {(() => {
-                        const totalSell = lineItems.reduce((sum, item) => sum + ((item.price?.sell || 0) * (item.quantity || 0)), 0);
-                        const totalCost = lineItems.reduce((sum, item) => sum + ((item.price?.cost || 0) * (item.quantity || 0)), 0);
+                        const totalSell = lineItems.reduce((sum, item) => sum + coerceNumber(item.price?.sell) * coerceNumber(item.quantity), 0);
+                        const totalCost = lineItems.reduce((sum, item) => sum + coerceNumber(item.price?.cost) * coerceNumber(item.quantity), 0);
                         const margin = totalSell - totalCost;
                         const percentage = totalSell > 0 ? (margin / totalSell) * 100 : 0;
                         return percentage.toFixed(1);

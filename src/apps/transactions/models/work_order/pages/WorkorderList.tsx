@@ -3,7 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchWorkorders } from "../services/workorderApi";
+import { fetchWorkorders, fetchWorkorderDetail } from "../services/workorderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -16,6 +16,7 @@ export default function WorkorderList() {
   const [selectedWorkorder, setSelectedWorkorder] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -42,19 +43,56 @@ export default function WorkorderList() {
     getWorkorderData();
   }, [getWorkorderData]);
 
-  const handleView = (row: any) => {
-    setSelectedWorkorder(row);
-    setFormMode("view");
-  };
+  const openWorkorder = useCallback(
+    async (row: any, modeToSet: "view" | "edit") => {
+      const workorderId = row?.id;
+      if (!workorderId) {
+        dispatch(showToast({ message: "Workorder id missing", type: "error" }));
+        return;
+      }
 
-  const handleEdit = (row: any) => {
-    setSelectedWorkorder(row);
-    setFormMode("edit");
-  };
+      setFormMode(modeToSet);
+      setDetailLoading(true);
+      setSelectedWorkorder(null);
+
+      try {
+        const detail = await fetchWorkorderDetail(workorderId);
+        const hasDetail = detail && Object.keys(detail).length > 0;
+        if (!hasDetail) {
+          throw new Error("Workorder not found");
+        }
+        setSelectedWorkorder({ ...row, ...detail });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load workorder";
+        dispatch(showToast({ message, type: "error" }));
+        setFormMode(null);
+        setSelectedWorkorder(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleView = useCallback(
+    (row: any) => {
+      openWorkorder(row, "view");
+    },
+    [openWorkorder]
+  );
+
+  const handleEdit = useCallback(
+    (row: any) => {
+      openWorkorder(row, "edit");
+    },
+    [openWorkorder]
+  );
 
   const handleAdd = () => {
     setSelectedWorkorder(null);
     setFormMode("add");
+    setDetailLoading(false);
   };
 
   const handleFormSaved = () => {
@@ -143,20 +181,28 @@ export default function WorkorderList() {
                 pointerOnHover
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading workorders...</div>}
-                onRowClicked={(row) => handleView(row)}
+                onRowClicked={handleView}
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <WorkorderDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedWorkorder}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
+            {formMode !== "add" && (detailLoading || !selectedWorkorder) ? (
+              <ComponentCard>
+                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Loading workorder...
+                </div>
+              </ComponentCard>
+            ) : (
+              <WorkorderDetail
+                inline
+                modeProp={formMode}
+                dataProp={formMode === "add" ? null : selectedWorkorder}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
           </div>
         )}
       </div>

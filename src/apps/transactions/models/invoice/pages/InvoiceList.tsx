@@ -3,7 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchInvoices } from "../services/invoiceApi";
+import { fetchInvoices, fetchInvoiceDetail } from "../services/invoiceApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -16,6 +16,7 @@ export default function InvoiceList() {
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -42,19 +43,56 @@ export default function InvoiceList() {
     getInvoiceData();
   }, [getInvoiceData]);
 
-  const handleView = (row: any) => {
-    setSelectedInvoice(row);
-    setFormMode("view");
-  };
+  const openInvoice = useCallback(
+    async (row: any, modeToSet: "view" | "edit") => {
+      const invoiceId = row?.id;
+      if (!invoiceId) {
+        dispatch(showToast({ message: "Invoice id missing", type: "error" }));
+        return;
+      }
 
-  const handleEdit = (row: any) => {
-    setSelectedInvoice(row);
-    setFormMode("edit");
-  };
+      setFormMode(modeToSet);
+      setDetailLoading(true);
+      setSelectedInvoice(null);
+
+      try {
+        const detail = await fetchInvoiceDetail(invoiceId);
+        const hasDetail = detail && Object.keys(detail).length > 0;
+        if (!hasDetail) {
+          throw new Error("Invoice not found");
+        }
+        setSelectedInvoice({ ...row, ...detail });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load invoice";
+        dispatch(showToast({ message, type: "error" }));
+        setFormMode(null);
+        setSelectedInvoice(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleView = useCallback(
+    (row: any) => {
+      openInvoice(row, "view");
+    },
+    [openInvoice]
+  );
+
+  const handleEdit = useCallback(
+    (row: any) => {
+      openInvoice(row, "edit");
+    },
+    [openInvoice]
+  );
 
   const handleAdd = () => {
     setSelectedInvoice(null);
     setFormMode("add");
+    setDetailLoading(false);
   };
 
   const handleFormSaved = () => {
@@ -275,20 +313,28 @@ export default function InvoiceList() {
                 pointerOnHover
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading invoices...</div>}
-                onRowClicked={(row) => handleView(row)}
+                onRowClicked={handleView}
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <InvoiceDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedInvoice}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
+            {formMode !== "add" && (detailLoading || !selectedInvoice) ? (
+              <ComponentCard>
+                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Loading invoice...
+                </div>
+              </ComponentCard>
+            ) : (
+              <InvoiceDetail
+                inline
+                modeProp={formMode}
+                dataProp={formMode === "add" ? null : selectedInvoice}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
           </div>
         )}
       </div>

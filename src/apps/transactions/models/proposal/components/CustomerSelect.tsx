@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getRecords } from "../../../../../api/wcapi";
 
 interface Customer {
@@ -26,27 +26,45 @@ export default function CustomerSelect({ value, onChange, placeholder, disabled 
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    let cancelled = false;
 
-  const loadCustomers = async () => {
-    try {
-      setLoading(true);
-      const response = await getRecords('contact', { limit: 100 });
-      const customerData = response.results.map((c: any) => ({
-        id: c.id,
-        name_first: c.name_first || '',
-        name_last: c.name_last || '',
-        email: c.email,
-        phone: c.phone
-      }));
-      setCustomers(customerData);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadCustomers = async () => {
+      try {
+        setLoading(true);
+        const response = await getRecords('contact', { limit: 100 });
+        if (cancelled) {
+          return;
+        }
+        const rawList = Array.isArray(response?.results)
+          ? response.results
+          : Array.isArray(response?.items)
+          ? response.items
+          : [];
+        const customerData = rawList.map((c: any) => ({
+          id: c.id,
+          name_first: c.name_first || '',
+          name_last: c.name_last || '',
+          email: c.email,
+          phone: c.phone,
+        }));
+        setCustomers(customerData);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load customers:', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCustomers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredCustomers = customers.filter(customer =>
     `${customer.name_first} ${customer.name_last}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
