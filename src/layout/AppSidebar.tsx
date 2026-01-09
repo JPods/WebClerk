@@ -8,7 +8,6 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  TableIcon,
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";

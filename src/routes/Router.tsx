@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./PrivateRoute";
 import { PageRoutes } from "./Routes";
 import { ScrollToTop, Toster } from "../components/wrapper";
@@ -171,7 +171,10 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
           <Route path={PageRoutes.docs} element={<DocumentIndex />} />
           {/* Products */}
-          <Route path={PageRoutes.products} element={<ItemList />} />
+          <Route
+            path={PageRoutes.products}
+            element={<Navigate to={PageRoutes.productsItemList} replace />}
+          />
           <Route
             path={PageRoutes.productsBillOfMaterialList}
             element={<BillOfMaterialList />}
