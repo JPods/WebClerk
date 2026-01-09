@@ -10,6 +10,42 @@ import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import BillOfMaterialDetail from "./BillOfMaterialDetail";
 
+// Normalizes differing API payload shapes into a flat array of items.
+const extractItems = (payload: any): any[] => {
+  if (!payload) {
+    return [];
+  }
+
+  const directCandidates = [
+    payload?.data?.items,
+    payload?.data?.results,
+    payload?.data?.data?.items,
+    payload?.data?.data?.results,
+    payload?.items,
+    payload?.results,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  const objectCandidates = [payload?.data?.data, payload?.data, payload];
+  for (const obj of objectCandidates) {
+    if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+      const values = Object.values(obj);
+      for (const value of values) {
+        if (Array.isArray(value)) {
+          return value;
+        }
+      }
+    }
+  }
+
+  return [];
+};
+
 export default function BillOfMaterialList() {
   const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
@@ -24,7 +60,16 @@ export default function BillOfMaterialList() {
       setLoading(true);
       const res = await fetchBillOfMaterials();
       if (res.status === 200) {
-        setData(res.data.items);
+        const items = extractItems(res);
+        setData(items);
+        if (!items.length) {
+          dispatch(
+            showToast({
+              message: "Bill of material response contained no rows",
+              type: "warning",
+            })
+          );
+        }
       } else {
         dispatch(
           showToast({ message: "Failed to fetch bill of materials", type: "error" })

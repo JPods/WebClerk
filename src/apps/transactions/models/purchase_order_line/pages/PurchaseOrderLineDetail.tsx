@@ -14,6 +14,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { purchaseOrderLineSchema } from "../utils/purchaseOrderLineSchema";
 import { PurchaseOrderLineAddProps } from "../types/purchaseOrderLineType";
+import { coerceFormValue, coerceNumber } from "../../common/valueNormalization";
 
 export default function PurchaseOrderLineDetail({
   modeProp,
@@ -43,10 +44,19 @@ export default function PurchaseOrderLineDetail({
     if (mode === "add") {
       reset();
     } else if (data) {
+      const numericFields = new Set(["purchase_order_id", "item_id", "quantity", "unit_price", "line_total"]);
       Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
+        if (data[key] === undefined) {
+          return;
         }
+        const sanitized = coerceFormValue(data[key]);
+        if (sanitized === undefined || sanitized === null) {
+          return;
+        }
+        const finalValue = numericFields.has(key)
+          ? coerceNumber(sanitized)
+          : sanitized;
+        setValue(key, finalValue as any);
       });
     } else {
       reset({});

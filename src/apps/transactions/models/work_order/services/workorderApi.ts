@@ -1,4 +1,4 @@
-import { getRecords, saveRecord, deleteRecord } from '../../../../../api/wcapi';
+import { getRecords, saveRecord, deleteRecord, getRecord } from '../../../../../api/wcapi';
 
 
 export const fetchWorkorders = async (params?: any) => {
@@ -16,4 +16,9 @@ export const updateWorkorder = async (id: number, data: any) => {
 
 export const deleteWorkorder = async (id: number) => {
   return deleteRecord('workorder', id);
+};
+
+export const fetchWorkorderDetail = async (id: number) => {
+  const res = await getRecord('workorder', id);
+  return res?.record ?? res;
 };

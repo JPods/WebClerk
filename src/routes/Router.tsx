@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./PrivateRoute";
 import { PageRoutes } from "./Routes";
 import { ScrollToTop, Toster } from "../components/wrapper";
@@ -82,7 +82,19 @@ import {
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
+import BillOfMaterialList from "../apps/products/models/bill_of_material/pages/BillOfMaterialList";
+import CatalogList from "../apps/products/models/catalog/pages/CatalogList";
+import FlowList from "../apps/products/models/flow/pages/FlowList";
 import ItemList from "../apps/products/models/item/pages/ItemList";
+import ItemXrefList from "../apps/products/models/item_xref/pages/ItemXrefList";
+import MatricsList from "../apps/products/models/matrics/pages/MatricsList";
+import OrgItemList from "../apps/products/models/org_item/pages/OrgItemList";
+import SerialList from "../apps/products/models/serial/pages/SerialList";
+import ServiceList from "../apps/products/models/service/pages/ServiceList";
+import SpecificationList from "../apps/products/models/specification/pages/SpecificationList";
+import UsageList from "../apps/products/models/usage/pages/UsageList";
+import VariantList from "../apps/products/models/variant/pages/VariantList";
+import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList";
 import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail_test";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
@@ -159,7 +171,59 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
           <Route path={PageRoutes.docs} element={<DocumentIndex />} />
           {/* Products */}
-          <Route path={PageRoutes.products} element={<ItemList />} />
+          <Route
+            path={PageRoutes.products}
+            element={<Navigate to={PageRoutes.productsItemList} replace />}
+          />
+          <Route
+            path={PageRoutes.productsBillOfMaterialList}
+            element={<BillOfMaterialList />}
+          />
+          <Route
+            path={PageRoutes.productsCatalogList}
+            element={<CatalogList />}
+          />
+          <Route path={PageRoutes.productsFlowList} element={<FlowList />} />
+          <Route
+            path={PageRoutes.productsItemList}
+            element={<ItemList />}
+          />
+          <Route
+            path={PageRoutes.productsItemXrefList}
+            element={<ItemXrefList />}
+          />
+          <Route
+            path={PageRoutes.productsMatricsList}
+            element={<MatricsList />}
+          />
+          <Route
+            path={PageRoutes.productsOrgItemList}
+            element={<OrgItemList />}
+          />
+          <Route
+            path={PageRoutes.productsSerialList}
+            element={<SerialList />}
+          />
+          <Route
+            path={PageRoutes.productsServiceList}
+            element={<ServiceList />}
+          />
+          <Route
+            path={PageRoutes.productsSpecificationList}
+            element={<SpecificationList />}
+          />
+          <Route
+            path={PageRoutes.productsUsageList}
+            element={<UsageList />}
+          />
+          <Route
+            path={PageRoutes.productsVariantList}
+            element={<VariantList />}
+          />
+          <Route
+            path={PageRoutes.productsWarehouseList}
+            element={<WarehouseList />}
+          />
           {/* Transactions */}
           <Route
             path={PageRoutes.transactionsOrders}

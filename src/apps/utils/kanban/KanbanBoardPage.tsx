@@ -59,6 +59,15 @@ const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
 const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
 const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
 
+const clampPercentageValue = (value: number | undefined): number => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, value));
+};
+
+const serializeBurndownValue = (value: number | undefined): string => clampPercentageValue(value).toString();
+
 interface ProjectOption {
   id: string;
   slug?: string;
@@ -1475,7 +1484,12 @@ const KanbanBoardPage: React.FC = () => {
 
     const fallbackProgress = baseTask?.progress ?? 0;
     const parsedProgress = Number(state.progress);
-    const resolvedProgress = Number.isNaN(parsedProgress) || parsedProgress < 0 ? fallbackProgress : parsedProgress;
+    const resolvedProgress = clampPercentageValue(
+      Number.isNaN(parsedProgress) || parsedProgress < 0 ? fallbackProgress : parsedProgress
+    );
+    const resolvedBurndown = clampPercentageValue(
+      mode === "edit" && baseTask ? baseTask.progress ?? resolvedProgress : resolvedProgress
+    );
 
     const payloadItem: Record<string, unknown> = {
       model_name: "action",
@@ -1491,7 +1505,8 @@ const KanbanBoardPage: React.FC = () => {
       dt_start: startTimestamp ?? null,
       dt_end: endTimestamp ?? null,
       progress: resolvedProgress,
-      burndown: 0,
+      // Backend drops numeric 0 via truthy checks; keep as string to satisfy NOT NULL constraint.
+      burndown: serializeBurndownValue(resolvedBurndown),
     };
 
     if (mode === "edit" && baseTask) {

@@ -3,12 +3,15 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchPurchaseOrders } from "../services/purchaseOrderApi";
+import { fetchPurchaseOrders, fetchPurchaseOrderDetail } from "../services/purchaseOrderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import PurchaseOrderDetail from "./PurchaseOrderDetail";
+import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericPurchaseOrderKeys = ["dt_created", "id_vendor"]; 
 
 export default function PurchaseOrderList() {
   const { theme } = useTheme();
@@ -16,6 +19,7 @@ export default function PurchaseOrderList() {
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -24,7 +28,10 @@ export default function PurchaseOrderList() {
       setLoading(true);
       const res = await fetchPurchaseOrders();
       if (res.status === 200) {
-        setData(res.data.items);
+        const sanitizedItems = Array.isArray(res.data.items)
+          ? res.data.items.map((item: any) => sanitizeRecord(item, numericPurchaseOrderKeys))
+          : [];
+        setData(sanitizedItems);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch purchase orders", type: "error" })
@@ -42,19 +49,61 @@ export default function PurchaseOrderList() {
     getPurchaseOrderData();
   }, [getPurchaseOrderData]);
 
-  const handleView = (row: any) => {
-    setSelectedPurchaseOrder(row);
-    setFormMode("view");
-  };
+  const openPurchaseOrder = useCallback(
+    async (row: any, modeToSet: "view" | "edit") => {
+      const purchaseOrderId = row?.id;
+      if (!purchaseOrderId) {
+        dispatch(
+          showToast({ message: "Purchase order id missing", type: "error" })
+        );
+        return;
+      }
 
-  const handleEdit = (row: any) => {
-    setSelectedPurchaseOrder(row);
-    setFormMode("edit");
-  };
+      setFormMode(modeToSet);
+      setDetailLoading(true);
+      setSelectedPurchaseOrder(null);
+
+      try {
+        const response = await fetchPurchaseOrderDetail(purchaseOrderId);
+        const detail = response ?? {};
+        const hasDetail = detail && Object.keys(detail).length > 0;
+        if (!hasDetail) {
+          throw new Error("Purchase order not found");
+        }
+        const sanitizedRow = sanitizeRecord(row, numericPurchaseOrderKeys);
+        const sanitizedDetail = sanitizeRecord(detail, numericPurchaseOrderKeys);
+        setSelectedPurchaseOrder({ ...sanitizedRow, ...sanitizedDetail });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load purchase order";
+        dispatch(showToast({ message, type: "error" }));
+        setFormMode(null);
+        setSelectedPurchaseOrder(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleView = useCallback(
+    (row: any) => {
+      openPurchaseOrder(row, "view");
+    },
+    [openPurchaseOrder]
+  );
+
+  const handleEdit = useCallback(
+    (row: any) => {
+      openPurchaseOrder(row, "edit");
+    },
+    [openPurchaseOrder]
+  );
 
   const handleAdd = () => {
     setSelectedPurchaseOrder(null);
     setFormMode("add");
+    setDetailLoading(false);
   };
 
   const handleFormSaved = () => {
@@ -90,9 +139,13 @@ export default function PurchaseOrderList() {
     },
     {
       name: "Created",
-      selector: (row) => new Date(row.dt_created * 1000).toLocaleDateString() || "--",
+      selector: (row) => row.dt_created || 0,
       sortable: true,
       width: "25%",
+      cell: (row) => {
+        const formatted = formatDateTimeValue(row.dt_created);
+        return formatted || "--";
+      },
     },
     {
       name: "Action",
@@ -110,8 +163,6 @@ export default function PurchaseOrderList() {
         </div>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     },
   ];
 
@@ -143,20 +194,28 @@ export default function PurchaseOrderList() {
                 pointerOnHover
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading purchase orders...</div>}
-                onRowClicked={(row) => handleView(row)}
+                onRowClicked={handleView}
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <PurchaseOrderDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedPurchaseOrder}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
+            {formMode !== "add" && (detailLoading || !selectedPurchaseOrder) ? (
+              <ComponentCard>
+                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Loading purchase order...
+                </div>
+              </ComponentCard>
+            ) : (
+              <PurchaseOrderDetail
+                inline
+                modeProp={formMode}
+                dataProp={formMode === "add" ? null : selectedPurchaseOrder}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
           </div>
         )}
       </div>

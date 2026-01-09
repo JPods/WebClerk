@@ -100,25 +100,39 @@ const STATUS_CONFIG: Record<InvoiceStatus, StatusConfig> = {
   }
 };
 
-export function useInvoiceStatus(initialStatus: InvoiceStatus = 'draft') {
-  const [currentStatus, setCurrentStatus] = useState<InvoiceStatus>(initialStatus);
+export const isInvoiceStatus = (value: unknown): value is InvoiceStatus => {
+  return typeof value === 'string' && STATUS_ORDER.includes(value as InvoiceStatus);
+};
 
-  const getStatusConfig = useCallback((status: InvoiceStatus) => {
-    return STATUS_CONFIG[status];
+export const normalizeInvoiceStatus = (value: unknown): InvoiceStatus => {
+  return isInvoiceStatus(value) ? (value as InvoiceStatus) : 'draft';
+};
+
+export function useInvoiceStatus(initialStatus: InvoiceStatus | string | null | undefined = 'draft') {
+  const normalizedInitial = normalizeInvoiceStatus(initialStatus);
+  const [currentStatus, setCurrentStatus] = useState<InvoiceStatus>(normalizedInitial);
+
+  const getStatusConfig = useCallback((status: InvoiceStatus | string | null | undefined) => {
+    const safeStatus = normalizeInvoiceStatus(status);
+    return STATUS_CONFIG[safeStatus];
   }, []);
 
-  const getAvailableTransitions = useCallback((status: InvoiceStatus) => {
-    return STATUS_CONFIG[status].transitions;
+  const getAvailableTransitions = useCallback((status: InvoiceStatus | string | null | undefined) => {
+    const safeStatus = normalizeInvoiceStatus(status);
+    return STATUS_CONFIG[safeStatus].transitions;
   }, []);
 
-  const canTransitionTo = useCallback((fromStatus: InvoiceStatus, toStatus: InvoiceStatus) => {
-    const transitions = getAvailableTransitions(fromStatus);
-    return transitions.some(t => t.to === toStatus);
+  const canTransitionTo = useCallback((fromStatus: InvoiceStatus | string | null | undefined, toStatus: InvoiceStatus | string | null | undefined) => {
+    const safeFrom = normalizeInvoiceStatus(fromStatus);
+    const safeTo = normalizeInvoiceStatus(toStatus);
+    const transitions = getAvailableTransitions(safeFrom);
+    return transitions.some(t => t.to === safeTo);
   }, [getAvailableTransitions]);
 
-  const transitionTo = useCallback((newStatus: InvoiceStatus) => {
-    if (canTransitionTo(currentStatus, newStatus)) {
-      setCurrentStatus(newStatus);
+  const transitionTo = useCallback((newStatus: InvoiceStatus | string | null | undefined) => {
+    const safeStatus = normalizeInvoiceStatus(newStatus);
+    if (canTransitionTo(currentStatus, safeStatus)) {
+      setCurrentStatus(safeStatus);
       return true;
     }
     return false;

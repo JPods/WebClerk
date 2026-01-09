@@ -83,3 +83,29 @@ finance, sell, cost, subtotal, flow should be readonly. sales_order_no should be
 
 wcapi/save/?model_name=sales_order (or any transaction with associated lines) on saving should loop the the .lines object and update the associated line record. If there is no id, a new line record should be created.
 
+OK, lets add some features to column 2 of Admin Workbench. We need these to a standard that can be added to any model list:
+
+
+proposal and purchase_order do not work
+
+Behaving correctly is  sales_order with src/apps/transactions/models/sales_order/pages/SalesOrderList.tsx and src/apps/transactions/models/sales_order/pages/SalesOrderDetail.tsx
+
+proposal, invoice, purchase_order do not work
+
+invoices do not show in the left column
+
+
+I have a problem displaying data in three of 4 transaction tables. All display lists collectly into their respective List.tsx forms by calling wcapi/get/?model_name=sales_order, and other model_names.
+
+sales_order displays the detail page correctly on calling wcapi/get/?model_name=sales_order&id=22
+src/apps/transactions/models/sales_order/pages/SalesOrderDetail.tsx 
+
+purchase_order, invoice, proposal call the correct wcapi/get/?model_name=model_name&id=22 but then while the page is loading multple call are made to http://localhost:8000/wcapi/get/?model_name=contact&limit=100 
+
+and the window goes blank
+
+model_nameDetail.tsx pages should not calling contact models
+
+At the top of list pages we need a keyword search, button to wider search, script, help (link to web), show all, show subset, print, 
+
+In detail form CRUD, transfer between associated transactions, selectlists, read-only, buttons (green)

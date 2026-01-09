@@ -3,7 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchSalesOrders } from "../services/salesOrderApi";
+import { fetchSalesOrders, fetchSalesOrderDetail } from "../services/salesOrderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -23,6 +23,7 @@ export default function SalesOrderList() {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -51,30 +52,58 @@ export default function SalesOrderList() {
     getSalesOrderData();
   }, [getSalesOrderData]);
 
-  const handleView = (row: any) => {
-    setSelectedSalesOrder(row);
-    setFormMode("view");
-  };
+  const openSalesOrder = useCallback(
+    async (row: any, modeToSet: "view" | "edit") => {
+      const salesOrderId = row?.id;
+      if (!salesOrderId) {
+        dispatch(
+          showToast({ message: "Sales order id missing", type: "error" })
+        );
+        return;
+      }
 
-  const handleEdit = (row: any) => {
-    setSelectedSalesOrder(row);
-    setFormMode("edit");
-    // setIsOpenModal(true);
-  };
+      setFormMode(modeToSet);
+      setDetailLoading(true);
+      setSelectedSalesOrder(null);
+
+      try {
+        const detail = await fetchSalesOrderDetail(salesOrderId);
+        const hasDetail = detail && Object.keys(detail).length > 0;
+        if (!hasDetail) {
+          throw new Error("Sales order not found");
+        }
+        setSelectedSalesOrder({ ...row, ...detail });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load sales order";
+        dispatch(showToast({ message, type: "error" }));
+        setFormMode(null);
+        setSelectedSalesOrder(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleView = useCallback(
+    (row: any) => {
+      openSalesOrder(row, "view");
+    },
+    [openSalesOrder]
+  );
+
+  const handleEdit = useCallback(
+    (row: any) => {
+      openSalesOrder(row, "edit");
+    },
+    [openSalesOrder]
+  );
 
   const handleAdd = () => {
     setSelectedSalesOrder(null);
     setFormMode("add");
-  };
-  const handleIsOpenModal = () => {
-    setSelectedSalesOrder(null);
-    setFormMode("add");
-    setIsOpenModal(true);
-  };
-  const handleCloseModal = () => {
-    setFormMode(null);
-    setSelectedSalesOrder(null);
-    setIsOpenModal(false);
+    setDetailLoading(false);
   };
 
   const handleFormSaved = () => {
@@ -365,6 +394,8 @@ export default function SalesOrderList() {
                   <div className="p-8 text-center">Loading sales orders...</div>
                 }
                 onRowClicked={(row) => handleEdit(row)}
+                progressComponent={<div className="p-8 text-center">Loading sales orders...</div>}
+                onRowClicked={handleEdit}
               />
             </div>
           </ComponentCard>
@@ -392,6 +423,23 @@ export default function SalesOrderList() {
               isSaving={false}
             />
           </>
+          <div className="lg:col-span-2">
+            {formMode !== "add" && (detailLoading || !selectedSalesOrder) ? (
+              <ComponentCard>
+                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Loading sales order...
+                </div>
+              </ComponentCard>
+            ) : (
+              <SalesOrderDetail
+                inline
+                modeProp={formMode}
+                dataProp={formMode === "add" ? null : selectedSalesOrder}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
+          </div>
         )}
       </div>
     </>

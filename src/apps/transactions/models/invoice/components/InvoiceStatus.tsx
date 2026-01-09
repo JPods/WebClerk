@@ -1,9 +1,9 @@
 import { FaChevronRight, FaClock, FaCheck, FaDollarSign, FaExclamationTriangle, FaBan } from 'react-icons/fa';
-import { useInvoiceStatus, STATUS_CONFIG, STATUS_ORDER } from '../hooks/useInvoiceStatus';
+import { useInvoiceStatus, STATUS_CONFIG, STATUS_ORDER, normalizeInvoiceStatus } from '../hooks/useInvoiceStatus';
 import type { InvoiceStatus } from '../hooks/useInvoiceStatus';
 
 interface InvoiceStatusProps {
-  currentStatus: InvoiceStatus;
+  currentStatus?: string | null;
   onStatusChange?: (newStatus: InvoiceStatus) => void;
   readonly?: boolean;
   showHistory?: boolean;
@@ -15,10 +15,11 @@ export default function InvoiceStatus({
   readonly = false,
   showHistory = false
 }: InvoiceStatusProps) {
-  const { getStatusConfig, getAvailableTransitions, getStatusHistory } = useInvoiceStatus(currentStatus);
+  const safeStatus = normalizeInvoiceStatus(currentStatus);
+  const { getStatusConfig, getAvailableTransitions, getStatusHistory } = useInvoiceStatus(safeStatus);
 
-  const config = getStatusConfig(currentStatus);
-  const transitions = getAvailableTransitions(currentStatus);
+  const config = getStatusConfig(safeStatus);
+  const transitions = getAvailableTransitions(safeStatus);
   const history = getStatusHistory();
 
   const getStatusIcon = (status: InvoiceStatus) => {
@@ -54,7 +55,7 @@ export default function InvoiceStatus({
       {/* Current Status Display */}
       <div className="flex items-center space-x-3">
         <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${config.bgColor}`}>
-          {getStatusIcon(currentStatus)}
+          {getStatusIcon(safeStatus)}
           <span className={`font-medium ${config.color}`}>
             {config.label}
           </span>
@@ -66,18 +67,18 @@ export default function InvoiceStatus({
 
       {/* Status Workflow Visualization */}
       <div className="flex items-center space-x-2 text-sm">
-        {STATUS_ORDER.map((status, index) => {
+          {STATUS_ORDER.map((status, index) => {
           const statusConfig = STATUS_CONFIG[status];
-          const isActive = status === currentStatus;
-          const isPast = STATUS_ORDER.indexOf(status) < STATUS_ORDER.indexOf(currentStatus);
+            const isActive = status === safeStatus;
+            const isPast = STATUS_ORDER.indexOf(status) < STATUS_ORDER.indexOf(safeStatus);
 
           return (
             <div key={status} className="flex items-center space-x-2">
-              <div className={`flex items-center space-x-1 px-2 py-1 rounded ${
-                isActive ? statusConfig.bgColor :
-                isPast ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' :
-                'bg-gray-100 dark:bg-gray-700 text-gray-500'
-              }`}>
+                <div className={`flex items-center space-x-1 px-2 py-1 rounded ${
+                  isActive ? statusConfig.bgColor :
+                  isPast ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' :
+                  'bg-gray-100 dark:bg-gray-700 text-gray-500'
+                }`}>
                 {getStatusIcon(status as InvoiceStatus)}
                 <span className="text-xs font-medium">{statusConfig.label}</span>
               </div>

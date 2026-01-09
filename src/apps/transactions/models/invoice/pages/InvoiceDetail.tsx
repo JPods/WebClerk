@@ -8,14 +8,24 @@ import Label from "../../../../../components/form/Label";
 import { Input, TextArea } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createInvoice, updateInvoice } from "../services/invoiceApi";
+import { createInvoice, updateInvoice, fetchInvoiceDetail } from "../services/invoiceApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { invoiceSchema } from "../utils/invoiceSchema";
 import { InvoiceAddProps } from "../types/invoiceType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import InvoiceStatus from "../components/InvoiceStatus";
+import { coerceFormValue, sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericInvoiceKeys = [
+  "total_amount",
+  "margin_percentage",
+  "margin_amount",
+  "paid_amount",
+  "line_count",
+  "balance_due",
+];
 
 export default function InvoiceDetail({
   modeProp,
@@ -26,7 +36,33 @@ export default function InvoiceDetail({
   onCancelInline,
 }: InvoiceAddProps) {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { id: routeId } = useParams<{ id?: string }>();
+  const routeState = (location.state as { mode?: string; data?: any }) || {};
+  const routeData = routeState?.data;
+  const routeMode = routeState?.mode as "add" | "edit" | "view" | undefined;
+  const shouldPrefetch = Boolean(routeId && !dataProp && !routeData);
+
   const [isNotesLocked, setIsNotesLocked] = useState(true);
+  const [loading, setLoading] = useState(shouldPrefetch);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fetchedData, setFetchedData] = useState<any>(null);
+
+  const resolvedData = dataProp ?? routeData ?? fetchedData;
+  const normalizedResolvedData = useMemo(
+    () => sanitizeRecord(resolvedData, numericInvoiceKeys),
+    [resolvedData]
+  );
+
+  const mode: "add" | "edit" | "view" = modeProp || routeMode || (routeId ? "view" : "add");
+  const pageTitle =
+    mode === "edit"
+      ? "Edit Invoice"
+      : mode === "view"
+      ? "View Invoice"
+      : "Invoice Detail";
+  const inlineTitle = mode === "add" ? "Add New Invoice" : pageTitle;
 
   const defaultValues = useMemo(
     () => ({
@@ -65,7 +101,6 @@ export default function InvoiceDetail({
 
   const {
     register,
-    setValue,
     handleSubmit,
     formState: { errors },
     reset,
@@ -74,27 +109,90 @@ export default function InvoiceDetail({
     defaultValues,
   });
 
-  const location = useLocation();
-  const routeState = (location.state as { mode?: string; data?: z.infer<typeof invoiceSchema> }) || {};
-  const mode: "add" | "edit" | "view" = modeProp || (routeState.mode as "add" | "edit" | "view" | undefined) || "add";
-  const data = dataProp || routeState.data || null;
+  useEffect(() => {
+    if (dataProp || routeData) {
+      setFetchedData(null);
+    }
+  }, [dataProp, routeData]);
+
+  useEffect(() => {
+    if (normalizedResolvedData) {
+      setLoadError(null);
+    }
+  }, [normalizedResolvedData]);
+
+  useEffect(() => {
+    if (dataProp || routeData || !routeId) {
+      return;
+    }
+
+    const idNumber = Number.parseInt(routeId, 10);
+    if (Number.isNaN(idNumber)) {
+      setLoadError("Invalid invoice id");
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    setFetchedData(null);
+    setLoading(true);
+    setLoadError(null);
+
+    fetchInvoiceDetail(idNumber)
+      .then((detail) => {
+        if (cancelled) {
+          return;
+        }
+        if (!detail || Object.keys(detail).length === 0) {
+          setLoadError("Invoice not found");
+          return;
+        }
+        setFetchedData(sanitizeRecord(detail, numericInvoiceKeys));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : "Failed to load invoice";
+        setLoadError(message);
+        dispatch(showToast({ message, type: "error" }));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dataProp, routeData, routeId, dispatch]);
+
   useEffect(() => {
     if (mode === "add") {
       reset(defaultValues);
       setIsNotesLocked(true);
-    } else if (data) {
-      Object.keys(data).forEach((key: string) => {
-        if (data[key as keyof typeof data] !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setValue(key as any, data[key as keyof typeof data]);
+      return;
+    }
+
+    if (normalizedResolvedData && typeof normalizedResolvedData === "object") {
+      const nextValues = { ...defaultValues } as Partial<z.infer<typeof invoiceSchema>>;
+      Object.keys(defaultValues).forEach((key) => {
+        const value = (normalizedResolvedData as Record<string, unknown>)[key];
+        const sanitized = coerceFormValue(value);
+        if (sanitized !== undefined) {
+          (nextValues as Record<string, unknown>)[key] = sanitized === null ? "" : (sanitized as unknown);
         }
       });
+      reset(nextValues);
       setIsNotesLocked(true);
-    } else {
-      reset(defaultValues);
-      setIsNotesLocked(true);
+      return;
     }
-  }, [data, defaultValues, reset, setValue, mode]);
+
+    reset(defaultValues);
+    setIsNotesLocked(true);
+  }, [normalizedResolvedData, defaultValues, reset, mode]);
 
   const onSubmit = async (formData: z.infer<typeof invoiceSchema>) => {
     try {
@@ -116,7 +214,7 @@ export default function InvoiceDetail({
       const res =
         mode === "add"
           ? await createInvoice(payload)
-          : await updateInvoice(data && data.id, payload);
+          : await updateInvoice(resolvedData && resolvedData.id, payload);
       if (res) {
         dispatch(
           showToast({
@@ -137,9 +235,9 @@ export default function InvoiceDetail({
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!data?.id) return;
+    if (!resolvedData?.id) return;
     try {
-      await updateInvoice(data.id, { ...data, status: newStatus });
+      await updateInvoice(resolvedData.id, { ...resolvedData, status: newStatus });
       dispatch(showToast({ message: `Invoice marked as ${newStatus}`, type: "success" }));
       if (onSaved) {
         onSaved();
@@ -150,28 +248,57 @@ export default function InvoiceDetail({
     }
   };
 
+  if (!inline && loading) {
+    return (
+      <>
+        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
+        <ComponentCard>
+          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading invoice...</div>
+        </ComponentCard>
+      </>
+    );
+  }
+
+  if (!inline && loadError && !resolvedData) {
+    return (
+      <>
+        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
+        <ComponentCard>
+          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-4">
+            <div>{loadError}</div>
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </ComponentCard>
+      </>
+    );
+  }
+
+  if (inline && mode !== "add" && !resolvedData) {
+    return (
+      <ComponentCard>
+        <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading invoice...</div>
+      </ComponentCard>
+    );
+  }
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Invoice"
-              : mode === "view"
-              ? "View Invoice"
-              : "Invoice Detail"
-          }
-        />
+        <PageBreadcrumb pageTitle={pageTitle} />
       )}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Invoice"
-                : mode === "view"
-                ? "View Invoice"
-                : "Add New Invoice"}
+              {inlineTitle}
             </h3>
             {onCancelInline && (
               <button
@@ -508,24 +635,24 @@ export default function InvoiceDetail({
               />
             </div>
           </div>
-          {mode === "view" && data && (
+          {mode === "view" && normalizedResolvedData && (
             <div className="space-y-6">
               <div>
                 <Label htmlFor="dt_created">dt_created</Label>
                 <Input
                   type="text"
                   id="dt_created"
-                  value={new Date(data.dt_created * 1000).toLocaleString()}
+                  value={formatDateTimeValue(normalizedResolvedData.dt_created)}
                   disabled
                 />
-                {data.id && <AuditTrail transactionId={data.id} model="invoice" />}
+                {normalizedResolvedData.id && <AuditTrail transactionId={normalizedResolvedData.id} model="invoice" />}
               </div>
 
               {/* Status Management */}
               <div>
                 <Label>Invoice Status</Label>
                 <InvoiceStatus
-                  currentStatus={data.status || 'draft'}
+                  currentStatus={normalizedResolvedData.status || 'draft'}
                   onStatusChange={handleStatusChange}
                   showHistory={true}
                 />

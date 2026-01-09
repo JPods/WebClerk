@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,14 +8,17 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createPurchaseOrder, updatePurchaseOrder } from "../services/purchaseOrderApi";
+import { createPurchaseOrder, updatePurchaseOrder, fetchPurchaseOrderDetail } from "../services/purchaseOrderApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { purchaseOrderSchema } from "../utils/purchaseOrderSchema";
 import { PurchaseOrderAddProps } from "../types/purchaseOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import PurchaseOrderStatus from "../components/PurchaseOrderStatus";
+import { coerceFormValue, sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericPurchaseOrderKeys = ["dt_created", "id_vendor"];
 
 export default function PurchaseOrderDetail({
   modeProp,
@@ -26,41 +29,143 @@ export default function PurchaseOrderDetail({
   onCancelInline,
 }: PurchaseOrderAddProps) {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { id: routeId } = useParams<{ id?: string }>();
+  const routeState = (location.state as any) || {};
+  const routeData = routeState?.data;
+  const routeMode = routeState?.mode as "add" | "edit" | "view" | undefined;
+  const shouldPrefetch = Boolean(routeId && !dataProp && !routeData);
+
+  const [fetchedData, setFetchedData] = useState<any>(null);
+  const [loading, setLoading] = useState(shouldPrefetch);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const resolvedData = dataProp ?? routeData ?? fetchedData;
+  const normalizedResolvedData = useMemo(
+    () => sanitizeRecord(resolvedData, numericPurchaseOrderKeys),
+    [resolvedData]
+  );
+
+  const mode: "add" | "edit" | "view" = modeProp || routeMode || (routeId ? "view" : "add");
+  const pageTitle =
+    mode === "edit"
+      ? "Edit Purchase Order"
+      : mode === "view"
+      ? "View Purchase Order"
+      : "Purchase Order Detail";
+  const inlineTitle = mode === "add" ? "Add New Purchase Order" : pageTitle;
+
+  const defaultValues = useMemo(
+    () => ({
+      purchase_order_no: "",
+      status: "draft",
+      receipt_id: "",
+      vendor_pack_list: "",
+      vendor_pack_date: "",
+      id_vendor: undefined,
+    }),
+    []
+  );
 
   const {
     register,
-    setValue,
     handleSubmit,
     formState: { errors },
     reset,
   } = useForm<z.infer<typeof purchaseOrderSchema>>({
     resolver: zodResolver(purchaseOrderSchema),
+    defaultValues,
   });
 
-  const location = useLocation();
-  const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
   useEffect(() => {
-    if (mode === "add") {
-      reset();
-    } else if (data) {
-      Object.keys(data).forEach((key: any) => {
-        if (data[key] !== undefined) {
-          setValue(key, data[key]);
+    if (dataProp || routeData) {
+      setFetchedData(null);
+    }
+  }, [dataProp, routeData]);
+
+  useEffect(() => {
+    if (normalizedResolvedData) {
+      setLoadError(null);
+    }
+  }, [normalizedResolvedData]);
+
+  useEffect(() => {
+    if (dataProp || routeData || !routeId) {
+      return;
+    }
+
+    const idNumber = Number.parseInt(routeId, 10);
+    if (Number.isNaN(idNumber)) {
+      setLoadError("Invalid purchase order id");
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    setFetchedData(null);
+    setLoading(true);
+    setLoadError(null);
+
+    fetchPurchaseOrderDetail(idNumber)
+      .then((detail) => {
+        if (cancelled) {
+          return;
+        }
+        if (!detail || Object.keys(detail).length === 0) {
+          setLoadError("Purchase order not found");
+          return;
+        }
+        setFetchedData(sanitizeRecord(detail, numericPurchaseOrderKeys));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : "Failed to load purchase order";
+        setLoadError(message);
+        dispatch(showToast({ message, type: "error" }));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
         }
       });
-    } else {
-      reset({});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dataProp, routeData, routeId, dispatch]);
+
+  useEffect(() => {
+    if (mode === "add") {
+      reset(defaultValues);
+      return;
     }
-  }, [data, reset, setValue, mode]);
+
+    if (normalizedResolvedData && typeof normalizedResolvedData === "object") {
+      const nextValues = { ...defaultValues } as Record<string, unknown>;
+      Object.keys(defaultValues).forEach((key) => {
+        const value = (normalizedResolvedData as Record<string, unknown>)[key];
+        const sanitized = coerceFormValue(value);
+        if (sanitized !== undefined) {
+          nextValues[key] = sanitized === null ? "" : (sanitized as unknown);
+        }
+      });
+      reset(nextValues);
+      return;
+    }
+
+    reset(defaultValues);
+  }, [normalizedResolvedData, reset, mode, defaultValues]);
 
   const onSubmit = async (formData: z.infer<typeof purchaseOrderSchema>) => {
     try {
       const res =
         mode === "add"
           ? await createPurchaseOrder(formData)
-          : await updatePurchaseOrder(data && data.id, formData);
+          : await updatePurchaseOrder(resolvedData && resolvedData.id, formData);
       if (res) {
         dispatch(
           showToast({
@@ -80,9 +185,9 @@ export default function PurchaseOrderDetail({
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!data?.id) return;
+    if (!resolvedData?.id) return;
     try {
-      await updatePurchaseOrder(data.id, { ...data, status: newStatus });
+      await updatePurchaseOrder(resolvedData.id, { ...resolvedData, status: newStatus });
       dispatch(showToast({ message: `Purchase order marked as ${newStatus}`, type: "success" }));
       if (onSaved) {
         onSaved();
@@ -92,28 +197,57 @@ export default function PurchaseOrderDetail({
     }
   };
 
+  if (!inline && loading) {
+    return (
+      <>
+        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
+        <ComponentCard>
+          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading purchase order...</div>
+        </ComponentCard>
+      </>
+    );
+  }
+
+  if (!inline && loadError && !resolvedData) {
+    return (
+      <>
+        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
+        <ComponentCard>
+          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-4">
+            <div>{loadError}</div>
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </ComponentCard>
+      </>
+    );
+  }
+
+  if (inline && mode !== "add" && !resolvedData) {
+    return (
+      <ComponentCard>
+        <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading purchase order...</div>
+      </ComponentCard>
+    );
+  }
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Purchase Order"
-              : mode === "view"
-              ? "View Purchase Order"
-              : "Purchase Order Detail"
-          }
-        />
+        <PageBreadcrumb pageTitle={pageTitle} />
       )}
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Purchase Order"
-                : mode === "view"
-                ? "View Purchase Order"
-                : "Add New Purchase Order"}
+              {inlineTitle}
             </h3>
             {onCancelInline && (
               <button
@@ -194,24 +328,24 @@ export default function PurchaseOrderDetail({
                 />
               </div>
             </div>
-          {mode === "view" && data && (
+          {mode === "view" && normalizedResolvedData && (
             <div className="space-y-6">
               <div>
                 <Label htmlFor="dt_created">dt_created</Label>
                 <Input
                   type="text"
                   id="dt_created"
-                  value={new Date(data.dt_created * 1000).toLocaleString()}
+                  value={formatDateTimeValue(normalizedResolvedData.dt_created)}
                   disabled
                 />
-                {data.id && <AuditTrail transactionId={data.id} model="purchase_order" />}
+                {normalizedResolvedData.id && <AuditTrail transactionId={normalizedResolvedData.id} model="purchase_order" />}
               </div>
 
               {/* Status Management */}
               <div>
                 <Label>Purchase Order Status</Label>
                 <PurchaseOrderStatus
-                  currentStatus={data.status || 'draft'}
+                  currentStatus={normalizedResolvedData.status || 'draft'}
                   onStatusChange={handleStatusChange}
                   showHistory={true}
                 />
