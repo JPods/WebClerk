@@ -16,6 +16,16 @@ import { invoiceSchema } from "../utils/invoiceSchema";
 import { InvoiceAddProps } from "../types/invoiceType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import InvoiceStatus from "../components/InvoiceStatus";
+import { coerceFormValue, sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericInvoiceKeys = [
+  "total_amount",
+  "margin_percentage",
+  "margin_amount",
+  "paid_amount",
+  "line_count",
+  "balance_due",
+];
 
 export default function InvoiceDetail({
   modeProp,
@@ -40,6 +50,10 @@ export default function InvoiceDetail({
   const [fetchedData, setFetchedData] = useState<any>(null);
 
   const resolvedData = dataProp ?? routeData ?? fetchedData;
+  const normalizedResolvedData = useMemo(
+    () => sanitizeRecord(resolvedData, numericInvoiceKeys),
+    [resolvedData]
+  );
 
   const mode: "add" | "edit" | "view" = modeProp || routeMode || (routeId ? "view" : "add");
   const pageTitle =
@@ -102,10 +116,10 @@ export default function InvoiceDetail({
   }, [dataProp, routeData]);
 
   useEffect(() => {
-    if (resolvedData) {
+    if (normalizedResolvedData) {
       setLoadError(null);
     }
-  }, [resolvedData]);
+  }, [normalizedResolvedData]);
 
   useEffect(() => {
     if (dataProp || routeData || !routeId) {
@@ -134,7 +148,7 @@ export default function InvoiceDetail({
           setLoadError("Invoice not found");
           return;
         }
-        setFetchedData(detail);
+        setFetchedData(sanitizeRecord(detail, numericInvoiceKeys));
       })
       .catch((error: unknown) => {
         if (cancelled) {
@@ -162,12 +176,13 @@ export default function InvoiceDetail({
       return;
     }
 
-    if (resolvedData && typeof resolvedData === "object") {
+    if (normalizedResolvedData && typeof normalizedResolvedData === "object") {
       const nextValues = { ...defaultValues } as Partial<z.infer<typeof invoiceSchema>>;
       Object.keys(defaultValues).forEach((key) => {
-        const value = (resolvedData as Record<string, unknown>)[key];
-        if (value !== undefined) {
-          (nextValues as Record<string, unknown>)[key] = value as unknown;
+        const value = (normalizedResolvedData as Record<string, unknown>)[key];
+        const sanitized = coerceFormValue(value);
+        if (sanitized !== undefined) {
+          (nextValues as Record<string, unknown>)[key] = sanitized === null ? "" : (sanitized as unknown);
         }
       });
       reset(nextValues);
@@ -177,7 +192,7 @@ export default function InvoiceDetail({
 
     reset(defaultValues);
     setIsNotesLocked(true);
-  }, [resolvedData, defaultValues, reset, mode]);
+  }, [normalizedResolvedData, defaultValues, reset, mode]);
 
   const onSubmit = async (formData: z.infer<typeof invoiceSchema>) => {
     try {
@@ -620,24 +635,24 @@ export default function InvoiceDetail({
               />
             </div>
           </div>
-          {mode === "view" && resolvedData && (
+          {mode === "view" && normalizedResolvedData && (
             <div className="space-y-6">
               <div>
                 <Label htmlFor="dt_created">dt_created</Label>
                 <Input
                   type="text"
                   id="dt_created"
-                  value={resolvedData.dt_created ? new Date(resolvedData.dt_created * 1000).toLocaleString() : ""}
+                  value={formatDateTimeValue(normalizedResolvedData.dt_created)}
                   disabled
                 />
-                {resolvedData.id && <AuditTrail transactionId={resolvedData.id} model="invoice" />}
+                {normalizedResolvedData.id && <AuditTrail transactionId={normalizedResolvedData.id} model="invoice" />}
               </div>
 
               {/* Status Management */}
               <div>
                 <Label>Invoice Status</Label>
                 <InvoiceStatus
-                  currentStatus={resolvedData.status || 'draft'}
+                  currentStatus={normalizedResolvedData.status || 'draft'}
                   onStatusChange={handleStatusChange}
                   showHistory={true}
                 />

@@ -9,6 +9,16 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import InvoiceDetail from "./InvoiceDetail";
+import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericInvoiceKeys = [
+  "total_amount",
+  "margin_percentage",
+  "margin_amount",
+  "paid_amount",
+  "line_count",
+  "balance_due",
+];
 
 export default function InvoiceList() {
   const { theme } = useTheme();
@@ -25,7 +35,10 @@ export default function InvoiceList() {
       setLoading(true);
       const res = await fetchInvoices();
       if (res.status === 200) {
-        setData(res.data.items);
+        const sanitizedItems = Array.isArray(res.data.items)
+          ? res.data.items.map((item: any) => sanitizeRecord(item, numericInvoiceKeys))
+          : [];
+        setData(sanitizedItems);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch invoices", type: "error" })
@@ -61,7 +74,9 @@ export default function InvoiceList() {
         if (!hasDetail) {
           throw new Error("Invoice not found");
         }
-        setSelectedInvoice({ ...row, ...detail });
+        const sanitizedRow = sanitizeRecord(row, numericInvoiceKeys);
+        const sanitizedDetail = sanitizeRecord(detail, numericInvoiceKeys);
+        setSelectedInvoice({ ...sanitizedRow, ...sanitizedDetail });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Failed to load invoice";
@@ -219,9 +234,10 @@ export default function InvoiceList() {
     },
     {
       name: "Created",
-      selector: (row) => row.dt_created ? new Date(row.dt_created).toLocaleDateString() : "--",
+      selector: (row) => row.dt_created || "--",
       sortable: true,
       width: "10%",
+      cell: (row) => formatDateTimeValue(row.dt_created) || "--",
     },
     {
       name: "Actions",
@@ -239,8 +255,6 @@ export default function InvoiceList() {
         </div>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
       width: "10%",
     },
   ];

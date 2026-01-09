@@ -27,82 +27,13 @@ import { ProposalAddProps } from "../types/proposalType";
 import ProposalLineList from "../components/ProposalLineList";
 import ProposalStatus from "../components/ProposalStatus";
 import CustomerSelect from "../components/CustomerSelect";
-
-const extractNumericValue = (value: unknown): number | null => {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value.replace(/,/g, ""));
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  if (Array.isArray(value)) {
-    for (const entry of value) {
-      const numeric = extractNumericValue(entry);
-      if (numeric !== null) {
-        return numeric;
-      }
-    }
-    return null;
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    for (const nested of Object.values(record)) {
-      const numeric = extractNumericValue(nested);
-      if (numeric !== null) {
-        return numeric;
-      }
-    }
-  }
-
-  return null;
-};
-
-const coerceNumber = (value: unknown, fallback = 0): number => {
-  const numeric = extractNumericValue(value);
-  return numeric !== null ? numeric : fallback;
-};
-
-const formatQuantity = (value: unknown): string => {
-  const numeric = coerceNumber(value);
-  return Number.isInteger(numeric) ? `${numeric}` : numeric.toFixed(2);
-};
-
-const formatCurrency = (value: unknown): string => coerceNumber(value).toFixed(2);
-
-const normalizeLineItem = (line: any) => {
-  const safeLine = { ...(line || {}) };
-  const quantity = coerceNumber(safeLine.quantity);
-  const extendedPrice = coerceNumber(safeLine.extended_price);
-  const discountAmount = coerceNumber(safeLine.discount_amount);
-
-  const priceSource =
-    safeLine.price && typeof safeLine.price === "object" && !Array.isArray(safeLine.price)
-      ? { ...safeLine.price }
-      : {};
-
-  return {
-    ...safeLine,
-    quantity,
-    extended_price: extendedPrice,
-    discount_amount: discountAmount,
-    price: {
-      ...priceSource,
-      sell: coerceNumber(priceSource.sell ?? safeLine.sell_price ?? safeLine.price_sell),
-      cost: coerceNumber(priceSource.cost ?? safeLine.cost_price ?? safeLine.price_cost),
-    },
-  };
-};
-
-const normalizeLineItems = (lines: unknown[]): any[] =>
-  Array.isArray(lines) ? lines.map((line) => normalizeLineItem(line)) : [];
+import {
+  coerceNumber,
+  formatCurrency,
+  formatQuantity,
+  normalizeLineItem,
+  normalizeLineItems,
+} from "../../common/valueNormalization";
 
 export default function ProposalDetail({
   modeProp,

@@ -9,6 +9,9 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import PurchaseOrderDetail from "./PurchaseOrderDetail";
+import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+
+const numericPurchaseOrderKeys = ["dt_created", "id_vendor"]; 
 
 export default function PurchaseOrderList() {
   const { theme } = useTheme();
@@ -25,7 +28,10 @@ export default function PurchaseOrderList() {
       setLoading(true);
       const res = await fetchPurchaseOrders();
       if (res.status === 200) {
-        setData(res.data.items);
+        const sanitizedItems = Array.isArray(res.data.items)
+          ? res.data.items.map((item: any) => sanitizeRecord(item, numericPurchaseOrderKeys))
+          : [];
+        setData(sanitizedItems);
       } else {
         dispatch(
           showToast({ message: "Failed to fetch purchase orders", type: "error" })
@@ -64,7 +70,9 @@ export default function PurchaseOrderList() {
         if (!hasDetail) {
           throw new Error("Purchase order not found");
         }
-        setSelectedPurchaseOrder({ ...row, ...detail });
+        const sanitizedRow = sanitizeRecord(row, numericPurchaseOrderKeys);
+        const sanitizedDetail = sanitizeRecord(detail, numericPurchaseOrderKeys);
+        setSelectedPurchaseOrder({ ...sanitizedRow, ...sanitizedDetail });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Failed to load purchase order";
@@ -131,9 +139,13 @@ export default function PurchaseOrderList() {
     },
     {
       name: "Created",
-      selector: (row) => new Date(row.dt_created * 1000).toLocaleDateString() || "--",
+      selector: (row) => row.dt_created || 0,
       sortable: true,
       width: "25%",
+      cell: (row) => {
+        const formatted = formatDateTimeValue(row.dt_created);
+        return formatted || "--";
+      },
     },
     {
       name: "Action",
@@ -151,8 +163,6 @@ export default function PurchaseOrderList() {
         </div>
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
     },
   ];
 
