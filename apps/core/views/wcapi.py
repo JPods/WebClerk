@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 import logging
 
 from django.db.models import Q
@@ -11,6 +11,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serial
 from apps.core.services import wcapi as services
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
+from common.api_responses import api_response
 
 try:  # pragma: no cover - optional dependency in some deployments
     from apps.core.utils.model_policies import model_policies as mp  # noqa: F401
@@ -38,6 +39,13 @@ class WCAPIGetView(APIView):
     http_method_names = ["get", "options", "head"]
 
     LINE_MODEL_KEYS = {"proposal", "salesorder", "invoice", "purchaseorder", "workorder"}
+    LINE_MODEL_MAP = {
+        "proposal": "proposal_line",
+        "salesorder": "sales_order_line",
+        "invoice": "invoice_line",
+        "purchaseorder": "purchase_order_line",
+        "workorder": "work_order_line",
+    }
 
     @staticmethod
     def _normalize_model_key(model_key: str | None) -> str:
@@ -72,6 +80,130 @@ class WCAPIGetView(APIView):
                 continue
             results.append(payload)
         return results
+
+    def _line_model_key(self, model_key: str | None) -> Optional[str]:
+        if not model_key:
+            return None
+        return self.LINE_MODEL_MAP.get(self._normalize_model_key(model_key))
+
+    def _merge_line_dicts(self, primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(primary or {})
+        for key, value in (secondary or {}).items():
+            if key not in merged or merged[key] in (None, "", [], {}):
+                merged[key] = value
+        return merged
+
+    def _extract_lines_from_refs(self, obj, model_key: str, request) -> List[Dict[str, Any]]:
+        try:
+            refs = getattr(obj, "refs", {}) or {}
+        except Exception:
+            return []
+
+        if not isinstance(refs, dict):
+            return []
+
+        links = refs.get("links")
+        if not isinstance(links, dict):
+            return []
+
+        line_model_key = self._line_model_key(model_key)
+        if not line_model_key:
+            return []
+
+        target_norm = self._normalize_model_key(line_model_key).rstrip('s')
+        raw_entries: List[Any] = []
+        for key, bucket in links.items():
+            key_norm = self._normalize_model_key(str(key)).rstrip('s')
+            if key_norm != target_norm:
+                continue
+            if isinstance(bucket, list):
+                raw_entries.extend(bucket)
+
+        if not raw_entries:
+            return []
+
+        fetch_ids: Set[int] = set()
+        for entry in raw_entries:
+            if isinstance(entry, dict):
+                ident = entry.get("id")
+            else:
+                ident = entry
+            if isinstance(ident, int):
+                fetch_ids.add(ident)
+            elif isinstance(ident, str) and ident.isdigit():
+                fetch_ids.add(int(ident))
+
+        fetched_map: Dict[int, Dict[str, Any]] = {}
+        if fetch_ids and line_model_key:
+            try:
+                ModelCls, qs = services.get_queryset(line_model_key, request=request)
+                objs = list(qs.filter(pk__in=fetch_ids))
+                for line in objs:
+                    allow_line = policy.field_allowlist(type(line), request=request)
+                    fetched_map[getattr(line, "pk")] = services.to_dict(line, allow=allow_line)
+            except Exception:
+                pass
+
+        entries: List[Dict[str, Any]] = []
+        for entry in raw_entries:
+            if isinstance(entry, dict):
+                data = dict(entry)
+                ident = data.get("id")
+                parsed_id = None
+                if isinstance(ident, int):
+                    parsed_id = ident
+                elif isinstance(ident, str) and ident.isdigit():
+                    parsed_id = int(ident)
+                    data["id"] = parsed_id
+                if parsed_id is not None and parsed_id in fetched_map:
+                    data = self._merge_line_dicts(fetched_map[parsed_id], data)
+                entries.append(data)
+            else:
+                parsed_id = None
+                if isinstance(entry, int):
+                    parsed_id = entry
+                elif isinstance(entry, str) and entry.isdigit():
+                    parsed_id = int(entry)
+                if parsed_id is not None and parsed_id in fetched_map:
+                    entries.append(fetched_map[parsed_id])
+                elif parsed_id is not None:
+                    entries.append({"id": parsed_id})
+
+        return entries
+
+    def _merge_line_records(self, primary: List[Dict[str, Any]], supplements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if not primary:
+            return [dict(item) for item in supplements if isinstance(item, dict)]
+        merged: List[Dict[str, Any]] = [dict(item) for item in primary if isinstance(item, dict)]
+        index: Dict[int, int] = {}
+        for idx, item in enumerate(merged):
+            ident = item.get("id")
+            if isinstance(ident, int):
+                index[ident] = idx
+        for sup in supplements:
+            if not isinstance(sup, dict):
+                continue
+            data = dict(sup)
+            ident = data.get("id")
+            if isinstance(ident, str) and ident.isdigit():
+                ident = int(ident)
+                data["id"] = ident
+            if isinstance(ident, int) and ident in index:
+                merged[index[ident]] = self._merge_line_dicts(merged[index[ident]], data)
+            else:
+                merged.append(data)
+                if isinstance(ident, int):
+                    index[ident] = len(merged) - 1
+        return merged
+
+    def _collect_lines(self, obj, model_key: str, request) -> List[Dict[str, Any]]:
+        db_lines = self._serialize_lines(obj, request)
+        ref_lines = self._extract_lines_from_refs(obj, model_key, request)
+        if not db_lines:
+            return ref_lines
+        if not ref_lines:
+            return db_lines
+        return self._merge_line_records(db_lines, ref_lines)
 
     def _parse_filters(self, request, model_key: str, ModelCls) -> Dict[str, Any]:
         """
@@ -288,30 +420,27 @@ class WCAPIGetView(APIView):
         """Main handler for GET requests with full filtering/search/pagination support."""
         
         if not resolve(model_key):
-            return Response(
-                {"detail": "invalid model"}, 
-                status=status.HTTP_400_BAD_REQUEST
+                return api_response(
+                success=False,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="invalid model",
+                error={"code": "invalid_model", "details": model_key},
             )
 
         # Single record retrieval
         if record_id is not None:
             obj = services.get_item(model_key, request=request, id=record_id)
             if not obj:
-                return Response(
-                    {"record": None}, 
-                    status=status.HTTP_200_OK
-                )
+                return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
             allow = policy.field_allowlist(type(obj), request=request)
-            # Debug: log refs content read from DB to diagnose denormalization visibility
             logger = logging.getLogger(__name__)
+            field_names: Set[str] = set()
             try:
                 refs = getattr(obj, 'refs', {}) or {}
-                # Only log refs when there is meaningful content
                 email_bucket = refs.get('links', {}).get('email') if isinstance(refs.get('links', {}), dict) else None
                 if email_bucket:
                     logger.info("WCAPIGetView: id=%s has %d denorm email links", getattr(obj, 'pk', None), len(email_bucket))
-                # Also fetch authoritative DB-stored refs for comparison when non-empty
                 try:
                     from apps.core.models import Contact as _Contact
                     db_refs = _Contact.objects.filter(pk=getattr(obj, 'pk', None)).values_list('refs', flat=True).first()
@@ -322,10 +451,20 @@ class WCAPIGetView(APIView):
             except Exception:
                 pass
 
+            try:
+                field_names = {f.name for f in obj._meta.get_fields()}
+            except Exception:
+                field_names = set()
+
             payload = services.to_dict(obj, allow=allow)
             if self._should_include_lines(model_key):
-                payload["lines"] = self._serialize_lines(obj, request)
-            return Response({"record": payload}, status=status.HTTP_200_OK)
+                payload["lines"] = self._collect_lines(obj, model_key, request)
+                if "results" in payload and "results" not in field_names and isinstance(payload["results"], list):
+                    payload.pop("results", None)
+            else:
+                if "results" in payload and "results" not in field_names and isinstance(payload["results"], list):
+                    payload.pop("results", None)
+            return api_response(data={"record": payload}, status_code=status.HTTP_200_OK)
 
         # List retrieval with filters, search, and pagination
         ModelCls, qs = services.get_queryset(model_key, request=request)
@@ -392,7 +531,7 @@ class WCAPIGetView(APIView):
                 "pagination": {"limit": limit, "offset": offset}
             }
         
-        return Response(response_data, status=status.HTTP_200_OK)
+        return api_response(data=response_data, status_code=status.HTTP_200_OK)
 
     @extend_schema(
         operation_id="wcapi_get_list_query",
