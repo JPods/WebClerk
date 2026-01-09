@@ -8,10 +8,10 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  TableIcon,
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
+import { PageRoutes } from "../routes/Routes";
 //import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
@@ -123,16 +123,40 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Products",
-    path: "/products",
+    subItems: [
+      { name: "Overview", path: PageRoutes.products },
+      {
+        name: "Bill Of Materials",
+        path: PageRoutes.productsBillOfMaterialList,
+      },
+      { name: "Catalogs", path: PageRoutes.productsCatalogList },
+      { name: "Flows", path: PageRoutes.productsFlowList },
+      { name: "Items", path: PageRoutes.productsItemList },
+      { name: "Item XRefs", path: PageRoutes.productsItemXrefList },
+      { name: "Matrics", path: PageRoutes.productsMatricsList },
+      { name: "Org Items", path: PageRoutes.productsOrgItemList },
+      { name: "Serials", path: PageRoutes.productsSerialList },
+      { name: "Services", path: PageRoutes.productsServiceList },
+      {
+        name: "Specifications",
+        path: PageRoutes.productsSpecificationList,
+      },
+      { name: "Usage", path: PageRoutes.productsUsageList },
+      { name: "Variants", path: PageRoutes.productsVariantList },
+      { name: "Warehouses", path: PageRoutes.productsWarehouseList },
+    ],
   },
   {
     icon: <GridIcon />,
     name: "Transactions",
     subItems: [
-      { name: "Orders", path: "/transactions/orders" },
-      { name: "Invoices", path: "/transactions/invoices" },
-      { name: "Proposals", path: "/transactions/proposals" },
-      { name: "Purchase Orders", path: "/transactions/purchase-orders" },
+      { name: "Orders", path: PageRoutes.transactionsOrders },
+      { name: "Invoices", path: PageRoutes.transactionsInvoices },
+      { name: "Proposals", path: PageRoutes.transactionsProposals },
+      {
+        name: "Purchase Orders",
+        path: PageRoutes.transactionsPurchaseOrders,
+      },
       { name: "Orders Test", path: "/transactions/orders-test" },
     ],
   },
