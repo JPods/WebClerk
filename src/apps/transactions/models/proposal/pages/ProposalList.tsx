@@ -3,7 +3,7 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchProposals } from "../services/proposalApi";
+import { fetchProposals, fetchProposal } from "../services/proposalApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -16,6 +16,7 @@ export default function ProposalList() {
   const [selectedProposal, setSelectedProposal] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -23,7 +24,6 @@ export default function ProposalList() {
     try {
       setLoading(true);
       const res = await fetchProposals();
-      console.log("Fetched proposals data:", res.data.results); // Debug log to check if contacts are returned
       if (res.status === 200) {
         setData(res.data.results);
       } else {
@@ -43,21 +43,59 @@ export default function ProposalList() {
     getProposalData();
   }, [getProposalData]);
 
-  const handleView = (row: any) => {
-    console.log("Viewing proposal:", row); // Debug log
-    setSelectedProposal(row);
-    setFormMode("view");
-    console.log("Set formMode to view, selectedProposal:", row); // Debug log
-  };
+  const openProposal = useCallback(
+    async (row: any, modeToSet: "view" | "edit") => {
+      const proposalId = row?.id;
+      if (!proposalId) {
+        dispatch(
+          showToast({ message: "Proposal id missing", type: "error" })
+        );
+        return;
+      }
 
-  const handleEdit = (row: any) => {
-    setSelectedProposal(row);
-    setFormMode("edit");
-  };
+      setFormMode(modeToSet);
+      setDetailLoading(true);
+      setSelectedProposal(null);
+
+      try {
+        const response = await fetchProposal(proposalId);
+        const detail = response?.data ?? {};
+        const hasDetail = detail && Object.keys(detail).length > 0;
+        if (!hasDetail) {
+          throw new Error("Proposal not found");
+        }
+        setSelectedProposal({ ...row, ...detail });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load proposal";
+        dispatch(showToast({ message, type: "error" }));
+        setFormMode(null);
+        setSelectedProposal(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [dispatch]
+  );
+
+  const handleView = useCallback(
+    (row: any) => {
+      openProposal(row, "view");
+    },
+    [openProposal]
+  );
+
+  const handleEdit = useCallback(
+    (row: any) => {
+      openProposal(row, "edit");
+    },
+    [openProposal]
+  );
 
   const handleAdd = () => {
     setSelectedProposal(null);
     setFormMode("add");
+    setDetailLoading(false);
   };
 
   const handleFormSaved = () => {
@@ -252,20 +290,28 @@ export default function ProposalList() {
                 pointerOnHover
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading proposals...</div>}
-                onRowClicked={(row) => handleView(row)}
+                onRowClicked={handleView}
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <ProposalDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedProposal}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
+            {formMode !== "add" && (detailLoading || !selectedProposal) ? (
+              <ComponentCard>
+                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Loading proposal...
+                </div>
+              </ComponentCard>
+            ) : (
+              <ProposalDetail
+                inline
+                modeProp={formMode}
+                dataProp={formMode === "add" ? null : selectedProposal}
+                onSaved={handleFormSaved}
+                onCancelInline={handleFormCancel}
+              />
+            )}
           </div>
         )}
       </div>
