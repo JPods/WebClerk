@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import {
   FaFileExcel,
@@ -58,6 +58,25 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close export dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setShowExportDropdown(false);
+      }
+    };
+
+    if (showExportDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showExportDropdown]);
 
   // Filter and search logic
   const filteredData = useMemo(() => {
@@ -272,8 +291,11 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
 
           {/* Export Dropdown */}
           {enableExport && (
-            <div className="relative group">
-              <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+            <div className="relative" ref={exportDropdownRef}>
+              <button 
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+              >
                 <FaDownload className="w-4 h-4" />
                 Export
                 {selectedRows.length > 0 && (
@@ -284,7 +306,8 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
               </button>
 
               {/* Dropdown Menu */}
-              <div className="absolute right-0 z-10 hidden mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 group-hover:block">
+              {showExportDropdown && (
+              <div className="absolute right-0 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                 <div className="py-1">
                   <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                     Export All Data
@@ -328,6 +351,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                   )}
                 </div>
               </div>
+              )}
             </div>
           )}
 

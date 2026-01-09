@@ -9,6 +9,7 @@ import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import Badge from "../../../../../components/ui/badge/Badge";
+import ActionDetail from "./ActionDetail";
 
 interface ActionData {
   id: string | number;
@@ -35,6 +36,8 @@ const ActionListPage = () => {
   const [data, setData] = useState<ActionData[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedActions, setSelectedActions] = useState<ActionData[]>([]);
+  const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
 
   // Helper to extract translated text
   const getTranslatedText = useCallback((
@@ -223,6 +226,34 @@ const ActionListPage = () => {
   // Define table columns
   const columns: TableColumn<ActionData>[] = useMemo(
     () => [
+      // {
+      //   name: "#",
+      //   selector: (_row: ActionData, index?: number) => (index !== undefined ? index + 1 : 0),
+      //   sortable: false,
+      //   width: "80px",
+      //   cell: (_row: ActionData, index: number) => (
+      //     <div className="text-center font-medium text-gray-700 dark:text-gray-300">
+      //       {index + 1}
+      //     </div>
+      //   ),
+      // },
+      {
+        name: "ID",
+        selector: (row: ActionData) => row.id || "-",
+        sortable: true,
+        width: "100px",
+        cell: (row: ActionData) => (
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(row);
+            }}
+            className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+          >
+            {row.id || "-"}
+          </div>
+        ),
+      },
       {
         name: "Action",
         selector: (row: ActionData) => row.actionText || "-",
@@ -348,7 +379,7 @@ const ActionListPage = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/actions/${row.id}`);
+                handleView(row);
               }}
               className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
               title="View"
@@ -358,7 +389,7 @@ const ActionListPage = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/actions/${row.id}/edit`);
+                handleEdit(row);
               }}
               className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
               title="Edit"
@@ -465,11 +496,43 @@ const ActionListPage = () => {
     }
   }, [selectedActions, dispatch, fetchActions]);
 
+  // Handle view action
+  const handleView = (row: ActionData) => {
+    setSelectedAction(row);
+    setFormMode("view");
+  };
+
+  // Handle edit action
+  const handleEdit = (row: ActionData) => {
+    setSelectedAction(row);
+    setFormMode("edit");
+  };
+
+  // Handle add new action - navigate to separate page
+  const handleAdd = () => {
+    navigate("/apps/core/models/action/pages/new");
+  };
+
+  // Handle form saved
+  const handleFormSaved = () => {
+    fetchActions();
+    setFormMode(null);
+    setSelectedAction(null);
+  };
+
+  // Handle form cancel
+  const handleFormCancel = () => {
+    setFormMode(null);
+    setSelectedAction(null);
+  };
+
   return (
     <>
       <PageBreadcrumb pageTitle="Actions List" />
-      <ComponentCard>
-        <AdvancedDataTable
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+          <ComponentCard>
+            <AdvancedDataTable
           data={data}
           columns={columns}
           title="Actions"
@@ -493,7 +556,7 @@ const ActionListPage = () => {
                 </button>
               )}
               <button
-                onClick={() => navigate("/actions/new")}
+                onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <FaPlus className="w-4 h-4" />
@@ -501,9 +564,22 @@ const ActionListPage = () => {
               </button>
             </div>
           }
-          onRowClicked={(row) => navigate(`/actions/${row.id}`)}
+          onRowClicked={handleEdit}
         />
       </ComponentCard>
+    </div>
+    {formMode && (
+      <div className="lg:col-span-2">
+        <ActionDetail
+          inline
+          modeProp={formMode}
+          dataProp={selectedAction}
+          onSaved={handleFormSaved}
+          onCancelInline={handleFormCancel}
+        />
+      </div>
+    )}
+  </div>
     </>
   );
 };
