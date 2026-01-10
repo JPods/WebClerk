@@ -12,10 +12,8 @@ ChoiceList = Tuple[Choice, ...]
 CONTACT_ROLE_CHOICES: Final[ChoiceList] = (
     ("", "---------"),
     ("user", "User"),
-    ("admin", "Administrator"),
-    ("manager", "Manager"),
-    ("staff", "Staff"),
-    ("guest", "Guest"),
+    ("employee", "Employee"),
+    ("admin", "Admin"),
 )
 
 ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
