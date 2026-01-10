@@ -86,6 +86,12 @@ apps/transactions/models/sales_order/pages/
 └── SalesOrderDisplay.tsx   # Order details view
 ```
 
+### Container Components
+- Live close to the feature they coordinate (for example `apps/{app}/models/{model}/containers/` or `src/features/{domain}/SomeContainer.tsx`) so multiple entry points can reuse them.
+- Keep routing layers thin: pages import the container and forward props; containers own fetching, state, and orchestration concerns.
+- Avoid piling every container into `{model}/pages/`; reserve that folder for route-driven page shells only.
+- When sharing a container between frameworks (Vite SPA and Next.js), expose it through the feature index and let each runtime supply its own page wrapper.
+
 ## 🔗 API Integration
 
 ### Service Files

@@ -8,6 +8,14 @@ Establish reusable containers that encapsulate behaviors shared across proposals
 - Bulk operations on current list selections such as exporting fields or applying values.
 - Context-aware history and comments surfaces for contacts and transactions (proposal, order, invoice, purchase).
 
+## Placement Guidelines
+
+- Store each container beside the feature it orchestrates so every entry point shares the same logic (for example [src/features/customer/containers/CustomerPickerContainer.tsx](src/features/customer/containers/CustomerPickerContainer.tsx)).
+- Keep routing shells thin: pages under [src/apps](src/apps) or Next.js `pages/` should import containers and hand through props while containers own data fetching, state, and orchestration.
+- When a container spans multiple domains (customer selection used by proposals, orders, invoices), host it in a cross-domain shared feature such as [src/features/shared/customerSelection](src/features/shared/customerSelection) and expose adapters per consumer.
+- Avoid burying shared containers inside app-specific folders like [src/apps/orgs/models/customer](src/apps/orgs/models/customer); that flags them as app-private and discourages cross-domain reuse.
+- Only duplicate containers when business rules diverge; otherwise extend via adapters, props, or composition.
+
 ## Container Catalog
 
 1. **Search & Select**
