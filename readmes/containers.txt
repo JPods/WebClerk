@@ -1,24 +1,63 @@
-We need containers we can display in some and/or all models
+## Purpose
 
-container for searching and changing the selection of the current list
+Establish reusable containers that encapsulate behaviors shared across proposals, orders, invoices, purchases, work orders, actions, and other CRM entities. Containers should provide a consistent user workflow, connect to underlying data services, and expose extension points for model-specific tweaks.
 
-container for exporting selected field from the current model list
+## Target Behaviors
 
-container for applying values to field(s) in the current model list
+- Search and selection flows for items, customers, vendors, contacts, and other related entities.
+- Bulk operations on current list selections such as exporting fields or applying values.
+- Context-aware history and comments surfaces for contacts and transactions (proposal, order, invoice, purchase).
 
+## Container Catalog
 
+1. **Search & Select**
+	- Items: injectable into proposal, order, invoice, purchase, work order, action.
+	- Customers: shared by proposal, order, invoice.
+	- Vendors: shared by purchase order flows.
+	- Contacts: support ship-to, bill-to, customer, vendor, rep, support assignments.
+2. **List Utilities**
+	- Selection Manager: switch active record set, bookmark saved filters.
+	- Exporter: choose fields per model and deliver CSV/Excel/clipboard payloads.
+	- Bulk Apply: assign common values (status, tags, due dates) across selection.
+3. **History & Notes**
+	- Contact activity timeline with scoped filters.
+	- Transaction history timelines per proposal/order/invoice/purchase.
+	- Comment threads segmented into notes, process, public, foreign collections.
 
-the containers need to know if the model they are supporting 
+## Implementation Plan
 
-searching for items to insert into proposal, order, invoice, purchase, work_order, action, more
+1. **Define Data Contracts**
+	- Draft TypeScript interfaces describing expected inputs/outputs for each container.
+	- Map entity-specific fields to generic slots (id, label, secondary, metadata) to keep UI reusable.
+	- Document required APIs per behavior (search endpoints, history feeds, comment services).
+2. **Build Container Framework**
+	- Create a base React container component handling lifecycle, loading states, error surfaces, and analytics events.
+	- Provide hooks for injecting entity adapters (e.g., useProposalItemSearch) so each model supplies only data logic.
+3. **Compose Behavior Modules**
+	- Implement Search & Select with shared query builder, column presets, and multi-select handoff callbacks.
+	- Implement List Utilities as modular panels attachable to any list layout.
+	- Implement History & Notes with tabbed navigation and lazy data fetching.
+4. **Integrate Across Models**
+	- Pilot integration in one workflow per container (e.g., proposal items, invoice customer search) to validate contracts.
+	- Roll out to remaining models, capturing deltas in adapters rather than container internals.
+	- Add Storybook coverage demonstrating each container with mock data.
+5. **Testing & Telemetry**
+	- Snapshot tests for rendering states and contract enforcement.
+	- Cypress flows covering search, selection, export, bulk apply, and history interactions.
+	- Instrument container usage metrics to monitor adoption and performance.
 
-searching for customers to insert into proposal, order, invoice
+## Open Questions & Decisions
 
-searching for vendor to insert into purchase_order
+- Which data loading strategy (REST, GraphQL, SWR) should the containers standardize on?
+	- Decision: keep the container layer flexible so adapters can swap REST or GraphQL clients with minimal churn; abstract data hooks must hide transport details to allow reasonable future shifts.
+- Do we need role-based visibility rules baked into the containers or applied upstream?
+	- Decision: enforce role-aware responses at the API layer; containers consume endpoints that already honor permissions and display server-provided scopes.
+- Should comments honor per-tenant schemas (e.g., foreign vs public) via configuration or runtime metadata?
+	- Decision: treat WebClerk as single-tenant; rely on record UUIDs to coordinate cross-instance syncing without extra tenant metadata in containers.
+- How will offline caching or optimistic updates affect bulk apply workflows?
+	- Proposal: maintain "pending" records that stage bulk changes; when a target record loads prior to publish, purge pending entries to avoid conflicts. See [readmes/offline-optimistic-updates.md](readmes/offline-optimistic-updates.md) for the detailed workflow and open items.
 
-searching for contacts to assign actions, add shipto, billto, support, customer, vendor, rep, etc....
+## Next Actions
 
-
-containers for contacts, transation history for proposal, order, invoice, purchase, 
-
-comments{notes:[], process, public, foreign}
+- [ ] Confirm with WebClerk3 API leads that idempotent request handling and conflict-resolution endpoints align with [webClerk3/readmes/pending-records-offline-updates.md](webClerk3/readmes/pending-records-offline-updates.md).
+- [ ] Coordinate QA to schedule integration tests that exercise pending-record workflows between containers and WebClerk3 APIs.
