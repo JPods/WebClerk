@@ -1,0 +1,24 @@
+We need containers we can display in some and/or all models
+
+container for searching and changing the selection of the current list
+
+container for exporting selected field from the current model list
+
+container for applying values to field(s) in the current model list
+
+
+
+the containers need to know if the model they are supporting 
+
+searching for items to insert into proposal, order, invoice, purchase, work_order, action, more
+
+searching for customers to insert into proposal, order, invoice
+
+searching for vendor to insert into purchase_order
+
+searching for contacts to assign actions, add shipto, billto, support, customer, vendor, rep, etc....
+
+
+containers for contacts, transation history for proposal, order, invoice, purchase, 
+
+comments{notes:[], process, public, foreign}

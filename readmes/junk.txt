@@ -109,3 +109,12 @@ model_nameDetail.tsx pages should not calling contact models
 At the top of list pages we need a keyword search, button to wider search, script, help (link to web), show all, show subset, print, 
 
 In detail form CRUD, transfer between associated transactions, selectlists, read-only, buttons (green)
+
+
+Install pnpm first (e.g., corepack enable then corepack prepare pnpm@latest --activate), or run the build via npm: npm run build.
+
+
+
+I think our endpoint should be uniform for calling model list and detail pages. The pages should be in apps/app_name/models/model_name/pages/model_nameList.tsx and model_nameDetail.tsx
+
+http://localhost:5173/core/actions/list
