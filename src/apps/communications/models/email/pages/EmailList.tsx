@@ -11,7 +11,7 @@ import { useTheme } from "../../../../../context/ThemeContext";
 import EmailDetail from "./EmailDetail";
 import Badge from "@/components/ui/badge/Badge";
 import { dynamicData } from "../../../../../model/dynamicData";
-import EmailListMob from "./EmailListMob";
+import EmailListMobile from "../components/EmailListMobile";
 
 export default function EmailList() {
   const { theme } = useTheme();
@@ -281,7 +281,7 @@ export default function EmailList() {
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:!bg-[#1e2636] dark:bg-gray-900 h-[calc(100vh-265px)]">
               {formMode ? (
                 <div className="flex flex-col">
-                  <EmailListMob
+                  <EmailListMobile
                     dataProp={filteredData}
                     handleView={handleView}
                     handleEdit={handleEdit}

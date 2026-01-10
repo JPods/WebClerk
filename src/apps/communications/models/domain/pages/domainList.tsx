@@ -1,7 +1,13 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { getRecord } from "../../../../../api/wcapi";
 import { fetchDomains, deleteDomain } from "../services/domainApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
@@ -10,7 +16,15 @@ import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import DomainDetail from "./DomainDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
-import DomainListMob from "./DomainListMob";
+
+type DomainColumnConfig = {
+  key: string;
+  label: string;
+  width?: string;
+  sortable?: boolean;
+  getValue: (row: dynamicData) => string;
+  renderCell?: (row: dynamicData) => ReactNode;
+};
 
 export default function DomainList() {
   const { theme } = useTheme();
@@ -144,24 +158,46 @@ export default function DomainList() {
     [filteredSearch]
   );
   /* ---------------- Columns ---------------- */
+  const columnConfig = useMemo<DomainColumnConfig[]>(
+    () => [
+      {
+        key: "id",
+        label: "id",
+        width: "5%",
+        sortable: true,
+        getValue: (row) => (row.id !== undefined ? String(row.id) : "--"),
+      },
+      {
+        key: "path",
+        label: "path",
+        width: "75%",
+        sortable: true,
+        getValue: (row) => (row.path ? String(row.path) : "--"),
+        renderCell: (row) =>
+          row.path ? highlightMatch(row.path.toString()) : "--",
+      },
+      {
+        key: "type",
+        label: "type",
+        width: "10%",
+        sortable: true,
+        getValue: (row) => (row.type ? String(row.type) : "--"),
+        renderCell: (row) =>
+          row.type ? highlightMatch(row.type.toString()) : "--",
+      },
+    ],
+    [highlightMatch]
+  );
+
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
-      {
-        name: "path",
-        selector: (row) => row.path || "--",
-        cell: (row) => (row.path ? highlightMatch(row.path.toString()) : "--"),
-        sortable: true,
-        width: "75%",
-      },
-      {
-        name: "type",
-        selector: (row) => row.type || "--",
-        cell: (row) => (row.type ? highlightMatch(row.type.toString()) : "--"),
-        sortable: true,
-        width: "10%",
-      },
-
+      ...columnConfig.map((col) => ({
+        name: col.label,
+        selector: (row) => col.getValue(row),
+        cell: col.renderCell ?? ((row) => col.getValue(row)),
+        sortable: col.sortable,
+        width: col.width,
+      })),
       {
         name: "action",
         cell: (row) => (
@@ -179,7 +215,7 @@ export default function DomainList() {
         button: true,
       },
     ],
-    [highlightMatch]
+    [columnConfig, handleEdit, handleView]
   );
 
   return (
@@ -241,13 +277,12 @@ export default function DomainList() {
 
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:!bg-[#1e2636] dark:bg-gray-900 h-[calc(100vh-265px)]">
               {formMode ? (
-                <div className="flex flex-col">
-                  <DomainListMob
-                    dataProp={filteredData}
-                    handleView={handleView}
-                    handleEdit={handleEdit}
-                  />
-                </div>
+                <DomainListCards
+                  data={filteredData}
+                  columns={columnConfig}
+                  onView={handleView}
+                  onEdit={handleEdit}
+                />
               ) : (
                 <DataTable
                   columns={userColumns.map((col) => ({
@@ -286,5 +321,53 @@ export default function DomainList() {
         )}
       </div>
     </>
+  );
+}
+
+type DomainListCardsProps = {
+  data: dynamicData[];
+  columns: DomainColumnConfig[];
+  onView: (row: dynamicData) => void;
+  onEdit: (row: dynamicData) => void;
+};
+
+function DomainListCards({ data, columns, onView, onEdit }: DomainListCardsProps) {
+  return (
+    <div className="flex flex-col">
+      {data.map((row, index) => (
+        <div
+          key={row.id ?? `domain-card-${index}`}
+          className="flex flex-col min-h-[220px] border-t"
+        >
+          <div className="space-y-1 text-sm px-2 py-3">
+            {columns.map((column) => (
+              <p key={`${column.key}-${row.id ?? index}`}>
+                <strong>{column.label}:</strong>{" "}
+                {column.renderCell ? column.renderCell(row) : column.getValue(row)}
+              </p>
+            ))}
+          </div>
+          <div className="mt-auto px-2 pb-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
+            <button
+              onClick={() => onView(row)}
+              title="View"
+              className="h-[25px] w-[25px] flex items-center justify-center border rounded-md hover:text-green-600"
+            >
+              <FaEye className="text-green-600 hover:scale-110" />
+            </button>
+            <button
+              onClick={() => onEdit(row)}
+              title="Edit"
+              className="h-[25px] w-[25px] flex items-center justify-center border rounded-md hover:text-blue-600"
+            >
+              <FaEdit className="text-blue-600 hover:scale-110" />
+            </button>
+          </div>
+        </div>
+      ))}
+      {!data.length && (
+        <p className="text-center text-gray-500 py-6">No domain found.</p>
+      )}
+    </div>
   );
 }
