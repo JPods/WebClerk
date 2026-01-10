@@ -104,11 +104,19 @@ class AuthLoginView(APIView):
         except Exception:
             pass
 
-        # Issue JWT tokens
+        # Issue JWT tokens with role claim
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
+        # Add role to token claims
+        access["role"] = getattr(user, "role", "user")
+        refresh["role"] = getattr(user, "role", "user")
         data = {
-            "user": {"id": user.pk, "email": getattr(user, "email", None), "username": getattr(user, "username", None)},
+            "user": {
+                "id": user.pk,
+                "email": getattr(user, "email", None),
+                "username": getattr(user, "username", None),
+                "role": getattr(user, "role", None),
+            },
             "access": str(access),
             "refresh": str(refresh),
         }
@@ -209,7 +217,7 @@ class AuthRegisterView(APIView):
                 name_last=name_last or "Account",
                 company=company,
                 title=title,
-                role='user'
+                role='user'  # Default role is user; admin/employee must be set by admin
             )
         except Exception as e:
             return Response({"ok": False, "code": 400, "message": "failed to create user", "error": str(e)}, status=400)
@@ -218,9 +226,11 @@ class AuthRegisterView(APIView):
         try:
             user = authenticate(request, username=email, password=password)
             if user and getattr(user, "is_active", True):
-                # Issue JWT tokens
+                # Issue JWT tokens with role claim
                 refresh = RefreshToken.for_user(user)
                 access = refresh.access_token
+                access["role"] = getattr(user, "role", "user")
+                refresh["role"] = getattr(user, "role", "user")
                 data = {
                     "user": {
                         "id": user.pk, 

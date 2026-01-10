@@ -27,23 +27,24 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
     # Role-based field access rules
     role_rules = {
         'admin': {
-            'view': None,  # None means all fields
-            'edit': None,  # None means all fields
+            'view': None,  # All fields
+            'edit': None,
         },
-        'manager': {
-            'view': None,  # Can view all fields
-            'edit': None,  # Can edit all fields
+        'employee': {
+            'view': None,  # All fields
+            'edit': base_fields + [
+                'status', 'notes', 'description', 'amount', 'total', 'price', 'quantity'
+            ],
         },
         'user': {
             'view': base_fields + [
-                'name', 'status', 'customer_id', 'vendor_id',
-                'amount', 'total', 'price', 'quantity', 'description'
+                'name', 'status', 'description'
             ],
             'edit': base_fields + [
-                'status', 'notes', 'description'
+                'description'
             ],
         },
-        '': {  # Anonymous/empty role
+        '': {
             'view': base_fields,
             'edit': [],
         }
@@ -90,9 +91,9 @@ def has_permission(user, permission: str, obj=None) -> bool:
 
     # Role-based permissions
     role_permissions = {
-        'admin': ['*'],  # All permissions
-        'manager': [
-            'view_all', 'edit_own', 'approve', 'manage_team'
+        'admin': ['*'],
+        'employee': [
+            'view_all', 'edit_own', 'edit_team', 'create', 'approve', 'manage_team'
         ],
         'user': [
             'view_own', 'edit_own', 'create'
@@ -127,10 +128,11 @@ def get_user_permissions(user) -> List[str]:
     user_role = getattr(user, 'role', '')
     role_permissions = {
         'admin': ['*'],
-        'manager': [
+        'employee': [
             'view_all', 'edit_own', 'edit_team', 'approve', 'manage_team',
             'create_invoice', 'edit_invoice', 'delete_invoice',
-            'create_order', 'edit_order', 'approve_order'
+            'create_order', 'edit_order', 'approve_order',
+            'create', 'create_proposal', 'edit_proposal', 'view_invoice', 'view_order'
         ],
         'user': [
             'view_own', 'edit_own', 'create',
