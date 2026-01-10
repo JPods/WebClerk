@@ -10,6 +10,7 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router";
 import { createAction, updateAction } from "../services/actionApi";
+import { PageRoutes } from "../../../../../routes/Routes";
 
 // Action form schema
 const actionSchema = z.object({
@@ -155,7 +156,7 @@ export default function ActionDetail({
           onSaved();
         }
         if (!inline) {
-          navigate("/apps/core/models/action/pages");
+          navigate(PageRoutes.actionList);
         }
       }
     } catch (error: any) {
@@ -407,7 +408,7 @@ export default function ActionDetail({
               {!inline && (
                 <button
                   type="button"
-                  onClick={() => navigate("/apps/core/models/action/pages")}
+                  onClick={() => navigate(PageRoutes.actionList)}
                   className="flex items-center px-6 py-2.5 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
