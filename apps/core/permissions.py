@@ -34,43 +34,30 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
     model_name = getattr(model, '_meta', {}).get('model_name', '').lower()
 
     base_fields = ['id', 'uuid', 'dt_created', 'dt_modified']
-    ownership_fields = ['created_by', 'owner', 'contact', 'user', 'assigned_to', 'assignee']
 
-    model_name = getattr(model, '_meta', {}).get('model_name', '').lower()
-    all_fields = _all_fields(model)
-
-    # Default fallbacks
-    default_rules = {
-        'admin': {'view': None, 'edit': None},
-        'employee': {'view': None, 'edit': None},
+    # Role-based field access rules
+    role_rules = {
+        'admin': {
+            'view': None,  # None means all fields
+            'edit': None,  # None means all fields
+        },
+        'manager': {
+            'view': None,  # Can view all fields
+            'edit': None,  # Can edit all fields
+        },
         'user': {
-            'view': base_fields + ownership_fields + ['name', 'status', 'description'],
-            'edit': base_fields + ownership_fields + ['description', 'status'],
+            'view': base_fields + [
+                'name', 'status', 'customer_id', 'vendor_id',
+                'amount', 'total', 'price', 'quantity', 'description'
+            ],
+            'edit': base_fields + [
+                'status', 'notes', 'description'
+            ],
         },
-        '': {'view': base_fields, 'edit': []},
-    }
-
-    # Per-model overrides
-    contact_view_user = base_fields + [
-        'email', 'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
-        'company', 'title', 'department', 'comment', 'attention',
-        'is_active', 'dt_joined'
-    ]
-    contact_edit_user = base_fields + [
-        'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
-        'company', 'title', 'department', 'comment'
-    ]
-
-    contact_edit_employee = _without(all_fields, [
-        'role', 'is_superuser', 'is_staff', 'password', 'last_login'
-    ]) or contact_edit_user
-
-    model_rules = {
-        'contact': {
-            'admin': {'view': None, 'edit': None},
-            'employee': {'view': None, 'edit': contact_edit_employee},
-            'user': {'view': contact_view_user, 'edit': contact_edit_user},
-        },
+        '': {  # Anonymous/empty role
+            'view': base_fields,
+            'edit': [],
+        }
     }
 
     role_rules = model_rules.get(model_name, default_rules)
