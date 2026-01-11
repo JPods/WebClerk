@@ -111,6 +111,8 @@ export default function ContactList() {
           element.name_last,
           element.company,
           element.role,
+          element.customer_id,
+          element.employee_id,
         ].map((value) => value && value.toString().trim().toLowerCase()); // Trim and lowercase each value
 
         // Check if any of the column values includes the search query
@@ -182,11 +184,29 @@ export default function ContactList() {
         width: "15%",
       },
       {
+        name: "customer_id",
+        selector: (row) => row.customer_id || "--",
+        cell: (row) =>
+          row.customer_id ? highlightMatch(row.customer_id.toString()) : "--",
+        sortable: true,
+        width: "12%",
+      },
+      {
         name: "role",
         selector: (row) => row.role || "--",
         cell: (row) => (row.role ? highlightMatch(row.role.toString()) : "--"),
         sortable: true,
         width: "10%",
+      },
+      {
+        name: "employee_id",
+        selector: (row) => row.employee_id || "--",
+        cell: (row) =>
+          row.employee_id
+            ? highlightMatch(row.employee_id.toString())
+            : "--",
+        sortable: true,
+        width: "12%",
       },
       {
         name: "is_active",
