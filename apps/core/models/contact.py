@@ -96,7 +96,13 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
     attention = models.CharField(max_length=201, blank=True, help_text="Auto-filled attention line from first and last name")
     
     
-    # Business Fields
+    # Business Fields a person can be associated with multiple orgs. A vendor may be a manufaucturer, customer, and a rep. Tranaction differ but the contact and relationship with the person is the same.
+    employee_id = models.BigIntegerField(null=True, blank=True, help_text="Associated employee ID if applicable")
+    customer_id = models.BigIntegerField(null=True, blank=True, help_text="Associated customer ID if applicable")
+    vendor_id = models.BigIntegerField(null=True, blank=True, help_text="Associated vendor ID if applicable")
+    manufacturer_id = models.BigIntegerField(null=True, blank=True, help_text="Associated manufacturer ID if applicable")
+    rep_id = models.BigIntegerField(null=True, blank=True, help_text="Associated sales rep ID if applicable")
+    other_id = models.BigIntegerField(null=True, blank=True, help_text="Other associated ID if applicable")
     company = models.CharField(max_length=200, blank=True, help_text="Company name")
     title = models.CharField(max_length=100, blank=True, help_text="Job title")
     department = models.CharField(max_length=100, blank=True, help_text="Department")

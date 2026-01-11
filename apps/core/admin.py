@@ -19,11 +19,57 @@ from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedge
 @admin.register(Contact)
 class ContactAdmin(BaseUserAdmin):
     """Admin interface for Contact model (custom user model)."""
-    list_display = ('id', 'email', 'name_first', 'name_last', 'company', 'role', 'is_active', 'is_staff')
+    scalar_fields = (
+        'attention',
+        'comment',
+        'company',
+        'customer_id',
+        'department',
+        'dt_created',
+        'dt_joined',
+        'dt_modified',
+        'email',
+        'employee_id',
+        'health_rating',
+        'id',
+        'ida',
+        'is_active',
+        'is_archived',
+        'is_deleted',
+        'is_staff',
+        'is_superuser',
+        'last_login',
+        'manufacturer_id',
+        'name_first',
+        'name_last',
+        'name_middle',
+        'name_prefix',
+        'name_suffix',
+        'other_id',
+        'password',
+        'rep_id',
+        'role',
+        'security_level',
+        'title',
+        'uuid',
+        'vendor_id',
+        'version',
+    )
+    list_display = scalar_fields
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'name_first', 'name_last', 'company')
     readonly_fields = ('dt_joined', 'uuid')
     ordering = ('name_last', 'name_first')
+    object_fields = (
+        'actions',
+        'comments',
+        'groups',
+        'metadata',
+        'prefs',
+        'refs',
+        'user_permissions',
+    )
+    detail_fields = scalar_fields + object_fields
     
     # Specify the fields to be used in displaying the User model
     # These are the fields that inherit from BaseUserAdmin but we override for our Contact model
@@ -38,7 +84,17 @@ class ContactAdmin(BaseUserAdmin):
         }),
         ('Company info', {
             'classes': ('wide',),
-            'fields': ('company', 'title', 'department'),
+            'fields': (
+                'company',
+                'title',
+                'department',
+                'employee_id',
+                'customer_id',
+                'vendor_id',
+                'manufacturer_id',
+                'rep_id',
+                'other_id',
+            ),
         }),
         ('Permissions', {
             'classes': ('wide',),
@@ -50,6 +106,7 @@ class ContactAdmin(BaseUserAdmin):
         (None, {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix')}),
         ('Company info', {'fields': ('company', 'title', 'department')}),
+        ('Org relationships', {'fields': ('employee_id', 'customer_id', 'vendor_id', 'manufacturer_id', 'rep_id', 'other_id')}),
         ('Permissions', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('dt_joined',)}),
         ('Additional Info', {'fields': ('comment', 'refs', 'prefs', 'metadata')}),
@@ -67,6 +124,12 @@ class ContactAdmin(BaseUserAdmin):
         kwargs.pop('username', None)
         return super().get_form(request, obj, **kwargs)
 
+    def get_fields(self, request, obj=None):
+        # Provide exhaustive field listing for detail views without disturbing add/change layouts.
+        if obj:
+            return self.detail_fields
+        return super().get_fields(request, obj)
+
 
 @admin.register(Action)
 class ActionAdmin(admin.ModelAdmin):
@@ -75,6 +138,58 @@ class ActionAdmin(admin.ModelAdmin):
     list_filter = ('kanban_column', 'status', 'priority')
     search_fields = ('project_id', 'action')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
+    # Keep scalar then object fields alphabetical for detail view coherence.
+    scalar_fields = (
+        'action_id',
+        'burndown',
+        'difficulty',
+        'dt_completed',
+        'dt_created',
+        'dt_due',
+        'dt_end',
+        'dt_expected',
+        'dt_modified',
+        'dt_start',
+        'dt_updated',
+        'duration',
+        'health_rating',
+        'id',
+        'ida',
+        'is_active',
+        'is_archived',
+        'is_deleted',
+        'kanban_column',
+        'linkage',
+        'percent_complete',
+        'priority',
+        'project_id',
+        'project_name',
+        'sequence',
+        'security_level',
+        'status',
+        'uuid',
+        'version',
+    )
+    object_fields = (
+        'action',
+        'actions',
+        'assigned_to',
+        'comments',
+        'completed_by',
+        'created_by',
+        'description',
+        'due_by',
+        'end_by',
+        'expected_by',
+        'languages',
+        'metadata',
+        'prefs',
+        'project_metadata',
+        'refs',
+        'start_by',
+        'updated_by',
+    )
+    fields = scalar_fields + object_fields
     actions = ['assign_project_id']
 
     class AssignProjectIdActionForm(ActionForm):

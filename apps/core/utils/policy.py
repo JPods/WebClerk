@@ -37,8 +37,11 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         # Check if user is staff/admin - they get full access
         if hasattr(user, 'is_staff') and user.is_staff:
             return qs
-        if hasattr(user, 'role') and user.role in ['staff', 'admin']:
+        role_value = getattr(user, 'role', None)
+        normalized_role = role_value.strip().lower() if isinstance(role_value, str) else None
+        if normalized_role in {'staff', 'admin'}:
             return qs
+        user_role = normalized_role
             
         # Initialize constraints list
         constraints = Q()
@@ -56,9 +59,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         # Apply role-based constraints from settings
         role_constraints = getattr(settings, 'WCAPI_ROLE_CONSTRAINTS', {})
         
-        if hasattr(user, 'role') and user.role:
-            user_role = user.role.lower()
-            
+        if user_role:
             # Model-specific role constraints
             model_role_constraints = role_constraints.get(model_key, {})
             role_specific_constraints = model_role_constraints.get(user_role, {})
@@ -77,9 +78,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         # Apply publish status filtering based on user role
         publish_constraints = getattr(settings, 'WCAPI_PUBLISH_CONSTRAINTS', {})
         
-        if hasattr(user, 'role') and user.role:
-            user_role = user.role.lower()
-            
+        if user_role:
             # Models that require publish status
             published_only_models = publish_constraints.get('published_only_models', [])
             if model_key in published_only_models:
@@ -96,9 +95,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         # Apply reserved status filtering
         reserved_constraints = getattr(settings, 'WCAPI_RESERVED_CONSTRAINTS', {})
         
-        if hasattr(user, 'role') and user.role:
-            user_role = user.role.lower()
-            
+        if user_role:
             # Models that have reserved status
             reserved_models = reserved_constraints.get('reserved_models', [])
             if model_key in reserved_models:
@@ -122,8 +119,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
         
         # Apply status-based constraints
         status_constraints = model_custom_constraints.get('status_constraints', {})
-        if hasattr(user, 'role') and user.role:
-            user_role = user.role.lower()
+        if user_role:
             status_filter = status_constraints.get(user_role)
             if status_filter:
                 constraints &= Q(status=status_filter)
@@ -151,7 +147,7 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
             
             # Only show records from the last N days for certain roles
             days_back = model_time_constraints.get('days_back', 30)
-            if hasattr(user, 'role') and user.role in ['user', 'member']:
+            if user_role in ['user', 'member']:
                 cutoff_date = timezone.now() - timedelta(days=days_back)
                 constraints &= Q(dt_created__gte=cutoff_date)
                 
