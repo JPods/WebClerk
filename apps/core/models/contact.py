@@ -174,7 +174,8 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
 
     def save(self, *args, **kwargs):  # ensure role and attention sync
         self.attention = f"{self.name_first} {self.name_last}".strip()
-        if self.is_superuser and self.role != 'admin':
+        # Only set role to admin for superusers if they don't already have a role set
+        if self.is_superuser and not self.role:
             self.role = 'admin'
         super().save(*args, **kwargs)
     
