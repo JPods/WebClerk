@@ -49,9 +49,23 @@ export const fetchContacts = async (id: any = "") => {
     const res = await apiClient.get(
       PostLoginURL.allTypes + "model_name=contact" + (id ? `&id=${id}` : "")
     );
-    return res;
+    const payload = unwrap<any>(res);
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      return { data: payload };
+    }
+    if (Array.isArray(payload)) {
+      return { data: { results: payload } };
+    }
+    return { data: { results: [] } };
   } catch (error: any) {
-    return error.response?.data || error.message;
+    const payload = unwrap<any>(error?.response);
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      return { data: payload };
+    }
+    if (Array.isArray(payload)) {
+      return { data: { results: payload } };
+    }
+    return { data: { results: [] } };
   }
 };
 

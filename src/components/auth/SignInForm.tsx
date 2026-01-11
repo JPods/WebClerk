@@ -9,28 +9,13 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { LoginFormData, loginSchema } from "../../validations/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { login, userDetails } from "../../api/auth";
+import { login, userDetails, mapApiProfileToUser } from "../../api/auth";
 import { showToast } from "../../store/slices/toastSlice";
-import { setUser, type User } from "../../store/slices/authSlice";
+import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
 // import axiosInstance from "../../api/axios";
 // import { PostLoginURL } from "../../routes/network";
 
-
-const mapProfileToUser = (profile: any): User => ({
-  id: profile?.id ?? "",
-  uuid: profile?.uuid ?? "",
-  email: profile?.email ?? "",
-  role: profile?.role ?? [],
-  name_first: profile?.name_first ?? "",
-  name_middle: profile?.name_middle ?? "",
-  name_last: profile?.name_last ?? "",
-  rank: profile?.rank ?? null,
-  company: profile?.company ?? null,
-  date_joined: profile?.date_joined ?? null,
-  salutation: profile?.salutation ?? null,
-  attention: profile?.attention ?? null,
-});
 
 export default function SignInForm() {
 
@@ -85,7 +70,7 @@ export default function SignInForm() {
           console.warn("Failed to fetch profile after login", profileError);
         }
 
-        dispatch(setUser(mapProfileToUser(profilePayload)));
+        dispatch(setUser(mapApiProfileToUser(profilePayload)));
         dispatch(showToast({ message: "Login successful!", type: "success" }));
      } catch (error : any) {
        dispatch(showToast({ message: error, type: "error" }));

@@ -46,12 +46,16 @@ export default function ContactList() {
     setLoading(true);
     try {
       const res = await fetchContacts();
-      setData(res.data.results);
-      setFilteredData(res.data.results);
+      const results = Array.isArray(res?.data?.results)
+        ? res.data.results
+        : [];
+      setData(results);
+      setFilteredData(results);
       if (contactId) {
         const contactRes = await getRecord("contact", contactId);
-        setSelectedContact(contactRes.record);
-        setFilteredData(contactRes.record);
+        const record = contactRes?.record ?? null;
+        setSelectedContact(record);
+        setFilteredData(record ? [record] : []);
       }
     } finally {
       setLoading(false);
