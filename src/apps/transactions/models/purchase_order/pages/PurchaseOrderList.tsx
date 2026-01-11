@@ -1,21 +1,21 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../../../../../components/common/PageBreadcrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchPurchaseOrders, fetchPurchaseOrderDetail } from "../services/purchaseOrderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import PurchaseOrderDetail from "./PurchaseOrderDetail";
 import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
 
 const numericPurchaseOrderKeys = ["dt_created", "id_vendor"]; 
 
 export default function PurchaseOrderList() {
-  const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
+  const [selectedPurchaseOrders, setSelectedPurchaseOrders] = useState<any[]>([]);
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -129,8 +129,24 @@ export default function PurchaseOrderList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
+  const userColumns: TableColumn<any>[] = useMemo(() => [
+    { 
+      name: "ID", 
+      selector: (row) => row.id, 
+      sortable: true, 
+      width: "80px",
+      cell: (row) => (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(row);
+          }}
+          className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+        >
+          {row.id}
+        </div>
+      ),
+    },
     {
       name: "Purchase Order No",
       selector: (row) => row.purchase_order_no || "--",
@@ -149,22 +165,43 @@ export default function PurchaseOrderList() {
     },
     {
       name: "Action",
+      width: "140px",
       cell: (row) => (
         <div className="flex gap-2">
-          <button onClick={() => handleView(row)} title="View">
-            <FaEye className="text-blue-600 hover:scale-110 transition" />
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleView(row); }} 
+            title="View"
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
+          >
+            <FaEye className="w-4 h-4" />
           </button>
-          <button onClick={() => handleEdit(row)} title="Edit">
-            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleEdit(row); }} 
+            title="Edit"
+            className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
+          >
+            <FaEdit className="w-4 h-4" />
           </button>
-          <button onClick={() => handleDelete(row)} title="Delete">
-            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleDelete(row); }} 
+            title="Delete"
+            className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+          >
+            <FaTrash className="w-4 h-4" />
           </button>
         </div>
       ),
-      ignoreRowClick: true,
     },
-  ];
+  ], [handleView, handleEdit, handleDelete]);
+
+  // Filters configuration
+  const filters: ColumnFilter[] = useMemo(() => [
+    {
+      key: "purchase_order_no",
+      label: "PO Number",
+      type: "text",
+    },
+  ], []);
 
   return (
     <>
@@ -172,31 +209,29 @@ export default function PurchaseOrderList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Purchase Order
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading purchase orders...</div>}
-                onRowClicked={handleView}
-              />
-            </div>
+            <AdvancedDataTable
+              data={data}
+              columns={userColumns}
+              title="Purchase Orders"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedPurchaseOrders}
+              exportFileName="purchase_orders"
+              searchPlaceholder="Search purchase orders..."
+              noDataMessage="No purchase orders found"
+              customActions={
+                <button
+                  onClick={handleAdd}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <FaPlus className="w-4 h-4" />
+                  Add Purchase Order
+                </button>
+              }
+              onRowClicked={handleEdit}
+            />
           </ComponentCard>
         </div>
         {formMode && (

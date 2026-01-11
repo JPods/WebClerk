@@ -1,13 +1,13 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../../../../../components/common/PageBreadcrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchInvoices, fetchInvoiceDetail } from "../services/invoiceApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import InvoiceDetail from "./InvoiceDetail";
 import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
 
@@ -21,8 +21,8 @@ const numericInvoiceKeys = [
 ];
 
 export default function InvoiceList() {
-  const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
+  const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -133,8 +133,24 @@ export default function InvoiceList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "6%" },
+  const userColumns: TableColumn<any>[] = useMemo(() => [
+    { 
+      name: "ID", 
+      selector: (row) => row.id, 
+      sortable: true, 
+      width: "80px",
+      cell: (row) => (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(row);
+          }}
+          className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+        >
+          {row.id}
+        </div>
+      ),
+    },
     {
       name: "Invoice No",
       selector: (row) => row.invoice_no || "--",
@@ -241,23 +257,55 @@ export default function InvoiceList() {
     },
     {
       name: "Actions",
+      width: "140px",
       cell: (row) => (
-        <div className="flex gap-1">
-          <button onClick={() => handleView(row)} title="View" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
-            <FaEye className="text-blue-600 dark:text-blue-400 text-sm" />
+        <div className="flex gap-2">
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleView(row); }} 
+            title="View" 
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
+          >
+            <FaEye className="w-4 h-4" />
           </button>
-          <button onClick={() => handleEdit(row)} title="Edit" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
-            <FaEdit className="text-green-600 dark:text-green-400 text-sm" />
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleEdit(row); }} 
+            title="Edit" 
+            className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
+          >
+            <FaEdit className="w-4 h-4" />
           </button>
-          <button onClick={() => handleDelete(row)} title="Delete" className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
-            <FaTrash className="text-red-600 dark:text-red-400 text-sm" />
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleDelete(row); }} 
+            title="Delete" 
+            className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+          >
+            <FaTrash className="w-4 h-4" />
           </button>
         </div>
       ),
-      ignoreRowClick: true,
-      width: "10%",
     },
-  ];
+  ], [handleView, handleEdit, handleDelete]);
+
+  // Filters configuration
+  const filters: ColumnFilter[] = useMemo(() => [
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      options: [
+        { value: "draft", label: "Draft" },
+        { value: "sent", label: "Sent" },
+        { value: "paid", label: "Paid" },
+        { value: "overdue", label: "Overdue" },
+        { value: "cancelled", label: "Cancelled" },
+      ],
+    },
+    {
+      key: "customer_name",
+      label: "Customer",
+      type: "text",
+    },
+  ], []);
 
   // Calculate summary statistics
   const totalInvoices = data.length;
@@ -304,32 +352,29 @@ export default function InvoiceList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold dark:text-white">Invoices</h3>
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Invoice
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading invoices...</div>}
-                onRowClicked={handleView}
-              />
-            </div>
+            <AdvancedDataTable
+              data={data}
+              columns={userColumns}
+              title="Invoices"
+              loading={loading}
+              filters={filters}
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedInvoices}
+              exportFileName="invoices"
+              searchPlaceholder="Search invoices, customers..."
+              noDataMessage="No invoices found"
+              customActions={
+                <button
+                  onClick={handleAdd}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <FaPlus className="w-4 h-4" />
+                  Add Invoice
+                </button>
+              }
+              onRowClicked={handleEdit}
+            />
           </ComponentCard>
         </div>
         {formMode && (
