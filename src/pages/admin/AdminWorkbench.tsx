@@ -108,7 +108,7 @@ const AdminWorkbench: React.FC = () => {
   const [allFields, setAllFields] = useState<string[]>([]);
   const [workbenchSetting, setWorkbenchSetting] = useState<WorkbenchFieldsSetting | null>(null);
   const [workbenchSettingsMap, setWorkbenchSettingsMap] = useState<Record<string, WorkbenchFieldsSetting>>({});
-  const { isAuthenticated } = useAppSelector((s) => s.auth);
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const [lastModelsFetchAt, setLastModelsFetchAt] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -125,6 +125,15 @@ const AdminWorkbench: React.FC = () => {
     const parts = selectedModel.split('.');
     return toTitleCase(parts[parts.length - 1] || selectedModel);
   }, [selectedModel]);
+
+  const roleLabel = useMemo(() => {
+    const roleValue = user?.role;
+    if (!roleValue) return 'Not assigned';
+    if (Array.isArray(roleValue)) {
+      return roleValue.length ? roleValue.join(', ') : 'Not assigned';
+    }
+    return roleValue;
+  }, [user?.role]);
 
   useEffect(() => {
     if (!modelNames.length) {
@@ -334,6 +343,7 @@ const AdminWorkbench: React.FC = () => {
         <div>
           <p className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">TailAdmin</p>
           <h1 className="text-lg font-semibold text-slate-900">Admin Workbench</h1>
+          <p className="mt-0.5 text-xs text-slate-400">Role: {roleLabel}</p>
         </div>
         <div className="text-right text-xs text-slate-500">
           <div>{totalModelCount ? `${totalModelCount} models` : 'No models'}</div>

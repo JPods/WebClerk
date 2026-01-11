@@ -7,12 +7,14 @@ interface ContactListMobProps {
   dataProp: dynamicData[];
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
+  emptyMessage?: string;
 }
 
 export default function ContactListMob({
   dataProp,
   handleView,
   handleEdit,
+  emptyMessage,
 }: ContactListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (
@@ -94,7 +96,9 @@ export default function ContactListMob({
           </AccordionItem>
         ))
       ) : (
-        <p className="text-center text-gray-500">No contacts found.</p>
+        <p className="text-center text-gray-500">
+          {emptyMessage ?? "No contacts found."}
+        </p>
       )}
     </div>
   );

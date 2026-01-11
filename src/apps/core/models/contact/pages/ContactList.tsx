@@ -2,6 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useAppSelector } from "../../../../../store/hooks";
 import { getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
@@ -12,6 +13,7 @@ import ContactListMob from "./ContactListMob";
 
 export default function ContactList() {
   const { theme } = useTheme();
+  const { user } = useAppSelector((state) => state.auth);
 
   const [data, setData] = useState<dynamicData[]>([]);
   const [filteredData, setFilteredData] = useState<dynamicData[]>([]);
@@ -23,6 +25,20 @@ export default function ContactList() {
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
+  );
+
+  const roleLabel = useMemo(() => {
+    const roleValue = user?.role;
+    if (!roleValue) return "Not assigned";
+    if (Array.isArray(roleValue)) {
+      return roleValue.length ? roleValue.join(", ") : "Not assigned";
+    }
+    return roleValue;
+  }, [user?.role]);
+
+  const emptyStateMessage = useMemo(
+    () => `There are no records to display for Role: ${roleLabel}`,
+    [roleLabel]
   );
 
   /* ---------------- Fetch Contacts ---------------- */
@@ -278,6 +294,7 @@ export default function ContactList() {
                     dataProp={filteredData}
                     handleView={handleView}
                     handleEdit={handleEdit}
+                    emptyMessage={emptyStateMessage}
                   />
                 </div>
               ) : (
@@ -296,6 +313,11 @@ export default function ContactList() {
                   progressComponent={
                     <div className="p-8 text-sm text-center text-gray-500">
                       Loading contacts...
+                    </div>
+                  }
+                  noDataComponent={
+                    <div className="p-8 text-sm text-center text-gray-500">
+                      {emptyStateMessage}
                     </div>
                   }
                   onRowClicked={handleView}

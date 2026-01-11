@@ -103,6 +103,7 @@ export default function ContactDetail({
   } = useFieldArray({
     control,
     name: "refs.links.email",
+    keyName: "fieldKey",
   });
   console.log("emailFields", emailFields, emailFields.length);
   /* ----------------------------------
@@ -633,11 +634,26 @@ export default function ContactDetail({
             <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
               {emailFields.map((field, index) => (
                 <div
-                  key={field.id}
+                  key={field.fieldKey}
                   className="grid grid-cols-12 gap-3 items-end py-2"
                 >
+                  {/* ID */}
+                  <div className="col-span-12 md:col-span-2">
+                    <Label htmlFor={`refs.links.email.${index}.id`}>
+                      id (.ref)
+                    </Label>
+                    <Input
+                      type="number"
+                      id={`refs.links.email.${index}.id`}
+                      {...register(`refs.links.email.${index}.id`, {
+                        valueAsNumber: true,
+                      })}
+                      disabled={mode === "view"}
+                    />
+                  </div>
+
                   {/* Address */}
-                  <div className="col-span-12 md:col-span-7">
+                  <div className="col-span-12 md:col-span-6">
                     <Label htmlFor={`refs.links.email.${index}.address`}>
                       address (.ref)
                     </Label>
@@ -654,6 +670,7 @@ export default function ContactDetail({
 
                       <Input
                         type="text"
+                        id={`refs.links.email.${index}.address`}
                         {...register(`refs.links.email.${index}.address`)}
                         disabled={mode === "view"}
                         className="w-100"
@@ -662,12 +679,13 @@ export default function ContactDetail({
                   </div>
 
                   {/* Name */}
-                  <div className="col-span-12 md:col-span-4">
+                  <div className="col-span-12 md:col-span-3">
                     <Label htmlFor={`refs.links.email.${index}.name`}>
                       name (.ref)
                     </Label>
                     <Input
                       type="text"
+                      id={`refs.links.email.${index}.name`}
                       {...register(`refs.links.email.${index}.name`)}
                       disabled={mode === "view"}
                     />
@@ -694,17 +712,24 @@ export default function ContactDetail({
                 <div className="gap-4 p-3 border rounded-md bg-gray-50 dark:bg-dark-800">
                   {emailFields.map((field, index) => (
                     <div
-                      key={field.id}
-                      className="flex items-center justify-between py-2 border-b-2"
+                      key={field.fieldKey}
+                      className="grid grid-cols-12 gap-3 items-center py-2 border-b-2"
                     >
-                      <div className="flex-2/3 me-2">
+                      <div className="col-span-12 md:col-span-2">
+                        <Label htmlFor={`refs.links.email.${index}.id`}>
+                          id (.ref)
+                        </Label>
+                        <h1>{field.id}</h1>
+                      </div>
+
+                      <div className="col-span-12 md:col-span-6">
                         <Label htmlFor={`refs.links.email.${index}.address`}>
                           address (.ref)
                         </Label>
                         <h1>{field.address}</h1>
                       </div>
 
-                      <div className="flex-1/3">
+                      <div className="col-span-12 md:col-span-3">
                         <Label htmlFor={`refs.links.email.${index}.name`}>
                           name (.ref)
                         </Label>
@@ -712,7 +737,7 @@ export default function ContactDetail({
                       </div>
 
                       {mode !== "view" && isEmailEdit && (
-                        <div className="flex items-end">
+                        <div className="col-span-12 md:col-span-1 flex items-end">
                           <button
                             type="button"
                             onClick={() => removeEmail(index)}
