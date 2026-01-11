@@ -407,19 +407,45 @@ WCAPI_BLESSED_MODELS = {
 
 # WCAPI per-model policies (opt-in, safe by default)
 WCAPI_MODEL_POLICIES = {
-    # Basic contact policies
     "contact": {
         "fields": {
-            # Read allowlist
             "read": {
-                "default": ["id", "first_name", "last_name", "email", "phone", "created_at", "updated_at"],
+                "default": [
+                    "id",
+                    "email",
+                    "name_first",
+                    "name_last",
+                    "name_middle",
+                    "name_prefix",
+                    "name_suffix",
+                    "company",
+                    "title",
+                    "department",
+                    "customer_id",
+                    "vendor_id",
+                    "role",
+                    "is_active",
+                    "dt_joined",
+                ],
                 "by_role": {
-                    "admin": ["*"],  # '*' means all fields
+                    "admin": ["*"],
                 },
             },
-            # Write allowlist
             "write": {
-                "default": ["first_name", "last_name", "email", "phone"],
+                "default": [
+                    "email",
+                    "name_first",
+                    "name_last",
+                    "name_middle",
+                    "name_prefix",
+                    "name_suffix",
+                    "company",
+                    "title",
+                    "department",
+                    "customer_id",
+                    "vendor_id",
+                    "comment",
+                ],
                 "by_role": {
                     "admin": ["*"],
                 },

@@ -49,7 +49,9 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
         # Check if user is staff/admin - they get full access
         if hasattr(user, 'is_staff') and user.is_staff:
             return qs
-        if hasattr(user, 'role') and user.role in ['staff', 'admin']:
+        role_value = getattr(user, 'role', None)
+        normalized_role = role_value.strip().lower() if isinstance(role_value, str) else None
+        if normalized_role in {'staff', 'admin'}:
             return qs
             
         # Apply tenant isolation if multi-tenant setup
@@ -58,17 +60,16 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
             qs = qs.filter(**{tenant_field: user.tenant_id})
             
         # Apply publish/reserved filtering based on user role
-        if hasattr(user, 'role'):
-            role = user.role.lower()
+        if normalized_role:
             
             # Public users can only see published items
-            if role in ['public', 'guest']:
+            if normalized_role in ['public', 'guest']:
                 if 'is_published' in [f.name for f in qs.model._meta.get_fields()]:
                     qs = qs.filter(is_published=True)
                     
             # Reserved items only for authenticated users with proper role
             if 'is_reserved' in [f.name for f in qs.model._meta.get_fields()]:
-                if role in ['admin', 'staff']:
+                if normalized_role in ['admin', 'staff']:
                     # Admins can see both reserved and non-reserved
                     pass
                 else:
@@ -80,8 +81,8 @@ def inject_constraints(qs: QuerySet, request, model_key: str) -> QuerySet:
         if model_key in model_constraints:
             constraints = model_constraints[model_key]
             # Apply role-based constraints
-            if 'role_filters' in constraints and hasattr(user, 'role'):
-                role_filters = constraints['role_filters'].get(user.role.lower(), {})
+            if 'role_filters' in constraints and normalized_role:
+                role_filters = constraints['role_filters'].get(normalized_role, {})
                 for field, filter_value in role_filters.items():
                     qs = qs.filter(**{field: filter_value})
                     
