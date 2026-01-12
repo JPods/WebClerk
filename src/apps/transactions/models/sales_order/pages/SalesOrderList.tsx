@@ -3,13 +3,15 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchSalesOrders, fetchSalesOrderDetail } from "../services/salesOrderApi";
+import {
+  fetchSalesOrders,
+  fetchSalesOrderDetail,
+} from "../services/salesOrderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useTheme } from "../../../../../context/ThemeContext";
 import SalesOrderDetail from "./SalesOrderDetail";
-import CustomeModal from "@/components/ui/modal/CustomModal";
 
 export default function SalesOrderList() {
   const { theme } = useTheme();
@@ -17,8 +19,6 @@ export default function SalesOrderList() {
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<any | null>(
     null
   );
-  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
-
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
@@ -288,23 +288,7 @@ export default function SalesOrderList() {
     acc[order.status || "unknown"] = (acc[order.status || "unknown"] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const SalesOrderForm = () => {
-    return (
-      <>
-        {formMode && (
-          <div className="lg:col-span-2">
-            <SalesOrderDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedSalesOrder}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
-          </div>
-        )}
-      </>
-    );
-  };
+
   return (
     <>
       <PageBreadcrumb pageTitle="Sales Order List" />
@@ -361,13 +345,6 @@ export default function SalesOrderList() {
                 Sales Orders
               </h3>
               <button
-                onClick={handleIsOpenModal}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Sales Order
-              </button>
-              <button
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
@@ -393,36 +370,12 @@ export default function SalesOrderList() {
                 progressComponent={
                   <div className="p-8 text-center">Loading sales orders...</div>
                 }
-                onRowClicked={(row) => handleEdit(row)}
-                progressComponent={<div className="p-8 text-center">Loading sales orders...</div>}
                 onRowClicked={handleEdit}
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
-          <>
-            <div className="lg:col-span-2">
-              <SalesOrderDetail
-                inline
-                modeProp={formMode}
-                dataProp={selectedSalesOrder}
-                onSaved={handleFormSaved}
-                onCancelInline={handleFormCancel}
-              />
-            </div>
-            <CustomeModal
-              mode="add"
-              isOpen={isOpenModal}
-              title="Sales Order"
-              description=""
-              onClose={handleCloseModal}
-              submitLabel="Save"
-              extraContent={<SalesOrderForm />}
-              isPageTitle={true}
-              isSaving={false}
-            />
-          </>
           <div className="lg:col-span-2">
             {formMode !== "add" && (detailLoading || !selectedSalesOrder) ? (
               <ComponentCard>

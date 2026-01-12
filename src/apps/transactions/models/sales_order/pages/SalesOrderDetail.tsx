@@ -161,7 +161,14 @@ interface ContactLinkDisplayRow {
   raw: ContactLinkRecord;
 }
 
-type ContactColumnKey = "id" | "alias" | "name" | "role" | "purpose" | "email" | "phone";
+type ContactColumnKey =
+  | "id"
+  | "alias"
+  | "name"
+  | "role"
+  | "purpose"
+  | "email"
+  | "phone";
 
 interface ContactLinkColumnDef {
   key: ContactColumnKey;
@@ -207,13 +214,13 @@ const CONTACT_LINK_COLUMN_DEFS: ContactLinkColumnDef[] = [
   },
 ];
 
-const CONTACT_LINK_COLUMN_LOOKUP: Record<ContactColumnKey, ContactLinkColumnDef> = CONTACT_LINK_COLUMN_DEFS.reduce(
-  (acc, def) => {
-    acc[def.key] = def;
-    return acc;
-  },
-  {} as Record<ContactColumnKey, ContactLinkColumnDef>
-);
+const CONTACT_LINK_COLUMN_LOOKUP: Record<
+  ContactColumnKey,
+  ContactLinkColumnDef
+> = CONTACT_LINK_COLUMN_DEFS.reduce((acc, def) => {
+  acc[def.key] = def;
+  return acc;
+}, {} as Record<ContactColumnKey, ContactLinkColumnDef>);
 
 const CONTACT_LINK_CELL_CLASS: Record<ContactColumnKey, string> = {
   id: "px-3 py-2 text-gray-800 dark:text-gray-100",
@@ -534,24 +541,30 @@ function resolveContactRole(entry: ContactLinkRecord): string {
   return resolveStringField(record, ["role", "relation", "type", "category"]);
 }
 
-<<<<<<< HEAD
+function resolveContactPurpose(entry: ContactLinkRecord): string {
+  const fallbackTargets = entry as Record<string, unknown>;
+  const record = resolveContactRecord(entry);
+  const purpose = resolveStringField(record, [
+    "purpose",
+    "contact_purpose",
+    "link_purpose",
+    "context",
+  ]);
+  if (purpose) {
+    return purpose;
+  }
+  return resolveStringField(fallbackTargets, [
+    "purpose",
+    "contact_purpose",
+    "link_purpose",
+    "context",
+  ]);
+}
+
 function getErrorMessage(
   errors: Record<string, unknown>,
   path: string
 ): string | undefined {
-=======
-function resolveContactPurpose(entry: ContactLinkRecord): string {
-  const fallbackTargets = entry as Record<string, unknown>;
-  const record = resolveContactRecord(entry);
-  const purpose = resolveStringField(record, ["purpose", "contact_purpose", "link_purpose", "context"]);
-  if (purpose) {
-    return purpose;
-  }
-  return resolveStringField(fallbackTargets, ["purpose", "contact_purpose", "link_purpose", "context"]);
-}
-
-function getErrorMessage(errors: Record<string, unknown>, path: string): string | undefined {
->>>>>>> 6b78ac4510683d0e144f0532848994dede79dba1
   const segments = path.split(".");
   let cursor: unknown = errors;
   for (const segment of segments) {
@@ -1035,17 +1048,13 @@ export default function SalesOrderDetail({
     CustomerSearchResult[]
   >([]);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
-<<<<<<< HEAD
   const [customerSearchError, setCustomerSearchError] = useState<string | null>(
     null
   );
-=======
-  const [customerSearchError, setCustomerSearchError] = useState<string | null>(null);
-  const [contactColumnOrder, setContactColumnOrder] = useState<ContactColumnKey[]>(() =>
-    CONTACT_LINK_COLUMN_DEFS.map((def) => def.key)
-  );
+  const [contactColumnOrder, setContactColumnOrder] = useState<
+    ContactColumnKey[]
+  >(() => CONTACT_LINK_COLUMN_DEFS.map((def) => def.key));
   const draggingContactColumn = useRef<ContactColumnKey | null>(null);
->>>>>>> 6b78ac4510683d0e144f0532848994dede79dba1
 
   const rawCustomerId = watch("customer_id");
   const refsValue = watch("refs");
@@ -1055,13 +1064,12 @@ export default function SalesOrderDetail({
       : Number.parseInt(String(rawCustomerId ?? 0), 10) || 0;
   const showCustomerSearchPanel = !isReadOnly && customerIdValue <= 0;
 
-<<<<<<< HEAD
-  const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
-=======
   useEffect(() => {
     setContactColumnOrder((prev) => {
       const knownKeys = CONTACT_LINK_COLUMN_DEFS.map((def) => def.key);
-      const filtered = prev.filter((key): key is ContactColumnKey => knownKeys.includes(key));
+      const filtered = prev.filter((key): key is ContactColumnKey =>
+        knownKeys.includes(key)
+      );
       if (filtered.length === knownKeys.length) {
         return filtered;
       }
@@ -1077,10 +1085,11 @@ export default function SalesOrderDetail({
   }, [contactColumnOrder]);
 
   const handleContactColumnDragStart = useCallback(
-    (key: ContactColumnKey) => (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
-      draggingContactColumn.current = key;
-      event.dataTransfer.effectAllowed = "move";
-    },
+    (key: ContactColumnKey) =>
+      (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
+        draggingContactColumn.current = key;
+        event.dataTransfer.effectAllowed = "move";
+      },
     []
   );
 
@@ -1093,25 +1102,26 @@ export default function SalesOrderDetail({
   );
 
   const handleContactColumnDrop = useCallback(
-    (targetKey: ContactColumnKey) => (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
-      event.preventDefault();
-      const sourceKey = draggingContactColumn.current;
-      if (!sourceKey || sourceKey === targetKey) {
-        return;
-      }
-      setContactColumnOrder((prev) => {
-        const next = [...prev];
-        const sourceIndex = next.indexOf(sourceKey);
-        const targetIndex = next.indexOf(targetKey);
-        if (sourceIndex === -1 || targetIndex === -1) {
-          return prev;
+    (targetKey: ContactColumnKey) =>
+      (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
+        event.preventDefault();
+        const sourceKey = draggingContactColumn.current;
+        if (!sourceKey || sourceKey === targetKey) {
+          return;
         }
-        next.splice(sourceIndex, 1);
-        next.splice(targetIndex, 0, sourceKey);
-        return next;
-      });
-      draggingContactColumn.current = null;
-    },
+        setContactColumnOrder((prev) => {
+          const next = [...prev];
+          const sourceIndex = next.indexOf(sourceKey);
+          const targetIndex = next.indexOf(targetKey);
+          if (sourceIndex === -1 || targetIndex === -1) {
+            return prev;
+          }
+          next.splice(sourceIndex, 1);
+          next.splice(targetIndex, 0, sourceKey);
+          return next;
+        });
+        draggingContactColumn.current = null;
+      },
     []
   );
 
@@ -1119,8 +1129,7 @@ export default function SalesOrderDetail({
     draggingContactColumn.current = null;
   }, []);
 
-    const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
->>>>>>> 6b78ac4510683d0e144f0532848994dede79dba1
+  const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
     if (!refsValue || typeof refsValue !== "object") {
       return [];
     }
@@ -2021,7 +2030,7 @@ export default function SalesOrderDetail({
       )}
 
       <ComponentCard>
-        {/* {inline && (
+        {inline && (
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold dark:text-white">
               {mode === "edit"
@@ -2040,7 +2049,7 @@ export default function SalesOrderDetail({
               </button>
             )}
           </div>
-        )} */}
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {showCustomerSearchPanel && (
@@ -2318,26 +2327,6 @@ export default function SalesOrderDetail({
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-100">
                   <tr>
-<<<<<<< HEAD
-                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
-                      id
-                    </th>
-                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
-                      ida_contact
-                    </th>
-                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
-                      display_name
-                    </th>
-                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
-                      role
-                    </th>
-                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
-                      email
-                    </th>
-                    <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
-                      phone
-                    </th>
-=======
                     {orderedContactColumns.map((column) => (
                       <th
                         key={column.key}
@@ -2354,7 +2343,6 @@ export default function SalesOrderDetail({
                         </span>
                       </th>
                     ))}
->>>>>>> 6b78ac4510683d0e144f0532848994dede79dba1
                   </tr>
                 </thead>
                 <tbody>
@@ -2377,32 +2365,14 @@ export default function SalesOrderDetail({
                         }
                         className="border-b border-gray-100 last:border-none dark:border-gray-700"
                       >
-<<<<<<< HEAD
-                        <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-                          {row.id ?? "--"}
-                        </td>
-                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                          {row.alias || "--"}
-                        </td>
-                        <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-                          {row.name}
-                        </td>
-                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                          {row.role || "--"}
-                        </td>
-                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                          {row.email || "--"}
-                        </td>
-                        <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
-                          {row.phone || "--"}
-                        </td>
-=======
                         {orderedContactColumns.map((column) => (
-                          <td key={column.key} className={CONTACT_LINK_CELL_CLASS[column.key]}>
+                          <td
+                            key={column.key}
+                            className={CONTACT_LINK_CELL_CLASS[column.key]}
+                          >
                             {column.render(row)}
                           </td>
                         ))}
->>>>>>> 6b78ac4510683d0e144f0532848994dede79dba1
                       </tr>
                     ))
                   )}
