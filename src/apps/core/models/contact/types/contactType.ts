@@ -100,6 +100,12 @@ export interface CreateContactRequest {
   department?: string;
   comment?: string;
   role?: string;
+  customer_id?: string;
+  rep_id?: string;
+  vendor_id?: string;
+  employee_id?: string;
+  manufacturer_id?: string;
+  other_id?: string;
   refs?: RefsApi;
 }
 

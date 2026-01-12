@@ -6,6 +6,7 @@ import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "../../../components/kanban/KanbanColumn";
 import { KanbanDragLayer } from "../../../components/kanban/KanbanDragLayer";
 import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
+import { ProjectContactManager } from "../../../components/kanban/ProjectContactManager";
 import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
 import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
@@ -68,14 +69,20 @@ const clampPercentageValue = (value: number | undefined): number => {
 
 const serializeBurndownValue = (value: number | undefined): string => clampPercentageValue(value).toString();
 
+interface ProjectContact {
+  id: number | string;
+  attention?: string;
+}
+
 interface ProjectOption {
   id: string;
   slug?: string;
   name?: string;
   intent?: string;
+  contacts?: ProjectContact[];
 }
 
-interface StaffOption {
+interface ContactOption {
   id: string;
   label: string;
   searchName: string;
@@ -84,10 +91,8 @@ interface StaffOption {
 
 interface FetchActionsOptions {
   projectId?: string;
-  staffId?: string;
+  contactId?: string;
 }
-
-type RawContactRecord = Record<string, unknown>;
 
 const toBoolean = (value: unknown): boolean => {
   if (typeof value === "boolean") {
@@ -104,72 +109,6 @@ const toBoolean = (value: unknown): boolean => {
     return ["true", "1", "yes", "y", "t", "on"].includes(normalized);
   }
   return false;
-};
-
-const buildContactName = (record: RawContactRecord): string => {
-  const firstRaw = record["name_first"];
-  const lastRaw = record["name_last"];
-  const first = typeof firstRaw === "string" ? firstRaw.trim() : "";
-  const last = typeof lastRaw === "string" ? lastRaw.trim() : "";
-  const full = [first, last].filter(Boolean).join(" ").trim();
-  if (full) {
-    return full;
-  }
-  const primaryRaw = record["name"];
-  const primary = typeof primaryRaw === "string" ? primaryRaw.trim() : "";
-  if (primary) {
-    return primary;
-  }
-  const companyRaw = record["company"];
-  const company = typeof companyRaw === "string" ? companyRaw.trim() : "";
-  if (company) {
-    return company;
-  }
-  return "";
-};
-
-const createStaffOptionFromRecord = (record: RawContactRecord): StaffOption | null => {
-  const staffFlag =
-    toBoolean(record["is_staff"]) ||
-    toBoolean(record["isStaff"]) ||
-    toBoolean(record["staff"]);
-
-  if (!staffFlag) {
-    return null;
-  }
-
-  const activeRaw = record["is_active"] ?? record["isActive"] ?? record["active"];
-  const statusRaw = record["status"];
-  const statusIsActive = typeof statusRaw === "string" && statusRaw.trim().toLowerCase() === "active";
-  const isActive = activeRaw === undefined ? statusIsActive : toBoolean(activeRaw) || statusIsActive;
-  if (!isActive) {
-    return null;
-  }
-
-  const idCandidate =
-    record["id"] ??
-    record["contact_id"] ??
-    record["pk"] ??
-    record["uuid"] ??
-    record["slug"];
-
-  if (idCandidate === undefined || idCandidate === null) {
-    return null;
-  }
-
-  const name = buildContactName(record) || String(idCandidate);
-  const attentionRaw = record["attention"];
-  const attention = typeof attentionRaw === "string" ? attentionRaw.trim() : "";
-  const label = attention || name;
-  const emailRaw = record["email"];
-  const email = typeof emailRaw === "string" ? emailRaw.trim() : "";
-
-  return {
-    id: String(idCandidate),
-    label: label || String(idCandidate),
-    searchName: (attention || name || String(idCandidate)).toLowerCase(),
-    email: email || undefined,
-  };
 };
 
 const isRecordObject = (value: unknown): value is Record<string, unknown> =>
@@ -381,11 +320,33 @@ const createProjectOption = (record: Record<string, unknown>): ProjectOption | n
     }
   }
 
+  // Extract contacts from refs.links.contact
+  let contacts: ProjectContact[] | undefined;
+  const refs = record.refs ?? nestedProject?.refs;
+  if (refs && typeof refs === "object" && !Array.isArray(refs)) {
+    const refsObj = refs as Record<string, unknown>;
+    const links = refsObj.links;
+    if (links && typeof links === "object" && !Array.isArray(links)) {
+      const linksObj = links as Record<string, unknown>;
+      const contactList = linksObj.contact;
+      if (Array.isArray(contactList)) {
+        contacts = contactList
+          .filter((c): c is Record<string, unknown> => typeof c === "object" && c !== null)
+          .map((c) => ({
+            id: c.id as number | string,
+            attention: typeof c.attention === "string" ? c.attention : undefined,
+          }))
+          .filter((c) => c.id !== undefined && c.id !== null);
+      }
+    }
+  }
+
   return {
     id: parsedId,
     slug,
     name: resolvedName,
     intent,
+    contacts,
   };
 };
 
@@ -721,31 +682,41 @@ const KanbanBoardPage: React.FC = () => {
   );
   const selectedProjectName = selectedProject?.name ?? selectedProject?.intent ?? "";
 
-  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
-  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
-  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
-  const [staffFetchError, setStaffFetchError] = useState<string | null>(null);
+  const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
+  const [selectedContactId, setSelectedContactId] = useState<string>("");
+  const [isLoadingContacts, setIsLoadingContacts] = useState<boolean>(false);
 
   const handleProjectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedProjectId(event.target.value);
   };
 
-  const handleStaffFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedStaffId(event.target.value);
+  const handleContactFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedContactId(event.target.value);
   };
 
-  const fetchStaffContacts = useCallback(async () => {
-    setIsLoadingStaff(true);
-    setStaffFetchError(null);
+  // Fetch all active contacts (used when "All projects" is selected)
+  const fetchAllContacts = useCallback(async () => {
+    setIsLoadingContacts(true);
     try {
-      const response = await getRecords("contact", { is_staff: true, is_active: true, limit: 500 });
-      const records = extractContactArray(response);
-      console.log("Fetched staff response:", response);
-      const options = records
-        .map((record) => createStaffOptionFromRecord((record ?? {}) as RawContactRecord))
-        .filter((option): option is StaffOption => Boolean(option));
+      const response = await getRecords("contact", {
+        is_active: true,
+        limit: 500,
+      });
+      const records = extractRecordArray(response);
+      const options: ContactOption[] = records
+        .filter((r: Record<string, unknown>) => r.id !== undefined && r.id !== null)
+        .map((r: Record<string, unknown>) => {
+          const attention = typeof r.attention === "string" ? r.attention : "";
+          const id = String(r.id);
+          return {
+            id,
+            label: attention || `Contact #${id}`,
+            searchName: (attention || id).toLowerCase(),
+            email: typeof r.email === "string" ? r.email : undefined,
+          };
+        });
 
-      const uniqueById = new Map<string, StaffOption>();
+      const uniqueById = new Map<string, ContactOption>();
       options.forEach((option) => {
         if (!uniqueById.has(option.id)) {
           uniqueById.set(option.id, option);
@@ -753,27 +724,61 @@ const KanbanBoardPage: React.FC = () => {
       });
 
       const sorted = Array.from(uniqueById.values()).sort((a, b) => a.label.localeCompare(b.label));
-      console.log("Normalized staff options:", options);
-      setStaffOptions(sorted);
-      setSelectedStaffId((previous) => {
+      console.log("All contacts fetched:", sorted.length);
+      setContactOptions(sorted);
+      setSelectedContactId((previous) => {
         if (previous && sorted.some((option) => option.id === previous)) {
           return previous;
         }
         return "";
       });
     } catch (error) {
-      console.error("Failed to fetch staff contacts", error);
-      setStaffOptions([]);
-      setStaffFetchError("Unable to load staff list.");
-      setSelectedStaffId("");
+      console.error("Failed to fetch all contacts:", error);
+      setContactOptions([]);
     } finally {
-      setIsLoadingStaff(false);
+      setIsLoadingContacts(false);
     }
+  }, []);
+
+  // Populate contacts from selected project's refs.links.contact
+  const updateContactsFromProject = useCallback((project: ProjectOption | undefined) => {
+    if (!project?.contacts?.length) {
+      // No project selected or project has no contacts - fetch all contacts
+      return;
+    }
+
+    const options: ContactOption[] = project.contacts
+      .map((contact) => ({
+        id: String(contact.id),
+        label: contact.attention || String(contact.id),
+        searchName: (contact.attention || String(contact.id)).toLowerCase(),
+      }))
+      .filter((option) => option.id);
+
+    const uniqueById = new Map<string, ContactOption>();
+    options.forEach((option) => {
+      if (!uniqueById.has(option.id)) {
+        uniqueById.set(option.id, option);
+      }
+    });
+
+    const sorted = Array.from(uniqueById.values()).sort((a, b) => a.label.localeCompare(b.label));
+    console.log("Contacts from project:", sorted);
+    setContactOptions(sorted);
+    setSelectedContactId((previous) => {
+      if (previous && sorted.some((option) => option.id === previous)) {
+        return previous;
+      }
+      return "";
+    });
   }, []);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null);
+
+  // Contact Manager Modal state
+  const [isContactManagerOpen, setIsContactManagerOpen] = useState(false);
 
   const [createTaskState, setCreateTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
   const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
@@ -919,7 +924,7 @@ const KanbanBoardPage: React.FC = () => {
     }
   }, []);
 
-  const fetchActions = useCallback(async ({ projectId, staffId }: FetchActionsOptions = {}) => {
+  const fetchActions = useCallback(async ({ projectId, contactId }: FetchActionsOptions = {}) => {
     setIsLoading(true);
     setFetchError(null);
     try {
@@ -927,8 +932,8 @@ const KanbanBoardPage: React.FC = () => {
       if (projectId) {
         params.project_id = projectId;
       }
-      if (staffId) {
-        params.assigned_to_id = staffId;
+      if (contactId) {
+        params.assigned_to_id = contactId;
         params.status = "active";
       }
 
@@ -938,9 +943,9 @@ const KanbanBoardPage: React.FC = () => {
       }
 
       const items = extractKanbanItems(response);
-      const targetStaff = staffId ? staffOptions.find((option) => option.id === staffId) : undefined;
+      const targetContact = contactId ? contactOptions.find((option) => option.id === contactId) : undefined;
 
-      const filteredItems = !staffId
+      const filteredItems = !contactId
         ? items
         : items.filter((item) => {
             const statusValue = typeof item.status === "string" ? item.status.trim().toLowerCase() : "";
@@ -953,7 +958,7 @@ const KanbanBoardPage: React.FC = () => {
               return false;
             }
 
-            const normalizedTargetName = targetStaff?.searchName ?? "";
+            const normalizedTargetName = targetContact?.searchName ?? "";
 
             return assignments.some((assignment) => {
               const assignmentRecord = (assignment ?? {}) as Record<string, unknown>;
@@ -962,7 +967,7 @@ const KanbanBoardPage: React.FC = () => {
                 assignmentRecord["contact_id"] ??
                 assignmentRecord["pk"] ??
                 assignmentRecord["uuid"];
-              if (assignmentId !== undefined && assignmentId !== null && String(assignmentId) === staffId) {
+              if (assignmentId !== undefined && assignmentId !== null && String(assignmentId) === contactId) {
                 return true;
               }
               if (normalizedTargetName) {
@@ -990,9 +995,9 @@ const KanbanBoardPage: React.FC = () => {
       if (projectId) {
         parts.push(`project ${projectId}`);
       }
-      if (staffId) {
-        const staffLabel = staffOptions.find((option) => option.id === staffId)?.label ?? staffId;
-        parts.push(`staff ${staffLabel}`);
+      if (contactId) {
+        const contactLabel = contactOptions.find((option) => option.id === contactId)?.label ?? contactId;
+        parts.push(`contact ${contactLabel}`);
       }
       const contextLabel = parts.length === 0 ? "" : parts.length === 1 ? parts[0] : `${parts[0]} and ${parts[1]}`;
       const message = contextLabel
@@ -1003,22 +1008,29 @@ const KanbanBoardPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [staffOptions]);
+  }, [contactOptions]);
 
   useEffect(() => {
     void fetchProjects();
   }, [fetchProjects]);
 
+  // When project selection changes, update contacts from project's refs.links.contact
+  // or fetch all contacts if "All projects" is selected
   useEffect(() => {
-    void fetchStaffContacts();
-  }, [fetchStaffContacts]);
+    if (selectedProjectId && selectedProject) {
+      updateContactsFromProject(selectedProject);
+    } else {
+      // "All projects" selected - fetch all active contacts
+      void fetchAllContacts();
+    }
+  }, [selectedProjectId, selectedProject, updateContactsFromProject, fetchAllContacts]);
 
   useEffect(() => {
     void fetchActions({
       projectId: selectedProjectId || undefined,
-      staffId: selectedStaffId || undefined,
+      contactId: selectedContactId || undefined,
     });
-  }, [fetchActions, selectedProjectId, selectedStaffId]);
+  }, [fetchActions, selectedProjectId, selectedContactId]);
 
   useEffect(() => {
     if (board.columnOrder.length === 0) {
@@ -1027,6 +1039,28 @@ const KanbanBoardPage: React.FC = () => {
     // Keep columnsPerRow at 4 by default, don't clamp based on available columns
     // This ensures the grid always shows 4 columns per row
   }, [board.columnOrder]);
+
+  // Handler for when contacts are updated via the Contact Manager modal
+  const handleContactsUpdated = useCallback((updatedContacts: ProjectContact[]) => {
+    if (!selectedProjectId || !selectedProject) return;
+
+    // Update the project option in our local state
+    setProjectOptions((prevOptions) => 
+      prevOptions.map((option) => {
+        if (option.id === selectedProjectId) {
+          return { ...option, contacts: updatedContacts };
+        }
+        return option;
+      })
+    );
+
+    // Update the contact dropdown options
+    updateContactsFromProject({
+      ...selectedProject,
+      id: selectedProject.id,
+      contacts: updatedContacts,
+    });
+  }, [selectedProjectId, selectedProject, updateContactsFromProject]);
 
   useEffect(() => {
     const firstColumnId = resolveDefaultColumnId();
@@ -1581,7 +1615,7 @@ const KanbanBoardPage: React.FC = () => {
       }
       await fetchActions({
         projectId: selectedProjectId || undefined,
-        staffId: selectedStaffId || undefined,
+        contactId: selectedContactId || undefined,
       });
       handleCloseCreateModal();
     } catch (error) {
@@ -1618,7 +1652,7 @@ const KanbanBoardPage: React.FC = () => {
       }
       await fetchActions({
         projectId: selectedProjectId || undefined,
-        staffId: selectedStaffId || undefined,
+        contactId: selectedContactId || undefined,
       });
       handleCloseEditModal();
     } catch (error) {
@@ -1689,22 +1723,35 @@ const KanbanBoardPage: React.FC = () => {
             </select>
           </label>
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            <span>Staff</span>
+            <span>Contact</span>
             <select
-              value={selectedStaffId}
-              onChange={handleStaffFilterChange}
-              disabled={isLoadingStaff}
+              value={selectedContactId}
+              onChange={handleContactFilterChange}
+              disabled={isLoadingContacts}
               className="rounded-md border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 dark:border-gray-700 dark:bg-black dark:text-white"
             >
               <option value="">
-                {isLoadingStaff ? "Loading..." : "All staff"}
+                {isLoadingContacts ? "Loading..." : "All contacts"}
               </option>
-              {staffOptions.map((option) => (
+              {contactOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
             </select>
+            {selectedProjectId && (
+              <button
+                type="button"
+                onClick={() => setIsContactManagerOpen(true)}
+                className="ml-1 rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-indigo-600 dark:hover:bg-gray-800 dark:hover:text-indigo-400"
+                title="Manage project contacts"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            )}
           </label>
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <span>Columns</span>
@@ -1755,19 +1802,6 @@ const KanbanBoardPage: React.FC = () => {
         </div>
       )}
 
-      {staffFetchError && (
-        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-          <span>{staffFetchError}</span>
-          <button
-            type="button"
-            onClick={() => void fetchStaffContacts()}
-            className="rounded-md border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
       {fetchError && (
         <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
           <span>{fetchError}</span>
@@ -1776,7 +1810,7 @@ const KanbanBoardPage: React.FC = () => {
             onClick={() =>
               void fetchActions({
                 projectId: selectedProjectId || undefined,
-                staffId: selectedStaffId || undefined,
+                contactId: selectedContactId || undefined,
               })
             }
             className="rounded-md border border-rose-300 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/50"
@@ -1845,6 +1879,7 @@ const KanbanBoardPage: React.FC = () => {
         priorityOptions={priorityOptions}
         difficultyOptions={createDifficultyOptions}
         progressOptions={createProgressOptions}
+        assigneeOptions={contactOptions}
         translations={createTaskState.translations}
         onTranslationFieldChange={(entryId, field, value) =>
           handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
@@ -1876,6 +1911,7 @@ const KanbanBoardPage: React.FC = () => {
         priorityOptions={priorityOptions}
         difficultyOptions={editDifficultyOptions}
         progressOptions={editProgressOptions}
+        assigneeOptions={contactOptions}
         translations={editTaskState.translations}
         onTranslationFieldChange={(entryId, field, value) =>
           handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
@@ -1891,6 +1927,16 @@ const KanbanBoardPage: React.FC = () => {
         onLanguagePickerCancel={handleEditLanguagePickerCancel}
         extraContent={editModalExtraContent}
         currentTask={editingTask}
+      />
+
+      {/* Contact Manager Modal */}
+      <ProjectContactManager
+        isOpen={isContactManagerOpen}
+        onClose={() => setIsContactManagerOpen(false)}
+        projectId={selectedProjectId}
+        projectName={selectedProjectName}
+        currentContacts={selectedProject?.contacts ?? []}
+        onContactsUpdated={handleContactsUpdated}
       />
     </div>
   );

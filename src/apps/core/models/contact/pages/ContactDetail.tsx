@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,6 +30,30 @@ import {
   updateEmail,
 } from "@/apps/communications/models/email/services/emailApi";
 import { dynamicData } from "../../../../../model/dynamicData";
+import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
+
+const CONTACT_DETAIL_FIELDS = [
+  "email",
+  "password",
+  "cnf_password",
+  "name_first",
+  "name_last",
+  "name_middle",
+  "name_prefix",
+  "name_suffix",
+  "company",
+  "title",
+  "department",
+  "customer_id",
+  "rep_id",
+  "vendor_id",
+  "employee_id",
+  "manufacturer_id",
+  "other_id",
+  "role",
+  "is_active",
+  "is_staff",
+] as const;
 /* ----------------------------------
    Types
 ---------------------------------- */
@@ -51,6 +75,34 @@ export default function ContactDetail({
 
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+  const contactFieldNames = useMemo(() => CONTACT_DETAIL_FIELDS.slice(), []);
+  const {
+    isAdmin,
+    loading: fieldAccessLoading,
+    saving: fieldAccessSaving,
+    error: fieldAccessError,
+    config: fieldAccessConfig,
+    isFieldVisible,
+    isFieldReadOnly,
+    setFieldVisible,
+    setFieldReadOnly,
+    resetConfig: resetFieldAccess,
+    saveConfig: saveFieldAccess,
+    isDirty: fieldAccessDirty,
+  } = useDetailFieldAccess("contact", contactFieldNames);
+
+  const isFieldDisabled = (fieldName: string) => {
+    if (mode === "view") return true;
+    if (!isAdmin && isFieldReadOnly(fieldName)) return true;
+    return false;
+  };
+
+  const shouldRenderField = (fieldName: string) => {
+    if (isAdmin) return true;
+    return isFieldVisible(fieldName);
+  };
+
+  const fieldAccessBusy = fieldAccessLoading || fieldAccessSaving;
 
   /* ----------------------------------
      React Hook Form
@@ -164,6 +216,12 @@ export default function ContactDetail({
         role: formData.role,
         is_active: formData.is_active,
         is_staff: formData.is_staff,
+        customer_id: formData.customer_id,
+        rep_id: formData.rep_id,
+        vendor_id: formData.vendor_id,
+        employee_id: formData.employee_id,
+        manufacturer_id: formData.manufacturer_id,
+        other_id: formData.other_id,
         refs: mappedRefs,
         ...(mode === "add" || mode === "edit"
           ? {
@@ -341,9 +399,92 @@ export default function ContactDetail({
             )}
           </div>
         )}
+        {isAdmin && (
+          <div className="mb-6 rounded-md border border-dashed border-blue-200 bg-blue-50 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900">
+                  Admin Field Controls
+                </h4>
+                <p className="text-xs text-blue-700">
+                  Configure visibility and read-only state for contact fields.
+                </p>
+                {fieldAccessError && (
+                  <p className="mt-1 text-xs text-red-600">
+                    {fieldAccessError}
+                  </p>
+                )}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={resetFieldAccess}
+                  className="rounded border border-blue-200 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={fieldAccessBusy || !fieldAccessDirty}
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={saveFieldAccess}
+                  className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={fieldAccessBusy || !fieldAccessDirty}
+                >
+                  {fieldAccessSaving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 md:grid-cols-2">
+              {contactFieldNames.map((fieldName) => {
+                const isVisible = !fieldAccessConfig.hidden.includes(fieldName);
+                const isReadOnly = fieldAccessConfig.readOnly.includes(fieldName);
+                return (
+                  <div
+                    key={fieldName}
+                    className="flex items-center justify-between rounded-md border border-blue-100 bg-white px-3 py-2"
+                  >
+                    <span className="text-xs font-semibold uppercase text-blue-700">
+                      {fieldName.replace(/_/g, " ")}
+                    </span>
+                    <div className="flex items-center gap-4 text-xs">
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={isVisible}
+                          onChange={(event) =>
+                            setFieldVisible(fieldName, event.target.checked)
+                          }
+                          disabled={fieldAccessBusy}
+                        />
+                        Visible
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={isReadOnly}
+                          onChange={(event) =>
+                            setFieldReadOnly(fieldName, event.target.checked)
+                          }
+                          disabled={fieldAccessBusy}
+                        />
+                        Read-only
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {fieldAccessBusy && (
+              <p className="mt-3 text-xs text-blue-600">
+                Syncing field preferences...
+              </p>
+            )}
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div>
+            {shouldRenderField("email") && (
+              <div>
               <Label htmlFor="email">email</Label>
               <Input
                 type="email"
@@ -352,14 +493,16 @@ export default function ContactDetail({
                 {...register("email")}
                 error={errors.email && errors.email.message ? true : false}
                 hint={errors.email && errors.email.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("email")}
               />
-            </div>
+              </div>
+            )}
           </div>
           {(mode === "add" || mode === "edit") && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-                <div>
+                {shouldRenderField("password") && (
+                  <div>
                   <Label htmlFor="password">password</Label>
                   <Input
                     type="password"
@@ -372,12 +515,15 @@ export default function ContactDetail({
                     hint={
                       errors.password?.message ||
                       "Your password can't be too similar to your other personal information. Your password must contain at least 8 characters. Your password can't be a commonly used password. Your password can't be entirely numeric."
-                    }
+                      }
+                      disabled={isFieldDisabled("password")}
                   />
-                </div>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-                <div>
+                {shouldRenderField("cnf_password") && (
+                  <div>
                   <Label htmlFor="cnf_password">cnf_password</Label>
                   <Input
                     type="password"
@@ -393,8 +539,10 @@ export default function ContactDetail({
                       errors.cnf_password?.message ||
                       "Enter the same password as before, for verification."
                     }
+                      disabled={isFieldDisabled("cnf_password")}
                   />
-                </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -402,7 +550,8 @@ export default function ContactDetail({
             Personal info
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div>
+            {shouldRenderField("name_first") && (
+              <div>
               <Label htmlFor="name_first">name_first</Label>
               <Input
                 type="text"
@@ -413,10 +562,12 @@ export default function ContactDetail({
                   errors.name_first && errors.name_first.message ? true : false
                 }
                 hint={errors.name_first && errors.name_first.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("name_first")}
               />
-            </div>
-            <div>
+              </div>
+            )}
+            {shouldRenderField("name_last") && (
+              <div>
               <Label htmlFor="name_last">name_last</Label>
               <Input
                 type="text"
@@ -427,11 +578,12 @@ export default function ContactDetail({
                   errors.name_last && errors.name_last.message ? true : false
                 }
                 hint={errors.name_last && errors.name_last.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("name_last")}
               />
-            </div>
-
-            <div>
+              </div>
+            )}
+            {shouldRenderField("name_middle") && (
+              <div>
               <Label htmlFor="name_middle">name_middle</Label>
               <Input
                 type="text"
@@ -444,10 +596,12 @@ export default function ContactDetail({
                     : false
                 }
                 hint={errors.name_middle && errors.name_middle.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("name_middle")}
               />
-            </div>
-            <div>
+              </div>
+            )}
+            {shouldRenderField("name_prefix") && (
+              <div>
               <Label htmlFor="name_prefix">name_prefix</Label>
               <Input
                 type="text"
@@ -460,10 +614,12 @@ export default function ContactDetail({
                     : false
                 }
                 hint={errors.name_prefix && errors.name_prefix.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("name_prefix")}
               />
-            </div>
-            <div>
+              </div>
+            )}
+            {shouldRenderField("name_suffix") && (
+              <div>
               <Label htmlFor="name_suffix">name_suffix</Label>
               <Input
                 type="text"
@@ -476,15 +632,17 @@ export default function ContactDetail({
                     : false
                 }
                 hint={errors.name_suffix && errors.name_suffix.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("name_suffix")}
               />
-            </div>
+              </div>
+            )}
           </div>
           <h5 className="dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
             Company info
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div>
+            {shouldRenderField("company") && (
+              <div>
               <Label htmlFor="company">company</Label>
               <Input
                 type="text"
@@ -493,10 +651,12 @@ export default function ContactDetail({
                 {...register("company")}
                 error={errors.company && errors.company.message ? true : false}
                 hint={errors.company && errors.company.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("company")}
               />
-            </div>
-            <div>
+              </div>
+            )}
+            {shouldRenderField("title") && (
+              <div>
               <Label htmlFor="title">title</Label>
               <Input
                 type="text"
@@ -505,10 +665,12 @@ export default function ContactDetail({
                 {...register("title")}
                 error={errors.title && errors.title.message ? true : false}
                 hint={errors.title && errors.title.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("title")}
               />
-            </div>
-            <div>
+              </div>
+            )}
+            {shouldRenderField("department") && (
+              <div>
               <Label htmlFor="department">department</Label>
               <Input
                 type="text"
@@ -519,64 +681,178 @@ export default function ContactDetail({
                   errors.department && errors.department.message ? true : false
                 }
                 hint={errors.department && errors.department.message}
-                disabled={mode === "view"}
+                  disabled={isFieldDisabled("department")}
               />
-            </div>
+              </div>
+            )}
+          </div>
+          <h5 className="dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
+            Related IDs
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+            {shouldRenderField("customer_id") && (
+              <div>
+              <Label htmlFor="customer_id">customer_id</Label>
+              <Input
+                type="text"
+                id="customer_id"
+                placeholder="Customer ID"
+                {...register("customer_id")}
+                error={
+                  errors.customer_id && errors.customer_id.message ? true : false
+                }
+                hint={errors.customer_id && errors.customer_id.message}
+                  disabled={isFieldDisabled("customer_id")}
+              />
+              </div>
+            )}
+            {shouldRenderField("rep_id") && (
+              <div>
+              <Label htmlFor="rep_id">rep_id</Label>
+              <Input
+                type="text"
+                id="rep_id"
+                placeholder="Rep ID"
+                {...register("rep_id")}
+                error={errors.rep_id && errors.rep_id.message ? true : false}
+                hint={errors.rep_id && errors.rep_id.message}
+                  disabled={isFieldDisabled("rep_id")}
+              />
+              </div>
+            )}
+            {shouldRenderField("vendor_id") && (
+              <div>
+              <Label htmlFor="vendor_id">vendor_id</Label>
+              <Input
+                type="text"
+                id="vendor_id"
+                placeholder="Vendor ID"
+                {...register("vendor_id")}
+                error={
+                  errors.vendor_id && errors.vendor_id.message ? true : false
+                }
+                hint={errors.vendor_id && errors.vendor_id.message}
+                  disabled={isFieldDisabled("vendor_id")}
+              />
+              </div>
+            )}
+            {shouldRenderField("employee_id") && (
+              <div>
+              <Label htmlFor="employee_id">employee_id</Label>
+              <Input
+                type="text"
+                id="employee_id"
+                placeholder="Employee ID"
+                {...register("employee_id")}
+                error={
+                  errors.employee_id && errors.employee_id.message
+                    ? true
+                    : false
+                }
+                hint={errors.employee_id && errors.employee_id.message}
+                  disabled={isFieldDisabled("employee_id")}
+              />
+              </div>
+            )}
+            {shouldRenderField("manufacturer_id") && (
+              <div>
+              <Label htmlFor="manufacturer_id">manufacturer_id</Label>
+              <Input
+                type="text"
+                id="manufacturer_id"
+                placeholder="Manufacturer ID"
+                {...register("manufacturer_id")}
+                error={
+                  errors.manufacturer_id && errors.manufacturer_id.message
+                    ? true
+                    : false
+                }
+                hint={
+                  errors.manufacturer_id && errors.manufacturer_id.message
+                }
+                  disabled={isFieldDisabled("manufacturer_id")}
+              />
+              </div>
+            )}
+            {shouldRenderField("other_id") && (
+              <div>
+              <Label htmlFor="other_id">other_id</Label>
+              <Input
+                type="text"
+                id="other_id"
+                placeholder="Other ID"
+                {...register("other_id")}
+                error={
+                  errors.other_id && errors.other_id.message ? true : false
+                }
+                hint={errors.other_id && errors.other_id.message}
+                  disabled={isFieldDisabled("other_id")}
+              />
+              </div>
+            )}
           </div>
           <h5 className=" dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
             Permissions
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div>
-              <Label htmlFor="role">role</Label>
-              <Controller
-                name="role"
-                control={control}
-                render={({ field }) => (
-                  <DropDown
-                    id="role"
-                    options={roleOptions}
-                    placeholder="Select Role"
-                    value={field.value}
-                    onChange={field.onChange}
-                    className="dark:bg-dark-900"
-                    disabled={mode === "view"}
-                  />
-                )}
-              />
-            </div>
+            {shouldRenderField("role") && (
+              <div>
+                <Label htmlFor="role">role</Label>
+                <Controller
+                  name="role"
+                  control={control}
+                  render={({ field }) => (
+                    <DropDown
+                      id="role"
+                      options={roleOptions}
+                      placeholder="Select Role"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="dark:bg-dark-900"
+                      disabled={isFieldDisabled("role")}
+                    />
+                  )}
+                />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div>
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_active"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="is_active"
-                  />
-                )}
-              />
-            </div>
+            {shouldRenderField("is_active") && (
+              <div>
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="is_active"
+                      checked={field.value ?? false}
+                      onChange={field.onChange}
+                      label="is_active"
+                      disabled={isFieldDisabled("is_active")}
+                    />
+                  )}
+                />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div>
-              <Controller
-                name="is_staff"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_staff"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="is_staff"
-                  />
-                )}
-              />
-            </div>
+            {shouldRenderField("is_staff") && (
+              <div>
+                <Controller
+                  name="is_staff"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="is_staff"
+                      checked={field.value ?? false}
+                      onChange={field.onChange}
+                      label="is_staff"
+                      disabled={isFieldDisabled("is_staff")}
+                    />
+                  )}
+                />
+              </div>
+            )}
           </div>
 
           <h5 className="dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
