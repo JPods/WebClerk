@@ -9,11 +9,14 @@ import {
   FaDownload,
   FaSortAmountDown,
   FaSortAmountUp,
+  FaGripVertical,
 } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 export interface ColumnFilter {
   key: string;
@@ -38,9 +41,72 @@ interface AdvancedDataTableProps<T> {
   noDataMessage?: string;
 }
 
+// Draggable Column Header Component
+interface DraggableColumnHeaderProps {
+  column: string;
+  index: number;
+  visible: boolean;
+  moveColumn: (dragIndex: number, hoverIndex: number) => void;
+  toggleVisibility: (index: number) => void;
+}
+
+const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({ 
+  column, 
+  index, 
+  visible, 
+  moveColumn, 
+  toggleVisibility 
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [{ isDragging }, drag] = useDrag({
+    type: "column",
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [, drop] = useDrop({
+    accept: "column",
+    hover: (item: { index: number }, monitor) => {
+      if (!ref.current) return;
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) return;
+      moveColumn(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  drag(drop(ref));
+
+  return (
+    <div
+      ref={ref}
+      className="flex items-center gap-2"
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={visible}
+        onChange={() => toggleVisibility(index)}
+        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <div className="flex items-center gap-1 flex-1" style={{ cursor: "move" }}>
+        <FaGripVertical className="text-gray-400" size={12} />
+        <span className={`${!visible ? 'text-gray-400 line-through' : ''}`}>{column}</span>
+      </div>
+    </div>
+  );
+};
+
 export default function AdvancedDataTable<T extends Record<string, any>>({
   data,
-  columns,
+  columns: initialColumns,
   title = "Data Table",
   loading = false,
   filters = [],
@@ -60,23 +126,79 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   const [showFilters, setShowFilters] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const [columns, setColumns] = useState<TableColumn<T>[]>(initialColumns);
+  const [columnVisibility, setColumnVisibility] = useState<boolean[]>(
+    initialColumns.map(() => true)
+  );
+  const [showColumnManager, setShowColumnManager] = useState(false);
+  const columnManagerRef = useRef<HTMLDivElement>(null);
 
-  // Handle click outside to close export dropdown
+  // Update columns when initialColumns change
+  useEffect(() => {
+    setColumns(initialColumns);
+    setColumnVisibility(initialColumns.map(() => true));
+  }, [initialColumns]);
+
+  // Handle click outside to close export dropdown and column manager
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
         setShowExportDropdown(false);
       }
+      if (columnManagerRef.current && !columnManagerRef.current.contains(event.target as Node)) {
+        setShowColumnManager(false);
+      }
     };
 
-    if (showExportDropdown) {
+    if (showExportDropdown || showColumnManager) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showExportDropdown]);
+  }, [showExportDropdown, showColumnManager]);
+
+  // Move column position
+  const moveColumn = useCallback((dragIndex: number, hoverIndex: number) => {
+    setColumns((prevColumns) => {
+      const newColumns = [...prevColumns];
+      const [draggedColumn] = newColumns.splice(dragIndex, 1);
+      newColumns.splice(hoverIndex, 0, draggedColumn);
+      return newColumns;
+    });
+    setColumnVisibility((prevVisibility) => {
+      const newVisibility = [...prevVisibility];
+      const [draggedVisibility] = newVisibility.splice(dragIndex, 1);
+      newVisibility.splice(hoverIndex, 0, draggedVisibility);
+      return newVisibility;
+    });
+  }, []);
+
+  // Toggle column visibility
+  const toggleColumnVisibility = useCallback((index: number) => {
+    setColumnVisibility((prev) => {
+      const newVisibility = [...prev];
+      newVisibility[index] = !newVisibility[index];
+      return newVisibility;
+    });
+  }, []);
+
+  // Show/Hide all columns
+  const toggleAllColumns = useCallback((visible: boolean) => {
+    setColumnVisibility(columns.map(() => visible));
+  }, [columns]);
+
+  // Reset columns to original order and visibility
+  const resetColumnOrder = useCallback(() => {
+    setColumns(initialColumns);
+    setColumnVisibility(initialColumns.map(() => true));
+  }, [initialColumns]);
+
+  // Get visible columns
+  const visibleColumns = useMemo(() => {
+    return columns.filter((_, index) => columnVisibility[index]);
+  }, [columns, columnVisibility]);
 
   // Filter and search logic
   const filteredData = useMemo(() => {
@@ -122,7 +244,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       // Extract only the visible columns
       const exportData = dataToExport.map((row) => {
         const exportRow: Record<string, any> = {};
-        columns.forEach((col) => {
+        visibleColumns.forEach((col) => {
           if (col.name && col.selector) {
             const key = String(col.name);
             const value = typeof col.selector === "function" ? col.selector(row) : row[col.selector as keyof T];
@@ -138,12 +260,12 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       
       // Auto-size columns
       const maxWidth = 50;
-      const wscols = columns.map((col) => ({ wch: Math.min(maxWidth, String(col.name).length + 5) }));
+      const wscols = visibleColumns.map((col) => ({ wch: Math.min(maxWidth, String(col.name).length + 5) }));
       worksheet["!cols"] = wscols;
       
       XLSX.writeFile(workbook, `${exportFileName}_${new Date().toISOString().split("T")[0]}.xlsx`);
     },
-    [columns, filteredData, selectedRows, exportFileName]
+    [visibleColumns, filteredData, selectedRows, exportFileName]
   );
 
   // Export to PDF
@@ -160,13 +282,13 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       doc.setFontSize(10);
       doc.text(`Exported: ${new Date().toLocaleDateString()}`, 14, 22);
 
-      // Prepare table data
-      const tableColumns = columns
+      // Prepare table data with only visible columns
+      const tableColumns = visibleColumns
         .filter((col) => col.name)
         .map((col) => String(col.name));
 
       const tableData = dataToExport.map((row) =>
-        columns
+        visibleColumns
           .filter((col) => col.name)
           .map((col) => {
             if (col.selector) {
@@ -191,7 +313,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
 
       doc.save(`${exportFileName}_${new Date().toISOString().split("T")[0]}.pdf`);
     },
-    [columns, filteredData, selectedRows, title, exportFileName]
+    [visibleColumns, filteredData, selectedRows, title, exportFileName]
   );
 
   // Clear filters
@@ -355,6 +477,99 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
             </div>
           )}
 
+          {/* Column Manager */}
+          <div className="relative" ref={columnManagerRef}>
+            <button 
+              onClick={() => setShowColumnManager(!showColumnManager)}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              <FaGripVertical className="w-4 h-4" />
+              Columns
+              <span className="px-2 py-0.5 text-xs rounded-full bg-blue-600 text-white">
+                {columnVisibility.filter(Boolean).length}/{columns.length}
+              </span>
+            </button>
+
+            {/* Column Manager Dropdown */}
+            {showColumnManager && (
+              <div className="absolute right-0 z-10 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="p-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Manage Columns
+                    </h3>
+                    <button
+                      onClick={resetColumnOrder}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                    >
+                      Reset All
+                    </button>
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <button
+                      onClick={() => toggleAllColumns(true)}
+                      className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
+                    >
+                      Show All
+                    </button>
+                    <button
+                      onClick={() => toggleAllColumns(false)}
+                      className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                    >
+                      Hide All
+                    </button>
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <strong>✓</strong> Check/uncheck to show/hide columns<br/>
+                      <strong>↕</strong> Drag to reorder columns
+                    </p>
+                  </div>
+
+                  {/* Column List */}
+                  <DndProvider backend={HTML5Backend}>
+                    <div className="space-y-1 max-h-96 overflow-y-auto">
+                      {columns.map((col, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center gap-2 p-3 rounded transition-colors ${
+                            columnVisibility[index]
+                              ? 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          <DraggableColumnHeader
+                            column={String(col.name)}
+                            index={index}
+                            visible={columnVisibility[index]}
+                            moveColumn={moveColumn}
+                            toggleVisibility={toggleColumnVisibility}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </DndProvider>
+
+                  {/* Footer Info */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Visible: <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {columnVisibility.filter(Boolean).length}
+                      </span> / Total: <span className="font-medium">
+                        {columns.length}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Custom Actions */}
           {customActions}
         </div>
@@ -417,13 +632,16 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
               Selected: <span className="text-green-600 dark:text-green-400">{selectedRows.length}</span>
             </span>
           )}
+          <span className="font-medium">
+            Columns: <span className="text-purple-600 dark:text-purple-400">{visibleColumns.length}/{columns.length}</span>
+          </span>
         </div>
       </div>
 
       {/* Data Table */}
       <div className="overflow-hidden bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
         <DataTable
-          columns={columns}
+          columns={visibleColumns}
           data={filteredData}
           pagination
           paginationPerPage={10}
