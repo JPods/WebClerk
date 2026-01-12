@@ -1,2 +1,0 @@
-Please create a .py in apps/core/management/commands/qqqBy20260115 that creates 10 project model records
-attention  
