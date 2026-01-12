@@ -23,6 +23,7 @@ export class PageRoutes {
 
   static readonly test: string = "/test";
   static readonly adminWorkbench: string = "/admin-wb";
+  static readonly modelWorkbench: string = "/model-workbench";
   static readonly whitelist: string = "/whitelist";
   static readonly docs: string = "/docs";
   static readonly notionTracker: string = "/notion-tracker";
