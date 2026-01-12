@@ -1,5 +1,9 @@
 # Developer Setup & Requirements
 
+> **Reading order**: [← 01-architecture-overview](01-architecture-overview.md) | [03-wcapi-gateway →](03-wcapi-gateway.md)
+
+---
+
 <!-- TOC START -->
 
 ## Table of Contents

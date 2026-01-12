@@ -1,5 +1,9 @@
 # WCAPI Usage Guide
 
+> **Reading order**: [← 03-wcapi-gateway](03-wcapi-gateway.md) | [05-model-registry →](05-model-registry.md)
+
+---
+
 The WebClerk API (WCAPI) provides RESTful access to all application models through a unified interface. This guide covers the GET endpoint for retrieving data.
 
 ## Base URL
