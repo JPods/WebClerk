@@ -1,5 +1,9 @@
 # React2025 Integration Guide for WebClerk3 Transaction Models
 
+> **Reading order**: [← 06-api-conventions](06-api-conventions.md) | **End of core sequence**
+
+---
+
 ## Overview
 
 This guide outlines the integration of React2025 components for WebClerk3's transaction models, focusing on WC_Core.4dm features: basic order management, payments, reservations, and proposals. The components expand on traditional transaction processing with modern features including real-time calculations, multi-currency support, audit trails, and seamless API interactions.

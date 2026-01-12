@@ -1,5 +1,9 @@
 # Universal API Conventions
 
+> **Reading order**: [← 05-model-registry](05-model-registry.md) | [07-react-integration →](07-react-integration.md)
+
+---
+
 This document captures the conventions used by the Universal API endpoints (e.g., `/wcapi/get`, `/wcapi/save`) for model naming, related data, and forward link hydration.
 
 ## 1) Singular model_name (strict)

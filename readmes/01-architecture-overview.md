@@ -1,5 +1,9 @@
 # WebClerk3 Architecture Overview
 
+> **Reading order**: [← 00-ai-agreement](00-ai-agreement.md) | [02-dev-setup →](02-dev-setup.md)
+
+---
+
 ## Overview
 
 WebClerk3 is a Django-based backend application designed for managing commerce and business operations. It provides a universal API for CRUD operations across various business entities, emphasizing modularity, extensibility, and clean transaction flows. The system supports contact management, communications, transactions (proposals, orders, invoices), products/inventory, synchronization with external services, and documentation management.

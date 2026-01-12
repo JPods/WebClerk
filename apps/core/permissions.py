@@ -17,6 +17,18 @@ def _without(fields: List[str], excluded: List[str]) -> List[str]:
     return [f for f in fields if f not in excluded_set]
 
 
+def _all_fields(model) -> List[str]:
+    try:
+        return [f.name for f in getattr(model, '_meta', {}).get('fields', [])]
+    except Exception:
+        return []
+
+
+def _without(fields: List[str], excluded: List[str]) -> List[str]:
+    excluded_set = set(excluded or [])
+    return [f for f in fields if f not in excluded_set]
+
+
 def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
     """
     Get field access rules for a specific model and user role.
@@ -44,6 +56,18 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
         'admin': {'view': None, 'edit': None},
         'employee': {'view': None, 'edit': None},
         'user': {
+            'view': base_fields + [
+                'name', 'status', 'customer_id', 'vendor_id',
+                'amount', 'total', 'price', 'quantity', 'description'
+            ],
+            'edit': base_fields + [
+                'status', 'notes', 'description'
+            ],
+        },
+        '': {  # Anonymous/empty role
+            'view': base_fields,
+            'edit': [],
+        }
             'view': base_fields + ownership_fields + ['name', 'status', 'description'],
             'edit': base_fields + ownership_fields + ['description', 'status'],
         },
@@ -75,7 +99,16 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
 
     role_rules = model_rules.get(model_name, default_rules)
     rules = role_rules.get(role, role_rules.get('user', default_rules['user']))
+    role_rules = model_rules.get(model_name, default_rules)
+    rules = role_rules.get(role, role_rules.get('user', default_rules['user']))
 
+    # Expand None to all fields
+    if rules.get('view') is None:
+        rules = dict(rules)
+        rules['view'] = all_fields
+    if rules.get('edit') is None:
+        rules = dict(rules)
+        rules['edit'] = all_fields
     # Expand None to all fields
     if rules.get('view') is None:
         rules = dict(rules)
