@@ -1,26 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { TableColumn } from "react-data-table-component";
-import {
-  FaPlus,
-  FaEye,
-  FaEdit,
-  FaTrash,
-  FaCheck,
-  FaTimes,
-} from "react-icons/fa";
+import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
 } from "../../../../../components/common/AdvancedDataTable";
-import { Actions, patchAction } from "../../../../../api/userProfile";
+import { patchAction } from "../../../../../api/userProfile";
 import { fetchContacts } from "../services/contactApi";
 import { useNavigate } from "react-router";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import ContactDetail from "./ContactDetail";
-import { PageRoutes } from "../../../../../routes/Routes";
-
+import ContactListMob from "./ContactListMob";
+import { getRecord } from "../../../../../api/wcapi";
+import { useAppSelector } from "../../../../../store/hooks";
 interface ActionData {
   id: string | number;
   email?: string;
@@ -39,12 +33,14 @@ const ContactList = () => {
 
   const [data, setData] = useState<ActionData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedActions, setSelectedActions] = useState<ActionData[]>([]);
-  const [selectedAction, setSelectedAction] = useState<ActionData | null>(null);
+  const [selectedContacts, setSelectedContacts] = useState<ActionData[]>([]);
+  const [selectedContact, setSelectedContact] = useState<ActionData | null>(
+    null
+  );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
-
+  const { user } = useAppSelector((state) => state.auth);
   // Helper to extract translated text
   const getTranslatedText = useCallback(
     (
@@ -104,8 +100,8 @@ const ContactList = () => {
     const name_last = new Set<string>();
     const company = new Set<string>();
     const role = new Set<string>();
-    const is_active = new Set<string>();
-    const is_staff = new Set<string>();
+    // const is_active = new Set<string>();
+    // const is_staff = new Set<string>();
 
     data.forEach((item) => {
       if (item.id) id.add(item.id);
@@ -116,8 +112,8 @@ const ContactList = () => {
       if (item.role) role.add(item.role);
 
       // Yes/No version
-      is_active.add(item.is_active ? "Yes" : "No");
-      is_staff.add(item.is_staff ? "Yes" : "No");
+      // is_active.add(item.is_active ? "Yes" : "No");
+      // is_staff.add(item.is_staff ? "Yes" : "No");
     });
 
     const toOptions = (set: Set<any>) =>
@@ -133,42 +129,10 @@ const ContactList = () => {
       name_last: toOptions(name_last),
       company: toOptions(company),
       role: toOptions(role),
-      is_active: toOptions(is_active),
-      is_staff: toOptions(is_staff),
+      // is_active: toOptions(is_active),
+      // is_staff: toOptions(is_staff),
     };
   }, [data]);
-
-  // const filterOptions = useMemo(() => {
-  //   const id = new Set<string | number>();
-  //   const email = new Set<string>();
-  //   const name_first = new Set<string>();
-  //   const name_last = new Set<string>();
-  //   const company = new Set<string>();
-  //   const role = new Set<string>();
-  //   const is_active = new Set<string>();
-  //   const is_staff = new Set<string>();
-  //   data.forEach((action) => {
-  //     if (action.id) id.add(action.id);
-  //     if (action.email) email.add(action.email);
-  //     if (action.name_first) name_first.add(action.name_first);
-  //     if (action.name_last) name_last.add(action.name_last);
-  //     if (action.company) company.add(action.company);
-  //     if (action.role) role.add(action.role);
-  //     is_active.add(action.is_active ? "Yes" : "No");
-  //     is_staff.add(action.is_staff ? "Yes" : "No");
-  //   });
-
-  //   return {
-  //     id: Array.from(id).map((s) => ({ value: s, label: s })),
-  //     email: Array.from(email).map((s) => ({ value: s, label: s })),
-  //     name_first: Array.from(name_first).map((p) => ({ value: p, label: p })),
-  //     name_last: Array.from(name_last).map((c) => ({ value: c, label: c })),
-  //     company: Array.from(company).map((c) => ({ value: c, label: c })),
-  //     role: Array.from(role).map((c) => ({ value: c, label: c })),
-  //     is_active: toOptions(is_active),
-  //     is_staff: toOptions(is_staff),
-  //   };
-  // }, [data]);
 
   // Fetch actions
   const fetchActions = useCallback(async () => {
@@ -270,17 +234,6 @@ const ContactList = () => {
   // Define table columns
   const columns: TableColumn<ActionData>[] = useMemo(
     () => [
-      // {
-      //   name: "#",
-      //   selector: (_row: ActionData, index?: number) => (index !== undefined ? index + 1 : 0),
-      //   sortable: false,
-      //   width: "80px",
-      //   cell: (_row: ActionData, index: number) => (
-      //     <div className="text-center font-medium text-gray-700 dark:text-gray-300">
-      //       {index + 1}
-      //     </div>
-      //   ),
-      // },
       {
         name: "ID",
         selector: (row: ActionData) => row.id || "-",
@@ -441,25 +394,25 @@ const ContactList = () => {
         type: "select",
         options: filterOptions.role,
       },
-      {
-        key: "is_active",
-        label: "is_active",
-        type: "select",
-        options: filterOptions.is_active,
-      },
-      {
-        key: "is_staff",
-        label: "is_staff",
-        type: "select",
-        options: filterOptions.is_staff,
-      },
+      // {
+      //   key: "is_active",
+      //   label: "is_active",
+      //   type: "select",
+      //   options: filterOptions.is_active,
+      // },
+      // {
+      //   key: "is_staff",
+      //   label: "is_staff",
+      //   type: "select",
+      //   options: filterOptions.is_staff,
+      // },
     ],
     [filterOptions]
   );
 
   // Handle bulk operations
   const handleBulkDelete = useCallback(async () => {
-    if (selectedActions.length === 0) {
+    if (selectedContacts.length === 0) {
       dispatch(
         showToast({
           message: "Please select actions to delete",
@@ -471,7 +424,7 @@ const ContactList = () => {
 
     if (
       !window.confirm(
-        `Are you sure you want to delete ${selectedActions.length} action(s)?`
+        `Are you sure you want to delete ${selectedContacts.length} action(s)?`
       )
     ) {
       return;
@@ -480,7 +433,7 @@ const ContactList = () => {
     try {
       // Implement bulk delete logic
       await Promise.all(
-        selectedActions.map((action) =>
+        selectedContacts.map((action) =>
           patchAction({
             model_name: "action",
             id: action.id,
@@ -491,13 +444,13 @@ const ContactList = () => {
 
       dispatch(
         showToast({
-          message: `${selectedActions.length} action(s) deleted successfully`,
+          message: `${selectedContacts.length} action(s) deleted successfully`,
           type: "success",
         })
       );
 
       fetchActions();
-      setSelectedActions([]);
+      setSelectedContacts([]);
     } catch (error) {
       console.error("Error in bulk delete:", error);
       dispatch(
@@ -507,86 +460,117 @@ const ContactList = () => {
         })
       );
     }
-  }, [selectedActions, dispatch, fetchActions]);
+  }, [selectedContacts, dispatch, fetchActions]);
 
   // Handle view action
   const handleView = (row: ActionData) => {
-    setSelectedAction(row);
+    setSelectedContact(row);
     setFormMode("view");
   };
 
   // Handle edit action
-  const handleEdit = (row: ActionData) => {
-    setSelectedAction(row);
+  const handleEdit = async (row: ActionData) => {
+    try {
+      const res = await getRecord("contact", Number(row.id));
+      setSelectedContact(res.record);
+    } catch {
+      setSelectedContact(row);
+    }
     setFormMode("edit");
   };
 
   // Handle add new action - navigate to separate page
   const handleAdd = () => {
-    navigate(PageRoutes.coreContactList.replace("/:id?", ""));
+    setSelectedContact(null);
+    setFormMode("add");
   };
 
   // Handle form saved
   const handleFormSaved = () => {
     fetchActions();
     setFormMode(null);
-    setSelectedAction(null);
+    setSelectedContact(null);
   };
 
   // Handle form cancel
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedAction(null);
+    setSelectedContact(null);
   };
+  const roleLabel = useMemo(() => {
+    const roleValue = user?.role;
+    if (!roleValue) return "Not assigned";
+    if (Array.isArray(roleValue)) {
+      return roleValue.length ? roleValue.join(", ") : "Not assigned";
+    }
+    return roleValue;
+  }, [user?.role]);
+
+  const emptyStateMessage = useMemo(
+    () => `There are no records to display for Role: ${roleLabel}`,
+    [roleLabel]
+  );
 
   return (
     <>
       <PageBreadcrumb pageTitle="Contact List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <AdvancedDataTable
-              data={data}
-              columns={columns}
-              title="Actions"
-              loading={loading}
-              filters={filters}
-              enableExport={true}
-              enableSelection={true}
-              onSelectionChange={setSelectedActions}
-              exportFileName="actions_export"
-              searchPlaceholder="Search actions, projects, assignees..."
-              noDataMessage="No actions found"
-              customActions={
-                <div className="flex gap-2">
-                  {selectedActions.length > 0 && (
+          <ComponentCard className=" cus-bg-purple-light rounded-md">
+            {formMode ? (
+              <div className="flex flex-col">
+                <ContactListMob
+                  dataProp={data}
+                  handleView={handleView}
+                  handleEdit={handleEdit}
+                  emptyMessage={emptyStateMessage}
+                />
+              </div>
+            ) : (
+              <AdvancedDataTable
+                data={data}
+                columns={columns}
+                title="Contact"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                onSelectionChange={setSelectedContacts}
+                exportFileName="contact_export"
+                searchPlaceholder="Search contact, name_first, name_last..."
+                noDataMessage="No contact found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedContacts.length > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedContacts.length})
+                      </button>
+                    )}
                     <button
-                      onClick={handleBulkDelete}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                     >
-                      <FaTrash className="w-4 h-4" />
-                      Delete ({selectedActions.length})
+                      <FaPlus className="w-4 h-4" />
+                      New Contact
                     </button>
-                  )}
-                  <button
-                    onClick={handleAdd}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <FaPlus className="w-4 h-4" />
-                    New Action
-                  </button>
-                </div>
-              }
-              onRowClicked={handleEdit}
-            />
+                  </div>
+                }
+                onRowClicked={handleEdit}
+              />
+            )}
           </ComponentCard>
         </div>
+
         {formMode && (
           <div className="lg:col-span-2">
             <ContactDetail
               inline
               modeProp={formMode}
-              dataProp={selectedAction}
+              dataProp={selectedContact}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />
