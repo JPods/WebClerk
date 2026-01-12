@@ -5,6 +5,18 @@ Role-based permissions and field access rules for the application.
 from typing import Dict, List, Optional
 
 
+def _all_fields(model) -> List[str]:
+    try:
+        return [f.name for f in getattr(model, '_meta', {}).get('fields', [])]
+    except Exception:
+        return []
+
+
+def _without(fields: List[str], excluded: List[str]) -> List[str]:
+    excluded_set = set(excluded or [])
+    return [f for f in fields if f not in excluded_set]
+
+
 def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
     """
     Get field access rules for a specific model and user role.
@@ -21,48 +33,56 @@ def get_role_field_rules(model, role: str) -> Dict[str, List[str]]:
 
     model_name = getattr(model, '_meta', {}).get('model_name', '').lower()
 
-    # Base fields that are always accessible
     base_fields = ['id', 'uuid', 'dt_created', 'dt_modified']
+    ownership_fields = ['created_by', 'owner', 'contact', 'user', 'assigned_to', 'assignee']
 
-    # Role-based field access rules
-    role_rules = {
-        'admin': {
-            'view': None,  # All fields
-            'edit': None,
-        },
-        'employee': {
-            'view': None,  # All fields
-            'edit': base_fields + [
-                'status', 'notes', 'description', 'amount', 'total', 'price', 'quantity'
-            ],
-        },
+    model_name = getattr(model, '_meta', {}).get('model_name', '').lower()
+    all_fields = _all_fields(model)
+
+    # Default fallbacks
+    default_rules = {
+        'admin': {'view': None, 'edit': None},
+        'employee': {'view': None, 'edit': None},
         'user': {
-            'view': base_fields + [
-                'name', 'status', 'description'
-            ],
-            'edit': base_fields + [
-                'description'
-            ],
+            'view': base_fields + ownership_fields + ['name', 'status', 'description'],
+            'edit': base_fields + ownership_fields + ['description', 'status'],
         },
-        '': {
-            'view': base_fields,
-            'edit': [],
-        }
+        '': {'view': base_fields, 'edit': []},
     }
 
-    # Get rules for the role, default to user rules
-    rules = role_rules.get(role, role_rules['user'])
+    # Per-model overrides
+    contact_view_user = base_fields + [
+        'email', 'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
+        'company', 'title', 'department', 'comment', 'attention',
+        'is_active', 'dt_joined'
+    ]
+    contact_edit_user = base_fields + [
+        'name_first', 'name_last', 'name_middle', 'name_prefix', 'name_suffix',
+        'company', 'title', 'department', 'comment'
+    ]
 
-    # If view/edit is None, get all fields from model
-    if rules['view'] is None:
-        rules = dict(rules)  # Make a copy
-        model_fields = [f.name for f in getattr(model, '_meta', {}).get('fields', [])]
-        rules['view'] = model_fields
+    contact_edit_employee = _without(all_fields, [
+        'role', 'is_superuser', 'is_staff', 'password', 'last_login'
+    ]) or contact_edit_user
 
-    if rules['edit'] is None:
-        rules = dict(rules)  # Make a copy
-        model_fields = [f.name for f in getattr(model, '_meta', {}).get('fields', [])]
-        rules['edit'] = model_fields
+    model_rules = {
+        'contact': {
+            'admin': {'view': None, 'edit': None},
+            'employee': {'view': None, 'edit': contact_edit_employee},
+            'user': {'view': contact_view_user, 'edit': contact_edit_user},
+        },
+    }
+
+    role_rules = model_rules.get(model_name, default_rules)
+    rules = role_rules.get(role, role_rules.get('user', default_rules['user']))
+
+    # Expand None to all fields
+    if rules.get('view') is None:
+        rules = dict(rules)
+        rules['view'] = all_fields
+    if rules.get('edit') is None:
+        rules = dict(rules)
+        rules['edit'] = all_fields
 
     return rules
 
