@@ -89,6 +89,7 @@ import Test from "../pages/test/Test";
 import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 import ActionListPage from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
+import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 
 const Router: React.FC = () => {
   return (
@@ -202,6 +203,10 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.adminWorkbench}
             element={<AdminWorkbench />}
+          />
+          <Route
+            path={PageRoutes.modelWorkbench}
+            element={<AllModelsWorkbench />}
           />
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
           <Route path={PageRoutes.docs} element={<DocumentIndex />} />

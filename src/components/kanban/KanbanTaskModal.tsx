@@ -18,6 +18,11 @@ interface LanguagePickerState {
   error: string | null;
 }
 
+interface AssigneeOption {
+  id: string;
+  label: string;
+}
+
 interface KanbanTaskModalProps {
   mode: "create" | "edit";
   isOpen: boolean;
@@ -34,6 +39,7 @@ interface KanbanTaskModalProps {
   priorityOptions: TaskPriority[];
   difficultyOptions: string[];
   progressOptions: string[];
+  assigneeOptions?: AssigneeOption[];
   translations: TranslationFormEntry[];
   onTranslationFieldChange: (entryId: string, field: keyof TranslationFormEntry, value: string) => void;
   onRemoveTranslation: (entryId: string) => void;
@@ -65,6 +71,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   priorityOptions,
   difficultyOptions,
   progressOptions,
+  assigneeOptions = [],
   translations,
   onTranslationFieldChange,
   onRemoveTranslation,
@@ -380,14 +387,30 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">assignee</label>
-              <input
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                value={formState.assignee}
-                onChange={(event) => onFieldChange("assignee", event.target.value)}
-                placeholder="Who owns this?"
-                disabled={isSaving}
-              />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
+              {assigneeOptions.length > 0 ? (
+                <select
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  value={formState.assignee}
+                  onChange={(event) => onFieldChange("assignee", event.target.value)}
+                  disabled={isSaving}
+                >
+                  <option value="">Select assignee...</option>
+                  {assigneeOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  value={formState.assignee}
+                  onChange={(event) => onFieldChange("assignee", event.target.value)}
+                  placeholder="Select a project to see contacts"
+                  disabled={isSaving}
+                />
+              )}
             </div>
           </div>
 

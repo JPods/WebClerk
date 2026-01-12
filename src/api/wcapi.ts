@@ -164,6 +164,48 @@ export async function getWorkbenchFieldsSetting(model_name: string): Promise<Set
   }
 }
 
+export interface DetailFieldSettingRecord {
+  id?: number;
+  model_name: string;
+  purpose: string;
+  data: {
+    hidden: string[];
+    readOnly: string[];
+  };
+}
+
+export async function getDetailFieldSetting(model_name: string): Promise<DetailFieldSettingRecord | null> {
+  try {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
+      params: { model_name: 'setting', model_name_filter: model_name, purpose: 'detail_field_access' }
+    });
+    const results = res.data.data.results || [];
+    return results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', {
+        params: { model_name: 'setting', model_name_filter: model_name, purpose: 'detail_field_access' }
+      });
+      const results = res2.data.data.results || [];
+      return results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
+    }
+    throw err;
+  }
+}
+
+export async function saveDetailFieldSetting(setting: DetailFieldSettingRecord) {
+  try {
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { ...setting, model_name: 'setting' });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { ...setting, model_name: 'setting' });
+      return res2.data.data;
+    }
+    throw err;
+  }
+}
+
 export async function getAllWorkbenchFieldsSettings(): Promise<SettingRecord[]> {
   try {
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
