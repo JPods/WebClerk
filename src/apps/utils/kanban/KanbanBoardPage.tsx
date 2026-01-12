@@ -996,8 +996,7 @@ const KanbanBoardPage: React.FC = () => {
         parts.push(`project ${projectId}`);
       }
       if (contactId) {
-        const contactLabel = contactOptions.find((option) => option.id === contactId)?.label ?? contactId;
-        parts.push(`contact ${contactLabel}`);
+        parts.push(`contact ${contactId}`);
       }
       const contextLabel = parts.length === 0 ? "" : parts.length === 1 ? parts[0] : `${parts[0]} and ${parts[1]}`;
       const message = contextLabel
@@ -1008,7 +1007,7 @@ const KanbanBoardPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [contactOptions]);
+  }, []);
 
   useEffect(() => {
     void fetchProjects();
