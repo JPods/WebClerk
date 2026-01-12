@@ -30,6 +30,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from common.decorators import allow_write
 from apps.core.services.wcapi_registry import get_model, normalize_table_key, to_model_name  # explicit registry lookup (replaces dynamic app scan)
+from apps.core.utils import policy
 from apps.core.constants.model_registry import get_model_meta
 import json
 from django.db import IntegrityError
@@ -212,15 +213,22 @@ class SaveWcapiView(APIView):
             deprecation_flag = True
         record_id = parsed_data.get('id')
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
+        # Actor context
+        actor = getattr(request, 'user', None)
+        actor_role = str(getattr(actor, 'role', '')).lower() if actor else None
+        actor_id = getattr(actor, 'id', None)
+        # Constrain queryset by role before any DB fetch
+        base_qs = model_cls.objects.all()
+        constrained_qs = policy.inject_constraints(base_qs, request=request, model_key=model_key)
         # Create or update
         is_update = bool(record_id)
         if is_update:
             console_logger.debug(f"[SAVE_VIEW] Loading existing record with ID: {record_id}")
             try:
-                obj = model_cls.objects.get(id=record_id)
+                obj = constrained_qs.get(id=record_id)
                 console_logger.debug(f"[SAVE_VIEW] Record loaded successfully: {obj}")
             except model_cls.DoesNotExist:  # type: ignore[attr-defined]
-                raise ValueError('Record not found')
+                raise ValueError('Record not found or access denied')
             if expected_version is not None:
                 current_version = getattr(obj, 'version', None)
                 console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
@@ -229,6 +237,13 @@ class SaveWcapiView(APIView):
         else:
             console_logger.debug(f"[SAVE_VIEW] Creating new record")
             obj = model_cls()
+            ownership_fields = {'created_by', 'contact', 'owner', 'user', 'assigned_to', 'assignee'}
+            for field_name in ownership_fields:
+                if hasattr(obj, field_name) and field_name not in parsed_data:
+                    try:
+                        setattr(obj, field_name, actor_id)
+                    except Exception:
+                        pass
         try:
             console_logger.debug(f"[SAVE_VIEW] Getting JSON field names...")
             #QQQ explain why we have this
@@ -282,7 +297,13 @@ class SaveWcapiView(APIView):
         # Assign fields
         field_size_errors = []
         raw_password = None
+        ownership_fields = {'created_by', 'contact', 'owner', 'user', 'assigned_to', 'assignee'}
         for field, field_data in parsed_data.items():
+            if model_key.lower() in {'contact', 'contacts'} and field == 'role':
+                check_value = field_data.get('value') if isinstance(field_data, dict) else field_data
+                norm_value = str(check_value).lower() if check_value is not None else None
+                if actor_role == 'employee' and norm_value == 'admin':
+                    raise PermissionError('Employees cannot assign admin role')
             # ignore these fields
             if field == 'password':
                 if isinstance(field_data, dict) and 'value' in field_data:
@@ -338,6 +359,9 @@ class SaveWcapiView(APIView):
             # For update/insert, set the value
             if value is None:
                 continue
+            if actor_role == 'user' and field in ownership_fields:
+                # Force ownership fields to the actor for safety
+                value = actor_id
             # Check size
             try:
                 check_field_size(value, MAX_FIELD_SIZE, field)
