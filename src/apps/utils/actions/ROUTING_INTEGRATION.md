@@ -15,9 +15,15 @@ import { ActionListPage } from "../apps/utils/actions";
 **Added Route:**
 ```tsx
 <Route path={PageRoutes.actionList} element={<ActionListPage />} />
+
+// Legacy redirect retained for compatibility
+<Route
+  path="/action-list"
+  element={<Navigate to={PageRoutes.actionList} replace />}
+/>
 ```
 
-This route maps `/action-list` to the ActionListPage component.
+This route maps `/core/actions/list` to the ActionListPage component and redirects the legacy `/action-list` URL.
 
 ### 2. Sidebar Navigation (`src/layout/AppSidebar.tsx`)
 
@@ -28,12 +34,8 @@ This route maps `/action-list` to the ActionListPage component.
   name: "Actions",
   subItems: [
     {
-      name: "Add Action",
-      path: "/action-add",
-    },
-    {
       name: "Action List",
-      path: "/action-list",  // ✅ Already pointing to correct route
+      path: "/core/actions/list",  // ✅ Aligned with hierarchical route
     },
   ],
 }
@@ -43,7 +45,8 @@ This route maps `/action-list` to the ActionListPage component.
 
 **Already Defined:** The route path was already defined in the PageRoutes class:
 ```typescript
-static readonly actionList: string = "/action-list";
+static readonly actionList: string = "/core/actions/list";
+static readonly actionDetail: string = "/core/actions/detail/:id?";
 ```
 
 ## Accessing the Page
@@ -51,7 +54,7 @@ static readonly actionList: string = "/action-list";
 Users can now access the Action List page through:
 
 1. **Sidebar Navigation:** Click "Actions" → "Action List" in the sidebar
-2. **Direct URL:** Navigate to `/action-list` in the browser
+2. **Direct URL:** Navigate to `/core/actions/list` in the browser
 3. **Programmatic Navigation:** 
    ```typescript
    import { useNavigate } from 'react-router';
@@ -88,8 +91,8 @@ To verify the integration:
 ## Technical Details
 
 - **Component Location:** `src/apps/utils/actions/ActionListPage.tsx`
-- **Route Path:** `/action-list`
-- **Route Constant:** `PageRoutes.actionList`
+- **List Route:** `/core/actions/list` (`PageRoutes.actionList`)
+- **Detail Route:** `/core/actions/detail/:id?` (`PageRoutes.actionDetail`)
 - **Sidebar Section:** Actions → Action List
 - **Icon:** CalendarIcon (in Actions section)
 

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setUser, clearUser, setLoading, setAuthError } from "../store/slices/authSlice";
-import { userDetails } from "../api/auth";
+import { userDetails, mapApiProfileToUser } from "../api/auth";
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -12,41 +12,25 @@ export const useAuth = () => {
       try {
         dispatch(setLoading(true));
         const res = await userDetails();
+        const isAxiosResponse =
+          res && typeof res === "object" && "status" in res;
 
-        if (res.status === 200) {
-          const {
-            id,
-            uuid,
-            email,
-            role,
-            name_first,
-            name_middle,
-            name_last,
-            rank,
-            company,
-            date_joined,
-            salutation,
-            attention,
-          } = res.data;
-          const user = {
-            id,
-            uuid,
-            email,
-            role,
-            name_first,
-            name_middle: name_middle ?? "",
-            name_last,
-            rank: rank ?? null,
-            company: company ?? null,
-            date_joined: date_joined ?? null,
-            salutation: salutation ?? null,
-            attention: attention ?? null,
-          };
-          dispatch(setUser(user));
+        if (isAxiosResponse && (res as any).status === 200) {
+          dispatch(setUser(mapApiProfileToUser((res as any).data)));
+          dispatch(setAuthError(null));
+          return;
         }
+
+        const message =
+          (isAxiosResponse && ((res as any)?.data?.message || (res as any)?.message)) ||
+          (typeof res === "string" ? res : "Failed to fetch user");
+
+        throw new Error(message);
       } catch (err: any) {
         dispatch(clearUser());
-        dispatch(setAuthError(err?.response?.data?.message || "Failed to fetch user"));
+        const fallbackMessage =
+          err?.response?.data?.message || err?.message || "Failed to fetch user";
+        dispatch(setAuthError(fallbackMessage));
       } finally {
         dispatch(setLoading(false));
       }

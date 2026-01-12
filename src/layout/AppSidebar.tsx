@@ -7,11 +7,10 @@ import {
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { PageRoutes } from "../routes/Routes";
+import { PageRoutes } from "@/routes/Routes";
 //import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
@@ -64,7 +63,7 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Core",
     subItems: [
-      { name: "Action", path: "/core/action/list" },
+      { name: "Action", path: PageRoutes.actionList },
       { name: "Audit", path: "/core/audit/list" },
       { name: "Contact", path: "/core/contact/list" },
       { name: "Notification", path: "/core/notification/list" },
@@ -150,14 +149,13 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Transactions",
     subItems: [
-      { name: "Orders", path: PageRoutes.transactionsOrders },
-      { name: "Invoices", path: PageRoutes.transactionsInvoices },
-      { name: "Proposals", path: PageRoutes.transactionsProposals },
+      { name: "Sales Orders", path: PageRoutes.transactionsSalesOrderList },
+      { name: "Invoices", path: PageRoutes.transactionsInvoiceList },
+      { name: "Proposals", path: PageRoutes.transactionsProposalList },
       {
         name: "Purchase Orders",
-        path: PageRoutes.transactionsPurchaseOrders,
+        path: PageRoutes.transactionsPurchaseOrderList,
       },
-      { name: "Orders Test", path: "/transactions/orders-test" },
     ],
   },
 
@@ -175,11 +173,6 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "User Profile",
     path: "/profile",
-  },
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
   },
   // {
   //   name: "Pages",

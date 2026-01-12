@@ -1,22 +1,21 @@
 import { useState } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
+import { FaEye, FaEdit } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
-interface ContactListMobProps {
+interface EmailListMobileProps {
   dataProp: dynamicData[];
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
-  emptyMessage?: string;
 }
 
-export default function ContactListMob({
+export default function EmailListMobile({
   dataProp,
   handleView,
   handleEdit,
-  emptyMessage,
-}: ContactListMobProps) {
+}: EmailListMobileProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   return (
     <div className="flex-1 overflow-y-auto px-2">
       {dataProp && dataProp.length > 0 ? (
@@ -30,41 +29,30 @@ export default function ContactListMob({
               setOpenIndex(willOpen ? index : null);
 
               if (willOpen) {
-                handleView(contact); // 👈 FIXED
+                handleView(contact);
               }
             }}
           >
-            {/* Accordion Content */}
             <div className="flex flex-col min-h-[220px]">
-              {/* Content */}
               <div className="space-y-1 text-sm border-t">
                 <p>
-                  <strong>name_first:</strong> {contact.name_first || "--"}
-                </p>
-                <p>
-                  <strong>name_last:</strong> {contact.name_last || "--"}
+                  <strong>name:</strong> {contact.name || "--"}
                 </p>
                 <p>
                   <strong>attention:</strong> {contact.attention || "--"}
                 </p>
 
-                <p>
-                  <strong>company:</strong> {contact.company || "--"}
-                </p>
-                <p>
-                  <strong>role:</strong> {contact.role || "--"}
-                </p>
                 <div className="flex items-center gap-2">
-                  <strong>is_active:</strong>
-                  {contact.is_active ? (
+                  <strong>is_primary:</strong>
+                  {contact.is_primary ? (
                     <p className="text-green-600">Yes</p>
                   ) : (
                     <p className="text-red-500">No</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <strong>is_staff:</strong>
-                  {contact.is_staff ? (
+                  <strong>is_verified:</strong>
+                  {contact.is_verified ? (
                     <p className="text-green-600">Yes</p>
                   ) : (
                     <p className="text-red-500">No</p>
@@ -72,13 +60,11 @@ export default function ContactListMob({
                 </div>
               </div>
 
-              {/* Footer Actions */}
-              <div className="mt-auto pt-3 border-t flex justify-end gap-1 bg-white sticky bottom-0">
+              <div className="mt-auto pt-3 border-top flex justify-end gap-1 bg-white sticky bottom-0">
                 <button
                   onClick={() => handleView(contact)}
                   title="View"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-green-600"
+                  className="h-[25px] w-[25px] flex items-center justify-center border rounded-md hover:text-green-600"
                 >
                   <FaEye className="text-green-600 hover:scale-110" />
                 </button>
@@ -86,8 +72,7 @@ export default function ContactListMob({
                 <button
                   onClick={() => handleEdit(contact)}
                   title="Edit"
-                  className="h-[25px] w-[25px] flex items-center justify-center
-                         border rounded-md hover:text-blue-600"
+                  className="h-[25px] w-[25px] flex items-center justify-center border rounded-md hover:text-blue-600"
                 >
                   <FaEdit className="text-blue-600 hover:scale-110" />
                 </button>
@@ -96,9 +81,7 @@ export default function ContactListMob({
           </AccordionItem>
         ))
       ) : (
-        <p className="text-center text-gray-500">
-          {emptyMessage ?? "No contacts found."}
-        </p>
+        <p className="text-center text-gray-500">No email found.</p>
       )}
     </div>
   );

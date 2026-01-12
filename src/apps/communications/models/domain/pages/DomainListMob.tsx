@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
+import { FaEye, FaEdit } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
-interface ContactListMobProps {
+interface DomainListMobProps {
   dataProp: dynamicData[];
   handleView: (row: dynamicData) => void;
   handleEdit: (row: dynamicData) => void;
 }
 
-export default function DomianListMob({
+export default function DomainListMob({
   dataProp,
   handleView,
   handleEdit,
-}: ContactListMobProps) {
+}: DomainListMobProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (
     <div className="flex-1 overflow-y-auto px-2">
@@ -28,7 +28,7 @@ export default function DomianListMob({
               setOpenIndex(willOpen ? index : null);
 
               if (willOpen) {
-                handleView(contact); // 👈 FIXED
+                handleView(contact);
               }
             }}
           >

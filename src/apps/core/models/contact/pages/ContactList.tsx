@@ -2,6 +2,7 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useAppSelector } from "../../../../../store/hooks";
 import { getRecord } from "../../../../../api/wcapi";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
@@ -12,6 +13,7 @@ import ContactListMob from "./ContactListMob";
 
 export default function ContactList() {
   const { theme } = useTheme();
+  const { user } = useAppSelector((state) => state.auth);
 
   const [data, setData] = useState<dynamicData[]>([]);
   const [filteredData, setFilteredData] = useState<dynamicData[]>([]);
@@ -25,17 +27,35 @@ export default function ContactList() {
     null
   );
 
+  const roleLabel = useMemo(() => {
+    const roleValue = user?.role;
+    if (!roleValue) return "Not assigned";
+    if (Array.isArray(roleValue)) {
+      return roleValue.length ? roleValue.join(", ") : "Not assigned";
+    }
+    return roleValue;
+  }, [user?.role]);
+
+  const emptyStateMessage = useMemo(
+    () => `There are no records to display for Role: ${roleLabel}`,
+    [roleLabel]
+  );
+
   /* ---------------- Fetch Contacts ---------------- */
   const getContactData = useCallback(async (contactId?: number) => {
     setLoading(true);
     try {
       const res = await fetchContacts();
-      setData(res.data.results);
-      setFilteredData(res.data.results);
+      const results = Array.isArray(res?.data?.results)
+        ? res.data.results
+        : [];
+      setData(results);
+      setFilteredData(results);
       if (contactId) {
         const contactRes = await getRecord("contact", contactId);
-        setSelectedContact(contactRes.record);
-        setFilteredData(contactRes.record);
+        const record = contactRes?.record ?? null;
+        setSelectedContact(record);
+        setFilteredData(record ? [record] : []);
       }
     } finally {
       setLoading(false);
@@ -278,6 +298,7 @@ export default function ContactList() {
                     dataProp={filteredData}
                     handleView={handleView}
                     handleEdit={handleEdit}
+                    emptyMessage={emptyStateMessage}
                   />
                 </div>
               ) : (
@@ -296,6 +317,11 @@ export default function ContactList() {
                   progressComponent={
                     <div className="p-8 text-sm text-center text-gray-500">
                       Loading contacts...
+                    </div>
+                  }
+                  noDataComponent={
+                    <div className="p-8 text-sm text-center text-gray-500">
+                      {emptyStateMessage}
                     </div>
                   }
                   onRowClicked={handleView}

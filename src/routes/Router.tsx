@@ -4,23 +4,17 @@ import PrivateRoute from "./PrivateRoute";
 import { PageRoutes } from "./Routes";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import {
-  BasicTables,
-  Calendar,
-  ContactList,
   CustomerList,
   EmployeeList,
   ManufacturerList,
   OrganizationsList,
   RepList,
   VendorList,
-  FormElements,
   Home,
   KanbanBoardDataPage,
   KanbanBoardPage,
   KanbanGanttPage,
   NotionTrackerPage,
-  SettingAdd,
-  SettingList,
   SignIn,
   SignUp,
   SvarGanttPage,
@@ -28,57 +22,44 @@ import {
   // Accounts
   AuditList,
   AuditDetail,
-  AuditDisplay,
   CurrencyList,
   CurrencyDetail,
-  CurrencyDisplay,
   ExchangeRateList,
   ExchangeRateDetail,
-  ExchangeRateDisplay,
   ExchangeTransactionList,
   ExchangeTransactionDetail,
-  ExchangeTransactionDisplay,
   GLAccountList,
   GLAccountDetail,
   GLJournalList,
   GLJournalDetail,
-  GLJournalDisplay,
   LedgerList,
-  LedgerDisplay,
   TaxJurisdictionList,
-  TaxJurisdictionDisplay,
   TermList,
-  TermDisplay,
   // Communications
   DomainList,
+  DomainDetail,
   EmailList,
+  EmailDetail,
   AppLocationList,
+  AppLocationDetail,
   AppPhoneList,
+  AppPhoneDetail,
   // Core
   CoreContactList,
   CoreContactDetail,
   CoreReportList,
   CoreReportDetail,
-  CoreReportDisplay,
   CoreSettingList,
   CoreSettingDetail,
-  CoreSettingDisplay,
   CoreTemplateList,
   CoreTemplateDetail,
-  CoreTemplateDisplay,
   // Docs
   DocumentList,
   DocumentDetail,
-  DocumentDisplay,
   LinkageList,
-  LinkageDisplay,
   LinkageIndexList,
-  LinkageIndexDisplay,
   QuestionAnswerList,
-  QuestionAnswerDisplay,
   TagList,
-  TagDisplay,
-  SalesOrderDetailTest,
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
@@ -95,20 +76,19 @@ import SpecificationList from "../apps/products/models/specification/pages/Speci
 import UsageList from "../apps/products/models/usage/pages/UsageList";
 import VariantList from "../apps/products/models/variant/pages/VariantList";
 import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList";
-import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail_test";
+import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
 import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
-import ProposalDetailVue from "../apps/transactions/models/proposal/pages/ProposalDetailVue";
-import ProposalDetailVueReact from "../apps/transactions/models/proposal/pages/ProposalDetailVueReact";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
 import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesOrderList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
-import { ActionListPage } from "../apps/utils/actions";
+import ActionListPage from "../apps/core/models/action/pages/ActionList";
+import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
 
 const Router: React.FC = () => {
   return (
@@ -125,7 +105,14 @@ const Router: React.FC = () => {
         <Route element={<PrivateRoute />}>
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
-          <Route path={PageRoutes.contactList} element={<ContactList />} />
+          <Route
+            path={PageRoutes.coreContactList}
+            element={<CoreContactList />}
+          />
+          <Route
+            path={PageRoutes.coreContactDetail}
+            element={<CoreContactDetail />}
+          />
           <Route path={PageRoutes.customerList} element={<CustomerList />} />
           <Route path={PageRoutes.employeeList} element={<EmployeeList />} />
           <Route
@@ -142,12 +129,62 @@ const Router: React.FC = () => {
             path={PageRoutes.customerDetail}
             element={<CustomerDetailPage />}
           /> */}
-          <Route path={PageRoutes.settingList} element={<SettingList />} />
-          <Route path={PageRoutes.settingAdd} element={<SettingAdd />} />
-          <Route path={PageRoutes.domainList} element={<DomainList />} />
-          <Route path={PageRoutes.emailList} element={<EmailList />} />
-          <Route path={PageRoutes.locationList} element={<AppLocationList />} />
-          <Route path={PageRoutes.phoneList} element={<AppPhoneList />} />
+          <Route
+            path={PageRoutes.coreSettingList}
+            element={<CoreSettingList />}
+          />
+          <Route
+            path={PageRoutes.coreSettingDetail}
+            element={<CoreSettingDetail />}
+          />
+          <Route
+            path={PageRoutes.coreReportList}
+            element={<CoreReportList />}
+          />
+          <Route
+            path={PageRoutes.coreReportDetail}
+            element={<CoreReportDetail />}
+          />
+          <Route
+            path={PageRoutes.coreTemplateList}
+            element={<CoreTemplateList />}
+          />
+          <Route
+            path={PageRoutes.coreTemplateDetail}
+            element={<CoreTemplateDetail />}
+          />
+          <Route
+            path={PageRoutes.commDomainList}
+            element={<DomainList />}
+          />
+          <Route
+            path={PageRoutes.commDomainDetail}
+            element={<DomainDetail />}
+          />
+          <Route
+            path={PageRoutes.commEmailList}
+            element={<EmailList />}
+          />
+          <Route
+            path={PageRoutes.commEmailDetail}
+            element={<EmailDetail />}
+          />
+          <Route
+            path={PageRoutes.commLocationList}
+            element={<AppLocationList />}
+          />
+          <Route
+            path={PageRoutes.commLocationDetail}
+            element={<AppLocationDetail />}
+          />
+          <Route
+            path={PageRoutes.commPhoneList}
+            element={<AppPhoneList />}
+          />
+          <Route
+            path={PageRoutes.commPhoneDetail}
+            element={<AppPhoneDetail />}
+          />
 
           <Route
             path={PageRoutes.notionTracker}
@@ -161,15 +198,34 @@ const Router: React.FC = () => {
           <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
           <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
           <Route path={PageRoutes.actionList} element={<ActionListPage />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/form-elements" element={<FormElements />} />
-          <Route path="/basic-models" element={<BasicTables />} />
+          <Route path={PageRoutes.actionDetail} element={<ActionDetail />} />
           <Route
             path={PageRoutes.adminWorkbench}
             element={<AdminWorkbench />}
           />
           <Route path={PageRoutes.whitelist} element={<WhitelistTester />} />
           <Route path={PageRoutes.docs} element={<DocumentIndex />} />
+          <Route
+            path={PageRoutes.documentList}
+            element={<DocumentList />}
+          />
+          <Route
+            path={PageRoutes.documentDetail}
+            element={<DocumentDetail />}
+          />
+          <Route
+            path={PageRoutes.linkageList}
+            element={<LinkageList />}
+          />
+          <Route
+            path={PageRoutes.linkageIndexList}
+            element={<LinkageIndexList />}
+          />
+          <Route
+            path={PageRoutes.questionAnswerList}
+            element={<QuestionAnswerList />}
+          />
+          <Route path={PageRoutes.tagList} element={<TagList />} />
           {/* Products */}
           <Route
             path={PageRoutes.products}
@@ -226,19 +282,15 @@ const Router: React.FC = () => {
           />
           {/* Transactions */}
           <Route
-            path={PageRoutes.transactionsOrders}
+            path={PageRoutes.transactionsSalesOrderList}
             element={<SalesOrderList />}
           />
           <Route
-            path={PageRoutes.transactionsOrderDetail}
+            path={PageRoutes.transactionsSalesOrderDetail}
             element={<SalesOrderDetail />}
           />
           <Route
-            path={PageRoutes.transactionsOrderDetailTest}
-            element={<SalesOrderDetailTest />}
-          />
-          <Route
-            path={PageRoutes.transactionsInvoices}
+            path={PageRoutes.transactionsInvoiceList}
             element={<InvoiceList />}
           />
           <Route
@@ -246,58 +298,67 @@ const Router: React.FC = () => {
             element={<InvoiceDetail />}
           />
           <Route
-            path={PageRoutes.transactionsPurchaseOrderDetail}
-            element={<PurchaseOrderDetail />}
-          />
-          <Route
-            path={PageRoutes.transactionsProposals}
-            element={<ProposalList />}
-          />
-          <Route
-            path={PageRoutes.transactionsProposalDetail}
-            element={<ProposalDetail />}
-          />
-          <Route
-            path="/transactions/proposals/vue"
-            element={<ProposalDetailVue />}
-          />
-          <Route
-            path="/transactions/proposals/vuereact"
-            element={<ProposalDetailVueReact />}
-          />
-          <Route
-            path={PageRoutes.transactionsPurchaseOrders}
+            path={PageRoutes.transactionsPurchaseOrderList}
             element={<PurchaseOrderList />}
           />
           <Route
             path={PageRoutes.transactionsPurchaseOrderDetail}
             element={<PurchaseOrderDetail />}
           />
+          <Route
+            path={PageRoutes.transactionsProposalList}
+            element={<ProposalList />}
+          />
+          <Route
+            path={PageRoutes.transactionsProposalDetail}
+            element={<ProposalDetail />}
+          />
           {/* Accounts */}
           <Route path={PageRoutes.auditList} element={<AuditList />} />
           <Route path={PageRoutes.auditDetail} element={<AuditDetail />} />
-          <Route path={PageRoutes.auditDisplay} element={<AuditDisplay />} />
           <Route path={PageRoutes.currencyList} element={<CurrencyList />} />
           <Route
-            path={PageRoutes.currencyDisplay}
-            element={<CurrencyDisplay />}
+            path={PageRoutes.currencyDetail}
+            element={<CurrencyDetail />}
           />
           <Route
             path={PageRoutes.exchangeRateList}
             element={<ExchangeRateList />}
           />
           <Route
-            path={PageRoutes.exchangeRateDisplay}
-            element={<ExchangeRateDisplay />}
+            path={PageRoutes.exchangeRateDetail}
+            element={<ExchangeRateDetail />}
           />
           <Route
             path={PageRoutes.exchangeTransactionList}
             element={<ExchangeTransactionList />}
           />
           <Route
-            path={PageRoutes.exchangeTransactionDisplay}
-            element={<ExchangeTransactionDisplay />}
+            path={PageRoutes.exchangeTransactionDetail}
+            element={<ExchangeTransactionDetail />}
           />
+          <Route
+            path={PageRoutes.glAccountList}
+            element={<GLAccountList />}
+          />
+          <Route
+            path={PageRoutes.glAccountDetail}
+            element={<GLAccountDetail />}
+          />
+          <Route
+            path={PageRoutes.glJournalList}
+            element={<GLJournalList />}
+          />
+          <Route
+            path={PageRoutes.glJournalDetail}
+            element={<GLJournalDetail />}
+          />
+          <Route path={PageRoutes.ledgerList} element={<LedgerList />} />
+          <Route
+            path={PageRoutes.taxJurisdictionList}
+            element={<TaxJurisdictionList />}
+          />
+          <Route path={PageRoutes.termList} element={<TermList />} />
         </Route>
 
         {/* 404 page */}
