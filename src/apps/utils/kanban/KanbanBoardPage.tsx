@@ -1,4 +1,4 @@
-import { CSSProperties, ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { CSSProperties, ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -780,6 +780,14 @@ const KanbanBoardPage: React.FC = () => {
   // Contact Manager Modal state
   const [isContactManagerOpen, setIsContactManagerOpen] = useState(false);
 
+  // Auto-refresh state
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const autoRefreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Track if any modal is open to pause auto-refresh
+  const isAnyModalOpen = isCreateModalOpen || isEditModalOpen || isContactManagerOpen;
+
   const [createTaskState, setCreateTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
   const [editTaskState, setEditTaskState] = useState<TaskFormState>(() => createInitialTaskFormState(FALLBACK_COLUMN_ID));
 
@@ -990,7 +998,68 @@ const KanbanBoardPage: React.FC = () => {
       projectId: selectedProjectId || undefined,
       contactId: selectedContactId || undefined,
     });
+    setLastRefreshTime(new Date());
   }, [fetchActions, selectedProjectId, selectedContactId]);
+
+  // Auto-refresh every 5 minutes (300000ms) - pauses when modal is open
+  useEffect(() => {
+    const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+    // Clear any existing interval
+    if (autoRefreshIntervalRef.current) {
+      clearInterval(autoRefreshIntervalRef.current);
+      autoRefreshIntervalRef.current = null;
+    }
+
+    // Don't start auto-refresh if a modal is open
+    if (isAnyModalOpen) {
+      return;
+    }
+
+    autoRefreshIntervalRef.current = setInterval(() => {
+      console.log("Auto-refreshing kanban board...");
+      void fetchActions({
+        projectId: selectedProjectId || undefined,
+        contactId: selectedContactId || undefined,
+      });
+      setLastRefreshTime(new Date());
+    }, AUTO_REFRESH_INTERVAL);
+
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+        autoRefreshIntervalRef.current = null;
+      }
+    };
+  }, [fetchActions, selectedProjectId, selectedContactId, isAnyModalOpen]);
+
+  // Manual refresh handler
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchActions({
+        projectId: selectedProjectId || undefined,
+        contactId: selectedContactId || undefined,
+      });
+      setLastRefreshTime(new Date());
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchActions, selectedProjectId, selectedContactId]);
+
+  // Format last refresh time for display
+  const formatLastRefresh = (date: Date | null): string => {
+    if (!date) return "Never";
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    
+    if (diffSecs < 10) return "Just now";
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    if (diffMins < 60) return `${diffMins}m ago`;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   useEffect(() => {
     if (board.columnOrder.length === 0) {
@@ -1755,8 +1824,42 @@ const KanbanBoardPage: React.FC = () => {
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
               <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            View Gantt Chart
+            Gantt
           </Link>
+          <Link
+            to={PageRoutes.multiProjectGantt}
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Multi-Project
+          </Link>
+          <button
+            onClick={() => void handleManualRefresh()}
+            disabled={isRefreshing || isLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            title={`Last refreshed: ${formatLastRefresh(lastRefreshTime)}. Auto-refresh every 5 minutes${isAnyModalOpen ? ' (paused while dialog open)' : ''}`}
+          >
+            <svg
+              className={clsx("h-4 w-4", isRefreshing && "animate-spin")}
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </button>
+          <span className="text-xs text-gray-400 dark:text-gray-500" title="Auto-refresh every 5 minutes">
+            {formatLastRefresh(lastRefreshTime)}
+          </span>
         </div>
       </div>
 

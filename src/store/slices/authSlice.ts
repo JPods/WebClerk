@@ -23,9 +23,28 @@ interface AuthState {
   error: string | null;
 }
 
+const readStoredUser = (): User | null => {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("userProfile");
+    if (!raw) return null;
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+};
+
+const hasStoredToken = (): boolean => {
+  if (typeof localStorage === "undefined") return false;
+  const token = localStorage.getItem("accessToken");
+  return typeof token === "string" && token.trim() !== "" && token !== "undefined" && token !== "null";
+};
+
+const initialUser = readStoredUser();
+
 const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
+  user: initialUser,
+  isAuthenticated: Boolean(initialUser) && hasStoredToken(),
   isLoading: false,
   error: null,
 };

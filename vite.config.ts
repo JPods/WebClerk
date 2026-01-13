@@ -21,8 +21,12 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      {
+        find: /^react-data-table-component$/,
+        replacement: path.resolve(__dirname, "./src/lib/reorderable-data-table.tsx"),
+      },
+    ],
   },
 });
