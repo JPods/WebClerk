@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import {
   FaFileExcel,
@@ -50,12 +56,12 @@ interface DraggableColumnHeaderProps {
   toggleVisibility: (index: number) => void;
 }
 
-const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({ 
-  column, 
-  index, 
-  visible, 
-  moveColumn, 
-  toggleVisibility 
+const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
+  column,
+  index,
+  visible,
+  moveColumn,
+  toggleVisibility,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -96,9 +102,14 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
         onClick={(e) => e.stopPropagation()}
       />
-      <div className="flex items-center gap-1 flex-1" style={{ cursor: "move" }}>
+      <div
+        className="flex items-center gap-1 flex-1"
+        style={{ cursor: "move" }}
+      >
         <FaGripVertical className="text-gray-400" size={12} />
-        <span className={`${!visible ? 'text-gray-400 line-through' : ''}`}>{column}</span>
+        <span className={`${!visible ? "text-gray-400 line-through" : ""}`}>
+          {column}
+        </span>
       </div>
     </div>
   );
@@ -142,10 +153,16 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   // Handle click outside to close export dropdown and column manager
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+      if (
+        exportDropdownRef.current &&
+        !exportDropdownRef.current.contains(event.target as Node)
+      ) {
         setShowExportDropdown(false);
       }
-      if (columnManagerRef.current && !columnManagerRef.current.contains(event.target as Node)) {
+      if (
+        columnManagerRef.current &&
+        !columnManagerRef.current.contains(event.target as Node)
+      ) {
         setShowColumnManager(false);
       }
     };
@@ -185,9 +202,12 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   }, []);
 
   // Show/Hide all columns
-  const toggleAllColumns = useCallback((visible: boolean) => {
-    setColumnVisibility(columns.map(() => visible));
-  }, [columns]);
+  const toggleAllColumns = useCallback(
+    (visible: boolean) => {
+      setColumnVisibility(columns.map(() => visible));
+    },
+    [columns]
+  );
 
   // Reset columns to original order and visibility
   const resetColumnOrder = useCallback(() => {
@@ -239,15 +259,19 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   // Export to Excel
   const exportToExcel = useCallback(
     (selectedOnly = false) => {
-      const dataToExport = selectedOnly && selectedRows.length > 0 ? selectedRows : filteredData;
-      
+      const dataToExport =
+        selectedOnly && selectedRows.length > 0 ? selectedRows : filteredData;
+
       // Extract only the visible columns
       const exportData = dataToExport.map((row) => {
         const exportRow: Record<string, any> = {};
         visibleColumns.forEach((col) => {
           if (col.name && col.selector) {
             const key = String(col.name);
-            const value = typeof col.selector === "function" ? col.selector(row) : row[col.selector as keyof T];
+            const value =
+              typeof col.selector === "function"
+                ? col.selector(row)
+                : row[col.selector as keyof T];
             exportRow[key] = value;
           }
         });
@@ -257,13 +281,18 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-      
+
       // Auto-size columns
       const maxWidth = 50;
-      const wscols = visibleColumns.map((col) => ({ wch: Math.min(maxWidth, String(col.name).length + 5) }));
+      const wscols = visibleColumns.map((col) => ({
+        wch: Math.min(maxWidth, String(col.name).length + 5),
+      }));
       worksheet["!cols"] = wscols;
-      
-      XLSX.writeFile(workbook, `${exportFileName}_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+      XLSX.writeFile(
+        workbook,
+        `${exportFileName}_${new Date().toISOString().split("T")[0]}.xlsx`
+      );
     },
     [visibleColumns, filteredData, selectedRows, exportFileName]
   );
@@ -271,13 +300,14 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   // Export to PDF
   const exportToPDF = useCallback(
     (selectedOnly = false) => {
-      const dataToExport = selectedOnly && selectedRows.length > 0 ? selectedRows : filteredData;
+      const dataToExport =
+        selectedOnly && selectedRows.length > 0 ? selectedRows : filteredData;
       const doc = new jsPDF();
 
       // Add title
       doc.setFontSize(16);
       doc.text(title, 14, 15);
-      
+
       // Add export date
       doc.setFontSize(10);
       doc.text(`Exported: ${new Date().toLocaleDateString()}`, 14, 22);
@@ -292,9 +322,10 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
           .filter((col) => col.name)
           .map((col) => {
             if (col.selector) {
-              const value = typeof col.selector === "function" 
-                ? col.selector(row) 
-                : row[col.selector as keyof T];
+              const value =
+                typeof col.selector === "function"
+                  ? col.selector(row)
+                  : row[col.selector as keyof T];
               return String(value || "");
             }
             return "";
@@ -311,7 +342,9 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
         alternateRowStyles: { fillColor: [245, 247, 250] },
       });
 
-      doc.save(`${exportFileName}_${new Date().toISOString().split("T")[0]}.pdf`);
+      doc.save(
+        `${exportFileName}_${new Date().toISOString().split("T")[0]}.pdf`
+      );
     },
     [visibleColumns, filteredData, selectedRows, title, exportFileName]
   );
@@ -414,7 +447,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
           {/* Export Dropdown */}
           {enableExport && (
             <div className="relative" ref={exportDropdownRef}>
-              <button 
+              <button
                 onClick={() => setShowExportDropdown(!showExportDropdown)}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
               >
@@ -429,57 +462,57 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
 
               {/* Dropdown Menu */}
               {showExportDropdown && (
-              <div className="absolute right-0 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="py-1">
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                    Export All Data
-                  </div>
-                  <button
-                    onClick={() => exportToExcel(false)}
-                    className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <FaFileExcel className="w-4 h-4 text-green-600" />
-                    Excel ({filteredData.length} rows)
-                  </button>
-                  <button
-                    onClick={() => exportToPDF(false)}
-                    className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <FaFilePdf className="w-4 h-4 text-red-600" />
-                    PDF ({filteredData.length} rows)
-                  </button>
+                <div className="absolute right-0 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                  <div className="py-1">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                      Export All Data
+                    </div>
+                    <button
+                      onClick={() => exportToExcel(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      <FaFileExcel className="w-4 h-4 text-green-600" />
+                      Excel ({filteredData.length} rows)
+                    </button>
+                    <button
+                      onClick={() => exportToPDF(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      <FaFilePdf className="w-4 h-4 text-red-600" />
+                      PDF ({filteredData.length} rows)
+                    </button>
 
-                  {enableSelection && selectedRows.length > 0 && (
-                    <>
-                      <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
-                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        Export Selected
-                      </div>
-                      <button
-                        onClick={() => exportToExcel(true)}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <FaFileExcel className="w-4 h-4 text-green-600" />
-                        Excel ({selectedRows.length} selected)
-                      </button>
-                      <button
-                        onClick={() => exportToPDF(true)}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <FaFilePdf className="w-4 h-4 text-red-600" />
-                        PDF ({selectedRows.length} selected)
-                      </button>
-                    </>
-                  )}
+                    {enableSelection && selectedRows.length > 0 && (
+                      <>
+                        <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          Export Selected
+                        </div>
+                        <button
+                          onClick={() => exportToExcel(true)}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <FaFileExcel className="w-4 h-4 text-green-600" />
+                          Excel ({selectedRows.length} selected)
+                        </button>
+                        <button
+                          onClick={() => exportToPDF(true)}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <FaFilePdf className="w-4 h-4 text-red-600" />
+                          PDF ({selectedRows.length} selected)
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
               )}
             </div>
           )}
 
           {/* Column Manager */}
           <div className="relative" ref={columnManagerRef}>
-            <button 
+            <button
               onClick={() => setShowColumnManager(!showColumnManager)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
@@ -506,7 +539,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                       Reset All
                     </button>
                   </div>
-                  
+
                   {/* Quick Actions */}
                   <div className="flex items-center gap-2 mb-3">
                     <button
@@ -526,7 +559,8 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                   {/* Instructions */}
                   <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-xs text-blue-700 dark:text-blue-300">
-                      <strong>✓</strong> Check/uncheck to show/hide columns<br/>
+                      <strong>✓</strong> Check/uncheck to show/hide columns
+                      <br />
                       <strong>↕</strong> Drag to reorder columns
                     </p>
                   </div>
@@ -539,8 +573,8 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                           key={index}
                           className={`flex items-center gap-2 p-3 rounded transition-colors ${
                             columnVisibility[index]
-                              ? 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                              ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
                           }`}
                         >
                           <DraggableColumnHeader
@@ -558,11 +592,12 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                   {/* Footer Info */}
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Visible: <span className="font-medium text-blue-600 dark:text-blue-400">
+                      Visible:{" "}
+                      <span className="font-medium text-blue-600 dark:text-blue-400">
                         {columnVisibility.filter(Boolean).length}
-                      </span> / Total: <span className="font-medium">
-                        {columns.length}
-                      </span>
+                      </span>{" "}
+                      / Total:{" "}
+                      <span className="font-medium">{columns.length}</span>
                     </p>
                   </div>
                 </div>
@@ -588,7 +623,10 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                   <select
                     value={filterValues[filter.key] || ""}
                     onChange={(e) =>
-                      setFilterValues((prev) => ({ ...prev, [filter.key]: e.target.value }))
+                      setFilterValues((prev) => ({
+                        ...prev,
+                        [filter.key]: e.target.value,
+                      }))
                     }
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   >
@@ -604,7 +642,10 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                     type={filter.type || "text"}
                     value={filterValues[filter.key] || ""}
                     onChange={(e) =>
-                      setFilterValues((prev) => ({ ...prev, [filter.key]: e.target.value }))
+                      setFilterValues((prev) => ({
+                        ...prev,
+                        [filter.key]: e.target.value,
+                      }))
                     }
                     placeholder={`Filter by ${filter.label.toLowerCase()}`}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -620,20 +661,32 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
           <span className="font-medium">
-            Total: <span className="text-gray-900 dark:text-gray-100">{data.length}</span>
+            Total:{" "}
+            <span className="text-gray-900 dark:text-gray-100">
+              {data.length}
+            </span>
           </span>
           {filteredData.length !== data.length && (
             <span className="font-medium">
-              Filtered: <span className="text-blue-600 dark:text-blue-400">{filteredData.length}</span>
+              Filtered:{" "}
+              <span className="text-blue-600 dark:text-blue-400">
+                {filteredData.length}
+              </span>
             </span>
           )}
           {enableSelection && selectedRows.length > 0 && (
             <span className="font-medium">
-              Selected: <span className="text-green-600 dark:text-green-400">{selectedRows.length}</span>
+              Selected:{" "}
+              <span className="text-green-600 dark:text-green-400">
+                {selectedRows.length}
+              </span>
             </span>
           )}
           <span className="font-medium">
-            Columns: <span className="text-purple-600 dark:text-purple-400">{visibleColumns.length}/{columns.length}</span>
+            Columns:{" "}
+            <span className="text-purple-600 dark:text-purple-400">
+              {visibleColumns.length}/{columns.length}
+            </span>
           </span>
         </div>
       </div>
@@ -653,7 +706,9 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
             <div className="flex items-center justify-center p-12">
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Loading data...</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Loading data...
+                </p>
               </div>
             </div>
           }
