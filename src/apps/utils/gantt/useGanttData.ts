@@ -51,10 +51,22 @@ const isValidResponse = (response: unknown): response is { data: unknown } => {
 };
 
 // Extract records array from API response
+// Handles axios response: { data: { status, data: { results: [...] } } }
+// Or direct API response: { status, data: { results: [...] } }
 const extractRecordsFromResponse = (response: unknown): Record<string, unknown>[] => {
   if (!isValidResponse(response)) return [];
   
-  const payload = response.data;
+  let payload = response.data;
+  
+  // Handle axios wrapper: response.data is the API response body
+  // API response body has shape: { status, data: { results: [...] } }
+  if (payload && typeof payload === "object" && "data" in payload) {
+    const apiBody = payload as Record<string, unknown>;
+    // Check if this is the API response wrapper with status field
+    if ("status" in apiBody && apiBody.data) {
+      payload = apiBody.data;
+    }
+  }
   
   if (Array.isArray(payload)) {
     return payload.filter(
@@ -90,14 +102,15 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
   const slug = typeof record.slug === "string" ? record.slug : undefined;
   const intent = typeof record.intent === "string" ? record.intent : undefined;
   
-  // Check if project is active
-  const isActive =
-    record.is_active === true ||
-    record.is_active === "true" ||
-    record.is_active === 1 ||
-    record.active === true;
+  // Since we already filter by is_active in the API call, accept all returned projects
+  // Only filter out if explicitly marked as inactive
+  const isExplicitlyInactive =
+    record.is_active === false ||
+    record.is_active === "false" ||
+    record.is_active === 0 ||
+    record.active === false;
   
-  if (!isActive) return null;
+  if (isExplicitlyInactive) return null;
   
   return {
     id: idStr,
@@ -136,9 +149,13 @@ export const useGanttData = ({
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Refs for cleanup
+  // Refs for cleanup and stable references
   const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
+  const projectsRef = useRef<ProjectOption[]>([]);
+  
+  // Keep projectsRef in sync with projects state
+  projectsRef.current = projects;
   
   // Fetch projects
   const refetchProjects = useCallback(async () => {
@@ -148,15 +165,22 @@ export const useGanttData = ({
     setProjectsError(null);
     
     try {
+      console.log("[useGanttData] Fetching projects...");
       const response = await Projects({ is_active: true, limit: 500 });
+      
+      console.log("[useGanttData] Projects API response:", response);
       
       if (!isMountedRef.current) return;
       
       const records = extractRecordsFromResponse(response);
+      console.log("[useGanttData] Extracted records:", records.length, records.slice(0, 3));
+      
       const projectOptions = records
         .map(parseProjectOption)
         .filter((p): p is ProjectOption => p !== null)
         .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      
+      console.log("[useGanttData] Parsed project options:", projectOptions.length, projectOptions.slice(0, 3));
       
       setProjects(projectOptions);
     } catch (error) {
@@ -200,8 +224,8 @@ export const useGanttData = ({
               const records = extractRecordsFromResponse(response);
               const actions = records as unknown as ApiKanbanItem[];
               
-              // Find project name
-              const project = projects.find((p) => p.id === projectId);
+              // Find project name using ref to avoid dependency on projects state
+              const project = projectsRef.current.find((p) => p.id === projectId);
               const projectName = project?.name || project?.intent || `Project ${projectId}`;
               
               return {
@@ -259,7 +283,7 @@ export const useGanttData = ({
         setIsRefreshing(false);
       }
     }
-  }, [enabled, selectedProjectIds, projects]);
+  }, [enabled, selectedProjectIds]);
   
   // Refetch all data
   const refetchAll = useCallback(async () => {
@@ -280,8 +304,10 @@ export const useGanttData = ({
   
   // Fetch actions when selection changes
   useEffect(() => {
-    refetchActions();
-  }, [refetchActions]);
+    if (selectedProjectIds.length > 0) {
+      refetchActions();
+    }
+  }, [selectedProjectIds, refetchActions]);
   
   // Auto-refresh timer
   useEffect(() => {
