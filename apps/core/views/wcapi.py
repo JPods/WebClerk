@@ -418,6 +418,10 @@ class WCAPIGetView(APIView):
         request,
     ) -> Response:
         """Main handler for GET requests with full filtering/search/pagination support."""
+
+        # Special-case dashboard model: aggregate a concise snapshot from commonly-used models
+        if model_key in {"dashboard", "dash", "home"}:
+            return self._dashboard_snapshot(request)
         
         if not resolve(model_key):
                 return api_response(
@@ -532,6 +536,106 @@ class WCAPIGetView(APIView):
             }
         
         return api_response(data=response_data, status_code=status.HTTP_200_OK)
+
+    def _dashboard_snapshot(self, request) -> Response:
+        def safe_count(model_key: str, filters: Optional[Dict[str, Any]] = None) -> Optional[int]:
+            try:
+                ModelCls, qs = services.get_queryset(model_key, request=request)
+                if filters:
+                    qs = qs.filter(**filters)
+                return qs.count()
+            except Exception:
+                return None
+
+        def safe_recent(model_key: str, limit: int = 5) -> List[Dict[str, Any]]:
+            try:
+                ModelCls, qs = services.get_queryset(model_key, request=request)
+            except Exception:
+                return []
+
+            try:
+                qs = qs.order_by("-dt_created")
+            except Exception:
+                try:
+                    qs = qs.order_by("-id")
+                except Exception:
+                    pass
+
+            items = list(qs[:limit])
+            results: List[Dict[str, Any]] = []
+            for obj in items:
+                try:
+                    allow = policy.field_allowlist(type(obj), request=request)
+                    payload = services.to_dict(obj, allow=allow)
+                except Exception:
+                    payload = {}
+                if not isinstance(payload, dict):
+                    payload = {}
+
+                title = payload.get("name") or payload.get("title") or payload.get("code") or payload.get("reference")
+                if not title:
+                    ident = payload.get("id") or getattr(obj, "pk", None)
+                    title = f"{model_key} #{ident}" if ident else model_key
+
+                meta = payload.get("status") or payload.get("state") or payload.get("owner") or payload.get("assigned_to")
+                detail = payload.get("description") or payload.get("note") or payload.get("summary")
+                when = payload.get("dt_created") or payload.get("created_at") or payload.get("dt_modified")
+
+                results.append(
+                    {
+                        "title": title,
+                        "meta": meta or "",
+                        "detail": detail or "",
+                        "time": when,
+                        "severity": payload.get("priority") or payload.get("severity"),
+                        "owner": payload.get("owner") or payload.get("assigned_to"),
+                    }
+                )
+            return results
+
+        stats = []
+        for label, model_key, filters in [
+            ("Sales Orders", "sales_order", None),
+            ("Invoices", "invoice", None),
+            ("Proposals", "proposal", None),
+            ("Contacts", "contact", None),
+        ]:
+            count_val = safe_count(model_key, filters)
+            if count_val is not None:
+                stats.append({"label": label, "value": count_val})
+
+        # Activities: prefer transactional signals first
+        activities = safe_recent("sales_order", limit=5) or safe_recent("proposal", limit=5) or []
+
+        # Notifications: reuse activities but keep lightweight; can be swapped to a dedicated model if available
+        notifications = safe_recent("communication", limit=5) or safe_recent("support_ticket", limit=5) or activities[:5]
+
+        # Actions: attempt to surface tasks/assignments
+        actions = safe_recent("action", limit=5) or safe_recent("task", limit=5)
+
+        # Quick shortcuts: synthesize from available models
+        shortcuts = []
+        for label, to in [
+            ("Create Order", "/orders/create"),
+            ("New Proposal", "/proposals/create"),
+            ("Add Contact", "/contacts/create"),
+            ("Open Tasks", "/tasks"),
+        ]:
+            shortcuts.append({"label": label, "to": to})
+
+        payload = {
+            "stats": stats,
+            "notifications": notifications,
+            "activities": activities,
+            "actions": actions,
+            "shortcuts": shortcuts,
+            "pulse": {
+                "orders": stats[0]["value"] if len(stats) > 0 else 0,
+                "invoices": stats[1]["value"] if len(stats) > 1 else 0,
+            },
+        }
+
+        return api_response(data=payload, status_code=status.HTTP_200_OK)
 
     @extend_schema(
         operation_id="wcapi_get_list_query",
