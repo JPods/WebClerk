@@ -933,8 +933,8 @@ const KanbanBoardPage: React.FC = () => {
         params.project_id = projectId;
       }
       if (contactId) {
-        params.assigned_to_id = contactId;
-        params.status = "active";
+        // Use contact_id field which is indexed on the Action model
+        params.contact_id = contactId;
       }
 
       const response = await Actions(Object.keys(params).length ? params : undefined);
@@ -943,51 +943,12 @@ const KanbanBoardPage: React.FC = () => {
       }
 
       const items = extractKanbanItems(response);
-      const targetContact = contactId ? contactOptions.find((option) => option.id === contactId) : undefined;
-
-      const filteredItems = !contactId
-        ? items
-        : items.filter((item) => {
-            const statusValue = typeof item.status === "string" ? item.status.trim().toLowerCase() : "";
-            if (statusValue && statusValue !== "active") {
-              return false;
-            }
-
-            const assignments = Array.isArray(item.assigned_to) ? item.assigned_to : [];
-            if (!assignments.length) {
-              return false;
-            }
-
-            const normalizedTargetName = targetContact?.searchName ?? "";
-
-            return assignments.some((assignment) => {
-              const assignmentRecord = (assignment ?? {}) as Record<string, unknown>;
-              const assignmentId =
-                assignmentRecord["id"] ??
-                assignmentRecord["contact_id"] ??
-                assignmentRecord["pk"] ??
-                assignmentRecord["uuid"];
-              if (assignmentId !== undefined && assignmentId !== null && String(assignmentId) === contactId) {
-                return true;
-              }
-              if (normalizedTargetName) {
-                const nameRaw =
-                  assignmentRecord["name"] ??
-                  assignmentRecord["full_name"] ??
-                  assignmentRecord["display_name"] ??
-                  assignmentRecord["label"];
-                if (typeof nameRaw === "string" && nameRaw.trim().toLowerCase() === normalizedTargetName) {
-                  return true;
-                }
-              }
-              return false;
-            });
-          });
-
-      if (filteredItems.length === 0) {
+      
+      // Backend now filters by contact_id, so no client-side filtering needed
+      if (items.length === 0) {
         setBoard(createEmptyBoardData());
       } else {
-        setBoard(createBoardDataFromApi(filteredItems));
+        setBoard(createBoardDataFromApi(items));
       }
     } catch (error) {
       console.error("Failed to fetch kanban actions", error);
@@ -1548,6 +1509,17 @@ const KanbanBoardPage: React.FC = () => {
 
     if (assignedTo.length > 0) {
       payloadItem.assigned_to = assignedTo;
+      // If we have a selected contact, include contact_id for direct assignment
+      if (selectedContactId) {
+        const numericContactId = Number(selectedContactId);
+        if (!Number.isNaN(numericContactId) && numericContactId > 0) {
+          payloadItem.contact_id = numericContactId;
+          // Also add id to assigned_to entry for backend reference
+          if (assignedTo[0] && typeof assignedTo[0] === "object") {
+            assignedTo[0].id = numericContactId;
+          }
+        }
+      }
     }
 
     if (!removalTokens.length) {
