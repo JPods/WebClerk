@@ -11,6 +11,10 @@ class Action(BaseModel):
     # Multilingual titles and descriptions
     action = models.JSONField(default=dict, blank=True, null=True)
     description = models.JSONField(default=dict, blank=True, null=True)
+
+       # Assigned users (many-to-many like, via JSON)
+    assigned_to = models.JSONField(blank=True, null=True)
+    contact_id  = models.BigIntegerField(default=0, db_index=True)
     
     # Supported languages for this task
     languages = models.JSONField(default=list, blank=True, null=True)
@@ -48,8 +52,7 @@ class Action(BaseModel):
     start_by = models.JSONField(blank=True, null=True)
     end_by = models.JSONField(blank=True, null=True)
 
-    # Assigned users (many-to-many like, via JSON)
-    assigned_to = models.JSONField(blank=True, null=True)
+ 
 
     # Linkage or weighting to other systems/tasks
     linkage = models.PositiveIntegerField(default=0)
