@@ -40,6 +40,7 @@ import {
 import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
 import type { GanttMappedTask } from "./ganttDataMapper";
+import { getGanttDateRange } from "./ganttDataMapper";
 
 // Gantt column configuration
 const ganttDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -191,6 +192,27 @@ const MultiProjectGanttPage: React.FC = () => {
   const [scalePreset, setScalePreset] = useState<ScalePresetKey>("month");
   const [ganttKey, setGanttKey] = useState(0);
   const activeScales = scalePresets[scalePreset];
+  
+  // Debug: Log ganttData when it changes
+  useEffect(() => {
+    if (ganttData.tasks.length > 0) {
+      console.log("[MultiProjectGantt] Tasks loaded:", ganttData.tasks.length);
+      console.log("[MultiProjectGantt] Sample task:", {
+        id: ganttData.tasks[0].id,
+        text: ganttData.tasks[0].text,
+        start: ganttData.tasks[0].start,
+        end: ganttData.tasks[0].end,
+        duration: ganttData.tasks[0].duration,
+        startType: typeof ganttData.tasks[0].start,
+        startIsDate: ganttData.tasks[0].start instanceof Date,
+      });
+    }
+  }, [ganttData.tasks]);
+  
+  // Calculate date range for the Gantt chart
+  const dateRange = useMemo(() => {
+    return getGanttDateRange(ganttData.tasks);
+  }, [ganttData.tasks]);
   
   // Board state for task editing
   const [board] = useState<BoardData>(() => createEmptyBoardData());
@@ -807,7 +829,7 @@ const MultiProjectGanttPage: React.FC = () => {
             )}
             
             {/* Gantt Chart */}
-            <div className="min-h-[600px] overflow-hidden rounded-b-2xl p-2">
+            <div className="min-h-screen overflow-y-auto overflow-x-hidden rounded-b-2xl">
               {selectedProjectIds.length === 0 ? (
                 <div className="flex h-96 flex-col items-center justify-center text-center">
                   <svg
@@ -868,6 +890,8 @@ const MultiProjectGanttPage: React.FC = () => {
                       links={ganttData.links}
                       columns={ganttColumns}
                       scales={activeScales}
+                      start={dateRange.start}
+                      end={dateRange.end}
                       onShowEditor={handleShowEditor}
                       onItemDoubleClick={handleShowEditor}
                       onUpdateTask={handleSvarUpdateTask}
