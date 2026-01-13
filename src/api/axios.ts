@@ -11,10 +11,10 @@ const isValidToken = (val: any): val is string =>
 
 // Access tokens are short-lived; keep latest in memory for fast access
 let accessToken: string | null = (() => {
-  const raw = localStorage.getItem("accessToken");
+  const raw = typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null;
   if (!isValidToken(raw)) {
     // Clean up any bad leftovers to avoid gating UI with a bogus token
-    localStorage.removeItem("accessToken");
+    if (typeof localStorage !== "undefined") localStorage.removeItem("accessToken");
     return null;
   }
   return raw;
@@ -32,6 +32,22 @@ const updateLoading = (delta: number) => {
 const processQueue = (token: string | null) => {
   refreshQueue.forEach((cb) => cb(token));
   refreshQueue = [];
+};
+
+export const persistTokens = (access: string, refresh?: string | null) => {
+  accessToken = access;
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("accessToken", access);
+    if (refresh) localStorage.setItem("refreshToken", refresh);
+  }
+};
+
+export const clearTokens = () => {
+  accessToken = null;
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+  }
 };
 
 // Instance for protected API calls
@@ -52,7 +68,7 @@ export const authClient = axios.create({
 const attachAuthInterceptors = (client: AxiosInstance) => {
   client.interceptors.request.use((config) => {
     updateLoading(1);
-    if (!accessToken) {
+    if (!accessToken && typeof localStorage !== "undefined") {
       accessToken = localStorage.getItem("accessToken");
     }
     if (isValidToken(accessToken)) {
@@ -88,7 +104,7 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
         originalRequest._retry = true;
         isRefreshing = true;
         try {
-          const refreshToken = localStorage.getItem("refreshToken");
+          const refreshToken = typeof localStorage !== "undefined" ? localStorage.getItem("refreshToken") : null;
           if (!refreshToken) throw new Error("No refresh token");
 
           const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, { refresh: refreshToken });
@@ -104,17 +120,14 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
           if (!newToken) throw new Error("Invalid refresh response: missing access token");
 
           accessToken = newToken;
-          localStorage.setItem("accessToken", newToken);
+          if (typeof localStorage !== "undefined") localStorage.setItem("accessToken", newToken);
           processQueue(newToken);
           originalRequest.headers = originalRequest.headers ?? {};
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return client(originalRequest);
         } catch (refreshErr) {
           processQueue(null);
-          // Defensive: remove bad tokens so guards don't pass with bogus strings
-          localStorage.removeItem("accessToken");
-          // Optionally also clear refresh on hard failures
-          // localStorage.removeItem("refreshToken");
+          clearTokens();
           // Update global auth state so UI reacts immediately
           try {
             store.dispatch(clearUser());

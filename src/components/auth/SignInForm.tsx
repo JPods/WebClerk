@@ -10,6 +10,7 @@ import { LoginFormData, loginSchema } from "../../validations/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { login, userDetails, mapApiProfileToUser } from "../../api/auth";
+import { persistTokens } from "../../api/axios";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
@@ -57,8 +58,7 @@ export default function SignInForm() {
           return;
         }
 
-        localStorage.setItem("accessToken", access);
-        if (refresh) localStorage.setItem("refreshToken", refresh);
+        persistTokens(access, refresh);
 
         let profilePayload: any = resp?.data?.user ?? resp?.user ?? resp?.data ?? resp;
         try {
@@ -70,7 +70,9 @@ export default function SignInForm() {
           console.warn("Failed to fetch profile after login", profileError);
         }
 
-        dispatch(setUser(mapApiProfileToUser(profilePayload)));
+        const mappedUser = mapApiProfileToUser(profilePayload);
+        localStorage.setItem("userProfile", JSON.stringify(mappedUser));
+        dispatch(setUser(mappedUser));
         dispatch(showToast({ message: "Login successful!", type: "success" }));
      } catch (error : any) {
        dispatch(showToast({ message: error, type: "error" }));

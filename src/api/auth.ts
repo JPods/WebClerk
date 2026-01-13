@@ -1,4 +1,4 @@
-import apiClient, { authClient } from "./axios"; // separated clients
+import apiClient, { authClient, clearTokens, persistTokens } from "./axios"; // separated clients
 import { EmailVerifyFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
 import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
 import { User } from "../store/slices/authSlice";
@@ -119,7 +119,8 @@ export const logout = async () => {
   const res = await authClient.post(AuthURL.LOGOUT,{
             refresh:refreshToken,
         });
-        localStorage.clear();
+    clearTokens();
+    localStorage.removeItem("userProfile");
         return res.data;
   } catch (error:any) {
         return error.response?.status || error.message

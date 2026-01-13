@@ -5,6 +5,8 @@ import { Link, useNavigate } from "react-router";
 import { clearUser } from "../../store/slices/authSlice";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../../store/hooks";
+import { logout as logoutRequest } from "../../api/auth";
+import { clearTokens } from "../../api/axios";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,12 +22,17 @@ export default function UserDropdown() {
     setIsOpen(false);
   }
 
-  const logoutData = () => {
-       //const response = await logout();  
-       dispatch(clearUser());       
-       localStorage.clear();    
-       navigate('/');
-  }
+  const logoutData = async () => {
+    try {
+      await logoutRequest();
+    } catch {
+      // Ignore logout failures
+    }
+    clearTokens();
+    if (typeof localStorage !== "undefined") localStorage.removeItem("userProfile");
+    dispatch(clearUser());
+    navigate("/");
+  };
 
   return (
     <div className="relative">
