@@ -21,6 +21,10 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
         onMove: (nx, ny) => updateWindowPosition(path, nx, ny),
       });
 
+  const transitionClass = maximized || draggable?.dragging
+    ? "transition-none"
+    : "transition-transform duration-150";
+
   const baseStyle = maximized
     ? {
         position: "absolute" as const,
@@ -33,7 +37,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
 
   return (
     <div
-      className="absolute flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-xl backdrop-blur-sm transition-transform duration-150 will-change-transform"
+      className={`absolute flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-xl backdrop-blur-sm ${transitionClass} will-change-transform`}
       style={baseStyle}
       onMouseDown={() => {
         activateWindow(path);

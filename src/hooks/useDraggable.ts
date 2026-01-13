@@ -9,6 +9,7 @@ export function useDraggable({ initial, onMove }: DragOptions) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [offset, setOffset] = useState<{ x: number; y: number }>(initial);
   const [dragging, setDragging] = useState(false);
+  const startRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
 
   useEffect(() => {
     setOffset(initial);
@@ -16,12 +17,14 @@ export function useDraggable({ initial, onMove }: DragOptions) {
 
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
-      if (!dragging) return;
-      setOffset((prev) => {
-        const next = { x: prev.x + e.movementX, y: prev.y + e.movementY };
-        onMove?.(next.x, next.y);
-        return next;
-      });
+      if (!dragging || !startRef.current) return;
+      const { startX, startY, originX, originY } = startRef.current;
+      const next = {
+        x: originX + (e.clientX - startX),
+        y: originY + (e.clientY - startY),
+      };
+      setOffset(next);
+      onMove?.(next.x, next.y);
     };
 
     const handlePointerUp = () => setDragging(false);
@@ -36,7 +39,16 @@ export function useDraggable({ initial, onMove }: DragOptions) {
 
   const handleProps = {
     ref,
-    onPointerDown: () => setDragging(true),
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      startRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        originX: offset.x,
+        originY: offset.y,
+      };
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setDragging(true);
+    },
     style: { cursor: dragging ? "grabbing" : "grab" },
   };
 
@@ -44,5 +56,5 @@ export function useDraggable({ initial, onMove }: DragOptions) {
     transform: `translate(${offset.x}px, ${offset.y}px)`,
   } as const;
 
-  return { handleProps, dragStyle, offset, setOffset };
+  return { handleProps, dragStyle, offset, setOffset, dragging };
 }
