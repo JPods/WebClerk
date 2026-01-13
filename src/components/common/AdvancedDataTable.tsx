@@ -380,7 +380,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
         paddingLeft: "16px",
         paddingRight: "16px",
         fontSize: "14px",
-        color: theme === "dark" ? "#e5e7eb" : "#374151",
+        color: theme === "dark" ? "#fff" : "#374151",
       },
     },
   };
