@@ -15,6 +15,7 @@ import ContactDetail from "./ContactDetail";
 import ContactListMob from "./ContactListMob";
 import { getRecord } from "../../../../../api/wcapi";
 import { useAppSelector } from "../../../../../store/hooks";
+import { UpdateContactRequest } from "../types/contactType";
 interface ActionData {
   id: string | number;
   email?: string;
@@ -31,7 +32,7 @@ const ContactList = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [data, setData] = useState<ActionData[]>([]);
+  const [data, setData] = useState<UpdateContactRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<ActionData[]>([]);
   const [selectedContact, setSelectedContact] = useState<ActionData | null>(

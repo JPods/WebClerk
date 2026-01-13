@@ -18,6 +18,8 @@ export const phoneRefSchema = z.object({
 
 export const locationRefSchema = z.object({
   id: z.number(),
+  name: z.string().default(""),
+  address: z.string().default(""),
 });
 
 /* -----------------------------
@@ -67,12 +69,12 @@ export const contactSchema = z
     company: z.string().optional(),
     title: z.string().optional(),
     department: z.string().optional(),
-    customer_id: z.string().optional(),
-    rep_id: z.string().optional(),
-    vendor_id: z.string().optional(),
-    employee_id: z.string().optional(),
-    manufacturer_id: z.string().optional(),
-    other_id: z.string().optional(),
+    customer_id: z.number().optional(),
+    rep_id: z.number().optional(),
+    vendor_id: z.number().optional(),
+    employee_id: z.number().optional(),
+    manufacturer_id: z.number().optional(),
+    other_id: z.number().optional(),
     is_active: z.boolean().default(false),
     is_staff: z.boolean().default(false),
     refs: refsSchema.optional(),
@@ -86,38 +88,27 @@ export const contactSchema = z
    UPDATE
 ----------------------------- */
 
-export const updateContactSchema = z
-  .object({
-    password: z.string().optional(),
-    cnf_password: z.string().optional(),
-    email: z.string().email(),
-    name_first: z.string().min(1),
-    name_last: z.string().min(1),
-    name_middle: z.string().optional(),
-    name_prefix: z.string().optional(),
-    name_suffix: z.string().optional(),
-    role: z.string().optional(),
-    company: z.string().optional(),
-    title: z.string().optional(),
-    department: z.string().optional(),
-    customer_id: z.string().optional(),
-    rep_id: z.string().optional(),
-    vendor_id: z.string().optional(),
-    employee_id: z.string().optional(),
-    manufacturer_id: z.string().optional(),
-    other_id: z.string().optional(),
-    is_active: z.boolean().default(false),
-    is_staff: z.boolean().default(false),
-    refs: refsSchema.optional(),
-  })
-  .refine(
-    (d) =>
-      !d.password && !d.cnf_password ? true : d.password === d.cnf_password,
-    {
-      message: "Passwords do not match",
-      path: ["cnf_password"],
-    }
-  );
+export const updateContactSchema = z.object({
+  email: z.string().email(),
+  name_first: z.string().min(1),
+  name_last: z.string().min(1),
+  name_middle: z.string().optional(),
+  name_prefix: z.string().optional(),
+  name_suffix: z.string().optional(),
+  role: z.string().optional(),
+  company: z.string().optional(),
+  title: z.string().optional(),
+  department: z.string().optional(),
+  customer_id: z.number().optional(),
+  rep_id: z.number().optional(),
+  vendor_id: z.number().optional(),
+  employee_id: z.number().optional(),
+  manufacturer_id: z.number().optional(),
+  other_id: z.number().optional(),
+  is_active: z.boolean().default(false),
+  is_staff: z.boolean().default(false),
+  refs: refsSchema.optional(),
+});
 
 export const mapRefsFormToApi = (refs: RefsForm): RefsApi => ({
   tags: refs.tags,

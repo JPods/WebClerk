@@ -58,6 +58,11 @@ const CONTACT_DETAIL_FIELDS = [
    Types
 ---------------------------------- */
 
+const normalizeNumber = (value: any): number | undefined => {
+  if (value === null || value === undefined || value === "") return undefined;
+  const num = Number(value);
+  return isNaN(num) ? undefined : num;
+};
 export default function ContactDetail({
   modeProp,
   dataProp,
@@ -65,7 +70,6 @@ export default function ContactDetail({
   onSaved,
   inline = false,
   onCancelInline,
-  getContactData,
 }: ContactAddProps) {
   const [isEmailEdit, setIsEmailEdit] = useState<boolean>(false);
 
@@ -161,28 +165,84 @@ export default function ContactDetail({
   /* ----------------------------------
      Load Edit Data
   ---------------------------------- */
-
   useEffect(() => {
-    if (mode === "add") {
-      reset();
-      if (data?.refs) {
-        reset({ refs: data.refs });
-      }
-    } else if (data) {
-      reset(data);
-      if (data?.refs) {
-        reset({ ...data, refs: data.refs });
-      }
-      // Fetch linked lists by ids if present: data.refs.links
-      // Commented out as linked data is not displayed
-    } else {
+    if (!data) {
       reset({});
+      return;
     }
-    if (mode === "edit") {
-      setValue("password", "");
-      setValue("cnf_password", "");
-    }
-  }, [data, reset, setValue, mode]);
+
+    // Normalize ALL fields that must be strings
+    const normalizedContact = {
+      ...data,
+
+      customer_id: normalizeNumber(data.customer_id),
+      rep_id: normalizeNumber(data.rep_id),
+      vendor_id: normalizeNumber(data.vendor_id),
+      employee_id: normalizeNumber(data.employee_id),
+      manufacturer_id: normalizeNumber(data.manufacturer_id),
+      other_id: normalizeNumber(data.other_id),
+
+      refs: {
+        ...data.refs,
+        links: {
+          ...data.refs?.links,
+
+          // EMAIL
+          email: (data.refs?.links?.email ?? []).map((e: any) => ({
+            id: e.id ?? 0,
+            name: e.name ?? "",
+            address: e.address ?? "",
+          })),
+
+          // PHONE
+          phone: (data.refs?.links?.phone ?? []).map((p: any) => ({
+            id: p.id ?? 0,
+            name: p.name ?? "",
+            number: p.number ?? "",
+          })),
+
+          // LOCATION — REQUIRED FIX
+          location: (data.refs?.links?.location ?? []).map((l: any) => ({
+            id: l.id ?? 0,
+            name: l.name ?? "",
+            address: l.address ?? "",
+          })),
+
+          // String-only refs
+          rep: data.refs?.links?.rep ?? [],
+          item: data.refs?.links?.item ?? [],
+          order: data.refs?.links?.order ?? [],
+          domain: data.refs?.links?.domain ?? [],
+          contact: data.refs?.links?.contact ?? [],
+          customer: data.refs?.links?.customer ?? [],
+          document: data.refs?.links?.document ?? [],
+          manufacturer: data.refs?.links?.manufacturer ?? [],
+          project: data.refs?.links?.project ?? [],
+          vendor: data.refs?.links?.vendor ?? [],
+        },
+      },
+    };
+
+    reset(normalizedContact);
+  }, [data, reset]);
+
+  // useEffect(() => {
+  //   if (mode === "add") {
+  //     reset();
+  //     if (data?.refs) {
+  //       reset({ refs: data.refs });
+  //     }
+  //   } else if (data) {
+  //     reset(data);
+  //     if (data?.refs) {
+  //       reset({ ...data, refs: data.refs });
+  //     }
+  //     // Fetch linked lists by ids if present: data.refs.links
+  //     // Commented out as linked data is not displayed
+  //   } else {
+  //     reset({});
+  //   }
+  // }, [data, reset, setValue, mode]);
 
   useEffect(() => {
     setIsEmailEdit(false);
@@ -223,13 +283,42 @@ export default function ContactDetail({
         manufacturer_id: formData.manufacturer_id,
         other_id: formData.other_id,
         refs: mappedRefs,
-        ...(mode === "add" || mode === "edit"
+
+        ...(mode === "add"
           ? {
-              password: formData.password,
-              cnf_password: formData.cnf_password,
+              password: (formData as any).password,
+              cnf_password: (formData as any).cnf_password,
             }
           : {}),
       };
+
+      // const payload = {
+      //   email: formData.email,
+      //   name_first: formData.name_first,
+      //   name_last: formData.name_last,
+      //   name_middle: formData.name_middle,
+      //   name_prefix: formData.name_prefix,
+      //   name_suffix: formData.name_suffix,
+      //   company: formData.company,
+      //   title: formData.title,
+      //   department: formData.department,
+      //   role: formData.role,
+      //   is_active: formData.is_active,
+      //   is_staff: formData.is_staff,
+      //   customer_id: formData.customer_id,
+      //   rep_id: formData.rep_id,
+      //   vendor_id: formData.vendor_id,
+      //   employee_id: formData.employee_id,
+      //   manufacturer_id: formData.manufacturer_id,
+      //   other_id: formData.other_id,
+      //   refs: mappedRefs,
+      //   ...(mode === "add"
+      //     ? {
+      //         password: formData?.password,
+      //         cnf_password: formData.cnf_password,
+      //       }
+      //     : {}),
+      // };
 
       const res =
         mode === "add"
@@ -437,7 +526,8 @@ export default function ContactDetail({
             <div className="mt-4 grid gap-2 md:grid-cols-2">
               {contactFieldNames.map((fieldName) => {
                 const isVisible = !fieldAccessConfig.hidden.includes(fieldName);
-                const isReadOnly = fieldAccessConfig.readOnly.includes(fieldName);
+                const isReadOnly =
+                  fieldAccessConfig.readOnly.includes(fieldName);
                 return (
                   <div
                     key={fieldName}
@@ -485,62 +575,64 @@ export default function ContactDetail({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             {shouldRenderField("email") && (
               <div>
-              <Label htmlFor="email">email</Label>
-              <Input
-                type="email"
-                id="email"
-                placeholder="Primary email address for login"
-                {...register("email")}
-                error={errors.email && errors.email.message ? true : false}
-                hint={errors.email && errors.email.message}
+                <Label htmlFor="email">email</Label>
+                <Input
+                  type="email"
+                  id="email"
+                  placeholder="Primary email address for login"
+                  {...register("email")}
+                  error={errors.email && errors.email.message ? true : false}
+                  hint={errors.email && errors.email.message}
                   disabled={isFieldDisabled("email")}
-              />
+                />
               </div>
             )}
           </div>
-          {(mode === "add" || mode === "edit") && (
+          {mode === "add" && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                 {shouldRenderField("password") && (
                   <div>
-                  <Label htmlFor="password">password</Label>
-                  <Input
-                    type="password"
-                    id="password"
-                    placeholder="Password"
-                    {...register("password")}
-                    error={
-                      errors.password && errors.password.message ? true : false
-                    }
-                    hint={
-                      errors.password?.message ||
-                      "Your password can't be too similar to your other personal information. Your password must contain at least 8 characters. Your password can't be a commonly used password. Your password can't be entirely numeric."
+                    <Label htmlFor="password">password</Label>
+                    <Input
+                      type="password"
+                      id="password"
+                      placeholder="Password"
+                      {...register("password")}
+                      error={
+                        errors.password && errors.password.message
+                          ? true
+                          : false
+                      }
+                      hint={
+                        errors.password?.message ||
+                        "Your password can't be too similar to your other personal information. Your password must contain at least 8 characters. Your password can't be a commonly used password. Your password can't be entirely numeric."
                       }
                       disabled={isFieldDisabled("password")}
-                  />
+                    />
                   </div>
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                 {shouldRenderField("cnf_password") && (
                   <div>
-                  <Label htmlFor="cnf_password">cnf_password</Label>
-                  <Input
-                    type="password"
-                    id="cnf_password"
-                    placeholder="Confirm Password"
-                    {...register("cnf_password")}
-                    error={
-                      errors.cnf_password && errors.cnf_password.message
-                        ? true
-                        : false
-                    }
-                    hint={
-                      errors.cnf_password?.message ||
-                      "Enter the same password as before, for verification."
-                    }
+                    <Label htmlFor="cnf_password">cnf_password</Label>
+                    <Input
+                      type="password"
+                      id="cnf_password"
+                      placeholder="Confirm Password"
+                      {...register("cnf_password")}
+                      error={
+                        errors.cnf_password && errors.cnf_password.message
+                          ? true
+                          : false
+                      }
+                      hint={
+                        errors.cnf_password?.message ||
+                        "Enter the same password as before, for verification."
+                      }
                       disabled={isFieldDisabled("cnf_password")}
-                  />
+                    />
                   </div>
                 )}
               </div>
@@ -552,88 +644,90 @@ export default function ContactDetail({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             {shouldRenderField("name_first") && (
               <div>
-              <Label htmlFor="name_first">name_first</Label>
-              <Input
-                type="text"
-                id="name_first"
-                placeholder="First Name"
-                {...register("name_first")}
-                error={
-                  errors.name_first && errors.name_first.message ? true : false
-                }
-                hint={errors.name_first && errors.name_first.message}
+                <Label htmlFor="name_first">name_first</Label>
+                <Input
+                  type="text"
+                  id="name_first"
+                  placeholder="First Name"
+                  {...register("name_first")}
+                  error={
+                    errors.name_first && errors.name_first.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.name_first && errors.name_first.message}
                   disabled={isFieldDisabled("name_first")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("name_last") && (
               <div>
-              <Label htmlFor="name_last">name_last</Label>
-              <Input
-                type="text"
-                id="name_last"
-                placeholder="Last Name"
-                {...register("name_last")}
-                error={
-                  errors.name_last && errors.name_last.message ? true : false
-                }
-                hint={errors.name_last && errors.name_last.message}
+                <Label htmlFor="name_last">name_last</Label>
+                <Input
+                  type="text"
+                  id="name_last"
+                  placeholder="Last Name"
+                  {...register("name_last")}
+                  error={
+                    errors.name_last && errors.name_last.message ? true : false
+                  }
+                  hint={errors.name_last && errors.name_last.message}
                   disabled={isFieldDisabled("name_last")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("name_middle") && (
               <div>
-              <Label htmlFor="name_middle">name_middle</Label>
-              <Input
-                type="text"
-                id="name_middle"
-                placeholder="Middle Name"
-                {...register("name_middle")}
-                error={
-                  errors.name_middle && errors.name_middle.message
-                    ? true
-                    : false
-                }
-                hint={errors.name_middle && errors.name_middle.message}
+                <Label htmlFor="name_middle">name_middle</Label>
+                <Input
+                  type="text"
+                  id="name_middle"
+                  placeholder="Middle Name"
+                  {...register("name_middle")}
+                  error={
+                    errors.name_middle && errors.name_middle.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.name_middle && errors.name_middle.message}
                   disabled={isFieldDisabled("name_middle")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("name_prefix") && (
               <div>
-              <Label htmlFor="name_prefix">name_prefix</Label>
-              <Input
-                type="text"
-                id="name_prefix"
-                placeholder="Title (Mr., Ms., Dr.)"
-                {...register("name_prefix")}
-                error={
-                  errors.name_prefix && errors.name_prefix.message
-                    ? true
-                    : false
-                }
-                hint={errors.name_prefix && errors.name_prefix.message}
+                <Label htmlFor="name_prefix">name_prefix</Label>
+                <Input
+                  type="text"
+                  id="name_prefix"
+                  placeholder="Title (Mr., Ms., Dr.)"
+                  {...register("name_prefix")}
+                  error={
+                    errors.name_prefix && errors.name_prefix.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.name_prefix && errors.name_prefix.message}
                   disabled={isFieldDisabled("name_prefix")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("name_suffix") && (
               <div>
-              <Label htmlFor="name_suffix">name_suffix</Label>
-              <Input
-                type="text"
-                id="name_suffix"
-                placeholder="Suffix (Jr., Sr., III)"
-                {...register("name_suffix")}
-                error={
-                  errors.name_suffix && errors.name_suffix.message
-                    ? true
-                    : false
-                }
-                hint={errors.name_suffix && errors.name_suffix.message}
+                <Label htmlFor="name_suffix">name_suffix</Label>
+                <Input
+                  type="text"
+                  id="name_suffix"
+                  placeholder="Suffix (Jr., Sr., III)"
+                  {...register("name_suffix")}
+                  error={
+                    errors.name_suffix && errors.name_suffix.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.name_suffix && errors.name_suffix.message}
                   disabled={isFieldDisabled("name_suffix")}
-              />
+                />
               </div>
             )}
           </div>
@@ -643,46 +737,50 @@ export default function ContactDetail({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             {shouldRenderField("company") && (
               <div>
-              <Label htmlFor="company">company</Label>
-              <Input
-                type="text"
-                id="company"
-                placeholder="Company name"
-                {...register("company")}
-                error={errors.company && errors.company.message ? true : false}
-                hint={errors.company && errors.company.message}
+                <Label htmlFor="company">company</Label>
+                <Input
+                  type="text"
+                  id="company"
+                  placeholder="Company name"
+                  {...register("company")}
+                  error={
+                    errors.company && errors.company.message ? true : false
+                  }
+                  hint={errors.company && errors.company.message}
                   disabled={isFieldDisabled("company")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("title") && (
               <div>
-              <Label htmlFor="title">title</Label>
-              <Input
-                type="text"
-                id="title"
-                placeholder="Job title"
-                {...register("title")}
-                error={errors.title && errors.title.message ? true : false}
-                hint={errors.title && errors.title.message}
+                <Label htmlFor="title">title</Label>
+                <Input
+                  type="text"
+                  id="title"
+                  placeholder="Job title"
+                  {...register("title")}
+                  error={errors.title && errors.title.message ? true : false}
+                  hint={errors.title && errors.title.message}
                   disabled={isFieldDisabled("title")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("department") && (
               <div>
-              <Label htmlFor="department">department</Label>
-              <Input
-                type="text"
-                id="department"
-                placeholder="Department"
-                {...register("department")}
-                error={
-                  errors.department && errors.department.message ? true : false
-                }
-                hint={errors.department && errors.department.message}
+                <Label htmlFor="department">department</Label>
+                <Input
+                  type="text"
+                  id="department"
+                  placeholder="Department"
+                  {...register("department")}
+                  error={
+                    errors.department && errors.department.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.department && errors.department.message}
                   disabled={isFieldDisabled("department")}
-              />
+                />
               </div>
             )}
           </div>
@@ -692,102 +790,104 @@ export default function ContactDetail({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             {shouldRenderField("customer_id") && (
               <div>
-              <Label htmlFor="customer_id">customer_id</Label>
-              <Input
-                type="text"
-                id="customer_id"
-                placeholder="Customer ID"
-                {...register("customer_id")}
-                error={
-                  errors.customer_id && errors.customer_id.message ? true : false
-                }
-                hint={errors.customer_id && errors.customer_id.message}
+                <Label htmlFor="customer_id">customer_id</Label>
+                <Input
+                  type="number"
+                  id="customer_id"
+                  placeholder="Customer ID"
+                  {...register("customer_id", { valueAsNumber: true })}
+                  error={
+                    errors.customer_id && errors.customer_id.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.customer_id && errors.customer_id.message}
                   disabled={isFieldDisabled("customer_id")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("rep_id") && (
               <div>
-              <Label htmlFor="rep_id">rep_id</Label>
-              <Input
-                type="text"
-                id="rep_id"
-                placeholder="Rep ID"
-                {...register("rep_id")}
-                error={errors.rep_id && errors.rep_id.message ? true : false}
-                hint={errors.rep_id && errors.rep_id.message}
+                <Label htmlFor="rep_id">rep_id</Label>
+                <Input
+                  type="number"
+                  id="rep_id"
+                  placeholder="Rep ID"
+                  {...register("rep_id", { valueAsNumber: true })}
+                  error={errors.rep_id && errors.rep_id.message ? true : false}
+                  hint={errors.rep_id && errors.rep_id.message}
                   disabled={isFieldDisabled("rep_id")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("vendor_id") && (
               <div>
-              <Label htmlFor="vendor_id">vendor_id</Label>
-              <Input
-                type="text"
-                id="vendor_id"
-                placeholder="Vendor ID"
-                {...register("vendor_id")}
-                error={
-                  errors.vendor_id && errors.vendor_id.message ? true : false
-                }
-                hint={errors.vendor_id && errors.vendor_id.message}
+                <Label htmlFor="vendor_id">vendor_id</Label>
+                <Input
+                  type="number"
+                  id="vendor_id"
+                  placeholder="Vendor ID"
+                  {...register("vendor_id", { valueAsNumber: true })}
+                  error={
+                    errors.vendor_id && errors.vendor_id.message ? true : false
+                  }
+                  hint={errors.vendor_id && errors.vendor_id.message}
                   disabled={isFieldDisabled("vendor_id")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("employee_id") && (
               <div>
-              <Label htmlFor="employee_id">employee_id</Label>
-              <Input
-                type="text"
-                id="employee_id"
-                placeholder="Employee ID"
-                {...register("employee_id")}
-                error={
-                  errors.employee_id && errors.employee_id.message
-                    ? true
-                    : false
-                }
-                hint={errors.employee_id && errors.employee_id.message}
+                <Label htmlFor="employee_id">employee_id</Label>
+                <Input
+                  type="number"
+                  id="employee_id"
+                  placeholder="Employee ID"
+                  {...register("employee_id", { valueAsNumber: true })}
+                  error={
+                    errors.employee_id && errors.employee_id.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.employee_id && errors.employee_id.message}
                   disabled={isFieldDisabled("employee_id")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("manufacturer_id") && (
               <div>
-              <Label htmlFor="manufacturer_id">manufacturer_id</Label>
-              <Input
-                type="text"
-                id="manufacturer_id"
-                placeholder="Manufacturer ID"
-                {...register("manufacturer_id")}
-                error={
-                  errors.manufacturer_id && errors.manufacturer_id.message
-                    ? true
-                    : false
-                }
-                hint={
-                  errors.manufacturer_id && errors.manufacturer_id.message
-                }
+                <Label htmlFor="manufacturer_id">manufacturer_id</Label>
+                <Input
+                  type="number"
+                  id="manufacturer_id"
+                  placeholder="Manufacturer ID"
+                  {...register("manufacturer_id", { valueAsNumber: true })}
+                  error={
+                    errors.manufacturer_id && errors.manufacturer_id.message
+                      ? true
+                      : false
+                  }
+                  hint={
+                    errors.manufacturer_id && errors.manufacturer_id.message
+                  }
                   disabled={isFieldDisabled("manufacturer_id")}
-              />
+                />
               </div>
             )}
             {shouldRenderField("other_id") && (
               <div>
-              <Label htmlFor="other_id">other_id</Label>
-              <Input
-                type="text"
-                id="other_id"
-                placeholder="Other ID"
-                {...register("other_id")}
-                error={
-                  errors.other_id && errors.other_id.message ? true : false
-                }
-                hint={errors.other_id && errors.other_id.message}
+                <Label htmlFor="other_id">other_id</Label>
+                <Input
+                  type="number"
+                  id="other_id"
+                  placeholder="Other ID"
+                  {...register("other_id", { valueAsNumber: true })}
+                  error={
+                    errors.other_id && errors.other_id.message ? true : false
+                  }
+                  hint={errors.other_id && errors.other_id.message}
                   disabled={isFieldDisabled("other_id")}
-              />
+                />
               </div>
             )}
           </div>
