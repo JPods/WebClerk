@@ -16,7 +16,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "react-data-table-component": ["src/lib/reorderable-data-table.tsx"]
     },
 
     /* Linting */
