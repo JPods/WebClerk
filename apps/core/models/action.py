@@ -88,7 +88,66 @@ class Action(BaseModel):
         self.refs = refs
         
         # Note: Save is handled by the calling thread in save_view.py
+    def _resolve_contact_from_assigned_to(self):
+        """
+        Resolve contact_id from assigned_to entries.
+        Returns (contact_id, contact_email) tuple.
+        First tries to match by id/contact_id in assigned_to, then by name against Contact.attention.
+        """
+        from apps.core.models import Contact
+        
+        if not self.assigned_to or not isinstance(self.assigned_to, list) or not self.assigned_to:
+            return None, None
+        
+        first_assigned = self.assigned_to[0]
+        if not isinstance(first_assigned, dict):
+            # If it's just an id
+            try:
+                cid = int(first_assigned)
+                contact = Contact.objects.filter(id=cid).first()
+                if contact:
+                    return contact.id, contact.email
+            except (ValueError, TypeError):
+                pass
+            return None, None
+        
+        # Try to get id from dict
+        assigned_id = first_assigned.get('id') or first_assigned.get('contact_id')
+        if assigned_id:
+            try:
+                cid = int(assigned_id)
+                contact = Contact.objects.filter(id=cid).first()
+                if contact:
+                    return contact.id, contact.email
+            except (ValueError, TypeError):
+                pass
+        
+        # Try to match by name against attention field
+        name = first_assigned.get('name', '').strip()
+        if name:
+            name_lower = name.lower()
+            # Exact match first
+            contact = Contact.objects.filter(attention__iexact=name).first()
+            if contact:
+                return contact.id, contact.email
+            # Try partial match (first name or last name)
+            for c in Contact.objects.exclude(attention='').exclude(attention__isnull=True):
+                attn_lower = (c.attention or '').lower()
+                if attn_lower == name_lower:
+                    return c.id, c.email
+                # Check if name is part of attention (e.g., "Bill" matches "Bill James")
+                if name_lower in attn_lower.split() or attn_lower.startswith(name_lower):
+                    return c.id, c.email
+        
+        return None, None
+
     def save(self, *args, **kwargs):
+        # Auto-populate contact_id from assigned_to if not already set or if assigned_to changed
+        if self.assigned_to and (not self.contact_id or self.contact_id == 0):
+            resolved_id, _ = self._resolve_contact_from_assigned_to()
+            if resolved_id:
+                self.contact_id = resolved_id
+        
         # compute changed_fields before save
         changed_fields = []
         if self.pk:
@@ -100,6 +159,13 @@ class Action(BaseModel):
                 new = getattr(self, name)
                 if old != new:
                     changed_fields.append(name)
+        
+        # If assigned_to changed, re-resolve contact_id
+        if 'assigned_to' in changed_fields and self.assigned_to:
+            resolved_id, _ = self._resolve_contact_from_assigned_to()
+            if resolved_id:
+                self.contact_id = resolved_id
+        
         # set the _by based on changed_fields
         from django.utils import timezone
         now_ms = int(timezone.now().timestamp() * 1000)
