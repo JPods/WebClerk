@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { useAppSelector } from "../store/hooks";
-import { useWindowManager } from "../context/WindowManagerContext";
 import { useDispatch } from "react-redux";
-import { clearUser } from "../store/slices/authSlice";
 import { useNavigate } from "react-router-dom";
+import { GridIcon } from "../icons";
+import { useWindowManager } from "../context/WindowManagerContext";
 import { logout as logoutRequest } from "../api/auth";
+import { useAppSelector } from "../store/hooks";
 import { clearTokens } from "../api/axios";
+import { clearUser } from "../store/slices/authSlice";
 
 type Props = {
   activePath: string;
@@ -23,11 +24,9 @@ export default function MacTopBar({ activePath }: Props) {
 
   return (
     <div className="sticky top-0 z-[200] flex items-center gap-4 border-b border-slate-200 bg-white/95 px-4 py-2 text-sm text-slate-900 shadow-md backdrop-blur">
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          WebClerk 3.0
-        </div>
+      <div className="flex items-center gap-3 text-base font-semibold text-slate-900">
+        <GridIcon className="h-5 w-5 text-emerald-500" />
+        <span>WebClerk 3.0</span>
         {apiBusy && (
           <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
             <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />

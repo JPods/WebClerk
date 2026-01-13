@@ -196,7 +196,15 @@ layer(base);
     cursor: pointer;
   }
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50;
+    @apply relative font-normal font-outfit z-1;
+    background-color: #e6e9f2;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.7), rgba(230, 233, 242, 0) 45%),
+      radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.5), rgba(230, 233, 242, 0) 40%),
+      linear-gradient(90deg, rgba(16, 24, 40, 0.04) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(16, 24, 40, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
+    background-attachment: fixed;
   }
 }
 

@@ -58,7 +58,7 @@ const AppLayout: React.FC = () => {
     : 0;
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-slate-900">
+    <div className="relative min-h-screen bg-transparent text-slate-900">
       <MacTopBar activePath={activePath || ""} />
       <div className="relative h-[calc(100vh-60px)]">
         <AppSidebar />
