@@ -15,8 +15,7 @@ import ContactDetail from "./ContactDetail";
 import ContactListMob from "./ContactListMob";
 import { getRecord } from "../../../../../api/wcapi";
 import { useAppSelector } from "../../../../../store/hooks";
-import { UpdateContactRequest } from "../types/contactType";
-interface ActionData {
+interface ContactData {
   id: string | number;
   email?: string;
   name_first?: string;
@@ -32,10 +31,10 @@ const ContactList = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [data, setData] = useState<UpdateContactRequest[]>([]);
+  const [data, setData] = useState<ContactData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedContacts, setSelectedContacts] = useState<ActionData[]>([]);
-  const [selectedContact, setSelectedContact] = useState<ActionData | null>(
+  const [selectedContacts, setSelectedContacts] = useState<ContactData[]>([]);
+  const [selectedContact, setSelectedContact] = useState<ContactData | null>(
     null
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
@@ -93,48 +92,6 @@ const ContactList = () => {
     []
   );
 
-  // Extract unique values for filters
-  const filterOptions = useMemo(() => {
-    const id = new Set<string | number>();
-    const email = new Set<string>();
-    const name_first = new Set<string>();
-    const name_last = new Set<string>();
-    const company = new Set<string>();
-    const role = new Set<string>();
-    // const is_active = new Set<string>();
-    // const is_staff = new Set<string>();
-
-    data.forEach((item) => {
-      if (item.id) id.add(item.id);
-      if (item.email) email.add(item.email);
-      if (item.name_first) name_first.add(item.name_first);
-      if (item.name_last) name_last.add(item.name_last);
-      if (item.company) company.add(item.company);
-      if (item.role) role.add(item.role);
-
-      // Yes/No version
-      // is_active.add(item.is_active ? "Yes" : "No");
-      // is_staff.add(item.is_staff ? "Yes" : "No");
-    });
-
-    const toOptions = (set: Set<any>) =>
-      Array.from(set).map((value) => ({
-        value,
-        label: String(value),
-      }));
-
-    return {
-      id: toOptions(id),
-      email: toOptions(email),
-      name_first: toOptions(name_first),
-      name_last: toOptions(name_last),
-      company: toOptions(company),
-      role: toOptions(role),
-      // is_active: toOptions(is_active),
-      // is_staff: toOptions(is_staff),
-    };
-  }, [data]);
-
   // Fetch actions
   const fetchActions = useCallback(async () => {
     setLoading(true);
@@ -147,33 +104,23 @@ const ContactList = () => {
           : [];
 
         // Extract actions array from various possible structures
-        let actions: ActionData[] = [];
+        let contacts: ContactData[] = [];
 
         if (Array.isArray(apiData)) {
-          actions = apiData;
+          contacts = apiData;
         } else if (apiData && typeof apiData === "object") {
           if (Array.isArray(apiData.results)) {
-            actions = apiData.results;
+            contacts = apiData.results;
           } else if (Array.isArray(apiData.data)) {
-            actions = apiData.data;
-          } else if (Array.isArray(apiData.actions)) {
-            actions = apiData.actions;
+            contacts = apiData.data;
+          } else if (Array.isArray(apiData.contacts)) {
+            contacts = apiData.contacts;
           }
         }
 
         // Normalize action data
-        const normalizedActions = actions.map((action, index) => ({
-          ...action,
-          id: action.id || action.pk || action.uuid || `temp-${index}`,
-          // Extract primary language text for display
-          actionText: getTranslatedText(action.action, action.languages),
-          descriptionText: getTranslatedText(
-            action.description,
-            action.languages
-          ),
-        }));
 
-        setData(normalizedActions);
+        setData(contacts);
       } else {
         throw new Error("Failed to fetch actions");
       }
@@ -189,7 +136,7 @@ const ContactList = () => {
     } finally {
       setLoading(false);
     }
-  }, [dispatch, getTranslatedText]);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchActions();
@@ -233,14 +180,14 @@ const ContactList = () => {
   );
 
   // Define table columns
-  const columns: TableColumn<ActionData>[] = useMemo(
+  const columns: TableColumn<ContactData>[] = useMemo(
     () => [
       {
-        name: "ID",
-        selector: (row: ActionData) => row.id || "-",
+        name: "id",
+        selector: (row: ContactData) => row.id || "-",
         sortable: true,
         width: "5%",
-        cell: (row: ActionData) => (
+        cell: (row: ContactData) => (
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -254,46 +201,46 @@ const ContactList = () => {
       },
       {
         name: "email",
-        selector: (row: ActionData) => row.email || "-",
+        selector: (row: ContactData) => row.email || "-",
         sortable: true,
         wrap: true,
         width: "15%",
-        cell: (row: ActionData) => row.email || "-",
+        cell: (row: ContactData) => row.email || "-",
       },
       {
         name: "name_first",
-        selector: (row: ActionData) => row.name_first || "-",
+        selector: (row: ContactData) => row.name_first || "-",
         sortable: true,
         width: "13%",
-        cell: (row: ActionData) => row.name_first || "-",
+        cell: (row: ContactData) => row.name_first || "-",
       },
       {
         name: "name_last",
-        selector: (row: ActionData) => row.name_last || "-",
+        selector: (row: ContactData) => row.name_last || "-",
         sortable: true,
         width: "13%",
-        cell: (row: ActionData) => row.name_last || "-",
+        cell: (row: ContactData) => row.name_last || "-",
       },
       {
         name: "company",
-        selector: (row: ActionData) => row.company || "-",
+        selector: (row: ContactData) => row.company || "-",
         sortable: true,
         width: "15%",
-        cell: (row: ActionData) => row.company || "-",
+        cell: (row: ContactData) => row.company || "-",
       },
       {
         name: "role",
-        selector: (row: ActionData) => row.role || "-",
+        selector: (row: ContactData) => row.role || "-",
         sortable: true,
         width: "10%",
-        cell: (row: ActionData) => row.role || "-",
+        cell: (row: ContactData) => row.role || "-",
       },
       {
         name: "is_active",
-        selector: (row: ActionData) => (row.is_active ? "Yes" : "No"),
+        selector: (row: ContactData) => (row.is_active ? "Yes" : "No"),
         sortable: true,
         width: "8%",
-        cell: (row: ActionData) =>
+        cell: (row: ContactData) =>
           row.is_active ? (
             <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               {"Yes"}
@@ -306,10 +253,10 @@ const ContactList = () => {
       },
       {
         name: "is_staff",
-        selector: (row: ActionData) => (row.is_staff ? "Yes" : "No"),
+        selector: (row: ContactData) => (row.is_staff ? "Yes" : "No"),
         sortable: true,
         width: "8%",
-        cell: (row: ActionData) =>
+        cell: (row: ContactData) =>
           row.is_staff ? (
             <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               {"Yes"}
@@ -323,7 +270,7 @@ const ContactList = () => {
       {
         name: "Actions",
         width: "140px",
-        cell: (row: ActionData) => (
+        cell: (row: ContactData) => (
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => {
@@ -359,56 +306,54 @@ const ContactList = () => {
         ),
       },
     ],
-    [navigate, handleDelete]
+    [handleDelete]
   );
 
   // Define filters
   const filters: ColumnFilter[] = useMemo(
     () => [
       {
+        key: "id",
+        label: "id",
+        type: "text",
+      },
+      {
         key: "email",
         label: "email",
-        type: "select",
-        options: filterOptions.email,
+        type: "text",
       },
       {
         key: "name_first",
         label: "name_first",
-        type: "select",
-        options: filterOptions.name_first,
+        type: "text",
       },
       {
         key: "name_last",
         label: "name_last",
-        type: "select",
-        options: filterOptions.name_last,
+        type: "text",
       },
       {
         key: "company",
         label: "company",
-        type: "select",
-        options: filterOptions.company,
+        type: "text",
       },
       {
         key: "role",
         label: "role",
-        type: "select",
-        options: filterOptions.role,
+        type: "text",
       },
       // {
       //   key: "is_active",
       //   label: "is_active",
-      //   type: "select",
-      //   options: filterOptions.is_active,
+      //   type: "text",
       // },
       // {
       //   key: "is_staff",
       //   label: "is_staff",
-      //   type: "select",
-      //   options: filterOptions.is_staff,
+      //   type: "text",
       // },
     ],
-    [filterOptions]
+    []
   );
 
   // Handle bulk operations
@@ -464,13 +409,13 @@ const ContactList = () => {
   }, [selectedContacts, dispatch, fetchActions]);
 
   // Handle view action
-  const handleView = (row: ActionData) => {
+  const handleView = (row: ContactData) => {
     setSelectedContact(row);
     setFormMode("view");
   };
 
   // Handle edit action
-  const handleEdit = async (row: ActionData) => {
+  const handleEdit = async (row: ContactData) => {
     try {
       const res = await getRecord("contact", Number(row.id));
       setSelectedContact(res.record);
