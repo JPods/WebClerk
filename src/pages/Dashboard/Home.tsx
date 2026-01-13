@@ -124,17 +124,39 @@ export default function Home() {
   const [data, setData] = useState<DashboardPayload>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cacheKey = "dashboard_cache_v1";
 
   useEffect(() => {
     let mounted = true;
+    let cached: DashboardPayload | null = null;
+    if (typeof sessionStorage !== "undefined") {
+      try {
+        const raw = sessionStorage.getItem(cacheKey);
+        if (raw) {
+          cached = JSON.parse(raw);
+          if (mounted && cached) {
+            setData(cached);
+          }
+        }
+      } catch {
+        // ignore malformed cache
+      }
+    }
     const fetchDashboard = async () => {
-      setLoading(true);
+      setLoading(!cached);
       setError(null);
       try {
         const res = await apiClient.get(PostLoginURL.allTypes + "model_name=dashboard");
         const body = (res as any)?.data ?? res;
         const payload = body?.data ?? body; // handle enveloped or direct
-        if (mounted) setData(payload ?? {});
+        if (mounted) {
+          setData(payload ?? {});
+          if (typeof sessionStorage !== "undefined" && payload) {
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify(payload));
+            } catch {}
+          }
+        }
       } catch (err: any) {
         if (mounted) setError(err?.message ?? "Failed to load dashboard");
       } finally {
