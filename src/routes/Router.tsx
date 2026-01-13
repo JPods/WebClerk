@@ -18,7 +18,6 @@ import {
   SignIn,
   SignUp,
   SvarGanttPage,
-  MultiProjectGanttPage,
   UserProfiles,
   // Accounts
   AuditList,
@@ -87,10 +86,11 @@ import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/
 import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesOrderList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
-import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
-import ActionListPage from "../apps/core/models/action/pages/ActionList";
+import NotFoundPage from "../pages/NotFoundPage";
+import ActionList from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
+import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 
 const Router: React.FC = () => {
   return (
@@ -199,8 +199,7 @@ const Router: React.FC = () => {
           />
           <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
           <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
-          <Route path={PageRoutes.multiProjectGantt} element={<MultiProjectGanttPage />} />
-          <Route path={PageRoutes.actionList} element={<ActionListPage />} />
+          <Route path={PageRoutes.actionList} element={<ActionList />} />
           <Route path={PageRoutes.actionDetail} element={<ActionDetail />} />
           <Route
             path={PageRoutes.adminWorkbench}
@@ -369,7 +368,7 @@ const Router: React.FC = () => {
         </Route>
 
         {/* 404 page */}
-        <Route path="*" element={<div>404 Not Found</div>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
     // </Provider>

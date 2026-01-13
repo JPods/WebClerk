@@ -1525,7 +1525,7 @@ const KanbanBoardPage: React.FC = () => {
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
     const assigneeValue = typeof state.assignee === "string" ? state.assignee.trim() : "";
-    const assignedTo = assigneeValue
+    const assignedTo: Array<{ name: string; id?: number }> = assigneeValue
       ? [{ name: assigneeValue }]
       : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
