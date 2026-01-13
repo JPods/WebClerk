@@ -17,14 +17,12 @@ type Props = {
 export default function MacWindowChrome({ path, title, children, onActivate, x, y, maximized = false, isActive = false }: Props) {
   const { minimizeWindow, closeWindow, activateWindow, updateWindowPosition, maximizeWindow } = useWindowManager();
   const isApiLoading = useAppSelector((state) => state.loading.isApiLoading);
-  const draggable = maximized
-    ? null
-    : useDraggable({
-        initial: { x, y },
-        onMove: (nx, ny) => updateWindowPosition(path, nx, ny),
-      });
+  const draggable = useDraggable({
+    initial: { x, y },
+    onMove: (nx, ny) => updateWindowPosition(path, nx, ny),
+  });
 
-  const transitionClass = maximized || draggable?.dragging
+  const transitionClass = maximized || draggable.dragging
     ? "transition-none"
     : "transition-transform duration-150";
 
@@ -38,7 +36,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
         height: "100%",
         transform: "none",
       }
-    : draggable?.dragStyle;
+    : draggable.dragStyle;
 
   return (
     <div
@@ -51,12 +49,13 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
     >
       <div
         className={`flex items-center gap-3 border-b border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 ${maximized ? "cursor-default" : ""}`}
-        {...(draggable ? draggable.handleProps : {})}
+        {...(maximized ? {} : draggable.handleProps)}
       >
         <div className="flex items-center gap-2">
           <button
             className="h-3.5 w-3.5 rounded-full bg-rose-500 hover:bg-rose-400"
             aria-label="Close"
+            data-stop-drag="true"
             onClick={(e) => {
               e.stopPropagation();
               closeWindow(path);
@@ -65,6 +64,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
           <button
             className="h-3.5 w-3.5 rounded-full bg-amber-400 hover:bg-amber-300"
             aria-label="Minimize"
+            data-stop-drag="true"
             onClick={(e) => {
               e.stopPropagation();
               minimizeWindow(path, true);
@@ -73,6 +73,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
           <button
             className="h-3.5 w-3.5 rounded-full bg-emerald-400 hover:bg-emerald-300"
             aria-label="Maximize"
+            data-stop-drag="true"
             onClick={(e) => {
               e.stopPropagation();
               maximizeWindow(path, !maximized);
@@ -84,8 +85,8 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
       <div className="relative flex-1 overflow-auto bg-white p-4 text-slate-900">
         {children}
         {showSpinner && (
-          <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center bg-white/60">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-400 border-t-transparent" aria-label="Loading" />
+          <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center bg-white/30">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-600 border-t-transparent" aria-label="Loading" />
           </div>
         )}
       </div>

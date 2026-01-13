@@ -40,6 +40,9 @@ export function useDraggable({ initial, onMove }: DragOptions) {
   const handleProps = {
     ref,
     onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-stop-drag="true"]')) return;
       startRef.current = {
         startX: e.clientX,
         startY: e.clientY,

@@ -7,6 +7,7 @@ export type WindowEntry = {
   maximized: boolean;
   x: number;
   y: number;
+  openedAt: number;
 };
 
 type WindowManagerCtx = {
@@ -25,6 +26,7 @@ const WindowManagerContext = createContext<WindowManagerCtx | null>(null);
 export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [windows, setWindows] = useState<WindowEntry[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
+  const openedCounter = React.useRef(0);
 
   const ensureWindow = useCallback((path: string, title = path) => {
     setWindows((prev) => {
@@ -43,7 +45,10 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       const stagger = 28 * prev.length;
       setActivePath(path);
-      return [...prev, { path, title, minimized: false, maximized: false, x: stagger, y: stagger }];
+      return [
+        ...prev,
+        { path, title, minimized: false, maximized: false, x: stagger, y: stagger, openedAt: openedCounter.current++ },
+      ];
     });
   }, []);
 

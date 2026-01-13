@@ -21,6 +21,7 @@ export default function MacTopBar({ activePath }: Props) {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const pendingTasks = useMemo(() => windows.filter((w) => w.minimized).length, [windows]);
+  const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
 
   return (
     <div className="sticky top-0 z-[200] flex items-center gap-4 border-b border-slate-200 bg-white/95 px-4 py-2 text-sm text-slate-900 shadow-md backdrop-blur">
@@ -36,17 +37,18 @@ export default function MacTopBar({ activePath }: Props) {
       </div>
 
       <div className="flex flex-1 items-center gap-2 overflow-x-auto">
-        {windows.map((w) => {
+        {orderedWindows.map((w) => {
           const isActive = w.path === activePath;
           return (
             <div
               key={w.path}
               className={`group flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition ${
                 isActive
-                  ? "border-slate-300 bg-white text-slate-900 shadow-sm"
+                  ? "border-emerald-300 bg-white text-slate-900 shadow-sm ring-1 ring-emerald-200"
                   : "border-slate-200 bg-slate-100 text-slate-700 hover:border-slate-300 hover:bg-white"
               }`}
             >
+              <span className={`h-2 w-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-slate-300"}`} />
               <button
                 className="text-left"
                 onClick={() => {
@@ -57,6 +59,7 @@ export default function MacTopBar({ activePath }: Props) {
                 {w.title}
               </button>
               <div className="flex items-center gap-1">
+                {isActive && <span className="text-[10px] font-semibold text-emerald-600">Active</span>}
                 {w.minimized && <span className="text-[10px] text-slate-500">min</span>}
                 <button
                   className="text-slate-400 hover:text-slate-700"
