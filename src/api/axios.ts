@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
 import { clearUser } from "../store/slices/authSlice";
+import { setApiLoading } from "../store/slices/loadingSlice";
 
 // Access tokens are short-lived; keep latest in memory for fast access
 // Helpers
@@ -20,6 +21,12 @@ let accessToken: string | null = (() => {
 })();
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
+let inflightRequests = 0;
+
+const updateLoading = (delta: number) => {
+  inflightRequests = Math.max(0, inflightRequests + delta);
+  store.dispatch(setApiLoading(inflightRequests > 0));
+};
 
 // Helper to process queued requests waiting for refresh
 const processQueue = (token: string | null) => {
@@ -44,6 +51,7 @@ export const authClient = axios.create({
 
 const attachAuthInterceptors = (client: AxiosInstance) => {
   client.interceptors.request.use((config) => {
+    updateLoading(1);
     if (!accessToken) {
       accessToken = localStorage.getItem("accessToken");
     }
@@ -55,7 +63,10 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
   });
 
   client.interceptors.response.use(
-    (res) => res,
+    (res) => {
+      updateLoading(-1);
+      return res;
+    },
     async (error: AxiosError) => {
       const originalRequest: any = error.config;
 
@@ -71,7 +82,7 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
               originalRequest.headers.Authorization = `Bearer ${token}`;
               resolve(client(originalRequest));
             });
-          });
+          }).finally(() => updateLoading(-1));
         }
 
         originalRequest._retry = true;
@@ -111,9 +122,29 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
+          updateLoading(-1);
         }
       }
 
+      updateLoading(-1);
+      return Promise.reject(error);
+    }
+  );
+};
+
+const attachLoadingOnly = (client: AxiosInstance) => {
+  client.interceptors.request.use((config) => {
+    updateLoading(1);
+    return config;
+  });
+
+  client.interceptors.response.use(
+    (res) => {
+      updateLoading(-1);
+      return res;
+    },
+    (error) => {
+      updateLoading(-1);
       return Promise.reject(error);
     }
   );
@@ -121,5 +152,6 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
 
 attachAuthInterceptors(apiClient);
 attachAuthInterceptors(notionClient);
+attachLoadingOnly(authClient);
 
 export default apiClient;
