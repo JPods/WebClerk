@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "../../type/kanban";
 import type {
   TaskFormEditableField,
@@ -93,7 +94,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   const datalistId = `language-options-${mode}`;
   const canRemoveTranslation = translations.length > 1;
 
-  return (
+  const modal = (
     <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
       <div className="w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-xl no-scrollbar dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-4 flex items-start justify-between">
@@ -455,6 +456,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default KanbanTaskModal;
