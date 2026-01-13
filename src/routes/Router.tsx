@@ -18,6 +18,7 @@ import {
   SignIn,
   SignUp,
   SvarGanttPage,
+  MultiProjectGanttPage,
   UserProfiles,
   // Accounts
   AuditList,
@@ -198,6 +199,7 @@ const Router: React.FC = () => {
           />
           <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
           <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
+          <Route path={PageRoutes.multiProjectGantt} element={<MultiProjectGanttPage />} />
           <Route path={PageRoutes.actionList} element={<ActionListPage />} />
           <Route path={PageRoutes.actionDetail} element={<ActionDetail />} />
           <Route
