@@ -3,10 +3,22 @@ import { FaEye, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 import { dynamicData } from "../../../../../model/dynamicData";
 import AccordionItem from "@/components/accordion/AccordionItem";
 
+interface ActionData {
+  id: string | number;
+  email?: string;
+  name_first?: string;
+  name_last?: string;
+  company?: string;
+  role?: string;
+  is_active?: boolean;
+  is_staff?: boolean;
+  [key: string]: any;
+}
+
 interface ContactListMobProps {
-  dataProp: dynamicData[];
-  handleView: (row: dynamicData) => void;
-  handleEdit: (row: dynamicData) => void;
+  dataProp: ActionData[];
+  handleView: (row: ActionData) => void;
+  handleEdit: (row: ActionData) => void;
   emptyMessage?: string;
 }
 

@@ -793,12 +793,7 @@ span.flatpickr-weekday,
 }
 /* Samir on 2025-12-23 */
 
-.rdt_TableHeadRow {
-  @apply text-sm bg-[#dde7ff] dark:!bg-gray-700;
-}
-
 .cus-bg-purple-light {
-  background: #f1f0ff;
   border: 1px dashed #3b4863cc;
 }
 .cus-bg-theme-purple-medium {

@@ -1,32 +1,503 @@
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { TableColumn } from "react-data-table-component";
+import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useAppSelector } from "../../../../../store/hooks";
-import { getRecord } from "../../../../../api/wcapi";
-import { dynamicData } from "../../../../../model/dynamicData";
-import { FaEye, FaEdit, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
-import { useTheme } from "../../../../../context/ThemeContext";
-import ContactAdd from "./ContactDetail";
+import AdvancedDataTable, {
+  ColumnFilter,
+} from "../../../../../components/common/AdvancedDataTable";
+import { patchAction } from "../../../../../api/userProfile";
 import { fetchContacts } from "../services/contactApi";
+import { useNavigate } from "react-router";
+import { useDispatch } from "react-redux";
+import { showToast } from "../../../../../store/slices/toastSlice";
+import ContactDetail from "./ContactDetail";
 import ContactListMob from "./ContactListMob";
+import { getRecord } from "../../../../../api/wcapi";
+import { useAppSelector } from "../../../../../store/hooks";
+import { UpdateContactRequest } from "../types/contactType";
+interface ActionData {
+  id: string | number;
+  email?: string;
+  name_first?: string;
+  name_last?: string;
+  company?: string;
+  role?: string;
+  is_active?: boolean;
+  is_staff?: boolean;
+  [key: string]: any;
+}
 
-export default function ContactList() {
-  const { theme } = useTheme();
-  const { user } = useAppSelector((state) => state.auth);
+const ContactList = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [data, setData] = useState<dynamicData[]>([]);
-  const [filteredData, setFilteredData] = useState<dynamicData[]>([]);
-  const [filteredSearch, setFilteredSearch] = useState<string>("");
-
-  const [loading, setLoading] = useState<boolean>(true);
-  const [selectedContact, setSelectedContact] = useState<dynamicData | null>(
+  const [data, setData] = useState<UpdateContactRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedContacts, setSelectedContacts] = useState<ActionData[]>([]);
+  const [selectedContact, setSelectedContact] = useState<ActionData | null>(
     null
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null
   );
+  const { user } = useAppSelector((state) => state.auth);
+  // Helper to extract translated text
+  const getTranslatedText = useCallback(
+    (
+      translations: Record<string, string> | undefined,
+      languages: string[] | undefined
+    ): string => {
+      if (!translations || typeof translations !== "object") return "";
 
+      // Try to get text in order of preference
+      const preferredLangs = ["en", "ar", "bn", "es"];
+      const availableLangs = languages || Object.keys(translations);
+
+      for (const lang of preferredLangs) {
+        if (translations[lang]) return translations[lang];
+      }
+
+      // Return first available translation
+      for (const lang of availableLangs) {
+        if (translations[lang]) return translations[lang];
+      }
+
+      return Object.values(translations)[0] || "";
+    },
+    []
+  );
+
+  // Format date
+  const formatDate = useCallback(
+    (timestamp: number | string | null | undefined): string => {
+      if (!timestamp) return "-";
+
+      try {
+        const date =
+          typeof timestamp === "number"
+            ? new Date(timestamp)
+            : new Date(timestamp);
+
+        if (isNaN(date.getTime())) return "-";
+
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      } catch {
+        return "-";
+      }
+    },
+    []
+  );
+
+  // Extract unique values for filters
+  const filterOptions = useMemo(() => {
+    const id = new Set<string | number>();
+    const email = new Set<string>();
+    const name_first = new Set<string>();
+    const name_last = new Set<string>();
+    const company = new Set<string>();
+    const role = new Set<string>();
+    // const is_active = new Set<string>();
+    // const is_staff = new Set<string>();
+
+    data.forEach((item) => {
+      if (item.id) id.add(item.id);
+      if (item.email) email.add(item.email);
+      if (item.name_first) name_first.add(item.name_first);
+      if (item.name_last) name_last.add(item.name_last);
+      if (item.company) company.add(item.company);
+      if (item.role) role.add(item.role);
+
+      // Yes/No version
+      // is_active.add(item.is_active ? "Yes" : "No");
+      // is_staff.add(item.is_staff ? "Yes" : "No");
+    });
+
+    const toOptions = (set: Set<any>) =>
+      Array.from(set).map((value) => ({
+        value,
+        label: String(value),
+      }));
+
+    return {
+      id: toOptions(id),
+      email: toOptions(email),
+      name_first: toOptions(name_first),
+      name_last: toOptions(name_last),
+      company: toOptions(company),
+      role: toOptions(role),
+      // is_active: toOptions(is_active),
+      // is_staff: toOptions(is_staff),
+    };
+  }, [data]);
+
+  // Fetch actions
+  const fetchActions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetchContacts();
+
+      if (response) {
+        const apiData = Array.isArray(response?.data?.results)
+          ? response.data.results
+          : [];
+
+        // Extract actions array from various possible structures
+        let actions: ActionData[] = [];
+
+        if (Array.isArray(apiData)) {
+          actions = apiData;
+        } else if (apiData && typeof apiData === "object") {
+          if (Array.isArray(apiData.results)) {
+            actions = apiData.results;
+          } else if (Array.isArray(apiData.data)) {
+            actions = apiData.data;
+          } else if (Array.isArray(apiData.actions)) {
+            actions = apiData.actions;
+          }
+        }
+
+        // Normalize action data
+        const normalizedActions = actions.map((action, index) => ({
+          ...action,
+          id: action.id || action.pk || action.uuid || `temp-${index}`,
+          // Extract primary language text for display
+          actionText: getTranslatedText(action.action, action.languages),
+          descriptionText: getTranslatedText(
+            action.description,
+            action.languages
+          ),
+        }));
+
+        setData(normalizedActions);
+      } else {
+        throw new Error("Failed to fetch actions");
+      }
+    } catch (error) {
+      console.error("Error fetching actions:", error);
+      dispatch(
+        showToast({
+          message: "Failed to load actions. Please try again.",
+          type: "error",
+        })
+      );
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, getTranslatedText]);
+
+  useEffect(() => {
+    fetchActions();
+  }, [fetchActions]);
+
+  // Handle delete
+  const handleDelete = useCallback(
+    async (id: string | number) => {
+      if (!window.confirm("Are you sure you want to delete this action?")) {
+        return;
+      }
+
+      try {
+        // Implement delete logic here using patchAction or appropriate API
+        await patchAction({
+          model_name: "action",
+          id,
+          method: "delete",
+        });
+
+        dispatch(
+          showToast({
+            message: "Action deleted successfully",
+            type: "success",
+          })
+        );
+
+        // Refresh data
+        fetchActions();
+      } catch (error) {
+        console.error("Error deleting action:", error);
+        dispatch(
+          showToast({
+            message: "Failed to delete action",
+            type: "error",
+          })
+        );
+      }
+    },
+    [dispatch, fetchActions]
+  );
+
+  // Define table columns
+  const columns: TableColumn<ActionData>[] = useMemo(
+    () => [
+      {
+        name: "ID",
+        selector: (row: ActionData) => row.id || "-",
+        sortable: true,
+        width: "5%",
+        cell: (row: ActionData) => (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(row);
+            }}
+            className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+          >
+            {row.id || "-"}
+          </div>
+        ),
+      },
+      {
+        name: "email",
+        selector: (row: ActionData) => row.email || "-",
+        sortable: true,
+        wrap: true,
+        width: "15%",
+        cell: (row: ActionData) => row.email || "-",
+      },
+      {
+        name: "name_first",
+        selector: (row: ActionData) => row.name_first || "-",
+        sortable: true,
+        width: "13%",
+        cell: (row: ActionData) => row.name_first || "-",
+      },
+      {
+        name: "name_last",
+        selector: (row: ActionData) => row.name_last || "-",
+        sortable: true,
+        width: "13%",
+        cell: (row: ActionData) => row.name_last || "-",
+      },
+      {
+        name: "company",
+        selector: (row: ActionData) => row.company || "-",
+        sortable: true,
+        width: "15%",
+        cell: (row: ActionData) => row.company || "-",
+      },
+      {
+        name: "role",
+        selector: (row: ActionData) => row.role || "-",
+        sortable: true,
+        width: "10%",
+        cell: (row: ActionData) => row.role || "-",
+      },
+      {
+        name: "is_active",
+        selector: (row: ActionData) => (row.is_active ? "Yes" : "No"),
+        sortable: true,
+        width: "8%",
+        cell: (row: ActionData) =>
+          row.is_active ? (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              {"Yes"}
+            </span>
+          ) : (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-red-500 dark:bg-red-500 dark:text-blue-200">
+              {"No"}
+            </span>
+          ),
+      },
+      {
+        name: "is_staff",
+        selector: (row: ActionData) => (row.is_staff ? "Yes" : "No"),
+        sortable: true,
+        width: "8%",
+        cell: (row: ActionData) =>
+          row.is_staff ? (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              {"Yes"}
+            </span>
+          ) : (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-red-500 dark:bg-red-500 dark:text-blue-200">
+              {"No"}
+            </span>
+          ),
+      },
+      {
+        name: "Actions",
+        width: "140px",
+        cell: (row: ActionData) => (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleView(row);
+              }}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
+              title="View"
+            >
+              <FaEye className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(row);
+              }}
+              className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
+              title="Edit"
+            >
+              <FaEdit className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(row.id);
+              }}
+              className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+              title="Delete"
+            >
+              <FaTrash className="w-4 h-4" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [navigate, handleDelete]
+  );
+
+  // Define filters
+  const filters: ColumnFilter[] = useMemo(
+    () => [
+      {
+        key: "email",
+        label: "email",
+        type: "select",
+        options: filterOptions.email,
+      },
+      {
+        key: "name_first",
+        label: "name_first",
+        type: "select",
+        options: filterOptions.name_first,
+      },
+      {
+        key: "name_last",
+        label: "name_last",
+        type: "select",
+        options: filterOptions.name_last,
+      },
+      {
+        key: "company",
+        label: "company",
+        type: "select",
+        options: filterOptions.company,
+      },
+      {
+        key: "role",
+        label: "role",
+        type: "select",
+        options: filterOptions.role,
+      },
+      // {
+      //   key: "is_active",
+      //   label: "is_active",
+      //   type: "select",
+      //   options: filterOptions.is_active,
+      // },
+      // {
+      //   key: "is_staff",
+      //   label: "is_staff",
+      //   type: "select",
+      //   options: filterOptions.is_staff,
+      // },
+    ],
+    [filterOptions]
+  );
+
+  // Handle bulk operations
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedContacts.length === 0) {
+      dispatch(
+        showToast({
+          message: "Please select actions to delete",
+          type: "error",
+        })
+      );
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedContacts.length} action(s)?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      // Implement bulk delete logic
+      await Promise.all(
+        selectedContacts.map((action) =>
+          patchAction({
+            model_name: "action",
+            id: action.id,
+            method: "delete",
+          })
+        )
+      );
+
+      dispatch(
+        showToast({
+          message: `${selectedContacts.length} action(s) deleted successfully`,
+          type: "success",
+        })
+      );
+
+      fetchActions();
+      setSelectedContacts([]);
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
+      dispatch(
+        showToast({
+          message: "Failed to delete some actions",
+          type: "error",
+        })
+      );
+    }
+  }, [selectedContacts, dispatch, fetchActions]);
+
+  // Handle view action
+  const handleView = (row: ActionData) => {
+    setSelectedContact(row);
+    setFormMode("view");
+  };
+
+  // Handle edit action
+  const handleEdit = async (row: ActionData) => {
+    try {
+      const res = await getRecord("contact", Number(row.id));
+      setSelectedContact(res.record);
+    } catch {
+      setSelectedContact(row);
+    }
+    setFormMode("edit");
+  };
+
+  // Handle add new action - navigate to separate page
+  const handleAdd = () => {
+    setSelectedContact(null);
+    setFormMode("add");
+  };
+
+  // Handle form saved
+  const handleFormSaved = () => {
+    fetchActions();
+    setFormMode(null);
+    setSelectedContact(null);
+  };
+
+  // Handle form cancel
+  const handleFormCancel = () => {
+    setFormMode(null);
+    setSelectedContact(null);
+  };
   const roleLabel = useMemo(() => {
     const roleValue = user?.role;
     if (!roleValue) return "Not assigned";
@@ -41,332 +512,74 @@ export default function ContactList() {
     [roleLabel]
   );
 
-  /* ---------------- Fetch Contacts ---------------- */
-  const getContactData = useCallback(async (contactId?: number) => {
-    setLoading(true);
-    try {
-      const res = await fetchContacts();
-      const results = Array.isArray(res?.data?.results)
-        ? res.data.results
-        : [];
-      setData(results);
-      setFilteredData(results);
-      if (contactId) {
-        const contactRes = await getRecord("contact", contactId);
-        const record = contactRes?.record ?? null;
-        setSelectedContact(record);
-        setFilteredData(record ? [record] : []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    getContactData();
-  }, [getContactData]);
-
-  /* ---------------- Handlers ---------------- */
-  const handleView = (row: dynamicData) => {
-    setSelectedContact(row);
-    setFormMode("view");
-  };
-
-  const handleEdit = async (row: dynamicData) => {
-    try {
-      const res = await getRecord("contact", row.id);
-      setSelectedContact(res.record);
-    } catch {
-      setSelectedContact(row);
-    }
-    setFormMode("edit");
-  };
-
-  const handleAdd = () => {
-    setSelectedContact(null);
-    setFormMode("add");
-  };
-
-  const handleFormSaved = () => {
-    getContactData();
-    setFormMode(null);
-    setSelectedContact(null);
-  };
-
-  const handleFormCancel = () => {
-    setFormMode(null);
-    setSelectedContact(null);
-  };
-
-  // --------------- Global Filtered ---------------------------//
-  const filterData = (inputData: string) => {
-    const searchQuery = inputData.trim().toLowerCase(); // Trim and lowercase for case-insensitive comparison
-    setFilteredSearch(searchQuery);
-    if (searchQuery) {
-      const filtered = data.filter((element) => {
-        // Combine all columns you want to search in as strings
-        const valuesToSearch = [
-          element.email,
-          element.name_first,
-          element.name_last,
-          element.company,
-          element.role,
-          element.customer_id,
-          element.employee_id,
-        ].map((value) => value && value.toString().trim().toLowerCase()); // Trim and lowercase each value
-
-        // Check if any of the column values includes the search query
-        return valuesToSearch.some(
-          (value) => value && value.includes(searchQuery)
-        );
-      });
-
-      setFilteredData(filtered); // Update filtered data
-    } else {
-      setFilteredData(data);
-    }
-  };
-  const highlightMatch = useCallback(
-    (text: string) => {
-      if (!filteredSearch) return text;
-
-      const escaped = filteredSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`(${escaped})`, "gi");
-
-      return text.split(regex).map((part, index) =>
-        part.toLowerCase() === filteredSearch ? (
-          <span key={index} className="text-red-600 font-semibold">
-            {part}
-          </span>
-        ) : (
-          part
-        )
-      );
-    },
-    [filteredSearch]
-  );
-
-  /* ---------------- Columns ---------------- */
-
-  const userColumns: TableColumn<dynamicData>[] = useMemo(
-    () => [
-      { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
-      {
-        name: "email",
-        selector: (row) => row.email || "--",
-        cell: (row) =>
-          row.email ? highlightMatch(row.email.toString()) : "--",
-        sortable: true,
-        width: "15%",
-      },
-      {
-        name: "name_first",
-        selector: (row) => row.name_first || "--",
-        cell: (row) =>
-          row.name_first ? highlightMatch(row.name_first.toString()) : "--",
-        sortable: true,
-        width: "13%",
-      },
-      {
-        name: "name_last",
-        selector: (row) => row.name_last || "--",
-        cell: (row) =>
-          row.name_last ? highlightMatch(row.name_last.toString()) : "--",
-        sortable: true,
-        width: "13%",
-      },
-      {
-        name: "company",
-        selector: (row) => row.company || "--",
-        cell: (row) =>
-          row.company ? highlightMatch(row.company.toString()) : "--",
-        sortable: true,
-        width: "15%",
-      },
-      {
-        name: "customer_id",
-        selector: (row) => row.customer_id || "--",
-        cell: (row) =>
-          row.customer_id ? highlightMatch(row.customer_id.toString()) : "--",
-        sortable: true,
-        width: "12%",
-      },
-      {
-        name: "role",
-        selector: (row) => row.role || "--",
-        cell: (row) => (row.role ? highlightMatch(row.role.toString()) : "--"),
-        sortable: true,
-        width: "10%",
-      },
-      {
-        name: "employee_id",
-        selector: (row) => row.employee_id || "--",
-        cell: (row) =>
-          row.employee_id
-            ? highlightMatch(row.employee_id.toString())
-            : "--",
-        sortable: true,
-        width: "12%",
-      },
-      {
-        name: "is_active",
-        selector: (row) => (row.is_active ? "yes" : "no"),
-        cell: (row) =>
-          row.is_active ? (
-            <FaCheck className="text-green-600" />
-          ) : (
-            <FaTimes className="text-red-500" />
-          ),
-        sortable: true,
-        width: "8%",
-      },
-      {
-        name: "is_staff",
-        selector: (row) => (row.is_staff ? "yes" : "no"),
-        cell: (row) =>
-          row.is_staff ? (
-            <FaCheck className="text-green-600" />
-          ) : (
-            <FaTimes className="text-red-500" />
-          ),
-        sortable: true,
-        width: "8%",
-      },
-      {
-        name: "action",
-        cell: (row) => (
-          <div className="flex gap-3">
-            <button onClick={() => handleView(row)} title="View">
-              <FaEye className="text-blue-600 hover:scale-110 transition" />
-            </button>
-            <button onClick={() => handleEdit(row)} title="Edit">
-              <FaEdit className="text-green-600 hover:scale-110 transition" />
-            </button>
-          </div>
-        ),
-        ignoreRowClick: true,
-        allowOverflow: true,
-        button: true,
-      },
-    ],
-    [highlightMatch]
-  );
-
-  /* ---------------- UI ---------------- */
   return (
     <>
       <PageBreadcrumb pageTitle="Contact List" />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* List */}
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <div className="flex justify-between mb-0">
-              <div className="flex  mb-2">
-                <div className="relative">
-                  <span className="absolute -translate-y-1/2 pointer-events-none left-4 top-1/2">
-                    <svg
-                      className="fill-gray-500 dark:fill-gray-400"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-                        fill=""
-                      />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={filteredSearch}
-                    onChange={(e) => filterData(e.target.value)}
-                    placeholder="Search for record..."
-                    className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 "
-                  />
-                  <div className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                    <span>
-                      <button
-                        type="button"
-                        onClick={() => filterData("")}
-                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      >
-                        &times;
-                      </button>
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex mb-2">
-                <button
-                  onClick={handleAdd}
-                  className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-                >
-                  <FaPlus />
-                  Contact
-                </button>
-              </div>
-            </div>
-            <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light dark:!bg-[#1e2636] dark:bg-gray-900 h-[calc(100vh-265px)]">
-              {formMode ? (
-                <div className="flex flex-col">
-                  <ContactListMob
-                    dataProp={filteredData}
-                    handleView={handleView}
-                    handleEdit={handleEdit}
-                    emptyMessage={emptyStateMessage}
-                  />
-                </div>
-              ) : (
-                <DataTable
-                  columns={userColumns.map((col) => ({
-                    ...col,
-                    name: typeof col.name === "string" && col.name,
-                  }))}
-                  data={filteredData}
-                  pagination
-                  responsive
-                  highlightOnHover
-                  pointerOnHover
-                  theme={theme === "dark" ? "tailwindDark" : "default"}
-                  progressPending={loading}
-                  progressComponent={
-                    <div className="p-8 text-sm text-center text-gray-500">
-                      Loading contacts...
-                    </div>
-                  }
-                  noDataComponent={
-                    <div className="p-8 text-sm text-center text-gray-500">
-                      {emptyStateMessage}
-                    </div>
-                  }
-                  onRowClicked={handleView}
-                  keyField="id"
-                  className="text-2xl p-2"
+          <ComponentCard className=" cus-bg-purple-light rounded-md">
+            {formMode ? (
+              <div className="flex flex-col">
+                <ContactListMob
+                  dataProp={data}
+                  handleView={handleView}
+                  handleEdit={handleEdit}
+                  emptyMessage={emptyStateMessage}
                 />
-              )}
-            </div>
+              </div>
+            ) : (
+              <AdvancedDataTable
+                data={data}
+                columns={columns}
+                title="Contact"
+                loading={loading}
+                filters={filters}
+                enableExport={true}
+                enableSelection={true}
+                onSelectionChange={setSelectedContacts}
+                exportFileName="contact_export"
+                searchPlaceholder="Search contact, name_first, name_last..."
+                noDataMessage="No contact found"
+                customActions={
+                  <div className="flex gap-2">
+                    {selectedContacts.length > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                        Delete ({selectedContacts.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAdd}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <FaPlus className="w-4 h-4" />
+                      New Contact
+                    </button>
+                  </div>
+                }
+                onRowClicked={handleEdit}
+              />
+            )}
           </ComponentCard>
         </div>
 
-        {/* Form */}
         {formMode && (
           <div className="lg:col-span-2">
-            <ContactAdd
+            <ContactDetail
               inline
               modeProp={formMode}
               dataProp={selectedContact}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
-              getContactData={getContactData}
             />
           </div>
         )}
       </div>
     </>
   );
-}
+};
+
+export default ContactList;

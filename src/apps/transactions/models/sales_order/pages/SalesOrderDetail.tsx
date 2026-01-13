@@ -21,7 +21,12 @@ import { Input } from "../../../../../components/wrapper";
 import { showToast } from "../../../../../store/slices/toastSlice";
 
 import { salesOrderSchema } from "../utils/salesOrderSchema";
-import { createSalesOrder, updateSalesOrder, fetchSalesOrderDetail, searchCustomers } from "../services/salesOrderApi";
+import {
+  createSalesOrder,
+  updateSalesOrder,
+  fetchSalesOrderDetail,
+  searchCustomers,
+} from "../services/salesOrderApi";
 import { saveRecord, deleteRecord } from "../../../../../api/wcapi";
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
@@ -36,7 +41,10 @@ import {
   resolveUnitCost,
   resolveUnitPrice,
 } from "../utils/itemSearchHelpers";
-import { formatNumberValue, formatQuantityValue } from "../../common/numberFormat";
+import {
+  formatNumberValue,
+  formatQuantityValue,
+} from "../../common/numberFormat";
 
 const STATUS_OPTIONS = [
   { value: "planned", label: "planned" },
@@ -69,7 +77,12 @@ const FIELD_GROUPS: FieldGroup[] = [
     fields: [
       { name: "ida", label: "ida", type: "text" },
       { name: "sales_order_no", label: "ida_sales_order", type: "text" },
-      { name: "status", label: "status", type: "select", options: STATUS_OPTIONS },
+      {
+        name: "status",
+        label: "status",
+        type: "select",
+        options: STATUS_OPTIONS,
+      },
       { name: "priority", label: "priority", type: "text" },
       { name: "price_level", label: "price_level", type: "text" },
     ],
@@ -78,7 +91,12 @@ const FIELD_GROUPS: FieldGroup[] = [
     title: "Associations",
     fields: [
       { name: "customer_id", label: "customer_id", type: "number", min: 1 },
-      { name: "manufacturer_id", label: "manufacturer_id", type: "number", min: 0 },
+      {
+        name: "manufacturer_id",
+        label: "manufacturer_id",
+        type: "number",
+        min: 0,
+      },
       { name: "vendor_id", label: "vendor_id", type: "number", min: 0 },
     ],
   },
@@ -93,7 +111,9 @@ const FIELD_GROUPS: FieldGroup[] = [
   },
   {
     title: "Metadata",
-    fields: [{ name: "metadata.priority", label: "metadata.priority", type: "text" }],
+    fields: [
+      { name: "metadata.priority", label: "metadata.priority", type: "text" },
+    ],
   },
 ];
 
@@ -141,7 +161,14 @@ interface ContactLinkDisplayRow {
   raw: ContactLinkRecord;
 }
 
-type ContactColumnKey = "id" | "alias" | "name" | "role" | "purpose" | "email" | "phone";
+type ContactColumnKey =
+  | "id"
+  | "alias"
+  | "name"
+  | "role"
+  | "purpose"
+  | "email"
+  | "phone";
 
 interface ContactLinkColumnDef {
   key: ContactColumnKey;
@@ -187,13 +214,13 @@ const CONTACT_LINK_COLUMN_DEFS: ContactLinkColumnDef[] = [
   },
 ];
 
-const CONTACT_LINK_COLUMN_LOOKUP: Record<ContactColumnKey, ContactLinkColumnDef> = CONTACT_LINK_COLUMN_DEFS.reduce(
-  (acc, def) => {
-    acc[def.key] = def;
-    return acc;
-  },
-  {} as Record<ContactColumnKey, ContactLinkColumnDef>
-);
+const CONTACT_LINK_COLUMN_LOOKUP: Record<
+  ContactColumnKey,
+  ContactLinkColumnDef
+> = CONTACT_LINK_COLUMN_DEFS.reduce((acc, def) => {
+  acc[def.key] = def;
+  return acc;
+}, {} as Record<ContactColumnKey, ContactLinkColumnDef>);
 
 const CONTACT_LINK_CELL_CLASS: Record<ContactColumnKey, string> = {
   id: "px-3 py-2 text-gray-800 dark:text-gray-100",
@@ -206,7 +233,12 @@ const CONTACT_LINK_CELL_CLASS: Record<ContactColumnKey, string> = {
 };
 
 const READONLY_FIELD_NAMES = new Set(["ida", "sales_order_no", "subtotal"]);
-const READONLY_JSON_FIELDS = new Set<JsonFieldPath>(["cost", "sell", "finance", "flow"]);
+const READONLY_JSON_FIELDS = new Set<JsonFieldPath>([
+  "cost",
+  "sell",
+  "finance",
+  "flow",
+]);
 
 function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
   if (!raw) {
@@ -321,7 +353,11 @@ function extractValue(source: Record<string, unknown>, path: string): unknown {
   }, source);
 }
 
-function setDeepValue(target: Record<string, unknown>, path: string, value: unknown) {
+function setDeepValue(
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown
+) {
   const segments = path.split(".");
   let cursor: Record<string, unknown> = target;
   segments.forEach((segment, index) => {
@@ -340,7 +376,10 @@ function setDeepValue(target: Record<string, unknown>, path: string, value: unkn
   });
 }
 
-function resolveStringField(record: Record<string, unknown>, keys: string[]): string {
+function resolveStringField(
+  record: Record<string, unknown>,
+  keys: string[]
+): string {
   for (const key of keys) {
     const value = record[key];
     if (typeof value === "string") {
@@ -364,7 +403,11 @@ function resolveCustomerId(record: Record<string, unknown>): number | null {
   ];
 
   for (const candidate of candidates) {
-    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+    if (
+      typeof candidate === "number" &&
+      Number.isFinite(candidate) &&
+      candidate > 0
+    ) {
       return candidate;
     }
     if (typeof candidate === "string") {
@@ -386,7 +429,12 @@ function resolveCustomerLabel(record: Record<string, unknown>): string {
     return combined;
   }
 
-  const label = resolveStringField(record, ["display_name", "company", "name", "organization_name"]);
+  const label = resolveStringField(record, [
+    "display_name",
+    "company",
+    "name",
+    "organization_name",
+  ]);
   if (label) {
     return label;
   }
@@ -396,10 +444,17 @@ function resolveCustomerLabel(record: Record<string, unknown>): string {
 }
 
 function resolveCustomerAlias(record: Record<string, unknown>): string {
-  return resolveStringField(record, ["ida_customer", "ida", "customer_code", "customer_number"]);
+  return resolveStringField(record, [
+    "ida_customer",
+    "ida",
+    "customer_code",
+    "customer_number",
+  ]);
 }
 
-function resolveContactRecord(entry: ContactLinkRecord): Record<string, unknown> {
+function resolveContactRecord(
+  entry: ContactLinkRecord
+): Record<string, unknown> {
   if (entry.contact && typeof entry.contact === "object" && entry.contact) {
     return entry.contact;
   }
@@ -416,7 +471,11 @@ function resolveContactId(entry: ContactLinkRecord): number | null {
     record.contactId,
   ];
   for (const candidate of candidates) {
-    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+    if (
+      typeof candidate === "number" &&
+      Number.isFinite(candidate) &&
+      candidate > 0
+    ) {
       return candidate;
     }
     if (typeof candidate === "string") {
@@ -431,8 +490,16 @@ function resolveContactId(entry: ContactLinkRecord): number | null {
 
 function resolveContactName(entry: ContactLinkRecord): string {
   const record = resolveContactRecord(entry);
-  const first = resolveStringField(record, ["name_first", "first_name", "given_name"]);
-  const last = resolveStringField(record, ["name_last", "last_name", "family_name"]);
+  const first = resolveStringField(record, [
+    "name_first",
+    "first_name",
+    "given_name",
+  ]);
+  const last = resolveStringField(record, [
+    "name_last",
+    "last_name",
+    "family_name",
+  ]);
   const combined = `${first} ${last}`.trim();
   if (combined) {
     return combined;
@@ -452,12 +519,21 @@ function resolveContactAlias(entry: ContactLinkRecord): string {
 
 function resolveContactEmail(entry: ContactLinkRecord): string {
   const record = resolveContactRecord(entry);
-  return resolveStringField(record, ["email", "email_primary", "contact_email"]);
+  return resolveStringField(record, [
+    "email",
+    "email_primary",
+    "contact_email",
+  ]);
 }
 
 function resolveContactPhone(entry: ContactLinkRecord): string {
   const record = resolveContactRecord(entry);
-  return resolveStringField(record, ["phone", "phone_primary", "phoneCell", "phone_number"]);
+  return resolveStringField(record, [
+    "phone",
+    "phone_primary",
+    "phoneCell",
+    "phone_number",
+  ]);
 }
 
 function resolveContactRole(entry: ContactLinkRecord): string {
@@ -468,14 +544,27 @@ function resolveContactRole(entry: ContactLinkRecord): string {
 function resolveContactPurpose(entry: ContactLinkRecord): string {
   const fallbackTargets = entry as Record<string, unknown>;
   const record = resolveContactRecord(entry);
-  const purpose = resolveStringField(record, ["purpose", "contact_purpose", "link_purpose", "context"]);
+  const purpose = resolveStringField(record, [
+    "purpose",
+    "contact_purpose",
+    "link_purpose",
+    "context",
+  ]);
   if (purpose) {
     return purpose;
   }
-  return resolveStringField(fallbackTargets, ["purpose", "contact_purpose", "link_purpose", "context"]);
+  return resolveStringField(fallbackTargets, [
+    "purpose",
+    "contact_purpose",
+    "link_purpose",
+    "context",
+  ]);
 }
 
-function getErrorMessage(errors: Record<string, unknown>, path: string): string | undefined {
+function getErrorMessage(
+  errors: Record<string, unknown>,
+  path: string
+): string | undefined {
   const segments = path.split(".");
   let cursor: unknown = errors;
   for (const segment of segments) {
@@ -492,7 +581,11 @@ function getErrorMessage(errors: Record<string, unknown>, path: string): string 
 }
 
 function extractNumericId(candidate: unknown): number | null {
-  if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+  if (
+    typeof candidate === "number" &&
+    Number.isFinite(candidate) &&
+    candidate > 0
+  ) {
     return candidate;
   }
   if (typeof candidate === "string") {
@@ -540,7 +633,9 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
         ? { ...(quantityRaw as Record<string, unknown>) }
         : {};
     const placedValue = toNumeric(
-      extractValue(quantityObject, "placed") ?? extractValue(quantityObject, "ordered") ?? 0
+      extractValue(quantityObject, "placed") ??
+        extractValue(quantityObject, "ordered") ??
+        0
     );
     quantityObject.placed = placedValue;
     if ("ordered" in quantityObject) {
@@ -557,7 +652,9 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
     if (container.quantity && typeof container.quantity === "object") {
       const quantityObject = container.quantity as Record<string, unknown>;
       return toNumeric(
-        extractValue(quantityObject, "placed") ?? extractValue(quantityObject, "ordered") ?? 0
+        extractValue(quantityObject, "placed") ??
+          extractValue(quantityObject, "ordered") ??
+          0
       );
     }
     return 0;
@@ -580,9 +677,13 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
     priceObject.sell = unitValue;
   }
   const discountAmount = toNumeric(priceObject.discount_amount);
-  const pricePrecision = typeof priceObject.precision === "number" ? priceObject.precision : 2;
+  const pricePrecision =
+    typeof priceObject.precision === "number" ? priceObject.precision : 2;
   const priceFactor = 10 ** Math.max(0, pricePrecision);
-  const extendedRaw = Math.max(unitValue * resolvedQuantity - discountAmount, 0);
+  const extendedRaw = Math.max(
+    unitValue * resolvedQuantity - discountAmount,
+    0
+  );
   const extendedValue = Number.isFinite(extendedRaw)
     ? Math.round(extendedRaw * priceFactor) / priceFactor
     : 0;
@@ -593,14 +694,16 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
   if (costRaw && typeof costRaw === "object") {
     const costObject = { ...(costRaw as Record<string, unknown>) };
     const unitCost = toNumeric(costObject.unit);
-    const costPrecision = typeof costObject.precision === "number" ? costObject.precision : 2;
+    const costPrecision =
+      typeof costObject.precision === "number" ? costObject.precision : 2;
     const costFactor = 10 ** Math.max(0, costPrecision);
     const costExtendedRaw = unitCost * resolvedQuantity;
     if (Number.isFinite(unitCost)) {
       costObject.unit = unitCost;
     }
     if (Number.isFinite(costExtendedRaw)) {
-      costObject.extended = Math.round(costExtendedRaw * costFactor) / costFactor;
+      costObject.extended =
+        Math.round(costExtendedRaw * costFactor) / costFactor;
     }
     container.cost = costObject;
   }
@@ -635,8 +738,12 @@ function resolveLineKey(line: SalesOrderLineRecord): string {
   return "";
 }
 
-function buildLineFromItem(item: ItemSearchResult, quantity: number): SalesOrderLineRecord {
-  const normalizedQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+function buildLineFromItem(
+  item: ItemSearchResult,
+  quantity: number
+): SalesOrderLineRecord {
+  const normalizedQuantity =
+    Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
   const description = resolveItemDescription(item) || "Item";
   const itemCode = resolveItemCode(item);
   const unitPrice = resolveUnitPrice(item);
@@ -707,12 +814,18 @@ function SalesOrderLinesPanel({
 }: {
   lines: SalesOrderLineRecord[];
   isReadOnly: boolean;
-  onFieldChange?: (index: number, field: "quantity.placed" | "price.unit", value: number) => void;
+  onFieldChange?: (
+    index: number,
+    field: "quantity.placed" | "price.unit",
+    value: number
+  ) => void;
 }) {
   if (!Array.isArray(lines) || lines.length === 0) {
     return (
       <ComponentCard>
-        <div className="text-sm text-gray-500 dark:text-gray-400">No line items available.</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          No line items available.
+        </div>
       </ComponentCard>
     );
   }
@@ -724,90 +837,139 @@ function SalesOrderLinesPanel({
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">item.ida_item</th>
-                <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">item.description</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">quantity.placed</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">quantity.remaining</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">price.unit</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">price.discount_percent</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">price.extended</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line, index) => {
-                const item = (line as Record<string, unknown>).item as Record<string, unknown> | undefined;
-                const quantity = (line as Record<string, unknown>).quantity as Record<string, unknown> | number | undefined;
-                const price = (line as Record<string, unknown>).price as Record<string, unknown> | undefined;
-                const idaItem = extractValue(item ?? {}, "ida_item") ?? "";
-                const itemDescription = extractValue(item ?? {}, "description") ?? "";
-                const placedNumeric =
-                  typeof quantity === "number"
-                    ? toNumeric(quantity)
-                    : toNumeric(extractValue(quantity ?? {}, "placed"));
-                const remaining = typeof quantity === "number" ? undefined : extractValue(quantity ?? {}, "remaining");
-                const priceUnit = toNumeric(
-                  extractValue(price ?? {}, "unit") ?? extractValue(price ?? {}, "sell") ?? 0
-                );
-                const priceDiscountPercent = extractValue(price ?? {}, "discount_percent");
-                const priceExtended = extractValue(price ?? {}, "extended");
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">
+                item.ida_item
+              </th>
+              <th className="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">
+                item.description
+              </th>
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
+                quantity.placed
+              </th>
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
+                quantity.remaining
+              </th>
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
+                price.unit
+              </th>
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
+                price.discount_percent
+              </th>
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-200">
+                price.extended
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line, index) => {
+              const item = (line as Record<string, unknown>).item as
+                | Record<string, unknown>
+                | undefined;
+              const quantity = (line as Record<string, unknown>).quantity as
+                | Record<string, unknown>
+                | number
+                | undefined;
+              const price = (line as Record<string, unknown>).price as
+                | Record<string, unknown>
+                | undefined;
+              const idaItem = extractValue(item ?? {}, "ida_item") ?? "";
+              const itemDescription =
+                extractValue(item ?? {}, "description") ?? "";
+              const placedNumeric =
+                typeof quantity === "number"
+                  ? toNumeric(quantity)
+                  : toNumeric(extractValue(quantity ?? {}, "placed"));
+              const remaining =
+                typeof quantity === "number"
+                  ? undefined
+                  : extractValue(quantity ?? {}, "remaining");
+              const priceUnit = toNumeric(
+                extractValue(price ?? {}, "unit") ??
+                  extractValue(price ?? {}, "sell") ??
+                  0
+              );
+              const priceDiscountPercent = extractValue(
+                price ?? {},
+                "discount_percent"
+              );
+              const priceExtended = extractValue(price ?? {}, "extended");
 
-                const handleQuantityChange = (value: number) => {
-                  if (!onFieldChange) {
-                    return;
-                  }
-                  onFieldChange(index, "quantity.placed", value);
-                };
+              const handleQuantityChange = (value: number) => {
+                if (!onFieldChange) {
+                  return;
+                }
+                onFieldChange(index, "quantity.placed", value);
+              };
 
-                const handleUnitPriceChange = (value: number) => {
-                  if (!onFieldChange) {
-                    return;
-                  }
-                  onFieldChange(index, "price.unit", value);
-                };
+              const handleUnitPriceChange = (value: number) => {
+                if (!onFieldChange) {
+                  return;
+                }
+                onFieldChange(index, "price.unit", value);
+              };
 
-                const rowKey = (line.id ?? index).toString();
+              const rowKey = (line.id ?? index).toString();
 
-                return (
-                  <tr key={rowKey} className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{String(idaItem || "")}</td>
-                    <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{String(itemDescription || "")}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
-                      {isReadOnly ? (
-                        formatQuantityValue(placedNumeric)
-                      ) : (
-                        <input
-                          type="number"
-                          className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                          step={0.01}
-                          value={Number.isFinite(placedNumeric) ? placedNumeric : 0}
-                          onChange={(event) => handleQuantityChange(Number(event.target.value) || 0)}
-                        />
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{formatQuantityValue(remaining)}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
-                      {isReadOnly ? (
-                        formatNumberValue(priceUnit)
-                      ) : (
-                        <input
-                          type="number"
-                          className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                          step={0.01}
-                          value={Number.isFinite(priceUnit) ? priceUnit : 0}
-                          onChange={(event) => handleUnitPriceChange(Number(event.target.value) || 0)}
-                        />
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{formatNumberValue(priceDiscountPercent)}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{formatNumberValue(priceExtended)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              return (
+                <tr
+                  key={rowKey}
+                  className="border-b border-gray-100 dark:border-gray-700"
+                >
+                  <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                    {String(idaItem || "")}
+                  </td>
+                  <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                    {String(itemDescription || "")}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                    {isReadOnly ? (
+                      formatQuantityValue(placedNumeric)
+                    ) : (
+                      <input
+                        type="number"
+                        className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        step={0.01}
+                        value={
+                          Number.isFinite(placedNumeric) ? placedNumeric : 0
+                        }
+                        onChange={(event) =>
+                          handleQuantityChange(Number(event.target.value) || 0)
+                        }
+                      />
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                    {formatQuantityValue(remaining)}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                    {isReadOnly ? (
+                      formatNumberValue(priceUnit)
+                    ) : (
+                      <input
+                        type="number"
+                        className="h-9 w-full rounded border border-gray-300 bg-white px-2 text-right text-sm text-gray-800 focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        step={0.01}
+                        value={Number.isFinite(priceUnit) ? priceUnit : 0}
+                        onChange={(event) =>
+                          handleUnitPriceChange(Number(event.target.value) || 0)
+                        }
+                      />
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                    {formatNumberValue(priceDiscountPercent)}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                    {formatNumberValue(priceExtended)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </ComponentCard>
   );
 }
@@ -835,20 +997,24 @@ export default function SalesOrderDetail({
     mode: "onBlur",
   });
 
-  const [jsonDrafts, setJsonDrafts] = useState<Record<JsonFieldPath, string>>(() => {
-    const base: Record<JsonFieldPath, string> = {
-      cost: "",
-      sell: "",
-      finance: "",
-      flow: "",
-      source: "",
-      subtotals: "",
-      "prefs.userdefined": "",
-      "refs.links": "",
-    };
-    return base;
-  });
-  const [jsonErrors, setJsonErrors] = useState<Record<JsonFieldPath, string | undefined>>({
+  const [jsonDrafts, setJsonDrafts] = useState<Record<JsonFieldPath, string>>(
+    () => {
+      const base: Record<JsonFieldPath, string> = {
+        cost: "",
+        sell: "",
+        finance: "",
+        flow: "",
+        source: "",
+        subtotals: "",
+        "prefs.userdefined": "",
+        "refs.links": "",
+      };
+      return base;
+    }
+  );
+  const [jsonErrors, setJsonErrors] = useState<
+    Record<JsonFieldPath, string | undefined>
+  >({
     cost: undefined,
     sell: undefined,
     finance: undefined,
@@ -862,35 +1028,48 @@ export default function SalesOrderDetail({
 
   const location = useLocation();
   const routeState = (location.state as Record<string, unknown>) || {};
-  const mode = (modeProp || routeState.mode || "add") as "add" | "edit" | "view";
-  const data = (dataProp || routeState.data || null) as (SalesOrderForm & { id?: number }) | null;
+  const mode = (modeProp || routeState.mode || "add") as
+    | "add"
+    | "edit"
+    | "view";
+  const data = (dataProp || routeState.data || null) as
+    | (SalesOrderForm & { id?: number })
+    | null;
   const isReadOnly = mode === "view";
 
-  const [recordData, setRecordData] = useState<(SalesOrderForm & { id?: number }) | null>(data);
+  const [recordData, setRecordData] = useState<
+    (SalesOrderForm & { id?: number }) | null
+  >(data);
 
   const [customerSearchKeyword, setCustomerSearchKeyword] = useState("");
   const [customerSearchId, setCustomerSearchId] = useState("");
   const [customerSearchIda, setCustomerSearchIda] = useState("");
-  const [customerSearchResults, setCustomerSearchResults] = useState<CustomerSearchResult[]>([]);
+  const [customerSearchResults, setCustomerSearchResults] = useState<
+    CustomerSearchResult[]
+  >([]);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
-  const [customerSearchError, setCustomerSearchError] = useState<string | null>(null);
-  const [contactColumnOrder, setContactColumnOrder] = useState<ContactColumnKey[]>(() =>
-    CONTACT_LINK_COLUMN_DEFS.map((def) => def.key)
+  const [customerSearchError, setCustomerSearchError] = useState<string | null>(
+    null
   );
+  const [contactColumnOrder, setContactColumnOrder] = useState<
+    ContactColumnKey[]
+  >(() => CONTACT_LINK_COLUMN_DEFS.map((def) => def.key));
   const draggingContactColumn = useRef<ContactColumnKey | null>(null);
 
   const rawCustomerId = watch("customer_id");
   const refsValue = watch("refs");
   const customerIdValue =
-      typeof rawCustomerId === "number"
-        ? rawCustomerId
-        : Number.parseInt(String(rawCustomerId ?? 0), 10) || 0;
+    typeof rawCustomerId === "number"
+      ? rawCustomerId
+      : Number.parseInt(String(rawCustomerId ?? 0), 10) || 0;
   const showCustomerSearchPanel = !isReadOnly && customerIdValue <= 0;
 
   useEffect(() => {
     setContactColumnOrder((prev) => {
       const knownKeys = CONTACT_LINK_COLUMN_DEFS.map((def) => def.key);
-      const filtered = prev.filter((key): key is ContactColumnKey => knownKeys.includes(key));
+      const filtered = prev.filter((key): key is ContactColumnKey =>
+        knownKeys.includes(key)
+      );
       if (filtered.length === knownKeys.length) {
         return filtered;
       }
@@ -906,10 +1085,11 @@ export default function SalesOrderDetail({
   }, [contactColumnOrder]);
 
   const handleContactColumnDragStart = useCallback(
-    (key: ContactColumnKey) => (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
-      draggingContactColumn.current = key;
-      event.dataTransfer.effectAllowed = "move";
-    },
+    (key: ContactColumnKey) =>
+      (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
+        draggingContactColumn.current = key;
+        event.dataTransfer.effectAllowed = "move";
+      },
     []
   );
 
@@ -922,25 +1102,26 @@ export default function SalesOrderDetail({
   );
 
   const handleContactColumnDrop = useCallback(
-    (targetKey: ContactColumnKey) => (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
-      event.preventDefault();
-      const sourceKey = draggingContactColumn.current;
-      if (!sourceKey || sourceKey === targetKey) {
-        return;
-      }
-      setContactColumnOrder((prev) => {
-        const next = [...prev];
-        const sourceIndex = next.indexOf(sourceKey);
-        const targetIndex = next.indexOf(targetKey);
-        if (sourceIndex === -1 || targetIndex === -1) {
-          return prev;
+    (targetKey: ContactColumnKey) =>
+      (event: ReactDragEvent<HTMLTableHeaderCellElement>) => {
+        event.preventDefault();
+        const sourceKey = draggingContactColumn.current;
+        if (!sourceKey || sourceKey === targetKey) {
+          return;
         }
-        next.splice(sourceIndex, 1);
-        next.splice(targetIndex, 0, sourceKey);
-        return next;
-      });
-      draggingContactColumn.current = null;
-    },
+        setContactColumnOrder((prev) => {
+          const next = [...prev];
+          const sourceIndex = next.indexOf(sourceKey);
+          const targetIndex = next.indexOf(targetKey);
+          if (sourceIndex === -1 || targetIndex === -1) {
+            return prev;
+          }
+          next.splice(sourceIndex, 1);
+          next.splice(targetIndex, 0, sourceKey);
+          return next;
+        });
+        draggingContactColumn.current = null;
+      },
     []
   );
 
@@ -948,7 +1129,7 @@ export default function SalesOrderDetail({
     draggingContactColumn.current = null;
   }, []);
 
-    const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
+  const contactLinkRows = useMemo<ContactLinkDisplayRow[]>(() => {
     if (!refsValue || typeof refsValue !== "object") {
       return [];
     }
@@ -957,12 +1138,16 @@ export default function SalesOrderDetail({
     if (!links || typeof links !== "object") {
       return [];
     }
-      const contacts = (links as Record<string, unknown>).contact;
+    const contacts = (links as Record<string, unknown>).contact;
     if (!Array.isArray(contacts)) {
       return [];
     }
     return contacts
-      .map((entry) => (typeof entry === "object" && entry ? (entry as ContactLinkRecord) : ({} as ContactLinkRecord)))
+      .map((entry) =>
+        typeof entry === "object" && entry
+          ? (entry as ContactLinkRecord)
+          : ({} as ContactLinkRecord)
+      )
       .map((entry) => {
         const id = resolveContactId(entry);
         return {
@@ -1005,7 +1190,10 @@ export default function SalesOrderDetail({
         }
       } catch (error) {
         if (!cancelled) {
-          const message = error instanceof Error ? error.message : "Failed to load sales order";
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to load sales order";
           dispatchToastError(message);
         }
       }
@@ -1057,13 +1245,15 @@ export default function SalesOrderDetail({
           id: Number.isNaN(parsedId) || parsedId <= 0 ? undefined : parsedId,
           limit: 25,
         });
-        const results = (response?.data?.results ?? []) as CustomerSearchResult[];
+        const results = (response?.data?.results ??
+          []) as CustomerSearchResult[];
         setCustomerSearchResults(results);
         if (results.length === 0) {
           setCustomerSearchError("No matching customers found");
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Customer search failed";
+        const message =
+          error instanceof Error ? error.message : "Customer search failed";
         setCustomerSearchError(message);
         dispatchToastError(message);
       } finally {
@@ -1088,12 +1278,18 @@ export default function SalesOrderDetail({
         return;
       }
 
-      setValue("customer_id", resolvedId, { shouldDirty: true, shouldValidate: true });
+      setValue("customer_id", resolvedId, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
 
       const label = resolveCustomerLabel(record);
       const existingCompany = watch("company");
       if ((!existingCompany || !String(existingCompany).trim()) && label) {
-        setValue("company", label, { shouldDirty: true, shouldValidate: false });
+        setValue("company", label, {
+          shouldDirty: true,
+          shouldValidate: false,
+        });
       }
 
       handleCustomerSearchReset();
@@ -1124,7 +1320,11 @@ export default function SalesOrderDetail({
       recordContainer.vendor_id ?? recordContainer.id_vendor
     );
     const resolvedIda = (() => {
-      const candidates = [recordContainer.ida, recordContainer.sales_order_no, recordContainer.ida_sales_order];
+      const candidates = [
+        recordContainer.ida,
+        recordContainer.sales_order_no,
+        recordContainer.ida_sales_order,
+      ];
       for (const candidate of candidates) {
         if (typeof candidate === "string" && candidate.trim()) {
           return candidate.trim();
@@ -1138,26 +1338,51 @@ export default function SalesOrderDetail({
       ...recordData,
       ida: resolvedIda,
       customer_id: resolvedCustomerId ?? DEFAULT_FORM_VALUES.customer_id,
-      manufacturer_id: resolvedManufacturerId ?? DEFAULT_FORM_VALUES.manufacturer_id,
+      manufacturer_id:
+        resolvedManufacturerId ?? DEFAULT_FORM_VALUES.manufacturer_id,
       vendor_id: resolvedVendorId ?? DEFAULT_FORM_VALUES.vendor_id,
       metadata: {
         ...DEFAULT_FORM_VALUES.metadata,
-        ...(typeof recordData.metadata === "object" && recordData.metadata ? recordData.metadata : {}),
+        ...(typeof recordData.metadata === "object" && recordData.metadata
+          ? recordData.metadata
+          : {}),
       },
       prefs: {
         ...DEFAULT_FORM_VALUES.prefs,
-        ...(typeof recordData.prefs === "object" && recordData.prefs ? recordData.prefs : {}),
+        ...(typeof recordData.prefs === "object" && recordData.prefs
+          ? recordData.prefs
+          : {}),
       },
       refs: {
         ...DEFAULT_FORM_VALUES.refs,
-        ...(typeof recordData.refs === "object" && recordData.refs ? recordData.refs : {}),
+        ...(typeof recordData.refs === "object" && recordData.refs
+          ? recordData.refs
+          : {}),
       },
-      cost: typeof recordData.cost === "object" && recordData.cost ? recordData.cost : {},
-      sell: typeof recordData.sell === "object" && recordData.sell ? recordData.sell : {},
-      finance: typeof recordData.finance === "object" && recordData.finance ? recordData.finance : {},
-      flow: typeof recordData.flow === "object" && recordData.flow ? recordData.flow : {},
-      source: typeof recordData.source === "object" && recordData.source ? recordData.source : {},
-      subtotals: typeof recordData.subtotals === "object" && recordData.subtotals ? recordData.subtotals : {},
+      cost:
+        typeof recordData.cost === "object" && recordData.cost
+          ? recordData.cost
+          : {},
+      sell:
+        typeof recordData.sell === "object" && recordData.sell
+          ? recordData.sell
+          : {},
+      finance:
+        typeof recordData.finance === "object" && recordData.finance
+          ? recordData.finance
+          : {},
+      flow:
+        typeof recordData.flow === "object" && recordData.flow
+          ? recordData.flow
+          : {},
+      source:
+        typeof recordData.source === "object" && recordData.source
+          ? recordData.source
+          : {},
+      subtotals:
+        typeof recordData.subtotals === "object" && recordData.subtotals
+          ? recordData.subtotals
+          : {},
       lines: normalizeLines(recordContainer.lines),
     } as SalesOrderForm;
   }, [recordData]);
@@ -1166,10 +1391,17 @@ export default function SalesOrderDetail({
     reset(mergedDefaults);
     const drafts: Partial<Record<JsonFieldPath, string>> = {};
     JSON_FIELD_PATHS.forEach((path) => {
-      drafts[path] = serializeJson(extractValue(mergedDefaults as Record<string, unknown>, path));
-      setValue(path as any, extractValue(mergedDefaults as Record<string, unknown>, path) as any);
+      drafts[path] = serializeJson(
+        extractValue(mergedDefaults as Record<string, unknown>, path)
+      );
+      setValue(
+        path as any,
+        extractValue(mergedDefaults as Record<string, unknown>, path) as any
+      );
     });
-    setJsonDrafts((prev) => ({ ...prev, ...drafts } as Record<JsonFieldPath, string>));
+    setJsonDrafts(
+      (prev) => ({ ...prev, ...drafts } as Record<JsonFieldPath, string>)
+    );
     setJsonErrors({
       cost: undefined,
       sell: undefined,
@@ -1192,7 +1424,10 @@ export default function SalesOrderDetail({
   useEffect(() => {
     const clonedLines = lineItems.map((line) => cloneLine(line));
     setLineDrafts(clonedLines);
-    setValue("lines" as any, clonedLines as any, { shouldDirty: false, shouldValidate: false });
+    setValue("lines" as any, clonedLines as any, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
   }, [lineItems, setValue]);
 
   const aggregatedFinancials = useMemo<AggregatedFinancials>(() => {
@@ -1218,12 +1453,17 @@ export default function SalesOrderDetail({
       const lineSubtotal = quantity ? quantity * unitSell : unitSell;
 
       let lineDiscount = toNumeric(
-        extractValue(line as Record<string, unknown>, "price.discount_amount") ??
-          extractValue(line as Record<string, unknown>, "discount_amount")
+        extractValue(
+          line as Record<string, unknown>,
+          "price.discount_amount"
+        ) ?? extractValue(line as Record<string, unknown>, "discount_amount")
       );
       if (!lineDiscount) {
         const discountPercent = toNumeric(
-          extractValue(line as Record<string, unknown>, "price.discount_percent")
+          extractValue(
+            line as Record<string, unknown>,
+            "price.discount_percent"
+          )
         );
         if (discountPercent && lineSubtotal) {
           lineDiscount = (lineSubtotal * discountPercent) / 100;
@@ -1240,7 +1480,8 @@ export default function SalesOrderDetail({
           extractValue(line as Record<string, unknown>, "price.total") ??
           extractValue(line as Record<string, unknown>, "extended_price")
       );
-      const lineSellBeforeTax = extractedExtended || Math.max(lineSubtotal - lineDiscount, 0);
+      const lineSellBeforeTax =
+        extractedExtended || Math.max(lineSubtotal - lineDiscount, 0);
       const lineTotal = lineSellBeforeTax + lineTax;
 
       const unitCost = toNumeric(
@@ -1253,7 +1494,9 @@ export default function SalesOrderDetail({
           extractValue(line as Record<string, unknown>, "cost.total") ??
           extractValue(line as Record<string, unknown>, "extended_cost")
       );
-      const lineCost = extractedCostExtended || (unitCost && quantity ? unitCost * quantity : unitCost);
+      const lineCost =
+        extractedCostExtended ||
+        (unitCost && quantity ? unitCost * quantity : unitCost);
 
       subtotal += Number.isFinite(lineSubtotal) ? lineSubtotal : 0;
       discount += Number.isFinite(lineDiscount) ? lineDiscount : 0;
@@ -1287,7 +1530,8 @@ export default function SalesOrderDetail({
 
   const handleAddSearchedItem = useCallback(
     (item: ItemSearchResult, rawQuantity: number) => {
-      const quantity = Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 0;
+      const quantity =
+        Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 0;
       if (!quantity) {
         return;
       }
@@ -1296,7 +1540,9 @@ export default function SalesOrderDetail({
       setLineDrafts((previousLines) => {
         const currentLines = Array.isArray(previousLines) ? previousLines : [];
         const existingIndex = identifier
-          ? currentLines.findIndex((line) => resolveLineKey(line) === identifier)
+          ? currentLines.findIndex(
+              (line) => resolveLineKey(line) === identifier
+            )
           : -1;
 
         if (existingIndex >= 0) {
@@ -1315,16 +1561,25 @@ export default function SalesOrderDetail({
                   remaining: 0,
                 } as Record<string, unknown>;
               }
-              if (container.quantity && typeof container.quantity === "object") {
+              if (
+                container.quantity &&
+                typeof container.quantity === "object"
+              ) {
                 return { ...(container.quantity as Record<string, unknown>) };
               }
               return {} as Record<string, unknown>;
             })();
 
-            const previousPlaced = toNumeric(extractValue(resolvedQuantity, "placed") ?? resolvedQuantity.placed);
+            const previousPlaced = toNumeric(
+              extractValue(resolvedQuantity, "placed") ??
+                resolvedQuantity.placed
+            );
             const previousOrdered = Math.max(
               previousPlaced,
-              toNumeric(extractValue(resolvedQuantity, "ordered") ?? resolvedQuantity.ordered)
+              toNumeric(
+                extractValue(resolvedQuantity, "ordered") ??
+                  resolvedQuantity.ordered
+              )
             );
             const nextPlaced = previousPlaced + quantity;
             const nextOrdered = previousOrdered + quantity;
@@ -1338,7 +1593,13 @@ export default function SalesOrderDetail({
             const priceObject =
               priceRaw && typeof priceRaw === "object"
                 ? { ...(priceRaw as Record<string, unknown>) }
-                : { unit: 0, sell: 0, discount_amount: 0, discount_percent: 0, precision: 2 };
+                : {
+                    unit: 0,
+                    sell: 0,
+                    discount_amount: 0,
+                    discount_percent: 0,
+                    precision: 2,
+                  };
             if (!toNumeric(priceObject.unit)) {
               priceObject.unit = resolveUnitPrice(item);
             }
@@ -1373,12 +1634,18 @@ export default function SalesOrderDetail({
             return updated;
           });
 
-          setValue("lines" as any, nextLines as any, { shouldDirty: true, shouldValidate: false });
+          setValue("lines" as any, nextLines as any, {
+            shouldDirty: true,
+            shouldValidate: false,
+          });
           return nextLines;
         }
 
         const nextLines = [...currentLines, buildLineFromItem(item, quantity)];
-        setValue("lines" as any, nextLines as any, { shouldDirty: true, shouldValidate: false });
+        setValue("lines" as any, nextLines as any, {
+          shouldDirty: true,
+          shouldValidate: false,
+        });
         return nextLines;
       });
     },
@@ -1386,7 +1653,11 @@ export default function SalesOrderDetail({
   );
 
   const handleLineFieldChange = useCallback(
-    (index: number, field: "quantity.placed" | "price.unit", rawValue: number) => {
+    (
+      index: number,
+      field: "quantity.placed" | "price.unit",
+      rawValue: number
+    ) => {
       const value = Number.isFinite(rawValue) ? rawValue : 0;
       setLineDrafts((prev) => {
         const next = prev.map((line, idx) => {
@@ -1427,7 +1698,10 @@ export default function SalesOrderDetail({
           return nextLine;
         });
 
-        setValue("lines" as any, next as any, { shouldDirty: true, shouldValidate: false });
+        setValue("lines" as any, next as any, {
+          shouldDirty: true,
+          shouldValidate: false,
+        });
         return next;
       });
     },
@@ -1435,12 +1709,30 @@ export default function SalesOrderDetail({
   );
 
   useEffect(() => {
-    setValue("subtotal", aggregatedFinancials.subtotal, { shouldDirty: false, shouldValidate: false });
-    setValue("discount", aggregatedFinancials.discount, { shouldDirty: false, shouldValidate: false });
-    setValue("tax", aggregatedFinancials.tax, { shouldDirty: false, shouldValidate: false });
-    setValue("total", aggregatedFinancials.total, { shouldDirty: false, shouldValidate: false });
-    setValue("cost" as any, aggregatedFinancials.costDetails as any, { shouldDirty: false, shouldValidate: false });
-    setValue("sell" as any, aggregatedFinancials.sellDetails as any, { shouldDirty: false, shouldValidate: false });
+    setValue("subtotal", aggregatedFinancials.subtotal, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("discount", aggregatedFinancials.discount, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("tax", aggregatedFinancials.tax, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("total", aggregatedFinancials.total, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("cost" as any, aggregatedFinancials.costDetails as any, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setValue("sell" as any, aggregatedFinancials.sellDetails as any, {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
 
     const nextCost = serializeJson(aggregatedFinancials.costDetails);
     const nextSell = serializeJson(aggregatedFinancials.sellDetails);
@@ -1481,47 +1773,59 @@ export default function SalesOrderDetail({
     JSON_FIELD_PATHS.forEach((path) => {
       const draft = jsonDrafts[path];
       if (!draft || !draft.trim()) {
-        setDeepValue(payload as unknown as Record<string, unknown>, path, undefined);
+        setDeepValue(
+          payload as unknown as Record<string, unknown>,
+          path,
+          undefined
+        );
         return;
       }
       try {
         const parsed = JSON.parse(draft);
-        setDeepValue(payload as unknown as Record<string, unknown>, path, parsed);
+        setDeepValue(
+          payload as unknown as Record<string, unknown>,
+          path,
+          parsed
+        );
       } catch (error) {
         throw new Error(`Invalid JSON for ${path}`);
       }
     });
   };
 
-    const onSubmit = async (formData: SalesOrderForm) => {
-      const linesForSync = Array.isArray(formData.lines)
-        ? formData.lines.map((line) => cloneLine(line))
-        : [];
+  const onSubmit = async (formData: SalesOrderForm) => {
+    const linesForSync = Array.isArray(formData.lines)
+      ? formData.lines.map((line) => cloneLine(line))
+      : [];
 
     try {
       applyJsonDraftsToPayload(formData);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid JSON payload";
+      const message =
+        error instanceof Error ? error.message : "Invalid JSON payload";
       dispatchToastError(message);
       return;
     }
 
     try {
-        const { lines: _unsentLines, ...rest } = formData;
-        const orderPayload = JSON.parse(JSON.stringify(rest)) as Record<string, unknown>;
-        delete orderPayload.ida;
-        delete orderPayload.id_customer;
-        delete orderPayload.id_vendor;
-        delete orderPayload.id_manufacturer;
+      const { lines: _unsentLines, ...rest } = formData;
+      const orderPayload = JSON.parse(JSON.stringify(rest)) as Record<
+        string,
+        unknown
+      >;
+      delete orderPayload.ida;
+      delete orderPayload.id_customer;
+      delete orderPayload.id_vendor;
+      delete orderPayload.id_manufacturer;
       const saveResult =
         mode === "add"
-            ? await createSalesOrder(orderPayload)
+          ? await createSalesOrder(orderPayload)
           : await (async () => {
               const existingId = extractNumericId(recordData?.id);
               if (!existingId) {
                 throw new Error("Sales order id missing");
               }
-                return updateSalesOrder(existingId, orderPayload);
+              return updateSalesOrder(existingId, orderPayload);
             })();
 
       const orderIdCandidates: unknown[] = [
@@ -1533,12 +1837,15 @@ export default function SalesOrderDetail({
         (formData as unknown as Record<string, unknown>)?.id,
       ];
 
-      const resolvedOrderId = orderIdCandidates.reduce<number | null>((acc, value) => {
-        if (acc) {
-          return acc;
-        }
-        return extractNumericId(value);
-      }, null);
+      const resolvedOrderId = orderIdCandidates.reduce<number | null>(
+        (acc, value) => {
+          if (acc) {
+            return acc;
+          }
+          return extractNumericId(value);
+        },
+        null
+      );
 
       if (!resolvedOrderId) {
         throw new Error("Sales order id missing after save");
@@ -1555,7 +1862,7 @@ export default function SalesOrderDetail({
       const retainedLineIds = new Set<number>();
       const lineOperations: Promise<unknown>[] = [];
 
-        linesForSync.forEach((line) => {
+      linesForSync.forEach((line) => {
         if (!line || typeof line !== "object") {
           return;
         }
@@ -1568,31 +1875,34 @@ export default function SalesOrderDetail({
         } else {
           delete payload.id;
         }
-          lineOperations.push(
-            (async () => {
-              await saveRecord("sales_order_line", JSON.parse(JSON.stringify(payload)));
-            })()
-          );
+        lineOperations.push(
+          (async () => {
+            await saveRecord(
+              "sales_order_line",
+              JSON.parse(JSON.stringify(payload))
+            );
+          })()
+        );
       });
 
       originalLineIds.forEach((lineId) => {
         if (!retainedLineIds.has(lineId)) {
-            lineOperations.push(
-              (async () => {
-                await deleteRecord("sales_order_line", lineId);
-              })()
-            );
+          lineOperations.push(
+            (async () => {
+              await deleteRecord("sales_order_line", lineId);
+            })()
+          );
         }
       });
 
       if (lineOperations.length > 0) {
-          const results = await Promise.allSettled(lineOperations);
-          const rejected = results.find((result) => result.status === "rejected");
-          if (rejected && rejected.status === "rejected") {
-            throw rejected.reason instanceof Error
-              ? rejected.reason
-              : new Error("Failed syncing line items");
-          }
+        const results = await Promise.allSettled(lineOperations);
+        const rejected = results.find((result) => result.status === "rejected");
+        if (rejected && rejected.status === "rejected") {
+          throw rejected.reason instanceof Error
+            ? rejected.reason
+            : new Error("Failed syncing line items");
+        }
       }
 
       try {
@@ -1606,7 +1916,9 @@ export default function SalesOrderDetail({
 
       dispatch(
         showToast({
-          message: `Sales order ${mode === "add" ? "created" : "updated"} successfully`,
+          message: `Sales order ${
+            mode === "add" ? "created" : "updated"
+          } successfully`,
           type: "success",
         })
       );
@@ -1614,7 +1926,8 @@ export default function SalesOrderDetail({
         onSaved();
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Operation failed";
+      const message =
+        error instanceof Error ? error.message : "Operation failed";
       dispatchToastError(message);
     }
   };
@@ -1624,20 +1937,32 @@ export default function SalesOrderDetail({
       return;
     }
     try {
-      await updateSalesOrder(recordData.id, { ...mergedDefaults, status: newStatus });
-      dispatch(showToast({ message: `Sales order marked as ${newStatus}`, type: "success" }));
+      await updateSalesOrder(recordData.id, {
+        ...mergedDefaults,
+        status: newStatus,
+      });
+      dispatch(
+        showToast({
+          message: `Sales order marked as ${newStatus}`,
+          type: "success",
+        })
+      );
       if (onSaved) {
         onSaved();
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update status";
+      const message =
+        error instanceof Error ? error.message : "Failed to update status";
       dispatchToastError(message);
     }
   };
 
   const renderField = (field: FieldConfig) => {
     const inputId = field.name.replace(/\./g, "-");
-    const errorMessage = getErrorMessage(errors as unknown as Record<string, unknown>, field.name);
+    const errorMessage = getErrorMessage(
+      errors as unknown as Record<string, unknown>,
+      field.name
+    );
     const isFieldReadOnly = READONLY_FIELD_NAMES.has(field.name);
 
     if (field.type === "select" && field.options) {
@@ -1660,12 +1985,15 @@ export default function SalesOrderDetail({
               </option>
             ))}
           </select>
-          {errorMessage && <p className="mt-1 text-xs text-error-500">{errorMessage}</p>}
+          {errorMessage && (
+            <p className="mt-1 text-xs text-error-500">{errorMessage}</p>
+          )}
         </div>
       );
     }
 
-    const registerOptions = field.type === "number" ? { valueAsNumber: true } : undefined;
+    const registerOptions =
+      field.type === "number" ? { valueAsNumber: true } : undefined;
     const isDisabled = isReadOnly && field.name !== "metadata.priority";
 
     return (
@@ -1705,7 +2033,11 @@ export default function SalesOrderDetail({
         {inline && (
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold dark:text-white">
-              {mode === "edit" ? "Edit Sales Order" : mode === "view" ? "View Sales Order" : "Add Sales Order"}
+              {mode === "edit"
+                ? "Edit Sales Order"
+                : mode === "view"
+                ? "View Sales Order"
+                : "Add Sales Order"}
             </h3>
             {onCancelInline && (
               <button
@@ -1726,7 +2058,8 @@ export default function SalesOrderDetail({
                 Assign customer
               </h4>
               <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
-                No customer is linked to this order. Search by keyword, id, or ida to attach one.
+                No customer is linked to this order. Search by keyword, id, or
+                ida to attach one.
               </p>
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div>
@@ -1735,7 +2068,9 @@ export default function SalesOrderDetail({
                     id="customer-search-keyword"
                     type="text"
                     value={customerSearchKeyword}
-                    onChange={(event) => setCustomerSearchKeyword(event.target.value)}
+                    onChange={(event) =>
+                      setCustomerSearchKeyword(event.target.value)
+                    }
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
@@ -1754,7 +2089,11 @@ export default function SalesOrderDetail({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={customerSearchId}
-                    onChange={(event) => setCustomerSearchId(event.target.value.replace(/[^0-9]/g, ""))}
+                    onChange={(event) =>
+                      setCustomerSearchId(
+                        event.target.value.replace(/[^0-9]/g, "")
+                      )
+                    }
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
@@ -1771,7 +2110,9 @@ export default function SalesOrderDetail({
                     id="customer-search-ida"
                     type="text"
                     value={customerSearchIda}
-                    onChange={(event) => setCustomerSearchIda(event.target.value)}
+                    onChange={(event) =>
+                      setCustomerSearchIda(event.target.value)
+                    }
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
@@ -1810,26 +2151,47 @@ export default function SalesOrderDetail({
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-100">
                     <tr>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">id</th>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">ida</th>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">display_name</th>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">org_type</th>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">status</th>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">contact</th>
-                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs text-right">actions</th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
+                        id
+                      </th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
+                        ida
+                      </th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
+                        display_name
+                      </th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
+                        org_type
+                      </th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
+                        status
+                      </th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs">
+                        contact
+                      </th>
+                      <th className="px-3 py-2 font-medium uppercase tracking-wide text-xs text-right">
+                        actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {customerSearchLoading ? (
                       <tr>
-                        <td className="px-3 py-3 text-center text-sm text-blue-700 dark:text-blue-200" colSpan={7}>
+                        <td
+                          className="px-3 py-3 text-center text-sm text-blue-700 dark:text-blue-200"
+                          colSpan={7}
+                        >
                           Looking for customers…
                         </td>
                       </tr>
                     ) : customerSearchResults.length === 0 ? (
                       <tr>
-                        <td className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400" colSpan={7}>
-                          Enter criteria above and run a search to locate a customer.
+                        <td
+                          className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400"
+                          colSpan={7}
+                        >
+                          Enter criteria above and run a search to locate a
+                          customer.
                         </td>
                       </tr>
                     ) : (
@@ -1837,18 +2199,49 @@ export default function SalesOrderDetail({
                         const resolvedId = resolveCustomerId(record);
                         const alias = resolveCustomerAlias(record);
                         const label = resolveCustomerLabel(record);
-                        const orgType = resolveStringField(record, ["org_type", "type", "category"]);
-                        const status = resolveStringField(record, ["status", "state"]);
-                        const email = resolveStringField(record, ["email", "contact_email", "primary_email"]);
-                        const phone = resolveStringField(record, ["phone", "phoneCell", "phone_primary", "phone_number"]);
-                        const rowKey = resolvedId ? `customer-${resolvedId}` : `customer-row-${index}`;
+                        const orgType = resolveStringField(record, [
+                          "org_type",
+                          "type",
+                          "category",
+                        ]);
+                        const status = resolveStringField(record, [
+                          "status",
+                          "state",
+                        ]);
+                        const email = resolveStringField(record, [
+                          "email",
+                          "contact_email",
+                          "primary_email",
+                        ]);
+                        const phone = resolveStringField(record, [
+                          "phone",
+                          "phoneCell",
+                          "phone_primary",
+                          "phone_number",
+                        ]);
+                        const rowKey = resolvedId
+                          ? `customer-${resolvedId}`
+                          : `customer-row-${index}`;
                         return (
-                          <tr key={rowKey} className="border-b border-blue-100 last:border-none dark:border-blue-900/40">
-                            <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{resolvedId ?? "--"}</td>
-                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{alias || "--"}</td>
-                            <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{label}</td>
-                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{orgType || "--"}</td>
-                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{status || "--"}</td>
+                          <tr
+                            key={rowKey}
+                            className="border-b border-blue-100 last:border-none dark:border-blue-900/40"
+                          >
+                            <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                              {resolvedId ?? "--"}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
+                              {alias || "--"}
+                            </td>
+                            <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                              {label}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
+                              {orgType || "--"}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
+                              {status || "--"}
+                            </td>
                             <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
                               {email && <div>{email}</div>}
                               {phone && <div>{phone}</div>}
@@ -1900,25 +2293,35 @@ export default function SalesOrderDetail({
                       id={inputId}
                       className={`min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-hidden focus:ring-2 dark:text-white/90 ${
                         errorMessage ? "border-error-500" : "border-gray-300"
-                      } ${isJsonReadOnly ? "bg-gray-50 dark:bg-gray-900/30" : "dark:bg-gray-900"}`}
+                      } ${
+                        isJsonReadOnly
+                          ? "bg-gray-50 dark:bg-gray-900/30"
+                          : "dark:bg-gray-900"
+                      }`}
                       placeholder={`{ /* ${path} payload */ }`}
                       value={jsonDrafts[path] ?? ""}
-                      onChange={(event) => handleJsonDraftChange(path, event.target.value)}
+                      onChange={(event) =>
+                        handleJsonDraftChange(path, event.target.value)
+                      }
                       onBlur={() => handleJsonBlur(path)}
                       readOnly={isJsonReadOnly || isReadOnly}
                       aria-readonly={isJsonReadOnly || isReadOnly}
                       disabled={isReadOnly}
                     />
-                    {errorMessage && <p className="mt-1 text-xs text-error-500">{errorMessage}</p>}
+                    {errorMessage && (
+                      <p className="mt-1 text-xs text-error-500">
+                        {errorMessage}
+                      </p>
+                    )}
                   </div>
                 );
               })}
             </div>
           </section>
 
-            <section>
+          <section>
             <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
-                refs.links.contact
+              refs.links.contact
             </h4>
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
               <table className="min-w-full text-left text-sm">
@@ -1955,11 +2358,18 @@ export default function SalesOrderDetail({
                   ) : (
                     contactLinkRows.map((row, index) => (
                       <tr
-                        key={row.id ? `contact-row-${row.id}` : `contact-row-${index}`}
+                        key={
+                          row.id
+                            ? `contact-row-${row.id}`
+                            : `contact-row-${index}`
+                        }
                         className="border-b border-gray-100 last:border-none dark:border-gray-700"
                       >
                         {orderedContactColumns.map((column) => (
-                          <td key={column.key} className={CONTACT_LINK_CELL_CLASS[column.key]}>
+                          <td
+                            key={column.key}
+                            className={CONTACT_LINK_CELL_CLASS[column.key]}
+                          >
                             {column.render(row)}
                           </td>
                         ))}
@@ -1976,13 +2386,27 @@ export default function SalesOrderDetail({
               <div>
                 <Label>dt_created</Label>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                  {mergedDefaults.dt_created ? new Date(Number(mergedDefaults.dt_created) * (String(mergedDefaults.dt_created).length === 13 ? 1 : 1000)).toLocaleString() : "--"}
+                  {mergedDefaults.dt_created
+                    ? new Date(
+                        Number(mergedDefaults.dt_created) *
+                          (String(mergedDefaults.dt_created).length === 13
+                            ? 1
+                            : 1000)
+                      ).toLocaleString()
+                    : "--"}
                 </div>
               </div>
               <div>
                 <Label>dt_modified</Label>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                  {mergedDefaults.dt_modified ? new Date(Number(mergedDefaults.dt_modified) * (String(mergedDefaults.dt_modified).length === 13 ? 1 : 1000)).toLocaleString() : "--"}
+                  {mergedDefaults.dt_modified
+                    ? new Date(
+                        Number(mergedDefaults.dt_modified) *
+                          (String(mergedDefaults.dt_modified).length === 13
+                            ? 1
+                            : 1000)
+                      ).toLocaleString()
+                    : "--"}
                 </div>
               </div>
               <div>
