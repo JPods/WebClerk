@@ -792,7 +792,22 @@ span.flatpickr-weekday,
   @apply opacity-100;
 }
 /* Samir on 2025-12-23 */
-
+.rdt_TableCell {
+  background: #fbfbfb;
+  color: #000 !important;
+}
+.rdt_TableRow:hover {
+  border-bottom-color: #101828 !important;
+  outline-color: #101828 !important;
+}
+.dark .rdt_TableCell {
+  background: #101828;
+  color: #ffffff !important;
+}
+.dark .rdt_TableRow:hover {
+  border-bottom-color: #9fa1ae !important;
+  outline-color: #9fa1ae !important;
+}
 .cus-bg-purple-light {
   border: 1px dashed #3b4863cc;
 }
