@@ -55,13 +55,13 @@ class AuthURL {
 }
 
 class PostLoginURL {
-  static readonly getUser: string = "/profile/";
+  static readonly getUser: string = "/wcapi/me/";
   static readonly addPhone: string = "/communications/phones/";
   static readonly addEmail: string = "/communications/emails/";
   static readonly addAddress: string = "/communications/addresses/";
   static readonly addDomains: string = "/communications/domains/";
   static readonly addActions: string = "/actions/";
-  static readonly updateProfile: string = "/profile/";
+  static readonly updateProfile: string = "/wcapi/me/";
 
   static readonly kanbanTasks: string = "/kanban/tasks/";
   static readonly kanbanOrder: string = "/kanban/order/";

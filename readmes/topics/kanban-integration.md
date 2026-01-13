@@ -36,6 +36,17 @@ Route definitions: [Routes.ts](../../src/routes/Routes.ts)
 
 ---
 
+## Standard Selectlists Strategy
+
+- **Goal:** provide a single source of truth for Kanban-facing selectlists (columns, priority bands, difficulty options, completion ranges) so the React app stops hard-coding mismatched values.
+- **Backend consolidation (Phase 1):** wc3 now assembles the canonical selectlists inside a dedicated selector service and exposes them through the existing WCAPI surface as `GET /wcapi/selectlists/?scope=kanban`. The payload groups each logical list under a key (for example `kanban_columns`, `action_priorities`, `action_difficulties`).
+- **Frontend consumption:** React2025 adds a lightweight fetcher (`fetchStandardSelectlists`) that warms the lists during Kanban bootstrap and pipes them to dropdown factories. Until all consumers migrate, the legacy constants stay in place but are overridden at runtime once the API responds.
+- **Future shift (Phase 2):** once Settings records replace the hard-coded service, each selectlist will map to a first-class `setting` entry. The endpoint contract stays stable; only the data source changes. This keeps the React side untouched while letting admins manage lists via Settings UX.
+
+> **Caching note:** the WCAPI response is cacheable for five minutes via standard HTTP caching headers. React2025 respects that window to avoid redundant calls while still receiving admin edits promptly after they are published.
+
+---
+
 ## Data Flow
 
 ```
