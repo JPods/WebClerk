@@ -90,6 +90,8 @@ import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 import ActionListPage from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
+import Placeholder from "../pages/Placeholder";
+import NotFoundPage from "../pages/NotFoundPage";
 
 const Router: React.FC = () => {
   return (
@@ -364,10 +366,15 @@ const Router: React.FC = () => {
             element={<TaxJurisdictionList />}
           />
           <Route path={PageRoutes.termList} element={<TermList />} />
+
+          {/* Placeholder routes for sidebar items not yet implemented */}
+          <Route path="/core/audit/list" element={<Placeholder title="Core Audit" />} />
+          <Route path="/core/notification/list" element={<Placeholder title="Notifications" />} />
+          <Route path="/core/pending/list" element={<Placeholder title="Pending Items" />} />
         </Route>
 
         {/* 404 page */}
-        <Route path="*" element={<div>404 Not Found</div>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
     // </Provider>
