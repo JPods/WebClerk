@@ -226,24 +226,6 @@ export default function ContactDetail({
     reset(normalizedContact);
   }, [data, reset]);
 
-  // useEffect(() => {
-  //   if (mode === "add") {
-  //     reset();
-  //     if (data?.refs) {
-  //       reset({ refs: data.refs });
-  //     }
-  //   } else if (data) {
-  //     reset(data);
-  //     if (data?.refs) {
-  //       reset({ ...data, refs: data.refs });
-  //     }
-  //     // Fetch linked lists by ids if present: data.refs.links
-  //     // Commented out as linked data is not displayed
-  //   } else {
-  //     reset({});
-  //   }
-  // }, [data, reset, setValue, mode]);
-
   useEffect(() => {
     setIsEmailEdit(false);
   }, [data]);
@@ -263,7 +245,7 @@ export default function ContactDetail({
       const mappedRefs = formData.refs
         ? mapRefsFormToApi(formData.refs)
         : undefined;
-      const payload = {
+      const basePayload = {
         email: formData.email,
         name_first: formData.name_first,
         name_last: formData.name_last,
@@ -283,42 +265,17 @@ export default function ContactDetail({
         manufacturer_id: formData.manufacturer_id,
         other_id: formData.other_id,
         refs: mappedRefs,
-
-        ...(mode === "add"
-          ? {
-              password: (formData as any).password,
-              cnf_password: (formData as any).cnf_password,
-            }
-          : {}),
       };
 
-      // const payload = {
-      //   email: formData.email,
-      //   name_first: formData.name_first,
-      //   name_last: formData.name_last,
-      //   name_middle: formData.name_middle,
-      //   name_prefix: formData.name_prefix,
-      //   name_suffix: formData.name_suffix,
-      //   company: formData.company,
-      //   title: formData.title,
-      //   department: formData.department,
-      //   role: formData.role,
-      //   is_active: formData.is_active,
-      //   is_staff: formData.is_staff,
-      //   customer_id: formData.customer_id,
-      //   rep_id: formData.rep_id,
-      //   vendor_id: formData.vendor_id,
-      //   employee_id: formData.employee_id,
-      //   manufacturer_id: formData.manufacturer_id,
-      //   other_id: formData.other_id,
-      //   refs: mappedRefs,
-      //   ...(mode === "add"
-      //     ? {
-      //         password: formData?.password,
-      //         cnf_password: formData.cnf_password,
-      //       }
-      //     : {}),
-      // };
+      const payload =
+        mode === "add"
+          ? {
+              ...basePayload,
+              password: (formData as z.infer<typeof contactSchema>).password,
+              cnf_password: (formData as z.infer<typeof contactSchema>)
+                .cnf_password,
+            }
+          : basePayload;
 
       const res =
         mode === "add"
@@ -598,14 +555,15 @@ export default function ContactDetail({
                       type="password"
                       id="password"
                       placeholder="Password"
-                      {...register("password")}
+                      {...register("password" as any)}
                       error={
-                        errors.password && errors.password.message
+                        (errors as any).password &&
+                        (errors as any).password.message
                           ? true
                           : false
                       }
                       hint={
-                        errors.password?.message ||
+                        (errors as any).password?.message ||
                         "Your password can't be too similar to your other personal information. Your password must contain at least 8 characters. Your password can't be a commonly used password. Your password can't be entirely numeric."
                       }
                       disabled={isFieldDisabled("password")}
@@ -621,14 +579,15 @@ export default function ContactDetail({
                       type="password"
                       id="cnf_password"
                       placeholder="Confirm Password"
-                      {...register("cnf_password")}
+                      {...register("cnf_password" as any)}
                       error={
-                        errors.cnf_password && errors.cnf_password.message
+                        (errors as any).cnf_password &&
+                        (errors as any).cnf_password.message
                           ? true
                           : false
                       }
                       hint={
-                        errors.cnf_password?.message ||
+                        (errors as any).cnf_password?.message ||
                         "Enter the same password as before, for verification."
                       }
                       disabled={isFieldDisabled("cnf_password")}
@@ -795,7 +754,10 @@ export default function ContactDetail({
                   type="number"
                   id="customer_id"
                   placeholder="Customer ID"
-                  {...register("customer_id", { valueAsNumber: true })}
+                  {...register("customer_id", {
+                    setValueAs: (value) =>
+                      value === "" ? undefined : Number(value),
+                  })}
                   error={
                     errors.customer_id && errors.customer_id.message
                       ? true
@@ -813,7 +775,10 @@ export default function ContactDetail({
                   type="number"
                   id="rep_id"
                   placeholder="Rep ID"
-                  {...register("rep_id", { valueAsNumber: true })}
+                  {...register("rep_id", {
+                    setValueAs: (value) =>
+                      value === "" ? undefined : Number(value),
+                  })}
                   error={errors.rep_id && errors.rep_id.message ? true : false}
                   hint={errors.rep_id && errors.rep_id.message}
                   disabled={isFieldDisabled("rep_id")}
@@ -827,7 +792,10 @@ export default function ContactDetail({
                   type="number"
                   id="vendor_id"
                   placeholder="Vendor ID"
-                  {...register("vendor_id", { valueAsNumber: true })}
+                  {...register("vendor_id", {
+                    setValueAs: (value) =>
+                      value === "" ? undefined : Number(value),
+                  })}
                   error={
                     errors.vendor_id && errors.vendor_id.message ? true : false
                   }
@@ -843,7 +811,10 @@ export default function ContactDetail({
                   type="number"
                   id="employee_id"
                   placeholder="Employee ID"
-                  {...register("employee_id", { valueAsNumber: true })}
+                  {...register("employee_id", {
+                    setValueAs: (value) =>
+                      value === "" ? undefined : Number(value),
+                  })}
                   error={
                     errors.employee_id && errors.employee_id.message
                       ? true
@@ -861,7 +832,10 @@ export default function ContactDetail({
                   type="number"
                   id="manufacturer_id"
                   placeholder="Manufacturer ID"
-                  {...register("manufacturer_id", { valueAsNumber: true })}
+                  {...register("manufacturer_id", {
+                    setValueAs: (value) =>
+                      value === "" ? undefined : Number(value),
+                  })}
                   error={
                     errors.manufacturer_id && errors.manufacturer_id.message
                       ? true
@@ -881,7 +855,10 @@ export default function ContactDetail({
                   type="number"
                   id="other_id"
                   placeholder="Other ID"
-                  {...register("other_id", { valueAsNumber: true })}
+                  {...register("other_id", {
+                    setValueAs: (value) =>
+                      value === "" ? undefined : Number(value),
+                  })}
                   error={
                     errors.other_id && errors.other_id.message ? true : false
                   }
