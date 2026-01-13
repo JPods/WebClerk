@@ -88,6 +88,7 @@ const AppLayout: React.FC = () => {
                     x={w.x ?? idx * 24}
                     y={w.y ?? idx * 24}
                     maximized={w.maximized}
+                    isActive={w.path === activePath}
                   >
                     {resolveWindowElement(w.path) ?? <NotFoundPage />}
                   </MacWindowChrome>

@@ -1,7 +1,6 @@
 import { Provider } from "react-redux";
 import { store } from "./store";
 import AuthInitializer from "./components/common/AuthInitializer";
-import GlobalLoadingSpinner from "./components/common/GlobalLoadingSpinner";
 import { WindowManagerProvider } from "./context/WindowManagerContext";
 import Router from "./routes/Router";
 
@@ -13,7 +12,6 @@ export default function App() {
           <AuthInitializer />
           <div className="min-h-screen bg-slate-50 text-slate-900">
             <Router />
-            <GlobalLoadingSpinner />
           </div>
         </WindowManagerProvider>
       </Provider>

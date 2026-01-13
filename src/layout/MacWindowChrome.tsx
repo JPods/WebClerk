@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useAppSelector } from "../store/hooks";
 import { useWindowManager } from "../context/WindowManagerContext";
 import { useDraggable } from "../hooks/useDraggable";
 
@@ -10,10 +11,12 @@ type Props = {
   x: number;
   y: number;
   maximized?: boolean;
+  isActive?: boolean;
 };
 
-export default function MacWindowChrome({ path, title, children, onActivate, x, y, maximized = false }: Props) {
+export default function MacWindowChrome({ path, title, children, onActivate, x, y, maximized = false, isActive = false }: Props) {
   const { minimizeWindow, closeWindow, activateWindow, updateWindowPosition, maximizeWindow } = useWindowManager();
+  const isApiLoading = useAppSelector((state) => state.loading.isApiLoading);
   const draggable = maximized
     ? null
     : useDraggable({
@@ -24,6 +27,8 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
   const transitionClass = maximized || draggable?.dragging
     ? "transition-none"
     : "transition-transform duration-150";
+
+  const showSpinner = isActive && isApiLoading;
 
   const baseStyle = maximized
     ? {
@@ -78,6 +83,11 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
       </div>
       <div className="relative flex-1 overflow-auto bg-white p-4 text-slate-900">
         {children}
+        {showSpinner && (
+          <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center bg-white/60">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-400 border-t-transparent" aria-label="Loading" />
+          </div>
+        )}
       </div>
     </div>
   );
