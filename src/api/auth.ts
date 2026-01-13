@@ -35,6 +35,16 @@ const unwrapUserPayload = (value: any): any => {
     }
 
     if (
+      Object.prototype.hasOwnProperty.call(current, "user") &&
+      current.user &&
+      typeof current.user === "object" &&
+      !Array.isArray(current.user)
+    ) {
+      current = current.user;
+      continue;
+    }
+
+    if (
       Object.prototype.hasOwnProperty.call(current, "data") &&
       current.data &&
       typeof current.data === "object" &&
