@@ -1,4 +1,3 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadcrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
@@ -11,6 +10,7 @@ import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import InvoiceDetail from "./InvoiceDetail";
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 
 export default function InvoiceList() {
   const [data, setData] = useState<any[]>([]);
