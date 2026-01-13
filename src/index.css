@@ -181,6 +181,16 @@ layer(base);
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+  *,
+  ::after,
+  ::before {
+    user-select: none;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text;
+  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;

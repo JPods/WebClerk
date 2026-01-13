@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
 
 // Assume these icons are imported from an icon library
 import {
@@ -11,6 +10,7 @@ import {
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { PageRoutes } from "@/routes/Routes";
+import { useWindowManager } from "../context/WindowManagerContext";
 //import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
@@ -216,8 +216,8 @@ const navItems: NavItem[] = [
 // ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-  const location = useLocation();
+  const { isExpanded, isMobileOpen, isHovered, isVisible, setIsHovered, toggleSidebar, toggleVisibility } = useSidebar();
+  const { ensureWindow, activateWindow, activePath } = useWindowManager();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -230,8 +230,8 @@ const AppSidebar: React.FC = () => {
 
   // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname]
+    (path: string) => activePath === path,
+    [activePath]
   );
 
   // useEffect(() => {
@@ -283,8 +283,13 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const openWindow = (path: string, title: string) => {
+    ensureWindow(path, title);
+    activateWindow(path);
+  };
+
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
-    <ul className="flex flex-col gap-4">
+    <ul className="flex flex-col gap-2 px-3 pb-4">
       {items.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
@@ -325,11 +330,11 @@ const AppSidebar: React.FC = () => {
             </button>
           ) : (
             nav.path && (
-              <Link
-                to={nav.path}
+              <button
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
+                onClick={() => openWindow(nav.path!, nav.name)}
               >
                 <span
                   className={`menu-item-icon-size ${
@@ -343,7 +348,7 @@ const AppSidebar: React.FC = () => {
                 {(isExpanded || isHovered || isMobileOpen) && (
                   <span className="menu-item-text">{nav.name}</span>
                 )}
-              </Link>
+              </button>
             )
           )}
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
@@ -362,13 +367,13 @@ const AppSidebar: React.FC = () => {
               <ul className="mt-2 space-y-1 ml-9">
                 {nav.subItems.map((subItem) => (
                   <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
+                    <button
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
                       }`}
+                      onClick={() => openWindow(subItem.path, subItem.name)}
                     >
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
@@ -395,7 +400,7 @@ const AppSidebar: React.FC = () => {
                           </span>
                         )}
                       </span>
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -406,53 +411,30 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
+  const targetWidth = isExpanded || isMobileOpen ? 290 : isHovered ? 290 : 90;
+  const translateClass = isVisible ? "translate-x-0" : "-translate-x-full";
+
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
-        }
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
+      className={`fixed top-[60px] left-0 flex h-[calc(100vh-60px)] flex-col px-5 bg-white text-gray-900 transition-all duration-300 ease-in-out z-50 border-r border-gray-200 ${translateClass}`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      style={{ pointerEvents: isVisible ? "auto" : "none", width: isVisible ? `${targetWidth}px` : 0, paddingLeft: isVisible ? "20px" : 0, paddingRight: isVisible ? "20px" : 0 }}
     >
-      <div
-        className={`py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
-      >
-        <Link to="/">
-          {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <img
-                className="dark:hidden"
-                src="/images/logo/logo.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-              <img
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
-                width={150}
-                height={40}
-              />
-            </>
-          ) : (
-            <img
-              src="/images/logo/logo-icon.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
-          )}
-        </Link>
+      <div className="py-2" />
+      <div className="flex items-center justify-end">
+        <button
+          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+          onClick={() => {
+            if (isVisible) {
+              toggleVisibility();
+            } else {
+              toggleVisibility();
+            }
+          }}
+        >
+          {isVisible ? "Hide" : "Show"}
+        </button>
       </div>
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">

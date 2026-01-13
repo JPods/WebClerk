@@ -1,0 +1,103 @@
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+
+export type WindowEntry = {
+  path: string;
+  title: string;
+  minimized: boolean;
+  maximized: boolean;
+  x: number;
+  y: number;
+};
+
+type WindowManagerCtx = {
+  windows: WindowEntry[];
+  activePath: string | null;
+  ensureWindow: (path: string, title?: string) => void;
+  closeWindow: (path: string) => void;
+  minimizeWindow: (path: string, minimized?: boolean) => void;
+  activateWindow: (path: string) => void;
+  updateWindowPosition: (path: string, x: number, y: number) => void;
+  maximizeWindow: (path: string, maximized?: boolean) => void;
+};
+
+const WindowManagerContext = createContext<WindowManagerCtx | null>(null);
+
+export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [windows, setWindows] = useState<WindowEntry[]>([]);
+  const [activePath, setActivePath] = useState<string | null>(null);
+
+  const ensureWindow = useCallback((path: string, title = path) => {
+    setWindows((prev) => {
+      const existing = prev.find((w) => w.path === path);
+      if (existing) {
+        const needsUpdate = existing.minimized || existing.title !== title;
+        if (!needsUpdate) {
+          setActivePath(path);
+          return prev;
+        }
+        const updated = prev.map((w) =>
+          w.path === path ? { ...w, minimized: false, title } : w
+        );
+        setActivePath(path);
+        return updated;
+      }
+      const stagger = 28 * prev.length;
+      setActivePath(path);
+      return [...prev, { path, title, minimized: false, maximized: false, x: stagger, y: stagger }];
+    });
+  }, []);
+
+  const closeWindow = useCallback((path: string) => {
+    setWindows((prev) => {
+      const next = prev.filter((w) => w.path !== path);
+      const fallback = next.length ? next[next.length - 1].path : null;
+      setActivePath(fallback);
+      return next;
+    });
+  }, []);
+
+  const minimizeWindow = useCallback(
+    (path: string, minimized = true) => {
+      setWindows((prev) => {
+        const updated = prev.map((w) => (w.path === path ? { ...w, minimized, maximized: minimized ? false : w.maximized } : w));
+        if (minimized && activePath === path) {
+          const fallback = updated.filter((w) => !w.minimized).slice(-1)[0]?.path || null;
+          setActivePath(fallback);
+        }
+        return updated;
+      });
+    },
+    [activePath]
+  );
+
+  const activateWindow = useCallback((path: string) => {
+    setWindows((prev) => {
+      const target = prev.find((w) => w.path === path);
+      if (!target) return prev;
+      const rest = prev.filter((w) => w.path !== path);
+      setActivePath(path);
+      return [...rest, { ...target, minimized: false }];
+    });
+  }, []);
+
+  const updateWindowPosition = useCallback((path: string, x: number, y: number) => {
+    setWindows((prev) => prev.map((w) => (w.path === path ? { ...w, x, y } : w)));
+  }, []);
+
+  const maximizeWindow = useCallback((path: string, maximized = true) => {
+    setWindows((prev) => prev.map((w) => (w.path === path ? { ...w, maximized, minimized: false } : w)));
+  }, []);
+
+  const api = useMemo<WindowManagerCtx>(
+    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow }),
+    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow]
+  );
+
+  return <WindowManagerContext.Provider value={api}>{children}</WindowManagerContext.Provider>;
+};
+
+export const useWindowManager = () => {
+  const ctx = useContext(WindowManagerContext);
+  if (!ctx) throw new Error("useWindowManager must be used within WindowManagerProvider");
+  return ctx;
+};
