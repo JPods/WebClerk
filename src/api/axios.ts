@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
 import { clearUser } from "../store/slices/authSlice";
@@ -22,10 +22,109 @@ let accessToken: string | null = (() => {
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
 let inflightRequests = 0;
+let spinnerTimer: ReturnType<typeof setTimeout> | null = null;
+let safetyTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Simple session-scoped cache for GET requests to reduce reloads while tab is open
+type CachedEntry = {
+  status: number;
+  statusText: string;
+  headers: any;
+  data: any;
+  timestamp: number;
+};
+
+const CACHE_PREFIX = "wc_cache_v1:";
+
+const getCacheKey = (baseURL: string | undefined, url: string, params?: any): string => {
+  const search = params ? JSON.stringify(params) : "";
+  return `${CACHE_PREFIX}${baseURL ?? ""}${url}?${search}`;
+};
+
+const readCache = (key: string): AxiosResponse | null => {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedEntry;
+    return {
+      status: parsed.status,
+      statusText: parsed.statusText,
+      headers: parsed.headers,
+      data: parsed.data,
+      config: {},
+    } as AxiosResponse;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (key: string, res: AxiosResponse) => {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    const entry: CachedEntry = {
+      status: res.status,
+      statusText: res.statusText,
+      headers: res.headers,
+      data: res.data,
+      timestamp: Date.now(),
+    };
+    sessionStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    // ignore quota or serialization errors
+  }
+};
+
+const wrapGetWithCache = (client: AxiosInstance) => {
+  const originalGet = client.get.bind(client);
+  client.get = (async function patchedGet(url: any, config: any = {}) {
+    const shouldCache = config?.cache !== false && config?.headers?.["x-skip-cache"] !== true;
+    const cacheKey = shouldCache ? getCacheKey(client.defaults.baseURL, url, config?.params) : null;
+
+    if (cacheKey) {
+      const cached = readCache(cacheKey);
+      if (cached) return cached;
+    }
+
+    const res = await originalGet(url, config);
+    if (cacheKey) writeCache(cacheKey, res);
+    return res;
+  }) as typeof client.get;
+};
+
+const clearTimers = () => {
+  if (spinnerTimer) {
+    clearTimeout(spinnerTimer);
+    spinnerTimer = null;
+  }
+  if (safetyTimer) {
+    clearTimeout(safetyTimer);
+    safetyTimer = null;
+  }
+};
 
 const updateLoading = (delta: number) => {
   inflightRequests = Math.max(0, inflightRequests + delta);
-  store.dispatch(setApiLoading(inflightRequests > 0));
+
+  if (inflightRequests > 0) {
+    // Show spinner only if network is busy for a short stretch (reduce flicker for quick calls)
+    if (!spinnerTimer) {
+      spinnerTimer = setTimeout(() => {
+        store.dispatch(setApiLoading(true));
+      }, 300);
+    }
+
+    // Safety: ensure spinner clears after long-running background calls to avoid being stuck
+    if (safetyTimer) clearTimeout(safetyTimer);
+    safetyTimer = setTimeout(() => {
+      inflightRequests = 0;
+      store.dispatch(setApiLoading(false));
+      clearTimers();
+    }, 12000);
+  } else {
+    clearTimers();
+    store.dispatch(setApiLoading(false));
+  }
 };
 
 // Helper to process queued requests waiting for refresh
@@ -166,5 +265,7 @@ const attachLoadingOnly = (client: AxiosInstance) => {
 attachAuthInterceptors(apiClient);
 attachAuthInterceptors(notionClient);
 attachLoadingOnly(authClient);
+wrapGetWithCache(apiClient);
+wrapGetWithCache(notionClient);
 
 export default apiClient;

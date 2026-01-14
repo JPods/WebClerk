@@ -9,3 +9,4 @@ for the selected projects all is_active action records should be displayed. If t
 
 Please draft a readme plan for how to best implement SVAR Gantt
 
+Are there changes to our project and action schema that will improve Kanban and Gantt

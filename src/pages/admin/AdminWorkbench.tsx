@@ -341,7 +341,7 @@ const AdminWorkbench: React.FC = () => {
     <div className="flex min-h-screen flex-col bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div>
-          <p className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">TailAdmin</p>
+          <p className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">WebClerk 3.0</p>
           <h1 className="text-lg font-semibold text-slate-900">Admin Workbench</h1>
           <p className="mt-0.5 text-xs text-slate-400">Role: {roleLabel}</p>
         </div>
