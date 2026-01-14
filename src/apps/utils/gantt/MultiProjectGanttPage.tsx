@@ -12,7 +12,7 @@ import type { IApi, IColumnConfig, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import type { TaskFormEditableField, TaskFormState } from "../../../components/kanban/taskFormTypes";
 import { patchAction } from "../../../api/userProfile";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
 import type { BoardData, KanbanTask, TaskPriority } from "../../../type/kanban";
@@ -24,12 +24,12 @@ import {
   FALLBACK_COLUMN_ID,
   PRIORITY_TO_VALUE,
   PROGRESS_OPTIONS,
-  calculateDueDate,
   createInitialTaskFormState,
   createTranslationEntry,
+  createTranslationEntriesFromTask,
   extendNumericOptionStrings,
-  findNextLanguageCode,
   getLanguageLabel,
+  normalizeIncomingDateValue,
   normalizeLanguageCode,
   normalizeNumericSelectValue,
   priorityOptions,
@@ -51,28 +51,31 @@ const ganttDateFormatter = new Intl.DateTimeFormat("en-US", {
 const formatDate = (value?: Date) => (value ? ganttDateFormatter.format(value) : "-");
 
 const ganttColumns: IColumnConfig[] = [
-  { id: "text", header: "Task", flexgrow: 1, sort: true },
+  {
+    id: "text",
+    header: "Task",
+    width: 200,
+    flexgrow: 1,
+  },
   {
     id: "projectName",
     header: "Project",
-    width: 140,
-    sort: true,
+    width: 120,
     template: (task: ITask) => (task as GanttMappedTask).projectName || "-",
   },
   {
     id: "start",
     header: "Start",
-    width: 100,
+    width: 80,
     align: "center",
-    sort: true,
-    template: (task: ITask) => formatDate(task.start),
+    template: (task: ITask) => formatDate(task.start as Date),
   },
   {
-    id: "duration",
-    header: "Days",
-    width: 60,
+    id: "end",
+    header: "End",
+    width: 80,
     align: "center",
-    template: (task: ITask) => (task.duration ? `${task.duration}` : "-"),
+    template: (task: ITask) => formatDate(task.end as Date),
   },
   {
     id: "progress",
@@ -140,18 +143,13 @@ const toProgressPercentage = (value?: number | null): number => {
 
 const padTwoDigits = (value: number) => value.toString().padStart(2, "0");
 
-const formatDateTimeLocal = (date: Date): string =>
-  `${date.getFullYear()}-${padTwoDigits(date.getMonth() + 1)}-${padTwoDigits(date.getDate())}T${padTwoDigits(
-    date.getHours()
-  )}:${padTwoDigits(date.getMinutes())}`;
-
-const createFallbackEndFromStart = (startValue: string): string => {
-  if (!startValue) return "";
-  const parsed = new Date(startValue);
-  if (Number.isNaN(parsed.getTime())) return "";
-  const adjusted = new Date(parsed.getTime());
-  adjusted.setHours(adjusted.getHours() + 1);
-  return formatDateTimeLocal(adjusted);
+const formatDateTimeLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = padTwoDigits(date.getMonth() + 1);
+  const day = padTwoDigits(date.getDate());
+  const hours = padTwoDigits(date.getHours());
+  const minutes = padTwoDigits(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 // Type definitions
@@ -193,22 +191,6 @@ const MultiProjectGanttPage: React.FC = () => {
   const [ganttKey, setGanttKey] = useState(0);
   const activeScales = scalePresets[scalePreset];
   
-  // Debug: Log ganttData when it changes
-  useEffect(() => {
-    if (ganttData.tasks.length > 0) {
-      console.log("[MultiProjectGantt] Tasks loaded:", ganttData.tasks.length);
-      console.log("[MultiProjectGantt] Sample task:", {
-        id: ganttData.tasks[0].id,
-        text: ganttData.tasks[0].text,
-        start: ganttData.tasks[0].start,
-        end: ganttData.tasks[0].end,
-        duration: ganttData.tasks[0].duration,
-        startType: typeof ganttData.tasks[0].start,
-        startIsDate: ganttData.tasks[0].start instanceof Date,
-      });
-    }
-  }, [ganttData.tasks]);
-  
   // Calculate date range for the Gantt chart
   const dateRange = useMemo(() => {
     return getGanttDateRange(ganttData.tasks);
@@ -228,237 +210,262 @@ const MultiProjectGanttPage: React.FC = () => {
   const [editLanguageSelection, setEditLanguageSelection] = useState("");
   const [editCustomLanguage, setEditCustomLanguage] = useState("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
-  
+
   // Refs
-  const ganttContainerRef = useRef<HTMLDivElement>(null);
+  const ganttContainerRef = useRef<HTMLDivElement | null>(null);
   const ganttApiRef = useRef<IApi | null>(null);
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
-  const colorRefreshTimerRef = useRef<number | null>(null);
-  
-  // Progress update refs
-  const progressUpdateQueueRef = useRef<Set<string>>(new Set());
-  const pendingProgressPayloadRef = useRef<Map<string, Record<string, unknown>>>(new Map());
-  const progressDebounceTimersRef = useRef<Map<string, number>>(new Map());
-  
-  // Memoized values
-  const resolveDefaultColumnId = useCallback(
-    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
-    [board.columnOrder]
-  );
-  
-  const columnOptions = useMemo(
-    () =>
-      board.columnOrder
-        .map((columnId) => board.columns[columnId])
-        .filter((column): column is NonNullable<typeof column> => Boolean(column))
-        .map((column) => ({ id: column.id, title: column.title })),
-    [board]
-  );
-  
+
+  // Column options for select - need id/title format for KanbanTaskModal
+  const columnOptions = useMemo(() => {
+    return board.columnOrder
+      .map((colId) => board.columns[colId])
+      .filter((col): col is NonNullable<typeof col> => Boolean(col))
+      .map((col) => ({ id: col.id, title: col.title }));
+  }, [board.columnOrder, board.columns]);
+
+  // Difficulty and progress options - need to include current value
   const editDifficultyOptions = useMemo(
     () => extendNumericOptionStrings(DIFFICULTY_OPTIONS, editTaskState.difficulty),
     [editTaskState.difficulty]
   );
-  
   const editProgressOptions = useMemo(
     () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
     [editTaskState.progress]
   );
-  
+
+  // Language options
   const languageOptions = useMemo(() => {
-    const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
-    Object.values(board.tasks).forEach((task) => {
+    return DEFAULT_LANGUAGE_ORDER.map((code) => ({
+      value: code,
+      label: getLanguageLabel(code),
+    }));
+  }, []);
+
+  const availableEditLanguages = useMemo(() => {
+    const usedCodes = new Set(editTaskState.translations.map((t) => normalizeLanguageCode(t.language)));
+    return languageOptions.filter((opt) => !usedCodes.has(normalizeLanguageCode(opt.value)));
+  }, [editTaskState.translations, languageOptions]);
+
+  const editLanguagePickerState = useMemo(() => {
+    return {
+      isOpen: editLanguagePickerOpen,
+      selection: editLanguageSelection,
+      selectedValue: editLanguageSelection,
+      customValue: editCustomLanguage,
+      error: editLanguagePickerError,
+    };
+  }, [editLanguagePickerOpen, editLanguageSelection, editCustomLanguage, editLanguagePickerError]);
+
+  // Color refresh logic
+  const refreshTaskColorCache = useCallback(() => {
+    const container = ganttContainerRef.current;
+    if (!container) return;
+
+    const rows = container.querySelectorAll<HTMLElement>("[data-id]");
+    const newMap = new Map<string, TaskColorInfo>();
+
+    rows.forEach((row) => {
+      const taskId = row.getAttribute("data-id");
+      if (!taskId) return;
+
+      const task = ganttData.tasks.find((t) => String(t.id) === taskId);
       if (!task) return;
-      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+
+      const color = getProjectColor(task.projectId, selectedProjectIds);
+      const textColor = pickReadableTextColor(color);
+
+      newMap.set(taskId, { color, textColor, type: task.type });
+
+      // Apply colors to row elements
+      const bar = row.querySelector<HTMLElement>(".wx-bar");
+      const progress = row.querySelector<HTMLElement>(".wx-progress");
+      const textEl = row.querySelector<HTMLElement>(".wx-content");
+
+      if (bar) {
+        bar.style.backgroundColor = color;
+        bar.style.borderColor = color;
+      }
+      if (progress) {
+        progress.style.backgroundColor = color;
+        progress.style.opacity = "0.7";
+      }
+      if (textEl) {
+        textEl.style.color = textColor;
+      }
     });
-    const orderedCodes = Array.from(codes).sort((a, b) => {
-      const aIndex = DEFAULT_LANGUAGE_ORDER.indexOf(a);
-      const bIndex = DEFAULT_LANGUAGE_ORDER.indexOf(b);
-      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
+
+    taskColorMapRef.current = newMap;
+  }, [ganttData.tasks, selectedProjectIds]);
+
+  const scheduleColorRefresh = useCallback(() => {
+    requestAnimationFrame(() => {
+      refreshTaskColorCache();
     });
-    return orderedCodes.map((code) => ({ value: code, label: getLanguageLabel(code) }));
-  }, [board.tasks]);
-  
-  // Translation handlers
-  const updateEditTranslations = useCallback(
-    (updater: (current: TranslationFormEntry[]) => TranslationFormEntry[]) => {
+  }, [refreshTaskColorCache]);
+
+  // Derive form state from a task (similar to SvarGanttPage)
+  const deriveFormStateFromTask = useCallback(
+    (task: KanbanTask): TaskFormState => {
+      const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
+      const normalizedStart = normalizeIncomingDateValue(task.startDate);
+      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
+      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+      const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
+      const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
+      const resolvedEndDate = normalizedEnd || "";
+      const resolvedDueDate = normalizedDue || "";
+      const normalizedDifficulty = normalizeNumericSelectValue(
+        task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
+        DEFAULT_DIFFICULTY
+      );
+      const normalizedProgressValue = toProgressPercentage(task.progress);
+      const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
+
+      return {
+        translations: createTranslationEntriesFromTask(task),
+        columnId: taskColumn?.id ?? task.status ?? FALLBACK_COLUMN_ID,
+        priority: task.priority,
+        dueDate: resolvedDueDate,
+        startDate: resolvedStartDate,
+        endDate: resolvedEndDate,
+        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+        difficulty: String(normalizedDifficulty),
+        progress: String(normalizedProgress),
+      };
+    },
+    [board.columns]
+  );
+
+  // Task editing handlers
+  const handleShowEditor = useCallback(
+    ({ id }: { id: string | number }) => {
+      const ganttTask = ganttData.tasks.find((t) => String(t.id) === String(id));
+      if (!ganttTask) return;
+
+      // Create a KanbanTask-like object from the Gantt task
+      const kanbanTask: KanbanTask = {
+        id: String(ganttTask.id),
+        title: ganttTask.text || "",
+        description: ganttTask.details || "",
+        priority: (ganttTask.priority as TaskPriority) || "medium",
+        status: ganttTask.columnTitle || "Uncategorized",
+        dueDate: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
+        startDate: ganttTask.start instanceof Date ? ganttTask.start.toISOString() : undefined,
+        endDate: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
+        progress: toProgressPercentage(ganttTask.progress),
+        assignee: ganttTask.assignee,
+        tags: [],
+        titleTranslations: { en: ganttTask.text || "" },
+        descriptionTranslations: { en: ganttTask.details || "" },
+        languageCodes: ["en"],
+      };
+
+      setEditingTask(kanbanTask);
+      setEditTaskState(deriveFormStateFromTask(kanbanTask));
+      setEditModalError(null);
+      setIsEditModalOpen(true);
+    },
+    [ganttData.tasks, deriveFormStateFromTask]
+  );
+
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    setEditModalError(null);
+    setEditLanguagePickerOpen(false);
+  }, []);
+
+  const handleEditTaskChange = useCallback(
+    (field: TaskFormEditableField, value: string) => {
+      setEditTaskState((prev) => updateTaskFormState(prev, field, value));
+    },
+    []
+  );
+
+  const handleEditTranslationFieldChange = useCallback(
+    (entryId: string, field: "language" | "title" | "description", value: string) => {
       setEditTaskState((prev) => ({
         ...prev,
-        translations: updater(prev.translations),
+        translations: prev.translations.map((entry) =>
+          entry.id === entryId ? { ...entry, [field]: value } : entry
+        ),
       }));
     },
     []
   );
-  
-  const handleEditTranslationFieldChange = useCallback(
-    (entryId: string, field: "language" | "title" | "description", value: string) => {
-      updateEditTranslations((current) =>
-        current.map((entry) => {
-          if (entry.id !== entryId) return entry;
-          if (field === "language") {
-            const normalized = normalizeLanguageCode(value);
-            if (!normalized) return { ...entry, language: normalized };
-            const duplicate = current.some(
-              (other) => other.id !== entryId && normalizeLanguageCode(other.language) === normalized
-            );
-            if (duplicate) return entry;
-            return { ...entry, language: normalized };
-          }
-          return { ...entry, [field]: value };
-        })
-      );
-    },
-    [updateEditTranslations]
-  );
-  
-  const handleAddEditTranslation = useCallback(
-    (explicitLanguage?: string): { success: boolean; error?: string } => {
-      const used = new Set<string>(
-        editTaskState.translations
-          .map((translation) => normalizeLanguageCode(translation.language))
-          .filter(Boolean)
-      );
-      let languageToUse = explicitLanguage ? normalizeLanguageCode(explicitLanguage) : "";
-      if (languageToUse && used.has(languageToUse)) {
-        return { success: false, error: "Language already added." };
-      }
-      if (!languageToUse) {
-        languageToUse = findNextLanguageCode(used, languageOptions);
-      }
-      updateEditTranslations((current) => [...current, createTranslationEntry(languageToUse)]);
-      return { success: true };
-    },
-    [editTaskState.translations, languageOptions, updateEditTranslations]
-  );
-  
-  const handleRemoveEditTranslation = useCallback(
-    (entryId: string) => {
-      if (editTaskState.translations.length <= 1) return;
-      updateEditTranslations((current) => current.filter((entry) => entry.id !== entryId));
-    },
-    [editTaskState.translations.length, updateEditTranslations]
-  );
-  
-  const availableEditLanguages = useMemo(() => {
-    const used = new Set(
-      editTaskState.translations
-        .map((translation) => normalizeLanguageCode(translation.language))
-        .filter(Boolean)
-    );
-    return languageOptions.filter((option) => !used.has(option.value));
-  }, [editTaskState.translations, languageOptions]);
-  
+
+  const handleRemoveEditTranslation = useCallback((entryId: string) => {
+    setEditTaskState((prev) => ({
+      ...prev,
+      translations: prev.translations.filter((entry) => entry.id !== entryId),
+    }));
+  }, []);
+
   const handleEditLanguagePickerToggle = useCallback(() => {
-    setEditLanguagePickerError(null);
-    setEditLanguagePickerOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        if (availableEditLanguages.length > 0) {
-          setEditLanguageSelection("");
-          setEditCustomLanguage("");
-        } else {
-          setEditLanguageSelection("__custom");
-          setEditCustomLanguage("");
-        }
-      }
-      return next;
-    });
-  }, [availableEditLanguages.length]);
-  
+    setEditLanguagePickerOpen((prev) => !prev);
+    if (!editLanguagePickerOpen) {
+      setEditLanguageSelection("");
+      setEditCustomLanguage("");
+      setEditLanguagePickerError(null);
+    }
+  }, [editLanguagePickerOpen]);
+
   const handleEditLanguageSelectionChange = useCallback((value: string) => {
     setEditLanguageSelection(value);
-    if (value !== "__custom") setEditCustomLanguage("");
     setEditLanguagePickerError(null);
   }, []);
-  
+
   const handleEditLanguageCustomChange = useCallback((value: string) => {
     setEditCustomLanguage(value);
     setEditLanguagePickerError(null);
   }, []);
-  
+
   const handleEditLanguagePickerSubmit = useCallback(() => {
-    const selection = editLanguageSelection === "__custom" ? editCustomLanguage.trim() : editLanguageSelection;
-    if (!selection) {
-      setEditLanguagePickerError("Choose a language before adding.");
+    const code = editLanguageSelection === "custom" ? editCustomLanguage.trim() : editLanguageSelection;
+    if (!code) {
+      setEditLanguagePickerError("Please select or enter a language code.");
       return;
     }
-    const result = handleAddEditTranslation(selection);
-    if (!result.success) {
-      setEditLanguagePickerError(result.error ?? "Unable to add language.");
+    const normalized = normalizeLanguageCode(code);
+    const alreadyUsed = editTaskState.translations.some(
+      (t) => normalizeLanguageCode(t.language) === normalized
+    );
+    if (alreadyUsed) {
+      setEditLanguagePickerError("This language is already added.");
       return;
     }
+    const newEntry = createTranslationEntry(code);
+    setEditTaskState((prev) => ({
+      ...prev,
+      translations: [...prev.translations, newEntry],
+    }));
     setEditLanguagePickerOpen(false);
     setEditLanguageSelection("");
     setEditCustomLanguage("");
-  }, [editCustomLanguage, editLanguageSelection, handleAddEditTranslation]);
-  
+    setEditLanguagePickerError(null);
+  }, [editLanguageSelection, editCustomLanguage, editTaskState.translations]);
+
   const handleEditLanguagePickerCancel = useCallback(() => {
     setEditLanguagePickerOpen(false);
     setEditLanguageSelection("");
     setEditCustomLanguage("");
     setEditLanguagePickerError(null);
   }, []);
-  
-  const editLanguagePickerState = {
-    isOpen: editLanguagePickerOpen,
-    selection: editLanguageSelection,
-    customValue: editCustomLanguage,
-    error: editLanguagePickerError,
-  };
-  
-  const handleEditTaskChange = useCallback((field: TaskFormEditableField, value: string) => {
-    setEditTaskState((prev) => updateTaskFormState(prev, field, value));
-  }, []);
-  
-  // Derive form state from Gantt task
-  const deriveFormStateFromGanttTask = useCallback(
-    (task: GanttMappedTask): TaskFormState => {
-      const normalizedStart = task.start ? formatDateTimeLocal(task.start) : "";
-      const normalizedEnd = task.end ? formatDateTimeLocal(task.end) : "";
-      const shouldFallbackStart = !normalizedStart && !normalizedEnd;
-      const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
-      const resolvedEndDate = normalizedEnd || createFallbackEndFromStart(resolvedStartDate);
-      const resolvedDueDate = calculateDueDate(resolvedStartDate, resolvedEndDate);
-      const normalizedProgressValue = toProgressPercentage(task.progress);
-      const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
-      const normalizedDifficulty = normalizeNumericSelectValue(
-        undefined,
-        DEFAULT_DIFFICULTY
-      );
-      
-      // Create minimal translation entry
-      const translations: TranslationFormEntry[] = [
-        createTranslationEntry("en", task.text, task.details || ""),
-      ];
-      
-      return {
-        translations,
-        columnId: task.columnId || FALLBACK_COLUMN_ID,
-        priority: (task.priority as TaskPriority) || "medium",
-        dueDate: resolvedDueDate,
-        startDate: resolvedStartDate,
-        endDate: resolvedEndDate,
-        assignee: task.assignee || "",
-        difficulty: normalizedDifficulty,
-        progress: normalizedProgress,
-      };
-    },
-    []
-  );
-  
-  // Build edit payload
+
   const buildEditActionPayload = useCallback(
-    (state: TaskFormState, taskId: string): { payload: Record<string, unknown> } | { error: string } => {
+    (state: TaskFormState, baseTask: KanbanTask | null): { payload: Record<string, unknown> } | { error: string } => {
+      if (!baseTask) {
+        return { error: "No task selected for editing." };
+      }
+
       const normalized = new Map<string, { title: string; description: string }>();
-      
+
       state.translations.forEach((entry) => {
         const language = normalizeLanguageCode(entry.language);
-        if (!language) return;
+        if (!language) {
+          return;
+        }
         const current = normalized.get(language) ?? { title: "", description: "" };
         const title = entry.title.trim();
         const description = entry.description.trim();
@@ -467,238 +474,159 @@ const MultiProjectGanttPage: React.FC = () => {
           description: description || current.description,
         });
       });
-      
       const hasTitle = Array.from(normalized.values()).some((value) => value.title.length > 0);
       if (!hasTitle) {
         return { error: "Add at least one language with a title." };
       }
-      
+
       const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
+
       normalized.forEach((value, language) => {
-        translationFields[`action.${language}`] = { mode: "update", value: value.title || "" };
-        translationFields[`description.${language}`] = { mode: "update", value: value.description || "" };
+        translationFields[`action.${language}`] = {
+          mode: "update",
+          value: value.title || "",
+        };
+        translationFields[`description.${language}`] = {
+          mode: "update",
+          value: value.description || "",
+        };
       });
-      translationFields.languages = { mode: "update", value: Array.from(normalized.keys()) };
-      
+
+      translationFields.languages = {
+        mode: "update",
+        value: Array.from(normalized.keys()),
+      };
+
+      const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
+      const assignedTo = state.assignee
+        ? [{ name: state.assignee }]
+        : baseTask.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+
       const dueTimestamp = toTimestampMilliseconds(state.dueDate);
       const startTimestamp = toTimestampMilliseconds(state.startDate);
       const endTimestamp = toTimestampMilliseconds(state.endDate);
       const resolvedProgress = Number(state.progress) || 0;
-      
+
       const payloadItem: Record<string, unknown> = {
         model_name: "action",
         ...translationFields,
-        kanban_column: { mode: "update", value: state.columnId },
-        priority: { mode: "update", value: PRIORITY_TO_VALUE[state.priority] },
-        dt_due: { mode: "update", value: dueTimestamp },
-        dt_start: { mode: "update", value: startTimestamp },
-        dt_end: { mode: "update", value: endTimestamp },
-        progress: { mode: "update", value: resolvedProgress },
-        id: taskId,
+        kanban_column: {
+          mode: "update",
+          value: column?.title ?? "Uncategorized",
+        },
+        kanban_column_id: {
+          mode: "update",
+          value: column?.id ?? FALLBACK_COLUMN_ID,
+        },
+        priority: {
+          mode: "update",
+          value: PRIORITY_TO_VALUE[state.priority],
+        },
+        difficulty: {
+          mode: "update",
+          value: Number(state.difficulty) || PRIORITY_TO_VALUE[state.priority],
+        },
+        status: {
+          mode: "update",
+          value: baseTask.status ?? "In progress",
+        },
+        dt_due: {
+          mode: "update",
+          value: dueTimestamp,
+        },
+        dt_start: {
+          mode: "update",
+          value: startTimestamp,
+        },
+        dt_end: {
+          mode: "update",
+          value: endTimestamp,
+        },
+        assigned_to: {
+          mode: "update",
+          value: assignedTo,
+        },
+        progress: {
+          mode: "update",
+          value: resolvedProgress,
+        },
+        id: baseTask.id,
       };
-      
-      if (state.assignee) {
-        payloadItem.assigned_to = { mode: "update", value: [{ name: state.assignee }] };
+
+      if (!state.assignee && assignedTo.length === 0) {
+        delete payloadItem.assigned_to;
       }
-      
+
       return { payload: payloadItem };
     },
-    []
+    [board.columns]
   );
-  
-  // Open edit modal from Gantt task
-  const handleOpenEditModal = useCallback(
-    (ganttTask: GanttMappedTask) => {
-      // Convert GanttMappedTask to a minimal KanbanTask for the modal
-      const kanbanTask: KanbanTask = {
-        id: ganttTask.apiId,
-        title: ganttTask.text || "Untitled",
-        description: ganttTask.details,
-        priority: (ganttTask.priority as TaskPriority) || "medium",
-        status: "In progress",
-        startDate: ganttTask.start?.toISOString(),
-        endDate: ganttTask.end?.toISOString(),
-        progress: ganttTask.progress ? ganttTask.progress * 100 : 0,
-        assignee: ganttTask.assignee,
-      };
-      
-      setEditingTask(kanbanTask);
-      setEditTaskState(deriveFormStateFromGanttTask(ganttTask));
-      setEditModalError(null);
-      setEditLanguagePickerOpen(false);
-      setEditLanguageSelection("");
-      setEditCustomLanguage("");
-      setEditLanguagePickerError(null);
-      setIsEditModalOpen(true);
-    },
-    [deriveFormStateFromGanttTask]
-  );
-  
-  const handleCloseEditModal = useCallback(() => {
-    setIsEditModalOpen(false);
-    setEditingTask(null);
-    setEditModalError(null);
-    setEditLanguagePickerOpen(false);
-    setEditLanguageSelection("");
-    setEditCustomLanguage("");
-    setEditLanguagePickerError(null);
-    setEditTaskState(createInitialTaskFormState(resolveDefaultColumnId()));
-  }, [resolveDefaultColumnId]);
-  
-  // Gantt event handlers
-  const handleShowEditor = useCallback(
-    (event: { id?: string | number }) => {
-      if (!event?.id) return;
-      const taskId = String(event.id);
-      const ganttTask = ganttData.tasks.find((t) => String(t.id) === taskId);
-      if (ganttTask) {
-        handleOpenEditModal(ganttTask);
-      }
-    },
-    [ganttData.tasks, handleOpenEditModal]
-  );
-  
-  // Progress update handler
-  const scheduleProgressUpdate = useCallback((taskId: string, progressValue: number) => {
-    const ganttTask = ganttData.tasks.find((t) => String(t.id) === taskId);
-    if (!ganttTask) return;
-    
-    const payload: Record<string, unknown> = {
-      model_name: "action",
-      id: ganttTask.apiId,
-      "prefs.userdefined.progress": { mode: "update", value: progressValue },
-    };
-    
-    pendingProgressPayloadRef.current.set(taskId, payload);
-    progressUpdateQueueRef.current.add(taskId);
-    
-    const existingTimer = progressDebounceTimersRef.current.get(taskId);
-    if (existingTimer) window.clearTimeout(existingTimer);
-    
-    const timer = window.setTimeout(() => {
-      progressDebounceTimersRef.current.delete(taskId);
-      if (!progressUpdateQueueRef.current.has(taskId)) return;
-      
-      const queued = pendingProgressPayloadRef.current.get(taskId);
-      if (!queued) {
-        progressUpdateQueueRef.current.delete(taskId);
-        return;
-      }
-      
-      patchAction(queued as any)
-        .then(() => {
-          console.log("Progress updated for task", taskId);
-          progressUpdateQueueRef.current.delete(taskId);
-          pendingProgressPayloadRef.current.delete(taskId);
-        })
-        .catch((error) => {
-          console.error("Failed to update progress", taskId, error);
-          progressUpdateQueueRef.current.delete(taskId);
-          pendingProgressPayloadRef.current.delete(taskId);
-        });
-    }, 400);
-    
-    progressDebounceTimersRef.current.set(taskId, timer);
-  }, [ganttData.tasks]);
-  
-  const handleSvarUpdateTask = useCallback(
-    (event: { id?: string | number; task?: Partial<ITask> }) => {
-      if (!event?.id || !event.task) return;
-      
-      const taskId = String(event.id);
-      const { progress } = event.task;
-      
-      if (typeof progress === "number") {
-        const progressPercentage = Math.round(progress * 100);
-        scheduleProgressUpdate(taskId, progressPercentage);
-      }
-    },
-    [scheduleProgressUpdate]
-  );
-  
-  // Submit edit form
+
   const handleEditTaskSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
+    async (event: FormEvent) => {
       event.preventDefault();
-      if (!editingTask || isSavingEdit) return;
-      
+      if (isSavingEdit || !editingTask) return;
+
+      setIsSavingEdit(true);
       setEditModalError(null);
-      const result = buildEditActionPayload(editTaskState, editingTask.id);
-      
+
+      const result = buildEditActionPayload(editTaskState, editingTask);
       if ("error" in result) {
         setEditModalError(result.error);
+        setIsSavingEdit(false);
         return;
       }
-      
-      setIsSavingEdit(true);
+
       try {
-        await patchAction(result.payload as any);
-        handleCloseEditModal();
-        // Refresh data after successful save
+        await patchAction(result.payload);
         await refetchActions();
+        handleCloseEditModal();
       } catch (error) {
-        console.error("Failed to save task:", error);
-        setEditModalError(error instanceof Error ? error.message : "Failed to save changes.");
+        const message = error instanceof Error ? error.message : "Failed to save changes";
+        setEditModalError(message);
+        console.error("Failed to update task:", error);
       } finally {
         setIsSavingEdit(false);
       }
     },
-    [editingTask, editTaskState, isSavingEdit, buildEditActionPayload, handleCloseEditModal, refetchActions]
+    [isSavingEdit, editingTask, editTaskState, buildEditActionPayload, refetchActions, handleCloseEditModal]
   );
-  
-  // Color management
-  const refreshTaskColorCache = useCallback(() => {
-    const nextMap = new Map<string, TaskColorInfo>();
-    ganttData.tasks.forEach((task) => {
-      if (!task?.id) return;
-      const taskId = String(task.id);
-      const color = (task as any).color || getProjectColor(task.projectId, selectedProjectIds);
-      if (!color) return;
-      nextMap.set(taskId, {
-        color,
-        textColor: pickReadableTextColor(color),
-        type: task.type,
-      });
-    });
-    taskColorMapRef.current = nextMap;
-  }, [ganttData.tasks, selectedProjectIds]);
-  
-  const applyColorsToChart = useCallback(() => {
-    const container = ganttContainerRef.current;
-    if (!container) return;
-    const colorMap = taskColorMapRef.current;
-    if (!colorMap.size) return;
-    
-    const bars = container.querySelectorAll<HTMLElement>(".wx-bar[data-id]");
-    bars.forEach((bar) => {
-      const identifier = bar.getAttribute("data-id");
-      if (!identifier) return;
-      const taskInfo = colorMap.get(identifier);
-      if (!taskInfo) return;
-      
-      const { color, textColor } = taskInfo;
-      bar.style.backgroundColor = color;
-      bar.style.borderColor = color;
-      
-      const contentElement = bar.querySelector<HTMLElement>(".wx-content");
-      if (contentElement) contentElement.style.color = textColor;
-      
-      const progressElement = bar.querySelector<HTMLElement>(".wx-progress-percent");
-      if (progressElement) progressElement.style.backgroundColor = color;
-    });
-  }, []);
-  
-  const scheduleColorRefresh = useCallback(() => {
-    if (colorRefreshTimerRef.current) {
-      window.cancelAnimationFrame(colorRefreshTimerRef.current);
-    }
-    colorRefreshTimerRef.current = window.requestAnimationFrame(() => {
-      refreshTaskColorCache();
-      applyColorsToChart();
-    });
-  }, [refreshTaskColorCache, applyColorsToChart]);
-  
-  // Effects
+
+  const handleSvarUpdateTask = useCallback(
+    async ({ id, task }: { id: string | number; task: Partial<ITask> }) => {
+      if (!id) return false;
+
+      try {
+        const payload: Record<string, unknown> = {
+          model_name: "action",
+          id: String(id),
+        };
+
+        if (task.start instanceof Date) {
+          payload["dt_start"] = { mode: "update", value: task.start.getTime() };
+        }
+        if (task.end instanceof Date) {
+          payload["dt_end"] = { mode: "update", value: task.end.getTime() };
+          payload["dt_due"] = { mode: "update", value: task.end.getTime() };
+        }
+        if (typeof task.progress === "number") {
+          payload["prefs.userdefined.progress"] = {
+            mode: "update",
+            value: Math.round(task.progress * 100),
+          };
+        }
+
+        await patchAction(payload);
+        return true;
+      } catch (error) {
+        console.error("Failed to update task:", error);
+        return false;
+      }
+    },
+    []
+  );
+
+  // Force Gantt re-render when selection changes
   useEffect(() => {
     setGanttKey((prev) => prev + 1);
   }, [selectedProjectIds]);

@@ -165,22 +165,15 @@ export const useGanttData = ({
     setProjectsError(null);
     
     try {
-      console.log("[useGanttData] Fetching projects...");
       const response = await Projects({ is_active: true, limit: 500 });
-      
-      console.log("[useGanttData] Projects API response:", response);
       
       if (!isMountedRef.current) return;
       
       const records = extractRecordsFromResponse(response);
-      console.log("[useGanttData] Extracted records:", records.length, records.slice(0, 3));
-      
       const projectOptions = records
         .map(parseProjectOption)
         .filter((p): p is ProjectOption => p !== null)
         .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-      
-      console.log("[useGanttData] Parsed project options:", projectOptions.length, projectOptions.slice(0, 3));
       
       setProjects(projectOptions);
     } catch (error) {
@@ -349,5 +342,3 @@ export const useGanttData = ({
     refetchAll,
   };
 };
-
-export default useGanttData;

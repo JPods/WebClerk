@@ -36,6 +36,19 @@ type CachedEntry = {
 
 const CACHE_PREFIX = "wc_cache_v1:";
 
+// Drop cached GET responses; used when identity changes so old-user data is not reused
+export const clearResponseCache = () => {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    const keys = Object.keys(sessionStorage);
+    for (const key of keys) {
+      if (key.startsWith(CACHE_PREFIX)) sessionStorage.removeItem(key);
+    }
+  } catch {
+    // ignore storage access errors
+  }
+};
+
 const getCacheKey = (baseURL: string | undefined, url: string, params?: any): string => {
   const search = params ? JSON.stringify(params) : "";
   return `${CACHE_PREFIX}${baseURL ?? ""}${url}?${search}`;
@@ -147,6 +160,7 @@ export const clearTokens = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   }
+  clearResponseCache();
 };
 
 // Instance for protected API calls

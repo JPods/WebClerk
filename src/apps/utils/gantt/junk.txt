@@ -1,12 +1,3 @@
-Similar to Kanban, we need to get Gantt working.
-src/apps/utils/gantt
-
-SVAR Gantt is installed. How would you recommend integrating this tool. 
-
-My approach is similar to Kanban, on opening a select list of is_active projects needs to be created. Unlike Kanban, the selectlist should be displayed in a list box so multiple projects can be selected at once.
-
-for the selected projects all is_active action records should be displayed. If they have no assigned start date, they should be displayed on today-5 days.
-
-Please draft a readme plan for how to best implement SVAR Gantt
-
-Are there changes to our project and action schema that will improve Kanban and Gantt
+Let's clean up the action data
+Loop through records 
+with the following behaviors

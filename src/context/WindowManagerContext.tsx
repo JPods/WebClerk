@@ -7,6 +7,8 @@ export type WindowEntry = {
   maximized: boolean;
   x: number;
   y: number;
+  width: number;
+  height: number;
   openedAt: number;
 };
 
@@ -19,6 +21,7 @@ type WindowManagerCtx = {
   activateWindow: (path: string) => void;
   updateWindowPosition: (path: string, x: number, y: number) => void;
   maximizeWindow: (path: string, maximized?: boolean) => void;
+  updateWindowSize: (path: string, width: number, height: number) => void;
 };
 
 const WindowManagerContext = createContext<WindowManagerCtx | null>(null);
@@ -47,7 +50,17 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       setActivePath(path);
       return [
         ...prev,
-        { path, title, minimized: false, maximized: false, x: stagger, y: stagger, openedAt: openedCounter.current++ },
+        {
+          path,
+          title,
+          minimized: false,
+          maximized: false,
+          x: stagger,
+          y: stagger,
+          width: 980,
+          height: 640,
+          openedAt: openedCounter.current++,
+        },
       ];
     });
   }, []);
@@ -93,9 +106,13 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     setWindows((prev) => prev.map((w) => (w.path === path ? { ...w, maximized, minimized: false } : w)));
   }, []);
 
+  const updateWindowSize = useCallback((path: string, width: number, height: number) => {
+    setWindows((prev) => prev.map((w) => (w.path === path ? { ...w, width, height } : w)));
+  }, []);
+
   const api = useMemo<WindowManagerCtx>(
-    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow }),
-    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow]
+    () => ({ windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize }),
+    [windows, activePath, ensureWindow, closeWindow, minimizeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize]
   );
 
   return <WindowManagerContext.Provider value={api}>{children}</WindowManagerContext.Provider>;

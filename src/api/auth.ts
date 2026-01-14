@@ -1,7 +1,8 @@
-import apiClient, { authClient, clearTokens, persistTokens } from "./axios"; // separated clients
+import apiClient, { authClient, clearResponseCache, clearTokens, persistTokens } from "./axios"; // separated clients
 import { EmailVerifyFormData, RegisterFormData } from "../validations/auth"; // Adjust the import path as necessary
 import { AuthURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
-import { User } from "../store/slices/authSlice";
+import { User, setUser, clearUser } from "../store/slices/authSlice";
+import { store } from "../store";
 
 // Keys that identify a payload containing user profile attributes
 const USER_SHAPE_KEYS = new Set([
@@ -79,6 +80,34 @@ const normalizeRole = (rawRole: unknown): string | string[] => {
   return String(rawRole);
 };
 
+const hasUserIdentity = (user: User | null): boolean => {
+  if (!user) return false;
+  return Boolean(user.id || user.email);
+};
+
+const persistUserProfile = (user: User | null) => {
+  if (typeof localStorage === "undefined") return;
+  if (hasUserIdentity(user)) {
+    localStorage.setItem("userProfile", JSON.stringify(user));
+  } else {
+    localStorage.removeItem("userProfile");
+  }
+};
+
+const resetClientState = () => {
+  // Clear tokens and cached GET responses so a new identity cannot see old data
+  clearTokens();
+  clearResponseCache();
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem("userProfile");
+  }
+  try {
+    store.dispatch(clearUser());
+  } catch {
+    // dispatch is best-effort; ignore if store not ready
+  }
+};
+
 export const mapApiProfileToUser = (input: any): User => {
   const raw = unwrapUserPayload(input) ?? {};
 
@@ -100,8 +129,24 @@ export const mapApiProfileToUser = (input: any): User => {
 
 export const login = async (credentials:any) => {
   try {
-  const res = await authClient.post(AuthURL.LOGIN, credentials);
-    return res.data.data;
+    const res = await authClient.post(AuthURL.LOGIN, credentials);
+    const payload = res?.data?.data ?? res?.data ?? {};
+
+    // Extract tokens and user, then reset caches before storing new identity
+    const access = payload?.access ?? payload?.token ?? payload?.access_token ?? payload?.tokens?.access;
+    const refresh = payload?.refresh ?? payload?.refresh_token ?? payload?.tokens?.refresh;
+    const user = mapApiProfileToUser(payload?.user ?? payload);
+
+    resetClientState();
+    if (access) persistTokens(access, refresh ?? null);
+    if (hasUserIdentity(user)) {
+      persistUserProfile(user);
+      try {
+        store.dispatch(setUser(user));
+      } catch {}
+    }
+
+    return payload;
   }
   catch (error: any) {
     return error.response?.data || error.message
@@ -115,15 +160,15 @@ export const signup = async (userData: RegisterFormData) => {
 
 export const logout = async () => {
   try {
-        const refreshToken = localStorage.getItem("refreshToken");
-  const res = await authClient.post(AuthURL.LOGOUT,{
-            refresh:refreshToken,
-        });
-    clearTokens();
-    localStorage.removeItem("userProfile");
-        return res.data;
+    const refreshToken = typeof localStorage !== "undefined" ? localStorage.getItem("refreshToken") : null;
+    const res = await authClient.post(AuthURL.LOGOUT, {
+      refresh: refreshToken,
+    });
+    return res.data;
   } catch (error:any) {
-        return error.response?.status || error.message
+    return error.response?.status || error.message
+  } finally {
+    resetClientState();
   }
 };
 
