@@ -3,7 +3,13 @@ import { baseTransactionSchema } from "../../base/utils/baseSchema";
 import { baseLineItemSchema } from "../../base/utils/baseLineItemSchema";
 
 // Valid invoice status values
-const validInvoiceStatuses = ["draft", "sent", "paid", "overdue", "cancelled"] as const;
+const validInvoiceStatuses = [
+  "draft",
+  "sent",
+  "paid",
+  "overdue",
+  "cancelled",
+] as const;
 
 // Invoice Line schema
 export const invoiceLineSchema = baseLineItemSchema
@@ -48,9 +54,11 @@ const baseInvoiceTransactionSchema = baseTransactionSchema.extend({
 // Enhanced invoice schema with legacy (Vue) invoice form fields
 export const invoiceSchema = baseInvoiceTransactionSchema
   .extend({
-    invoice_no: z.string().min(1, "Invoice number is required"),
+    ida: z.string().min(1, "Invoice number is required"),
     status: z.enum(validInvoiceStatuses, {
-      errorMap: () => ({ message: `Status must be one of: ${validInvoiceStatuses.join(", ")}` }),
+      errorMap: () => ({
+        message: `Status must be one of: ${validInvoiceStatuses.join(", ")}`,
+      }),
     }),
     vendor_id: z.number().optional(),
     manufacturer_id: z.number().optional(),
@@ -74,6 +82,7 @@ export const invoiceSchema = baseInvoiceTransactionSchema
     actionDate: z.string().optional(),
     actionTime: z.string().optional(),
     salesName: z.string().optional(),
+    salesNameID: z.string().optional(),
     orderedBy: z.string().optional(),
     contractDetailTag: z.string().optional(),
     terms: z.string().optional(),
@@ -89,19 +98,48 @@ export const invoiceSchema = baseInvoiceTransactionSchema
     // Date and finance fields (kept optional)
     invoice_date: z.string().optional(),
     due_date: z.string().optional(),
-    payment_terms: z.string().max(100, "Payment terms must be 100 characters or less").optional(),
+    payment_terms: z
+      .string()
+      .max(100, "Payment terms must be 100 characters or less")
+      .optional(),
     subtotal: z.number().nonnegative().optional(),
     tax_amount: z.number().nonnegative().optional(),
     total_amount: z.number().nonnegative().optional(),
     paid_amount: z.number().nonnegative().optional(),
     balance: z.number().optional(),
 
-    // Line items remain optional for header-only edits
-    line_items: z.array(invoiceLineSchema).optional().default([]),
+    payment_method: z
+      .string()
+      .max(50, "Payment method must be 50 characters or less")
+      .optional(),
+    notes: z
+      .string()
+      .max(1000, "Notes must be 1000 characters or less")
+      .optional(),
+    priority: z
+      .string()
+      .max(32, "Priority must be 32 characters or less")
+      .optional(),
 
-    payment_method: z.string().max(50, "Payment method must be 50 characters or less").optional(),
-    notes: z.string().max(1000, "Notes must be 1000 characters or less").optional(),
-    priority: z.string().max(32, "Priority must be 32 characters or less").optional(),
+    // JSON fields
+    cost: z.any().optional(),
+    sell: z.any().optional(),
+    finance: z.any().optional(),
+    flow: z.any().optional(),
+    source: z.any().optional(),
+    subtotals: z.any().optional(),
+
+    // Line items
+    lines: z.any().default([]),
+
+    // Timestamps
+    dt_created: z.any().optional(),
+    dt_updated: z.any().optional(),
+    dt_modified: z.any().optional(),
+
+    // Additional fields
+    valid_until: z.any().optional(),
+    version: z.any().optional(),
   })
   .refine(
     (data) => {
@@ -119,7 +157,11 @@ export const invoiceSchema = baseInvoiceTransactionSchema
   )
   .refine(
     (data) => {
-      if (data.total_amount !== undefined && data.paid_amount !== undefined && data.balance !== undefined) {
+      if (
+        data.total_amount !== undefined &&
+        data.paid_amount !== undefined &&
+        data.balance !== undefined
+      ) {
         const calculatedBalance = data.total_amount - data.paid_amount;
         return data.balance === calculatedBalance;
       }
@@ -132,7 +174,11 @@ export const invoiceSchema = baseInvoiceTransactionSchema
   )
   .refine(
     (data) => {
-      if (data.customer_id && data.vendor_id && data.customer_id === data.vendor_id) {
+      if (
+        data.customer_id &&
+        data.vendor_id &&
+        data.customer_id === data.vendor_id
+      ) {
         return false;
       }
       return true;

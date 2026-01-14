@@ -1,8 +1,6 @@
-import { InvoiceFormData } from "../utils/invoiceSchema";
-
 export interface InvoiceAddProps {
   modeProp?: "add" | "edit" | "view";
-  dataProp?: Partial<InvoiceFormData> | null;
+  dataProp?: any;
   hideBreadcrumb?: boolean;
   onSaved?: () => void;
   inline?: boolean;
@@ -10,6 +8,7 @@ export interface InvoiceAddProps {
 }
 
 export interface CreateInvoiceRequest {
+  ida: number;
   invoice_no: string;
   status: string;
   company: string;
@@ -43,6 +42,7 @@ export interface CreateInvoiceRequest {
 
 export interface UpdateInvoiceRequest {
   id?: number;
+  ida: number;
   invoice_no?: string;
   status?: string;
   company?: string;

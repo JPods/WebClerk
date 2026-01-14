@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
-
-// Explicit order for status workflow visualization
-export const STATUS_ORDER: InvoiceStatus[] = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
+export type InvoiceStatus =
+  | "draft"
+  | "confirmed"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export interface StatusTransition {
   from: InvoiceStatus;
@@ -25,133 +27,134 @@ export interface StatusConfig {
 // Status configuration
 const STATUS_CONFIG: Record<InvoiceStatus, StatusConfig> = {
   draft: {
-    label: 'Draft',
-    color: 'text-gray-600 dark:text-gray-400',
-    bgColor: 'bg-gray-100 dark:bg-gray-700',
-    description: 'Invoice is being prepared',
+    label: "Draft",
+    color: "text-gray-600 dark:text-gray-400",
+    bgColor: "bg-gray-100 dark:bg-gray-700",
+    description: "Invoice is being prepared",
     transitions: [
       {
-        from: 'draft',
-        to: 'sent',
-        label: 'Send Invoice',
-        description: 'Mark invoice as sent'
+        from: "draft",
+        to: "confirmed",
+        label: "Confirm Order",
+        description: "Mark invoice as confirmed",
       },
       {
-        from: 'draft',
-        to: 'cancelled',
-        label: 'Cancel',
-        description: 'Cancel this invoice',
-        requiresConfirmation: true
-      }
+        from: "draft",
+        to: "cancelled",
+        label: "Cancel",
+        description: "Cancel this invoice",
+        requiresConfirmation: true,
+      },
     ],
-    isFinal: false
+    isFinal: false,
   },
-  sent: {
-    label: 'Sent',
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900',
-    description: 'Invoice has been sent to customer',
+  confirmed: {
+    label: "Confirmed",
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-100 dark:bg-blue-900",
+    description: "Invoice has been confirmed",
     transitions: [
       {
-        from: 'sent',
-        to: 'paid',
-        label: 'Mark Paid',
-        description: 'Mark invoice as paid'
+        from: "confirmed",
+        to: "shipped",
+        label: "Mark Shipped",
+        description: "Mark invoice as shipped",
       },
       {
-        from: 'sent',
-        to: 'overdue',
-        label: 'Mark Overdue',
-        description: 'Mark invoice as overdue'
+        from: "confirmed",
+        to: "cancelled",
+        label: "Cancel",
+        description: "Cancel this invoice",
+        requiresConfirmation: true,
       },
-      {
-        from: 'sent',
-        to: 'cancelled',
-        label: 'Cancel',
-        description: 'Cancel this invoice',
-        requiresConfirmation: true
-      }
     ],
-    isFinal: false
+    isFinal: false,
   },
-  paid: {
-    label: 'Paid',
-    color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900',
-    description: 'Invoice has been paid',
+  shipped: {
+    label: "Shipped",
+    color: "text-yellow-600 dark:text-yellow-400",
+    bgColor: "bg-yellow-100 dark:bg-yellow-900",
+    description: "Invoice has been shipped",
+    transitions: [
+      {
+        from: "shipped",
+        to: "delivered",
+        label: "Mark Delivered",
+        description: "Mark invoice as delivered",
+      },
+      {
+        from: "shipped",
+        to: "cancelled",
+        label: "Cancel",
+        description: "Cancel this invoice",
+        requiresConfirmation: true,
+      },
+    ],
+    isFinal: false,
+  },
+  delivered: {
+    label: "Delivered",
+    color: "text-green-600 dark:text-green-400",
+    bgColor: "bg-green-100 dark:bg-green-900",
+    description: "Invoice has been delivered",
     transitions: [], // Final state
-    isFinal: true
-  },
-  overdue: {
-    label: 'Overdue',
-    color: 'text-red-600 dark:text-red-400',
-    bgColor: 'bg-red-100 dark:bg-red-900',
-    description: 'Invoice is overdue',
-    transitions: [], // Final state - cannot mark as paid if overdue
-    isFinal: true
+    isFinal: true,
   },
   cancelled: {
-    label: 'Cancelled',
-    color: 'text-red-600 dark:text-red-400',
-    bgColor: 'bg-red-100 dark:bg-red-900',
-    description: 'Invoice has been cancelled',
+    label: "Cancelled",
+    color: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-100 dark:bg-red-900",
+    description: "Invoice has been cancelled",
     transitions: [], // Final state
-    isFinal: true
-  }
+    isFinal: true,
+  },
 };
 
-export const isInvoiceStatus = (value: unknown): value is InvoiceStatus => {
-  return typeof value === 'string' && STATUS_ORDER.includes(value as InvoiceStatus);
-};
+export function useInvoiceStatus(initialStatus: InvoiceStatus = "draft") {
+  const [currentStatus, setCurrentStatus] =
+    useState<InvoiceStatus>(initialStatus);
 
-export const normalizeInvoiceStatus = (value: unknown): InvoiceStatus => {
-  return isInvoiceStatus(value) ? (value as InvoiceStatus) : 'draft';
-};
-
-export function useInvoiceStatus(initialStatus: InvoiceStatus | string | null | undefined = 'draft') {
-  const normalizedInitial = normalizeInvoiceStatus(initialStatus);
-  const [currentStatus, setCurrentStatus] = useState<InvoiceStatus>(normalizedInitial);
-
-  const getStatusConfig = useCallback((status: InvoiceStatus | string | null | undefined) => {
-    const safeStatus = normalizeInvoiceStatus(status);
-    return STATUS_CONFIG[safeStatus];
+  const getStatusConfig = useCallback((status: InvoiceStatus) => {
+    return STATUS_CONFIG[status];
   }, []);
 
-  const getAvailableTransitions = useCallback((status: InvoiceStatus | string | null | undefined) => {
-    const safeStatus = normalizeInvoiceStatus(status);
-    return STATUS_CONFIG[safeStatus].transitions;
+  const getAvailableTransitions = useCallback((status: InvoiceStatus) => {
+    return STATUS_CONFIG[status].transitions;
   }, []);
 
-  const canTransitionTo = useCallback((fromStatus: InvoiceStatus | string | null | undefined, toStatus: InvoiceStatus | string | null | undefined) => {
-    const safeFrom = normalizeInvoiceStatus(fromStatus);
-    const safeTo = normalizeInvoiceStatus(toStatus);
-    const transitions = getAvailableTransitions(safeFrom);
-    return transitions.some(t => t.to === safeTo);
-  }, [getAvailableTransitions]);
+  const canTransitionTo = useCallback(
+    (fromStatus: InvoiceStatus, toStatus: InvoiceStatus) => {
+      const transitions = getAvailableTransitions(fromStatus);
+      return transitions.some((t) => t.to === toStatus);
+    },
+    [getAvailableTransitions]
+  );
 
-  const transitionTo = useCallback((newStatus: InvoiceStatus | string | null | undefined) => {
-    const safeStatus = normalizeInvoiceStatus(newStatus);
-    if (canTransitionTo(currentStatus, safeStatus)) {
-      setCurrentStatus(safeStatus);
-      return true;
-    }
-    return false;
-  }, [currentStatus, canTransitionTo]);
+  const transitionTo = useCallback(
+    (newStatus: InvoiceStatus) => {
+      if (canTransitionTo(currentStatus, newStatus)) {
+        setCurrentStatus(newStatus);
+        return true;
+      }
+      return false;
+    },
+    [currentStatus, canTransitionTo]
+  );
 
   const getStatusHistory = useCallback(() => {
     // In a real app, this would come from the backend
     // For now, return mock history
     return [
       {
-        status: 'draft',
+        status: "draft",
         timestamp: new Date(Date.now() - 86400000), // 1 day ago
-        user: 'System'
+        user: "System",
       },
       {
         status: currentStatus,
         timestamp: new Date(),
-        user: 'Current User'
-      }
+        user: "Current User",
+      },
     ];
   }, [currentStatus]);
 
@@ -162,7 +165,7 @@ export function useInvoiceStatus(initialStatus: InvoiceStatus | string | null | 
     getAvailableTransitions,
     canTransitionTo,
     transitionTo,
-    getStatusHistory
+    getStatusHistory,
   };
 }
 

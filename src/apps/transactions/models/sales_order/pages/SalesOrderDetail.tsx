@@ -1606,14 +1606,19 @@ export default function SalesOrderDetail({
             if (!toNumeric(priceObject.sell)) {
               priceObject.sell = priceObject.unit;
             }
-            if (priceObject.discount_amount === undefined) {
-              priceObject.discount_amount = 0;
+            if (
+              (priceObject as Record<string, any>).discount_amount === undefined
+            ) {
+              (priceObject as Record<string, any>).discount_amount = 0;
             }
-            if (priceObject.discount_percent === undefined) {
-              priceObject.discount_percent = 0;
+            if (
+              (priceObject as Record<string, any>).discount_percent ===
+              undefined
+            ) {
+              (priceObject as Record<string, any>).discount_percent = 0;
             }
-            if (priceObject.precision === undefined) {
-              priceObject.precision = 2;
+            if ((priceObject as Record<string, any>).precision === undefined) {
+              (priceObject as Record<string, any>).precision = 2;
             }
             container.price = priceObject;
 
@@ -1625,8 +1630,8 @@ export default function SalesOrderDetail({
             if (!toNumeric(costObject.unit)) {
               costObject.unit = resolveUnitCost(item);
             }
-            if (costObject.precision === undefined) {
-              costObject.precision = 2;
+            if ((costObject as Record<string, any>).precision === undefined) {
+              (costObject as Record<string, any>).precision = 2;
             }
             container.cost = costObject;
 
