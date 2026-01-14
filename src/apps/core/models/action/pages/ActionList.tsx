@@ -537,6 +537,7 @@ const ActionListPage = () => {
           data={data}
           columns={columns}
           title="Actions"
+          storageKey="core.actions.list"
           loading={loading}
           filters={filters}
           enableExport={true}
@@ -566,6 +567,8 @@ const ActionListPage = () => {
             </div>
           }
           onRowClicked={handleEdit}
+          rowClickMode="onlyIdAndActions"
+          rowClickAllowedColumnNames={["id", "actions"]}
         />
       </ComponentCard>
     </div>

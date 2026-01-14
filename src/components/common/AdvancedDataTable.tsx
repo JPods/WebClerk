@@ -13,8 +13,6 @@ import {
   FaTimes,
   FaFilter,
   FaDownload,
-  FaSortAmountDown,
-  FaSortAmountUp,
   FaGripVertical,
 } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
@@ -31,18 +29,41 @@ export interface ColumnFilter {
   type?: "select" | "text" | "date";
 }
 
+type RowClickMode = "anywhere" | "onlyIdAndActions";
+type SelectionMode = "checkbox" | "rowClick";
+
 interface AdvancedDataTableProps<T> {
   data: T[];
   columns: TableColumn<T>[];
   title?: string;
   loading?: boolean;
   filters?: ColumnFilter[];
+  /** Unique key used to persist column order/visibility in localStorage. Use a different key per module/table. */
+  storageKey?: string;
   enableExport?: boolean;
   enableSelection?: boolean;
   onSelectionChange?: (selectedRows: T[]) => void;
   customActions?: React.ReactNode;
   exportFileName?: string;
   onRowClicked?: (row: T) => void;
+  /** Preferred over `onRowClicked`: called when user activates a row via ID cell / action icons. */
+  onRowActivate?: (row: T) => void;
+  /** Stable row id field used for selection + DataTable keying. Defaults to "id". */
+  rowKeyField?: string;
+  /** How selection should work when `enableSelection` is true. */
+  selectionMode?: SelectionMode;
+  /** When true, allows toggling table to show only selected rows. */
+  enableSelectedOnlyFilter?: boolean;
+  /**
+   * Controls when `onRowClicked` fires.
+   * - `anywhere`: clicking any cell triggers `onRowClicked` (current behavior)
+   * - `onlyIdAndActions`: only clicks on ID / Actions columns trigger `onRowClicked`
+   */
+  rowClickMode?: RowClickMode;
+  /** Column names (case-insensitive) that are allowed to trigger `onRowClicked` when `rowClickMode` is `onlyIdAndActions`. */
+  rowClickAllowedColumnNames?: string[];
+  /** Column ids that are allowed to trigger `onRowClicked` when `rowClickMode` is `onlyIdAndActions`. */
+  rowClickAllowedColumnIds?: Array<string | number>;
   searchPlaceholder?: string;
   noDataMessage?: string;
 }
@@ -75,7 +96,7 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
 
   const [, drop] = useDrop({
     accept: "column",
-    hover: (item: { index: number }, monitor) => {
+    hover: (item: { index: number }) => {
       if (!ref.current) return;
       const dragIndex = item.index;
       const hoverIndex = index;
@@ -121,18 +142,32 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   title = "Data Table",
   loading = false,
   filters = [],
+  storageKey,
   enableExport = true,
   enableSelection = false,
   onSelectionChange,
   customActions,
   exportFileName = "export",
   onRowClicked,
+  onRowActivate,
+  rowKeyField = "id",
+  selectionMode = "rowClick",
+  enableSelectedOnlyFilter = true,
+  rowClickMode = "onlyIdAndActions",
+  rowClickAllowedColumnNames,
+  rowClickAllowedColumnIds,
   searchPlaceholder = "Search...",
   noDataMessage = "No data available",
 }: AdvancedDataTableProps<T>) {
+  type RowWithKey = T & { __wcRowKey: string };
+  const internalRowKeyField = "__wcRowKey" as const;
+
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [selectionAnchorKey, setSelectionAnchorKey] = useState<string | null>(null);
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
@@ -144,11 +179,106 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   const [showColumnManager, setShowColumnManager] = useState(false);
   const columnManagerRef = useRef<HTMLDivElement>(null);
 
-  // Update columns when initialColumns change
+  const didHydrateLayoutRef = useRef(false);
+
+  const getColumnPersistKey = useCallback(
+    (col: TableColumn<T>, index: number) => {
+      if (col.id != null) return `id:${String(col.id)}`;
+      if (typeof col.name === "string") return `name:${col.name.trim().toLowerCase()}`;
+      if (typeof col.selector === "string") return `selector:${col.selector.trim().toLowerCase()}`;
+      if (typeof col.sortField === "string") return `sortField:${col.sortField.trim().toLowerCase()}`;
+      return `index:${index}`;
+    },
+    []
+  );
+
+  const columnStorageKey = useMemo(() => {
+    if (!storageKey) return null;
+    return `AdvancedDataTable:v1:${storageKey}:columns`;
+  }, [storageKey]);
+
+  const readPersistedLayout = useCallback(() => {
+    if (!columnStorageKey) return null;
+    try {
+      const raw = localStorage.getItem(columnStorageKey);
+      if (!raw) return null;
+      return JSON.parse(raw) as {
+        v: 1;
+        order?: string[];
+        visibility?: Record<string, boolean>;
+      };
+    } catch {
+      return null;
+    }
+  }, [columnStorageKey]);
+
+  const writePersistedLayout = useCallback(
+    (nextColumns: TableColumn<T>[], nextVisibility: boolean[]) => {
+      if (!columnStorageKey) return;
+      try {
+        const keys = nextColumns.map((c, i) => getColumnPersistKey(c, i));
+        const visibility: Record<string, boolean> = {};
+        keys.forEach((k, i) => {
+          visibility[k] = nextVisibility[i] ?? true;
+        });
+        localStorage.setItem(
+          columnStorageKey,
+          JSON.stringify({ v: 1 as const, order: keys, visibility })
+        );
+      } catch {
+        // ignore storage errors
+      }
+    },
+    [columnStorageKey, getColumnPersistKey]
+  );
+
+  // Update columns when initialColumns change (hydrate persisted order/visibility per storageKey)
   useEffect(() => {
-    setColumns(initialColumns);
-    setColumnVisibility(initialColumns.map(() => true));
-  }, [initialColumns]);
+    const persisted = readPersistedLayout();
+    const base = initialColumns.map((col, index) => ({
+      col,
+      key: getColumnPersistKey(col, index),
+    }));
+
+    if (!persisted?.order?.length) {
+      setColumns(initialColumns);
+      setColumnVisibility(initialColumns.map(() => true));
+      didHydrateLayoutRef.current = true;
+      return;
+    }
+
+    const byKey = new Map(base.map((x) => [x.key, x.col] as const));
+    const used = new Set<string>();
+    const ordered: TableColumn<T>[] = [];
+
+    for (const key of persisted.order) {
+      const col = byKey.get(key);
+      if (col) {
+        ordered.push(col);
+        used.add(key);
+      }
+    }
+
+    for (const item of base) {
+      if (!used.has(item.key)) ordered.push(item.col);
+    }
+
+    const visibilityArr = ordered.map((col, i) => {
+      const key = getColumnPersistKey(col, i);
+      return persisted.visibility?.[key] ?? true;
+    });
+
+    setColumns(ordered);
+    setColumnVisibility(visibilityArr);
+    didHydrateLayoutRef.current = true;
+  }, [initialColumns, readPersistedLayout, getColumnPersistKey]);
+
+  // Persist layout whenever user changes it
+  useEffect(() => {
+    if (!columnStorageKey) return;
+    if (!didHydrateLayoutRef.current) return;
+    writePersistedLayout(columns, columnVisibility);
+  }, [columns, columnVisibility, columnStorageKey, writePersistedLayout]);
 
   // Handle click outside to close export dropdown and column manager
   useEffect(() => {
@@ -213,12 +343,167 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   const resetColumnOrder = useCallback(() => {
     setColumns(initialColumns);
     setColumnVisibility(initialColumns.map(() => true));
-  }, [initialColumns]);
+    if (columnStorageKey) {
+      try {
+        localStorage.removeItem(columnStorageKey);
+      } catch {
+        // ignore
+      }
+    }
+  }, [initialColumns, columnStorageKey]);
 
   // Get visible columns
   const visibleColumns = useMemo(() => {
     return columns.filter((_, index) => columnVisibility[index]);
   }, [columns, columnVisibility]);
+
+  const onActivate = onRowActivate ?? onRowClicked;
+
+  const normalize = useCallback((value: string) => value.trim().toLowerCase(), []);
+
+  const getRowKey = useCallback(
+    (row: T, rowIndex?: number) => {
+      const internalKey = (row as any)?.[internalRowKeyField];
+      if (internalKey != null) return String(internalKey);
+
+      const fromKeyField = rowKeyField ? (row as any)?.[rowKeyField] : undefined;
+      const fromId = (row as any)?.id;
+      const fromAltId = (row as any)?._id ?? (row as any)?.uuid;
+      const value = fromKeyField ?? fromId ?? fromAltId ?? rowIndex;
+      return String(value);
+    },
+    [rowKeyField]
+  );
+
+  const selectedRowKeySet = useMemo(
+    () => new Set(selectedRowKeys),
+    [selectedRowKeys]
+  );
+
+  const rowByKey = useMemo(() => {
+    const map = new Map<string, T>();
+    data.forEach((row, index) => {
+      map.set(getRowKey(row, index), row);
+    });
+    return map;
+  }, [data, getRowKey]);
+
+  // Keep selectedRows in sync if upstream data objects change.
+  useEffect(() => {
+    if (selectedRowKeys.length === 0) {
+      if (selectedRows.length !== 0) setSelectedRows([]);
+      return;
+    }
+    const nextSelected = selectedRowKeys
+      .map((key) => rowByKey.get(key))
+      .filter(Boolean) as T[];
+    setSelectedRows(nextSelected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowByKey]);
+
+  useEffect(() => {
+    if (showSelectedOnly && selectedRowKeys.length === 0) {
+      setShowSelectedOnly(false);
+    }
+  }, [showSelectedOnly, selectedRowKeys.length]);
+
+  const dataTableColumns = useMemo(() => {
+    const allowedNameSet = new Set(
+      (rowClickAllowedColumnNames ?? []).map(normalize)
+    );
+    const allowedIdSet = new Set(
+      (rowClickAllowedColumnIds ?? []).map((v) => String(v))
+    );
+
+    const isActivationColumn = (col: TableColumn<T>) => {
+      if (allowedIdSet.size > 0 && col.id != null) {
+        if (allowedIdSet.has(String(col.id))) return true;
+      }
+      if (allowedNameSet.size > 0 && typeof col.name === "string") {
+        if (allowedNameSet.has(normalize(col.name))) return true;
+      }
+      if (allowedIdSet.size === 0 && allowedNameSet.size === 0) {
+        if (typeof col.name === "string") {
+          const name = normalize(col.name);
+          if (name === "id" || name.endsWith(" id") || name.startsWith("id ")) {
+            return true;
+          }
+          if (name.includes("action")) return true;
+        }
+        if (typeof col.id === "string") {
+          const id = normalize(col.id);
+          if (id === "id" || id.includes("action")) return true;
+        }
+      }
+      return false;
+    };
+
+    const isIdColumn = (col: TableColumn<T>) => {
+      if (typeof col.id === "string" && normalize(col.id) === "id") return true;
+      if (typeof col.name === "string" && normalize(col.name) === "id") return true;
+      return false;
+    };
+
+    return visibleColumns.map((col) => {
+      const activationCol = rowClickMode === "onlyIdAndActions" && !!onActivate && isActivationColumn(col);
+      const ignoreForSelection =
+        enableSelection && selectionMode === "rowClick" && activationCol;
+
+      // Make the ID column clickable for activate (edit/view) and prevent it from toggling selection.
+      if (activationCol && isIdColumn(col) && onActivate) {
+        const originalCell = col.cell;
+        const originalFormat = col.format;
+        const originalSelector = col.selector;
+
+        return {
+          ...col,
+          ignoreRowClick: true,
+          cell: (row: T, rowIndex: number, column: TableColumn<T>, id: string | number) => {
+            const content = originalCell
+              ? originalCell(row, rowIndex, column, id)
+              : originalFormat
+                ? originalFormat(row, rowIndex)
+                : typeof originalSelector === "function"
+                  ? (originalSelector(row, rowIndex) as any)
+                  : originalSelector
+                    ? (row as any)[originalSelector as any]
+                    : (row as any)?.[rowKeyField];
+
+            return (
+              <span
+                className="text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onActivate(row);
+                }}
+              >
+                {content as any}
+              </span>
+            );
+          },
+        };
+      }
+
+      if (ignoreForSelection) {
+        return {
+          ...col,
+          ignoreRowClick: true,
+        };
+      }
+
+      return col;
+    });
+  }, [
+    visibleColumns,
+    rowClickMode,
+    onActivate,
+    rowClickAllowedColumnNames,
+    rowClickAllowedColumnIds,
+    enableSelection,
+    selectionMode,
+    normalize,
+    rowKeyField,
+  ]);
 
   // Filter and search logic
   const filteredData = useMemo(() => {
@@ -247,6 +532,30 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     return result;
   }, [data, searchTerm, filterValues]);
 
+  const tableData = useMemo(() => {
+    if (!enableSelection || !enableSelectedOnlyFilter || !showSelectedOnly) {
+      return filteredData;
+    }
+
+    return filteredData.filter((row, index) =>
+      selectedRowKeySet.has(getRowKey(row, index))
+    );
+  }, [
+    enableSelection,
+    enableSelectedOnlyFilter,
+    showSelectedOnly,
+    filteredData,
+    selectedRowKeySet,
+    getRowKey,
+  ]);
+
+  const tableRows: RowWithKey[] = useMemo(() => {
+    return tableData.map((row, index) => ({
+      ...(row as any),
+      [internalRowKeyField]: getRowKey(row, index),
+    })) as RowWithKey[];
+  }, [tableData, getRowKey]);
+
   // Handle selection
   const handleSelectedRowsChange = useCallback(
     (state: { selectedRows: T[] }) => {
@@ -255,6 +564,111 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     },
     [onSelectionChange]
   );
+
+  const clearSelection = useCallback(() => {
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
+    setSelectionAnchorKey(null);
+    setShowSelectedOnly(false);
+    onSelectionChange?.([]);
+  }, [onSelectionChange]);
+
+  const setSelectionKeys = useCallback(
+    (keys: string[]) => {
+      const unique = Array.from(new Set(keys));
+      setSelectedRowKeys(unique);
+
+      const nextSelected = unique
+        .map((key) => rowByKey.get(key))
+        .filter(Boolean) as T[];
+      setSelectedRows(nextSelected);
+      onSelectionChange?.(nextSelected);
+    },
+    [rowByKey, onSelectionChange]
+  );
+
+  const handleRowClickSelect = useCallback(
+    (row: T, e: React.MouseEvent) => {
+      if (!enableSelection || selectionMode !== "rowClick") return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.closest(
+          "button,a,input,select,textarea,label,[role='button'],[data-ignore-row-select='true']"
+        )
+      ) {
+        return;
+      }
+
+      const displayIndex = tableData.findIndex(
+        (r, i) => getRowKey(r, i) === getRowKey(row)
+      );
+      const clickedIndex = displayIndex >= 0 ? displayIndex : 0;
+      const clickedKey = getRowKey(row, clickedIndex);
+
+      const isToggle = e.ctrlKey || e.metaKey;
+      const isRange = e.shiftKey;
+
+      if (isRange) {
+        const anchorKey = selectionAnchorKey ?? clickedKey;
+        const anchorIndex = tableData.findIndex(
+          (r, i) => getRowKey(r, i) === anchorKey
+        );
+
+        const from = anchorIndex >= 0 ? anchorIndex : clickedIndex;
+        const start = Math.min(from, clickedIndex);
+        const end = Math.max(from, clickedIndex);
+        const rangeKeys = tableData
+          .slice(start, end + 1)
+          .map((r, i) => getRowKey(r, start + i));
+
+        const next = isToggle ? [...selectedRowKeys, ...rangeKeys] : rangeKeys;
+        setSelectionKeys(next);
+        return;
+      }
+
+      setSelectionAnchorKey(clickedKey);
+
+      if (isToggle) {
+        if (selectedRowKeySet.has(clickedKey)) {
+          setSelectionKeys(selectedRowKeys.filter((k) => k !== clickedKey));
+        } else {
+          setSelectionKeys([...selectedRowKeys, clickedKey]);
+        }
+        return;
+      }
+
+      setSelectionKeys([clickedKey]);
+    },
+    [
+      enableSelection,
+      selectionMode,
+      tableData,
+      getRowKey,
+      selectionAnchorKey,
+      selectedRowKeys,
+      selectedRowKeySet,
+      setSelectionKeys,
+    ]
+  );
+
+  const conditionalRowStyles = useMemo(() => {
+    if (!enableSelection || selectionMode !== "rowClick") return undefined;
+
+    const selectedBg = theme === "dark" ? "#0b2a4a" : "#dbeafe";
+    const selectedHoverBg = theme === "dark" ? "#0a223b" : "#cfe3ff";
+    return [
+      {
+        when: (row: T) => selectedRowKeySet.has(getRowKey(row)),
+        style: {
+          backgroundColor: selectedBg,
+          "&:hover": {
+            backgroundColor: selectedHoverBg,
+          },
+        },
+      },
+    ];
+  }, [enableSelection, selectionMode, selectedRowKeySet, getRowKey, theme]);
 
   // Export to Excel
   const exportToExcel = useCallback(
@@ -381,6 +795,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
         paddingRight: "16px",
         fontSize: "14px",
         color: theme === "dark" ? "#e5e7eb" : "#374151",
+        backgroundColor: "inherit",
       },
     },
   };
@@ -479,7 +894,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                       className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       <FaFilePdf className="w-4 h-4 text-red-600" />
-                      PDF ({filteredData.length} rows)
+                      PDF ({tableData.length} rows)
                     </button>
 
                     {enableSelection && selectedRows.length > 0 && (
@@ -508,6 +923,41 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Selected-only filter */}
+          {enableSelection &&
+            enableSelectedOnlyFilter &&
+            selectionMode === "rowClick" &&
+            selectedRowKeys.length > 0 && (
+              <button
+                onClick={() => setShowSelectedOnly((v) => !v)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  showSelectedOnly
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                }`}
+              >
+                {showSelectedOnly ? "Show All" : "Show Selected"}
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  showSelectedOnly
+                    ? "bg-white text-blue-600"
+                    : "bg-blue-600 text-white"
+                }`}>
+                  {selectedRowKeys.length}
+                </span>
+              </button>
+            )}
+
+          {/* Clear selection */}
+          {enableSelection && selectionMode === "rowClick" && selectedRowKeys.length > 0 && (
+            <button
+              onClick={clearSelection}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              <FaTimes className="w-4 h-4" />
+              Clear Selection
+            </button>
           )}
 
           {/* Column Manager */}
@@ -570,7 +1020,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                     <div className="space-y-1 max-h-96 overflow-y-auto">
                       {columns.map((col, index) => (
                         <div
-                          key={index}
+                          key={getColumnPersistKey(col, index)}
                           className={`flex items-center gap-2 p-3 rounded transition-colors ${
                             columnVisibility[index]
                               ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -674,6 +1124,14 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
               </span>
             </span>
           )}
+          {enableSelection && enableSelectedOnlyFilter && showSelectedOnly && (
+            <span className="font-medium">
+              Showing:{" "}
+              <span className="text-blue-600 dark:text-blue-400">
+                Selected Only ({tableData.length})
+              </span>
+            </span>
+          )}
           {enableSelection && selectedRows.length > 0 && (
             <span className="font-medium">
               Selected:{" "}
@@ -694,13 +1152,19 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       {/* Data Table */}
       <div className="overflow-hidden bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
         <DataTable
-          columns={visibleColumns}
-          data={filteredData}
+          columns={dataTableColumns as unknown as TableColumn<RowWithKey>[]}
+          data={tableRows}
           pagination
           paginationPerPage={10}
           paginationRowsPerPageOptions={[10, 25, 50, 100]}
-          selectableRows={enableSelection}
-          onSelectedRowsChange={handleSelectedRowsChange}
+          keyField={internalRowKeyField}
+          selectableRows={enableSelection && selectionMode === "checkbox"}
+          selectableRowsHighlight={enableSelection && selectionMode === "checkbox"}
+          onSelectedRowsChange={
+            enableSelection && selectionMode === "checkbox"
+              ? handleSelectedRowsChange
+              : undefined
+          }
           progressPending={loading}
           progressComponent={
             <div className="flex items-center justify-center p-12">
@@ -728,9 +1192,18 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
           }
           theme={theme === "dark" ? "dark" : "default"}
           customStyles={customStyles}
+          conditionalRowStyles={conditionalRowStyles}
           highlightOnHover
           pointerOnHover
-          onRowClicked={onRowClicked}
+          onRowClicked={(row: RowWithKey, e: React.MouseEvent) => {
+            if (enableSelection && selectionMode === "rowClick") {
+              handleRowClickSelect(row, e);
+              return;
+            }
+            if (rowClickMode === "anywhere") {
+              onActivate?.(row);
+            }
+          }}
           responsive
           dense={false}
         />
