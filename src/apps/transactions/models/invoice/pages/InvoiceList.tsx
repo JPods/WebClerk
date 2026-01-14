@@ -4,25 +4,22 @@ import AdvancedDataTable, {
 } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { deleteAction } from "../../../../../api/userProfile";
-import { fetchInvoices, fetchInvoiceDetail } from "../services/invoiceApi";
+import { fetchInvoices } from "../services/invoiceApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import InvoiceDetail from "./InvoiceDetail";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import { PageRoutes } from "@/routes/Routes";
 
 export default function InvoiceList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
-  );
   const [loading, setLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const getInvoiceData = useCallback(async () => {
     try {
@@ -49,67 +46,41 @@ export default function InvoiceList() {
     getInvoiceData();
   }, [getInvoiceData]);
 
-  const openInvoice = useCallback(
-    async (row: any, modeToSet: "view" | "edit") => {
+  const handleView = useCallback(
+    (row: any) => {
       const invoiceId = row?.id;
       if (!invoiceId) {
         dispatch(showToast({ message: "Invoice id missing", type: "error" }));
         return;
       }
-
-      setFormMode(modeToSet);
-      setDetailLoading(true);
-      setSelectedInvoice(null);
-
-      try {
-        const detail = await fetchInvoiceDetail(invoiceId);
-        const hasDetail = detail && Object.keys(detail).length > 0;
-        if (!hasDetail) {
-          throw new Error("Invoice not found");
-        }
-        setSelectedInvoice({ ...row, ...detail });
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Failed to load invoice";
-        dispatch(showToast({ message, type: "error" }));
-        setFormMode(null);
-        setSelectedInvoice(null);
-      } finally {
-        setDetailLoading(false);
-      }
+      navigate(
+        PageRoutes.transactionsInvoiceDetail.replace(":id?", String(invoiceId)),
+        { state: { mode: "view" } }
+      );
     },
-    [dispatch]
-  );
-
-  const handleView = useCallback(
-    (row: any) => {
-      openInvoice(row, "view");
-    },
-    [openInvoice]
+    [dispatch, navigate]
   );
 
   const handleEdit = useCallback(
     (row: any) => {
-      openInvoice(row, "edit");
+      const invoiceId = row?.id;
+      if (!invoiceId) {
+        dispatch(showToast({ message: "Invoice id missing", type: "error" }));
+        return;
+      }
+      navigate(
+        PageRoutes.transactionsInvoiceDetail.replace(":id?", String(invoiceId)),
+        { state: { mode: "edit" } }
+      );
     },
-    [openInvoice]
+    [dispatch, navigate]
   );
 
   const handleAdd = () => {
-    setSelectedInvoice(null);
-    setFormMode("add");
-    setDetailLoading(false);
-  };
-
-  const handleFormSaved = () => {
-    getInvoiceData();
-    setFormMode(null);
-    setSelectedInvoice(null);
-  };
-
-  const handleFormCancel = () => {
-    setFormMode(null);
-    setSelectedInvoice(null);
+    navigate(
+      PageRoutes.transactionsInvoiceDetail.replace(":id?", ""),
+      { state: { mode: "add" } }
+    );
   };
 
   const handleDelete = async (row: any) => {
@@ -387,53 +358,32 @@ export default function InvoiceList() {
         </ComponentCard>
       </div> */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <AdvancedDataTable
-              data={data}
-              columns={userColumns}
-              title="Invoices"
-              loading={loading}
-              filters={filters}
-              enableExport={true}
-              enableSelection={true}
-              onSelectionChange={setSelectedInvoices}
-              exportFileName="invoices"
-              searchPlaceholder="Search invoices, customers, vendors..."
-              noDataMessage="No invoices found"
-              customActions={
-                <button
-                  onClick={handleAdd}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <FaPlus className="w-4 h-4" />
-                  Add Invoice
-                </button>
-              }
-              onRowClicked={handleEdit}
-            />
-          </ComponentCard>
-        </div>
-        {formMode && (
-          <div className="lg:col-span-2">
-            {formMode !== "add" && (detailLoading || !selectedInvoice) ? (
-              <ComponentCard>
-                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Loading invoice...
-                </div>
-              </ComponentCard>
-            ) : (
-              <InvoiceDetail
-                inline
-                modeProp={formMode}
-                dataProp={formMode === "add" ? null : selectedInvoice}
-                onSaved={handleFormSaved}
-                onCancelInline={handleFormCancel}
-              />
-            )}
-          </div>
-        )}
+      <div>
+        <ComponentCard>
+          <AdvancedDataTable
+            data={data}
+            columns={userColumns}
+            title="Invoices"
+            loading={loading}
+            filters={filters}
+            enableExport={true}
+            enableSelection={true}
+            onSelectionChange={setSelectedInvoices}
+            exportFileName="invoices"
+            searchPlaceholder="Search invoices, customers, vendors..."
+            noDataMessage="No invoices found"
+            customActions={
+              <button
+                onClick={handleAdd}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FaPlus className="w-4 h-4" />
+                Add Invoice
+              </button>
+            }
+            onRowClicked={handleEdit}
+          />
+        </ComponentCard>
       </div>
     </>
   );
