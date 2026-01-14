@@ -77,6 +77,27 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
     ModelCls, qs = get_queryset(model_key, request=request)
     clean = filter_input_fields(ModelCls, data)
 
+    # Prevent non-privileged users from elevating roles/privileges on Contact records
+    try:
+        from django.db import models  # noqa: F401
+        is_contact_model = ModelCls.__name__.lower() == "contact"
+        acting_user = getattr(request, "user", None)
+        privileged = bool(
+            acting_user
+            and getattr(acting_user, "is_authenticated", False)
+            and (
+                getattr(acting_user, "is_superuser", False)
+                or getattr(acting_user, "is_staff", False)
+                or str(getattr(acting_user, "role", "")).lower() == "admin"
+            )
+        )
+        if is_contact_model and not privileged:
+            for forbidden in ("role", "is_staff", "is_superuser", "groups", "user_permissions"):
+                clean.pop(forbidden, None)
+    except Exception:
+        # Defensive: do not block save on permission guard failure
+        pass
+
     # Log and attempt tolerant mapping when nothing matched (helps with casing/formatting mismatches)
     try:
         import logging
