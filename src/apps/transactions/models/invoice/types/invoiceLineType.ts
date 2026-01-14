@@ -8,6 +8,11 @@ export interface InvoiceLine {
   price: {
     sell: number;
     cost: number;
+    unit?: number;
+    discount_amount?: number;
+    discount_percent?: number;
+    precision?: number;
+    extended?: number;
   };
   discount_amount: number;
   extended_price?: number;
@@ -26,6 +31,11 @@ export interface CreateInvoiceLineRequest {
   price: {
     sell: number;
     cost: number;
+    unit?: number;
+    discount_amount?: number;
+    discount_percent?: number;
+    precision?: number;
+    extended?: number;
   };
   discount_amount?: number;
 }
@@ -40,6 +50,11 @@ export interface UpdateInvoiceLineRequest {
   price: {
     sell: number;
     cost: number;
+    unit?: number;
+    discount_amount?: number;
+    discount_percent?: number;
+    precision?: number;
+    extended?: number;
   };
   discount_amount?: number;
 }

@@ -65,57 +65,6 @@ interface FieldConfig {
   min?: number;
 }
 
-interface FieldGroup {
-  title: string;
-  fields: FieldConfig[];
-}
-
-const FIELD_GROUPS: FieldGroup[] = [
-  {
-    title: "Primary",
-    fields: [
-      { name: "ida", label: "ida", type: "text" },
-      { name: "invoice_no", label: "ida_sales_order", type: "text" },
-      {
-        name: "status",
-        label: "status",
-        type: "select",
-        options: STATUS_OPTIONS,
-      },
-      { name: "priority", label: "priority", type: "text" },
-      { name: "price_level", label: "price_level", type: "text" },
-    ],
-  },
-  {
-    title: "Associations",
-    fields: [
-      { name: "customer_id", label: "customer_id", type: "number", min: 1 },
-      {
-        name: "manufacturer_id",
-        label: "manufacturer_id",
-        type: "number",
-        min: 0,
-      },
-      { name: "vendor_id", label: "vendor_id", type: "number", min: 0 },
-    ],
-  },
-  {
-    title: "Financial",
-    fields: [
-      { name: "subtotal", label: "subtotal", type: "number", step: 0.01 },
-      { name: "tax", label: "tax", type: "number", step: 0.01 },
-      { name: "discount", label: "discount", type: "number", step: 0.01 },
-      { name: "total", label: "total", type: "number", step: 0.01 },
-    ],
-  },
-  {
-    title: "Metadata",
-    fields: [
-      { name: "metadata.priority", label: "metadata.priority", type: "text" },
-    ],
-  },
-];
-
 const JSON_FIELD_PATHS = [
   "cost",
   "sell",
@@ -299,7 +248,7 @@ const DEFAULT_FORM_VALUES: InvoiceForm = {
   addComment: "",
   comment: "",
   contractDetail: "",
-  id_transaction: "",
+  id_transaction: 0,
   customer_id: 0,
   subtotal: 0,
   total: 0,
@@ -308,8 +257,7 @@ const DEFAULT_FORM_VALUES: InvoiceForm = {
   metadata: { priority: "" },
   prefs: { userdefined: {} },
   refs: { links: { contact: [], customer: [] } },
-  invoice_no: "",
-  status: "planned",
+  status: "draft",
   priority: "",
   price_level: "",
   manufacturer_id: 0,
@@ -1605,14 +1553,19 @@ export default function SalesOrderDetail({
             if (!toNumeric(priceObject.sell)) {
               priceObject.sell = priceObject.unit;
             }
-            if (priceObject.discount_amount === undefined) {
-              priceObject.discount_amount = 0;
+            if (
+              (priceObject as Record<string, any>).discount_amount === undefined
+            ) {
+              (priceObject as Record<string, any>).discount_amount = 0;
             }
-            if (priceObject.discount_percent === undefined) {
-              priceObject.discount_percent = 0;
+            if (
+              (priceObject as Record<string, any>).discount_percent ===
+              undefined
+            ) {
+              (priceObject as Record<string, any>).discount_percent = 0;
             }
-            if (priceObject.precision === undefined) {
-              priceObject.precision = 2;
+            if ((priceObject as Record<string, any>).precision === undefined) {
+              (priceObject as Record<string, any>).precision = 2;
             }
             container.price = priceObject;
 
@@ -1624,8 +1577,8 @@ export default function SalesOrderDetail({
             if (!toNumeric(costObject.unit)) {
               costObject.unit = resolveUnitCost(item);
             }
-            if (costObject.precision === undefined) {
-              costObject.precision = 2;
+            if ((costObject as Record<string, any>).precision === undefined) {
+              (costObject as Record<string, any>).precision = 2;
             }
             container.cost = costObject;
 
@@ -1748,26 +1701,6 @@ export default function SalesOrderDetail({
     });
   }, [aggregatedFinancials, setValue]);
 
-  const handleJsonDraftChange = (path: JsonFieldPath, value: string) => {
-    setJsonDrafts((prev) => ({ ...prev, [path]: value }));
-  };
-
-  const handleJsonBlur = (path: JsonFieldPath) => {
-    const raw = jsonDrafts[path];
-    if (!raw.trim()) {
-      setJsonErrors((prev) => ({ ...prev, [path]: undefined }));
-      setValue(path as any, undefined);
-      return;
-    }
-    try {
-      const parsed = JSON.parse(raw);
-      setValue(path as any, parsed);
-      setJsonErrors((prev) => ({ ...prev, [path]: undefined }));
-    } catch (error) {
-      setJsonErrors((prev) => ({ ...prev, [path]: "Invalid JSON" }));
-    }
-  };
-
   const applyJsonDraftsToPayload = (payload: InvoiceForm) => {
     JSON_FIELD_PATHS.forEach((path) => {
       const draft = jsonDrafts[path];
@@ -1829,9 +1762,26 @@ export default function SalesOrderDetail({
 
       const orderIdCandidates: unknown[] = [
         (saveResult as Record<string, unknown>)?.id,
-        (saveResult as Record<string, unknown>)?.record?.id,
-        (saveResult as Record<string, unknown>)?.data?.id,
-        (saveResult as Record<string, unknown>)?.data?.record?.id,
+        (
+          (saveResult as Record<string, unknown>)?.record as Record<
+            string,
+            unknown
+          >
+        )?.id,
+        (
+          (saveResult as Record<string, unknown>)?.data as Record<
+            string,
+            unknown
+          >
+        )?.id,
+        (
+          (
+            (saveResult as Record<string, unknown>)?.data as Record<
+              string,
+              unknown
+            >
+          )?.record as Record<string, unknown>
+        )?.id,
         recordData?.id,
         (formData as unknown as Record<string, unknown>)?.id,
       ];
@@ -1954,64 +1904,6 @@ export default function SalesOrderDetail({
         error instanceof Error ? error.message : "Failed to update status";
       dispatchToastError(message);
     }
-  };
-
-  const renderField = (field: FieldConfig) => {
-    const inputId = field.name.replace(/\./g, "-");
-    const errorMessage = getErrorMessage(
-      errors as unknown as Record<string, unknown>,
-      field.name
-    );
-    const isFieldReadOnly = READONLY_FIELD_NAMES.has(field.name);
-
-    if (field.type === "select" && field.options) {
-      return (
-        <div key={field.name}>
-          <Label htmlFor={inputId}>{field.label}</Label>
-          <select
-            id={inputId}
-            disabled={isReadOnly}
-            aria-readonly={isReadOnly}
-            className={`h-10 w-full rounded-lg border px-3 text-sm focus:outline-hidden focus:ring-2 dark:bg-gray-900 dark:text-white/90 ${
-              errorMessage ? "border-error-500" : "border-gray-300"
-            }`}
-            {...register(field.name as any)}
-          >
-            <option value="">--</option>
-            {field.options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errorMessage && (
-            <p className="mt-1 text-xs text-error-500">{errorMessage}</p>
-          )}
-        </div>
-      );
-    }
-
-    const registerOptions =
-      field.type === "number" ? { valueAsNumber: true } : undefined;
-    const isDisabled = isReadOnly && field.name !== "metadata.priority";
-
-    return (
-      <div key={field.name}>
-        <Label htmlFor={inputId}>{field.label}</Label>
-        <Input
-          id={inputId}
-          type={field.type === "number" ? "number" : "text"}
-          step={field.step}
-          min={field.min}
-          disabled={isDisabled}
-          readOnly={isFieldReadOnly || isDisabled}
-          aria-readonly={isFieldReadOnly || isDisabled}
-          error={Boolean(errorMessage)}
-          hint={errorMessage}
-          {...register(field.name as any, registerOptions)}
-        />
-      </div>
-    );
   };
 
   return (
@@ -2268,14 +2160,14 @@ export default function SalesOrderDetail({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
-              <Label htmlFor="invoice_no">invoice_no</Label>
+              <Label htmlFor="ida">ida</Label>
               <Input
                 type="text"
-                id="invoice_no"
+                id="ida"
                 placeholder="Invoice Number"
-                {...register("invoice_no")}
-                error={Boolean(errors.invoice_no?.message)}
-                hint={errors.invoice_no?.message}
+                {...register("ida")}
+                error={Boolean(errors.ida?.message)}
+                hint={errors.ida?.message}
                 disabled={mode === "view"}
               />
             </div>
@@ -2629,11 +2521,7 @@ export default function SalesOrderDetail({
                   ) : (
                     contactLinkRows.map((row, index) => (
                       <tr
-                        key={
-                          row.id
-                            ? `contact-row-${row.id}`
-                            : `contact-row-${index}`
-                        }
+                        key={`contact-row-${index}`}
                         className="border-b border-gray-100 last:border-none dark:border-gray-700"
                       >
                         {orderedContactColumns.map((column) => (
