@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { useAppSelector } from "../store/hooks";
 import { useWindowManager } from "../context/WindowManagerContext";
 import { useDraggable } from "../hooks/useDraggable";
+import { useResizable } from "../hooks/useResizable";
 
 type Props = {
   path: string;
@@ -10,16 +11,25 @@ type Props = {
   onActivate?: () => void;
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   maximized?: boolean;
   isActive?: boolean;
 };
 
-export default function MacWindowChrome({ path, title, children, onActivate, x, y, maximized = false, isActive = false }: Props) {
-  const { minimizeWindow, closeWindow, activateWindow, updateWindowPosition, maximizeWindow } = useWindowManager();
+export default function MacWindowChrome({ path, title, children, onActivate, x, y, width, height, maximized = false, isActive = false }: Props) {
+  const { minimizeWindow, closeWindow, activateWindow, updateWindowPosition, maximizeWindow, updateWindowSize } = useWindowManager();
   const isApiLoading = useAppSelector((state) => state.loading.isApiLoading);
   const draggable = useDraggable({
     initial: { x, y },
     onMove: (nx, ny) => updateWindowPosition(path, nx, ny),
+  });
+  const resizable = useResizable({
+    initial: { width: width ?? 980, height: height ?? 640 },
+    minWidth: 520,
+    minHeight: 360,
+    onResize: (nw, nh) => updateWindowSize(path, nw, nh),
+    disabled: maximized,
   });
 
   const transitionClass = maximized || draggable.dragging
@@ -36,7 +46,11 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
         height: "100%",
         transform: "none",
       }
-    : draggable.dragStyle;
+    : {
+        ...draggable.dragStyle,
+        width: resizable.size.width,
+        height: resizable.size.height,
+      };
 
   return (
     <div
@@ -90,6 +104,15 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
           </div>
         )}
       </div>
+      {!maximized && (
+        <div
+          className="absolute bottom-1 right-1 h-4 w-4 rounded-sm border border-transparent bg-transparent"
+          data-stop-drag="true"
+          {...resizable.handleProps}
+        >
+          <div className="pointer-events-none absolute inset-0 rotate-45 border-b-2 border-r-2 border-slate-300" />
+        </div>
+      )}
     </div>
   );
 }
