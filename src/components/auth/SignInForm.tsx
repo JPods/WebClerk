@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
@@ -14,6 +14,7 @@ import { persistTokens } from "../../api/axios";
 import { showToast } from "../../store/slices/toastSlice";
 import { setUser } from "../../store/slices/authSlice";
 import { PageRoutes } from "../../routes/Routes";
+import Spinner from "../ui/Spinner";
 // import axiosInstance from "../../api/axios";
 // import { PostLoginURL } from "../../routes/network";
 
@@ -21,6 +22,7 @@ import { PageRoutes } from "../../routes/Routes";
 export default function SignInForm() {
 
   const dispatch = useAppDispatch();
+  const [submitting, setSubmitting] = useState(false);
   // const navigate = useNavigate();
 
   const { user } = useAppSelector((state) => state.auth);
@@ -40,10 +42,11 @@ export default function SignInForm() {
 
   const isValidToken = (val: any): val is string => typeof val === 'string' && val.trim() !== '' && val !== 'undefined' && val !== 'null';
 
-  const handleFormSubmit = async (data: LoginFormData) => {
+    const handleFormSubmit = async (data: LoginFormData) => {
           // Overwritten on the backend by user profile
              //data.role = 'USER';
      try {
+      setSubmitting(true);
         const resp = await login(data);
         console.log("Login response", resp);
 
@@ -76,6 +79,8 @@ export default function SignInForm() {
         dispatch(showToast({ message: "Login successful!", type: "success" }));
      } catch (error : any) {
        dispatch(showToast({ message: error, type: "error" }));
+     } finally {
+       setSubmitting(false);
      }   
   };
   const [showPassword, setShowPassword] = useState(false);
@@ -167,8 +172,15 @@ export default function SignInForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm">
-                    Sign in
+                  <Button className="w-full" size="sm" disabled={submitting}>
+                    {submitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Spinner size="sm" />
+                        Signing in...
+                      </span>
+                    ) : (
+                      "Sign in"
+                    )}
                   </Button>
                 </div>
               </div>

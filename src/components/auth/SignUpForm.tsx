@@ -15,11 +15,13 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { signup } from "../../api/auth";
 
 import { ModalForm } from "../wrapper";
+import Spinner from "../ui/Spinner";
 
 export default function SignUpForm() {
   const [modalOpen, setModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [data, setData] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
  
 
   const dispatch = useAppDispatch();
@@ -47,17 +49,20 @@ export default function SignUpForm() {
     const handleFormSubmit = async (data:RegisterFormData) => {
           
            try {
-                  const response = await signup(data);                  
-                  if(response) {  
-                      setModalOpen(true)
-                      setData(data.email)
-                      // navigate(PageRoutes.login);
-                  } else {               
-                      dispatch(showToast({ message: "Try again later", type: "error" }));
-                  }             
-           } catch (error:any) {
-                 dispatch(showToast({ message: error, type: "error" }));
-           }   
+           setSubmitting(true);
+           const response = await signup(data);                  
+           if(response) {  
+             setModalOpen(true)
+             setData(data.email)
+             // navigate(PageRoutes.login);
+           } else {               
+             dispatch(showToast({ message: "Try again later", type: "error" }));
+           }             
+        } catch (error:any) {
+          dispatch(showToast({ message: error, type: "error" }));
+        } finally {
+          setSubmitting(false);
+        }  
       };
     
     // const selectOption = [                          
@@ -210,8 +215,18 @@ export default function SignUpForm() {
                 </div> */}
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                    Sign Up
+                  <button
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <span className="flex items-center gap-2">
+                        <Spinner size="sm" />
+                        Signing up...
+                      </span>
+                    ) : (
+                      "Sign Up"
+                    )}
                   </button>
                 </div>
               </div>
