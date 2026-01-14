@@ -46,25 +46,6 @@ import {
   formatQuantityValue,
 } from "../../common/numberFormat";
 
-const STATUS_OPTIONS = [
-  { value: "draft", label: "Draft" },
-  { value: "sent", label: "Sent" },
-  { value: "paid", label: "Paid" },
-  { value: "overdue", label: "Overdue" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
-type FieldType = "text" | "number" | "select";
-
-interface FieldConfig {
-  name: string;
-  label: string;
-  type: FieldType;
-  options?: { value: string; label: string }[];
-  step?: number;
-  min?: number;
-}
-
 const JSON_FIELD_PATHS = [
   "cost",
   "sell",
@@ -1138,9 +1119,7 @@ export default function SalesOrderDetail({
       } catch (error) {
         if (!cancelled) {
           const message =
-            error instanceof Error
-              ? error.message
-              : "Failed to load sales order";
+            error instanceof Error ? error.message : "Failed to load Invoice";
           dispatchToastError(message);
         }
       }
@@ -1755,7 +1734,7 @@ export default function SalesOrderDetail({
           : await (async () => {
               const existingId = extractNumericId(recordData?.id);
               if (!existingId) {
-                throw new Error("Sales order id missing");
+                throw new Error("Invoice id missing");
               }
               return updateInvoice(existingId, orderPayload);
             })();
@@ -1797,7 +1776,7 @@ export default function SalesOrderDetail({
       );
 
       if (!resolvedOrderId) {
-        throw new Error("Sales order id missing after save");
+        throw new Error("Invoice id missing after save");
       }
 
       const originalLineIds = new Set<number>();
@@ -1865,7 +1844,7 @@ export default function SalesOrderDetail({
 
       dispatch(
         showToast({
-          message: `Sales order ${
+          message: `Invoice ${
             mode === "add" ? "created" : "updated"
           } successfully`,
           type: "success",
@@ -1892,7 +1871,7 @@ export default function SalesOrderDetail({
       });
       dispatch(
         showToast({
-          message: `Sales order marked as ${newStatus}`,
+          message: `Invoice marked as ${newStatus}`,
           type: "success",
         })
       );
@@ -1912,10 +1891,10 @@ export default function SalesOrderDetail({
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Sales Order"
+              ? "Edit Invoice"
               : mode === "view"
-              ? "View Sales Order"
-              : "Sales Order Detail"
+              ? "View Invoice"
+              : "Invoice Detail"
           }
         />
       )}
@@ -1925,10 +1904,10 @@ export default function SalesOrderDetail({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold dark:text-white">
               {mode === "edit"
-                ? "Edit Sales Order"
+                ? "Edit Invoice"
                 : mode === "view"
-                ? "View Sales Order"
-                : "Add Sales Order"}
+                ? "View Invoice"
+                : "Add Invoice"}
             </h3>
             {onCancelInline && (
               <button
@@ -2446,18 +2425,9 @@ export default function SalesOrderDetail({
             <h4 className="font-semibold text-gray-800 dark:text-white">
               Notes
             </h4>
-            {mode !== "view" && (
-              <button
-                type="button"
-                onClick={() => setIsNotesLocked((prev) => !prev)}
-                className="px-3 py-1 text-sm rounded-md border border-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-700"
-              >
-                {isNotesLocked ? "Edit" : "Lock"}
-              </button>
-            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="comment">comment</Label>
               <TextArea
@@ -2481,7 +2451,17 @@ export default function SalesOrderDetail({
               />
             </div>
           </div>
-
+          <div className="flex items-center justify-between">
+            {mode !== "view" && (
+              <button
+                type="button"
+                onClick={() => setIsNotesLocked((prev) => !prev)}
+                className="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
+              >
+                {isNotesLocked ? "Edit" : "Lock"}
+              </button>
+            )}
+          </div>
           <section>
             <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
               refs.links.contact
@@ -2602,7 +2582,7 @@ export default function SalesOrderDetail({
           <div className="mb-4">
             <h3 className="text-lg font-semibold dark:text-white">Add Items</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Search the catalog and append matching items to this sales order.
+              Search the catalog and append matching items to this Invoice.
             </p>
           </div>
           <InvoiceItemSearch onAddItem={handleAddSearchedItem} />
