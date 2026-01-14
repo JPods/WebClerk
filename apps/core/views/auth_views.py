@@ -131,11 +131,18 @@ class AuthLoginView(APIView):
     }
 )
 class AuthLogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    # Allow logout even if the client has no valid auth; this keeps the endpoint
+    # idempotent for SPA logout flows where tokens may already be cleared client-side.
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: tuple[type[BaseAuthentication], ...] = ()
     serializer_class = LogoutResponseSerializer
 
     def post(self, request):
-        logout(request)
+        try:
+            logout(request)
+        except Exception:
+            # Ignore backend/session logout errors to keep response deterministic
+            pass
         return Response({"ok": True})
 
 

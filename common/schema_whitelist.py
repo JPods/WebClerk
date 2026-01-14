@@ -32,6 +32,7 @@ from typing import List
 WHITELIST: List[str] = [
     # Auth APIs
     r'^/wcapi/register/$',           # POST – User registration
+    r'^/wcapi/signup/$',             # POST – User registration (alias)
     r'^/wcapi/login/$',              # POST – User login
     r'^/wcapi/logout/$',             # POST – User logout
     r'^/wcapi/me/$',                 # GET  – Get current user profile

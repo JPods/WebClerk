@@ -11,6 +11,7 @@ from apps.core.views.choices import ChoiceCatalogView
 urlpatterns = [
     # Auth API
     path("wcapi/register/", AuthRegisterView.as_view(), name="api-auth-register"),
+    path("wcapi/signup/", AuthRegisterView.as_view(), name="api-auth-signup"),
     path("wcapi/login/", AuthLoginView.as_view(), name="api-auth-login"),
     path("wcapi/logout/", AuthLogoutView.as_view(), name="api-auth-logout"),
     path("wcapi/me/", AuthMeView.as_view(), name="api-auth-me"),
