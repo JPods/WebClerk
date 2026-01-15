@@ -90,11 +90,13 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
         body: JSON.stringify({ mode: newMode }),
       });
       
-      const data = await response.json();
+      const json = await response.json();
+      // Handle nested response structure
+      const data = json.data?.data || json.data || json;
       
       if (response.ok) {
-        setMessage({ type: 'success', text: data.message });
-        if (data.data?.changed) {
+        setMessage({ type: 'success', text: json.message || data.message || `Switched to ${newMode}` });
+        if (data?.changed) {
           // Refresh config
           await fetchConfig();
         }
@@ -317,18 +319,22 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
               </div>
             )}
 
-            <button
-              style={restartButtonStyle}
-              onClick={handleRestart}
-              title="Restart both servers to apply changes"
-            >
-              🔄 Restart Servers
-            </button>
-
-            <div style={{ marginTop: '12px', fontSize: '11px', color: '#64748b' }}>
-              Or run: <code style={{ backgroundColor: '#1e293b', padding: '2px 6px', borderRadius: '4px' }}>
-                ./tools/switch-dataset.sh {config.db_mode === 'remote' ? 'local' : 'remote'}
-              </code>
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '12px', 
+              backgroundColor: '#1e293b', 
+              borderRadius: '8px',
+              fontSize: '11px', 
+              color: '#94a3b8',
+              lineHeight: '1.6'
+            }}>
+              <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: '6px' }}>
+                ⚠️ After switching, restart Django:
+              </div>
+              <div>1. Stop Django server (Ctrl+C in terminal)</div>
+              <div>2. Run: <code style={{ backgroundColor: '#334155', padding: '2px 6px', borderRadius: '4px', color: '#f8fafc' }}>
+                python manage.py runserver
+              </code></div>
             </div>
           </>
         ) : (
