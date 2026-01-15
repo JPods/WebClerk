@@ -10,9 +10,19 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='contact',
-            name='role',
-            field=models.CharField(choices=[('', '---------'), ('user', 'User'), ('employee', 'Employee'), ('admin', 'Admin')], default='user', help_text='User role in system', max_length=50),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.AlterField(
+                    model_name='contact',
+                    name='role',
+                    field=models.CharField(
+                        choices=[('', '---------'), ('user', 'User'), ('employee', 'Employee'), ('admin', 'Admin')],
+                        default='user',
+                        help_text='User role in system',
+                        max_length=50,
+                    ),
+                ),
+            ],
         ),
     ]

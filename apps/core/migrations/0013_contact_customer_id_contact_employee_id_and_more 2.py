@@ -10,34 +10,39 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='contact',
-            name='customer_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated customer ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='employee_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated employee ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='manufacturer_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated manufacturer ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='other_id',
-            field=models.BigIntegerField(blank=True, help_text='Other associated ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='rep_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated sales rep ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='vendor_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated vendor ID if applicable', null=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.AddField(
+                    model_name='contact',
+                    name='customer_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated customer ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='employee_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated employee ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='manufacturer_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated manufacturer ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='other_id',
+                    field=models.BigIntegerField(blank=True, help_text='Other associated ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='rep_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated sales rep ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='vendor_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated vendor ID if applicable', null=True),
+                ),
+            ],
         ),
     ]

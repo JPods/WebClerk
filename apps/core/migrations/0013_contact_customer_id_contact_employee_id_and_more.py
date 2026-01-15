@@ -10,34 +10,64 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='contact',
-            name='customer_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated customer ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='employee_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated employee ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='manufacturer_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated manufacturer ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='other_id',
-            field=models.BigIntegerField(blank=True, help_text='Other associated ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='rep_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated sales rep ID if applicable', null=True),
-        ),
-        migrations.AddField(
-            model_name='contact',
-            name='vendor_id',
-            field=models.BigIntegerField(blank=True, help_text='Associated vendor ID if applicable', null=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql='ALTER TABLE contacts ADD COLUMN IF NOT EXISTS customer_id bigint NULL;',
+                    reverse_sql='ALTER TABLE contacts DROP COLUMN IF EXISTS customer_id;',
+                ),
+                migrations.RunSQL(
+                    sql='ALTER TABLE contacts ADD COLUMN IF NOT EXISTS employee_id bigint NULL;',
+                    reverse_sql='ALTER TABLE contacts DROP COLUMN IF EXISTS employee_id;',
+                ),
+                migrations.RunSQL(
+                    sql='ALTER TABLE contacts ADD COLUMN IF NOT EXISTS manufacturer_id bigint NULL;',
+                    reverse_sql='ALTER TABLE contacts DROP COLUMN IF EXISTS manufacturer_id;',
+                ),
+                migrations.RunSQL(
+                    sql='ALTER TABLE contacts ADD COLUMN IF NOT EXISTS other_id bigint NULL;',
+                    reverse_sql='ALTER TABLE contacts DROP COLUMN IF EXISTS other_id;',
+                ),
+                migrations.RunSQL(
+                    sql='ALTER TABLE contacts ADD COLUMN IF NOT EXISTS rep_id bigint NULL;',
+                    reverse_sql='ALTER TABLE contacts DROP COLUMN IF EXISTS rep_id;',
+                ),
+                migrations.RunSQL(
+                    sql='ALTER TABLE contacts ADD COLUMN IF NOT EXISTS vendor_id bigint NULL;',
+                    reverse_sql='ALTER TABLE contacts DROP COLUMN IF EXISTS vendor_id;',
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='contact',
+                    name='customer_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated customer ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='employee_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated employee ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='manufacturer_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated manufacturer ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='other_id',
+                    field=models.BigIntegerField(blank=True, help_text='Other associated ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='rep_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated sales rep ID if applicable', null=True),
+                ),
+                migrations.AddField(
+                    model_name='contact',
+                    name='vendor_id',
+                    field=models.BigIntegerField(blank=True, help_text='Associated vendor ID if applicable', null=True),
+                ),
+            ],
         ),
     ]
