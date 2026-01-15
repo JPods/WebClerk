@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.docs',
     'apps.orgs',
     'apps.products',
+    'apps.scheduler',
     'apps.support',
     'apps.sync',
     'apps.transactions',

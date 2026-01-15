@@ -850,9 +850,32 @@ class ModelDetailView(APIView):
         if not ModelCls:
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
 
-        fields = []
+        # Collect fields with their type info
+        all_fields = []
         for f in ModelCls._meta.fields:
-            fields.append({"name": f.name, "type": f.__class__.__name__})
+            all_fields.append({"name": f.name, "type": f.__class__.__name__})
+
+        # Define object/complex field types (relations, JSON, etc.)
+        OBJECT_TYPES = {
+            "ForeignKey", "OneToOneField", "ManyToManyField",
+            "JSONField", "ArrayField", "HStoreField",
+        }
+
+        # Separate into scalars and objects
+        scalar_fields = []
+        object_fields = []
+        for f in all_fields:
+            if f["type"] in OBJECT_TYPES:
+                object_fields.append(f)
+            else:
+                scalar_fields.append(f)
+
+        # Sort each group alphabetically by name
+        scalar_fields.sort(key=lambda x: x["name"])
+        object_fields.sort(key=lambda x: x["name"])
+
+        # Combine: scalars first, then objects
+        fields = scalar_fields + object_fields
 
         return Response(
             {
