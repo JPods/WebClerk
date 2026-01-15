@@ -57,6 +57,8 @@ export default function SalesOrderList() {
   const openSalesOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
       const salesOrderId = row?.id;
+      console.log('[openSalesOrder] row:', row);
+      console.log('[openSalesOrder] salesOrderId:', salesOrderId);
       if (!salesOrderId) {
         dispatch(
           showToast({ message: "Sales order id missing", type: "error" })
@@ -70,11 +72,18 @@ export default function SalesOrderList() {
 
       try {
         const detail = await fetchSalesOrderDetail(salesOrderId);
+        console.log('[openSalesOrder] detail from API:', detail);
+        console.log('[openSalesOrder] detail.lines:', detail?.lines);
+        console.log('[openSalesOrder] detail.lines count:', detail?.lines?.length);
         const hasDetail = detail && Object.keys(detail).length > 0;
         if (!hasDetail) {
           throw new Error("Sales order not found");
         }
-        setSelectedSalesOrder({ ...row, ...detail });
+        const merged = { ...row, ...detail };
+        console.log('[openSalesOrder] merged:', merged);
+        console.log('[openSalesOrder] merged.lines:', merged?.lines);
+        console.log('[openSalesOrder] merged.lines count:', merged?.lines?.length);
+        setSelectedSalesOrder(merged);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Failed to load sales order";

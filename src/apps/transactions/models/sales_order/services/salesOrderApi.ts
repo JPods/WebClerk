@@ -62,7 +62,15 @@ export const deleteSalesOrderLine = async (_salesOrderId: number, lineId: number
 
 export const fetchSalesOrderDetail = async (id: number): Promise<any> => {
   const res = await getRecord('salesorder', id);
-  return res?.record ?? res;
+  console.log('[fetchSalesOrderDetail] id:', id);
+  console.log('[fetchSalesOrderDetail] res:', res);
+  console.log('[fetchSalesOrderDetail] res?.record:', res?.record);
+  console.log('[fetchSalesOrderDetail] res?.record?.lines:', res?.record?.lines);
+  console.log('[fetchSalesOrderDetail] lines count:', res?.record?.lines?.length);
+  const result = res?.record ?? res;
+  console.log('[fetchSalesOrderDetail] returning:', result);
+  console.log('[fetchSalesOrderDetail] returning lines count:', result?.lines?.length);
+  return result;
 };
 
 export const searchItems = async (
