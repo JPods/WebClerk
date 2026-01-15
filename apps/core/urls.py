@@ -7,9 +7,12 @@ from apps.core.views.save_view import SaveWcapiView
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
 from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailView
 from apps.core.views.choices import ChoiceCatalogView
+from apps.core.views.system_info import SystemInfoView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 
 urlpatterns = [
+    # System Info - Data Set Identification
+    path("wcapi/system-info/", SystemInfoView.as_view(), name="wcapi-system-info"),
     # Auth API
     path("wcapi/register/", AuthRegisterView.as_view(), name="api-auth-register"),
     path("wcapi/login/", AuthLoginView.as_view(), name="api-auth-login"),
