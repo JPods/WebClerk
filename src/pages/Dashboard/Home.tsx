@@ -90,12 +90,20 @@ const normalizeActivities = (input?: any): TimelineItem[] => {
 
 const normalizeActions = (input?: any): ActionItem[] => {
   if (!input) return [];
-  if (Array.isArray(input)) return input.map((item) => ({
-    title: String(item.title ?? item.task ?? item.name ?? ""),
-    owner: item.owner ?? item.assignee ?? item.by ?? "",
-    due: item.due ?? item.due_date ?? item.when ?? "",
-    severity: item.severity ?? item.priority ?? "low",
-  }));
+  if (Array.isArray(input)) return input.map((item) => {
+    // Handle owner - may be string or object {id, name}
+    let ownerStr = "";
+    const rawOwner = item.owner ?? item.assignee ?? item.by;
+    if (rawOwner) {
+      ownerStr = typeof rawOwner === "object" ? (rawOwner.name ?? rawOwner.id ?? "") : String(rawOwner);
+    }
+    return {
+      title: String(item.title ?? item.task ?? item.name ?? ""),
+      owner: ownerStr,
+      due: item.due ?? item.due_date ?? item.when ?? "",
+      severity: item.severity ?? item.priority ?? "low",
+    };
+  });
   return [];
 };
 

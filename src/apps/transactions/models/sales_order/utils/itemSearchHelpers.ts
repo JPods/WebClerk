@@ -35,6 +35,18 @@ export function resolveItemDescription(item: ItemSearchResult): string {
 }
 
 export function resolveUnitPrice(item: ItemSearchResult): number {
+  // Handle nested JSON structure: price.base, price.retail, etc.
+  if (item.price && typeof item.price === "object") {
+    const priceObj = item.price as Record<string, unknown>;
+    return (
+      parseNumeric(priceObj.base) ||
+      parseNumeric(priceObj.retail) ||
+      parseNumeric(priceObj.unit) ||
+      parseNumeric(priceObj.sell) ||
+      0
+    );
+  }
+  // Fallback to flat properties
   return (
     parseNumeric(item.price) ||
     parseNumeric(item.priceA) ||
@@ -44,6 +56,18 @@ export function resolveUnitPrice(item: ItemSearchResult): number {
 }
 
 export function resolveUnitCost(item: ItemSearchResult): number {
+  // Handle nested JSON structure: cost.avg, cost.last, etc.
+  if (item.cost && typeof item.cost === "object") {
+    const costObj = item.cost as Record<string, unknown>;
+    return (
+      parseNumeric(costObj.avg) ||
+      parseNumeric(costObj.average) ||
+      parseNumeric(costObj.last) ||
+      parseNumeric(costObj.unit) ||
+      0
+    );
+  }
+  // Fallback to flat properties
   return (
     parseNumeric(item.cost) ||
     parseNumeric(item.costA) ||
@@ -52,5 +76,32 @@ export function resolveUnitCost(item: ItemSearchResult): number {
 }
 
 export function resolveQtyOnHand(item: ItemSearchResult): number {
+  // Handle nested JSON structure: quantity.on_hand
+  if (item.quantity && typeof item.quantity === "object") {
+    const qtyObj = item.quantity as Record<string, unknown>;
+    return (
+      parseNumeric(qtyObj.on_hand) ||
+      parseNumeric(qtyObj.onHand) ||
+      parseNumeric(qtyObj.available) ||
+      0
+    );
+  }
+  // Fallback to flat properties
   return parseNumeric(item.qty_on_hand ?? item.qtyOnHand);
+}
+
+export function resolveDefaultQuantity(item: ItemSearchResult): number {
+  // Resolve a default quantity for adding items - defaults to 1 if none defined
+  if (item.quantity && typeof item.quantity === "object") {
+    const qtyObj = item.quantity as Record<string, unknown>;
+    const resolved = 
+      parseNumeric(qtyObj.default) ||
+      parseNumeric(qtyObj.min) ||
+      parseNumeric(qtyObj.increment) ||
+      0;
+    return resolved > 0 ? resolved : 1;
+  }
+  // Fallback to flat properties or default to 1
+  const flatQty = parseNumeric(item.default_quantity ?? item.defaultQuantity ?? item.min_quantity);
+  return flatQty > 0 ? flatQty : 1;
 }

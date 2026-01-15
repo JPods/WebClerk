@@ -5,10 +5,12 @@ import { showToast } from "../../../../../store/slices/toastSlice";
 import { searchItems } from "../services/salesOrderApi";
 import type { ItemSearchResult } from "../types/itemSearchType";
 import {
+  resolveDefaultQuantity,
   resolveItemCode,
   resolveItemDescription,
   resolveItemKey,
   resolveQtyOnHand,
+  resolveUnitCost,
   resolveUnitPrice,
 } from "../utils/itemSearchHelpers";
 
@@ -48,7 +50,8 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
           nextResults.forEach((result) => {
             const key = resolveItemKey(result);
             if (key) {
-              next[key] = prev[key] ?? 0;
+              // Use previous value if exists, otherwise resolve default quantity (defaults to 1)
+              next[key] = prev[key] ?? resolveDefaultQuantity(result);
             }
           });
           return next;
@@ -129,6 +132,7 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
               <th className="px-3 py-2">Description</th>
               <th className="px-3 py-2 text-right">On Hand</th>
               <th className="px-3 py-2 text-right">Unit Price</th>
+              <th className="px-3 py-2 text-right">Unit Cost</th>
               <th className="px-3 py-2 text-right">Quantity</th>
               <th className="px-3 py-2 text-right">Actions</th>
             </tr>
@@ -136,7 +140,7 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
           <tbody>
             {!hasResults && !loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={7} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                   {query.trim() ? "No matching items" : "Enter a search term to find catalog items."}
                 </td>
               </tr>
@@ -151,6 +155,7 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{resolveItemDescription(item) || "--"}</td>
                     <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{resolveQtyOnHand(item).toLocaleString()}</td>
                     <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">${resolveUnitPrice(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">${resolveUnitCost(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
                       <input
                         type="number"
