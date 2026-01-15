@@ -53,8 +53,10 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
     try {
       const response = await fetch('/wcapi/dev/config/');
       if (response.ok) {
-        const data = await response.json();
-        setConfig(data.data);
+        const json = await response.json();
+        // Handle nested response: { data: { data: { ... } } } or { data: { ... } }
+        const configData = json.data?.data || json.data;
+        setConfig(configData);
       }
     } catch (err) {
       console.error('Failed to fetch dev config:', err);
