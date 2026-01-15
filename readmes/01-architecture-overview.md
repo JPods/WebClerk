@@ -213,6 +213,18 @@ flowchart TD
 - **Settings Model**: Runtime configuration for permissions, features, mappings
 - **Feature Flags**: Granular control over capabilities per model
 
+### Selection Lists (Choices)
+
+Selection defaults now originate from [common/choices.json](../common/choices.json). The JSON payload stores each list’s metadata (domain, model, field, purpose, where_used, allow_blank) alongside the option pairs so downstream services understand how and where the values are used.
+
+[common/choices.py](../common/choices.py) loads the JSON file, converts every option group into Django-friendly tuples, and exposes helpers to retrieve the richer metadata. Each domain keeps a thin choices shim that re-exports those tuples and assembles a `DEFAULT_SELECT_LISTS` mapping so legacy imports continue to work during the transition.
+
+For aggregated access, [common/choices_registry.py](../common/choices_registry.py) walks all installed apps, gathers their `DEFAULT_SELECT_LISTS`, and normalizes the data for JSON responses. The registry backs [apps/core/views/choices.py](../apps/core/views/choices.py), which serves `GET /wcapi/choices/` with optional `app` filters and a `refresh=1` cache-bust flag. Frontend clients consume this endpoint as the canonical source of synchronized selectlists.
+
+**Future direction:** These JSON definitions will seed Settings records so administrators can override selectlists per tenant without code changes. The API contract stays stable; only the backing store shifts from static files to database entries with an admin UI on top.
+
+See [topics/infrastructure/frontend-dropdowns.md](topics/infrastructure/frontend-dropdowns.md) for frontend integration guidance.
+
 ## Deployment Considerations
 
 - **WSGI/ASGI**: Gunicorn/Uvicorn for serving

@@ -171,6 +171,8 @@ class SaveWcapiView(APIView):
     #return super().dispatch(*args, **kwargs)
 
     def _perform_save(self, request, parsed_data):
+        print(f"[SAVE_VIEW DEBUG] *** ENTERING _perform_save ***")
+        print(f"[SAVE_VIEW DEBUG] parsed_data keys: {list(parsed_data.keys())}")
         console_logger = logging.getLogger('console')
         # Handle nested 'data' key for compatibility with some clients
         if 'data' in parsed_data and isinstance(parsed_data['data'], dict):
@@ -312,7 +314,7 @@ class SaveWcapiView(APIView):
                 else:
                     raw_password = field_data
                 continue
-            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk'):
+            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines'):
                 continue
             # Auto-set to update mode if field_data doesn't have proper structure
             if not isinstance(field_data, dict):
@@ -416,6 +418,129 @@ class SaveWcapiView(APIView):
                 obj.set_password(raw_password)  # type: ignore[attr-defined]
             except Exception as e:
                 raise ValueError('Failed to hash password')
+        
+        # ============================================================
+        # PRE-SAVE: Handle nested 'lines' array for transaction records
+        # Process lines BEFORE main record to validate totals
+        # ============================================================
+        lines_results = []
+        lines_errors = []
+        lines_to_save = []  # Store prepared line objects to save after parent
+        lines_payload = parsed_data.get('lines')
+        print(f"[SAVE_VIEW DEBUG] INIT: lines_payload exists={lines_payload is not None}, count={len(lines_payload) if lines_payload else 0}")
+        if lines_payload:
+            print(f"[SAVE_VIEW DEBUG] INIT: First line sample: {list(lines_payload[0].keys()) if lines_payload and len(lines_payload) > 0 else 'N/A'}")
+        line_model = None
+        fk_field_name = None
+        
+        if lines_payload and isinstance(lines_payload, list):
+            console_logger.debug(f"[SAVE_VIEW] Pre-processing {len(lines_payload)} lines for {model_key}")
+            
+            # Determine the line model based on the parent model
+            line_model_map = {
+                'salesorder': 'salesorderline',
+                'purchaseorder': 'purchaseorderline',
+                'invoice': 'invoiceline',
+                'quote': 'quoteline',
+            }
+            line_model_name = line_model_map.get(model_key.lower())
+            
+            if line_model_name:
+                line_model = get_model(line_model_name)
+                fk_field_name = f"{model_key.lower()}_id"
+                
+                print(f"[SAVE_VIEW DEBUG] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
+                console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
+                
+                if line_model:
+                    # Calculate totals from lines for validation
+                    calculated_subtotal = 0.0
+                    calculated_total = 0.0
+                    calculated_tax = 0.0
+                    calculated_discount = 0.0
+                    
+                    for idx, line_data in enumerate(lines_payload):
+                        if not isinstance(line_data, dict):
+                            console_logger.warning(f"[SAVE_VIEW] Skipping invalid line at index {idx}")
+                            lines_errors.append(f"Line {idx}: Invalid data format")
+                            continue
+                        
+                        try:
+                            line_id = line_data.get('id')
+                            is_dirty = line_data.get('_dirty', False)
+                            
+                            # Extract price info for totals calculation
+                            price_data = line_data.get('price', {})
+                            if isinstance(price_data, dict):
+                                line_extended = float(price_data.get('extended', 0) or 0)
+                                line_discount = float(price_data.get('discount_amount', 0) or 0)
+                            else:
+                                line_extended = 0.0
+                                line_discount = 0.0
+                            
+                            # Extract quantity for validation
+                            quantity_data = line_data.get('quantity', {})
+                            if isinstance(quantity_data, dict):
+                                quantity_placed = float(quantity_data.get('placed', 0) or 0)
+                            elif isinstance(quantity_data, (int, float)):
+                                quantity_placed = float(quantity_data)
+                            else:
+                                quantity_placed = 0.0
+                            
+                            # Accumulate totals
+                            calculated_subtotal += line_extended
+                            calculated_discount += line_discount
+                            
+                            # Prepare line for saving (will save after parent)
+                            line_save_data = {k: v for k, v in line_data.items() if k not in ('_dirty',)}
+                            lines_to_save.append({
+                                'index': idx,
+                                'id': line_id,
+                                'data': line_save_data,
+                                'is_new': not bool(line_id),
+                            })
+                            print(f"[SAVE_VIEW DEBUG] PRE-SAVE: Added line to save: id={line_id}, is_new={not bool(line_id)}")
+                            console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Added line to save: id={line_id}, is_new={not bool(line_id)}, data_keys={list(line_save_data.keys())}")
+                            
+                        except Exception as e:
+                            console_logger.error(f"[SAVE_VIEW] Error processing line {idx}: {e}")
+                            lines_errors.append(f"Line {idx}: {str(e)}")
+                    
+                    # Calculate total (subtotal - discount + tax)
+                    # Tax calculation would typically come from tax service
+                    calculated_total = calculated_subtotal - calculated_discount + calculated_tax
+                    
+                    console_logger.debug(f"[SAVE_VIEW] Lines totals - Subtotal: {calculated_subtotal}, Discount: {calculated_discount}, Total: {calculated_total}")
+                    
+                    # Update parent record with calculated totals if they differ significantly
+                    # Only update if parent doesn't already have these values set
+                    if hasattr(obj, 'subtotal'):
+                        current_subtotal = getattr(obj, 'subtotal', None)
+                        if current_subtotal is None or abs(float(current_subtotal or 0) - calculated_subtotal) > 0.01:
+                            setattr(obj, 'subtotal', calculated_subtotal)
+                            console_logger.debug(f"[SAVE_VIEW] Updated subtotal from {current_subtotal} to {calculated_subtotal}")
+                    
+                    if hasattr(obj, 'discount'):
+                        current_discount = getattr(obj, 'discount', None)
+                        if current_discount is None or abs(float(current_discount or 0) - calculated_discount) > 0.01:
+                            setattr(obj, 'discount', calculated_discount)
+                            console_logger.debug(f"[SAVE_VIEW] Updated discount from {current_discount} to {calculated_discount}")
+                    
+                    if hasattr(obj, 'total'):
+                        current_total = getattr(obj, 'total', None)
+                        if current_total is None or abs(float(current_total or 0) - calculated_total) > 0.01:
+                            setattr(obj, 'total', calculated_total)
+                            console_logger.debug(f"[SAVE_VIEW] Updated total from {current_total} to {calculated_total}")
+                else:
+                    console_logger.warning(f"[SAVE_VIEW] Line model not found: {line_model_name}")
+            else:
+                console_logger.debug(f"[SAVE_VIEW] No line model mapping for {model_key}")
+        
+        # Fail fast if there are line errors before saving parent
+        if lines_errors:
+            console_logger.error(f"[SAVE_VIEW] Line validation errors: {lines_errors}")
+            raise ValueError(f"Line validation failed: {'; '.join(lines_errors)}")
+        
         ### QQQ what is this?
         # Optional model-level payload validation
         try:
@@ -448,6 +573,66 @@ class SaveWcapiView(APIView):
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             raise ValueError('Failed to save')
+        
+        # ============================================================
+        # POST-SAVE: Save lines now that we have parent ID
+        # ============================================================
+        obj_id = getattr(obj, 'id', None)
+        print(f"[SAVE_VIEW DEBUG] POST-SAVE: lines_to_save count={len(lines_to_save)}, line_model={line_model}, obj_id={obj_id}, fk_field_name={fk_field_name}")
+        console_logger.info(f"[SAVE_VIEW] POST-SAVE: lines_to_save={len(lines_to_save)}, line_model={line_model}, obj_id={obj_id}, fk_field_name={fk_field_name}")
+        if lines_to_save and line_model and obj_id:
+            console_logger.debug(f"[SAVE_VIEW] Saving {len(lines_to_save)} lines for {model_key} ID: {obj_id}")
+            
+            for line_info in lines_to_save:
+                idx = line_info['index']
+                line_id = line_info['id']
+                line_save_data = line_info['data']
+                is_new = line_info['is_new']
+                
+                try:
+                    if line_id:
+                        # Update existing line
+                        console_logger.debug(f"[SAVE_VIEW] Updating line ID: {line_id}")
+                        line_obj = line_model.objects.filter(id=line_id).first()
+                        if line_obj:
+                            for field, value in line_save_data.items():
+                                if field in ('id', 'model_name'):
+                                    continue
+                                if hasattr(line_obj, field):
+                                    setattr(line_obj, field, value)
+                            # Ensure FK is set
+                            fk_field = line_model._meta.get_field(fk_field_name)
+                            setattr(line_obj, fk_field.attname, obj_id)
+                            line_obj.save()
+                            lines_results.append({'id': line_obj.id, 'status': 'updated'})
+                        else:
+                            lines_errors.append(f"Line ID {line_id} not found")
+                    else:
+                        # Create new line
+                        print(f"[SAVE_VIEW DEBUG] Creating new line at index {idx}")
+                        console_logger.debug(f"[SAVE_VIEW] Creating new line at index {idx}")
+                        line_obj = line_model()
+                        for field, value in line_save_data.items():
+                            if field in ('id', 'model_name'):
+                                continue
+                            if hasattr(line_obj, field):
+                                setattr(line_obj, field, value)
+                                print(f"[SAVE_VIEW DEBUG] Set field {field}={value}")
+                        # Set the FK using the attname (e.g., salesorder_id_id)
+                        fk_field = line_model._meta.get_field(fk_field_name)
+                        print(f"[SAVE_VIEW DEBUG] Setting FK {fk_field.attname}={obj_id}")
+                        setattr(line_obj, fk_field.attname, obj_id)
+                        line_obj.save()
+                        print(f"[SAVE_VIEW DEBUG] Created new line with ID: {line_obj.id}")
+                        lines_results.append({'id': line_obj.id, 'status': 'created', 'index': idx})
+                        console_logger.debug(f"[SAVE_VIEW] Created new line ID: {line_obj.id}")
+                except Exception as e:
+                    print(f"[SAVE_VIEW DEBUG] ERROR saving line at index {idx}: {e}")
+                    console_logger.error(f"[SAVE_VIEW] Error saving line at index {idx}: {e}")
+                    lines_errors.append(f"Line {idx}: {str(e)}")
+            
+            console_logger.debug(f"[SAVE_VIEW] Lines saved: {len(lines_results)} success, {len(lines_errors)} errors")
+        
         # Auto-link communication records to a Contact
         linked = False
         try:
@@ -689,7 +874,15 @@ class SaveWcapiView(APIView):
             'version': getattr(obj, 'version', None),
             'linked': linked
         }
+        # Include lines results if any were processed
+        if lines_results:
+            payload['lines'] = lines_results
+            console_logger.debug(f"[SAVE_VIEW] Including {len(lines_results)} line results in response")
         messages = []
+        # Add any line errors to messages
+        if lines_errors:
+            messages.extend(lines_errors)
+            console_logger.debug(f"[SAVE_VIEW] Adding {len(lines_errors)} line errors to messages")
         if field_size_errors:
             console_logger.debug(f"[SAVE_VIEW] Adding {len(field_size_errors)} field size errors to messages")
             messages.extend(field_size_errors)
@@ -972,7 +1165,7 @@ class SaveWcapiView(APIView):
                 else:
                     raw_password = field_data
                 continue
-            if field in ('model_name', 'id', 'version', 'expected_version'):
+            if field in ('model_name', 'id', 'version', 'expected_version', 'bulk', 'lines'):
                 continue
 
             # Auto-set to update mode if field_data doesn't have proper structure
@@ -1128,30 +1321,75 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-        # Handle associated lines for header models
-        from apps.core.constants.model_registry import get_model_meta
-        meta = get_model_meta(model_key)
-        if meta and meta.kind == 'header' and 'lines' in data and isinstance(data['lines'], list):
-            console_logger.debug(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
-            line_errors = []
+        # Handle associated lines for header models (salesorder, invoice, etc.)
+        # Check for lines in data - support models even without meta.kind == 'header'
+        header_models = {'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'workorder', 'work_order', 'proposal'}
+        norm_model = model_key.replace('_', '').lower()
+        is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
+        
+        if is_header_model and 'lines' in data and isinstance(data['lines'], list):
+            console_logger.info(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
+            from apps.transactions.models import SalesOrderLine
+            
+            new_line_ids = []
             for idx, line_data in enumerate(data['lines']):
                 try:
-                    line_model_key = model_key + '_line'
-                    line_data_copy = dict(line_data)
-                    line_data_copy['model_name'] = line_model_key
-                    # Set parent FK
-                    parent_fk = model_key.replace('_', '') + '_id'
-                    line_data_copy[parent_fk] = obj.id
-                    # Save the line
-                    from apps.core.services import wcapi
-                    wcapi.save_item(line_model_key, request=request, data=line_data_copy)
-                    console_logger.debug(f"[SAVE_VIEW] Saved line {idx+1} for {model_key}")
+                    line_id = line_data.get('id')
+                    is_new = line_id is None or (isinstance(line_id, str) and line_id.startswith('temp-'))
+                    
+                    if is_new:
+                        # Create new line using direct ORM
+                        line_obj = SalesOrderLine()
+                        line_obj.salesorder_id_id = obj.id
+                        
+                        # Copy fields from line_data
+                        for field_name, field_value in line_data.items():
+                            if field_name in ('id', 'model_name', 'salesorder_id', 'salesorder_id_id'):
+                                continue
+                            if hasattr(line_obj, field_name):
+                                setattr(line_obj, field_name, field_value)
+                        
+                        line_obj.save()
+                        new_line_ids.append(line_obj.id)
+                        console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
+                    else:
+                        # Update existing line
+                        try:
+                            line_obj = SalesOrderLine.objects.get(id=line_id)
+                            for field_name, field_value in line_data.items():
+                                if field_name in ('id', 'model_name', 'salesorder_id', 'salesorder_id_id'):
+                                    continue
+                                if hasattr(line_obj, field_name):
+                                    setattr(line_obj, field_name, field_value)
+                            line_obj.save()
+                            console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
+                        except SalesOrderLine.DoesNotExist:
+                            console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
                 except Exception as e:
-                    error_msg = f"Error saving line {idx+1}: {str(e)}"
-                    console_logger.error(f"[SAVE_VIEW] {error_msg}")
-                    line_errors.append(error_msg)
-            if line_errors:
-                messages.extend(line_errors)
+                    console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}")
+            
+            # Update refs.links with new line IDs
+            if new_line_ids:
+                try:
+                    refs = obj.refs or {}
+                    if not isinstance(refs, dict):
+                        refs = {}
+                    links = refs.get('links', {})
+                    if not isinstance(links, dict):
+                        links = {}
+                    line_refs = links.get('sales_order_line', [])
+                    if not isinstance(line_refs, list):
+                        line_refs = []
+                    for new_id in new_line_ids:
+                        if {'id': new_id} not in line_refs:
+                            line_refs.append({'id': new_id})
+                    links['sales_order_line'] = line_refs
+                    refs['links'] = links
+                    obj.refs = refs
+                    obj.save(update_fields=['refs'])
+                    console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
+                except Exception as e:
+                    console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
 
         # Auto-link communication records to a Contact
         linked = False

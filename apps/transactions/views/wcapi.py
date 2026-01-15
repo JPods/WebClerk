@@ -104,6 +104,126 @@ TRANSACTION_MODELS_WITH_LINES = {
 }
 
 
+class WCAPITransactionSaveView(APIView):
+    """Save transaction with lines, dirty tracking, and calculation verification.
+    
+    Lines are provided in `record.lines` (consistent with existing /wcapi/save/ pattern).
+    
+    Payload:
+    {
+        "model_name": "invoice",
+        "record": {
+            "id": 123,
+            "totals": {...},
+            "finance": {...},
+            "lines": [                          // <-- Lines are INSIDE record
+                { "id": 1, "_dirty": false, ... },  // Skipped - not dirty
+                { "id": 2, "_dirty": true, ... },   // Updated - dirty
+                { "_dirty": true, ... }             // Created - new line
+            ]
+        },
+        "options": {
+            "verify_calculations": true,  // Default: true
+            "save_only_dirty": true        // Default: true
+        }
+    }
+    
+    Response:
+    {
+        "header": { "id": 123 },
+        "lines": [
+            { "id": 1, "action": "skipped", "reason": "not_dirty" },
+            { "id": 2, "action": "updated" },
+            { "id": 456, "action": "created" }
+        ],
+        "lines_saved": 2,
+        "lines_skipped": 1,
+        "action": "updated",
+        "recalculated_totals": { ... }  // WC3's authoritative totals
+    }
+    """
+    http_method_names = ["post", "options", "head"]
+
+    def post(self, request, *args, **kwargs):
+        from apps.transactions.services.transaction_save import (
+            save_transaction_with_lines,
+            calculate_header_totals,
+            CalculationMismatchError,
+            ItemIdChangeError,
+        )
+        
+        body: Dict[str, Any] = request.data or {}
+        model_key = body.get("model_name") or body.get("model") or body.get("modelName")
+        record_data = body.get("record") or {}
+        options = body.get("options") or {}
+        
+        # Extract lines from record.lines (consistent with /wcapi/save/ pattern)
+        lines_data = record_data.pop("lines", []) or []
+        
+        if not model_key:
+            return Response(
+                {"detail": "model_name is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if model_key.lower() not in TRANSACTION_MODELS_WITH_LINES:
+            return Response(
+                {"detail": f"Model {model_key} does not support lines"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            result = save_transaction_with_lines(
+                model_key=model_key.lower(),
+                header_data=record_data,
+                lines_data=lines_data,
+                request=request,
+                verify_calculations=options.get("verify_calculations", True),
+                save_only_dirty=options.get("save_only_dirty", True),
+            )
+            
+            # Calculate and return authoritative totals
+            recalc_totals = calculate_header_totals(lines_data, record_data)
+            result['recalculated_totals'] = {
+                k: float(v) for k, v in recalc_totals.items()
+            }
+            
+            return Response(result, status=status.HTTP_200_OK)
+            
+        except CalculationMismatchError as e:
+            return Response({
+                "detail": "Calculation mismatch",
+                "error": str(e),
+                "field": e.field,
+                "r25_value": e.r25_value,
+                "wc3_value": e.wc3_value,
+                "line_id": e.line_id,
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except ItemIdChangeError as e:
+            return Response({
+                "detail": "Item ID change not allowed",
+                "error": str(e),
+                "line_id": e.line_id,
+                "old_item_id": e.old_item_id,
+                "new_item_id": e.new_item_id,
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except LookupError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.exception("Transaction save failed")
+            return Response({
+                "detail": "Save failed",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class WCAPIGetView(APIView):
     http_method_names = ["post", "options", "head"]
 

@@ -2,162 +2,81 @@
 
 ## Overview
 
-The Frontend Dropdowns system provides centralized management of dropdown selection lists for React frontend components. It supports both hardcoded defaults and database-driven configuration through Setting records.
+Frontend dropdowns now flow through a single pipeline: JSON metadata defines the options, Django exposes matching `choices`, and WCAPI serves the combined catalog to React. This aligns backend validation and frontend UX without duplicating logic.
 
-## Architecture
+## Source of Truth
 
-### Components
+- Canonical definitions live in [common/choices.json](../../../common/choices.json).
+- Each entry stores `domain`, `model`, `field`, `purpose`, `where_used`, `allow_blank`, and the `{value, label}` options.
+- `_meta.version` helps consumers detect breaking schema shifts.
 
-1. **FrontendDropdownsService** (`apps/core/services/frontend_dropdowns.py`)
-   - Core service for generating dropdown options
-   - Caching layer for performance
-   - Fallback to hardcoded defaults
-
-2. **API View** (`apps/core/views/dropdowns.py`)
-   - REST endpoint for frontend consumption
-   - Authentication required
-   - Supports both full and individual dropdown retrieval
-
-3. **Migration Command** (`apps/core/management/commands/migrate_frontend_dropdowns.py`)
-   - Moves hardcoded dropdowns to Setting records
-   - Supports dry-run and force options
-
-## Current Dropdowns
-
-### assigned_to_ddl
-
-- **Purpose**: User assignment dropdown for actions/tasks
-- **Format**: `[{"label": "Full Name", "value": contact_id}, ...]`
-- **Source**: Active Contact records, ordered by last name, first name
-- **Dynamic**: Always queries database (not cached in settings)
-
-### difficulty_ddl
-
-- **Purpose**: Task difficulty levels
-- **Format**: `["1", "5", "25", "50", "101"]`
-- **Configurable**: Can be overridden via Setting records
-
-### priority_ddl
-
-- **Purpose**: Task priority levels
-- **Format**: `["UKN", "Low", "Medium", "High", "Immediate"]`
-- **Configurable**: Can be overridden via Setting records
-
-## API Endpoints
-
-### GET /dropdowns/
-
-Returns all frontend dropdowns.
-
-**Response:**
+**Example snippet:**
 
 ```json
-{
-  "assigned_to_ddl": [
-    {"label": "John Doe", "value": 1},
-    {"label": "Jane Smith", "value": 2}
-  ],
-  "difficulty_ddl": ["1", "5", "25", "50", "101"],
-  "priority_ddl": ["UKN", "Low", "Medium", "High", "Immediate"]
+"ACTION_KANBAN_COLUMNS": {
+  "domain": "core",
+  "model": "Action",
+  "field": "kanban_column",
+  "allow_blank": true,
+  "options": [
+    {"value": "", "label": "---------"},
+    {"value": "Backlog", "label": "Backlog"},
+    {"value": "Planning", "label": "Planning"}
+  ]
 }
 ```
 
-### GET /dropdowns/?name=dropdown_name
+## Python Loader Layer
 
-Returns a specific dropdown.
+- [common/choices.py](../../../common/choices.py) parses the JSON and generates Django-friendly tuples while keeping metadata accessible via helper functions.
+- Domain-specific modules re-export the tuples and compose `DEFAULT_SELECT_LISTS` so existing imports remain valid.
 
-**Example:** `/dropdowns/?name=priority_ddl`
+## Registry and API
 
-**Response:**
-
-```json
-["UKN", "Low", "Medium", "High", "Immediate"]
-```
-
-## Configuration via Settings
-
-Once migrated, dropdowns are stored as Setting records with:
-
-- **purpose**: `"front_end-ddl"`
-- **name**: `"frontend-dropdown-{dropdown_name}"`
-- **data**: The dropdown options array/object
-
-### Example Setting Record
+- [common/choices_registry.py](../../../common/choices_registry.py) aggregates every app’s `DEFAULT_SELECT_LISTS`, normalizes entries, and memoizes the payload.
+- [apps/core/views/choices.py](../../../apps/core/views/choices.py) exposes `GET /wcapi/choices/`.
+  - `app=<label>` (repeatable) filters to specific Django app labels.
+  - `refresh=1` clears the in-process cache after JSON edits.
+- **Response structure:**
 
 ```json
 {
-  "name": "frontend-dropdown-priority_ddl",
-  "purpose": "front_end-ddl",
-  "data": ["UKN", "Low", "Medium", "High", "Immediate", "Critical"],
-  "is_active": true
-}
-```
-
-## Migration Process
-
-### Step 1: Preview Migration
-
-```bash
-python manage.py migrate_frontend_dropdowns --dry-run
-```
-
-### Step 2: Execute Migration
-
-```bash
-python manage.py migrate_frontend_dropdowns
-```
-
-### Step 3: Verify
-
-Check that Setting records exist with purpose="front_end-ddl"
-
-### Step 4: Update Frontend
-
-Frontend will automatically use the new settings-based dropdowns
-
-## Usage in React Frontend
-
-```javascript
-// Fetch all dropdowns
-const response = await fetch('/dropdowns/', {
-  headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+  "apps": {
+    "core": {
+      "Action": {
+        "kanban_column": [
+          {"value": "", "label": "---------"},
+          {"value": "Backlog", "label": "Backlog"}
+        ]
+      }
+    }
+  },
+  "meta": {
+    "app_count": 1,
+    "model_count": 1,
+    "errors": []
   }
-});
-const dropdowns = await response.json();
-
-// Use in component
-<select>
-  {dropdowns.priority_ddl.map(priority => (
-    <option key={priority} value={priority}>{priority}</option>
-  ))}
-</select>
+}
 ```
 
-## Adding New Dropdowns
+The endpoint is intentionally unauthenticated so the frontend can prefetch drop-in configuration. Treat the payload as read-only guidance.
 
-1. **Add hardcoded default** in `FrontendDropdownsService.DEFAULT_DROPDOWNS`
-2. **Add getter method** following the pattern of existing methods
-3. **Update get_all_dropdowns()** to include the new dropdown
-4. **Run migration** to create Setting record
-5. **Update frontend** to consume the new dropdown
+## Frontend Consumption Pattern
 
-## Cache Management
+1. Bootstrap: call `GET /wcapi/choices/?app=core&app=transactions`.
+2. Cache results client-side for ~5 minutes to limit chatter.
+3. Feed the normalized `{value, label}` pairs straight into select components; server-side validation uses the same tuples.
+4. After admin edits, call the endpoint with `refresh=1` to invalidate cached data.
 
-- Dropdowns are cached for 1 hour to improve performance
-- Cache is automatically invalidated when settings change
-- `assigned_to_ddl` is always fresh (not cached in settings)
+## Editing or Adding Select Lists
 
-## Security
+1. Update [common/choices.json](../../../common/choices.json).
+2. Ensure [common/choices.py](../../../common/choices.py) exports the tuple and the relevant app module includes it in `DEFAULT_SELECT_LISTS`.
+3. Run tests to catch import errors recorded by the registry.
+4. Document consumer expectations when introducing new lists.
 
-- All endpoints require authentication
-- Dropdown data is read-only for frontend consumption
-- Settings can be modified through Django admin (staff access required)
+## Future Direction
 
-## Future Enhancements
-
-- Role-based dropdown filtering
-- Dynamic dropdowns based on user context
-- Validation of dropdown values on form submission
-- Audit logging of dropdown changes
+- JSON definitions will seed Settings records, enabling per-tenant overrides and an admin UI.
+- The `GET /wcapi/choices/` contract remains stable; only the storage backend evolves.
+- Role-aware and tenant-aware filtering layers will build atop the Settings integration.
