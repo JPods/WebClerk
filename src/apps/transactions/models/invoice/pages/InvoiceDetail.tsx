@@ -26,11 +26,14 @@ interface Invoice extends Transaction {
   invoice_no?: string;
   ida?: string;
   po_number?: string;
+  reference?: string;
+  dt?: string;
   terms?: string;
   due_date?: string;
   ship_date?: string;
   ship_via?: string;
   fob?: string;
+  weight?: number;
   tax_rate?: number;
   tax_exempt?: boolean;
   tax_exempt_id?: string;
@@ -57,11 +60,10 @@ const InvoiceHeader: React.FC<{
   data: Invoice;
   isEditing: boolean;
   onChange?: (field: keyof Invoice, value: unknown) => void;
-}> = ({ data, isEditing, onChange }) => {
+}> = ({ data }) => {
   // Extract customer info from refs.links
   const customerInfo = data.refs?.links?.customer?.[0];
   const billingContact = data.refs?.links?.contact?.find(c => c.purpose === 'billto');
-  const shippingContact = data.refs?.links?.contact?.find(c => c.purpose === 'shipto');
 
   return (
     <div className="space-y-6">
@@ -76,11 +78,11 @@ const InvoiceHeader: React.FC<{
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between items-center">
               <FieldLabel label="Invoice No" mandatory locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.invoice_no ?? data.number ?? '--'}</dd>
+              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? '--'}</dd>
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="IDA" locked className="text-slate-500 dark:text-slate-400" />
-              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.ida ?? '--'}</dd>
+              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.id ?? '--'}</dd>
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Date" mandatory className="text-slate-500 dark:text-slate-400" />
@@ -122,7 +124,7 @@ const InvoiceHeader: React.FC<{
               </div>
               <div className="flex justify-between items-center">
                 <FieldLabel label="Name" className="text-slate-500 dark:text-slate-400" />
-                <dd className="text-slate-900 dark:text-white">{customerInfo.name ?? '--'}</dd>
+                <dd className="text-slate-900 dark:text-white">{customerInfo.display_name ?? '--'}</dd>
               </div>
               <div className="flex justify-between items-center">
                 <FieldLabel label="IDA" className="text-slate-500 dark:text-slate-400" />
@@ -136,7 +138,7 @@ const InvoiceHeader: React.FC<{
           {billingContact && (
             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
               <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Bill To</h4>
-              <p className="text-sm text-slate-900 dark:text-white">{billingContact.name}</p>
+              <p className="text-sm text-slate-900 dark:text-white">{billingContact.display_name}</p>
               {billingContact.email && <p className="text-sm text-slate-600 dark:text-slate-300">{billingContact.email}</p>}
             </div>
           )}
@@ -149,7 +151,7 @@ const InvoiceHeader: React.FC<{
             <div className="flex justify-between items-center">
               <FieldLabel label="Subtotal" locked className="text-slate-500 dark:text-slate-400" />
               <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.ex ?? data.subtotal)}
+                {formatCurrency(data.totals?.subtotal ?? data.subtotal)}
               </dd>
             </div>
             <div className="flex justify-between items-center">
@@ -167,7 +169,7 @@ const InvoiceHeader: React.FC<{
             <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
               <FieldLabel label="Total" mandatory locked className="text-slate-700 dark:text-slate-200 text-base" />
               <dd className="text-lg font-bold text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.inc ?? data.total)}
+                {formatCurrency(data.totals?.total ?? data.total)}
               </dd>
             </div>
             <div className="flex justify-between items-center text-green-600 dark:text-green-400">
@@ -240,28 +242,28 @@ const InvoiceLines: React.FC<{
               className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
               <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
-                {line.line_no ?? idx + 1}
+                {line.item?.line_number ?? idx + 1}
               </td>
               <td className="px-4 py-3 text-sm font-mono font-medium text-slate-900 dark:text-white">
-                {line.item_code ?? '--'}
+                {line.item?.ida_item ?? '--'}
               </td>
               <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                {line.description ?? '--'}
+                {line.item?.description ?? '--'}
               </td>
               <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">
-                {formatNumber(line.qty)}
+                {formatNumber(line.quantity?.ordered)}
               </td>
               <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-300">
-                {line.uom ?? 'EA'}
+                {line.item?.unit_measure ?? 'EA'}
               </td>
               <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">
-                {formatCurrency(line.price)}
+                {formatCurrency(line.price?.unit)}
               </td>
               <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-300">
-                {line.discount_percent ? `${line.discount_percent}%` : '--'}
+                {line.price?.discount_percent ? `${line.price.discount_percent}%` : '--'}
               </td>
               <td className="px-4 py-3 text-sm text-right font-medium text-slate-900 dark:text-white">
-                {formatCurrency(line.total)}
+                {formatCurrency(line.price?.extended)}
               </td>
             </tr>
           ))}
@@ -271,7 +273,7 @@ const InvoiceLines: React.FC<{
             <td colSpan={6}></td>
             <td className="px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 text-right">Subtotal:</td>
             <td className="px-4 py-2 text-sm font-bold text-slate-900 dark:text-white text-right">
-              {formatCurrency(lines.reduce((sum, l) => sum + (l.total ?? 0), 0))}
+              {formatCurrency(lines.reduce((sum, l) => sum + (l.price?.extended ?? 0), 0))}
             </td>
           </tr>
         </tfoot>
@@ -284,8 +286,10 @@ const InvoiceLines: React.FC<{
 const ShippingTab: React.FC<{
   data: Invoice;
   isEditing: boolean;
-}> = ({ data, isEditing }) => {
+}> = ({ data }) => {
   const shippingContact = data.refs?.links?.contact?.find(c => c.purpose === 'shipto');
+  // Get shipping location if available
+  const shippingLocation = data.refs?.links?.location?.find(l => l.type === 'shipto');
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -309,7 +313,7 @@ const ShippingTab: React.FC<{
           <div className="flex justify-between">
             <FieldLabel label="Weight" className="text-slate-500 dark:text-slate-400" />
             <dd className="text-slate-900 dark:text-white">
-              {data.totals?.wt ? `${data.totals.wt} kg` : '--'}
+              {data.weight ? `${data.weight} kg` : '--'}
             </dd>
           </div>
         </dl>
@@ -319,13 +323,13 @@ const ShippingTab: React.FC<{
         <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Ship To Address</h3>
         {shippingContact ? (
           <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
-            <p className="font-medium">{shippingContact.name}</p>
+            <p className="font-medium">{shippingContact.display_name}</p>
             {shippingContact.company && <p>{shippingContact.company}</p>}
-            {shippingContact.address && (
+            {shippingLocation?.address && (
               <>
-                <p>{shippingContact.address.street}</p>
-                <p>{shippingContact.address.city}, {shippingContact.address.state} {shippingContact.address.zip}</p>
-                {shippingContact.address.country && <p>{shippingContact.address.country}</p>}
+                <p>{(shippingLocation.address as Record<string, string>).street}</p>
+                <p>{(shippingLocation.address as Record<string, string>).city}, {(shippingLocation.address as Record<string, string>).state} {(shippingLocation.address as Record<string, string>).zip}</p>
+                {(shippingLocation.address as Record<string, string>).country && <p>{(shippingLocation.address as Record<string, string>).country}</p>}
               </>
             )}
             {shippingContact.phone && <p className="mt-2">Tel: {shippingContact.phone}</p>}
@@ -342,7 +346,7 @@ const ShippingTab: React.FC<{
 const TaxTab: React.FC<{
   data: Invoice;
   isEditing: boolean;
-}> = ({ data, isEditing }) => {
+}> = ({ data }) => {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 max-w-lg">
       <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Tax Information</h3>

@@ -81,6 +81,13 @@ export async function getRecords(model_name: string, params?: any) {
 export async function getRecord(model_name: string, id: number) {
   try {
     const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/wcapi/get/`, { params: { model_name, id } });
+    console.log(`[wcapi.getRecord] model=${model_name} id=${id} response:`, res.data);
+    const record = res.data.data?.record;
+    if (record && model_name === 'salesorder') {
+      console.log(`[wcapi.getRecord] lines in response:`, record.lines);
+      console.log(`[wcapi.getRecord] lines count:`, record.lines?.length);
+      console.log(`[wcapi.getRecord] line IDs:`, record.lines?.map((l: any) => l.id));
+    }
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
@@ -92,12 +99,18 @@ export async function getRecord(model_name: string, id: number) {
 }
 
 export async function saveRecord(model_name: string, payload: any) {
+  // Extract id from payload if present for updates
+  const { id, ...data } = payload;
+  const body: any = { model_name, data };
+  if (id !== undefined) {
+    body.id = id;
+  }
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name, ...payload });
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', body);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name, ...payload });
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', body);
       return res2.data.data;
     }
     throw err;

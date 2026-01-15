@@ -13,9 +13,27 @@ import { useDispatch } from "react-redux";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { PageRoutes } from "@/routes/Routes";
 
+// Invoice row type for the data table
+interface InvoiceRow {
+  id: number;
+  invoice_no?: string;
+  status?: string;
+  customer_name?: string;
+  customer_id?: number;
+  vendor_name?: string;
+  vendor_id?: number;
+  total?: number;
+  total_amount?: number;
+  margin_percentage?: number;
+  margin_amount?: number;
+  line_count?: number;
+  lines?: unknown[];
+  dt_created?: string | number;
+}
+
 export default function InvoiceList() {
-  const [data, setData] = useState<any[]>([]);
-  const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
+  const [data, setData] = useState<InvoiceRow[]>([]);
+  const [_selectedInvoices, setSelectedInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -47,7 +65,7 @@ export default function InvoiceList() {
   }, [getInvoiceData]);
 
   const handleView = useCallback(
-    (row: any) => {
+    (row: InvoiceRow) => {
       const invoiceId = row?.id;
       if (!invoiceId) {
         dispatch(showToast({ message: "Invoice id missing", type: "error" }));
@@ -62,7 +80,7 @@ export default function InvoiceList() {
   );
 
   const handleEdit = useCallback(
-    (row: any) => {
+    (row: InvoiceRow) => {
       const invoiceId = row?.id;
       if (!invoiceId) {
         dispatch(showToast({ message: "Invoice id missing", type: "error" }));
@@ -83,7 +101,7 @@ export default function InvoiceList() {
     );
   };
 
-  const handleDelete = async (row: any) => {
+  const handleDelete = async (row: InvoiceRow) => {
     if (window.confirm(`Delete invoice ${row.invoice_no}?`)) {
       try {
         await deleteAction(row.id);
@@ -102,14 +120,14 @@ export default function InvoiceList() {
     }
   };
 
-  const userColumns: TableColumn<any>[] = useMemo(
+  const userColumns: TableColumn<InvoiceRow>[] = useMemo(
     () => [
       {
         name: "ID",
-        selector: (row) => row.id,
+        selector: (row: InvoiceRow) => row.id,
         sortable: true,
         width: "80px",
-        cell: (row) => (
+        cell: (row: InvoiceRow) => (
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -123,16 +141,16 @@ export default function InvoiceList() {
       },
       {
         name: "Invoice No",
-        selector: (row) => row.invoice_no || "--",
+        selector: (row: InvoiceRow) => row.invoice_no || "--",
         sortable: true,
         width: "14%",
       },
       {
         name: "Status",
-        selector: (row) => row.status || "--",
+        selector: (row: InvoiceRow) => row.status || "--",
         sortable: true,
         width: "12%",
-        cell: (row) => (
+        cell: (row: InvoiceRow) => (
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium ${
               row.status === "delivered"
@@ -152,22 +170,22 @@ export default function InvoiceList() {
       },
       {
         name: "Customer",
-        selector: (row) => row.customer_name || row.customer_id || "--",
+        selector: (row: InvoiceRow) => row.customer_name || row.customer_id || "--",
         sortable: true,
         width: "12%",
       },
       {
         name: "Vendor",
-        selector: (row) => row.vendor_name || row.vendor_id || "--",
+        selector: (row: InvoiceRow) => row.vendor_name || row.vendor_id || "--",
         sortable: true,
         width: "12%",
       },
       {
         name: "Total Amount",
-        selector: (row) => row.total || row.total_amount || 0,
+        selector: (row: InvoiceRow) => row.total || row.total_amount || 0,
         sortable: true,
         width: "10%",
-        cell: (row) => (
+        cell: (row: InvoiceRow) => (
           <span className="font-medium text-green-600 dark:text-green-400">
             $
             {row.total
@@ -180,10 +198,10 @@ export default function InvoiceList() {
       },
       {
         name: "Margin",
-        selector: (row) => row.margin_percentage || 0,
+        selector: (row: InvoiceRow) => row.margin_percentage || 0,
         sortable: true,
         width: "8%",
-        cell: (row) => (
+        cell: (row: InvoiceRow) => (
           <span
             className={`text-center px-2 py-1 rounded text-xs font-medium ${
               (row.margin_percentage || 0) >= 20
@@ -202,10 +220,10 @@ export default function InvoiceList() {
       },
       {
         name: "Lines",
-        selector: (row) => row.line_count || (row.lines ? row.lines.length : 0),
+        selector: (row: InvoiceRow) => row.line_count || (row.lines ? row.lines.length : 0),
         sortable: true,
         width: "6%",
-        cell: (row) => (
+        cell: (row: InvoiceRow) => (
           <span className="text-center bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
             {row.line_count || (row.lines ? row.lines.length : 0)}
           </span>
@@ -213,7 +231,7 @@ export default function InvoiceList() {
       },
       {
         name: "Created",
-        selector: (row) =>
+        selector: (row: InvoiceRow) =>
           row.dt_created
             ? typeof row.dt_created === "string"
               ? new Date(row.dt_created).toLocaleDateString()
@@ -225,7 +243,7 @@ export default function InvoiceList() {
       {
         name: "Actions",
         width: "140px",
-        cell: (row) => (
+        cell: (row: InvoiceRow) => (
           <div className="flex gap-2">
             <button
               onClick={(e) => {
@@ -293,22 +311,22 @@ export default function InvoiceList() {
     []
   );
 
-  // Calculate summary statistics
-  const totalInvoices = data.length;
-  const totalValue = data.reduce(
-    (sum, invoice) => sum + (invoice.total || invoice.total_amount || 0),
-    0
-  );
-  const totalMargin = data.reduce(
-    (sum, invoice) => sum + (invoice.margin_amount || 0),
-    0
-  );
-  const avgMargin = totalInvoices > 0 ? (totalMargin / totalValue) * 100 : 0;
-  const statusCounts = data.reduce((acc, invoice) => {
-    acc[invoice.status || "unknown"] =
-      (acc[invoice.status || "unknown"] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate summary statistics (commented out - for future summary cards)
+  // const totalInvoices = data.length;
+  // const totalValue = data.reduce(
+  //   (sum, invoice) => sum + (invoice.total || invoice.total_amount || 0),
+  //   0
+  // );
+  // const totalMargin = data.reduce(
+  //   (sum, invoice) => sum + (invoice.margin_amount || 0),
+  //   0
+  // );
+  // const avgMargin = totalInvoices > 0 ? (totalMargin / totalValue) * 100 : 0;
+  // const statusCounts = data.reduce((acc, invoice) => {
+  //   acc[invoice.status || "unknown"] =
+  //     (acc[invoice.status || "unknown"] || 0) + 1;
+  //   return acc;
+  // }, {} as Record<string, number>);
 
   return (
     <>
