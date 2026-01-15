@@ -698,10 +698,122 @@ def validate_line(line):
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/wcapi/save/` | POST | Save & recalculate |
+| `/wcapi/transaction/save/` | POST | Save with dirty tracking & calculation verification |
 | `/wcapi/calculate/` | POST | Preview calculation without save |
 | `/wcapi/price-lookup/` | POST | Get price for item/customer/qty |
 | `/wcapi/tax-lookup/` | POST | Get tax rate for address |
 | `/wcapi/apply-payment/` | POST | Apply payment to invoice |
+
+### Transaction Save Endpoint (with Verification)
+
+> **Endpoint**: `POST /wcapi/transaction/save/`  
+> **Implementation**: `apps/transactions/services/transaction_save.py` + `WCAPITransactionSaveView`
+
+This endpoint provides:
+1. **Dirty line tracking** - Skip unchanged lines (`_dirty: false`)
+2. **Calculation verification** - Compare R25's values to WC3's authoritative math
+3. **Recalculated totals** - Return WC3's authoritative totals for R25 to sync
+
+#### Request Payload
+
+```json
+{
+  "model_name": "invoice",
+  "record": {
+    "id": 123,
+    "totals": {
+      "subtotal": 1000.00,
+      "tax": 80.00,
+      "total": 1080.00
+    },
+    "finance": {
+      "margin": 250.00,
+      "margin_pct": 25.0
+    },
+    "lines": [
+      {
+        "id": 1,
+        "_dirty": false,
+        "quantity": { "qty": 5 },
+        "price": { "unit": 100.00, "extended": 500.00 },
+        "discount": { "pct": 10, "amt": 50.00 }
+      },
+      {
+        "id": 2,
+        "_dirty": true,
+        "quantity": { "qty": 10 },
+        "price": { "unit": 50.00, "extended": 450.00 },
+        "discount": { "pct": 10, "amt": 50.00 }
+      }
+    ]
+  },
+  "options": {
+    "verify_calculations": true,
+    "save_only_dirty": true
+  }
+}
+```
+
+> **Note**: Lines are provided inside `record.lines` (consistent with existing `/wcapi/save/` pattern).
+> WC3 loops through this array and processes each line based on its `_dirty` flag.
+
+#### Response (Success)
+
+```json
+{
+  "header": { "id": 123 },
+  "lines": [
+    { "id": 1, "action": "skipped", "reason": "not_dirty" },
+    { "id": 2, "action": "updated" }
+  ],
+  "lines_saved": 1,
+  "lines_skipped": 1,
+  "action": "updated",
+  "recalculated_totals": {
+    "subtotal": 1000.00,
+    "tax": 80.00,
+    "total": 1080.00,
+    "margin": 250.00,
+    "margin_pct": 25.0
+  }
+}
+```
+
+#### Response (Calculation Mismatch)
+
+```json
+{
+  "detail": "Calculation mismatch",
+  "error": "Line 2: 'extended' mismatch - R25: 500.00 vs WC3: 450.00",
+  "field": "extended",
+  "r25_value": 500.00,
+  "wc3_value": 450.00,
+  "line_id": 2
+}
+```
+
+#### Calculation Tolerance
+
+```python
+CALC_TOLERANCE = Decimal("0.01")  # $0.01 tolerance
+```
+
+This handles rounding differences between JavaScript and Python decimal math.
+
+#### Verified Calculations
+
+| Field | Formula |
+|-------|---------|
+| `price.extended` | `qty × unit` |
+| `discount.amt` | `extended × (pct / 100)` |
+| `cost.extended` | `qty × unit` |
+| `cost.grossCost` | `cost.extended` |
+| `cost.discountCost` | `cost.extended - discount.amt` |
+| `totals.subtotal` | `Σ(line.price.extended - line.discount.amt)` |
+| `totals.tax` | `subtotal × tax_rate` |
+| `totals.total` | `subtotal + tax` |
+| `finance.margin` | `subtotal - Σ(line.cost.extended)` |
+| `finance.margin_pct` | `(margin / subtotal) × 100` |
 
 ### Calculate Preview Endpoint
 
