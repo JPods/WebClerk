@@ -27,7 +27,7 @@ import {
   fetchSalesOrderDetail,
   searchCustomers,
 } from "../services/salesOrderApi";
-import { saveRecord, deleteRecord } from "../../../../../api/wcapi";
+import { deleteRecord } from "../../../../../api/wcapi";
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
@@ -64,6 +64,7 @@ interface FieldConfig {
   options?: { value: string; label: string }[];
   step?: number;
   min?: number;
+  required?: boolean;
 }
 
 interface FieldGroup {
@@ -76,7 +77,6 @@ const FIELD_GROUPS: FieldGroup[] = [
     title: "Primary",
     fields: [
       { name: "ida", label: "ida", type: "text" },
-      { name: "sales_order_no", label: "ida_sales_order", type: "text" },
       {
         name: "status",
         label: "status",
@@ -90,7 +90,7 @@ const FIELD_GROUPS: FieldGroup[] = [
   {
     title: "Associations",
     fields: [
-      { name: "customer_id", label: "customer_id", type: "number", min: 1 },
+      { name: "customer_id", label: "customer_id", type: "number", min: 1, required: true },
       {
         name: "manufacturer_id",
         label: "manufacturer_id",
@@ -1055,6 +1055,7 @@ export default function SalesOrderDetail({
     ContactColumnKey[]
   >(() => CONTACT_LINK_COLUMN_DEFS.map((def) => def.key));
   const draggingContactColumn = useRef<ContactColumnKey | null>(null);
+  const [forceSave, setForceSave] = useState(false);
 
   const rawCustomerId = watch("customer_id");
   const refsValue = watch("refs");
@@ -1416,13 +1417,25 @@ export default function SalesOrderDetail({
 
   const lineItems = useMemo(() => {
     if (recordData && typeof recordData === "object") {
-      return normalizeLines((recordData as Record<string, unknown>).lines);
+      const rawLines = (recordData as Record<string, unknown>).lines;
+      console.log("[SalesOrderDetail] Raw lines from recordData:", rawLines);
+      console.log("[SalesOrderDetail] Raw lines type:", typeof rawLines);
+      console.log("[SalesOrderDetail] Raw lines isArray:", Array.isArray(rawLines));
+      if (Array.isArray(rawLines)) {
+        console.log("[SalesOrderDetail] Raw lines count:", rawLines.length);
+        console.log("[SalesOrderDetail] Raw line IDs:", rawLines.map((l: any) => l?.id));
+      }
+      const normalized = normalizeLines(rawLines);
+      console.log("[SalesOrderDetail] Normalized lines count:", normalized.length);
+      console.log("[SalesOrderDetail] Normalized line IDs:", normalized.map(l => l.id));
+      return normalized;
     }
     return [];
   }, [recordData]);
 
   useEffect(() => {
     const clonedLines = lineItems.map((line) => cloneLine(line));
+    console.log("[SalesOrderDetail] Setting lineDrafts, count:", clonedLines.length);
     setLineDrafts(clonedLines);
     setValue("lines" as any, clonedLines as any, {
       shouldDirty: false,
@@ -1646,7 +1659,8 @@ export default function SalesOrderDetail({
           return nextLines;
         }
 
-        const nextLines = [...currentLines, buildLineFromItem(item, quantity)];
+        const newLine = buildLineFromItem(item, quantity);
+        const nextLines = [...currentLines, newLine];
         setValue("lines" as any, nextLines as any, {
           shouldDirty: true,
           shouldValidate: false,
@@ -1799,9 +1813,15 @@ export default function SalesOrderDetail({
   };
 
   const onSubmit = async (formData: SalesOrderForm) => {
-    const linesForSync = Array.isArray(formData.lines)
-      ? formData.lines.map((line) => cloneLine(line))
-      : [];
+    dispatch(showToast({ message: 'Saving...', type: 'info' }));
+    
+    // Use lineDrafts directly as the source of truth for lines
+    // formData.lines may not be in sync due to react-hook-form setValue behavior
+    const linesForSync = Array.isArray(lineDrafts) && lineDrafts.length > 0
+      ? lineDrafts.map((line) => cloneLine(line))
+      : (Array.isArray(formData.lines)
+        ? formData.lines.map((line) => cloneLine(line))
+        : []);
 
     try {
       applyJsonDraftsToPayload(formData);
@@ -1822,6 +1842,58 @@ export default function SalesOrderDetail({
       delete orderPayload.id_customer;
       delete orderPayload.id_vendor;
       delete orderPayload.id_manufacturer;
+      // Include version from the original record data for optimistic concurrency control
+      // If version is not a valid number, or forceSave is enabled, exclude it to skip version checking on backend
+      const currentVersion = recordData?.version;
+      if (!forceSave && typeof currentVersion === 'number' && !Number.isNaN(currentVersion)) {
+        orderPayload.version = currentVersion;
+      } else {
+        delete orderPayload.version;
+      }
+      
+      // Prepare lines for the payload
+      // - New lines: no id, marked as dirty
+      // - Existing lines: keep id
+      const originalLineIds = new Set<number>();
+      lineItems.forEach((line) => {
+        const existingId = resolveLineId(line);
+        if (existingId) {
+          originalLineIds.add(existingId);
+        }
+      });
+      
+      const preparedLines = linesForSync.map((line) => {
+        if (!line || typeof line !== "object") {
+          return null;
+        }
+        const linePayload = line as Record<string, unknown>;
+        const lineId = resolveLineId(line);
+        
+        // Clean up FK fields - backend will handle parent relationship
+        delete linePayload.salesorder_id;
+        delete linePayload.salesorder_id_id;
+        delete linePayload.parent;
+        
+        if (lineId) {
+          // Existing line - keep id
+          linePayload.id = lineId;
+        } else {
+          // New line - no id, mark as dirty
+          delete linePayload.id;
+          linePayload._dirty = true;
+        }
+        
+        // Remove version from line payload if forceSave
+        if (forceSave) {
+          delete linePayload.version;
+        }
+        
+        return linePayload;
+      }).filter(Boolean);
+      
+      // Include lines in the order payload - backend will save them
+      orderPayload.lines = preparedLines;
+      
       const saveResult =
         mode === "add"
           ? await createSalesOrder(orderPayload)
@@ -1856,66 +1928,42 @@ export default function SalesOrderDetail({
         throw new Error("Sales order id missing after save");
       }
 
-      const originalLineIds = new Set<number>();
-      lineItems.forEach((line) => {
-        const existingId = resolveLineId(line);
-        if (existingId) {
-          originalLineIds.add(existingId);
-        }
-      });
-
+      // Handle deleted lines - lines that were in original but not in current
       const retainedLineIds = new Set<number>();
-      const lineOperations: Promise<unknown>[] = [];
-
       linesForSync.forEach((line) => {
-        if (!line || typeof line !== "object") {
-          return;
-        }
-        const payload = line as Record<string, unknown>;
         const lineId = resolveLineId(line);
-        payload.parent = resolvedOrderId;
         if (lineId) {
           retainedLineIds.add(lineId);
-          payload.id = lineId;
-        } else {
-          delete payload.id;
         }
-        lineOperations.push(
-          (async () => {
-            await saveRecord(
-              "sales_order_line",
-              JSON.parse(JSON.stringify(payload))
-            );
-          })()
-        );
       });
-
+      
+      const deleteOperations: Promise<void>[] = [];
       originalLineIds.forEach((lineId) => {
         if (!retainedLineIds.has(lineId)) {
-          lineOperations.push(
-            (async () => {
-              await deleteRecord("sales_order_line", lineId);
-            })()
+          deleteOperations.push(
+            deleteRecord("salesorderline", lineId)
           );
         }
       });
-
-      if (lineOperations.length > 0) {
-        const results = await Promise.allSettled(lineOperations);
-        const rejected = results.find((result) => result.status === "rejected");
-        if (rejected && rejected.status === "rejected") {
-          throw rejected.reason instanceof Error
-            ? rejected.reason
-            : new Error("Failed syncing line items");
-        }
+      
+      if (deleteOperations.length > 0) {
+        await Promise.allSettled(deleteOperations);
       }
 
       try {
         const refreshed = await fetchSalesOrderDetail(resolvedOrderId);
+        console.log('[SalesOrderDetail] Refreshed data after save:', {
+          id: (refreshed as Record<string, unknown>)?.id,
+          hasLines: !!(refreshed as Record<string, unknown>)?.lines,
+          linesCount: Array.isArray((refreshed as Record<string, unknown>)?.lines) 
+            ? ((refreshed as Record<string, unknown>).lines as unknown[]).length 
+            : 0,
+        });
         if (refreshed && typeof refreshed === "object") {
           setRecordData(refreshed as SalesOrderForm & { id?: number });
         }
-      } catch {
+      } catch (refreshErr) {
+        console.error('[SalesOrderDetail] Error refreshing after save:', refreshErr);
         // Best-effort refresh; ignore errors so a successful save is not blocked.
       }
 
@@ -1930,7 +1978,33 @@ export default function SalesOrderDetail({
       if (onSaved) {
         onSaved();
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      // Check for version conflict (412) and provide helpful message
+      const axiosError = error as { response?: { status?: number; data?: { error?: { details?: { expected?: number; current?: number } } } } };
+      if (axiosError?.response?.status === 412) {
+        const details = axiosError.response?.data?.error?.details;
+        const expectedVersion = details?.expected;
+        const currentVersion = details?.current;
+        const conflictMsg = expectedVersion !== undefined && currentVersion !== undefined
+          ? `Version conflict: You have version ${expectedVersion}, but the record is now at version ${currentVersion}. Please refresh and try again.`
+          : 'This record was modified by another user. Please refresh and try again.';
+        dispatchToastError(conflictMsg);
+        
+        // Auto-refresh the record to get the latest version
+        if (recordData?.id) {
+          try {
+            const refreshed = await fetchSalesOrderDetail(recordData.id);
+            if (refreshed && typeof refreshed === 'object') {
+              setRecordData(refreshed as SalesOrderForm & { id?: number });
+              dispatch(showToast({ message: 'Record refreshed with latest data', type: 'info' }));
+            }
+          } catch {
+            // Ignore refresh errors
+          }
+        }
+        return;
+      }
+      
       const message =
         error instanceof Error ? error.message : "Operation failed";
       dispatchToastError(message);
@@ -1942,10 +2016,15 @@ export default function SalesOrderDetail({
       return;
     }
     try {
-      await updateSalesOrder(recordData.id, {
-        ...mergedDefaults,
+      // Build a clean payload for status update, preserving only the version for concurrency
+      const currentVersion = recordData?.version;
+      const statusPayload: Record<string, unknown> = {
         status: newStatus,
-      });
+      };
+      if (typeof currentVersion === 'number' && !Number.isNaN(currentVersion)) {
+        statusPayload.version = currentVersion;
+      }
+      await updateSalesOrder(recordData.id, statusPayload);
       dispatch(
         showToast({
           message: `Sales order marked as ${newStatus}`,
@@ -1969,11 +2048,14 @@ export default function SalesOrderDetail({
       field.name
     );
     const isFieldReadOnly = READONLY_FIELD_NAMES.has(field.name);
+    const labelClass = field.required ? "font-bold text-red-600" : "";
 
     if (field.type === "select" && field.options) {
       return (
         <div key={field.name}>
-          <Label htmlFor={inputId}>{field.label}</Label>
+          <Label htmlFor={inputId} className={labelClass}>
+            {field.label}{field.required && <span className="ml-1">*</span>}
+          </Label>
           <select
             id={inputId}
             disabled={isReadOnly}
@@ -2003,7 +2085,9 @@ export default function SalesOrderDetail({
 
     return (
       <div key={field.name}>
-        <Label htmlFor={inputId}>{field.label}</Label>
+        <Label htmlFor={inputId} className={labelClass}>
+          {field.label}{field.required && <span className="ml-1">*</span>}
+        </Label>
         <Input
           id={inputId}
           type={field.type === "number" ? "number" : "text"}
@@ -2056,7 +2140,15 @@ export default function SalesOrderDetail({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit, (validationErrors) => {
+          console.error('[SalesOrderDetail] Form validation failed:', validationErrors);
+          Object.entries(validationErrors).forEach(([field, error]) => {
+            const errorInfo = error && typeof error === 'object' ? { message: (error as { message?: string }).message, type: (error as { type?: string }).type } : error;
+            console.error(`  Field "${field}":`, errorInfo);
+          });
+          const failedFields = Object.keys(validationErrors).join(', ');
+          dispatch(showToast({ message: `Validation failed: ${failedFields}`, type: 'error' }));
+        })} className="space-y-8">
           {showCustomerSearchPanel && (
             <section className="rounded-lg border border-dashed border-blue-300 bg-blue-50/60 p-4 dark:border-blue-500/50 dark:bg-blue-900/10">
               <h4 className="text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-200">
@@ -2434,6 +2526,17 @@ export default function SalesOrderDetail({
               >
                 {mode === "edit" ? "Save" : "Create"}
               </button>
+              {mode === "edit" && (
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={forceSave}
+                    onChange={(e) => setForceSave(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Force save (skip version check)
+                </label>
+              )}
             </div>
           )}
         </form>

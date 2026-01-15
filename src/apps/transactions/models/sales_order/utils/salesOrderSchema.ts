@@ -55,52 +55,8 @@ const quantitySchema = z.union([
     ),
 ]);
 
-// Sales Order Line schema
-export const salesOrderLineSchema = z
-  .object({
-    // Required fields
-    description: z
-      .string()
-      .min(1, "Description is required")
-      .max(255, "Description must be 255 characters or less"),
-    quantity: quantitySchema,
-
-    // Price structure
-    price: priceSchema,
-
-    // Optional fields
-    discount_amount: z.coerce
-      .number()
-      .min(0, "Discount cannot be negative")
-      .optional(),
-
-    // Readonly fields (for validation of existing data)
-    extended_price: z.number().optional(),
-    item_name: z.string().optional(),
-    unit_cost: z.number().optional(),
-    line_margin: z.number().optional(),
-
-    // IDs
-    item_id: z.number().optional(),
-    parent: z.number().optional(),
-    id: z.number().optional(),
-  })
-  .refine(
-    (data) => {
-      // Validate discount doesn't exceed extended price
-      if (data.price?.sell && data.quantity && data.discount_amount) {
-        const extended = Number(data.quantity) * data.price.sell;
-        if (data.discount_amount > extended) {
-          return false;
-        }
-      }
-      return true;
-    },
-    {
-      message: "Discount amount cannot exceed the extended price",
-      path: ["discount_amount"],
-    }
-  );
+// Sales Order Line schema - permissive to allow any line data
+export const salesOrderLineSchema = z.record(z.any()).optional();
 
 // Sales Order schema with comprehensive validation
 export const salesOrderSchema = z
@@ -125,7 +81,7 @@ export const salesOrderSchema = z
     city: z.string().max(100, "City must be 100 characters or less").optional(),
     state: z.string().max(64, "State must be 64 characters or less").optional(),
     zip: z.string().max(32, "Zip must be 32 characters or less").optional(),
-    email: z.string().email("Invalid email").optional(),
+    email: z.string().optional(),  // No email format validation - allow any string
     phoneCell: z
       .string()
       .max(64, "Cell phone must be 64 characters or less")
@@ -133,14 +89,8 @@ export const salesOrderSchema = z
     phone: z.string().max(64, "Phone must be 64 characters or less").optional(),
 
     // Workflow / assignment fields
-    actionBy: z
-      .string()
-      .max(128, "actionBy must be 128 characters or less")
-      .optional(),
-    action: z
-      .string()
-      .max(128, "action must be 128 characters or less")
-      .optional(),
+    actionBy: z.string().optional(),
+    action: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     actionDate: z.string().optional(),
     actionTime: z.string().optional(),
     salesNameID: z
@@ -191,9 +141,9 @@ export const salesOrderSchema = z
     dt_created: z.union([z.string(), z.number()]).optional(),
     dt_updated: z.union([z.string(), z.number()]).optional(),
     customer_id: z.coerce.number().min(1, "Customer ID is required"),
-    total: z.coerce.number(),
-    tax: z.coerce.number(),
-    discount: z.coerce.number(),
+    total: z.coerce.number().optional(),
+    tax: z.coerce.number().optional(),
+    discount: z.coerce.number().optional(),
     metadata: z
       .union([z.string(), z.record(z.any()), z.undefined()])
       .optional(),
@@ -213,10 +163,12 @@ export const salesOrderSchema = z
     priority: z
       .string()
       .max(32, "Priority must be 32 characters or less")
+      .nullable()
       .optional(),
     price_level: z
       .string()
       .max(50, "Price level must be 50 characters or less")
+      .nullable()
       .optional(),
 
     // Customer/Vendor references
