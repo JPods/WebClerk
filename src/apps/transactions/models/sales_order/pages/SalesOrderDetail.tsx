@@ -1037,6 +1037,12 @@ export default function SalesOrderDetail({
     | null;
   const isReadOnly = mode === "view";
 
+  // Debug logging for data flow
+  console.log('[SalesOrderDetail] INIT dataProp:', dataProp);
+  console.log('[SalesOrderDetail] INIT dataProp?.lines:', (dataProp as any)?.lines);
+  console.log('[SalesOrderDetail] INIT data:', data);
+  console.log('[SalesOrderDetail] INIT data?.lines:', (data as any)?.lines);
+
   const [recordData, setRecordData] = useState<
     (SalesOrderForm & { id?: number }) | null
   >(data);
@@ -1165,6 +1171,8 @@ export default function SalesOrderDetail({
   }, [refsValue]);
 
   useEffect(() => {
+    console.log('[SalesOrderDetail] useEffect setRecordData called with data:', data);
+    console.log('[SalesOrderDetail] useEffect data?.lines:', (data as any)?.lines);
     setRecordData(data);
   }, [data]);
 
@@ -1176,16 +1184,24 @@ export default function SalesOrderDetail({
   );
 
   useEffect(() => {
+    console.log('[SalesOrderDetail] loadDetail useEffect - data?.id:', data?.id);
+    console.log('[SalesOrderDetail] loadDetail useEffect - data?.lines:', (data as Record<string, unknown>)?.lines);
+    console.log('[SalesOrderDetail] loadDetail useEffect - normalizeLines result:', normalizeLines((data as Record<string, unknown>)?.lines));
     if (!data?.id) {
+      console.log('[SalesOrderDetail] loadDetail useEffect - SKIPPING: no data.id');
       return;
     }
     if (normalizeLines((data as Record<string, unknown>)?.lines).length > 0) {
+      console.log('[SalesOrderDetail] loadDetail useEffect - SKIPPING: already have lines');
       return;
     }
+    console.log('[SalesOrderDetail] loadDetail useEffect - FETCHING detail...');
     let cancelled = false;
     const loadDetail = async () => {
       try {
         const detail = await fetchSalesOrderDetail(data.id);
+        console.log('[SalesOrderDetail] loadDetail useEffect - fetched detail:', detail);
+        console.log('[SalesOrderDetail] loadDetail useEffect - fetched detail.lines:', (detail as any)?.lines);
         if (!cancelled) {
           setRecordData(detail as SalesOrderForm & { id?: number });
         }

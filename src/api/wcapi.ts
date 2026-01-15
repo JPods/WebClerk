@@ -67,11 +67,18 @@ export async function getModelDetail(model_name: string) {
 
 export async function getRecords(model_name: string, params?: any) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { params: { model_name, ...params } });
+    // Never cache wcapi/get calls - always fetch fresh database records
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { 
+      params: { model_name, ...params },
+      cache: false,
+    } as any);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { params: { model_name, ...params } });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { 
+        params: { model_name, ...params },
+        cache: false,
+      } as any);
       return res2.data.data;
     }
     throw err;
@@ -80,7 +87,11 @@ export async function getRecords(model_name: string, params?: any) {
 
 export async function getRecord(model_name: string, id: number) {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/wcapi/get/`, { params: { model_name, id } });
+    // Disable cache for detail requests to always get fresh data (lines may have changed)
+    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/wcapi/get/`, { 
+      params: { model_name, id },
+      cache: false,
+    } as any);
     console.log(`[wcapi.getRecord] model=${model_name} id=${id} response:`, res.data);
     const record = res.data.data?.record;
     if (record && model_name === 'salesorder') {
@@ -91,7 +102,10 @@ export async function getRecord(model_name: string, id: number) {
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/api/wcapi/get/`, { params: { model_name, id } });
+      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/api/wcapi/get/`, { 
+        params: { model_name, id },
+        cache: false,
+      } as any);
       return res2.data.data;
     }
     throw err;
