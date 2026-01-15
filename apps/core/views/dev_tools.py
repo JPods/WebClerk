@@ -151,12 +151,13 @@ def dev_switch_mode(request):
     
     return JsonResponse({
         'status': 'success',
-        'message': f'Switched to {new_mode} mode. Restart servers to apply.',
+        'message': f'Switched to {new_mode} mode. You must restart the Django server manually for changes to take effect.',
         'data': {
             'mode': new_mode,
             'changed': True,
             'restart_required': True,
-            'restart_command': f'cd tools && ./switch-dataset.sh {new_mode}'
+            'manual_restart': True,
+            'instructions': 'Stop Django (Ctrl+C) and run: python manage.py runserver'
         }
     })
 
