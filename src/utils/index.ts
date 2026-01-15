@@ -139,3 +139,12 @@ export const convertToArray = (src?: LabeledValue[] | null): [string, string][] 
   });
   return target;
 };
+
+// Data Set Identification exports
+export {
+  getFrontendDataSet,
+  fetchBackendSystemInfo,
+  validateDataSetMatch,
+  logDataSetInfo,
+} from './dataSetInfo';
+export type { DataSetInfo, SystemInfo } from './dataSetInfo';
