@@ -98,11 +98,11 @@ export function DataSetBadge({
       {showDetails && expanded && (
         <div style={detailsStyle}>
           <div><strong>Frontend:</strong> {frontend.id} - {frontend.name}</div>
-          {backend && (
+          {backend?.data_set && (
             <>
               <div><strong>Backend:</strong> {backend.data_set.id} - {backend.data_set.name}</div>
-              <div><strong>Database:</strong> {backend.database.name} @ {backend.database.host}</div>
-              <div><strong>Debug Mode:</strong> {backend.server.debug ? 'Yes' : 'No'}</div>
+              <div><strong>Database:</strong> {backend.database?.name ?? 'N/A'} @ {backend.database?.host ?? 'N/A'}</div>
+              <div><strong>Debug Mode:</strong> {backend.server?.debug ? 'Yes' : 'No'}</div>
             </>
           )}
           {error && <div style={{ color: '#dc2626' }}><strong>Error:</strong> {error}</div>}
