@@ -88,10 +88,35 @@ const writeCache = (key: string, res: AxiosResponse) => {
   }
 };
 
+// CACHING STRATEGY:
+// - WCAPI calls = Database actions = NEVER CACHED (inventories, orders change constantly)
+// - Static data to cache → Store in JavaScript VARIABLES (React state/context/store)
+// - Only non-wcapi static endpoints may be cached here
+//
+// If you need to cache database values that rarely change (e.g., model schemas),
+// fetch them once and store in React state/context/Redux - NOT in session cache.
+
+const NEVER_CACHE_PATTERNS = [
+  '/wcapi/',      // ALL wcapi calls are database actions - never cache
+  '/api/wcapi/',  // Alternate mount point - also never cache
+];
+
+const shouldNeverCache = (url: string): boolean => {
+  return NEVER_CACHE_PATTERNS.some(pattern => url.includes(pattern));
+};
+
 const wrapGetWithCache = (client: AxiosInstance) => {
   const originalGet = client.get.bind(client);
   client.get = (async function patchedGet(url: any, config: any = {}) {
-    const shouldCache = config?.cache !== false && config?.headers?.["x-skip-cache"] !== true;
+    // WCAPI = Database = NEVER CACHE
+    // These endpoints serve live database records that can change any moment
+    if (shouldNeverCache(url)) {
+      return originalGet(url, config);
+    }
+    
+    // For non-wcapi endpoints: respect explicit cache settings
+    const explicitNoCache = config?.cache === false || config?.headers?.["x-skip-cache"] === true;
+    const shouldCache = !explicitNoCache;
     const cacheKey = shouldCache ? getCacheKey(client.defaults.baseURL, url, config?.params) : null;
 
     if (cacheKey) {

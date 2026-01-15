@@ -1,67 +1,122 @@
 # Frontend Caching Strategy
 
-## Overview
+## Core Philosophy
 
-The React2025 frontend uses a **session-scoped cache** for GET requests to reduce network traffic and improve perceived performance. However, certain endpoints are explicitly excluded from caching to ensure data freshness.
-
-## Cache Implementation
-
-The cache is implemented in `src/api/axios.ts` using `sessionStorage`:
-
-- **Scope**: Session-only (cleared when browser tab closes)
-- **Key format**: `wc_cache_v1:{baseURL}{url}?{params}`
-- **Storage**: Browser's `sessionStorage`
-
-## What Gets Cached
-
-By default, all GET requests through `apiClient` are cached for the duration of the browser session.
-
-### Cached Endpoints (examples)
-- `/wcapi/model_name/list/` - Model name lists (rarely change)
-- `/wcapi/model_name/detail/` - Model schema definitions
-- Static configuration endpoints
-
-## What Does NOT Get Cached
-
-### Database Records (`/wcapi/get/`)
-
-**All calls to `/wcapi/get/` bypass the cache** because:
-
-1. **Data freshness**: Records can be modified by other users or processes
-2. **Line items**: Transaction lines (sales order lines, invoice lines, etc.) may be added/removed
-3. **Real-time accuracy**: Users expect to see current database state
-
-This is enforced in `src/api/wcapi.ts`:
-
-```typescript
-// getRecords - list queries
-const res = await apiClient.get(`/wcapi/get/`, { 
-  params: { model_name, ...params },
-  cache: false,  // Never cache
-} as any);
-
-// getRecord - single record detail
-const res = await apiClient.get(`/wcapi/get/`, { 
-  params: { model_name, id },
-  cache: false,  // Never cache
-} as any);
+```
+WCAPI = Database = NEVER CACHED
 ```
 
-## How to Bypass Cache
+The React2025 frontend follows a simple rule:
 
-### Option 1: `cache: false` in config
+| Source | Caching | How to Cache If Needed |
+|--------|---------|----------------------|
+| **WCAPI calls** (`/wcapi/*`) | ❌ NEVER | Store in JavaScript variables |
+| **Non-WCAPI endpoints** | ✅ Session cache | Automatic via axios |
+
+### Why?
+
+- **WCAPI = Database operations**: Inventories, orders, customers can be changed by many sources at any time
+- **Multi-user environment**: Another user, API integration, or background process may have modified data
+- **Real-time accuracy**: Users expect to see current database state, not stale data
+
+## WCAPI Calls - NEVER Cached
+
+ALL calls to `/wcapi/` are database actions and are **never cached**:
+
 ```typescript
-const res = await apiClient.get('/some/endpoint/', {
-  cache: false,
-} as any);
+// In axios.ts:
+const NEVER_CACHE_PATTERNS = [
+  '/wcapi/',      // ALL wcapi calls - never cache
+  '/api/wcapi/',  // Alternate mount - never cache
+];
 ```
 
-### Option 2: `x-skip-cache` header
+This includes:
+- `/wcapi/get/?model_name=salesorder` - Fetching orders
+- `/wcapi/get/?model_name=customer&id=123` - Fetching a customer
+- `/wcapi/save/` - Saving records
+- `/wcapi/model_name/list/` - Even model lists
+- Any URL containing `/wcapi/`
+
+## Caching Static Data - Use Variables
+
+If you have database values that rarely change and you want to "cache" them for performance:
+
+**DON'T** use HTTP/session caching.
+
+**DO** store them in JavaScript variables:
+
+### Option 1: React State (component-level)
 ```typescript
-const res = await apiClient.get('/some/endpoint/', {
-  headers: { 'x-skip-cache': true },
+const [modelNames, setModelNames] = useState<string[]>([]);
+
+useEffect(() => {
+  // Fetch once on mount
+  getModelNames().then(setModelNames);
+}, []);
+```
+
+### Option 2: React Context (app-level)
+```typescript
+// In a context provider
+const [currencies, setCurrencies] = useState<Currency[]>([]);
+
+// Fetch once, share across app
+useEffect(() => {
+  fetchCurrencies().then(data => setCurrencies(data.items));
+}, []);
+```
+
+### Option 3: Redux Store (global state)
+```typescript
+// In a slice
+const schemaSlice = createSlice({
+  name: 'schema',
+  initialState: { modelNames: [] },
+  reducers: {
+    setModelNames: (state, action) => {
+      state.modelNames = action.payload;
+    },
+  },
 });
 ```
+
+### When to use variables for caching:
+- Model schema definitions (field names, types)
+- Currency lists
+- Status code lookups
+- User preferences
+- Any reference data that doesn't change during a session
+
+### When NOT to use variables (always fetch fresh):
+- Inventory levels
+- Order statuses
+- Customer balances
+- Any transactional data
+- Anything another user might edit
+
+## Non-WCAPI Calls - May Be Cached
+
+Endpoints that are NOT wcapi (external APIs, static configs) use session caching:
+
+```typescript
+// These CAN be cached (not wcapi)
+const res = await apiClient.get('/external/rates/');  // Cached
+const res = await apiClient.get('/static/config/');   // Cached
+
+// Force no-cache if needed
+const res = await apiClient.get('/external/rates/', { 
+  cache: false 
+} as any);
+```
+
+## Session Cache Implementation
+
+For non-wcapi endpoints, caching uses `sessionStorage`:
+
+- **Scope**: Browser session only (cleared when tab closes)
+- **Key format**: `wc_cache_v1:{baseURL}{url}?{params}`
+- **Cleared on logout**: `clearTokens()` calls `clearResponseCache()`
 
 ## Clearing the Cache
 
@@ -71,44 +126,34 @@ import { clearResponseCache } from '../api/axios';
 clearResponseCache();
 ```
 
-### Automatically cleared when:
-- User logs out (`clearTokens()` calls `clearResponseCache()`)
-- Browser tab/window is closed (sessionStorage behavior)
-
 ### Manually (DevTools)
 1. Open DevTools (F12)
-2. Go to **Application** tab
-3. Select **Session Storage** in the left panel
-4. Right-click and **Clear** or delete entries starting with `wc_cache_v1:`
+2. **Application** tab → **Session Storage**
+3. Delete entries starting with `wc_cache_v1:`
 
-## Troubleshooting
+## Quick Reference
 
-### Symptom: Stale data displayed
-**Cause**: Endpoint might be cached when it shouldn't be
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CACHING DECISION TREE                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Is it a /wcapi/ call?                                      │
+│       │                                                     │
+│       ├── YES → NEVER CACHE                                 │
+│       │         Need to cache? → Use JavaScript variables   │
+│       │                                                     │
+│       └── NO  → Session cache OK                            │
+│                 (can disable with cache: false)             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Solution**: 
-1. Add `cache: false` to the API call
-2. Or hard refresh the browser (Cmd+Shift+R / Ctrl+Shift+R)
+## Summary
 
-### Symptom: No network request in DevTools
-**Cause**: Response is being served from session cache
-
-**Solution**: Check if the endpoint should be excluded from caching
-
-## Design Decisions
-
-### Why session cache instead of no cache?
-- Reduces server load for repeated navigation
-- Improves perceived performance for static data
-- Acceptable for data that rarely changes within a session
-
-### Why exclude `/wcapi/get/`?
-- Database records are the core of the application
-- Users expect real-time accuracy
-- Multi-user environments require fresh data
-- Transaction lines (FK relations) may change between views
-
-### Why not use HTTP caching headers?
-- More control over cache behavior per endpoint
-- Easier to clear programmatically on logout
-- Works consistently across all browsers
+| What | Where | Why |
+|------|-------|-----|
+| Database records | NEVER cached | Multi-source changes |
+| Static DB values to cache | JavaScript variables | Controlled, explicit |
+| Non-wcapi endpoints | Session storage | Reduces network calls |
+| User auth tokens | localStorage | Persist across sessions |
