@@ -177,6 +177,24 @@ Frontend and backend are pointing to different data sets. Check:
 - Verify CORS settings on backend
 - Ensure backend server is running
 
+### Data Not Appearing / Wrong Database
+
+The backend supports easy database switching. In `webClerk3/.env`:
+
+```env
+# Change to "local" for debugging, "remote" for team collaboration
+DB_MODE=remote
+```
+
+| Mode | Setting | Use Case |
+|------|---------|----------|
+| Remote | `DB_MODE=remote` | Team collaboration, shared data |
+| Local | `DB_MODE=local` | Local debugging, isolated testing |
+
+**After changing, restart the Django server.**
+
+See [webClerk3/readmes/data-set-identification.md](../../webClerk3/readmes/data-set-identification.md) for full backend documentation.
+
 ## Files
 
 - [src/components/DataSetBadge.tsx](../src/components/DataSetBadge.tsx) - Visual badge component
