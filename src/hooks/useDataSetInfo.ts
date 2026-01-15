@@ -57,10 +57,10 @@ export function useDataSetInfo(autoFetch: boolean = true): UseDataSetInfoResult 
     }
   }, [autoFetch, fetchInfo]);
 
-  // Calculate match status
-  const validation = backend 
+  // Calculate match status (safely handle missing data_set)
+  const validation = backend?.data_set
     ? validateDataSetMatch(frontend, backend.data_set)
-    : { isMatch: null, message: 'Backend info not loaded' };
+    : { isMatch: null, message: backend ? 'Backend data_set missing' : 'Backend info not loaded' };
 
   return {
     frontend,

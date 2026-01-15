@@ -41,11 +41,13 @@ const hasStoredToken = (): boolean => {
 };
 
 const initialUser = readStoredUser();
+const tokenExists = hasStoredToken();
 
 const initialState: AuthState = {
   user: initialUser,
-  isAuthenticated: Boolean(initialUser) && hasStoredToken(),
-  isLoading: false,
+  isAuthenticated: Boolean(initialUser) && tokenExists,
+  // Start loading if we have a token that needs verification
+  isLoading: tokenExists,
   error: null,
 };
 

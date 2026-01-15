@@ -37,7 +37,7 @@ const deriveTitle = (path: string) => {
 };
 
 const AppLayout: React.FC = () => {
-  const { isLoading } = useAppSelector((state) => state.auth);
+  const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
   const { ensureWindow, windows, activePath } = useWindowManager();
   const { isExpanded, isHovered, isMobileOpen, isVisible, toggleVisibility } = useSidebar();
   const location = useLocation();
@@ -46,12 +46,13 @@ const AppLayout: React.FC = () => {
     ensureWindow(location.pathname, deriveTitle(location.pathname));
   }, [location.pathname, ensureWindow]);
 
+  // Show loading while auth state is being determined
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center text-white">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center text-slate-700">Loading...</div>;
   }
 
-  const getToken = localStorage.getItem("accessToken");
-  if (!getToken) return <Navigate to="/" replace />;
+  // Redirect if not authenticated (rely on Redux state, not localStorage directly)
+  if (!isAuthenticated) return <Navigate to="/" replace />;
 
   const sidebarWidth = isVisible
     ? (isExpanded || isHovered || isMobileOpen ? 290 : 90)
@@ -102,12 +103,23 @@ const AppLayout: React.FC = () => {
 };
 
 const PrivateRoute: React.FC = () => {
-  const getToken = localStorage.getItem("accessToken");
-  return getToken ? (
+  const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  // Show loading while auth state is being initialized
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center text-slate-700">Loading...</div>;
+  }
+  
+  // Once loading is done, check authentication
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return (
     <SidebarProvider>
       <AppLayout />
     </SidebarProvider>
-  ) : <Navigate to="/" />;
+  );
 };
 
 export default PrivateRoute;

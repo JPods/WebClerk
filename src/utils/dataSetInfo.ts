@@ -83,10 +83,10 @@ export function logDataSetInfo(frontend: DataSetInfo, backend?: SystemInfo): voi
   console.group('🔍 Data Set Identification');
   console.log('Frontend:', frontend.id, '-', frontend.name);
   
-  if (backend) {
+  if (backend?.data_set) {
     console.log('Backend:', backend.data_set.id, '-', backend.data_set.name);
-    console.log('Database:', backend.database.name, '@', backend.database.host);
-    console.log('Server Debug:', backend.server.debug);
+    console.log('Database:', backend.database?.name ?? 'N/A', '@', backend.database?.host ?? 'N/A');
+    console.log('Server Debug:', backend.server?.debug ?? 'N/A');
     
     const validation = validateDataSetMatch(frontend, backend.data_set);
     if (validation.isMatch) {
@@ -94,6 +94,8 @@ export function logDataSetInfo(frontend: DataSetInfo, backend?: SystemInfo): voi
     } else {
       console.warn(validation.message);
     }
+  } else if (backend) {
+    console.warn('Backend responded but data_set is missing from response');
   }
   
   console.groupEnd();
