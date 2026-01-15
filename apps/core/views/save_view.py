@@ -1321,168 +1321,75 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-        # Handle associated lines for header models
-        from apps.core.constants.model_registry import get_model_meta
-        # Try multiple key formats for registry lookup since frontend uses 'salesorder' but registry uses 'sales_order'
-        meta = get_model_meta(norm_key) or get_model_meta(raw_model_name)
-        # Also try with underscores: convert 'salesorder' -> 'sales_order' by finding word boundaries
-        if not meta:
-            # Try converting CamelCase or concatenated words to snake_case
-            import re
-            # Insert underscore before capital letters and before common suffixes
-            snake_key = re.sub(r'(order|line|item|invoice|payment|receipt)', r'_\1', norm_key).strip('_')
-            meta = get_model_meta(snake_key)
-        console_logger.info(f"[SAVE_VIEW] Lines check: norm_key={norm_key}, model_key={model_key}, meta={meta}, meta.kind={getattr(meta, 'kind', None)}, 'lines' in data={'lines' in data}, lines count={len(data.get('lines', []))}")
-        if meta and meta.kind == 'header' and 'lines' in data and isinstance(data['lines'], list):
+        # Handle associated lines for header models (salesorder, invoice, etc.)
+        # Check for lines in data - support models even without meta.kind == 'header'
+        header_models = {'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'workorder', 'work_order', 'proposal'}
+        norm_model = model_key.replace('_', '').lower()
+        is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
+        
+        if is_header_model and 'lines' in data and isinstance(data['lines'], list):
             console_logger.info(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
-            line_errors = []
+            from apps.transactions.models import SalesOrderLine
             
-            # Try multiple variations to find the line model
-            # e.g., for 'salesorder' or 'sales_order', try 'salesorderline', 'sales_order_line', etc.
-            line_model_candidates = [
-                model_key + 'line',            # salesorderline (Django model_name format - this works!)
-                model_key + '_line',           # salesorder_line
-                norm_key + '_line',            # sales_order_line (using original normalized key)
-                norm_key + 'line',             # sales_orderline
-            ]
-            line_model_key = None
-            for candidate in line_model_candidates:
-                normalized = normalize_table_key(candidate)
-                if normalized:
-                    line_model_key = normalized
-                    console_logger.info(f"[SAVE_VIEW] Found line model: {line_model_key} (from candidate: {candidate})")
-                    break
-            
-            if not line_model_key:
-                console_logger.warning(f"[SAVE_VIEW] Could not find line model for {model_key}, tried: {line_model_candidates}")
-            else:
-                # Get the line model class to determine correct FK field name
-                line_model_cls = get_model(line_model_key)
-                console_logger.info(f"[SAVE_VIEW] get_model({line_model_key}) returned: {line_model_cls}")
-                if line_model_cls:
-                    # Find the FK field that points to the parent model
-                    parent_fk_name = None
-                    parent_fk_attname = None  # The attname for raw integer assignment (e.g., salesorder_id_id)
-                    for field in line_model_cls._meta.get_fields():
-                        if hasattr(field, 'related_model') and field.related_model == model_cls:
-                            parent_fk_name = field.name
-                            # Get the attname for raw ID assignment
-                            parent_fk_attname = getattr(field, 'attname', None) or (field.name + '_id')
-                            break
-                    if not parent_fk_name:
-                        # Fallback: try common naming patterns
-                        parent_fk_name = model_key.replace('_', '') + '_id'
-                        parent_fk_attname = parent_fk_name + '_id'
+            new_line_ids = []
+            for idx, line_data in enumerate(data['lines']):
+                try:
+                    line_id = line_data.get('id')
+                    is_new = line_id is None or (isinstance(line_id, str) and line_id.startswith('temp-'))
                     
-                    console_logger.info(f"[SAVE_VIEW] Using FK field: {parent_fk_name} (attname: {parent_fk_attname}) for parent ID: {obj.id}")
-                    
-                    for idx, line_data in enumerate(data['lines']):
+                    if is_new:
+                        # Create new line using direct ORM
+                        line_obj = SalesOrderLine()
+                        line_obj.salesorder_id_id = obj.id
+                        
+                        # Copy fields from line_data
+                        for field_name, field_value in line_data.items():
+                            if field_name in ('id', 'model_name', 'salesorder_id', 'salesorder_id_id'):
+                                continue
+                            if hasattr(line_obj, field_name):
+                                setattr(line_obj, field_name, field_value)
+                        
+                        line_obj.save()
+                        new_line_ids.append(line_obj.id)
+                        console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
+                    else:
+                        # Update existing line
                         try:
-                            # Check if this is a new line (no id) or existing
-                            line_id = line_data.get('id')
-                            is_new_line = not line_id
-                            
-                            console_logger.info(f"[SAVE_VIEW] Saving line {idx+1}: id={line_id}, is_new={is_new_line}")
-                            
-                            # Save the line directly using Django ORM (not wcapi.save_item which filters fields)
-                            if line_id:
-                                # Update existing line
-                                line_obj = line_model_cls.objects.filter(id=line_id).first()
-                                if not line_obj:
-                                    console_logger.warning(f"[SAVE_VIEW] Line {line_id} not found, skipping")
-                                    continue
-                            else:
-                                # Create new line
-                                line_obj = line_model_cls()
-                            
-                            # Set the parent FK using attname
-                            setattr(line_obj, parent_fk_attname, obj.id)
-                            
-                            # Set other fields from line_data
-                            skip_fields = ('id', 'model_name', '_dirty', parent_fk_name, parent_fk_attname)
+                            line_obj = SalesOrderLine.objects.get(id=line_id)
                             for field_name, field_value in line_data.items():
-                                if field_name in skip_fields:
+                                if field_name in ('id', 'model_name', 'salesorder_id', 'salesorder_id_id'):
                                     continue
                                 if hasattr(line_obj, field_name):
-                                    try:
-                                        setattr(line_obj, field_name, field_value)
-                                    except Exception as field_err:
-                                        console_logger.debug(f"[SAVE_VIEW] Could not set field {field_name}: {field_err}")
-                            
+                                    setattr(line_obj, field_name, field_value)
                             line_obj.save()
-                            console_logger.info(f"[SAVE_VIEW] Saved line {idx+1} (id={line_obj.id}) for {model_key}")
-                            
-                            # Track ONLY NEW line IDs for refs.links update
-                            if is_new_line:
-                                if not hasattr(self, '_new_line_ids'):
-                                    self._new_line_ids = []
-                                self._new_line_ids.append(line_obj.id)
-                            
-                        except Exception as e:
-                            error_msg = f"Error saving line {idx+1}: {str(e)}"
-                            console_logger.error(f"[SAVE_VIEW] {error_msg}")
-                            line_errors.append(error_msg)
-                    
-                    # Update parent's refs.links with NEW line IDs only
-                    if hasattr(self, '_new_line_ids') and self._new_line_ids:
-                        try:
-                            # Get the line model key for refs.links (e.g., 'sales_order_line')
-                            LINE_REFS_KEY_MAP = {
-                                'salesorder': 'sales_order_line',
-                                'sales_order': 'sales_order_line',
-                                'invoice': 'invoice_line',
-                                'purchaseorder': 'purchase_order_line',
-                                'purchase_order': 'purchase_order_line',
-                                'workorder': 'work_order_line',
-                                'work_order': 'work_order_line',
-                                'proposal': 'proposal_line',
-                            }
-                            line_refs_key = LINE_REFS_KEY_MAP.get(model_key.lower(), f"{model_key}_line")
-                            
-                            # Re-fetch obj to get fresh refs (in case it was modified)
-                            obj.refresh_from_db()
-                            
-                            # Get current refs
-                            refs = getattr(obj, 'refs', None) or {}
-                            if not isinstance(refs, dict):
-                                refs = {}
-                            links = refs.get('links', {})
-                            if not isinstance(links, dict):
-                                links = {}
-                            
-                            # Get existing line entries (preserve format: {'id': X} or just X)
-                            existing_lines = links.get(line_refs_key, [])
-                            if not isinstance(existing_lines, list):
-                                existing_lines = []
-                            
-                            # Extract existing IDs
-                            existing_ids = set()
-                            for item in existing_lines:
-                                if isinstance(item, int):
-                                    existing_ids.add(item)
-                                elif isinstance(item, dict) and 'id' in item:
-                                    existing_ids.add(item['id'])
-                            
-                            # Add new line IDs (use {'id': X} format to match existing)
-                            new_entries = []
-                            for line_id in self._new_line_ids:
-                                if line_id not in existing_ids:
-                                    new_entries.append({'id': line_id})
-                            
-                            if new_entries:
-                                updated_lines = existing_lines + new_entries
-                                links[line_refs_key] = updated_lines
-                                refs['links'] = links
-                                obj.refs = refs
-                                obj.save(update_fields=['refs'])
-                                console_logger.info(f"[SAVE_VIEW] Updated refs.links.{line_refs_key}: added {len(new_entries)} new entries, total {len(updated_lines)}")
-                            else:
-                                console_logger.info(f"[SAVE_VIEW] refs.links.{line_refs_key} already up to date")
-                        except Exception as refs_err:
-                            console_logger.warning(f"[SAVE_VIEW] Could not update refs.links: {refs_err}")
-                    
-                    if line_errors:
-                        messages.extend(line_errors)
+                            console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
+                        except SalesOrderLine.DoesNotExist:
+                            console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
+                except Exception as e:
+                    console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}")
+            
+            # Update refs.links with new line IDs
+            if new_line_ids:
+                try:
+                    refs = obj.refs or {}
+                    if not isinstance(refs, dict):
+                        refs = {}
+                    links = refs.get('links', {})
+                    if not isinstance(links, dict):
+                        links = {}
+                    line_refs = links.get('sales_order_line', [])
+                    if not isinstance(line_refs, list):
+                        line_refs = []
+                    for new_id in new_line_ids:
+                        if {'id': new_id} not in line_refs:
+                            line_refs.append({'id': new_id})
+                    links['sales_order_line'] = line_refs
+                    refs['links'] = links
+                    obj.refs = refs
+                    obj.save(update_fields=['refs'])
+                    console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
+                except Exception as e:
+                    console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
 
         # Auto-link communication records to a Contact
         linked = False

@@ -1,0 +1,15 @@
+{
+  "db_mode": "local",
+  "data_set_id": "DEV",
+  "data_set_name": "Development Server",
+  "available_modes": {
+    "remote": {
+      "label": "Remote (Team)",
+      "description": "Shared database at 85.31.234.194 for team collaboration"
+    },
+    "local": {
+      "label": "Local (Debug)",
+      "description": "Local database at localhost for isolated debugging"
+    }
+  }
+}

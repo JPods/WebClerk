@@ -205,23 +205,18 @@ class WCAPIGetView(APIView):
         return merged
 
     def _collect_lines(self, obj, model_key: str, request) -> List[Dict[str, Any]]:
+        """
+        Collect lines using FK relation as primary source.
+        refs.links is kept for informational purposes but FK is authoritative.
+        """
         print(f"[_collect_lines] Starting for model_key={model_key}, obj.id={getattr(obj, 'id', '?')}")
         
+        # Primary source: FK relation (authoritative)
         db_lines = self._serialize_lines(obj, request)
-        print(f"[_collect_lines] db_lines count: {len(db_lines)}, ids: {[l.get('id') for l in db_lines]}")
+        print(f"[_collect_lines] FK lines count: {len(db_lines)}, ids: {[l.get('id') for l in db_lines]}")
         
-        ref_lines = self._extract_lines_from_refs(obj, model_key, request)
-        print(f"[_collect_lines] ref_lines count: {len(ref_lines)}, ids: {[l.get('id') for l in ref_lines]}")
-        
-        if not db_lines:
-            print(f"[_collect_lines] No db_lines, returning ref_lines")
-            return ref_lines
-        if not ref_lines:
-            print(f"[_collect_lines] No ref_lines, returning db_lines")
-            return db_lines
-        merged = self._merge_line_records(db_lines, ref_lines)
-        print(f"[_collect_lines] Merged count: {len(merged)}, ids: {[l.get('id') for l in merged]}")
-        return merged
+        # Return FK lines directly - this is the authoritative source
+        return db_lines
 
     def _parse_filters(self, request, model_key: str, ModelCls) -> Dict[str, Any]:
         """

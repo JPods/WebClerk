@@ -154,7 +154,10 @@ FLAGS_SCHEMA_DESC = {
     "tally_by_type": "Aggregate counts by subtype classification"
 }
 
-QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_order", "on_purchase_order"}
+QUANTITY_CANONICAL_KEYS = {
+    "on_hand", "allocated", "available", "on_order", "on_purchase_order",
+    "sell_quantity_default", "purchase_quantity_default"
+}
 
 
 def default_tax():
@@ -389,6 +392,9 @@ class Item(StatsMixin, BaseModel):
         for k in list(self.quantity.keys()):
             if k not in QUANTITY_CANONICAL_KEYS:
                 del self.quantity[k]
+        # Set default quantities for selling and purchasing transactions
+        self.quantity.setdefault('sell_quantity_default', 1)
+        self.quantity.setdefault('purchase_quantity_default', 1)
         oh = self.quantity.get('on_hand')
         alloc = self.quantity.get('allocated')
         if oh is not None and alloc is not None and self.quantity.get('available') is None:
