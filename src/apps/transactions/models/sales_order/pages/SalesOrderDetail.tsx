@@ -2363,11 +2363,7 @@ export default function SalesOrderDetail({
                   ) : (
                     contactLinkRows.map((row, index) => (
                       <tr
-                        key={
-                          row.id
-                            ? `contact-row-${row.id}`
-                            : `contact-row-${index}`
-                        }
+                        key={`contact-row-${index}`}
                         className="border-b border-gray-100 last:border-none dark:border-gray-700"
                       >
                         {orderedContactColumns.map((column) => (
