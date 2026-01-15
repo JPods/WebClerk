@@ -6,6 +6,31 @@ This document describes the mechanism for identifying which data set (environmen
 
 When working with multiple environments (LOCAL, DEV, STAGING, PRODUCTION), it's critical to know which data set the frontend and backend are communicating with. This prevents accidentally mixing data between environments.
 
+## Quick Start: Switching Databases
+
+### Option 1: Frontend Dev Tools (Recommended)
+
+Click the color-coded badge in the **bottom-left corner** of the React app:
+- 🟢 **Green badge** = Remote database (team collaboration)
+- 🔵 **Blue badge** = Local database (debugging)
+
+Click to expand the panel, select a mode, then click **Restart Servers**.
+
+### Option 2: Command Line
+
+```bash
+cd /path/to/webClerk3/tools
+
+# Switch to remote database (team collaboration)
+./switch-dataset.sh remote
+
+# Switch to local database (debugging)
+./switch-dataset.sh local
+
+# Check current status
+./switch-dataset.sh status
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -34,11 +59,13 @@ DB_MODE=remote
 
 **After changing, restart the Django server.** You'll see a confirmation message:
 ```
-[DB] Using REMOTE database at 85.31.234.194
+[webClerk3] Data Set: DEV - Development Server
+[webClerk3] Database: REMOTE @ 85.31.234.194:5432/commerce_expert
 ```
 or
 ```
-[DB] Using LOCAL database at localhost
+[webClerk3] Data Set: DEV - Development Server
+[webClerk3] Database: LOCAL @ localhost:5432/commerce_expert
 ```
 
 ### Full Database Configuration

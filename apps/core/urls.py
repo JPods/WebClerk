@@ -8,11 +8,18 @@ from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView
 from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
+from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 
 urlpatterns = [
     # System Info - Data Set Identification
     path("wcapi/system-info/", SystemInfoView.as_view(), name="wcapi-system-info"),
+    
+    # Dev Tools (DEBUG mode only)
+    path("wcapi/dev/config/", dev_config_status, name="dev-config-status"),
+    path("wcapi/dev/switch/", dev_switch_mode, name="dev-switch-mode"),
+    path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart-servers"),
+    
     # Auth API
     path("wcapi/register/", AuthRegisterView.as_view(), name="api-auth-register"),
     path("wcapi/login/", AuthLoginView.as_view(), name="api-auth-login"),
