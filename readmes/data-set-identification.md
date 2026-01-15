@@ -18,6 +18,50 @@ DATA_SET_ID=DEV                      # Options: LOCAL, DEV, STAGING, PRODUCTION,
 DATA_SET_NAME=Development Server     # Human-readable name
 ```
 
+### Database Toggle (Quick Switch)
+
+Change **one line** in `.env` to switch between databases:
+
+```env
+# Options: "remote" or "local"
+DB_MODE=remote
+```
+
+| Mode | Setting | Use Case |
+|------|---------|----------|
+| Remote | `DB_MODE=remote` | Team collaboration, shared development |
+| Local | `DB_MODE=local` | Local debugging, isolated testing |
+
+**After changing, restart the Django server.** You'll see a confirmation message:
+```
+[DB] Using REMOTE database at 85.31.234.194
+```
+or
+```
+[DB] Using LOCAL database at localhost
+```
+
+### Full Database Configuration
+
+```env
+# Toggle: Change this ONE line to switch databases
+DB_MODE=remote
+
+# Remote Postgres (team collaboration)
+REMOTE_DATABASE_HOST=85.31.234.194
+REMOTE_DATABASE_PORT=5432
+REMOTE_DATABASE_NAME=commerce_expert
+REMOTE_DATABASE_USER=postgres
+REMOTE_DATABASE_PASS=wc_psql_server
+
+# Local Postgres (debugging)
+LOCAL_DATABASE_HOST=localhost
+LOCAL_DATABASE_PORT=5432
+LOCAL_DATABASE_NAME=commerce_expert
+LOCAL_DATABASE_USER=williamjames
+LOCAL_DATABASE_PASS=
+```
+
 ### Recommended Values by Environment
 
 | Environment | DATA_SET_ID | DATA_SET_NAME |
