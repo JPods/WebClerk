@@ -6,6 +6,36 @@ This document describes the mechanism for identifying which data set (environmen
 
 When working with multiple environments (LOCAL, DEV, STAGING, PRODUCTION), it's critical to know which data set the frontend and backend are communicating with. This prevents accidentally mixing data between environments.
 
+## Quick Start: Switching Databases
+
+### Option 1: Frontend Dev Tools Badge (Recommended)
+
+Look for the color-coded badge in the **bottom-left corner** of the app:
+- 🟢 **🌐 REMOTE** (Green) = Remote database (team collaboration)
+- 🔵 **💻 LOCAL** (Blue) = Local database (debugging)
+
+**To switch:**
+1. Click the badge to expand the Dev Tools panel
+2. Select **Remote (Team)** or **Local (Debug)**
+3. Click **Restart Servers**
+
+The badge always shows the current database mode at a glance.
+
+### Option 2: Command Line
+
+```bash
+cd /path/to/webClerk3/tools
+
+# Switch to remote database (team collaboration)
+./switch-dataset.sh remote
+
+# Switch to local database (debugging)
+./switch-dataset.sh local
+
+# Check current status
+./switch-dataset.sh status
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -28,6 +58,21 @@ VITE_DATA_SET_NAME='Development Server'
 | Production  | PROD             | Production Server |
 
 ## Components & Utilities
+
+### DevTools Component (Dev Only)
+
+A floating badge and panel for switching database modes. Only visible in DEV mode.
+
+```tsx
+import { DevTools } from '@/components/DevTools';
+
+// In App.tsx
+<DevTools position="bottom-left" />
+```
+
+**Badge Colors:**
+- 🟢 **Green (🌐 REMOTE)** - Connected to shared team database
+- 🔵 **Blue (💻 LOCAL)** - Connected to local database for debugging
 
 ### DataSetBadge Component
 

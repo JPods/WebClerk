@@ -4,6 +4,7 @@ import AuthInitializer from "./components/common/AuthInitializer";
 import { WindowManagerProvider } from "./context/WindowManagerContext";
 import Router from "./routes/Router";
 import { DataSetBadge } from './components/DataSetBadge';
+import { DevTools } from './components/DevTools';
 
 export default function App() {
   return (
@@ -15,6 +16,8 @@ export default function App() {
             <Router />
             {/* Fixed position badge with expandable details */}
             <DataSetBadge position="bottom-right" showDetails />
+            {/* Dev tools panel (only shows in DEV mode) */}
+            <DevTools position="bottom-left" />
           </div>
         </WindowManagerProvider>
       </Provider>

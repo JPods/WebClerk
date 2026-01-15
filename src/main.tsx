@@ -11,10 +11,26 @@ import { ThemeProvider } from "./context/ThemeContext.tsx";
 const dataSetId = import.meta.env.VITE_DATA_SET_ID || 'UNKNOWN';
 const dataSetName = import.meta.env.VITE_DATA_SET_NAME || 'Unknown';
 const env = import.meta.env.VITE_ENV || 'DEV';
+
 console.log(
-  `%c[React2025] Data Set: ${dataSetId} - ${dataSetName} (${env})`,
+  `%c[React2025] Frontend: ${dataSetId} - ${dataSetName} (${env})`,
   'color: #22c55e; font-weight: bold; font-size: 14px;'
 );
+
+// Fetch and display backend database mode
+fetch('/wcapi/dev/config/')
+  .then(res => res.ok ? res.json() : null)
+  .then(data => {
+    if (data?.data) {
+      const mode = data.data.db_mode?.toUpperCase() || 'UNKNOWN';
+      const color = mode === 'REMOTE' ? '#22c55e' : '#3b82f6';
+      console.log(
+        `%c[React2025] Backend DB: ${mode} database`,
+        `color: ${color}; font-weight: bold; font-size: 14px;`
+      );
+    }
+  })
+  .catch(() => { /* Backend not available yet */ });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
