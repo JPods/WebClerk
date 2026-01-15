@@ -9,7 +9,25 @@ from .models import (
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ("id",)
+    list_display = ("id", "sku", "price_base", "cost_avg", "name", "description", "quantity_on_hand")
+
+    @admin.display(description="price.base")
+    def price_base(self, obj):
+        if obj.price and isinstance(obj.price, dict):
+            return obj.price.get("base")
+        return None
+
+    @admin.display(description="cost.avg")
+    def cost_avg(self, obj):
+        if obj.cost and isinstance(obj.cost, dict):
+            return obj.cost.get("avg")
+        return None
+
+    @admin.display(description="quantity.on_hand")
+    def quantity_on_hand(self, obj):
+        if obj.quantity and isinstance(obj.quantity, dict):
+            return obj.quantity.get("on_hand")
+        return None
 
 
 @admin.register(ItemXRef)

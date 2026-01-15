@@ -303,8 +303,71 @@ class BaseLineCore(BaseModel):
         if not self.quantity:
             self.quantity = default_quantity(transaction_type=self._meta.model_name)
 
+        # Set placed from item defaults if not already set
+        self._apply_item_quantity_default()
+
         # normalize cost strictly
         self.cost = normalize_cost_map(getattr(self, "cost", None))
+
+        # Set default cost from item for exec-side transactions
+        self._apply_item_cost_default()
+
+    def _apply_item_quantity_default(self) -> None:
+        """Set quantity.placed from item's sell/purchase_quantity_default based on transaction type."""
+        if not isinstance(self.quantity, dict):
+            return
+        # Only apply default if placed is 0 or None (not yet set by user)
+        placed = self.quantity.get("placed")
+        if placed not in (0, None):
+            return
+
+        kind = _normalize_line_kind(self._meta.model_name)
+        item_qty = self.item.get("quantity") if isinstance(self.item, dict) else None
+
+        if kind in ("proposal", "order", "invoice"):
+            # Sell-side: use sell_quantity_default
+            default_qty = 1
+            if isinstance(item_qty, dict):
+                default_qty = item_qty.get("sell_quantity_default", 1) or 1
+            self.quantity["placed"] = default_qty
+        elif kind in ("purchase_order", "work_order"):
+            # Exec-side: use purchase_quantity_default
+            default_qty = 1
+            if isinstance(item_qty, dict):
+                default_qty = item_qty.get("purchase_quantity_default", 1) or 1
+            self.quantity["placed"] = default_qty
+
+    def _apply_item_cost_default(self) -> None:
+        """Set cost.unit and cost.unit_base from item cost for exec-side transactions.
+        
+        Precedence: standard -> last -> avg -> 0
+        """
+        if not isinstance(self.cost, dict):
+            return
+        # Only apply default if unit is 0 or None (not yet set)
+        if self.cost.get("unit") not in (0, 0.0, None):
+            return
+
+        kind = _normalize_line_kind(self._meta.model_name)
+        if kind not in ("purchase_order", "work_order"):
+            return
+
+        item_cost = self.item.get("cost") if isinstance(self.item, dict) else None
+        default_cost = 0.0
+
+        if isinstance(item_cost, dict):
+            # Try in order: standard, last, avg
+            for key in ("standard", "last", "avg"):
+                val = item_cost.get(key)
+                if val is not None and val != 0:
+                    try:
+                        default_cost = float(val)
+                        break
+                    except (TypeError, ValueError):
+                        continue
+
+        self.cost["unit"] = default_cost
+        self.cost["unit_base"] = default_cost
 
     def save(self, *args, **kwargs):
         self.ensure_json_defaults()
@@ -323,7 +386,49 @@ class BaseSellLineModel(BaseLineCore):
     def ensure_json_defaults(self) -> None:
         super().ensure_json_defaults()
         self.price = normalize_price_map(getattr(self, "price", None))
+        self._apply_item_price_default()
         self._calculate_extended_price()
+
+    def _apply_item_price_default(self) -> None:
+        """Set price.unit and price.unit_base from item.price.base for sell transactions.
+        
+        Only applies if no price_level is defined or there are no values for that level.
+        """
+        if not isinstance(self.price, dict):
+            return
+        # Only apply default if unit is 0 or None (not yet set)
+        if self.price.get("unit") not in (0, 0.0, None):
+            return
+
+        item_price = self.item.get("price") if isinstance(self.item, dict) else None
+        default_price = 0.0
+
+        # Check if price_level is defined and has a value
+        price_level = getattr(self, "price_level", None)
+        if price_level and isinstance(item_price, dict):
+            # Try to get price from tiers for this level
+            tiers = item_price.get("tiers") or []
+            for tier in tiers:
+                if isinstance(tier, dict) and tier.get("level") == price_level:
+                    tier_price = tier.get("price")
+                    if tier_price is not None and tier_price != 0:
+                        try:
+                            default_price = float(tier_price)
+                            break
+                        except (TypeError, ValueError):
+                            continue
+
+        # If no price_level or no tier value found, use base price
+        if default_price == 0.0 and isinstance(item_price, dict):
+            base_price = item_price.get("base")
+            if base_price is not None:
+                try:
+                    default_price = float(base_price)
+                except (TypeError, ValueError):
+                    default_price = 0.0
+
+        self.price["unit"] = default_price
+        self.price["unit_base"] = default_price
 
     def _calculate_extended_price(self) -> None:
         """Calculate and update the extended prices in price and cost JSON."""
