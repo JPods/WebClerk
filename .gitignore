@@ -10,3 +10,4 @@ include/
 **/__pycache__/
 .celery_started
 /Scripts
+venv/

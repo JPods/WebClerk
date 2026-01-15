@@ -55,6 +55,23 @@ class BaseLineSerializer(serializers.ModelSerializer):
                 error_detail = {f: ["Not editable for role"] for f in disallowed}
                 error_detail['detail'] = [f"Fields not editable for role: {', '.join(disallowed)}"]
                 raise serializers.ValidationError(error_detail)
+        
+        # Prevent item_id changes on existing lines (security backstop)
+        # R25 UI is primary defense; this catches malicious API calls
+        if self.instance is not None:  # This is an UPDATE
+            current_item = getattr(self.instance, 'item', {}) or {}
+            current_item_id = current_item.get('item_id')
+            
+            new_item = attrs.get('item', {}) or {}
+            new_item_id = new_item.get('item_id')
+            
+            # Only reject if new_item_id is provided AND differs from current
+            if new_item_id is not None and current_item_id is not None:
+                if new_item_id != current_item_id:
+                    raise serializers.ValidationError({
+                        'item': 'Item_id cannot be changed for any line. To change the item, please delete this line and add a new line with the correct item.'
+                    })
+        
         return attrs
 
 
