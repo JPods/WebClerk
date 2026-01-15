@@ -59,8 +59,8 @@ def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
     ModelCls, qs = get_queryset(model_key, request=request)
     try:
         obj = qs.get(pk=id)
-        # Force refresh from database to get latest data
-        obj.refresh_from_db()
+        # Note: removed refresh_from_db() as it clears prefetch_related cache
+        # The get() query already fetches fresh data from the database
         return obj
     except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
         return None
