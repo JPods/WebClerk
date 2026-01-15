@@ -518,6 +518,170 @@ const TransactionDetail: React.FC = () => {
 
 ---
 
+## Dirty Line Tracking
+
+> **Purpose**: Skip unchanged lines during save to improve performance and reduce unnecessary database writes.
+
+### The `_dirty` Flag
+
+Each line can have a `_dirty` boolean that indicates whether it needs to be saved:
+
+| `_dirty` | Has `id` | Action on Save |
+|----------|----------|----------------|
+| `true` | Yes | Update existing line |
+| `true` | No | Create new line |
+| `false` | Yes | Skip (no database write) |
+| `false` | No | Skip (ignored) |
+
+### Tracking Dirty Lines
+
+```typescript
+interface TransactionLine {
+  id?: number;          // Undefined for new lines
+  _dirty: boolean;      // True if created or modified
+  quantity: { qty: number };
+  price: { unit: number; extended: number };
+  discount: { pct: number; amt: number };
+  cost?: { unit: number; extended: number; grossCost: number; discountCost: number };
+  item: { item_id: string; /* ... */ };
+}
+
+// Mark dirty when line is modified
+const updateLine = (index: number, changes: Partial<TransactionLine>) => {
+  setLines(prev => prev.map((line, i) => 
+    i === index ? { ...line, ...changes, _dirty: true } : line
+  ));
+};
+
+// New lines are always dirty
+const addLine = (newLine: Omit<TransactionLine, 'id' | '_dirty'>) => {
+  setLines(prev => [...prev, { ...newLine, _dirty: true }]);
+};
+```
+
+### Using the Transaction Save Endpoint
+
+```typescript
+const saveTransaction = async (
+  modelName: string,
+  record: TransactionRecord,
+  lines: TransactionLine[]
+) => {
+  // Lines go INSIDE record.lines (consistent with /wcapi/save/ pattern)
+  const payload = {
+    model_name: modelName,
+    record: {
+      ...record,
+      lines,  // <-- Lines are nested inside record
+    },
+    options: {
+      verify_calculations: true,
+      save_only_dirty: true
+    }
+  };
+
+  const response = await fetch('/wcapi/transaction/save/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    if (error.field) {
+      // Calculation mismatch - log for debugging
+      console.error(`Calculation mismatch on ${error.field}:`, error);
+    }
+    throw new Error(error.detail);
+  }
+
+  const result = await response.json();
+  
+  // Sync R25 totals with WC3's authoritative values
+  updateTotals(result.recalculated_totals);
+  
+  // Clear dirty flags after successful save
+  setLines(prev => prev.map(line => ({ ...line, _dirty: false })));
+  
+  return result;
+};
+```
+
+> **Note**: Lines are provided inside `record.lines`. WC3 loops through this array 
+> and processes each line based on its `_dirty` flag.
+```
+
+---
+
+## Calculation Verification
+
+> **WC3 verifies R25's calculations on save.** If the frontend math doesn't match within tolerance, the save is rejected.
+
+### How It Works
+
+```
+R25 Frontend                         WC3 Backend
+┌─────────────┐                     ┌─────────────┐
+│ Lines with  │  POST /wcapi/       │ Verifies    │
+│ _dirty flag │ ───────────────────►│ calculations│
+│ + totals    │  transaction/save/  │ matches     │
+└─────────────┘                     └─────────────┘
+                                           │
+                                    ┌──────┴──────┐
+                              mismatch?      match?
+                                    │             │
+                              400 Error    200 + recalculated
+                              with details    totals
+```
+
+### Calculation Tolerance
+
+WC3 allows a small tolerance for floating-point precision differences:
+
+```python
+CALC_TOLERANCE = Decimal("0.01")  # $0.01 tolerance
+```
+
+This handles rounding differences between JavaScript and Python decimal math.
+
+### Verified Fields
+
+**Per-Line:**
+- `price.extended` = qty × unit
+- `discount.amt` = extended × (pct / 100)
+- `cost.extended` = qty × cost.unit
+- `cost.grossCost` = cost.extended (before discount)
+- `cost.discountCost` = cost.extended - discount (if cost-side discount)
+
+**Header Totals:**
+- `subtotal` = Σ(line.price.extended - line.discount.amt)
+- `tax` = subtotal × tax_rate
+- `total` = subtotal + tax
+- `margin` = subtotal - Σ(line.cost.extended)
+- `margin_pct` = (margin / subtotal) × 100
+
+### Handling Calculation Mismatches
+
+```typescript
+try {
+  await saveTransaction(modelName, record, lines);
+} catch (error) {
+  if (error.response?.data?.field) {
+    // Calculation mismatch - sync with backend and retry
+    const { field, r25_value, wc3_value, line_id } = error.response.data;
+    console.error(`Mismatch on ${field}: R25=${r25_value}, WC3=${wc3_value}`);
+    
+    // Option 1: Reload from backend
+    await refetchTransaction();
+    
+    // Option 2: Disable verification for this save (development only)
+    // await saveWithOptions({ verify_calculations: false });
+  }
+}
+```
+
+---
+
 ## Price Level Changes
 
 ### Backend-Triggered Recalculation
