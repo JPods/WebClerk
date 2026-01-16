@@ -1,17 +1,16 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { fetchSettings, deleteSetting } from "../services/settingApi";
 import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import SettingDetail from "./SettingDetail";
 import Badge from "../../../../../components/ui/badge/Badge";
 
 export default function SettingList() {
-  const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [selectedSetting, setSelectedSetting] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
@@ -155,22 +154,13 @@ export default function SettingList() {
                 Add Setting
               </button>
             </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading settings...</div>}
-                onRowClicked={(row) => handleView(row)}
-              />
-            </div>
+            <AdvancedDataTable
+              columns={userColumns}
+              data={data}
+              storageKey="setting_list"
+              progressPending={loading}
+              onRowActivate={handleEdit}
+            />
           </ComponentCard>
         </div>
         {formMode && (

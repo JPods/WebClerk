@@ -1,6 +1,7 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
+import { TableColumn } from "react-data-table-component";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchUsages } from "../services/usageApi";
@@ -143,19 +144,16 @@ export default function UsageList() {
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
+              <AdvancedDataTable
                 columns={userColumns.map((col) => ({
                   ...col,
                   name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
                 }))}
                 data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
+                storageKey="usage_list"
+                onRowActivate={handleEdit}
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading usages...</div>}
-                onRowClicked={(row) => handleView(row)}
               />
             </div>
           </ComponentCard>

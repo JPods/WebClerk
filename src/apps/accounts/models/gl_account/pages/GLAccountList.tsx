@@ -1,16 +1,15 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { fetchGLAccounts, deleteGLAccount } from "../services/glAccountApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import GLAccountDetail from "./GLAccountDetail";
 
 export default function GLAccountList() {
-  const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [selectedGLAccount, setSelectedGLAccount] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
@@ -124,19 +123,19 @@ export default function GLAccountList() {
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
+              <AdvancedDataTable
                 columns={userColumns.map((col) => ({
                   ...col,
                   name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
                 }))}
                 data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
+                storageKey="gl_account_list"
                 highlightOnHover
                 pointerOnHover
                 progressPending={loading}
                 progressComponent={<div className="p-8 text-center">Loading gl accounts...</div>}
                 onRowClicked={(row) => handleView(row)}
+                onRowActivate={handleEdit}
                 keyField="id"
               />
             </div>
