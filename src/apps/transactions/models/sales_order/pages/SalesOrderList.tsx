@@ -59,6 +59,7 @@ export default function SalesOrderList() {
       const salesOrderId = row?.id;
       console.log('[openSalesOrder] row:', row);
       console.log('[openSalesOrder] salesOrderId:', salesOrderId);
+      console.log('[openSalesOrder] modeToSet:', modeToSet);
       if (!salesOrderId) {
         dispatch(
           showToast({ message: "Sales order id missing", type: "error" })
@@ -67,6 +68,7 @@ export default function SalesOrderList() {
       }
 
       setFormMode(modeToSet);
+      console.log('[openSalesOrder] formMode set to:', modeToSet);
       setDetailLoading(true);
       setSelectedSalesOrder(null);
 
@@ -99,6 +101,7 @@ export default function SalesOrderList() {
 
   const handleView = useCallback(
     (row: any) => {
+      console.log('[SalesOrderList] handleView called');
       openSalesOrder(row, "view");
     },
     [openSalesOrder]
@@ -426,7 +429,7 @@ export default function SalesOrderList() {
                   Add Sales Order
                 </button>
               }
-              onRowClicked={handleEdit}
+              onRowClicked={handleView}
             />
           </ComponentCard>
         </div>
@@ -440,6 +443,7 @@ export default function SalesOrderList() {
               </ComponentCard>
             ) : (
               <SalesOrderDetail
+                key={`${selectedSalesOrder?.id ?? 'new'}-${formMode}`}
                 inline
                 modeProp={formMode}
                 dataProp={formMode === "add" ? null : selectedSalesOrder}

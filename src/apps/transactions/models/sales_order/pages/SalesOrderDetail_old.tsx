@@ -153,22 +153,20 @@ type ContactLinkRecord = Record<string, unknown> & {
 };
 
 interface ContactLinkDisplayRow {
-  id: number | null;
-  alias: string;
+  purpose: string;
   name: string;
   role: string;
-  purpose: string;
   email: string;
   phone: string;
   raw: ContactLinkRecord;
 }
 
 type ContactColumnKey =
+  | "purpose"
+  | "name"
   | "id"
   | "alias"
-  | "name"
   | "role"
-  | "purpose"
   | "email"
   | "phone";
 

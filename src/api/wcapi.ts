@@ -139,6 +139,40 @@ export async function saveRecord(model_name: string, payload: any) {
   }
 }
 
+/**
+ * Save a transaction with lines using the transaction-specific save endpoint.
+ * This endpoint handles creating/updating/deleting lines along with the header.
+ */
+export async function saveTransactionWithLines(model_name: string, payload: any, options?: { verifyCalculations?: boolean; saveOnlyDirty?: boolean }) {
+  const resolved = resolveModelName(model_name);
+  // Build the request body in the format expected by WCAPITransactionSaveView
+  const body = {
+    model_name: resolved,
+    record: payload, // record should include lines array
+    options: {
+      verify_calculations: options?.verifyCalculations ?? false, // Disable verification for now
+      save_only_dirty: options?.saveOnlyDirty ?? false, // Save all lines, not just dirty ones
+    }
+  };
+  
+  console.log('[wcapi.saveTransactionWithLines] Saving:', { model_name: resolved, hasLines: !!payload.lines, lineCount: payload.lines?.length });
+  console.log('[wcapi.saveTransactionWithLines] Full payload:', JSON.stringify(body, null, 2));
+  
+  try {
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/transaction/save/', body);
+    console.log('[wcapi.saveTransactionWithLines] Response:', res.data);
+    return res.data.data ?? res.data;
+  } catch (err: any) {
+    console.error('[wcapi.saveTransactionWithLines] Error:', err.response?.data || err);
+    console.error('[wcapi.saveTransactionWithLines] Error details:', err.response?.data?.error?.details || 'No details');
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/transaction/save/', body);
+      return res2.data.data ?? res2.data;
+    }
+    throw err;
+  }
+}
+
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   try {
