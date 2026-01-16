@@ -280,6 +280,10 @@ def save_transaction_with_lines(
     if not LineModel:
         raise ValueError(f"Unknown line model: {line_model_key}")
     
+    # Determine the FK field name on the line model (e.g., salesorder_id, invoice_id)
+    # Convention: the FK field is named {model_key}_id
+    fk_field_name = f"{model_key}_id"
+    
     header_id = header_data.get('id')
     result = {
         'header': None,
@@ -319,10 +323,12 @@ def save_transaction_with_lines(
         
         result['header'] = {'id': header_obj.pk}
         
-        # Process lines
+        # Process lines - use the correct FK filter
+        # Build filter kwargs dynamically based on FK field name
+        filter_kwargs = {fk_field_name: header_id}
         existing_lines = {
             line.pk: line 
-            for line in LineModel.objects.filter(parent_id=header_id).select_for_update()
+            for line in LineModel.objects.filter(**filter_kwargs).select_for_update()
         }
         
         for line_data in lines_data:
@@ -342,7 +348,8 @@ def save_transaction_with_lines(
             # Clean line data
             line_clean = filter_input_fields(LineModel, line_data)
             line_clean.pop('_dirty', None)
-            line_clean['parent_id'] = header_id
+            # Remove any existing FK value (might be wrong format)
+            line_clean.pop(fk_field_name, None)
             
             if line_id:
                 # Update existing line
@@ -371,7 +378,8 @@ def save_transaction_with_lines(
                     'action': 'updated'
                 })
             else:
-                # Create new line
+                # Create new line - pass header object as FK
+                line_clean[fk_field_name] = header_obj
                 new_line = LineModel.objects.create(**line_clean)
                 result['lines_saved'] += 1
                 result['lines'].append({

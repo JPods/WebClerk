@@ -144,6 +144,8 @@ class TransactionBaseModel(BaseModel):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)
+    terms = models.CharField(max_length=128, blank=True, null=True, help_text="Payment terms")
+    po_number = models.CharField(max_length=128, blank=True, null=True, help_text="Customer PO number")
     customer_id = models.BigIntegerField(default=0, db_index=True)
     manufacturer_id = models.BigIntegerField(default=0, db_index=True)
     vendor_id = models.BigIntegerField(default=0, db_index=True)
