@@ -17,7 +17,7 @@ import { salesOrderSchema } from "../utils/salesOrderSchema";
 import { SalesOrderAddProps } from "../types/salesOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
-import SalesOrderLineList from "../components/SalesOrderLineList";
+import SalesOrderLineEditor from "../components/SalesOrderLineEditor";
 import { getRecords } from "../../../../../api/wcapi";
 
 export default function SalesOrderDetailTest({
@@ -515,7 +515,7 @@ export default function SalesOrderDetailTest({
           
           {/* Line Items Section */}
           {(mode === "edit" || mode === "add") && (
-            <SalesOrderLineList
+            <SalesOrderLineEditor
               lines={lineItems}
               editingId={editingLineId}
               newLine={newLine}

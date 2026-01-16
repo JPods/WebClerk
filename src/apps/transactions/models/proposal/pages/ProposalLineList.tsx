@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import DataTable, { TableColumn } from "react-data-table-component";
+import { TableColumn } from "react-data-table-component";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import { useTheme } from "../../../../../context/ThemeContext";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
 import { ProposalLine } from "../types/proposalLineType";
 
 interface ProposalLineListProps {
@@ -20,7 +20,6 @@ export default function ProposalLineList({
   onAdd,
   onDelete
 }: ProposalLineListProps) {
-  const { theme } = useTheme();
   const [lines, setLines] = useState<ProposalLine[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -110,18 +109,15 @@ export default function ProposalLineList({
         )}
       </div>
       <div className="overflow-x-auto">
-        <DataTable
+        <AdvancedDataTable
           columns={columns.map((col) => ({
             ...col,
             name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
           }))}
           data={lines}
-          pagination
-          theme={theme === "dark" ? "tailwindDark" : "default"}
-          highlightOnHover
-          progressPending={loading}
-          progressComponent={<div className="p-8 text-center">Loading proposal lines...</div>}
-          noDataComponent={<div className="p-8 text-center">No proposal lines found</div>}
+          storageKey="proposal_line_list"
+          onRowActivate={onEdit}
+          loading={loading}
         />
       </div>
     </ComponentCard>

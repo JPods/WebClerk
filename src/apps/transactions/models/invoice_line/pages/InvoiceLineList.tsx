@@ -3,108 +3,128 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
-import { fetchAudits, deleteAudit } from "../services/auditApi";
+import { deleteInvoiceLine, fetchInvoiceLines } from "../services/invoiceLineApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import AuditDetail from "./AuditDetail";
+import InvoiceLineDetail from "./InvoiceLineDetail";
+import type { InvoiceLine } from "../types/invoiceLineType";
 
-export default function AuditList() {
-  const [data, setData] = useState<any[]>([]);
-  const [selectedAudit, setSelectedAudit] = useState<any | null>(null);
+export default function InvoiceLineList() {
+  const [data, setData] = useState<InvoiceLine[]>([]);
+  const [selectedInvoiceLine, setSelectedInvoiceLine] = useState<InvoiceLine | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
-  const getAuditData = useCallback(async () => {
+  const getInvoiceLineData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchAudits();
+      const res = await fetchInvoiceLines();
       if (res.status === 200) {
         setData(res.data.items);
       } else {
-        dispatch(showToast({ message: "Failed to fetch audits", type: "error" }));
+        dispatch(
+          showToast({ message: "Failed to fetch invoice lines", type: "error" })
+        );
       }
     } catch (error) {
-      console.error("Failed to fetch audits", error);
-      dispatch(showToast({ message: "Failed to fetch audits", type: "error" }));
+      console.error("Failed to fetch invoice lines", error);
+      dispatch(showToast({ message: "Failed to fetch invoice lines", type: "error" }));
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getAuditData();
-  }, [getAuditData]);
+    getInvoiceLineData();
+  }, [getInvoiceLineData]);
 
-  const handleView = (row: any) => {
-    setSelectedAudit(row);
+  const handleView = (row: InvoiceLine) => {
+    setSelectedInvoiceLine(row);
     setFormMode("view");
   };
 
-  const handleEdit = (row: any) => {
-    setSelectedAudit(row);
+  const handleEdit = (row: InvoiceLine) => {
+    setSelectedInvoiceLine(row);
     setFormMode("edit");
   };
 
   const handleAdd = () => {
-    setSelectedAudit(null);
+    setSelectedInvoiceLine(null);
     setFormMode("add");
   };
 
   const handleFormSaved = () => {
-    getAuditData();
+    getInvoiceLineData();
     setFormMode(null);
-    setSelectedAudit(null);
+    setSelectedInvoiceLine(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedAudit(null);
+    setSelectedInvoiceLine(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete audit ${row.id}?`)) {
+  const handleDelete = async (row: InvoiceLine) => {
+    if (window.confirm(`Delete invoice line ${row.id}?`)) {
       try {
-        await deleteAudit(row.id);
-        dispatch(showToast({ message: "Audit deleted successfully", type: "success" }));
-        getAuditData(); // Refresh data
+        await deleteInvoiceLine(row.id!);
+        dispatch(showToast({ message: "Invoice line deleted successfully", type: "success" }));
+        getInvoiceLineData(); // Refresh data
       } catch (error) {
-        dispatch(showToast({ message: "Failed to delete audit", type: "error" }));
+        dispatch(showToast({ message: "Failed to delete invoice line", type: "error" }));
       }
     }
   };
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+  const userColumns: TableColumn<InvoiceLine>[] = [
+    { name: "ID", selector: (row: InvoiceLine) => row.id || 0, sortable: true, width: "80px" },
     {
-      name: "Date",
-      selector: (row) => row.date || "--",
+      name: "Invoice ID",
+      selector: (row: InvoiceLine) => row.parent || "--",
       sortable: true,
-      width: "15%",
+      width: "120px",
     },
     {
-      name: "Action",
-      selector: (row) => row.action || "--",
+      name: "Item",
+      selector: (row: InvoiceLine) => row.item_name || "--",
       sortable: true,
-      width: "15%",
-    },
-    {
-      name: "User",
-      selector: (row) => row.user || "--",
-      sortable: true,
-      width: "15%",
+      width: "150px",
     },
     {
       name: "Description",
-      selector: (row) => row.description || "--",
+      selector: (row: InvoiceLine) => row.description || "--",
       sortable: true,
-      width: "35%",
+      grow: 2,
+    },
+    {
+      name: "Quantity",
+      selector: (row: InvoiceLine) => row.quantity || 0,
+      sortable: true,
+      width: "100px",
+      right: true,
+    },
+    {
+      name: "Unit Price",
+      selector: (row: InvoiceLine) => row.price?.sell || 0,
+      sortable: true,
+      width: "120px",
+      right: true,
+      format: (row: InvoiceLine) => `$${(row.price?.sell || 0).toFixed(2)}`,
+    },
+    {
+      name: "Extended",
+      selector: (row: InvoiceLine) => row.extended_price || 0,
+      sortable: true,
+      width: "120px",
+      right: true,
+      format: (row: InvoiceLine) => `$${(row.extended_price || 0).toFixed(2)}`,
     },
     {
       name: "Action",
-      cell: (row) => (
+      cell: (row: InvoiceLine) => (
         <div className="flex gap-2">
           <button onClick={() => handleView(row)} title="View">
             <FaEye className="text-blue-600 hover:scale-110 transition" />
@@ -125,7 +145,7 @@ export default function AuditList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Audit List" />
+      <PageBreadcrumb pageTitle="Invoice Line List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
@@ -135,7 +155,7 @@ export default function AuditList() {
                 className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
               >
                 <FaPlus />
-                Add Audit
+                Add Invoice Line
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
@@ -145,20 +165,19 @@ export default function AuditList() {
                   name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
                 }))}
                 data={data}
-                storageKey="audit_list"
-                loading={loading}
+                storageKey="invoice_line_list"
                 onRowActivate={handleEdit}
-                rowKeyField="id"
+                loading={loading}
               />
             </div>
           </ComponentCard>
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <AuditDetail
+            <InvoiceLineDetail
               inline
               modeProp={formMode}
-              dataProp={selectedAudit}
+              dataProp={selectedInvoiceLine}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

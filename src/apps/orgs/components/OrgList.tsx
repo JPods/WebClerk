@@ -3,11 +3,11 @@
  * Provides a reusable DataTable for all org types
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import DataTable, { TableColumn } from 'react-data-table-component';
+import { TableColumn } from 'react-data-table-component';
 import { FaEye, FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { useTheme } from '@/context/ThemeContext';
+import AdvancedDataTable from '@/components/common/AdvancedDataTable';
 import { showToast } from '@/store/slices/toastSlice';
 import PageBreadcrumb from '@/components/common/PageBreadCrumb';
 import ComponentCard from '@/components/common/ComponentCard';
@@ -35,7 +35,6 @@ const OrgList: React.FC<OrgListProps> = ({
   showInlineDetail = true,
   DetailComponent,
 }) => {
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -246,39 +245,6 @@ const OrgList: React.FC<OrgListProps> = ({
 
   const columns = [...baseColumns, ...additionalColumns, actionColumn];
 
-  // Custom styles
-  const customStyles = {
-    headRow: {
-      style: {
-        backgroundColor: theme === 'dark' ? '#1e293b' : '#f8fafc',
-        borderBottomColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-      },
-    },
-    headCells: {
-      style: {
-        color: theme === 'dark' ? '#e2e8f0' : '#334155',
-        fontWeight: '600',
-        fontSize: '13px',
-      },
-    },
-    rows: {
-      style: {
-        backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-        color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
-        '&:hover': {
-          backgroundColor: theme === 'dark' ? '#1e293b' : '#f1f5f9',
-        },
-      },
-    },
-    pagination: {
-      style: {
-        backgroundColor: theme === 'dark' ? '#1e293b' : '#f8fafc',
-        color: theme === 'dark' ? '#e2e8f0' : '#334155',
-        borderTopColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-      },
-    },
-  };
-
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       {/* Main List */}
@@ -311,25 +277,12 @@ const OrgList: React.FC<OrgListProps> = ({
           </div>
 
           {/* Table */}
-          <DataTable
+          <AdvancedDataTable
             columns={columns}
             data={filteredData}
-            progressPending={loading}
-            pagination
-            paginationServer
-            paginationTotalRows={totalRows}
-            paginationPerPage={perPage}
-            onChangePage={(page: number) => setCurrentPage(page)}
-            onChangeRowsPerPage={(newPerPage: number) => setPerPage(newPerPage)}
-            highlightOnHover
-            pointerOnHover
-            onRowClicked={handleView}
-            customStyles={customStyles}
-            noDataComponent={
-              <div className="py-10 text-center text-slate-500 dark:text-slate-400">
-                No {title.toLowerCase()} found
-              </div>
-            }
+            loading={loading}
+            storageKey="org_list"
+            onRowActivate={handleView}
           />
         </ComponentCard>
       </div>

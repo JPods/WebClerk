@@ -1,6 +1,11 @@
 import * as z from "zod";
-import { baseLineItemSchema } from "../../base/utils/baseLineItemSchema";
 
-export const invoiceLineSchema = baseLineItemSchema.extend({
-  invoice_id: z.number().min(1, "Invoice ID is required"),
+export const invoiceLineSchema = z.object({
+  parent: z.number().optional(),
+  item_id: z.number().optional(),
+  description: z.string().optional(),
+  quantity: z.number().optional(),
+  unit_price: z.number().optional(),
+  discount_amount: z.number().optional(),
+  line_total: z.number().optional(),
 });

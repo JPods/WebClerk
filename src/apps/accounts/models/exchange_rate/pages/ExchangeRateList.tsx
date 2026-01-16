@@ -1,17 +1,16 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchExchangeRates } from "../services/exchangeRateApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import ExchangeRateDetail from "./ExchangeRateDetail";
 
 export default function ExchangeRateList() {
-  const { theme } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [selectedExchangeRate, setSelectedExchangeRate] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
@@ -125,20 +124,16 @@ export default function ExchangeRateList() {
               </button>
             </div>
             <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
+              <AdvancedDataTable
                 columns={userColumns.map((col) => ({
                   ...col,
                   name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
                 }))}
                 data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading exchange rates...</div>}
-                onRowClicked={(row) => handleView(row)}
-                keyField="id"
+                storageKey="exchange_rate_list"
+                loading={loading}
+                onRowActivate={handleEdit}
+                rowKeyField="id"
               />
             </div>
           </ComponentCard>
