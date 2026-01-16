@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
@@ -29,6 +29,7 @@ import {
 } from "../services/salesOrderApi";
 import { deleteRecord } from "../../../../../api/wcapi";
 import { SalesOrderAddProps } from "../types/salesOrderType";
+import TransactionToolbar, { type TransactionType } from "../../../components/TransactionToolbar";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
 import SalesOrderItemSearch from "../components/SalesOrderItemSearch";
@@ -118,12 +119,13 @@ const FIELD_GROUPS: FieldGroup[] = [
 ];
 
 const JSON_FIELD_PATHS = [
+  "totals",
   "cost",
   "sell",
   "finance",
   "flow",
   "source",
-  "subtotals",
+  "action",
   "prefs.userdefined",
   "refs.links",
 ] as const;
@@ -234,10 +236,13 @@ const CONTACT_LINK_CELL_CLASS: Record<ContactColumnKey, string> = {
 
 const READONLY_FIELD_NAMES = new Set(["ida", "sales_order_no", "subtotal"]);
 const READONLY_JSON_FIELDS = new Set<JsonFieldPath>([
+  "totals",
   "cost",
   "sell",
   "finance",
   "flow",
+  "source",
+  "action",
 ]);
 
 function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
@@ -274,6 +279,79 @@ function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
   return [];
 }
 
+// Default structures matching Django base_transaction_model.py
+const DEFAULT_TOTALS = {
+  subtotal: null,   // sum of line extended sell before tax/ship/discount
+  discount: null,   // header discount amount
+  taxable: null,    // subtotal - discount subject to tax
+  tax: null,        // sales tax amount
+  shipping: null,   // shipping/handling charged to customer
+  other: null,      // misc charges
+  total: null,      // grand total customer-facing
+  cost: null,       // total cost (for margin compute)
+  margin: null,     // total - cost
+  margin_pc: null,  // (margin / total)*100 (safe on total>0)
+  received: null,   // payments received (for invoices)
+  balance: null,    // total - received (for invoices)
+};
+
+const DEFAULT_COST = {
+  line_sum_goods: null,
+  line_sum_tax: null,
+  line_sum_shipping: null,
+  line_sum_handling: null,
+  handling: null,
+  freight: null,
+  tax_rate: null,
+  tax: null,
+  commissions: null,
+  total: null,
+};
+
+const DEFAULT_SELL = {
+  line_sum_goods: null,
+  line_sum_tax: null,
+  line_sum_shipping: null,
+  line_sum_handling: null,
+  handling: null,
+  freight: null,
+  tax_rate: null,
+  tax: null,
+  discount: null,
+  total: null,
+};
+
+const DEFAULT_FINANCE = {
+  sales_tax_id: 0,
+  sales_tax_name: "",
+  sales_tax_rate: null,
+  sales_tax: null,
+  cost_tax_id: 0,
+  cost_tax_name: "",
+  cost_tax_rate: null,
+  cost_tax: null,
+  tax_subtotal: null,
+  tax_pc: null,
+  collection_expense: null,
+  exchange_expense: null,
+};
+
+const DEFAULT_ACTION = {
+  action_next: { who: "", when: 0, what: "" },
+};
+
+const DEFAULT_FLOW = {
+  source: [{ type: "", id: 0 }],
+  children: [{ type: "", id: 0 }],
+};
+
+const DEFAULT_SOURCE = {
+  campaign_id: 0,
+  catalog_id: null,
+  vendor_id: 0,
+  manufacturer_id: 0,
+};
+
 const DEFAULT_FORM_VALUES: SalesOrderForm = {
   ida: "",
   company: "",
@@ -287,7 +365,7 @@ const DEFAULT_FORM_VALUES: SalesOrderForm = {
   phoneCell: "",
   phone: "",
   actionBy: "",
-  action: "",
+  action: DEFAULT_ACTION,
   actionDate: "",
   actionTime: "",
   salesNameID: "",
@@ -315,12 +393,12 @@ const DEFAULT_FORM_VALUES: SalesOrderForm = {
   price_level: "",
   manufacturer_id: 0,
   vendor_id: 0,
-  cost: {},
-  sell: {},
-  finance: {},
-  flow: {},
-  source: {},
-  subtotals: {},
+  totals: DEFAULT_TOTALS,
+  cost: DEFAULT_COST,
+  sell: DEFAULT_SELL,
+  finance: DEFAULT_FINANCE,
+  flow: DEFAULT_FLOW,
+  source: DEFAULT_SOURCE,
   lines: [],
   dt_created: undefined,
   dt_updated: undefined,
@@ -981,8 +1059,10 @@ export default function SalesOrderDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  isAdmin = false,
 }: SalesOrderAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -990,22 +1070,26 @@ export default function SalesOrderDetail({
     reset,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<SalesOrderForm>({
     resolver: zodResolver(salesOrderSchema),
     defaultValues: DEFAULT_FORM_VALUES,
     mode: "onBlur",
   });
 
+  // Toolbar state
+  const [isSaving, setIsSaving] = useState(false);
+
   const [jsonDrafts, setJsonDrafts] = useState<Record<JsonFieldPath, string>>(
     () => {
       const base: Record<JsonFieldPath, string> = {
+        totals: "",
         cost: "",
         sell: "",
         finance: "",
         flow: "",
         source: "",
-        subtotals: "",
+        action: "",
         "prefs.userdefined": "",
         "refs.links": "",
       };
@@ -1015,12 +1099,13 @@ export default function SalesOrderDetail({
   const [jsonErrors, setJsonErrors] = useState<
     Record<JsonFieldPath, string | undefined>
   >({
+    totals: undefined,
     cost: undefined,
     sell: undefined,
     finance: undefined,
     flow: undefined,
     source: undefined,
-    subtotals: undefined,
+    action: undefined,
     "prefs.userdefined": undefined,
     "refs.links": undefined,
   });
@@ -1379,27 +1464,31 @@ export default function SalesOrderDetail({
       cost:
         typeof recordData.cost === "object" && recordData.cost
           ? recordData.cost
-          : {},
+          : DEFAULT_COST,
       sell:
         typeof recordData.sell === "object" && recordData.sell
           ? recordData.sell
-          : {},
+          : DEFAULT_SELL,
       finance:
         typeof recordData.finance === "object" && recordData.finance
           ? recordData.finance
-          : {},
+          : DEFAULT_FINANCE,
       flow:
         typeof recordData.flow === "object" && recordData.flow
           ? recordData.flow
-          : {},
+          : DEFAULT_FLOW,
       source:
         typeof recordData.source === "object" && recordData.source
           ? recordData.source
-          : {},
-      subtotals:
-        typeof recordData.subtotals === "object" && recordData.subtotals
-          ? recordData.subtotals
-          : {},
+          : DEFAULT_SOURCE,
+      totals:
+        typeof recordContainer.totals === "object" && recordContainer.totals
+          ? recordContainer.totals
+          : DEFAULT_TOTALS,
+      action:
+        typeof recordContainer.action === "object" && recordContainer.action
+          ? recordContainer.action
+          : DEFAULT_ACTION,
       lines: normalizeLines(recordContainer.lines),
     } as SalesOrderForm;
   }, [recordData]);
@@ -1420,12 +1509,13 @@ export default function SalesOrderDetail({
       (prev) => ({ ...prev, ...drafts } as Record<JsonFieldPath, string>)
     );
     setJsonErrors({
+      totals: undefined,
       cost: undefined,
       sell: undefined,
       finance: undefined,
       flow: undefined,
       source: undefined,
-      subtotals: undefined,
+      action: undefined,
       "prefs.userdefined": undefined,
       "refs.links": undefined,
     });
@@ -2057,6 +2147,106 @@ export default function SalesOrderDetail({
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Toolbar handlers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const triggerFormSubmit = useCallback(() => {
+    return handleSubmit(onSubmit)();
+  }, [handleSubmit, onSubmit]);
+
+  const handleToolbarSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await triggerFormSubmit();
+      // Don't navigate - just stay on the page
+    } finally {
+      setIsSaving(false);
+    }
+  }, [triggerFormSubmit]);
+
+  const handleToolbarSaveAndClose = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await triggerFormSubmit();
+      // Only navigate if not inline mode
+      if (!inline) {
+        navigate('/transactions/sales-orders');
+      } else if (onSaved) {
+        onSaved(); // For inline mode, call the parent's callback
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }, [triggerFormSubmit, navigate, inline, onSaved]);
+
+  const handleToolbarClone = useCallback(async () => {
+    // Clone: Navigate to new SO with same customer, contacts, and lines
+    const cloneData = {
+      ...recordData,
+      id: undefined,
+      ida: undefined,
+      version: undefined,
+      status: 'planned',
+      // Keep customer, refs (contacts), and lines
+    };
+    navigate('/transactions/sales-orders/new', { 
+      state: { mode: 'add', data: cloneData, cloneFrom: recordData?.id }
+    });
+    dispatch(showToast({ message: 'Cloning sales order...', type: 'info' }));
+  }, [recordData, navigate, dispatch]);
+
+  const handleToolbarTransfer = useCallback(async (targetType: TransactionType) => {
+    // Transfer: Navigate to new transaction of targetType with lines from this SO
+    const transferData = {
+      customer_id: recordData?.customer_id,
+      refs: recordData?.refs,
+      lines: lineDrafts.map(line => ({
+        ...line,
+        id: undefined, // New lines
+        _dirty: true,
+      })),
+    };
+    const targetPath = targetType === 'purchase_order' 
+      ? 'purchase-orders' 
+      : targetType === 'sales_order'
+      ? 'sales-orders'
+      : `${targetType}s`;
+    navigate(`/transactions/${targetPath}/new`, { 
+      state: { mode: 'add', data: transferData, transferFrom: { type: 'sales_order', id: recordData?.id } }
+    });
+    dispatch(showToast({ message: `Transferring to ${targetType}...`, type: 'info' }));
+  }, [recordData, lineDrafts, navigate, dispatch]);
+
+  const handleToolbarPrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleToolbarEmail = useCallback(() => {
+    // TODO: Open email modal/dialog
+    dispatch(showToast({ message: 'Email functionality coming soon', type: 'info' }));
+  }, [dispatch]);
+
+  const handleToolbarDelete = useCallback(async () => {
+    if (!recordData?.id) return;
+    try {
+      await deleteRecord('salesorder', recordData.id);
+      dispatch(showToast({ message: 'Sales order deleted', type: 'success' }));
+      navigate('/transactions/sales-orders');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete';
+      dispatchToastError(message);
+    }
+  }, [recordData?.id, navigate, dispatch, dispatchToastError]);
+
+  const handleToolbarCancel = useCallback(() => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+    } else {
+      navigate('/transactions/sales-orders');
+    }
+  }, [inline, onCancelInline, navigate]);
+
   const renderField = (field: FieldConfig) => {
     const inputId = field.name.replace(/\./g, "-");
     const errorMessage = getErrorMessage(
@@ -2165,6 +2355,26 @@ export default function SalesOrderDetail({
           const failedFields = Object.keys(validationErrors).join(', ');
           dispatch(showToast({ message: `Validation failed: ${failedFields}`, type: 'error' }));
         })} className="space-y-8">
+          {/* Transaction Toolbar */}
+          <TransactionToolbar
+            transactionType="sales_order"
+            transactionId={recordData?.id}
+            isDirty={isDirty || lineDrafts.some(l => l._dirty)}
+            isSaving={isSaving}
+            isEditing={mode !== "view"}
+            onSave={handleToolbarSave}
+            onSaveAndClose={handleToolbarSaveAndClose}
+            onClone={handleToolbarClone}
+            onTransfer={handleToolbarTransfer}
+            onPrint={handleToolbarPrint}
+            onEmail={handleToolbarEmail}
+            onDelete={handleToolbarDelete}
+            onCancel={handleToolbarCancel}
+            canDelete={mode === "edit" && !!recordData?.id}
+            canClone={!!recordData?.id}
+            canTransfer={!!recordData?.id && lineDrafts.length > 0}
+          />
+
           {showCustomerSearchPanel && (
             <section className="rounded-lg border border-dashed border-blue-300 bg-blue-50/60 p-4 dark:border-blue-500/50 dark:bg-blue-900/10">
               <h4 className="text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-200">
@@ -2390,9 +2600,11 @@ export default function SalesOrderDetail({
             </section>
           ))}
 
+          {/* Admin/Developer JSON Envelopes - only visible when isAdmin */}
+          {isAdmin && (
           <section>
             <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
-              JSON envelopes
+              JSON envelopes (Admin)
             </h4>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {JSON_FIELD_PATHS.map((path) => {
@@ -2431,6 +2643,7 @@ export default function SalesOrderDetail({
               })}
             </div>
           </section>
+          )}
 
           <section>
             <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
@@ -2534,25 +2747,18 @@ export default function SalesOrderDetail({
             </section>
           )}
 
-          {mode !== "view" && (
+          {/* Force save checkbox (dev/admin option) */}
+          {mode === "edit" && isAdmin && (
             <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                className="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
-              >
-                {mode === "edit" ? "Save" : "Create"}
-              </button>
-              {mode === "edit" && (
-                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <input
-                    type="checkbox"
-                    checked={forceSave}
-                    onChange={(e) => setForceSave(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  Force save (skip version check)
-                </label>
-              )}
+              <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={forceSave}
+                  onChange={(e) => setForceSave(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Force save (skip version check)
+              </label>
             </div>
           )}
         </form>

@@ -1,0 +1,395 @@
+/**
+ * TransactionToolbar - Action toolbar for transaction detail pages
+ * 
+ * Provides common actions:
+ * - Save & Close
+ * - Save
+ * - Clone (same type, same customer/contacts)
+ * - Transfer (copy lines to different transaction type)
+ * - Print
+ * - Email
+ * - Delete
+ */
+import React, { useState } from 'react';
+import {
+  FaSave,
+  FaSignOutAlt,
+  FaCopy,
+  FaExchangeAlt,
+  FaPrint,
+  FaEnvelope,
+  FaTrash,
+  FaSpinner,
+  FaChevronDown,
+} from 'react-icons/fa';
+
+// Transaction types for transfer dropdown
+const TRANSACTION_TYPES = [
+  { value: 'invoice', label: 'Invoice' },
+  { value: 'sales_order', label: 'Sales Order' },
+  { value: 'proposal', label: 'Proposal' },
+  { value: 'purchase_order', label: 'Purchase Order' },
+  { value: 'workorder', label: 'Work Order' },
+] as const;
+
+type TransactionType = typeof TRANSACTION_TYPES[number]['value'];
+
+interface TransactionToolbarProps {
+  /** Current transaction type */
+  transactionType: TransactionType;
+  /** Transaction ID (for existing records) */
+  transactionId?: number;
+  /** Whether form has unsaved changes */
+  isDirty?: boolean;
+  /** Whether currently saving */
+  isSaving?: boolean;
+  /** Whether in edit mode */
+  isEditing?: boolean;
+  /** Callback for Save action */
+  onSave?: () => Promise<void> | void;
+  /** Callback for Save & Close action */
+  onSaveAndClose?: () => Promise<void> | void;
+  /** Callback for Clone action */
+  onClone?: () => Promise<void> | void;
+  /** Callback for Transfer action (receives target type) */
+  onTransfer?: (targetType: TransactionType) => Promise<void> | void;
+  /** Callback for Print action */
+  onPrint?: () => void;
+  /** Callback for Email action */
+  onEmail?: () => void;
+  /** Callback for Delete action */
+  onDelete?: () => Promise<void> | void;
+  /** Callback for Cancel/Close without saving */
+  onCancel?: () => void;
+  /** Whether delete is allowed */
+  canDelete?: boolean;
+  /** Whether clone is allowed */
+  canClone?: boolean;
+  /** Whether transfer is allowed */
+  canTransfer?: boolean;
+  /** Custom class name */
+  className?: string;
+}
+
+const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
+  transactionType,
+  transactionId,
+  isDirty = false,
+  isSaving = false,
+  isEditing = false,
+  onSave,
+  onSaveAndClose,
+  onClone,
+  onTransfer,
+  onPrint,
+  onEmail,
+  onDelete,
+  onCancel,
+  canDelete = true,
+  canClone = true,
+  canTransfer = true,
+  className = '',
+}) => {
+  const [showTransferMenu, setShowTransferMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+
+  const isNewRecord = !transactionId;
+
+  // Wrapper to handle async actions with loading state
+  const handleAction = async (actionName: string, action?: () => Promise<void> | void) => {
+    if (!action || actionInProgress) return;
+    setActionInProgress(actionName);
+    try {
+      await action();
+    } catch (error) {
+      console.error(`${actionName} failed:`, error);
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle transfer to specific type
+  const handleTransfer = async (targetType: TransactionType) => {
+    setShowTransferMenu(false);
+    if (onTransfer) {
+      await handleAction('transfer', () => onTransfer(targetType));
+    }
+  };
+
+  // Handle delete with confirmation
+  const handleDeleteClick = () => {
+    if (showDeleteConfirm) {
+      handleAction('delete', onDelete);
+      setShowDeleteConfirm(false);
+    } else {
+      setShowDeleteConfirm(true);
+      // Auto-hide confirmation after 3 seconds
+      setTimeout(() => setShowDeleteConfirm(false), 3000);
+    }
+  };
+
+  // Filter transfer options (exclude current type)
+  const transferOptions = TRANSACTION_TYPES.filter(t => t.value !== transactionType);
+
+  // Common button styles
+  const buttonBase = "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const primaryButton = `${buttonBase} bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed`;
+  const secondaryButton = `${buttonBase} bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700`;
+  const dangerButton = `${buttonBase} bg-red-600 text-white hover:bg-red-700 focus:ring-red-500`;
+
+  return (
+    <div className={`flex items-center justify-between gap-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${className}`}>
+      {/* Left side: Primary actions */}
+      <div className="flex items-center gap-2">
+        {/* Save & Close */}
+        {isEditing && onSaveAndClose && (
+          <button
+            type="button"
+            onClick={() => handleAction('saveAndClose', onSaveAndClose)}
+            disabled={isSaving || actionInProgress !== null}
+            className={primaryButton}
+            title="Save and close"
+          >
+            {actionInProgress === 'saveAndClose' ? (
+              <FaSpinner className="animate-spin" size={14} />
+            ) : (
+              <>
+                <FaSave size={14} />
+                <FaSignOutAlt size={12} />
+              </>
+            )}
+            <span className="hidden sm:inline">Save & Close</span>
+          </button>
+        )}
+
+        {/* Save */}
+        {isEditing && onSave && (
+          <button
+            type="button"
+            onClick={() => handleAction('save', onSave)}
+            disabled={isSaving || actionInProgress !== null || !isDirty}
+            className={secondaryButton}
+            title="Save"
+          >
+            {actionInProgress === 'save' || isSaving ? (
+              <FaSpinner className="animate-spin" size={14} />
+            ) : (
+              <FaSave size={14} />
+            )}
+            <span className="hidden sm:inline">Save</span>
+          </button>
+        )}
+
+        {/* Cancel (in edit mode) */}
+        {isEditing && onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving || actionInProgress !== null}
+            className={secondaryButton}
+            title="Cancel"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+
+      {/* Divider */}
+      {isEditing && <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />}
+
+      {/* Middle: Secondary actions */}
+      <div className="flex items-center gap-2">
+        {/* Clone */}
+        {!isNewRecord && canClone && onClone && (
+          <button
+            type="button"
+            onClick={() => handleAction('clone', onClone)}
+            disabled={actionInProgress !== null}
+            className={secondaryButton}
+            title="Clone this transaction"
+          >
+            {actionInProgress === 'clone' ? (
+              <FaSpinner className="animate-spin" size={14} />
+            ) : (
+              <FaCopy size={14} />
+            )}
+            <span className="hidden md:inline">Clone</span>
+          </button>
+        )}
+
+        {/* Transfer dropdown */}
+        {!isNewRecord && canTransfer && onTransfer && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowTransferMenu(!showTransferMenu)}
+              disabled={actionInProgress !== null}
+              className={secondaryButton}
+              title="Transfer lines to another transaction type"
+            >
+              {actionInProgress === 'transfer' ? (
+                <FaSpinner className="animate-spin" size={14} />
+              ) : (
+                <FaExchangeAlt size={14} />
+              )}
+              <span className="hidden md:inline">Transfer</span>
+              <FaChevronDown size={10} />
+            </button>
+
+            {/* Transfer dropdown menu */}
+            {showTransferMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowTransferMenu(false)}
+                />
+                <div className="absolute right-0 z-20 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                  <div className="py-1">
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Transfer to...
+                    </div>
+                    {transferOptions.map((option) => (
+                      <button
+                        type="button"
+                        key={option.value}
+                        onClick={() => handleTransfer(option.value)}
+                        className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Print */}
+        {!isNewRecord && onPrint && (
+          <button
+            type="button"
+            onClick={onPrint}
+            disabled={actionInProgress !== null}
+            className={secondaryButton}
+            title="Print"
+          >
+            <FaPrint size={14} />
+            <span className="hidden md:inline">Print</span>
+          </button>
+        )}
+
+        {/* Email */}
+        {!isNewRecord && onEmail && (
+          <button
+            type="button"
+            onClick={onEmail}
+            disabled={actionInProgress !== null}
+            className={secondaryButton}
+            title="Email"
+          >
+            <FaEnvelope size={14} />
+            <span className="hidden md:inline">Email</span>
+          </button>
+        )}
+      </div>
+
+      {/* Right side: Danger zone */}
+      <div className="flex items-center gap-2">
+        {/* Delete */}
+        {!isNewRecord && canDelete && onDelete && (
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            disabled={actionInProgress !== null}
+            className={showDeleteConfirm ? dangerButton : secondaryButton}
+            title={showDeleteConfirm ? 'Click again to confirm delete' : 'Delete'}
+          >
+            {actionInProgress === 'delete' ? (
+              <FaSpinner className="animate-spin" size={14} />
+            ) : (
+              <FaTrash size={14} />
+            )}
+            <span className={showDeleteConfirm ? 'inline' : 'hidden md:inline'}>
+              {showDeleteConfirm ? 'Confirm?' : 'Delete'}
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TransactionToolbar;
+
+// Export types for consumers
+export type { TransactionToolbarProps, TransactionType };
+
+/**
+ * Example usage in a transaction detail page:
+ * 
+ * ```tsx
+ * import TransactionToolbar from '../../../components/TransactionToolbar';
+ * import { useNavigate } from 'react-router-dom';
+ * 
+ * const ProposalDetail = ({ isAdmin }) => {
+ *   const navigate = useNavigate();
+ *   const { id } = useParams();
+ *   const [isSaving, setIsSaving] = useState(false);
+ *   const { formState: { isDirty }, handleSubmit } = useForm();
+ * 
+ *   const handleSave = async () => {
+ *     setIsSaving(true);
+ *     await handleSubmit(onSubmit)();
+ *     setIsSaving(false);
+ *   };
+ * 
+ *   const handleSaveAndClose = async () => {
+ *     await handleSave();
+ *     navigate('/transactions/proposals');
+ *   };
+ * 
+ *   const handleClone = async () => {
+ *     // Clone creates new proposal with same customer, contacts, lines
+ *     const clonedData = { ...data, id: undefined, ida: undefined };
+ *     navigate('/transactions/proposals/new', { state: { clone: clonedData } });
+ *   };
+ * 
+ *   const handleTransfer = async (targetType) => {
+ *     // Transfer creates new transaction of targetType with lines from this one
+ *     navigate(`/transactions/${targetType}s/new`, { 
+ *       state: { transferFrom: { type: 'proposal', id, lines: data.lines } }
+ *     });
+ *   };
+ * 
+ *   const handlePrint = () => window.print();
+ *   const handleEmail = () => { /* open email modal * / };
+ *   const handleDelete = async () => {
+ *     await api.delete(`/wcapi/delete/?model_name=Proposal&id=${id}`);
+ *     navigate('/transactions/proposals');
+ *   };
+ * 
+ *   return (
+ *     <div>
+ *       <TransactionToolbar
+ *         transactionType="proposal"
+ *         transactionId={id ? Number(id) : undefined}
+ *         isDirty={isDirty}
+ *         isSaving={isSaving}
+ *         isEditing={mode === 'edit'}
+ *         onSave={handleSave}
+ *         onSaveAndClose={handleSaveAndClose}
+ *         onClone={handleClone}
+ *         onTransfer={handleTransfer}
+ *         onPrint={handlePrint}
+ *         onEmail={handleEmail}
+ *         onDelete={handleDelete}
+ *         onCancel={() => setMode('view')}
+ *       />
+ *       {/* rest of form * /}
+ *     </div>
+ *   );
+ * };
+ * ```
+ */

@@ -31,6 +31,7 @@ import MetadataPanel from './MetadataPanel';
 import FinancialsCard from './FinancialsCard';
 import FlowDiagram from './FlowDiagram';
 import JsonFieldEditor from './JsonFieldEditor';
+import JsonEnvelopesPanel from './JsonEnvelopesPanel';
 
 // Import types
 import type { 
@@ -286,8 +287,18 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
     switch (activeTab) {
       case 'summary':
-        return renderHeader ? renderHeader(currentData, isEditing) : (
-          <DefaultSummary data={currentData} isEditing={isEditing} onChange={handleFieldChange} />
+        return (
+          <>
+            {renderHeader ? renderHeader(currentData, isEditing) : (
+              <DefaultSummary data={currentData} isEditing={isEditing} onChange={handleFieldChange} />
+            )}
+            {/* Admin/Developer JSON Envelopes Panel - shows on summary tab */}
+            <JsonEnvelopesPanel
+              data={currentData as unknown as Record<string, unknown>}
+              isVisible={isAdmin}
+              isEditing={isEditing}
+            />
+          </>
         );
 
       case 'lines':
