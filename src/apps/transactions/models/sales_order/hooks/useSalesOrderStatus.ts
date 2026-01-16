@@ -21,7 +21,7 @@ export interface StatusConfig {
 }
 
 // Status configuration - includes both legacy and new status values
-const STATUS_CONFIG: Record<string, StatusConfig> = {
+export const STATUS_CONFIG: Record<string, StatusConfig> = {
   // Backend statuses (from TransactionBaseModel)
   planned: {
     label: 'Planned',
@@ -147,9 +147,6 @@ const DEFAULT_STATUS_CONFIG: StatusConfig = {
   isFinal: false
 };
 
-// Export STATUS_CONFIG for direct access in components
-export { STATUS_CONFIG };
-
 export function useSalesOrderStatus(initialStatus: SalesOrderStatus = 'planned') {
   const [currentStatus, setCurrentStatus] = useState<SalesOrderStatus>(initialStatus);
 
@@ -202,6 +199,3 @@ export function useSalesOrderStatus(initialStatus: SalesOrderStatus = 'planned')
     getStatusHistory
   };
 }
-
-// Export STATUS_CONFIG separately
-export { STATUS_CONFIG };

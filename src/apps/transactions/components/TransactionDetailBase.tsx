@@ -3,13 +3,12 @@
  * Provides common tabbed layout with standard sections
  * Extended by InvoiceDetail, OrderDetail, etc.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { 
   FaArrowLeft, 
   FaEdit, 
-  FaSave, 
-  FaTimes,
   FaFileInvoice,
   FaBoxes,
   FaAddressCard,
@@ -21,13 +20,18 @@ import {
   FaEllipsisH
 } from 'react-icons/fa';
 import { PageHeader } from '../../../components/ui/PageHeader';
+import { showToast } from '../../../store/slices/toastSlice';
 
 // Import API functions
-import { getRecord, saveRecord } from '../../../api/wcapi';
+import { getRecord, saveRecord, saveTransactionWithLines, deleteRecord } from '../../../api/wcapi';
+
+// Import toolbar
+import TransactionToolbar, { type TransactionType } from './TransactionToolbar';
 
 // Import shared components
 import RefsLinksContactPanel from './RefsLinksContactPanel';
 import RefsLinksTable from './RefsLinksTable';
+import ContactLinksTable from './ContactLinksTable';
 import CommentsPanel from './CommentsPanel';
 import ActionsCard from './ActionsCard';
 import MetadataPanel from './MetadataPanel';
@@ -79,14 +83,27 @@ interface TransactionDetailBaseProps {
   /** Custom tabs to add after standard tabs */
   customTabsAfter?: TransactionTab[];
   
+  /** Function to generate custom tabs with dynamic badges based on data */
+  getCustomTabsAfter?: (data: Transaction) => TransactionTab[];
+  
   /** Render function for custom tab content */
-  renderCustomTab?: (tabId: string, data: Transaction, isEditing: boolean) => React.ReactNode;
+  renderCustomTab?: (
+    tabId: string, 
+    data: Transaction, 
+    isEditing: boolean,
+    onFieldChange?: (field: string, value: unknown) => void
+  ) => React.ReactNode;
   
   /** Render function for the header section */
-  renderHeader?: (data: Transaction, isEditing: boolean) => React.ReactNode;
+  renderHeader?: (data: Transaction, isEditing: boolean, onChange?: (field: string, value: unknown) => void) => React.ReactNode;
   
   /** Render function for lines section (if not using default) */
-  renderLines?: (lines: TransactionLine[], isEditing: boolean) => React.ReactNode;
+  renderLines?: (
+    lines: TransactionLine[], 
+    isEditing: boolean, 
+    data?: Transaction,
+    onLinesChange?: (lines: TransactionLine[]) => void
+  ) => React.ReactNode;
   
   /** Whether user is admin (affects visible tabs/fields) */
   isAdmin?: boolean;
@@ -94,11 +111,41 @@ interface TransactionDetailBaseProps {
   /** Whether the transaction is editable in current state */
   canEdit?: (data: Transaction) => boolean;
   
+  /** Whether clone action is allowed */
+  canClone?: boolean;
+  
+  /** Whether transfer action is allowed */
+  canTransfer?: boolean;
+  
+  /** Whether delete action is allowed */
+  canDelete?: boolean;
+  
   /** Custom fetch function if not using standard API */
   fetchData?: (id: string) => Promise<Transaction>;
   
   /** Custom save function if not using standard API */
   saveData?: (data: Transaction) => Promise<Transaction>;
+  
+  /** Callback after successful save */
+  onSaved?: (data: Transaction) => void;
+  
+  /** Callback for print action */
+  onPrint?: (data: Transaction) => void;
+  
+  /** Callback for email action */
+  onEmail?: (data: Transaction) => void;
+  
+  /** When true, render inline without full page layout (for use in split-view list) */
+  inline?: boolean;
+  
+  /** External mode control when used inline */
+  modeProp?: 'view' | 'edit' | 'add' | null;
+  
+  /** Pre-loaded data when used inline (skips fetch) */
+  dataProp?: Transaction | null;
+  
+  /** Callback for cancel action in inline mode */
+  onCancelInline?: () => void;
 }
 
 const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
@@ -107,28 +154,79 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   modelName,
   customTabsBefore = [],
   customTabsAfter = [],
+  getCustomTabsAfter,
   renderCustomTab,
   renderHeader,
   renderLines,
   isAdmin = false,
   canEdit = () => true,
+  canClone = true,
+  canTransfer = true,
+  canDelete = true,
   fetchData,
   saveData,
+  onSaved,
+  onPrint,
+  onEmail,
+  inline = false,
+  modeProp,
+  dataProp,
+  onCancelInline,
 }) => {
-  const { id } = useParams<{ id: string }>();
+  const { id: urlId } = useParams<{ id: string }>();
+  // Use dataProp ID if provided, otherwise fall back to URL param
+  const id = dataProp?.id?.toString() ?? urlId;
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   
   // State
   const [data, setData] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Always start in view mode - Edit button will toggle to edit mode
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Fetch data
+  // Debug log the props
+  console.log('[TransactionDetailBase] Props:', { modeProp, inline, hasDataProp: !!dataProp });
+
+  // Track unsaved changes
   useEffect(() => {
+    if (isEditing && data && editData) {
+      const changed = JSON.stringify(data) !== JSON.stringify(editData);
+      setHasUnsavedChanges(changed);
+    } else {
+      setHasUnsavedChanges(false);
+    }
+  }, [isEditing, data, editData]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Fetch data - skip if dataProp is provided (inline mode with pre-loaded data)
+  useEffect(() => {
+    // If dataProp is provided, use it directly instead of fetching
+    if (dataProp) {
+      setData(dataProp);
+      setEditData(dataProp);
+      setLoading(false);
+      return;
+    }
+    
     const loadData = async () => {
       if (!id) return;
       
@@ -156,16 +254,27 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     };
 
     loadData();
-  }, [id, modelName, typeLabel, fetchData]);
+  }, [id, modelName, typeLabel, fetchData, dataProp]);
 
   // Build tabs list - use stable reference for badge count
   const contactCount = data?.refs?.links?.contact?.length ?? 0;
+  const lineCount = (data as Record<string, unknown>)?.lines ? ((data as Record<string, unknown>).lines as unknown[]).length : 0;
+  const commentCount = data?.comments?.notes?.length ?? 0;
+  
+  // Get dynamic custom tabs if function provided
+  const dynamicCustomTabsAfter = useMemo(() => {
+    if (getCustomTabsAfter && data) {
+      return getCustomTabsAfter(data);
+    }
+    return customTabsAfter;
+  }, [getCustomTabsAfter, data, customTabsAfter]);
+  
   const tabs = useMemo(() => {
     const defaultTabs: TransactionTab[] = [
       { id: 'summary', label: 'Summary', icon: <FaFileInvoice size={14} /> },
-      { id: 'lines', label: 'Lines', icon: <FaBoxes size={14} /> },
+      { id: 'lines', label: 'Lines', icon: <FaBoxes size={14} />, badge: lineCount || undefined },
       { id: 'contacts', label: 'Contacts', icon: <FaAddressCard size={14} />, badge: contactCount || undefined },
-      { id: 'comments', label: 'Comments', icon: <FaComments size={14} /> },
+      { id: 'comments', label: 'Comments', icon: <FaComments size={14} />, badge: commentCount || undefined },
       { id: 'financials', label: 'Financials', icon: <FaDollarSign size={14} /> },
       { id: 'flow', label: 'Flow', icon: <FaLink size={14} /> },
     ];
@@ -181,52 +290,169 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     return [
       ...customTabsBefore,
       ...defaultTabs,
-      ...customTabsAfter,
+      ...dynamicCustomTabsAfter,
     ];
-  }, [customTabsBefore, customTabsAfter, contactCount, isAdmin]);
+  }, [customTabsBefore, dynamicCustomTabsAfter, contactCount, lineCount, commentCount, isAdmin]);
 
   // Handle edit mode
   const handleEdit = () => {
+    console.log('[TransactionDetailBase] handleEdit called', { data, canEditResult: data ? canEdit(data) : 'no data' });
     if (data && canEdit(data)) {
+      console.log('[TransactionDetailBase] Setting editData and isEditing=true');
       setEditData({ ...data });
       setIsEditing(true);
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setEditData(data);
     setIsEditing(false);
-  };
+  }, [data]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editData) return;
     
     setSaving(true);
+    dispatch(showToast({ message: 'Saving...', type: 'info' }));
     try {
       let result: Transaction;
       
       if (saveData) {
         result = await saveData(editData);
       } else {
-        // Use wcapi saveRecord which includes auth headers and proper error handling
-        const apiResult = await saveRecord(modelName, editData);
+        // Use transaction-specific save if data has lines, otherwise standard save
+        const hasLines = Array.isArray(editData.lines) && editData.lines.length > 0;
+        console.log('[TransactionDetailBase.handleSave] hasLines:', hasLines, 'lineCount:', editData.lines?.length);
+        const apiResult = hasLines
+          ? await saveTransactionWithLines(modelName, editData)
+          : await saveRecord(modelName, editData);
         result = apiResult.record ?? apiResult;
       }
       
       setData(result);
       setEditData(result);
       setIsEditing(false);
+      setHasUnsavedChanges(false);
+      dispatch(showToast({ message: `${typeLabel} saved successfully`, type: 'success' }));
+      onSaved?.(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
+      const errorMsg = e instanceof Error ? e.message : 'Failed to save';
+      setError(errorMsg);
+      dispatch(showToast({ message: errorMsg, type: 'error' }));
     } finally {
       setSaving(false);
     }
-  };
+  }, [editData, saveData, modelName, onSaved, dispatch, typeLabel]);
+
+  // Toolbar handlers
+  const handleSaveAndClose = useCallback(async () => {
+    if (!editData) return;
+    
+    setSaving(true);
+    dispatch(showToast({ message: 'Saving...', type: 'info' }));
+    try {
+      let result: Transaction;
+      
+      if (saveData) {
+        result = await saveData(editData);
+      } else {
+        // Use transaction-specific save if data has lines, otherwise standard save
+        const hasLines = Array.isArray(editData.lines) && editData.lines.length > 0;
+        const apiResult = hasLines
+          ? await saveTransactionWithLines(modelName, editData)
+          : await saveRecord(modelName, editData);
+        result = apiResult.record ?? apiResult;
+      }
+      
+      dispatch(showToast({ message: `${typeLabel} saved successfully`, type: 'success' }));
+      onSaved?.(result);
+      navigate(-1);
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to save';
+      setError(errorMsg);
+      dispatch(showToast({ message: errorMsg, type: 'error' }));
+    } finally {
+      setSaving(false);
+    }
+  }, [editData, saveData, modelName, navigate, onSaved, dispatch, typeLabel]);
+
+  const handleClone = useCallback(async () => {
+    if (!data) return;
+    dispatch(showToast({ message: `Cloning ${typeLabel}...`, type: 'info' }));
+    // Navigate to new page with cloned data (without id/ida)
+    const clonedData = { ...data };
+    delete (clonedData as Record<string, unknown>).id;
+    delete (clonedData as Record<string, unknown>).ida;
+    navigate(`/transactions/${transactionType}s/new`, { 
+      state: { clone: clonedData, mode: 'add' } 
+    });
+  }, [data, transactionType, navigate, dispatch, typeLabel]);
+
+  const handleTransfer = useCallback(async (targetType: TransactionType) => {
+    if (!data) return;
+    dispatch(showToast({ message: `Transferring to ${targetType}...`, type: 'info' }));
+    // Navigate to new transaction of target type with lines from this one
+    navigate(`/transactions/${targetType}s/new`, { 
+      state: { 
+        transferFrom: { 
+          type: transactionType, 
+          id: data.id, 
+          lines: (data as unknown as Record<string, unknown>).lines,
+          customer_id: data.customer_id,
+          refs: data.refs,
+        },
+        mode: 'add'
+      } 
+    });
+  }, [data, transactionType, navigate, dispatch]);
+
+  const handlePrint = useCallback(() => {
+    if (onPrint && data) {
+      onPrint(data);
+    } else {
+      dispatch(showToast({ message: 'Opening print dialog...', type: 'info' }));
+      window.print();
+    }
+  }, [onPrint, data, dispatch]);
+
+  const handleEmail = useCallback(() => {
+    if (onEmail && data) {
+      onEmail(data);
+    } else {
+      dispatch(showToast({ message: 'Email functionality coming soon', type: 'info' }));
+    }
+  }, [onEmail, data, dispatch]);
+
+  const handleDelete = useCallback(async () => {
+    if (!data?.id) return;
+    
+    try {
+      dispatch(showToast({ message: `Deleting ${typeLabel}...`, type: 'info' }));
+      await deleteRecord(modelName, data.id);
+      dispatch(showToast({ message: `${typeLabel} deleted successfully`, type: 'success' }));
+      navigate(`/transactions/${transactionType}s`);
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to delete';
+      setError(errorMsg);
+      dispatch(showToast({ message: errorMsg, type: 'error' }));
+    }
+  }, [data, modelName, transactionType, navigate, dispatch, typeLabel]);
+
+  // Check if form has changed
+  const isDirty = useMemo(() => {
+    if (!data || !editData) return false;
+    return JSON.stringify(data) !== JSON.stringify(editData);
+  }, [data, editData]);
 
   // Handle field changes during edit
-  const handleFieldChange = (field: keyof Transaction, value: unknown) => {
+  const handleFieldChange = (field: string, value: unknown) => {
+    console.log('[TransactionDetailBase] handleFieldChange', { field, value, hasEditData: !!editData });
     if (editData) {
-      setEditData({ ...editData, [field]: value });
+      const newData = { ...editData, [field]: value } as Transaction;
+      console.log('[TransactionDetailBase] Setting new editData');
+      setEditData(newData);
+    } else {
+      console.warn('[TransactionDetailBase] handleFieldChange called but editData is null!');
     }
   };
 
@@ -255,13 +481,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     );
   }
 
-  const currentData = isEditing ? editData! : data;
+  const currentData = isEditing && editData ? editData : data;
+  console.log('[TransactionDetailBase] render:', { isEditing, hasEditData: !!editData, hasData: !!data, usingEditData: isEditing && editData });
 
   // Render tab content
   const renderTabContent = () => {
     // Check for custom tab first
     if (renderCustomTab) {
-      const customContent = renderCustomTab(activeTab, currentData, isEditing);
+      const customContent = renderCustomTab(activeTab, currentData, isEditing, handleFieldChange);
       if (customContent) return customContent;
     }
 
@@ -269,7 +496,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       case 'summary':
         return (
           <>
-            {renderHeader ? renderHeader(currentData, isEditing) : (
+            {renderHeader ? renderHeader(currentData, isEditing, handleFieldChange) : (
               <DefaultSummary data={currentData} isEditing={isEditing} onChange={handleFieldChange} />
             )}
             {/* Admin/Developer JSON Envelopes Panel - shows on summary tab */}
@@ -282,7 +509,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         );
 
       case 'lines':
-        return renderLines ? renderLines(currentData.lines ?? [], isEditing) : (
+        return renderLines ? renderLines(
+          currentData.lines ?? [], 
+          isEditing, 
+          currentData,
+          (newLines) => handleFieldChange('lines', newLines)
+        ) : (
           <DefaultLines lines={currentData.lines ?? []} isEditing={isEditing} />
         );
 
@@ -337,6 +569,15 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       case 'refs':
         return isAdmin ? (
           <div className="space-y-6">
+            {/* Contact Links Table - draggable columns, click ID/name to edit */}
+            <ContactLinksTable
+              refs={currentData.refs as Record<string, unknown> | null}
+              title="refs.links.contact"
+              showEmptyState={true}
+              enableNavigation={true}
+            />
+            
+            {/* Full refs JSON Editor */}
             <JsonFieldEditor
               label="refs"
               value={currentData.refs ?? {}}
@@ -365,7 +606,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
@@ -374,48 +615,57 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             <FaArrowLeft />
           </button>
           <PageHeader
-            title={`${typeLabel} ${currentData.number ?? `#${currentData.id}`}`}
+            title={`${typeLabel} ${(currentData as unknown as Record<string, unknown>).number ?? `#${currentData.id}`}`}
             breadcrumbs={[
               { label: 'Transactions', href: '/transactions' },
               { label: typeLabel + 's', href: `/transactions/${transactionType}s` },
-              { label: currentData.number ?? `#${currentData.id}` },
+              { label: String((currentData as unknown as Record<string, unknown>).number ?? `#${currentData.id}`) },
             ]}
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleCancel}
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <FaTimes size={14} />
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                <FaSave size={14} />
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-            </>
-          ) : (
-            canEdit(data) && (
-              <button
-                onClick={handleEdit}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <FaEdit size={14} />
-                Edit
-              </button>
-            )
-          )}
-        </div>
+        {/* Edit Button (when not editing) */}
+        {!isEditing && canEdit(data) && (
+          <button
+            onClick={handleEdit}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+          >
+            <FaEdit size={14} />
+            Edit
+          </button>
+        )}
+        
+        {/* Unsaved Changes Indicator */}
+        {hasUnsavedChanges && (
+          <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+            Unsaved changes
+          </span>
+        )}
       </div>
+
+      {/* Transaction Toolbar (when editing) - Sticky */}
+      {isEditing && (
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6">
+          <TransactionToolbar
+            transactionType={transactionType as TransactionType}
+            transactionId={data?.id}
+            isDirty={isDirty}
+            isSaving={saving}
+            isEditing={isEditing}
+            onSave={handleSave}
+            onSaveAndClose={handleSaveAndClose}
+            onClone={canClone ? handleClone : undefined}
+            onTransfer={canTransfer ? handleTransfer : undefined}
+            onPrint={handlePrint}
+            onEmail={onEmail ? handleEmail : undefined}
+            onDelete={canDelete ? handleDelete : undefined}
+            onCancel={handleCancel}
+            canDelete={canDelete}
+            canClone={canClone}
+            canTransfer={canTransfer}
+          />
+        </div>
+      )}
 
       {/* Status/Action Banner */}
       {currentData.action && (

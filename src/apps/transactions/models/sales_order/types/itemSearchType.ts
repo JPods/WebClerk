@@ -4,6 +4,7 @@ export interface ItemSearchResult {
   itemId?: number;
   item_num?: string;
   itemNum?: string;
+  item_code?: string;  // Alias for ida_item
   ida_item?: string;
   sku?: string;
   description?: string;

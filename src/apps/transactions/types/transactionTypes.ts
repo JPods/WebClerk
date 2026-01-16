@@ -193,6 +193,22 @@ export interface TransactionComments {
 
 // --- Actions Structure (from ActionsMixin) ---
 
+export interface ActionItem {
+  id?: number;
+  required?: boolean;
+  status?: 'pending' | 'done' | 'blocked' | 'canceled';
+  who?: number;
+  who_name?: string;
+  when?: number | string;
+  what?: string;
+  kind?: 'followup' | 'review' | 'ship' | 'approve' | 'call' | 'email' | 'task' | string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  notes?: string;
+  completed_at?: number | string;
+  completed_by?: number;
+  extra?: Record<string, unknown>;
+}
+
 export interface TransactionActions {
   required?: boolean;
   status?: 'pending' | 'done' | 'blocked';
@@ -206,6 +222,7 @@ export interface TransactionActions {
     when?: number;
     what?: string;
   };
+  items?: ActionItem[];
 }
 
 // --- TransactionBaseModel JSONB Fields ---
@@ -321,6 +338,7 @@ export interface Transaction {
   is_active?: boolean;
   is_deleted?: boolean;
   is_archived?: boolean;
+  is_locked?: boolean;
   
   // Timestamps
   dt_created?: string;
