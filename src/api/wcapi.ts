@@ -1,4 +1,8 @@
 import apiClient from './axios';
+import { resolveModelName } from './modelNameResolver';
+
+// Re-export model name utilities for convenience
+export { resolveModelName, urlToModelName, modelNameToUrl, parseRestfulPath, getTransactionType } from './modelNameResolver';
 
 // Basic API envelope type
 export interface ApiEnvelope<T = any> {
@@ -53,12 +57,13 @@ export async function getModelNames() {
 }
 
 export async function getModelDetail(model_name: string) {
+  const resolved = resolveModelName(model_name);
   try {
-    const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/wcapi/model_name/detail/', { params: { model_name } });
+    const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/wcapi/model_name/detail/', { params: { model_name: resolved } });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/api/wcapi/model_name/detail/', { params: { model_name } });
+      const res2 = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/api/wcapi/model_name/detail/', { params: { model_name: resolved } });
       return res2.data.data;
     }
     throw err;
@@ -66,17 +71,18 @@ export async function getModelDetail(model_name: string) {
 }
 
 export async function getRecords(model_name: string, params?: any) {
+  const resolved = resolveModelName(model_name);
   try {
     // Never cache wcapi/get calls - always fetch fresh database records
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { 
-      params: { model_name, ...params },
+      params: { model_name: resolved, ...params },
       cache: false,
     } as any);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
       const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { 
-        params: { model_name, ...params },
+        params: { model_name: resolved, ...params },
         cache: false,
       } as any);
       return res2.data.data;
@@ -86,15 +92,16 @@ export async function getRecords(model_name: string, params?: any) {
 }
 
 export async function getRecord(model_name: string, id: number) {
+  const resolved = resolveModelName(model_name);
   try {
     // Disable cache for detail requests to always get fresh data (lines may have changed)
     const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/wcapi/get/`, { 
-      params: { model_name, id },
+      params: { model_name: resolved, id },
       cache: false,
     } as any);
-    console.log(`[wcapi.getRecord] model=${model_name} id=${id} response:`, res.data);
+    console.log(`[wcapi.getRecord] model=${resolved} id=${id} response:`, res.data);
     const record = res.data.data?.record;
-    if (record && model_name === 'salesorder') {
+    if (record && resolved === 'salesorder') {
       console.log(`[wcapi.getRecord] lines in response:`, record.lines);
       console.log(`[wcapi.getRecord] lines count:`, record.lines?.length);
       console.log(`[wcapi.getRecord] line IDs:`, record.lines?.map((l: any) => l.id));
@@ -103,7 +110,7 @@ export async function getRecord(model_name: string, id: number) {
   } catch (err: any) {
     if (err?.response?.status === 404) {
       const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/api/wcapi/get/`, { 
-        params: { model_name, id },
+        params: { model_name: resolved, id },
         cache: false,
       } as any);
       return res2.data.data;
@@ -113,9 +120,10 @@ export async function getRecord(model_name: string, id: number) {
 }
 
 export async function saveRecord(model_name: string, payload: any) {
+  const resolved = resolveModelName(model_name);
   // Extract id from payload if present for updates
   const { id, ...data } = payload;
-  const body: any = { model_name, data };
+  const body: any = { model_name: resolved, data };
   if (id !== undefined) {
     body.id = id;
   }
@@ -132,12 +140,13 @@ export async function saveRecord(model_name: string, payload: any) {
 }
 
 export async function deleteRecord(model_name: string, id: number) {
+  const resolved = resolveModelName(model_name);
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name, id, method: 'delete' });
+    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name: resolved, id, method: 'delete' });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name, id, method: 'delete' });
+      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name: resolved, id, method: 'delete' });
       return res2.data.data;
     }
     throw err;

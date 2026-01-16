@@ -22,6 +22,9 @@ import {
 } from 'react-icons/fa';
 import { PageHeader } from '../../../components/ui/PageHeader';
 
+// Import API functions
+import { getRecord, saveRecord } from '../../../api/wcapi';
+
 // Import shared components
 import RefsLinksContactPanel from './RefsLinksContactPanel';
 import RefsLinksTable from './RefsLinksTable';
@@ -138,23 +141,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         if (fetchData) {
           result = await fetchData(id);
         } else {
-          // Default fetch using standard API
-          const response = await fetch(
-            `/wcapi/get/?model_name=${modelName}&id=${id}`
-          );
-          if (!response.ok) {
-            const text = await response.text();
-            if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
-              throw new Error(`Server returned HTML error page (${response.status}). Check if the backend is running.`);
-            }
-            throw new Error(`Failed to fetch ${typeLabel}: ${response.status}`);
-          }
-          const text = await response.text();
-          if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
-            throw new Error('Server returned HTML instead of JSON. Check backend API.');
-          }
-          const json = JSON.parse(text);
-          result = json.data ?? json;
+          // Use wcapi getRecord which includes auth headers and proper error handling
+          const apiResult = await getRecord(modelName, Number(id));
+          result = apiResult.record ?? apiResult;
         }
         
         setData(result);
@@ -219,18 +208,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       if (saveData) {
         result = await saveData(editData);
       } else {
-        // Default save using standard API
-        const response = await fetch(`/wcapi/save/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model_name: modelName,
-            data: editData,
-          }),
-        });
-        if (!response.ok) throw new Error(`Failed to save ${typeLabel}`);
-        const json = await response.json();
-        result = json.data ?? json;
+        // Use wcapi saveRecord which includes auth headers and proper error handling
+        const apiResult = await saveRecord(modelName, editData);
+        result = apiResult.record ?? apiResult;
       }
       
       setData(result);
