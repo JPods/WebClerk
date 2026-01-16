@@ -41,6 +41,56 @@ logger = logging.getLogger(__name__)
 CALC_TOLERANCE = Decimal("0.01")
 
 
+def log_transaction_change(
+    request: Any,
+    model_name: str,
+    record_id: int,
+    action: str,
+    changes: Dict[str, Any],
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Log a transaction change to the audit log.
+    
+    Uses a savepoint to ensure audit logging failures don't poison the main transaction.
+    
+    Args:
+        request: Django request object
+        model_name: Name of the transaction model (e.g., 'invoice', 'salesorder')
+        record_id: ID of the transaction record
+        action: Action performed ('created', 'updated', 'line_created', 'line_updated', etc.)
+        changes: Dict of old vs new values for changed fields
+        metadata: Additional context data
+    """
+    from django.db import connection
+    
+    # Use a savepoint so audit logging failures don't poison the main transaction
+    sid = connection.savepoint()
+    try:
+        from apps.core.models.audit import AuditLog
+        
+        AuditLog.log_action(
+            request=request,
+            model_name=model_name,
+            id_record=record_id,
+            action=action,
+            changes=changes,
+            metadata=metadata or {},
+        )
+        connection.savepoint_commit(sid)
+        logger.debug(
+            "Audit log created: model=%s id=%s action=%s",
+            model_name, record_id, action
+        )
+    except Exception as e:
+        # Roll back the savepoint so the main transaction can continue
+        connection.savepoint_rollback(sid)
+        # Don't fail the transaction if audit logging fails
+        logger.warning(
+            "Failed to create audit log: model=%s id=%s action=%s error=%s",
+            model_name, record_id, action, str(e)
+        )
+
+
 def _d(val: Any, places: int = 2) -> Decimal:
     """Convert value to Decimal with specified precision."""
     try:
@@ -312,14 +362,35 @@ def save_transaction_with_lines(
         # Remove internal flags
         header_clean.pop('_dirty', None)
         
+        header_action = 'updated' if header_id else 'created'
         if header_id:
             header_obj = HeaderModel.objects.select_for_update().get(pk=header_id)
+            # Capture old values for audit
+            old_values = {k: getattr(header_obj, k, None) for k in header_clean.keys()}
             for k, v in header_clean.items():
                 setattr(header_obj, k, v)
             header_obj.save()
+            # Log header update
+            log_transaction_change(
+                request=request,
+                model_name=model_key,
+                record_id=header_id,
+                action='updated',
+                changes={'old': old_values, 'new': header_clean},
+                metadata={'lines_count': len(lines_data)},
+            )
         else:
             header_obj = HeaderModel.objects.create(**header_clean)
             header_id = header_obj.pk
+            # Log header creation
+            log_transaction_change(
+                request=request,
+                model_name=model_key,
+                record_id=header_id,
+                action='created',
+                changes={'new': header_clean},
+                metadata={'lines_count': len(lines_data)},
+            )
         
         result['header'] = {'id': header_obj.pk}
         
@@ -368,9 +439,22 @@ def save_transaction_with_lines(
                     current_item_id != new_item_id):
                     raise ItemIdChangeError(line_id, current_item_id, new_item_id)
                 
+                # Capture old values for audit
+                old_line_values = {k: getattr(existing_line, k, None) for k in line_clean.keys()}
+                
                 for k, v in line_clean.items():
                     setattr(existing_line, k, v)
                 existing_line.save()
+                
+                # Log line update
+                log_transaction_change(
+                    request=request,
+                    model_name=line_model_key,
+                    record_id=line_id,
+                    action='line_updated',
+                    changes={'old': old_line_values, 'new': line_clean},
+                    metadata={'parent_model': model_key, 'parent_id': header_id},
+                )
                 
                 result['lines_saved'] += 1
                 result['lines'].append({
@@ -381,6 +465,17 @@ def save_transaction_with_lines(
                 # Create new line - pass header object as FK
                 line_clean[fk_field_name] = header_obj
                 new_line = LineModel.objects.create(**line_clean)
+                
+                # Log line creation
+                log_transaction_change(
+                    request=request,
+                    model_name=line_model_key,
+                    record_id=new_line.pk,
+                    action='line_created',
+                    changes={'new': {k: v for k, v in line_clean.items() if k != fk_field_name}},
+                    metadata={'parent_model': model_key, 'parent_id': header_id},
+                )
+                
                 result['lines_saved'] += 1
                 result['lines'].append({
                     'id': new_line.pk,

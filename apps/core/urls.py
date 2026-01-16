@@ -9,6 +9,7 @@ from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailVi
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers
+from apps.core.views.api_log import APILogView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 
 urlpatterns = [
@@ -19,6 +20,9 @@ urlpatterns = [
     path("wcapi/dev/config/", dev_config_status, name="dev-config-status"),
     path("wcapi/dev/switch/", dev_switch_mode, name="dev-switch-mode"),
     path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart-servers"),
+    
+    # API Logging
+    path("wcapi/log/api/", APILogView.as_view(), name="wcapi-api-log"),
     
     # Auth API
     path("wcapi/register/", AuthRegisterView.as_view(), name="api-auth-register"),

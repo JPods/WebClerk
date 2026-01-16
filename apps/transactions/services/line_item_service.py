@@ -141,15 +141,21 @@ def _should_track_inventory(transaction_type: str) -> bool:
     """
     Determine if a transaction type should create pending inventory records.
     
-    Proposals do NOT affect inventory - they are quotes only.
+    Proposals track on_p (forecast bucket) - qty times probability.
     Sales Orders reserve inventory (qtyOnSO).
     Invoices issue inventory (qtyOnHand decreases).
     Purchase Orders reserve incoming (qtyOnPO).
     Work Orders reserve for production (qtyOnWO).
     """
     kind = _normalize_line_kind(transaction_type)
-    # Proposals don't track inventory - they're just quotes
-    return kind != 'proposal'
+    # All transaction types track inventory (including proposals for forecast)
+    return True
+
+
+def _is_proposal(transaction_type: str) -> bool:
+    """Check if transaction type is a proposal (tracks on_p forecast bucket)."""
+    kind = _normalize_line_kind(transaction_type)
+    return kind == 'proposal'
 
 
 class LineItemService:
@@ -906,6 +912,19 @@ class LineItemService:
         """
         pending_type = _get_pending_type(transaction_type)
         
+        # Get probability from transaction for proposals (default to 100% = 1.0)
+        probability = 1.0
+        if pending_type == 'PP':
+            # Try to get probability from transaction header
+            prob_raw = getattr(transaction, 'probability', None)
+            if prob_raw is None and hasattr(transaction, 'metadata') and isinstance(transaction.metadata, dict):
+                prob_raw = transaction.metadata.get('probability')
+            if prob_raw is not None:
+                try:
+                    probability = float(prob_raw) / 100.0 if float(prob_raw) > 1.0 else float(prob_raw)
+                except (TypeError, ValueError):
+                    probability = 1.0
+        
         # Build pending data similar to WebClerk2 DInventory structure
         pending_data = {
             'type_id': pending_type,
@@ -921,6 +940,7 @@ class LineItemService:
             'on_po': quantity if pending_type == 'PO' else 0,
             'on_wo': quantity if pending_type == 'WO' else 0,
             'invoiced': quantity if pending_type == 'IV' else 0,  # Invoices track shipped qty
+            'on_p': quantity * probability if pending_type == 'PP' else 0,  # Proposals track forecast
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -999,6 +1019,18 @@ class LineItemService:
         if hasattr(line, 'price') and isinstance(line.price, dict):
             unit_price = line.price.get('unit', 0)
         
+        # Get probability from transaction for proposals (default to 100% = 1.0)
+        probability = 1.0
+        if pending_type == 'PP':
+            prob_raw = getattr(transaction, 'probability', None)
+            if prob_raw is None and hasattr(transaction, 'metadata') and isinstance(transaction.metadata, dict):
+                prob_raw = transaction.metadata.get('probability')
+            if prob_raw is not None:
+                try:
+                    probability = float(prob_raw) / 100.0 if float(prob_raw) > 1.0 else float(prob_raw)
+                except (TypeError, ValueError):
+                    probability = 1.0
+        
         pending_data = {
             'type_id': pending_type,
             'item_num': item_ida or str(item_id),
@@ -1013,6 +1045,7 @@ class LineItemService:
             'on_po': quantity_delta if pending_type == 'PO' else 0,
             'on_wo': quantity_delta if pending_type == 'WO' else 0,
             'invoiced': quantity_delta if pending_type == 'IV' else 0,
+            'on_p': quantity_delta * probability if pending_type == 'PP' else 0,  # Proposals track forecast
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -1085,6 +1118,18 @@ class LineItemService:
         # When a line is deleted, we release the reservation (negative delta)
         release_qty = -quantity_released
         
+        # Get probability from transaction for proposals (default to 100% = 1.0)
+        probability = 1.0
+        if pending_type == 'PP':
+            prob_raw = getattr(transaction, 'probability', None)
+            if prob_raw is None and hasattr(transaction, 'metadata') and isinstance(transaction.metadata, dict):
+                prob_raw = transaction.metadata.get('probability')
+            if prob_raw is not None:
+                try:
+                    probability = float(prob_raw) / 100.0 if float(prob_raw) > 1.0 else float(prob_raw)
+                except (TypeError, ValueError):
+                    probability = 1.0
+        
         pending_data = {
             'type_id': pending_type,
             'item_num': item_ida or str(item_id),
@@ -1099,6 +1144,7 @@ class LineItemService:
             'on_po': release_qty if pending_type == 'PO' else 0,
             'on_wo': release_qty if pending_type == 'WO' else 0,
             'invoiced': release_qty if pending_type == 'IV' else 0,  # Negative = reverse
+            'on_p': release_qty * probability if pending_type == 'PP' else 0,  # Proposals track forecast
             
             # Pricing snapshot
             'unit_cost': unit_cost,

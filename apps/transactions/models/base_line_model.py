@@ -260,9 +260,8 @@ def default_physical() -> Dict[str, Any]:
 class BaseLineCore(BaseModel):
     """Abstract core for all transaction line models.
     Shared envelopes only; no price field here.
-    Concrete models must define `parent = models.ForeignKey(...)`.
+    Concrete models must define their own FK field (e.g., salesorder_id, invoice_id).
     """
-    # IMPORTANT: do NOT declare parent_id here; Django will add it from the FK on concrete classes.
 
     price_level = models.CharField(max_length=50, blank=True, null=True, db_column="price_level")
     status = models.CharField(max_length=50, blank=True, null=True)
@@ -276,10 +275,8 @@ class BaseLineCore(BaseModel):
 
     class Meta:
         abstract = True
-        indexes = [
-            # Let Django auto-name; applies per concrete model that defines 'parent'
-            models.Index(fields=["parent"]),
-        ]
+        # NOTE: Indexes on FK fields should be defined in concrete models since
+        # they each have their own FK field name (salesorder_id, invoice_id, etc.)
 
     JSON_DEFAULT_FACTORIES: Dict[str, Callable[[], Dict[str, Any]]] = {
         "item": default_item,
