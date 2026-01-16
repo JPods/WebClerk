@@ -187,6 +187,29 @@ export async function deleteRecord(model_name: string, id: number) {
   }
 }
 
+/**
+ * Search for items by query string (sku, name, description, etc.)
+ */
+export async function searchItems(query: string, options?: { limit?: number }): Promise<GetListPayload> {
+  const params: any = { 
+    model_name: 'item',
+    search: query,
+  };
+  if (options?.limit) {
+    params.limit = options.limit;
+  }
+  try {
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params });
+    return res.data.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params });
+      return res2.data.data;
+    }
+    throw err;
+  }
+}
+
 // Local persistence for field selections per model
 const LS_KEY = 'adminWorkbench.fieldSelections';
 type FieldSelections = Record<string, { list: string[]; detail: string[] }>;

@@ -1,23 +1,21 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
-import { getRecords } from "@/api/wcapi";
-import { FaEye, FaEdit, FaPlus, FaTrashAlt } from "react-icons/fa";
+import AdvancedDataTable, { ColumnFilter } from "@/components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { getRecords, deleteRecord } from "@/api/wcapi";
+import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "@/context/ThemeContext";
-import { deleteRecord } from "@/api/wcapi";
 import BaseOrgModelDisplay from "./BaseOrgModelDisplay";
 
 export default function BaseOrgModelList() {
-  const { theme } = useTheme();
+  const dispatch = useDispatch();
   const [data, setData] = useState<any[]>([]);
   const [selectedBaseOrgModel, setSelectedBaseOrgModel] = useState<any | null>(null);
+  const [selectedBaseOrgModels, setSelectedBaseOrgModels] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const dispatch = useDispatch();
 
   const getBaseOrgModelData = useCallback(async () => {
     try {
@@ -37,15 +35,15 @@ export default function BaseOrgModelList() {
     getBaseOrgModelData();
   }, [getBaseOrgModelData]);
 
-  const handleView = (row: any) => {
+  const handleView = useCallback((row: any) => {
     setSelectedBaseOrgModel(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = (row: any) => {
+  const handleEdit = useCallback((row: any) => {
     setSelectedBaseOrgModel(row);
     setFormMode("edit");
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedBaseOrgModel(null);
@@ -63,45 +61,68 @@ export default function BaseOrgModelList() {
     setSelectedBaseOrgModel(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete base org model ${row.id}?`)) {
-      try {
-        await deleteRecord('base_org_model', row.id);
-        dispatch(showToast({ message: "Base Org Model deleted successfully", type: "success" }));
-        getBaseOrgModelData(); // Refresh data
-      } catch (error) {
-        dispatch(showToast({ message: "Failed to delete base org model", type: "error" }));
+  const handleDelete = useCallback(async (row: any) => {
+    if (!window.confirm(`Delete base org model ${row.name || row.id}?`)) return;
+    
+    try {
+      await deleteRecord('base_org_model', row.id);
+      dispatch(showToast({ message: "Base Org Model deleted successfully", type: "success" }));
+      getBaseOrgModelData();
+      if (selectedBaseOrgModel && selectedBaseOrgModel.id === row.id) {
+        setFormMode(null);
+        setSelectedBaseOrgModel(null);
       }
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete base org model", type: "error" }));
     }
-  };
+  }, [dispatch, getBaseOrgModelData, selectedBaseOrgModel]);
 
-  // Hardcoded columns: id and common fields
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
-    { name: "Name", selector: (row) => row.name || "--", sortable: true, width: "40%" },
-    { name: "Type", selector: (row) => row.type || "--", sortable: true, width: "30%" },
-    { name: "Status", selector: (row) => row.status || "--", sortable: true, width: "20%" },
-  ];
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedBaseOrgModels.length) return;
+    if (!window.confirm(`Delete ${selectedBaseOrgModels.length} base org model(s)?`)) return;
 
-  userColumns.push({
-    name: "Action",
-    cell: (row) => (
-      <div className="flex gap-2">
-        <button onClick={() => handleView(row)} title="View">
-          <FaEye className="text-blue-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleEdit(row)} title="Edit">
-          <FaEdit className="text-green-600 hover:scale-110 transition" />
-        </button>
-        <button onClick={() => handleDelete(row)} title="Delete">
-          <FaTrashAlt className="text-red-600 hover:scale-110 transition" />
-        </button>
-      </div>
-    ),
-    ignoreRowClick: true,
-    allowOverflow: true,
-    button: true,
-  });
+    try {
+      await Promise.all(selectedBaseOrgModels.map((m) => deleteRecord('base_org_model', m.id)));
+      dispatch(showToast({ message: `${selectedBaseOrgModels.length} base org model(s) deleted`, type: "success" }));
+      getBaseOrgModelData();
+      setSelectedBaseOrgModels([]);
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete some base org models", type: "error" }));
+    }
+  }, [selectedBaseOrgModels, dispatch, getBaseOrgModelData]);
+
+  const filters: ColumnFilter[] = useMemo(() => [
+    { key: "type", label: "Type", type: "text" },
+    { key: "status", label: "Status", type: "text" },
+  ], []);
+
+  const columns: TableColumn<any>[] = useMemo(() => [
+    { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
+    { id: "name", name: "Name", selector: (row) => row.name || "--", sortable: true, width: "40%" },
+    { id: "type", name: "Type", selector: (row) => row.type || "--", sortable: true, width: "25%" },
+    { id: "status", name: "Status", selector: (row) => row.status || "--", sortable: true, width: "15%" },
+    {
+      id: "actions",
+      name: "Actions",
+      cell: (row) => (
+        <div className="flex gap-2">
+          <button onClick={() => handleView(row)} title="View">
+            <FaEye className="text-blue-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleEdit(row)} title="Edit">
+            <FaEdit className="text-green-600 hover:scale-110 transition" />
+          </button>
+          <button onClick={() => handleDelete(row)} title="Delete">
+            <FaTrash className="text-red-600 hover:scale-110 transition" />
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      width: "100px",
+    },
+  ], [handleDelete, handleEdit, handleView]);
 
   return (
     <>
@@ -109,31 +130,41 @@ export default function BaseOrgModelList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Base Org Model
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading base org models...</div>}
-                onRowClicked={(row) => handleView(row)}
-              />
-            </div>
+            <AdvancedDataTable
+              data={data}
+              columns={columns}
+              title="Base Org Models"
+              loading={loading}
+              filters={filters}
+              storageKey="base-org-model-list"
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedBaseOrgModels}
+              exportFileName="base_org_models_export"
+              onRowActivate={handleEdit}
+              searchPlaceholder="Search base org models..."
+              noDataMessage="No base org models found"
+              customActions={
+                <div className="flex gap-2">
+                  {selectedBaseOrgModels.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                      Delete ({selectedBaseOrgModels.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleAdd}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Add Base Org Model
+                  </button>
+                </div>
+              }
+            />
           </ComponentCard>
         </div>
         {formMode && (
