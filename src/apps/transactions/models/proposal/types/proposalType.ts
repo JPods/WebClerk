@@ -7,6 +7,8 @@ export interface ProposalAddProps {
   onSaved?: () => void;
   inline?: boolean;
   onCancelInline?: () => void;
+  /** Show admin/developer JSON envelopes panel */
+  isAdmin?: boolean;
 }
 
 // JSON field interfaces

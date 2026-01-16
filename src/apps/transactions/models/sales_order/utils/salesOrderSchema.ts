@@ -187,14 +187,13 @@ export const salesOrderSchema = z
     subtotal: z.coerce.number().optional(),
 
     // JSON fields with structure validation - accept string, object, or undefined
+    // Matches base_transaction_model.py JSON fields
+    totals: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     cost: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     sell: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     finance: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     flow: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
     source: z.union([z.string(), z.record(z.any()), z.undefined()]).optional(),
-    subtotals: z
-      .union([z.string(), z.record(z.any()), z.undefined()])
-      .optional(),
 
     // Line items
     lines: z.array(salesOrderLineSchema).optional(),

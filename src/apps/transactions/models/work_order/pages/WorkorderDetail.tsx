@@ -14,6 +14,7 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { workOrderSchema } from "../utils/workorderSchema";
 import { WorkorderAddProps } from "../types/workorderType";
+import JsonEnvelopesPanel from "../../../components/JsonEnvelopesPanel";
 
 export default function WorkorderDetail({
   modeProp,
@@ -22,6 +23,7 @@ export default function WorkorderDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  isAdmin = false,
 }: WorkorderAddProps) {
   const dispatch = useDispatch();
 
@@ -154,6 +156,13 @@ export default function WorkorderDetail({
               )}
             </div>
           )}
+
+          {/* Admin/Developer JSON Envelopes Panel */}
+          <JsonEnvelopesPanel
+            data={data || {}}
+            isVisible={isAdmin}
+            isEditing={mode === "edit"}
+          />
         </form>
       </ComponentCard>
     </>

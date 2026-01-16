@@ -5,6 +5,8 @@ export interface SalesOrderAddProps {
   onSaved?: () => void;
   inline?: boolean;
   onCancelInline?: () => void;
+  /** Show admin/developer JSON envelopes panel */
+  isAdmin?: boolean;
 }
 
 export interface CreateSalesOrderRequest {

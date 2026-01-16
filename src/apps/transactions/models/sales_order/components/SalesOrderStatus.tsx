@@ -1,4 +1,4 @@
-import { FaChevronRight, FaClock, FaCheck, FaTruck, FaBox, FaBan } from 'react-icons/fa';
+import { FaChevronRight, FaClock, FaCheck, FaTruck, FaBox, FaBan, FaPlay, FaPause, FaCheckCircle } from 'react-icons/fa';
 import { useSalesOrderStatus, STATUS_CONFIG } from '../hooks/useSalesOrderStatus';
 import type { SalesOrderStatus } from '../hooks/useSalesOrderStatus';
 
@@ -23,6 +23,20 @@ export default function SalesOrderStatus({
 
   const getStatusIcon = (status: SalesOrderStatus) => {
     switch (status) {
+      // Backend statuses
+      case 'planned':
+        return <FaClock className="text-gray-500" />;
+      case 'released':
+        return <FaPlay className="text-blue-500" />;
+      case 'in_progress':
+        return <FaTruck className="text-yellow-500" />;
+      case 'hold':
+        return <FaPause className="text-orange-500" />;
+      case 'complete':
+        return <FaCheckCircle className="text-green-500" />;
+      case 'canceled':
+        return <FaBan className="text-red-500" />;
+      // Legacy statuses
       case 'draft':
         return <FaClock className="text-gray-500" />;
       case 'confirmed':

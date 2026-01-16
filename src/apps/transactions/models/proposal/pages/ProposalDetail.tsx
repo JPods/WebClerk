@@ -34,6 +34,7 @@ import {
   normalizeLineItem,
   normalizeLineItems,
 } from "../../common/valueNormalization";
+import JsonEnvelopesPanel from "../../../components/JsonEnvelopesPanel";
 
 export default function ProposalDetail({
   modeProp,
@@ -42,6 +43,7 @@ export default function ProposalDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  isAdmin = false,
 }: ProposalAddProps) {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -1102,6 +1104,13 @@ export default function ProposalDetail({
               )}
             </div>
           )}
+
+          {/* Admin/Developer JSON Envelopes Panel */}
+          <JsonEnvelopesPanel
+            data={resolvedData || {}}
+            isVisible={isAdmin}
+            isEditing={mode === "edit"}
+          />
         </form>
       </ComponentCard>
     </>

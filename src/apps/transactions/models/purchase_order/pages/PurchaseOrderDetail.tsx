@@ -17,6 +17,7 @@ import { PurchaseOrderAddProps } from "../types/purchaseOrderType";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import PurchaseOrderStatus from "../components/PurchaseOrderStatus";
 import { coerceFormValue, sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
+import JsonEnvelopesPanel from "../../../components/JsonEnvelopesPanel";
 
 const numericPurchaseOrderKeys = ["dt_created", "id_vendor"];
 
@@ -27,6 +28,7 @@ export default function PurchaseOrderDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  isAdmin = false,
 }: PurchaseOrderAddProps) {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -371,6 +373,13 @@ export default function PurchaseOrderDetail({
               )}
             </div>
           )}
+
+          {/* Admin/Developer JSON Envelopes Panel */}
+          <JsonEnvelopesPanel
+            data={normalizedResolvedData || {}}
+            isVisible={isAdmin}
+            isEditing={mode === "edit"}
+          />
         </form>
       </ComponentCard>
     </>
