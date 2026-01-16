@@ -1,387 +1,362 @@
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+/**
+ * PurchaseOrderDetail - Refactored to use TransactionDetailBase
+ * Extends base with purchase order-specific fields and functionality
+ */
+import React from 'react';
+import { 
+  FaShoppingBag,
+  FaTruck,
+  FaCheck,
+  FaTimes,
+} from 'react-icons/fa';
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+// Import base component and shared types
+import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
+import FieldLabel from '../../../components/FieldLabel';
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createPurchaseOrder, updatePurchaseOrder, fetchPurchaseOrderDetail } from "../services/purchaseOrderApi";
-import { showToast } from "../../../../../store/slices/toastSlice";
-import { useDispatch } from "react-redux";
-import { useLocation, useNavigate, useParams } from "react-router";
-import { purchaseOrderSchema } from "../utils/purchaseOrderSchema";
-import { PurchaseOrderAddProps } from "../types/purchaseOrderType";
-import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
-import PurchaseOrderStatus from "../components/PurchaseOrderStatus";
-import { coerceFormValue, sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
-import JsonEnvelopesPanel from "../../../components/JsonEnvelopesPanel";
+// Import types
+import type { Transaction } from '../../../types/transactionTypes';
 
-const numericPurchaseOrderKeys = ["dt_created", "id_vendor"];
+// Purchase Order specific fields that extend base Transaction
+interface PurchaseOrder extends Transaction {
+  ida?: string;
+  purchase_order_no?: string;
+  receipt_id?: string;
+  vendor_pack_list?: string;
+  vendor_pack_date?: string;
+  dt?: string;
+  terms?: string;
+  due_date?: string;
+  ship_date?: string;
+  id_vendor?: number;
+  // Computed totals
+  subtotal?: number;
+  tax?: number;
+  total?: number;
+}
 
-export default function PurchaseOrderDetail({
-  modeProp,
-  dataProp,
-  hideBreadcrumb,
-  onSaved,
-  inline = false,
-  onCancelInline,
-  isAdmin = false,
-}: PurchaseOrderAddProps) {
-  const dispatch = useDispatch();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { id: routeId } = useParams<{ id?: string }>();
-  const routeState = (location.state as any) || {};
-  const routeData = routeState?.data;
-  const routeMode = routeState?.mode as "add" | "edit" | "view" | undefined;
-  const shouldPrefetch = Boolean(routeId && !dataProp && !routeData);
-
-  const [fetchedData, setFetchedData] = useState<any>(null);
-  const [loading, setLoading] = useState(shouldPrefetch);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const resolvedData = dataProp ?? routeData ?? fetchedData;
-  const normalizedResolvedData = useMemo(
-    () => sanitizeRecord(resolvedData, numericPurchaseOrderKeys),
-    [resolvedData]
-  );
-
-  const mode: "add" | "edit" | "view" = modeProp || routeMode || (routeId ? "view" : "add");
-  const pageTitle =
-    mode === "edit"
-      ? "Edit Purchase Order"
-      : mode === "view"
-      ? "View Purchase Order"
-      : "Purchase Order Detail";
-  const inlineTitle = mode === "add" ? "Add New Purchase Order" : pageTitle;
-
-  const defaultValues = useMemo(
-    () => ({
-      purchase_order_no: "",
-      status: "draft",
-      receipt_id: "",
-      vendor_pack_list: "",
-      vendor_pack_date: "",
-      id_vendor: undefined,
-    }),
-    []
-  );
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<z.infer<typeof purchaseOrderSchema>>({
-    resolver: zodResolver(purchaseOrderSchema),
-    defaultValues,
-  });
-
-  useEffect(() => {
-    if (dataProp || routeData) {
-      setFetchedData(null);
-    }
-  }, [dataProp, routeData]);
-
-  useEffect(() => {
-    if (normalizedResolvedData) {
-      setLoadError(null);
-    }
-  }, [normalizedResolvedData]);
-
-  useEffect(() => {
-    if (dataProp || routeData || !routeId) {
-      return;
-    }
-
-    const idNumber = Number.parseInt(routeId, 10);
-    if (Number.isNaN(idNumber)) {
-      setLoadError("Invalid purchase order id");
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    setFetchedData(null);
-    setLoading(true);
-    setLoadError(null);
-
-    fetchPurchaseOrderDetail(idNumber)
-      .then((detail) => {
-        if (cancelled) {
-          return;
-        }
-        if (!detail || Object.keys(detail).length === 0) {
-          setLoadError("Purchase order not found");
-          return;
-        }
-        setFetchedData(sanitizeRecord(detail, numericPurchaseOrderKeys));
-      })
-      .catch((error: unknown) => {
-        if (cancelled) {
-          return;
-        }
-        const message = error instanceof Error ? error.message : "Failed to load purchase order";
-        setLoadError(message);
-        dispatch(showToast({ message, type: "error" }));
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dataProp, routeData, routeId, dispatch]);
-
-  useEffect(() => {
-    if (mode === "add") {
-      reset(defaultValues);
-      return;
-    }
-
-    if (normalizedResolvedData && typeof normalizedResolvedData === "object") {
-      const nextValues = { ...defaultValues } as Record<string, unknown>;
-      Object.keys(defaultValues).forEach((key) => {
-        const value = (normalizedResolvedData as Record<string, unknown>)[key];
-        const sanitized = coerceFormValue(value);
-        if (sanitized !== undefined) {
-          nextValues[key] = sanitized === null ? "" : (sanitized as unknown);
-        }
-      });
-      reset(nextValues);
-      return;
-    }
-
-    reset(defaultValues);
-  }, [normalizedResolvedData, reset, mode, defaultValues]);
-
-  const onSubmit = async (formData: z.infer<typeof purchaseOrderSchema>) => {
-    try {
-      const res =
-        mode === "add"
-          ? await createPurchaseOrder(formData)
-          : await updatePurchaseOrder(resolvedData && resolvedData.id, formData);
-      if (res) {
-        dispatch(
-          showToast({
-            message: `Purchase order ${
-              mode === "add" ? "created" : "updated"
-            } successfully`,
-            type: "success",
-          })
-        );
-        if (onSaved) {
-          onSaved();
-        }
-      }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message, type: "error" }));
-    }
+// Status Badge Component
+const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  const statusStyles: Record<string, string> = {
+    draft: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    approved: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    received: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    closed: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
   };
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!resolvedData?.id) return;
-    try {
-      await updatePurchaseOrder(resolvedData.id, { ...resolvedData, status: newStatus });
-      dispatch(showToast({ message: `Purchase order marked as ${newStatus}`, type: "success" }));
-      if (onSaved) {
-        onSaved();
-      }
-    } catch (error: any) {
-      dispatch(showToast({ message: error.message || "Failed to update status", type: "error" }));
-    }
-  };
+  return (
+    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusStyles[status ?? 'draft'] ?? statusStyles.draft}`}>
+      {status?.replace('_', ' ') ?? 'draft'}
+    </span>
+  );
+};
 
-  if (!inline && loading) {
-    return (
-      <>
-        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
-        <ComponentCard>
-          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading purchase order...</div>
-        </ComponentCard>
-      </>
-    );
-  }
+// Utility functions
+const formatCurrency = (value?: number | null): string => {
+  if (value === undefined || value === null) return '--';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(value);
+};
 
-  if (!inline && loadError && !resolvedData) {
-    return (
-      <>
-        {!hideBreadcrumb && <PageBreadcrumb pageTitle={pageTitle} />}
-        <ComponentCard>
-          <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-4">
-            <div>{loadError}</div>
-            <div>
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
-              >
-                Go Back
-              </button>
+// Custom Purchase Order Header Component
+const PurchaseOrderHeader: React.FC<{
+  data: PurchaseOrder;
+  isEditing: boolean;
+  onChange?: (field: keyof PurchaseOrder, value: unknown) => void;
+}> = ({ data, isEditing, onChange }) => {
+  // Extract vendor info from refs.links
+  const vendorInfo = data.refs?.links?.vendor?.[0];
+
+  return (
+    <div className="space-y-6">
+      {/* Purchase Order Header Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: PO Details */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <FaShoppingBag className="text-blue-500" />
+            Purchase Order Details
+          </h3>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <FieldLabel label="PO No" mandatory locked className="text-slate-500 dark:text-slate-400" />
+              <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? data.purchase_order_no ?? '--'}</dd>
             </div>
-          </div>
-        </ComponentCard>
-      </>
-    );
-  }
+            <div className="flex justify-between items-center">
+              <FieldLabel label="ID" locked className="text-slate-500 dark:text-slate-400" />
+              <dd className="font-mono text-slate-600 dark:text-slate-300">{data.id ?? '--'}</dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Date" mandatory className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.dt ? new Date(data.dt).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('dt', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
+                </dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Due Date" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('due_date', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
+                </dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Terms" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="text"
+                  value={data.terms ?? ''}
+                  onChange={(e) => onChange('terms', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{data.terms ?? '--'}</dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Status" mandatory className="text-slate-500 dark:text-slate-400" />
+              <dd>
+                <StatusBadge status={data.status} />
+              </dd>
+            </div>
+          </dl>
+        </div>
 
-  if (inline && mode !== "add" && !resolvedData) {
+        {/* Middle: Vendor Info */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <FaTruck className="text-green-500" />
+            Vendor Information
+          </h3>
+          {vendorInfo ? (
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <FieldLabel label="Vendor" className="text-slate-500 dark:text-slate-400" />
+                <dd className="text-slate-900 dark:text-white font-medium">{vendorInfo.name ?? '--'}</dd>
+              </div>
+              {vendorInfo.contact && (
+                <div className="flex justify-between">
+                  <FieldLabel label="Contact" className="text-slate-500 dark:text-slate-400" />
+                  <dd className="text-slate-900 dark:text-white">{vendorInfo.contact}</dd>
+                </div>
+              )}
+              {vendorInfo.phone && (
+                <div className="flex justify-between">
+                  <FieldLabel label="Phone" className="text-slate-500 dark:text-slate-400" />
+                  <dd className="text-slate-900 dark:text-white">{vendorInfo.phone}</dd>
+                </div>
+              )}
+            </dl>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400 italic">No vendor assigned</p>
+          )}
+        </div>
+
+        {/* Right: Receiving Info */}
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <FaTruck className="text-purple-500" />
+            Receiving Information
+          </h3>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Receipt ID" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="text"
+                  value={data.receipt_id ?? ''}
+                  onChange={(e) => onChange('receipt_id', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{data.receipt_id ?? '--'}</dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Vendor Pack List" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="text"
+                  value={data.vendor_pack_list ?? ''}
+                  onChange={(e) => onChange('vendor_pack_list', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{data.vendor_pack_list ?? '--'}</dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Pack Date" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.vendor_pack_date ? new Date(data.vendor_pack_date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('vendor_pack_date', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.vendor_pack_date ? new Date(data.vendor_pack_date).toLocaleDateString() : '--'}
+                </dd>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <FieldLabel label="Ship Date" className="text-slate-500 dark:text-slate-400" />
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.ship_date ? new Date(data.ship_date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('ship_date', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.ship_date ? new Date(data.ship_date).toLocaleDateString() : '--'}
+                </dd>
+              )}
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      {/* Order Totals Summary */}
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+        <div className="grid grid-cols-3 gap-8 text-center">
+          <div>
+            <dt className="text-sm text-slate-500 dark:text-slate-400 mb-1">Subtotal</dt>
+            <dd className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(data.subtotal)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-slate-500 dark:text-slate-400 mb-1">Tax</dt>
+            <dd className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(data.tax)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-slate-500 dark:text-slate-400 mb-1">Total</dt>
+            <dd className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(data.total)}</dd>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Purchase Order Lines Tab Content
+const PurchaseOrderLinesContent: React.FC<{
+  data: PurchaseOrder;
+  isEditing: boolean;
+  onChange?: (field: keyof PurchaseOrder, value: unknown) => void;
+}> = ({ data }) => {
+  const lines = data.lines ?? [];
+
+  if (lines.length === 0) {
     return (
-      <ComponentCard>
-        <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Loading purchase order...</div>
-      </ComponentCard>
+      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+        <FaShoppingBag className="mx-auto text-4xl mb-4 opacity-50" />
+        <p>No line items</p>
+      </div>
     );
   }
 
   return (
-    <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb pageTitle={pageTitle} />
-      )}
-      <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {inlineTitle}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div>
-               <Label htmlFor="purchase_order_no">purchase_order_no</Label>
-               <Input
-                 type="text"
-                 id="purchase_order_no"
-                 placeholder="Purchase Order Number"
-                 {...register("purchase_order_no")}
-                 error={!!errors.purchase_order_no?.message}
-                 hint={errors.purchase_order_no?.message}
-                 disabled={mode === "view"}
-               />
-             </div>
-             <div>
-               <Label htmlFor="status">status</Label>
-               <select
-                 id="status"
-                 {...register("status")}
-                 disabled={mode === "view"}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-               >
-                 <option value="draft">Draft</option>
-                 <option value="approved">Approved</option>
-                 <option value="rejected">Rejected</option>
-                 <option value="received">Received</option>
-                 <option value="closed">Closed</option>
-               </select>
-               {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-             </div>
-           </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <Label htmlFor="receipt_id">Receipt ID</Label>
-                <Input
-                  type="text"
-                  id="receipt_id"
-                  placeholder="Receipt ID"
-                  {...register("receipt_id")}
-                  error={!!errors.receipt_id?.message}
-                  hint={errors.receipt_id?.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="vendor_pack_list">Vendor Pack List</Label>
-                <Input
-                  type="text"
-                  id="vendor_pack_list"
-                  placeholder="Vendor Pack List"
-                  {...register("vendor_pack_list")}
-                  error={!!errors.vendor_pack_list?.message}
-                  hint={errors.vendor_pack_list?.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="vendor_pack_date">Vendor Pack Date</Label>
-                <Input
-                  type="date"
-                  id="vendor_pack_date"
-                  {...register("vendor_pack_date")}
-                  error={!!errors.vendor_pack_date?.message}
-                  hint={errors.vendor_pack_date?.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-            </div>
-          {mode === "view" && normalizedResolvedData && (
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="dt_created">dt_created</Label>
-                <Input
-                  type="text"
-                  id="dt_created"
-                  value={formatDateTimeValue(normalizedResolvedData.dt_created)}
-                  disabled
-                />
-                {normalizedResolvedData.id && <AuditTrail transactionId={normalizedResolvedData.id} model="purchase_order" />}
-              </div>
-
-              {/* Status Management */}
-              <div>
-                <Label>Purchase Order Status</Label>
-                <PurchaseOrderStatus
-                  currentStatus={normalizedResolvedData.status || 'draft'}
-                  onStatusChange={handleStatusChange}
-                  showHistory={true}
-                />
-              </div>
-            </div>
-          )}
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Admin/Developer JSON Envelopes Panel */}
-          <JsonEnvelopesPanel
-            data={normalizedResolvedData || {}}
-            isVisible={isAdmin}
-            isEditing={mode === "edit"}
-          />
-        </form>
-      </ComponentCard>
-    </>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 dark:border-slate-700">
+            <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
+            <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
+            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty</th>
+            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Unit Cost</th>
+            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Amount</th>
+            <th className="text-center p-3 text-slate-600 dark:text-slate-300">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line: any, index: number) => (
+            <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item_no ?? line.sku ?? '--'}</td>
+              <td className="p-3 text-slate-700 dark:text-slate-300">{line.description ?? line.item_description ?? '--'}</td>
+              <td className="p-3 text-right text-slate-900 dark:text-white">{line.qty_ordered ?? line.quantity ?? '--'}</td>
+              <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.unit_cost ?? line.price)}</td>
+              <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.amount ?? line.line_total)}</td>
+              <td className="p-3 text-center">
+                {line.is_received ? (
+                  <span className="inline-flex items-center gap-1 text-green-600">
+                    <FaCheck size={12} /> Received
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-slate-400">
+                    <FaTimes size={12} /> Pending
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
+};
+
+// Props interface
+interface PurchaseOrderDetailProps {
+  modeProp?: 'view' | 'edit' | 'add';
+  dataProp?: PurchaseOrder;
+  hideBreadcrumb?: boolean;
+  onSaved?: () => void;
+  inline?: boolean;
+  onCancelInline?: () => void;
+  isAdmin?: boolean;
 }
+
+// Main Component
+const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
+  // Dynamic tabs generator
+  const getTabsAfter = (): TransactionTab[] => {
+    return [
+      { id: 'receiving', label: 'Receiving', icon: <FaTruck size={14} /> },
+    ];
+  };
+
+  return (
+    <TransactionDetailBase
+      transactionType="purchaseorder"
+      typeLabel="Purchase Order"
+      modelName="purchase_order"
+      renderHeader={(data, isEditing, onChange) => (
+        <PurchaseOrderHeader data={data as PurchaseOrder} isEditing={isEditing} onChange={onChange as any} />
+      )}
+      renderLines={(lines, isEditing, data) => (
+        <PurchaseOrderLinesContent data={data as PurchaseOrder} isEditing={isEditing} />
+      )}
+      customTabsAfter={getTabsAfter()}
+      inline={props.inline}
+      modeProp={props.modeProp}
+      dataProp={props.dataProp}
+      onSaved={props.onSaved}
+      onCancelInline={props.onCancelInline}
+      isAdmin={props.isAdmin}
+    />
+  );
+};
+
+export default PurchaseOrderDetail;

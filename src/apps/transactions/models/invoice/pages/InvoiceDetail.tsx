@@ -60,7 +60,7 @@ const InvoiceHeader: React.FC<{
   data: Invoice;
   isEditing: boolean;
   onChange?: (field: keyof Invoice, value: unknown) => void;
-}> = ({ data }) => {
+}> = ({ data, isEditing, onChange }) => {
   // Extract customer info from refs.links
   const customerInfo = data.refs?.links?.customer?.[0];
   const billingContact = data.refs?.links?.contact?.find(c => c.purpose === 'billto');
@@ -73,7 +73,7 @@ const InvoiceHeader: React.FC<{
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <FaFileInvoiceDollar className="text-blue-500" />
-            Invoice Details Page
+            Invoice Details
           </h3>
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between items-center">
@@ -81,28 +81,64 @@ const InvoiceHeader: React.FC<{
               <dd className="font-mono font-medium text-slate-900 dark:text-white">{data.ida ?? '--'}</dd>
             </div>
             <div className="flex justify-between items-center">
-              <FieldLabel label="IDA" locked className="text-slate-500 dark:text-slate-400" />
+              <FieldLabel label="ID" locked className="text-slate-500 dark:text-slate-400" />
               <dd className="font-mono text-slate-600 dark:text-slate-300">{data.id ?? '--'}</dd>
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Date" mandatory className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">
-                {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
-              </dd>
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.dt ? new Date(data.dt).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('dt', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Due Date" className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">
-                {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
-              </dd>
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('due_date', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Terms" className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">{data.terms ?? '--'}</dd>
+              {isEditing && onChange ? (
+                <input
+                  type="text"
+                  value={data.terms ?? ''}
+                  onChange={(e) => onChange('terms', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{data.terms ?? '--'}</dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="PO Number" className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">{data.po_number ?? data.reference ?? '--'}</dd>
+              {isEditing && onChange ? (
+                <input
+                  type="text"
+                  value={data.po_number ?? data.reference ?? ''}
+                  onChange={(e) => onChange('po_number', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{data.po_number ?? data.reference ?? '--'}</dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Status" mandatory className="text-slate-500 dark:text-slate-400" />
