@@ -163,6 +163,7 @@ QUANTITY_CANONICAL_KEYS = {
     "on_so",            # Quantity on Sales Orders (pending fulfillment)
     "on_po",            # Quantity on Purchase Orders (pending receipt)
     "on_wo",            # Quantity on Work Orders (in production)
+    "on_p",  # Quantity on is_active Proposals times probability (for forecast)
     "invoiced",         # Quantity invoiced (shipped/consumed)
 }
 
@@ -403,9 +404,10 @@ class Item(StatsMixin, BaseModel):
         'sell_default',
         'purchase_default',
         # Transaction buckets (procurement -> production -> sales -> fulfillment)
-        'on_po',
-        'on_wo',
-        'on_so',
+        'on_p',       # Proposals (forecast)
+        'on_po',      # Purchase Orders
+        'on_wo',      # Work Orders
+        'on_so',      # Sales Orders
         'invoiced',
     )
 
@@ -427,7 +429,7 @@ class Item(StatsMixin, BaseModel):
             if k not in QUANTITY_CANONICAL_KEYS:
                 del self.quantity[k]
         # Initialize transaction buckets to 0 if not present
-        for bucket in ('on_so', 'on_po', 'on_wo', 'invoiced'):
+        for bucket in ('on_p', 'on_so', 'on_po', 'on_wo', 'invoiced'):
             self.quantity.setdefault(bucket, 0)
         # Set default quantities for transactions
         self.quantity.setdefault('sell_default', 1)

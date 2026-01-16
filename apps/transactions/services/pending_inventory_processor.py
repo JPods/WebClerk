@@ -216,6 +216,7 @@ def _process_pending_for_item(
     on_so_delta = Decimal('0')
     on_po_delta = Decimal('0')
     on_wo_delta = Decimal('0')
+    on_p_delta = Decimal('0')
     invoiced_delta = Decimal('0')
     
     for pending in pending_records:
@@ -223,11 +224,12 @@ def _process_pending_for_item(
         on_so_delta += Decimal(str(data.get('on_so', 0) or 0))
         on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
         on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
+        on_p_delta += Decimal(str(data.get('on_p', 0) or 0))
         invoiced_delta += Decimal(str(data.get('invoiced', 0) or 0))
     
     logger.debug(
         f"Item {item_pk}: SO={on_so_delta:+}, PO={on_po_delta:+}, "
-        f"WO={on_wo_delta:+}, IV={invoiced_delta:+}"
+        f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IV={invoiced_delta:+}"
     )
     
     if dry_run:
@@ -244,12 +246,14 @@ def _process_pending_for_item(
         current_so = Decimal(str(quantity.get('on_so', 0) or 0))
         current_po = Decimal(str(quantity.get('on_po', 0) or 0))
         current_wo = Decimal(str(quantity.get('on_wo', 0) or 0))
+        current_p = Decimal(str(quantity.get('on_p', 0) or 0))
         current_invoiced = Decimal(str(quantity.get('invoiced', 0) or 0))
         current_on_hand = Decimal(str(quantity.get('on_hand', 0) or 0))
         
         quantity['on_so'] = float(current_so + on_so_delta)
         quantity['on_po'] = float(current_po + on_po_delta)
         quantity['on_wo'] = float(current_wo + on_wo_delta)
+        quantity['on_p'] = float(current_p + on_p_delta)
         quantity['invoiced'] = float(current_invoiced + invoiced_delta)
         
         # Invoicing reduces on_hand (negative invoiced delta = return adds back)
@@ -276,6 +280,7 @@ def _process_pending_for_item(
     if on_so_delta: deltas['on_so'] = f'{on_so_delta:+}'
     if on_po_delta: deltas['on_po'] = f'{on_po_delta:+}'
     if on_wo_delta: deltas['on_wo'] = f'{on_wo_delta:+}'
+    if on_p_delta: deltas['on_p'] = f'{on_p_delta:+}'
     if invoiced_delta: deltas['invoiced'] = f'{invoiced_delta:+}'
     trace_pending_processing_complete(
         item_id=item_pk,
