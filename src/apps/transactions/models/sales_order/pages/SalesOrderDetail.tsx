@@ -147,15 +147,33 @@ const SalesOrderHeader: React.FC<{
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Date" mandatory className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">
-                {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
-              </dd>
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.dt ? new Date(data.dt).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('dt', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.dt ? new Date(data.dt).toLocaleDateString() : '--'}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Due Date" className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">
-                {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
-              </dd>
+              {isEditing && onChange ? (
+                <input
+                  type="date"
+                  value={data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => onChange('due_date', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              ) : (
+                <dd className="text-slate-900 dark:text-white">
+                  {data.due_date ? new Date(data.due_date).toLocaleDateString() : '--'}
+                </dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Terms" className="text-slate-500 dark:text-slate-400" />
@@ -198,7 +216,22 @@ const SalesOrderHeader: React.FC<{
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Price Level" className="text-slate-500 dark:text-slate-400" />
-              <dd className="text-slate-900 dark:text-white">{data.price_level ?? '--'}</dd>
+              {isEditing && onChange ? (
+                <select
+                  value={data.price_level ?? ''}
+                  onChange={(e) => onChange('price_level', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                >
+                  <option value="">-- Select --</option>
+                  <option value="A">A - Retail</option>
+                  <option value="B">B - Wholesale</option>
+                  <option value="C">C - Distributor</option>
+                  <option value="D">D - Volume</option>
+                  <option value="E">E - Special</option>
+                </select>
+              ) : (
+                <dd className="text-slate-900 dark:text-white">{data.price_level ?? '--'}</dd>
+              )}
             </div>
             <div className="flex justify-between items-center">
               <FieldLabel label="Status" mandatory className="text-slate-500 dark:text-slate-400" />
