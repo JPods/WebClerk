@@ -13,6 +13,7 @@ import {
 // Import base component and shared types
 import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import { VendorSelector } from '../../../components/PartySelector';
 import {
   TransactionItemSearch,
   resolveItemCode,
@@ -156,6 +157,11 @@ const PurchaseOrderHeader: React.FC<{
             <FaTruck className="text-green-500" />
             Vendor Information
           </h3>
+          {isEditing && onChange && (
+            <div className="mb-4">
+              <VendorSelector value={data.id_vendor ?? null} onChange={(p)=>onChange('id_vendor', p?.id ?? null)} />
+            </div>
+          )}
           {vendorInfo ? (
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between">

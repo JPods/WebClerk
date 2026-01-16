@@ -39,6 +39,7 @@ import FinancialsCard from './FinancialsCard';
 import FlowDiagram from './FlowDiagram';
 import JsonFieldEditor from './JsonFieldEditor';
 import JsonEnvelopesPanel from './JsonEnvelopesPanel';
+import { CustomerSelector, VendorSelector, ManufacturerSelector } from './PartySelector';
 
 // Import types
 import type { 
@@ -183,8 +184,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const [data, setData] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Always start in view mode - Edit button will toggle to edit mode
-  const [isEditing, setIsEditing] = useState(false);
+  // Start in edit mode if modeProp is 'add' or 'edit'
+  const [isEditing, setIsEditing] = useState(modeProp === 'add' || modeProp === 'edit');
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
@@ -192,6 +193,34 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Debug log the props
   console.log('[TransactionDetailBase] Props:', { modeProp, inline, hasDataProp: !!dataProp });
+
+  // Handle "add" mode - create empty record
+  useEffect(() => {
+    if (modeProp === 'add') {
+      const emptyRecord: Transaction = {
+        status: 'planned',
+        lines: [],
+        refs: { links: {} },
+        metadata: {},
+        comments: { notes: [] },
+        totals: {},
+        finance: {},
+      };
+      setData(emptyRecord);
+      setEditData(emptyRecord);
+      setIsEditing(true);
+      setLoading(false);
+    }
+  }, [modeProp]);
+
+  // Update isEditing when modeProp changes (for inline usage)
+  useEffect(() => {
+    if (modeProp === 'edit') {
+      setIsEditing(true);
+    } else if (modeProp === 'view') {
+      setIsEditing(false);
+    }
+  }, [modeProp]);
 
   // Track unsaved changes
   useEffect(() => {
@@ -218,7 +247,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   }, [hasUnsavedChanges]);
 
   // Fetch data - skip if dataProp is provided (inline mode with pre-loaded data)
+  // Also skip if modeProp is 'add' (handled by separate effect above)
   useEffect(() => {
+    // Skip fetch for "add" mode - handled by the add mode effect
+    if (modeProp === 'add') {
+      return;
+    }
+    
     // If dataProp is provided, use it directly instead of fetching
     if (dataProp) {
       setData(dataProp);
@@ -254,7 +289,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     };
 
     loadData();
-  }, [id, modelName, typeLabel, fetchData, dataProp]);
+  }, [id, modelName, typeLabel, fetchData, dataProp, modeProp]);
 
   // Build tabs list - use stable reference for badge count
   const contactCount = data?.refs?.links?.contact?.length ?? 0;
@@ -671,7 +706,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       {currentData.action && (
         <div className="mb-6">
           <ActionsCard
-            action={currentData.action}
+            actions={currentData.action}
             isEditing={isEditing}
             onChange={(val) => handleFieldChange('action', val)}
           />
@@ -749,26 +784,49 @@ const DefaultSummary: React.FC<{
 
       <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
         <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Parties</h3>
-        <dl className="space-y-3">
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Customer</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.refs?.links?.customer?.[0]?.name ?? data.customer_id ?? '--'}
-            </dd>
+        {isEditing ? (
+          <div className="space-y-4">
+            <CustomerSelector
+              value={data.customer_id}
+              onChange={(party) => onChange('customer_id' as keyof Transaction, party?.id ?? null)}
+              label="Customer"
+              size="md"
+            />
+            <VendorSelector
+              value={data.vendor_id}
+              onChange={(party) => onChange('vendor_id' as keyof Transaction, party?.id ?? null)}
+              label="Vendor"
+              size="md"
+            />
+            <ManufacturerSelector
+              value={data.manufacturer_id}
+              onChange={(party) => onChange('manufacturer_id' as keyof Transaction, party?.id ?? null)}
+              label="Manufacturer"
+              size="md"
+            />
           </div>
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Vendor</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.refs?.links?.vendor?.[0]?.name ?? data.vendor_id ?? '--'}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Manufacturer</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.refs?.links?.manufacturer?.[0]?.name ?? data.manufacturer_id ?? '--'}
-            </dd>
-          </div>
-        </dl>
+        ) : (
+          <dl className="space-y-3">
+            <div className="flex justify-between">
+              <dt className="text-slate-500 dark:text-slate-400">Customer</dt>
+              <dd className="font-medium text-slate-900 dark:text-white">
+                {data.refs?.links?.customer?.[0]?.name ?? data.customer_id ?? '--'}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500 dark:text-slate-400">Vendor</dt>
+              <dd className="font-medium text-slate-900 dark:text-white">
+                {data.refs?.links?.vendor?.[0]?.name ?? data.vendor_id ?? '--'}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500 dark:text-slate-400">Manufacturer</dt>
+              <dd className="font-medium text-slate-900 dark:text-white">
+                {data.refs?.links?.manufacturer?.[0]?.name ?? data.manufacturer_id ?? '--'}
+              </dd>
+            </div>
+          </dl>
+        )}
       </div>
     </div>
   );

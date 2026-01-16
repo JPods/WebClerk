@@ -3,15 +3,19 @@
  * Extends base with proposal-specific fields and functionality
  */
 import React, { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { 
   FaFileAlt,
   FaUser,
   FaBuilding,
+  FaExchangeAlt,
+  FaFilePdf,
 } from 'react-icons/fa';
 
 // Import base component and shared types
 import TransactionDetailBase from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import { CustomerSelector } from '../../../components/PartySelector';
 import { 
   TransactionItemSearch, 
   resolveItemCode, 
@@ -20,6 +24,8 @@ import {
   resolveUnitCost,
   type ItemSearchResult 
 } from '../../../components/TransactionItemSearch';
+import { showToast } from '../../../../../store/slices/toastSlice';
+import { convertProposalToOrder, generateProposalPdf } from '../services/proposalApi';
 
 // Import types
 import type { 
@@ -198,7 +204,44 @@ const ProposalHeader: React.FC<{
             <FaUser className="text-green-500" />
             Customer Information
           </h3>
-          {customerInfo ? (
+          {isEditing && onChange ? (
+            <div className="space-y-4">
+              <CustomerSelector
+                value={data.customer_id ?? null}
+                onChange={(party) => onChange('customer_id', party?.id ?? null)}
+                label="Customer"
+                required
+                size="sm"
+              />
+              <div className="flex justify-between items-center">
+                <FieldLabel label="Attention" className="text-slate-500 dark:text-slate-400" />
+                <input
+                  type="text"
+                  value={data.attention ?? ''}
+                  onChange={(e) => onChange('attention', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <FieldLabel label="Email" className="text-slate-500 dark:text-slate-400" />
+                <input
+                  type="email"
+                  value={data.email ?? ''}
+                  onChange={(e) => onChange('email', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <FieldLabel label="Phone" className="text-slate-500 dark:text-slate-400" />
+                <input
+                  type="text"
+                  value={data.phone ?? ''}
+                  onChange={(e) => onChange('phone', e.target.value)}
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+          ) : customerInfo ? (
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <FieldLabel label="Customer" className="text-slate-500 dark:text-slate-400" />
@@ -227,60 +270,24 @@ const ProposalHeader: React.FC<{
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <FieldLabel label="Company" className="text-slate-500 dark:text-slate-400" />
-                {isEditing && onChange ? (
-                  <input
-                    type="text"
-                    value={data.company ?? ''}
-                    onChange={(e) => onChange('company', e.target.value)}
-                    className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  />
-                ) : (
-                  <dd className="text-slate-900 dark:text-white font-medium">{data.company}</dd>
-                )}
+                <dd className="text-slate-900 dark:text-white font-medium">{data.company}</dd>
               </div>
-              {(data.attention || isEditing) && (
+              {data.attention && (
                 <div className="flex justify-between items-center">
                   <FieldLabel label="Attention" className="text-slate-500 dark:text-slate-400" />
-                  {isEditing && onChange ? (
-                    <input
-                      type="text"
-                      value={data.attention ?? ''}
-                      onChange={(e) => onChange('attention', e.target.value)}
-                      className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                    />
-                  ) : (
-                    <dd className="text-slate-900 dark:text-white">{data.attention}</dd>
-                  )}
+                  <dd className="text-slate-900 dark:text-white">{data.attention}</dd>
                 </div>
               )}
-              {(data.email || isEditing) && (
+              {data.email && (
                 <div className="flex justify-between items-center">
                   <FieldLabel label="Email" className="text-slate-500 dark:text-slate-400" />
-                  {isEditing && onChange ? (
-                    <input
-                      type="email"
-                      value={data.email ?? ''}
-                      onChange={(e) => onChange('email', e.target.value)}
-                      className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                    />
-                  ) : (
-                    <dd className="text-slate-900 dark:text-white">{data.email}</dd>
-                  )}
+                  <dd className="text-slate-900 dark:text-white">{data.email}</dd>
                 </div>
               )}
-              {(data.phone || isEditing) && (
+              {data.phone && (
                 <div className="flex justify-between items-center">
                   <FieldLabel label="Phone" className="text-slate-500 dark:text-slate-400" />
-                  {isEditing && onChange ? (
-                    <input
-                      type="text"
-                      value={data.phone ?? ''}
-                      onChange={(e) => onChange('phone', e.target.value)}
-                      className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                    />
-                  ) : (
-                    <dd className="text-slate-900 dark:text-white">{data.phone}</dd>
-                  )}
+                  <dd className="text-slate-900 dark:text-white">{data.phone}</dd>
                 </div>
               )}
             </dl>

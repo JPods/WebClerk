@@ -3,6 +3,7 @@ import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
 import { clearUser } from "../store/slices/authSlice";
 import { setApiLoading } from "../store/slices/loadingSlice";
+import { onRequestStart, onResponseSuccess, onResponseError } from "./apiLogger";
 
 // Access tokens are short-lived; keep latest in memory for fast access
 // Helpers
@@ -206,6 +207,8 @@ export const authClient = axios.create({
 const attachAuthInterceptors = (client: AxiosInstance) => {
   client.interceptors.request.use((config) => {
     updateLoading(1);
+    // Add correlation ID and start time for logging
+    onRequestStart(config);
     if (!accessToken && typeof localStorage !== "undefined") {
       accessToken = localStorage.getItem("accessToken");
     }
@@ -219,6 +222,8 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
   client.interceptors.response.use(
     (res) => {
       updateLoading(-1);
+      // Log successful response
+      onResponseSuccess(res);
       return res;
     },
     async (error: AxiosError) => {
@@ -270,6 +275,8 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
           try {
             store.dispatch(clearUser());
           } catch {}
+          // Log the error before rejecting
+          onResponseError(error);
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
@@ -278,6 +285,8 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
       }
 
       updateLoading(-1);
+      // Log the error
+      onResponseError(error);
       return Promise.reject(error);
     }
   );

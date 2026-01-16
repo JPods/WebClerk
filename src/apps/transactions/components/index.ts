@@ -62,3 +62,22 @@ export {
 
 // Quick Add Recent Items
 export { default as QuickAddRecent } from './QuickAddRecent';
+
+// Party Selector (Customer/Vendor/Manufacturer)
+export { 
+  default as PartySelector,
+  CustomerSelector,
+  VendorSelector,
+  ManufacturerSelector,
+  TransactionPartySelector,
+} from './PartySelector';
+export type { 
+  PartyType, 
+  SelectedParty, 
+  PartySelectorProps,
+  CustomerSelectorProps,
+  VendorSelectorProps,
+  ManufacturerSelectorProps,
+  TransactionPartyType,
+  TransactionPartySelectorProps,
+} from './PartySelector';

@@ -26,6 +26,7 @@ import {
 // Import base component and shared types
 import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import { TransactionPartySelector } from '../../../components/PartySelector';
 
 // Import existing components
 import SalesOrderItemSearch from '../components/SalesOrderItemSearch';
@@ -266,7 +267,17 @@ const SalesOrderHeader: React.FC<{
         {/* Center: Customer Info */}
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Customer</h3>
-          {customerInfo ? (
+           {/* Customer selection or display */}
+           {isEditing && !customerInfo ? (
+             <div>
+               <FieldLabel label="Customer" mandatory />
+               <TransactionPartySelector
+                 transactionType="sales"
+                 value={data.customer_id ?? null}
+                 onChange={(party)=> onChange && onChange('customer_id', party?.id ?? null)}
+               />
+             </div>
+           ) : customerInfo ? (
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <FieldLabel label="Customer ID" locked className="text-slate-500 dark:text-slate-400" />

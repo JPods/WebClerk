@@ -14,6 +14,7 @@ import {
 // Import base component and shared types
 import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import { CustomerSelector } from '../../../components/PartySelector';
 import { InvoiceItemSearch } from '../components/InvoiceItemSearch';
 import { 
   resolveItemCode, 
@@ -158,9 +159,16 @@ const InvoiceHeader: React.FC<{
         </div>
 
         {/* Center: Customer Info */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Customer</h3>
-          {customerInfo ? (
+         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Customer</h3>
+           {isEditing && !customerInfo ? (
+             <CustomerSelector
+               value={data.customer_id ?? null}
+               onChange={(p) => onChange && onChange('customer_id', p?.id ?? null)}
+               label="Customer"
+               required
+             />
+           ) : customerInfo ? (
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <FieldLabel label="Customer ID" locked className="text-slate-500 dark:text-slate-400" />
