@@ -1,34 +1,31 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchProjects } from "../services/projectApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import ProjectDetail from "./ProjectDetail";
 
 export default function ProjectList() {
-  const { theme } = useTheme();
+  const dispatch = useDispatch();
   const [data, setData] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
+  const [selectedProjects, setSelectedProjects] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const dispatch = useDispatch();
 
   const getProjectData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetchProjects();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
-        dispatch(
-          showToast({ message: "Failed to fetch projects", type: "error" })
-        );
+        dispatch(showToast({ message: "Failed to fetch projects", type: "error" }));
       }
     } catch (error) {
       console.error("Failed to fetch projects", error);
@@ -42,15 +39,15 @@ export default function ProjectList() {
     getProjectData();
   }, [getProjectData]);
 
-  const handleView = (row: any) => {
+  const handleView = useCallback((row: any) => {
     setSelectedProject(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = (row: any) => {
+  const handleEdit = useCallback((row: any) => {
     setSelectedProject(row);
     setFormMode("edit");
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedProject(null);
@@ -68,52 +65,50 @@ export default function ProjectList() {
     setSelectedProject(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete project ${row.name}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(showToast({ message: "Project deleted successfully", type: "success" }));
-        getProjectData(); // Refresh data
-      } catch (error) {
-        dispatch(showToast({ message: "Failed to delete project", type: "error" }));
+  const handleDelete = useCallback(async (row: any) => {
+    if (!window.confirm(`Delete project ${row.name}?`)) return;
+    
+    try {
+      await deleteAction(row.id);
+      dispatch(showToast({ message: "Project deleted successfully", type: "success" }));
+      getProjectData();
+      if (selectedProject && selectedProject.id === row.id) {
+        setFormMode(null);
+        setSelectedProject(null);
       }
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete project", type: "error" }));
     }
-  };
+  }, [dispatch, getProjectData, selectedProject]);
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedProjects.length) return;
+    if (!window.confirm(`Delete ${selectedProjects.length} project(s)?`)) return;
+
+    try {
+      await Promise.all(selectedProjects.map((p) => deleteAction(p.id)));
+      dispatch(showToast({ message: `${selectedProjects.length} project(s) deleted`, type: "success" }));
+      getProjectData();
+      setSelectedProjects([]);
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete some projects", type: "error" }));
+    }
+  }, [selectedProjects, dispatch, getProjectData]);
+
+  const filters: ColumnFilter[] = useMemo(() => [
+    { key: "status", label: "Status", type: "text" },
+  ], []);
+
+  const columns: TableColumn<any>[] = useMemo(() => [
+    { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
+    { id: "name", name: "Name", selector: (row) => row.name || "--", sortable: true, width: "20%" },
+    { id: "description", name: "Description", selector: (row) => row.description || "--", sortable: true, width: "25%" },
+    { id: "status", name: "Status", selector: (row) => row.status || "--", sortable: true, width: "12%" },
+    { id: "start_date", name: "Start Date", selector: (row) => row.start_date || "--", sortable: true, width: "12%" },
+    { id: "end_date", name: "End Date", selector: (row) => row.end_date || "--", sortable: true, width: "12%" },
     {
-      name: "Name",
-      selector: (row) => row.name || "--",
-      sortable: true,
-      width: "20%",
-    },
-    {
-      name: "Description",
-      selector: (row) => row.description || "--",
-      sortable: true,
-      width: "30%",
-    },
-    {
-      name: "Status",
-      selector: (row) => row.status || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Start Date",
-      selector: (row) => row.start_date || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "End Date",
-      selector: (row) => row.end_date || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Action",
+      id: "actions",
+      name: "Actions",
       cell: (row) => (
         <div className="flex gap-2">
           <button onClick={() => handleView(row)} title="View">
@@ -130,8 +125,9 @@ export default function ProjectList() {
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      width: "100px",
     },
-  ];
+  ], [handleDelete, handleEdit, handleView]);
 
   return (
     <>
@@ -139,31 +135,41 @@ export default function ProjectList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Project
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading projects...</div>}
-                onRowClicked={(row) => handleView(row)}
-              />
-            </div>
+            <AdvancedDataTable
+              data={data}
+              columns={columns}
+              title="Projects"
+              loading={loading}
+              filters={filters}
+              storageKey="project-list"
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedProjects}
+              exportFileName="projects_export"
+              onRowActivate={handleEdit}
+              searchPlaceholder="Search projects..."
+              noDataMessage="No projects found"
+              customActions={
+                <div className="flex gap-2">
+                  {selectedProjects.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                      Delete ({selectedProjects.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleAdd}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Add Project
+                  </button>
+                </div>
+              }
+            />
           </ComponentCard>
         </div>
         {formMode && (

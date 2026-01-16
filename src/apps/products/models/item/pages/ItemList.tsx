@@ -1,13 +1,13 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
+import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { deleteAction } from "../../../../../api/userProfile";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { fetchItems } from "../services/itemApi";
-import { useTheme } from "../../../../../context/ThemeContext";
 import ItemDetail from "./ItemDetail";
 
 type ItemListMode = "add" | "edit" | "view" | null;
@@ -24,9 +24,7 @@ const valueFrom = (row: any, keys: string[], fallback: any = undefined) => {
 
 // Normalizes differing API payload shapes into a flat array of items.
 const extractItems = (payload: any): any[] => {
-  if (!payload) {
-    return [];
-  }
+  if (!payload) return [];
 
   const directCandidates = [
     payload?.data?.items,
@@ -38,9 +36,7 @@ const extractItems = (payload: any): any[] => {
   ];
 
   for (const candidate of directCandidates) {
-    if (Array.isArray(candidate)) {
-      return candidate;
-    }
+    if (Array.isArray(candidate)) return candidate;
   }
 
   const objectCandidates = [payload?.data?.data, payload?.data, payload];
@@ -48,9 +44,7 @@ const extractItems = (payload: any): any[] => {
     if (obj && typeof obj === "object" && !Array.isArray(obj)) {
       const values = Object.values(obj);
       for (const value of values) {
-        if (Array.isArray(value)) {
-          return value;
-        }
+        if (Array.isArray(value)) return value;
       }
     }
   }
@@ -59,25 +53,20 @@ const extractItems = (payload: any): any[] => {
 };
 
 export default function ItemList() {
-  const { theme } = useTheme();
   const dispatch = useDispatch();
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [formMode, setFormMode] = useState<ItemListMode>(null);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
 
   const getItemId = useCallback((row: any) => {
-    return (
-      valueFrom(row, ["id", "item_id", "uuid", "item_number", "sku"], null) ?? null
-    );
+    return valueFrom(row, ["id", "item_id", "uuid", "item_number", "sku"], null) ?? null;
   }, []);
 
   const getItemLabel = useCallback((row: any) => {
-    return (
-      valueFrom(row, ["name", "item_name", "title", "sku", "item_number"], "Item") ||
-      "Item"
-    );
+    return valueFrom(row, ["name", "item_name", "title", "sku", "item_number"], "Item") || "Item";
   }, []);
 
   const getItems = useCallback(async () => {
@@ -88,12 +77,7 @@ export default function ItemList() {
         const normalized = extractItems(res);
         setItems(normalized);
         if (!normalized.length) {
-          dispatch(
-            showToast({
-              message: "Item response contained no rows",
-              type: "warning",
-            })
-          );
+          dispatch(showToast({ message: "Item response contained no rows", type: "warning" }));
         }
       } else {
         dispatch(showToast({ message: "Failed to fetch items", type: "error" }));
@@ -145,9 +129,7 @@ export default function ItemList() {
       }
 
       const label = getItemLabel(row);
-      if (!window.confirm(`Delete item ${label}?`)) {
-        return;
-      }
+      if (!window.confirm(`Delete item ${label}?`)) return;
 
       try {
         await deleteAction(id);
@@ -161,73 +143,63 @@ export default function ItemList() {
     [dispatch, getItemId, getItemLabel, getItems]
   );
 
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedItems.length) return;
+    if (!window.confirm(`Delete ${selectedItems.length} item(s)?`)) return;
+
+    try {
+      await Promise.all(selectedItems.map((item) => deleteAction(getItemId(item))));
+      dispatch(showToast({ message: `${selectedItems.length} item(s) deleted`, type: "success" }));
+      getItems();
+      setSelectedItems([]);
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete some items", type: "error" }));
+    }
+  }, [selectedItems, dispatch, getItemId, getItems]);
+
+  const filters: ColumnFilter[] = useMemo(() => [
+    { key: "category", label: "Category", type: "text" },
+    { key: "kind", label: "Kind", type: "select", options: [
+      { value: "physical", label: "Physical" },
+      { value: "service", label: "Service" },
+      { value: "bundle", label: "Bundle" },
+    ]},
+  ], []);
+
   const columns: TableColumn<any>[] = useMemo(() => {
-    const idSelector = (row: any) =>
-      valueFrom(row, ["id", "item_id", "item_number", "sku", "uuid"], "--");
-    const nameSelector = (row: any) =>
-      valueFrom(row, ["name", "item_name", "title", "description"], "--");
-    const skuSelector = (row: any) =>
-      valueFrom(row, ["sku", "item_code", "item_number", "external_id"], "--");
-    const categorySelector = (row: any) =>
-      valueFrom(row, ["category", "category_name", "segment", "group"], "--");
+    const idSelector = (row: any) => valueFrom(row, ["id", "item_id", "item_number", "sku", "uuid"], "--");
+    const nameSelector = (row: any) => valueFrom(row, ["name", "item_name", "title", "description"], "--");
+    const skuSelector = (row: any) => valueFrom(row, ["sku", "item_code", "item_number", "external_id"], "--");
+    const categorySelector = (row: any) => valueFrom(row, ["category", "category_name", "segment", "group"], "--");
     const priceSelector = (row: any) => {
       const raw = valueFrom(row, ["price", "unit_price", "list_price", "cost"], 0);
       const numeric = Number(raw);
       return Number.isFinite(numeric) ? numeric : 0;
     };
     const descriptionSelector = (row: any) =>
-      valueFrom(
-        row,
-        ["description", "long_description", "short_description", "change_reason"],
-        "--"
-      );
+      valueFrom(row, ["description", "long_description", "short_description", "change_reason"], "--");
 
     return [
-      { name: "ID", selector: idSelector, sortable: true, width: "10%" },
+      { id: "id", name: "ID", selector: idSelector, sortable: true, width: "80px" },
+      { id: "name", name: "Name", selector: nameSelector, sortable: true, wrap: true, width: "20%" },
+      { id: "sku", name: "SKU", selector: skuSelector, sortable: true, wrap: true, width: "15%" },
+      { id: "category", name: "Category", selector: categorySelector, sortable: true, wrap: true, width: "15%" },
       {
-        name: "NAME",
-        selector: nameSelector,
-        sortable: true,
-        wrap: true,
-        width: "20%",
-      },
-      {
-        name: "SKU",
-        selector: skuSelector,
-        sortable: true,
-        wrap: true,
-        width: "15%",
-      },
-      {
-        name: "CATEGORY",
-        selector: categorySelector,
-        sortable: true,
-        wrap: true,
-        width: "15%",
-      },
-      {
-        name: "PRICE",
+        id: "price",
+        name: "Price",
         selector: priceSelector,
         sortable: true,
         width: "10%",
-        cell: (row) => {
-          const price = priceSelector(row);
-          return (
-            <span className="font-medium text-green-600 dark:text-green-400">
-              ${price.toFixed(2)}
-            </span>
-          );
-        },
+        cell: (row) => (
+          <span className="font-medium text-green-600 dark:text-green-400">
+            ${priceSelector(row).toFixed(2)}
+          </span>
+        ),
       },
+      { id: "description", name: "Description", selector: descriptionSelector, sortable: false, wrap: true, width: "20%" },
       {
-        name: "DESCRIPTION",
-        selector: descriptionSelector,
-        sortable: false,
-        wrap: true,
-        width: "20%",
-      },
-      {
-        name: "ACTION",
+        id: "actions",
+        name: "Actions",
         cell: (row) => (
           <div className="flex gap-2">
             <button onClick={() => handleView(row)} title="View">
@@ -244,7 +216,7 @@ export default function ItemList() {
         ignoreRowClick: true,
         allowOverflow: true,
         button: true,
-        width: "10%",
+        width: "100px",
       },
     ];
   }, [handleDelete, handleEdit, handleView]);
@@ -255,29 +227,41 @@ export default function ItemList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Item
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={columns}
-                data={items}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading items...</div>}
-                onRowClicked={(row) => handleView(row)}
-                noDataComponent={<div className="p-8">There are no items to display.</div>}
-              />
-            </div>
+            <AdvancedDataTable
+              data={items}
+              columns={columns}
+              title="Items"
+              loading={loading}
+              filters={filters}
+              storageKey="item-list"
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedItems}
+              exportFileName="items_export"
+              onRowActivate={handleEdit}
+              searchPlaceholder="Search items..."
+              noDataMessage="No items found"
+              customActions={
+                <div className="flex gap-2">
+                  {selectedItems.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                      Delete ({selectedItems.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleAdd}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Add Item
+                  </button>
+                </div>
+              }
+            />
           </ComponentCard>
         </div>
         {formMode && (

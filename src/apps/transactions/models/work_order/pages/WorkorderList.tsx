@@ -1,35 +1,32 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchWorkorders, fetchWorkorderDetail } from "../services/workorderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import WorkorderDetail from "./WorkorderDetail";
 
 export default function WorkorderList() {
-  const { theme } = useTheme();
+  const dispatch = useDispatch();
   const [data, setData] = useState<any[]>([]);
   const [selectedWorkorder, setSelectedWorkorder] = useState<any | null>(null);
+  const [selectedWorkorders, setSelectedWorkorders] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
-
-  const dispatch = useDispatch();
 
   const getWorkorderData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetchWorkorders();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
-        dispatch(
-          showToast({ message: "Failed to fetch workorders", type: "error" })
-        );
+        dispatch(showToast({ message: "Failed to fetch workorders", type: "error" }));
       }
     } catch (error) {
       console.error("Failed to fetch workorders", error);
@@ -75,19 +72,13 @@ export default function WorkorderList() {
     [dispatch]
   );
 
-  const handleView = useCallback(
-    (row: any) => {
-      openWorkorder(row, "view");
-    },
-    [openWorkorder]
-  );
+  const handleView = useCallback((row: any) => {
+    openWorkorder(row, "view");
+  }, [openWorkorder]);
 
-  const handleEdit = useCallback(
-    (row: any) => {
-      openWorkorder(row, "edit");
-    },
-    [openWorkorder]
-  );
+  const handleEdit = useCallback((row: any) => {
+    openWorkorder(row, "edit");
+  }, [openWorkorder]);
 
   const handleAdd = () => {
     setSelectedWorkorder(null);
@@ -106,34 +97,43 @@ export default function WorkorderList() {
     setSelectedWorkorder(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete workorder ${row.workorder_no}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(showToast({ message: "Workorder deleted successfully", type: "success" }));
-        getWorkorderData(); // Refresh data
-      } catch (error) {
-        dispatch(showToast({ message: "Failed to delete workorder", type: "error" }));
+  const handleDelete = useCallback(async (row: any) => {
+    if (!window.confirm(`Delete workorder ${row.workorder_no}?`)) return;
+    
+    try {
+      await deleteAction(row.id);
+      dispatch(showToast({ message: "Workorder deleted successfully", type: "success" }));
+      getWorkorderData();
+      if (selectedWorkorder && selectedWorkorder.id === row.id) {
+        setFormMode(null);
+        setSelectedWorkorder(null);
       }
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete workorder", type: "error" }));
     }
-  };
+  }, [dispatch, getWorkorderData, selectedWorkorder]);
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedWorkorders.length) return;
+    if (!window.confirm(`Delete ${selectedWorkorders.length} workorder(s)?`)) return;
+
+    try {
+      await Promise.all(selectedWorkorders.map((w) => deleteAction(w.id)));
+      dispatch(showToast({ message: `${selectedWorkorders.length} workorder(s) deleted`, type: "success" }));
+      getWorkorderData();
+      setSelectedWorkorders([]);
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete some workorders", type: "error" }));
+    }
+  }, [selectedWorkorders, dispatch, getWorkorderData]);
+
+  const columns: TableColumn<any>[] = useMemo(() => [
+    { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
+    { id: "workorder_no", name: "Workorder No", selector: (row) => row.workorder_no || "--", sortable: true, width: "30%" },
+    { id: "dt_created", name: "Created", selector: (row) => row.dt_created ? new Date(row.dt_created * 1000).toLocaleDateString() : "--", sortable: true, width: "25%" },
     {
-      name: "Workorder No",
-      selector: (row) => row.workorder_no || "--",
-      sortable: true,
-      width: "30%",
-    },
-    {
-      name: "Created",
-      selector: (row) => new Date(row.dt_created * 1000).toLocaleDateString() || "--",
-      sortable: true,
-      width: "25%",
-    },
-    {
-      name: "Action",
+      id: "actions",
+      name: "Actions",
       cell: (row) => (
         <div className="flex gap-2">
           <button onClick={() => handleView(row)} title="View">
@@ -150,8 +150,9 @@ export default function WorkorderList() {
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      width: "100px",
     },
-  ];
+  ], [handleDelete, handleEdit, handleView]);
 
   return (
     <>
@@ -159,31 +160,40 @@ export default function WorkorderList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Workorder
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading workorders...</div>}
-                onRowClicked={handleView}
-              />
-            </div>
+            <AdvancedDataTable
+              data={data}
+              columns={columns}
+              title="Workorders"
+              loading={loading}
+              storageKey="workorder-list"
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedWorkorders}
+              exportFileName="workorders_export"
+              onRowActivate={handleEdit}
+              searchPlaceholder="Search workorders..."
+              noDataMessage="No workorders found"
+              customActions={
+                <div className="flex gap-2">
+                  {selectedWorkorders.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                      Delete ({selectedWorkorders.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleAdd}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Add Workorder
+                  </button>
+                </div>
+              }
+            />
           </ComponentCard>
         </div>
         {formMode && (

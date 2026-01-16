@@ -1,34 +1,31 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchRequisitions } from "../services/requisitionApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import RequisitionDetail from "./RequisitionDetail";
 
 export default function RequisitionList() {
-  const { theme } = useTheme();
+  const dispatch = useDispatch();
   const [data, setData] = useState<any[]>([]);
   const [selectedRequisition, setSelectedRequisition] = useState<any | null>(null);
+  const [selectedRequisitions, setSelectedRequisitions] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const dispatch = useDispatch();
 
   const getRequisitionData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetchRequisitions();
       if (res.status === 200) {
-        setData(res.data.items);
+        setData(res.data.items || []);
       } else {
-        dispatch(
-          showToast({ message: "Failed to fetch requisitions", type: "error" })
-        );
+        dispatch(showToast({ message: "Failed to fetch requisitions", type: "error" }));
       }
     } catch (error) {
       console.error("Failed to fetch requisitions", error);
@@ -42,15 +39,15 @@ export default function RequisitionList() {
     getRequisitionData();
   }, [getRequisitionData]);
 
-  const handleView = (row: any) => {
+  const handleView = useCallback((row: any) => {
     setSelectedRequisition(row);
     setFormMode("view");
-  };
+  }, []);
 
-  const handleEdit = (row: any) => {
+  const handleEdit = useCallback((row: any) => {
     setSelectedRequisition(row);
     setFormMode("edit");
-  };
+  }, []);
 
   const handleAdd = () => {
     setSelectedRequisition(null);
@@ -68,34 +65,43 @@ export default function RequisitionList() {
     setSelectedRequisition(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete requisition ${row.requisition_no}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(showToast({ message: "Requisition deleted successfully", type: "success" }));
-        getRequisitionData(); // Refresh data
-      } catch (error) {
-        dispatch(showToast({ message: "Failed to delete requisition", type: "error" }));
+  const handleDelete = useCallback(async (row: any) => {
+    if (!window.confirm(`Delete requisition ${row.requisition_no}?`)) return;
+    
+    try {
+      await deleteAction(row.id);
+      dispatch(showToast({ message: "Requisition deleted successfully", type: "success" }));
+      getRequisitionData();
+      if (selectedRequisition && selectedRequisition.id === row.id) {
+        setFormMode(null);
+        setSelectedRequisition(null);
       }
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete requisition", type: "error" }));
     }
-  };
+  }, [dispatch, getRequisitionData, selectedRequisition]);
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "10%" },
+  const handleBulkDelete = useCallback(async () => {
+    if (!selectedRequisitions.length) return;
+    if (!window.confirm(`Delete ${selectedRequisitions.length} requisition(s)?`)) return;
+
+    try {
+      await Promise.all(selectedRequisitions.map((r) => deleteAction(r.id)));
+      dispatch(showToast({ message: `${selectedRequisitions.length} requisition(s) deleted`, type: "success" }));
+      getRequisitionData();
+      setSelectedRequisitions([]);
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to delete some requisitions", type: "error" }));
+    }
+  }, [selectedRequisitions, dispatch, getRequisitionData]);
+
+  const columns: TableColumn<any>[] = useMemo(() => [
+    { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
+    { id: "requisition_no", name: "Requisition No", selector: (row) => row.requisition_no || "--", sortable: true, width: "30%" },
+    { id: "dt_created", name: "Created", selector: (row) => row.dt_created ? new Date(row.dt_created * 1000).toLocaleDateString() : "--", sortable: true, width: "25%" },
     {
-      name: "Requisition No",
-      selector: (row) => row.requisition_no || "--",
-      sortable: true,
-      width: "30%",
-    },
-    {
-      name: "Created",
-      selector: (row) => new Date(row.dt_created * 1000).toLocaleDateString() || "--",
-      sortable: true,
-      width: "25%",
-    },
-    {
-      name: "Action",
+      id: "actions",
+      name: "Actions",
       cell: (row) => (
         <div className="flex gap-2">
           <button onClick={() => handleView(row)} title="View">
@@ -112,8 +118,9 @@ export default function RequisitionList() {
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      width: "100px",
     },
-  ];
+  ], [handleDelete, handleEdit, handleView]);
 
   return (
     <>
@@ -121,31 +128,40 @@ export default function RequisitionList() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Requisition
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading requisitions...</div>}
-                onRowClicked={(row) => handleView(row)}
-              />
-            </div>
+            <AdvancedDataTable
+              data={data}
+              columns={columns}
+              title="Requisitions"
+              loading={loading}
+              storageKey="requisition-list"
+              enableExport={true}
+              enableSelection={true}
+              onSelectionChange={setSelectedRequisitions}
+              exportFileName="requisitions_export"
+              onRowActivate={handleEdit}
+              searchPlaceholder="Search requisitions..."
+              noDataMessage="No requisitions found"
+              customActions={
+                <div className="flex gap-2">
+                  {selectedRequisitions.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                      Delete ({selectedRequisitions.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleAdd}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    Add Requisition
+                  </button>
+                </div>
+              }
+            />
           </ComponentCard>
         </div>
         {formMode && (

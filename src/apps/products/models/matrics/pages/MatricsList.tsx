@@ -1,177 +1,188 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
-import { useEffect, useState, useCallback } from "react";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "../../../../../api/userProfile";
 import { fetchMatricss } from "../services/matricsApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import MatricsDetail from "./MatricsDetail";
 
 export default function MatricsList() {
-  const { theme } = useTheme();
-  const [data, setData] = useState<any[]>([]);
-  const [selectedMatrics, setSelectedMatrics] = useState<any | null>(null);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
-  const [loading, setLoading] = useState(false);
-
   const dispatch = useDispatch();
+  const [data, setData] = useState<any[]>([]);
+  const [selectedMatrics, setSelectedMatrics] = useState<any | null>(nullimport PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../../../compadimport ComponentCard from "../../../../../components/common/ComponentCard";
+(fimport AdvancedDataTable from "../../../../../components/common/AdvancedDa simport { TableColumn } from "react-data-table-component";
+import { useEffect, useS 2import { useEffect, useState, useCallback, useMemo } froe import { deleteAction } from "../../../../../api/userProfile";
+im, import { fetchMatricss } from "../services/matricsApi";
+impore.import { FaEye, FaEdit, FaPlus, FaTrash } from "react-h(import { showToast } from "../../../../../store/slices/toastSli))import { useDispatch } from "react-redux";
+import MatricsDetail fr
 
-  const getMatricsData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetchMatricss();
-      if (res.status === 200) {
-        setData(res.data.items);
-      } else {
-        dispatch(
-          showToast({ message: "Failed to fetch matrics", type: "error" })
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch matrics", error);
-      dispatch(showToast({ message: "Failed to fetch matrics", type: "error" }));
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+import MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dispatch any) => {
+    setSelect  const [data, setData] = useSta"v  const [selectedMatrics, setSelectedMatrics]lbimport ComponentCard from "../../../../../compadimport ComponentCard from "../../../../../components/common/ComponentCard";
+(fimport AdvancedDataTabltF(fimport AdvancedDataTable from "../../../../../components/common/AdvancedDa simport { TableColumn } from "react-data-tabls(import { useEffect, useS 2import { useEffect, useState, useCallback, useMemo } froe import { deleteAction } from "../../../../../api/ualim, import { fetchMatricss } from "../services/matricsApi";
+impore.import { FaEye, FaEdit, FaPlus, FaTrash } from "react-h(import { showToast } f  impore.import { FaEye, FaEdit, FaPlus, FaTrash } from "reaulimport MatricsDetail fr
 
-  useEffect(() => {
-    getMatricsData();
-  }, [getMatricsData]);
+import MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dispatch any) => {
+    setSelect  const [data, sp
+import MatricsDetail ;
 
-  const handleView = (row: any) => {
-    setSelectedMatrics(row);
-    setFormMode("view");
-  };
+  const handleBulkDelete = useCallback(async  = u  const dispatch any) => {
+    sele    setSelect  const [data, seco(fimport AdvancedDataTabltF(fimport AdvancedDataTable from "../../../../../components/common/AdvancedDa simport { TableColumn } from "react-data-tabls(import { useEffect, useS 2import { useEffect, useState, useCallbaleimpore.import { FaEye, FaEdit, FaPlus, FaTrash } from "react-h(import { showToast } f  impore.import { FaEye, FaEdit, FaPlus, FaTrash } from "reaulimport MatricsDetail fr
 
-  const handleEdit = (row: any) => {
-    setSelectedMatrics(row);
-    setFormMode("edit");
-  };
+import MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dispatch any) => {
+    setSelect  const [data, sp
+import MatricsDetail ;
 
-  const handleAdd = () => {
-    setSelectedMatrics(null);
-    setFormMode("add");
-  };
+   n
+import MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dispatch any) => {
+    setSelect  const [data, sp
+import MatricsDetail },
+ 
+export default function MatricsList() or:   = u  const dispatch any) => {
+    setr    setSelect  const [data, sp"uimport MatricsDetail ;
 
-  const handleFormSaved = () => {
-    getMatricsData();
-    setFormMode(null);
-    setSelectedMatrics(null);
-  };
+  con (
+  const handleBulkDe--"    sele    setSelect  const [data, seco(fimport AdvancedDataTabltF(fimporio
+import MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dispatch any) => {
+    setSelect  const [data, sp
+import MatricsDetail ;
 
-  const handleFormCancel = () => {
-    setFormMode(null);
-    setSelectedMatrics(null);
-  };
+   n
+import MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dispatch any) => {
+    setSelect  const [data, sp
+import MatricsDetail },
+ 
+export default function MatricsList() or:   = u  const dispatch any) => {
+   aEd 
+export default function MatricsList() -110  = u  const dispatch any) => {
+    se        <button onClick={() => hanimport MatricsDetail ;
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete matrics ${row.name}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(showToast({ message: "Matrics deleted successfully", type: "success" }));
-        getMatricsData(); // Refresh data
-      } catch (error) {
-        dispatch(showToast({ message: "Failed to delete matrics", type: "error" }));
-      }
-    }
-  };
+   n
+">
+   n
+import MatricsD climpNa 
+export default function MatricsList() ion"  = u  const dispatch any) => {
+    se
+     setSelect  const [data, sptrimport MatricsDetail },
+ 
+exp,
+ 
+export default funct        setr    setSelect  const [data, sp"uimport MatricsDetail ;
 
-  const userColumns: TableColumn<any>[] = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
-    {
-      name: "Name",
-      selector: (row) => row.name || "--",
-      sortable: true,
-      width: "25%",
-    },
-    {
-      name: "Value",
-      selector: (row) => row.value || "--",
-      sortable: true,
-      width: "20%",
-    },
-    {
-      name: "Unit",
-      selector: (row) => row.unit || "--",
-      sortable: true,
-      width: "15%",
-    },
-    {
-      name: "Description",
-      selector: (row) => row.description || "--",
-      sortable: true,
-      width: "25%",
-    },
-    {
-      name: "Action",
-      cell: (row) => (
-        <div className="flex gap-2">
-          <button onClick={() => handleView(row)} title="View">
-            <FaEye className="text-blue-600 hover:scale-110 transition" />
-          </button>
-          <button onClick={() => handleEdit(row)} title="Edit">
-            <FaEdit className="text-green-600 hover:scale-110 transition" />
-          </button>
-          <button onClick={() => handleDelete(row)} title="Delete">
-            <FaTrash className="text-red-600 hover:scale-110 transition" />
-          </button>
-        </div>
-      ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-    },
-  ];
+  con (
+re
+  con (
+  const handleBulkDe--"    sele    setSelect  const />
+      <dimport MatricsDetail from "./MatricsDetai
+ 
+export default function MatricsList() {
+  = u  const dpa 
+export default fu-3"}>
+          <Componen  = u  const dispatch any) => {
+    se      setSelect  const [data, sp  import MatricsDetail ;
 
-  return (
-    <>
-      <PageBreadcrumb pageTitle="Matrics List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
-          <ComponentCard>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handleAdd}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-              >
-                <FaPlus />
-                Add Matrics
-              </button>
-            </div>
-            <div className="overflow-x-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-400 rounded-md">
-              <DataTable
-                columns={userColumns.map((col) => ({
-                  ...col,
-                  name: typeof col.name === "string" ? col.name.toUpperCase() : col.name,
-                }))}
-                data={data}
-                pagination
-                theme={theme === "dark" ? "tailwindDark" : "default"}
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading matrics...</div>}
-                onRowClicked={(row) => handleView(row)}
-              />
-            </div>
-          </ComponentCard>
-        </div>
-        {formMode && (
-          <div className="lg:col-span-2">
-            <MatricsDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedMatrics}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
+       
+   n
+import MatricsD"
+ imp   
+export default function MatricsList() stor  = u  const dispatch any) => {
+    seab    setSelect  const [data, spenimport MatricsDetail },
+ 
+exp   
+export default funct{set   aEd 
+export default function MatricsList() -110  = u  const dispatch   export o    se        <button onClick={() => hanimport MatricsDetail ;
+
+   ntrics.
+   n
+">
+   n
+import MatricsD climpNa 
+export default functi    ">
+st mAimpons={
+                <div     se
+     setSelect  const [data, sptrimport MatricsDetail },
+ 
+exp,
+ 0 && (
+   
+exp,
+ 
+export default funct        setr    setSelect ={ha 
+eeBul
+  con (
+re
+  con (
+  const handleBulkDe--"    sele    setSelect  const />
+      <dim fore
+  cium t  consit      <dimport MatricsDetail from "./MatricsDetai
+ 
+eol 
+export default function MatricsList() {
+  = u  <Fa  = u  const me="w-4 h-4" />
+           export default fe           <Componen  .l    se      setSelect  const [data, sp  import     
+       
+   n
+import MatricsD"
+ imp   
+export default functio={h   n
+iddimp   imp   
+export   exportam    seab    setSelect  const [data, spenimport MatricsDetail },
+ 
+exp   -b 
+exp   
+export default funct{set   aEd 
+export default functi    expor  export default functio <FaPlus c
+   ntrics.
+   n
+">
+   n
+import MatricsD climpNa 
+export default functi    ">
+st mAimpons={
+                <div     se}
             />
-          </div>
-        )}
-      </div>
-    </>
+     n
+">
+ /Compon ntCard>export default functi   {st mAimpons={
+            iv            lg     setSelect  const [dat<M 
+exp,
+ 0 && (
+   
+exp,
+ 
+export default funct        sp={f 0 Mo   
+ex  ex   
+e   deeBul
+  con (
+re
+  con (
+  const handleBulkDe--"  andleForre
+  c}
+                 <dim fore
+  cium t  consit      <dimport Matric    cium t  cons   
+eol 
+export default fun </>
   );
 }
