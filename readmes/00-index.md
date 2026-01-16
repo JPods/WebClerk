@@ -13,11 +13,16 @@
 | 02 | `02-env-setup.md` | Environment variables |
 | 03 | `03-api-integration.md` | Connecting to wc3 wcapi |
 
+## Transaction Topics (`topics/`)
+
+- `transaction-services.md` - **Single Point of Authority services** (lines, tax, shipping, commissions, etc.)
+- `transaction-calculations.md` - Frontend calculation logic
+- `TransactionModelsAlignment.md` - wc3 ↔ r25 model mapping
+
 ## Additional Topics (`topics/`)
 
 - `admin-workbench.md` - Admin panel features
 - `admin-window.md` - Admin window component
-- `TransactionModelsAlignment.md` - wc3 ↔ r25 model mapping
 - `offline-optimistic-updates.md` - Offline-first patterns
 - `refs.md` - refs JSON field usage
 - `whitelist.md` - Schema whitelist testing

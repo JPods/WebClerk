@@ -2,7 +2,7 @@
  * WorkorderDetail - Refactored to use TransactionDetailBase
  * Extends base with work order-specific fields and functionality
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { 
   FaTools,
   FaClipboardList,
@@ -11,11 +11,19 @@ import {
 } from 'react-icons/fa';
 
 // Import base component and shared types
-import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
+import TransactionDetailBase from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import {
+  TransactionItemSearch,
+  resolveItemCode,
+  resolveItemDescription,
+  resolveUnitPrice,
+  resolveUnitCost,
+  ItemSearchResult,
+} from '../../../components';
 
 // Import types
-import type { Transaction } from '../../../types/transactionTypes';
+import type { Transaction, TransactionLine } from '../../../types/transactionTypes';
 
 // Work Order specific fields that extend base Transaction
 interface WorkOrder extends Transaction {
@@ -62,6 +70,16 @@ const PriorityBadge: React.FC<{ priority?: string }> = ({ priority }) => {
       {priority ?? 'normal'}
     </span>
   );
+};
+
+// Utility functions
+const formatCurrency = (value?: number | null): string => {
+  if (value === undefined || value === null) return '--';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(value);
 };
 
 // Custom Work Order Header Component
@@ -249,51 +267,104 @@ const WorkOrderHeader: React.FC<{
 const WorkOrderLinesContent: React.FC<{
   data: WorkOrder;
   isEditing: boolean;
-  onChange?: (field: keyof WorkOrder, value: unknown) => void;
-}> = ({ data }) => {
+  onLinesChange?: (lines: TransactionLine[]) => void;
+}> = ({ data, isEditing, onLinesChange }) => {
   const lines = data.lines ?? [];
 
-  if (lines.length === 0) {
-    return (
-      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-        <FaTools className="mx-auto text-4xl mb-4 opacity-50" />
-        <p>No line items</p>
-      </div>
-    );
-  }
+  // Handler for adding items from search - uses COST for work orders
+  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
+    if (!onLinesChange) return;
+    
+    const idaItem = resolveItemCode(item);
+    const description = resolveItemDescription(item);
+    const unitCost = resolveUnitCost(item);
+    const unitPrice = resolveUnitPrice(item);
+    const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
+    const unitMeasure = String(item.unit_of_measure ?? item.unitOfMeasure ?? item.unit_measure ?? 'EA');
+    
+    const newLine: TransactionLine = {
+      _dirty: true,
+      item: {
+        item_id: itemId as number | null,
+        ida_item: idaItem,
+        description: description,
+        unit_measure: unitMeasure,
+      },
+      quantity: {
+        ordered: quantity,
+      },
+      cost: {
+        unit: unitCost,
+        extended: unitCost * quantity,
+      },
+      price: {
+        unit: unitPrice,
+      },
+    } as unknown as TransactionLine;
+    
+    onLinesChange([...lines, newLine]);
+  }, [lines, onLinesChange]);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-200 dark:border-slate-700">
-            <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
-            <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
-            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty</th>
-            <th className="text-center p-3 text-slate-600 dark:text-slate-300">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line: any, index: number) => (
-            <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-              <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item_no ?? line.sku ?? '--'}</td>
-              <td className="p-3 text-slate-700 dark:text-slate-300">{line.description ?? '--'}</td>
-              <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity ?? '--'}</td>
-              <td className="p-3 text-center">
-                {line.completed ? (
-                  <span className="inline-flex items-center gap-1 text-green-600">
-                    <FaCheck size={12} /> Complete
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-slate-400">
-                    <FaClock size={12} /> Pending
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-6">
+      {/* Item Search Panel - only in edit mode */}
+      {isEditing && onLinesChange && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Add Items</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Search the catalog and add items to this work order.
+          </p>
+          <TransactionItemSearch onAddItem={handleAddItem} useCost={true} defaultQuantity={1} />
+        </div>
+      )}
+
+      {/* Lines Table */}
+      {!lines.length ? (
+        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+          <FaTools className="mx-auto text-4xl mb-4 opacity-50" />
+          <p>No line items</p>
+          {isEditing && (
+            <p className="mt-2 text-sm">Use the search above to find and add products</p>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
+                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
+                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty</th>
+                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Unit Cost</th>
+                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Amount</th>
+                <th className="text-center p-3 text-slate-600 dark:text-slate-300">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line: any, index: number) => (
+                <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item?.ida_item ?? line.item_no ?? line.sku ?? '--'}</td>
+                  <td className="p-3 text-slate-700 dark:text-slate-300">{line.item?.description ?? line.description ?? '--'}</td>
+                  <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity?.ordered ?? line.quantity ?? '--'}</td>
+                  <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.cost?.unit ?? line.unit_cost)}</td>
+                  <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.cost?.extended ?? line.amount)}</td>
+                  <td className="p-3 text-center">
+                    {line.completed ? (
+                      <span className="inline-flex items-center gap-1 text-green-600">
+                        <FaCheck size={12} /> Complete
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-slate-400">
+                        <FaClock size={12} /> Pending
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
@@ -319,8 +390,8 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
       renderHeader={(data, isEditing, onChange) => (
         <WorkOrderHeader data={data as WorkOrder} isEditing={isEditing} onChange={onChange as any} />
       )}
-      renderLines={(lines, isEditing, data) => (
-        <WorkOrderLinesContent data={data as WorkOrder} isEditing={isEditing} />
+      renderLines={(lines, isEditing, data, onLinesChange) => (
+        <WorkOrderLinesContent data={data as WorkOrder} isEditing={isEditing} onLinesChange={onLinesChange} />
       )}
       inline={props.inline}
       modeProp={props.modeProp}

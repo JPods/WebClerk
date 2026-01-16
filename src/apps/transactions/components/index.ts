@@ -48,5 +48,17 @@ export { default as PrintPreviewModal } from './PrintPreviewModal';
 // Attachments
 export { default as AttachmentsTab } from './AttachmentsTab';
 
+// Item Search (shared across all transaction types)
+export { default as TransactionItemSearch } from './TransactionItemSearch';
+export type { ItemSearchResult } from './TransactionItemSearch';
+export {
+  resolveItemCode,
+  resolveItemDescription,
+  resolveItemKey,
+  resolveUnitPrice,
+  resolveUnitCost,
+  resolveQtyOnHand,
+} from './TransactionItemSearch';
+
 // Quick Add Recent Items
 export { default as QuickAddRecent } from './QuickAddRecent';
