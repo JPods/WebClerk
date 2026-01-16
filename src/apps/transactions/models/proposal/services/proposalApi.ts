@@ -55,6 +55,11 @@ export const convertProposalToOrder = async (_id: number): Promise<{ status: num
   return { status: 200, data: { message: 'Conversion not yet implemented' } };
 };
 
+export const generateProposalPdf = async (_id: number): Promise<{ status: number; data: any }> => {
+  // PDF generation - placeholder until backend endpoint is implemented
+  return { status: 200, data: { message: 'PDF generation not yet implemented' } };
+};
+
 // Proposal Lines API
 export const fetchProposalLines = async (proposalId: number): Promise<{ status: number; data: { results: ProposalLine[]; total: number } }> => {
   const res = await getRecords('proposal_line', { parent: proposalId });

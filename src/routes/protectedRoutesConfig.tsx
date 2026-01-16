@@ -79,6 +79,7 @@ import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesO
 import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 import ActionListPage from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
+import APILogList from "../apps/core/models/api_log/pages/APILogList";
 import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import Placeholder from "../pages/Placeholder";
 
@@ -99,6 +100,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.coreReportDetail, element: <CoreReportDetail /> },
   { path: PageRoutes.coreTemplateList, element: <CoreTemplateList /> },
   { path: PageRoutes.coreTemplateDetail, element: <CoreTemplateDetail /> },
+  { path: PageRoutes.coreApiLogList, element: <APILogList /> },
   { path: PageRoutes.commDomainList, element: <DomainList /> },
   { path: PageRoutes.commDomainDetail, element: <DomainDetail /> },
   { path: PageRoutes.commEmailList, element: <EmailList /> },

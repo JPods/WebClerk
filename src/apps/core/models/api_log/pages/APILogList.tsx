@@ -1,0 +1,235 @@
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ComponentCard from "@/components/common/ComponentCard";
+import AdvancedDataTable from "@/components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { getRecords } from "@/api/wcapi";
+import { FaEye, FaCheck, FaTimes, FaSync } from "react-icons/fa";
+import { showToast } from "@/store/slices/toastSlice";
+import { useDispatch } from "react-redux";
+import APILogDetail from "./APILogDetail";
+import Badge from "@/components/ui/badge/Badge";
+
+interface APILogRecord {
+  id: number;
+  source: string;
+  destination: string;
+  method: string;
+  endpoint: string;
+  status_code: number | null;
+  duration_ms: number | null;
+  error_message: string;
+  correlation_id: string;
+  dt_created: string;
+  user_id?: number;
+}
+
+export default function APILogList() {
+  const dispatch = useDispatch();
+  const [data, setData] = useState<APILogRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<APILogRecord | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getRecords("api_log", { 
+        order_by: "-dt_created",
+        limit: 500 
+      });
+      setData(res.results || []);
+    } catch (error) {
+      dispatch(showToast({ message: "Failed to load API logs", type: "error" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleView = (row: APILogRecord) => {
+    setSelectedLog(row);
+    setShowDetail(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetail(false);
+    setSelectedLog(null);
+  };
+
+  // Status badge color
+  const getStatusBadge = (statusCode: number | null) => {
+    if (!statusCode) return <Badge color="light">N/A</Badge>;
+    if (statusCode >= 200 && statusCode < 300) {
+      return <Badge color="success">{statusCode}</Badge>;
+    } else if (statusCode >= 400 && statusCode < 500) {
+      return <Badge color="warning">{statusCode}</Badge>;
+    } else if (statusCode >= 500) {
+      return <Badge color="error">{statusCode}</Badge>;
+    }
+    return <Badge color="info">{statusCode}</Badge>;
+  };
+
+  // Source badge color
+  const getSourceBadge = (source: string) => {
+    switch (source) {
+      case "r25":
+        return <Badge color="primary">R25</Badge>;
+      case "wc3":
+        return <Badge color="info">WC3</Badge>;
+      case "ext":
+        return <Badge color="light">External</Badge>;
+      default:
+        return <Badge color="light">{source}</Badge>;
+    }
+  };
+
+  // Method badge color
+  const getMethodBadge = (method: string) => {
+    switch (method?.toUpperCase()) {
+      case "GET":
+        return <Badge color="success">{method}</Badge>;
+      case "POST":
+        return <Badge color="primary">{method}</Badge>;
+      case "PUT":
+      case "PATCH":
+        return <Badge color="warning">{method}</Badge>;
+      case "DELETE":
+        return <Badge color="error">{method}</Badge>;
+      default:
+        return <Badge color="light">{method}</Badge>;
+    }
+  };
+
+  const formatDuration = (ms: number | null) => {
+    if (ms === null || ms === undefined) return "-";
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+  };
+
+  const columns: TableColumn<APILogRecord>[] = useMemo(
+    () => [
+      {
+        name: "Time",
+        selector: (row: APILogRecord) => row.dt_created,
+        cell: (row: APILogRecord) => (
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            {formatDate(row.dt_created)}
+          </span>
+        ),
+        sortable: true,
+        width: "160px",
+      },
+      {
+        name: "Source",
+        selector: (row: APILogRecord) => row.source,
+        cell: (row: APILogRecord) => getSourceBadge(row.source),
+        sortable: true,
+        width: "80px",
+      },
+      {
+        name: "Method",
+        selector: (row: APILogRecord) => row.method,
+        cell: (row: APILogRecord) => getMethodBadge(row.method),
+        sortable: true,
+        width: "80px",
+      },
+      {
+        name: "Endpoint",
+        selector: (row: APILogRecord) => row.endpoint,
+        cell: (row: APILogRecord) => (
+          <span className="font-mono text-xs truncate max-w-[300px]" title={row.endpoint}>
+            {row.endpoint}
+          </span>
+        ),
+        sortable: true,
+        grow: 2,
+      },
+      {
+        name: "Status",
+        selector: (row: APILogRecord) => row.status_code || 0,
+        cell: (row: APILogRecord) => getStatusBadge(row.status_code),
+        sortable: true,
+        width: "80px",
+      },
+      {
+        name: "Duration",
+        selector: (row: APILogRecord) => row.duration_ms || 0,
+        cell: (row: APILogRecord) => (
+          <span className={`text-xs ${(row.duration_ms || 0) > 1000 ? "text-red-500" : "text-gray-600 dark:text-gray-400"}`}>
+            {formatDuration(row.duration_ms)}
+          </span>
+        ),
+        sortable: true,
+        width: "90px",
+      },
+      {
+        name: "Error",
+        selector: (row: APILogRecord) => row.error_message || "",
+        cell: (row: APILogRecord) =>
+          row.error_message ? (
+            <FaTimes className="text-red-500" title={row.error_message} />
+          ) : (
+            <FaCheck className="text-green-500" />
+          ),
+        width: "60px",
+        center: true,
+      },
+      {
+        name: "Actions",
+        cell: (row: APILogRecord) => (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleView(row)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20"
+              title="View Details"
+            >
+              <FaEye size={14} />
+            </button>
+          </div>
+        ),
+        width: "70px",
+        center: true,
+      },
+    ],
+    []
+  );
+
+  return (
+    <>
+      <PageBreadcrumb pageTitle="API Logs" />
+      <ComponentCard title="API Request Logs">
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={fetchData}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <FaSync size={12} />
+            Refresh
+          </button>
+        </div>
+        <AdvancedDataTable
+          data={data}
+          columns={columns}
+          loading={loading}
+          enableExport={true}
+          enableSelection={false}
+        />
+      </ComponentCard>
+
+      {/* Detail Modal */}
+      {showDetail && selectedLog && (
+        <APILogDetail log={selectedLog} onClose={handleCloseDetail} />
+      )}
+    </>
+  );
+}

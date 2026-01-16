@@ -114,6 +114,7 @@ export class PageRoutes {
   static readonly coreSettingDetail: string = "/core/setting/detail/:id?";
   static readonly coreTemplateList: string = "/core/template/list";
   static readonly coreTemplateDetail: string = "/core/template/detail/:id?";
+  static readonly coreApiLogList: string = "/core/api-log/list";
 
   // Docs
   static readonly documentList: string = "/docs/document/list";
