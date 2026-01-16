@@ -259,15 +259,17 @@ def _process_pending_for_item(
             alloc = Decimal(str(quantity.get('allocated', 0) or 0))
             quantity['available'] = float(Decimal(str(quantity['on_hand'])) - alloc)
         
-        # Update the item
-        item.quantity = quantity
-        item.save(update_fields=['quantity', 'dt_modified', 'version'])
+        # Update the item using .update() to avoid full save() with all its hooks
+        Item.objects.filter(pk=item_pk).update(quantity=quantity)
         
         # Mark all pending records as processed
         now_ts = int(timezone.now().timestamp() * 1000)
         for pending in pending_records:
             pending.dt_processed = now_ts
             pending.save(update_fields=['dt_processed', 'dt_modified', 'version'])
+    
+    # Refresh item from DB to get updated quantity for trace
+    item.refresh_from_db()
     
     # TRACE: Processing complete
     deltas = {}
