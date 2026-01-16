@@ -42,7 +42,11 @@ src/apps/transactions/
 
 ### useLineCalculator Hook
 
-> **Note**: This hook is essential for **purchase orders** where `grossCost` and `discountCost` drive the line totals. For POs, the cost fields are the primary values (not price), so having access to intermediate cost calculations enables proper PO line displays and vendor discount tracking.
+> **Note**: This hook calculates both price and cost fields for flexibility across transaction types:
+> - **Sales transactions** (Sales Order, Invoice, Proposal): Use `price` fields as primary values - these are customer-facing documents
+> - **Purchase transactions** (Purchase Order, Work Order): Use `cost` fields as primary values - these are internal/vendor-facing documents
+>
+> For POs and Work Orders, the `grossCost` and `discountCost` calculations enable proper vendor discount tracking and line total displays.
 
 ```typescript
 // src/apps/transactions/hooks/useLineCalculator.ts

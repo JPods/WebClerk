@@ -14,6 +14,14 @@ import {
 // Import base component and shared types
 import TransactionDetailBase, { TransactionTab } from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import { InvoiceItemSearch } from '../components/InvoiceItemSearch';
+import { 
+  resolveItemCode, 
+  resolveItemDescription, 
+  resolveUnitPrice, 
+  resolveUnitCost 
+} from '../utils/itemSearchHelpers';
+import type { ItemSearchResult } from '../types/itemSearchType';
 
 // Import types
 import type { 
@@ -241,24 +249,73 @@ const InvoiceHeader: React.FC<{
 const InvoiceLines: React.FC<{
   lines: TransactionLine[];
   isEditing: boolean;
-}> = ({ lines, isEditing }) => {
-  if (!lines.length) {
-    return (
-      <div className="text-center py-12 text-slate-400">
-        <FaFileInvoiceDollar size={32} className="mx-auto mb-3 opacity-50" />
-        <p>No line items on this invoice</p>
-        {isEditing && (
-          <button className="mt-4 px-4 py-2 text-sm text-blue-500 hover:text-blue-600 border border-blue-500 rounded-lg">
-            + Add Line Item
-          </button>
-        )}
-      </div>
-    );
-  }
+  onLinesChange?: (lines: TransactionLine[]) => void;
+}> = ({ lines, isEditing, onLinesChange }) => {
+  // Handler for adding items from search
+  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
+    if (!onLinesChange) return;
+    
+    // Use helper functions to extract item data consistently
+    const idaItem = resolveItemCode(item);
+    const description = resolveItemDescription(item);
+    const unitPrice = resolveUnitPrice(item);
+    const unitCost = resolveUnitCost(item);
+    
+    // Extract item ID
+    const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
+    
+    // Extract unit of measure
+    const unitMeasure = String(item.unit_of_measure ?? item.unitOfMeasure ?? item.unit_measure ?? 'EA');
+    
+    // Convert item to line and add to lines array
+    const newLine: TransactionLine = {
+      _dirty: true,
+      item: {
+        item_id: itemId as number | null,
+        ida_item: idaItem,
+        description: description,
+        unit_measure: unitMeasure,
+      },
+      quantity: {
+        ordered: quantity,
+      },
+      price: {
+        unit: unitPrice,
+        extended: unitPrice * quantity,
+      },
+      cost: {
+        unit: unitCost,
+      },
+    } as unknown as TransactionLine;
+    
+    onLinesChange([...lines, newLine]);
+  }, [lines, onLinesChange]);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="space-y-6">
+      {/* Item Search Panel - only in edit mode */}
+      {isEditing && onLinesChange && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Add Items</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Search the catalog and add items to this invoice.
+          </p>
+          <InvoiceItemSearch onAddItem={handleAddItem} />
+        </div>
+      )}
+
+      {/* Lines Table */}
+      {!lines.length ? (
+        <div className="text-center py-12 text-slate-400">
+          <FaFileInvoiceDollar size={32} className="mx-auto mb-3 opacity-50" />
+          <p>No line items on this invoice</p>
+          {isEditing && (
+            <p className="mt-2 text-sm">Use the search above to find and add products</p>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
         <thead className="bg-slate-50 dark:bg-slate-900/50">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-16">#</th>
@@ -314,6 +371,8 @@ const InvoiceLines: React.FC<{
           </tr>
         </tfoot>
       </table>
+        </div>
+      )}
     </div>
   );
 };
@@ -480,8 +539,13 @@ const InvoiceDetail: React.FC<{ isAdmin?: boolean }> = ({ isAdmin = false }) => 
   ), []);
 
   // Custom lines renderer - memoized
-  const renderLines = useCallback((lines: TransactionLine[], isEditing: boolean) => (
-    <InvoiceLines lines={lines} isEditing={isEditing} />
+  const renderLines = useCallback((
+    lines: TransactionLine[], 
+    isEditing: boolean, 
+    _data?: Transaction,
+    onLinesChange?: (lines: TransactionLine[]) => void
+  ) => (
+    <InvoiceLines lines={lines} isEditing={isEditing} onLinesChange={onLinesChange} />
   ), []);
 
   // Check if invoice can be edited - memoized

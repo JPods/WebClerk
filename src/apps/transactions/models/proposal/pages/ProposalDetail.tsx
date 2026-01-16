@@ -2,7 +2,7 @@
  * ProposalDetail - Refactored to use TransactionDetailBase
  * Extends base with proposal-specific fields and functionality
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { 
   FaFileAlt,
   FaUser,
@@ -12,10 +12,19 @@ import {
 // Import base component and shared types
 import TransactionDetailBase from '../../../components/TransactionDetailBase';
 import FieldLabel from '../../../components/FieldLabel';
+import { 
+  TransactionItemSearch, 
+  resolveItemCode, 
+  resolveItemDescription, 
+  resolveUnitPrice, 
+  resolveUnitCost,
+  type ItemSearchResult 
+} from '../../../components/TransactionItemSearch';
 
 // Import types
 import type { 
-  Transaction, 
+  Transaction,
+  TransactionLine, 
 } from '../../../types/transactionTypes';
 
 // Proposal specific fields that extend base Transaction
@@ -381,43 +390,92 @@ const ProposalHeader: React.FC<{
 const ProposalLinesContent: React.FC<{
   data: Proposal;
   isEditing: boolean;
-  onChange?: (field: keyof Proposal, value: unknown) => void;
-}> = ({ data }) => {
+  onLinesChange?: (lines: TransactionLine[]) => void;
+}> = ({ data, isEditing, onLinesChange }) => {
   const lines = data.lines ?? [];
 
-  if (lines.length === 0) {
-    return (
-      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-        <FaFileAlt className="mx-auto text-4xl mb-4 opacity-50" />
-        <p>No line items</p>
-      </div>
-    );
-  }
+  // Handler for adding items from search
+  const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
+    if (!onLinesChange) return;
+    
+    const idaItem = resolveItemCode(item);
+    const description = resolveItemDescription(item);
+    const unitPrice = resolveUnitPrice(item);
+    const unitCost = resolveUnitCost(item);
+    const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
+    const unitMeasure = String(item.unit_of_measure ?? item.unitOfMeasure ?? item.unit_measure ?? 'EA');
+    
+    const newLine: TransactionLine = {
+      _dirty: true,
+      item: {
+        item_id: itemId as number | null,
+        ida_item: idaItem,
+        description: description,
+        unit_measure: unitMeasure,
+      },
+      quantity: {
+        ordered: quantity,
+      },
+      price: {
+        unit: unitPrice,
+        extended: unitPrice * quantity,
+      },
+      cost: {
+        unit: unitCost,
+      },
+    } as unknown as TransactionLine;
+    
+    onLinesChange([...lines, newLine]);
+  }, [lines, onLinesChange]);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-200 dark:border-slate-700">
-            <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
-            <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
-            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty</th>
-            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Price</th>
-            <th className="text-right p-3 text-slate-600 dark:text-slate-300">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line: any, index: number) => (
-            <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-              <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item_no ?? line.sku ?? line.item_name ?? '--'}</td>
-              <td className="p-3 text-slate-700 dark:text-slate-300">{line.description ?? '--'}</td>
-              <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity ?? '--'}</td>
-              <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.price?.sell ?? line.unit_price ?? line.price)}</td>
-              <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.amount ?? line.line_total)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-6">
+      {/* Item Search Panel - only in edit mode */}
+      {isEditing && onLinesChange && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Add Items</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Search the catalog and add items to this proposal.
+          </p>
+          <TransactionItemSearch onAddItem={handleAddItem} useCost={false} defaultQuantity={1} />
+        </div>
+      )}
+
+      {/* Lines Table */}
+      {!lines.length ? (
+        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+          <FaFileAlt className="mx-auto text-4xl mb-4 opacity-50" />
+          <p>No line items</p>
+          {isEditing && (
+            <p className="mt-2 text-sm">Use the search above to find and add products</p>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Item</th>
+                <th className="text-left p-3 text-slate-600 dark:text-slate-300">Description</th>
+                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Qty</th>
+                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Price</th>
+                <th className="text-right p-3 text-slate-600 dark:text-slate-300">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line: any, index: number) => (
+                <tr key={line.id || index} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="p-3 font-mono text-slate-900 dark:text-white">{line.item?.ida_item ?? line.item_no ?? line.sku ?? line.item_name ?? '--'}</td>
+                  <td className="p-3 text-slate-700 dark:text-slate-300">{line.item?.description ?? line.description ?? '--'}</td>
+                  <td className="p-3 text-right text-slate-900 dark:text-white">{line.quantity?.ordered ?? line.quantity ?? '--'}</td>
+                  <td className="p-3 text-right text-slate-900 dark:text-white">{formatCurrency(line.price?.unit ?? line.price?.sell ?? line.unit_price ?? line.price)}</td>
+                  <td className="p-3 text-right font-medium text-slate-900 dark:text-white">{formatCurrency(line.price?.extended ?? line.amount ?? line.line_total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
@@ -503,8 +561,8 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
       renderHeader={(data, isEditing, onChange) => (
         <ProposalHeader data={data as Proposal} isEditing={isEditing} onChange={onChange as any} />
       )}
-      renderLines={(lines, isEditing, data) => (
-        <ProposalLinesContent data={data as Proposal} isEditing={isEditing} />
+      renderLines={(lines, isEditing, data, onLinesChange) => (
+        <ProposalLinesContent data={data as Proposal} isEditing={isEditing} onLinesChange={onLinesChange} />
       )}
       inline={props.inline}
       modeProp={props.modeProp}
