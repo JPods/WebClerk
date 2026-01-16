@@ -356,6 +356,7 @@ class CoreModel(models.Model):
     # Unified active flag (subclasses can override default or help_text). Not all models currently
     # declare this; adding here allows a consistent queryset helper. If a concrete model already
     # defines is_active, its field overrides this definition (no duplicate schema field in migration).
+    is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is logically locked")
     is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
     security_level = models.IntegerField(default=0, blank=True, db_index=True, help_text="Security level or classification")
     # Legacy suffix style (dt_created / dt_modified) fully removed; ALWAYS use dt_created / dt_modified.
