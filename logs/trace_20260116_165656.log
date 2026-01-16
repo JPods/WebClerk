@@ -1,0 +1,121 @@
+
+═══ TRACE ENABLED ═══
+Watching items: [249, 250, 251]
+Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/logs/trace_20260116_165656.log
+
+
+======================================================================
+  TRANSACTION TRACE LOG
+  Started: 2026-01-16 16:56:56
+  Items:   [249, 250, 251]
+  Log:     /Users/williamjames/Documents/CommerceExpert/webClerk3/logs/trace_20260116_165656.log
+======================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│  LINE ADD  │  16:56:56.847                                           │
+└─────────────────────────────────────────────────────────────────┘
+  Transaction: invoice #30 (TEST-INV-001)
+  Item:        #249 (BB100)
+  Line PK:     62
+  Quantity:    5.0
+  Unit Price:  $0.0000
+  Unit Cost:   $0.0000
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING CREATED  │  16:56:57.023                                    │
+└─────────────────────────────────────────────────────────────────┘
+  Pending PK:  30
+  Purpose:     inventory_line_add
+  Type:        IV
+  Item:        #249 (BB100)
+  Deltas:      {'invoiced': 5.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  LINE ADD  │  16:56:57.435                                           │
+└─────────────────────────────────────────────────────────────────┘
+  Transaction: invoice #30 (TEST-INV-001)
+  Item:        #250 (BB005)
+  Line PK:     63
+  Quantity:    10.0
+  Unit Price:  $0.0000
+  Unit Cost:   $0.0000
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING CREATED  │  16:56:57.602                                    │
+└─────────────────────────────────────────────────────────────────┘
+  Pending PK:  31
+  Purpose:     inventory_line_add
+  Type:        IV
+  Item:        #250 (BB005)
+  Deltas:      {'invoiced': 10.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  LINE ADD  │  16:56:58.125                                           │
+└─────────────────────────────────────────────────────────────────┘
+  Transaction: invoice #30 (TEST-INV-001)
+  Item:        #251 (BB7F)
+  Line PK:     64
+  Quantity:    3.0
+  Unit Price:  $0.0000
+  Unit Cost:   $0.0000
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING CREATED  │  16:56:58.245                                    │
+└─────────────────────────────────────────────────────────────────┘
+  Pending PK:  32
+  Purpose:     inventory_line_add
+  Type:        IV
+  Item:        #251 (BB7F)
+  Deltas:      {'invoiced': 3.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS START  │  16:56:58.885                             │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #249 (BB100)
+  Records:     1 pending record(s) to process
+  Before:
+    {'on_hand': 100, 'available': 100, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0, 'on_wo': 0, 'on_so': 0, 'invoiced': 0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS COMPLETE  │  16:56:59.233                          │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #249 (BB100)
+  Applied:     {'invoiced': '+5.0'}
+  After:
+    {'on_hand': 95.0, 'available': 95.0, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0.0, 'on_wo': 0.0, 'on_so': 0.0, 'invoiced': 5.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS START  │  16:56:59.518                             │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #250 (BB005)
+  Records:     1 pending record(s) to process
+  Before:
+    {'on_hand': 100, 'available': 100, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0, 'on_wo': 0, 'on_so': 0, 'invoiced': 0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS COMPLETE  │  16:56:59.871                          │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #250 (BB005)
+  Applied:     {'invoiced': '+10.0'}
+  After:
+    {'on_hand': 90.0, 'available': 90.0, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0.0, 'on_wo': 0.0, 'on_so': 0.0, 'invoiced': 10.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS START  │  16:57:00.231                             │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #251 (BB7F)
+  Records:     1 pending record(s) to process
+  Before:
+    {'on_hand': 100, 'available': 100, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0, 'on_wo': 0, 'on_so': 0, 'invoiced': 0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS COMPLETE  │  16:57:00.513                          │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #251 (BB7F)
+  Applied:     {'invoiced': '+3.0'}
+  After:
+    {'on_hand': 97.0, 'available': 97.0, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0.0, 'on_wo': 0.0, 'on_so': 0.0, 'invoiced': 3.0}
+
+======================================================================
+  TRACE ENDED: 2026-01-16 16:57:00
+======================================================================
