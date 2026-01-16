@@ -2,31 +2,27 @@
 Ensure all database records have required default structures for JSONB fields.
 
 This command loops through all models inheriting from BaseModel and ensures
-that JSON envelope fields (metadata, refs, prefs, comments, actions) have
-their required structure. It also handles app-specific JSONB fields like
-OrgBase aspects.
+that JSON envelope fields have their required structure using the
+JSON_DEFAULT_FACTORIES pattern defined on each model class.
+
+The command collects factories from the entire class hierarchy (via MRO),
+so transaction models get their transaction-specific defaults automatically.
 
 IMPORTANT: This command only ADDS missing keys - it never overwrites existing data.
 
 Usage:
     python manage.py ensure_model_defaults
     python manage.py ensure_model_defaults --dry-run
-    python manage.py ensure_model_defaults --model=orgbase
+    python manage.py ensure_model_defaults --model=salesorder
     python manage.py ensure_model_defaults --verbose
+    python manage.py ensure_model_defaults --batch-size=500
+
+See: readmes/topics/models/json-default-factories.md
 """
-import json
 from django.core.management.base import BaseCommand
 from django.apps import apps
-from django.db import transaction
-from django.utils import timezone
 
-from common.models import (
-    default_metadata,
-    default_refs,
-    default_prefs,
-    default_comments,
-    BaseModel,
-)
+from common.models import BaseModel
 
 
 def deep_merge_defaults(existing: dict | list | None, defaults: dict | list) -> tuple[dict | list, bool]:
@@ -75,22 +71,20 @@ def deep_merge_defaults(existing: dict | list | None, defaults: dict | list) -> 
     return existing, False
 
 
-# App-specific default factories
-# OrgBase aspects
-ORG_ASPECT_DEFAULTS = {
-    "contacts": lambda: [],
-    "locations": lambda: [],
-    "domains": lambda: [],
-    "phones": lambda: [],
-    "emails": lambda: [],
-    "relations": lambda: {"parents": [], "children": [], "linked_ids": []},
-    "financial": lambda: {"credit": {}, "balances": {}, "due_buckets": [], "metrics": {}},
-    "docs": lambda: [],
-    "connections": lambda: {},
-    "data": lambda: {},
-    "metrics": lambda: {"counts": {}, "periods": {}},
-    "gl_accounts": lambda: {},
-}
+def collect_json_factories_for_model(model_class):
+    """
+    Collect JSON_DEFAULT_FACTORIES from the model's MRO.
+    Returns dict mapping field_name -> factory_function.
+    
+    Works like BaseModel._collect_json_default_factories() but at class level.
+    """
+    factories = {}
+    # Walk MRO in reverse so child classes override parent factories
+    for cls in reversed(model_class.__mro__):
+        class_factories = getattr(cls, 'JSON_DEFAULT_FACTORIES', None)
+        if class_factories and isinstance(class_factories, dict):
+            factories.update(class_factories)
+    return factories
 
 
 class Command(BaseCommand):
@@ -105,7 +99,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--model',
             type=str,
-            help='Only process a specific model (e.g., orgbase, salesorder)',
+            help='Only process a specific model (e.g., salesorder, invoice)',
         )
         parser.add_argument(
             '--verbose',
@@ -118,29 +112,28 @@ class Command(BaseCommand):
             default=0,
             help='Limit number of records to process per model (0 = no limit)',
         )
+        parser.add_argument(
+            '--batch-size',
+            type=int,
+            default=1000,
+            help='Number of records to process before committing (default: 1000)',
+        )
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         target_model = options.get('model', '').lower() if options.get('model') else None
         verbose = options['verbose']
         limit = options['limit']
+        batch_size = options['batch_size']
 
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY RUN - No changes will be made"))
 
-        # Get all models
+        # Get all models that inherit from BaseModel
         all_models = apps.get_models()
-        
-        # Filter to models that inherit from BaseModel (have the JSON fields)
-        basemodel_models = []
-        for model in all_models:
-            # Check if model has BaseModel JSON fields
-            has_metadata = hasattr(model, 'metadata')
-            has_refs = hasattr(model, 'refs')
-            if has_metadata or has_refs:
-                basemodel_models.append(model)
+        basemodel_models = [m for m in all_models if issubclass(m, BaseModel) and not m._meta.abstract]
 
-        self.stdout.write(f"Found {len(basemodel_models)} models with JSON envelope fields")
+        self.stdout.write(f"Found {len(basemodel_models)} concrete models inheriting from BaseModel")
 
         total_updated = 0
         total_skipped = 0
@@ -152,34 +145,20 @@ class Command(BaseCommand):
             if target_model and model_name != target_model:
                 continue
 
-            self.stdout.write(f"\nProcessing {model._meta.label}...")
+            # Collect JSON_DEFAULT_FACTORIES from MRO
+            json_factories = collect_json_factories_for_model(model)
             
-            # Get field names for this model
+            # Filter to only fields that exist on this model
             field_names = {f.name for f in model._meta.fields}
-            
-            # Determine which JSON fields exist on this model
-            json_fields_to_check = {}
-            
-            # BaseModel fields
-            if 'metadata' in field_names:
-                json_fields_to_check['metadata'] = default_metadata
-            if 'refs' in field_names:
-                json_fields_to_check['refs'] = default_refs
-            if 'prefs' in field_names:
-                json_fields_to_check['prefs'] = default_prefs
-            if 'comments' in field_names:
-                json_fields_to_check['comments'] = default_comments
-            if 'actions' in field_names:
-                json_fields_to_check['actions'] = lambda: {}
-            
-            # OrgBase specific aspects
-            for aspect_name, default_fn in ORG_ASPECT_DEFAULTS.items():
-                if aspect_name in field_names:
-                    json_fields_to_check[aspect_name] = default_fn
+            json_factories = {k: v for k, v in json_factories.items() if k in field_names}
 
-            if not json_fields_to_check:
-                self.stdout.write(f"  No JSON fields found, skipping")
+            if not json_factories:
+                if verbose:
+                    self.stdout.write(f"Skipping {model._meta.label} - no JSON factories")
                 continue
+
+            self.stdout.write(f"\nProcessing {model._meta.label}...")
+            self.stdout.write(f"  Fields: {', '.join(sorted(json_factories.keys()))}")
 
             # Process records
             queryset = model.objects.all()
@@ -188,35 +167,43 @@ class Command(BaseCommand):
             
             model_updated = 0
             model_skipped = 0
+            batch_updates = []
 
             for obj in queryset.iterator():
                 record_modified = False
                 changes = []
+                update_data = {}
 
-                for field_name, default_fn in json_fields_to_check.items():
+                for field_name, factory in json_factories.items():
                     current_value = getattr(obj, field_name, None)
-                    defaults = default_fn()
+                    defaults = factory()
                     
                     merged, was_modified = deep_merge_defaults(current_value, defaults)
                     
                     if was_modified:
-                        if not dry_run:
-                            setattr(obj, field_name, merged)
+                        update_data[field_name] = merged
                         record_modified = True
                         changes.append(field_name)
 
                 if record_modified:
-                    if not dry_run:
-                        # Save without triggering version bump or other side effects
-                        # Use update() to avoid model save() hooks
-                        update_fields = {f: getattr(obj, f) for f in changes}
-                        model.objects.filter(pk=obj.pk).update(**update_fields)
-                    
                     model_updated += 1
                     if verbose:
-                        self.stdout.write(f"  Updated {model_name}#{obj.pk}: {', '.join(changes)}")
+                        self.stdout.write(f"  Will update {model_name}#{obj.pk}: {', '.join(changes)}")
+                    
+                    if not dry_run:
+                        # Batch the updates for efficiency
+                        batch_updates.append((obj.pk, update_data))
+                        
+                        # Commit batch
+                        if len(batch_updates) >= batch_size:
+                            self._apply_batch(model, batch_updates)
+                            batch_updates = []
                 else:
                     model_skipped += 1
+
+            # Apply remaining batch
+            if batch_updates and not dry_run:
+                self._apply_batch(model, batch_updates)
 
             total_updated += model_updated
             total_skipped += model_skipped
@@ -231,3 +218,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"DRY RUN COMPLETE - Would update {total_updated} records, {total_skipped} already OK"))
         else:
             self.stdout.write(self.style.SUCCESS(f"COMPLETE - Updated {total_updated} records, {total_skipped} already OK"))
+
+    def _apply_batch(self, model, batch_updates):
+        """Apply a batch of updates using individual update() calls to avoid save() hooks."""
+        for pk, update_data in batch_updates:
+            model.objects.filter(pk=pk).update(**update_data)

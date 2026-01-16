@@ -41,6 +41,10 @@ CoreModel (minimal identity + timestamps + version)
     └── BaseModel (full composition)
 ```
 
+**JSON Auto-Population**: Each mixin defines `JSON_DEFAULT_FACTORIES` for its fields.
+On `save()`, BaseModel walks the MRO and auto-populates any empty JSON envelope fields.
+See [topics/models/json-default-factories.md](topics/models/json-default-factories.md) for details.
+
 #### Universal API System
 
 - **Endpoints**: `/wcapi/save/`, `/wcapi/manage/`, `/wcapi/get/`, `/wcapi/query/`
