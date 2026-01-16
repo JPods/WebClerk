@@ -11,6 +11,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serial
 from apps.core.services import wcapi as services
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
+from apps.core.utils.model_name_resolver import resolve_model_name
 from common.api_responses import api_response
 
 try:  # pragma: no cover - optional dependency in some deployments
@@ -49,7 +50,14 @@ class WCAPIGetView(APIView):
 
     @staticmethod
     def _normalize_model_key(model_key: str | None) -> str:
-        return (model_key or "").replace("/", "").replace("_", "").lower()
+        """Normalize model key using centralized resolver for consistent model name handling."""
+        if not model_key:
+            return ""
+        try:
+            return resolve_model_name(model_key)
+        except ValueError:
+            # Fallback to basic normalization if resolver fails
+            return (model_key or "").replace("/", "").replace("_", "").replace("-", "").lower()
 
     def _should_include_lines(self, model_key: str | None) -> bool:
         return self._normalize_model_key(model_key) in self.LINE_MODEL_KEYS
