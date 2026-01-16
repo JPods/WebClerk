@@ -146,8 +146,7 @@ export default function SpecificationList() {
                 data={data}
                 storageKey="specification_list"
                 onRowActivate={handleEdit}
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading specifications...</div>}
+                loading={loading}
               />
             </div>
           </ComponentCard>

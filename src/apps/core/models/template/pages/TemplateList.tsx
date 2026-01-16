@@ -152,7 +152,7 @@ export default function TemplateList() {
               columns={userColumns}
               data={data}
               storageKey="template_list"
-              progressPending={loading}
+              loading={loading}
               onRowActivate={handleEdit}
             />
           </ComponentCard>

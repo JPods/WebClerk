@@ -121,7 +121,7 @@ export default function LinkageList() {
               columns={userColumns}
               data={data}
               storageKey="linkage_list"
-              progressPending={loading}
+              loading={loading}
               onRowActivate={handleEdit}
             />
           </ComponentCard>

@@ -158,7 +158,7 @@ export default function SettingList() {
               columns={userColumns}
               data={data}
               storageKey="setting_list"
-              progressPending={loading}
+              loading={loading}
               onRowActivate={handleEdit}
             />
           </ComponentCard>

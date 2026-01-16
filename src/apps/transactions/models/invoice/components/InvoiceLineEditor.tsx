@@ -2,7 +2,7 @@ import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import InvoiceLineForm from "./InvoiceLineForm";
 import type { InvoiceLine } from "../types/invoiceLineType";
 
-interface InvoiceLineListProps {
+interface InvoiceLineEditorProps {
   lines: InvoiceLine[];
   editingId: number | null;
   newLine: InvoiceLine;
@@ -14,7 +14,7 @@ interface InvoiceLineListProps {
   onNewLineChange: (line: InvoiceLine) => void;
 }
 
-export default function InvoiceLineList({
+export default function InvoiceLineEditor({
   lines,
   editingId,
   newLine,
@@ -24,7 +24,7 @@ export default function InvoiceLineList({
   onSave,
   onCancel,
   onNewLineChange,
-}: InvoiceLineListProps) {
+}: InvoiceLineEditorProps) {
   const handleNewLineSave = (line: InvoiceLine) => {
     onSave(line);
   };

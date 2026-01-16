@@ -130,13 +130,9 @@ export default function GLAccountList() {
                 }))}
                 data={data}
                 storageKey="gl_account_list"
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading gl accounts...</div>}
-                onRowClicked={(row) => handleView(row)}
+                loading={loading}
                 onRowActivate={handleEdit}
-                keyField="id"
+                rowKeyField="id"
               />
             </div>
           </ComponentCard>

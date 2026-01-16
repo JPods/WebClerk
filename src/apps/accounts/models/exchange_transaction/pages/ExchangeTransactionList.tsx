@@ -161,13 +161,9 @@ export default function ExchangeTransactionList() {
                 }))}
                 data={data}
                 storageKey="exchange_transaction_list"
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading exchange transactions...</div>}
-                onRowClicked={(row) => handleView(row)}
+                loading={loading}
                 onRowActivate={handleEdit}
-                keyField="id"
+                rowKeyField="id"
               />
             </div>
           </ComponentCard>

@@ -121,7 +121,7 @@ export default function QuestionAnswerList() {
               columns={userColumns}
               data={data}
               storageKey="question_answer_list"
-              progressPending={loading}
+              loading={loading}
               onRowActivate={handleEdit}
             />
           </ComponentCard>

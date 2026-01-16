@@ -121,7 +121,7 @@ export default function TagList() {
               columns={userColumns}
               data={data}
               storageKey="tag_list"
-              progressPending={loading}
+              loading={loading}
               onRowActivate={handleEdit}
             />
           </ComponentCard>

@@ -1,6 +1,7 @@
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import DataTable, { TableColumn } from "react-data-table-component";
+import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
+import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { fetchPhones, deletePhone } from "../services/phoneApi";
 import { getRecord } from "../../../../../api/wcapi";
@@ -14,13 +15,11 @@ import {
 } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useTheme } from "../../../../../context/ThemeContext";
 import PhoneDetail from "./PhoneDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { Badge } from "lucide-react";
 import PhoneListMob from "./PhoneListMob";
 export default function PhoneList() {
-  const { theme } = useTheme();
   const [data, setData] = useState<dynamicData[]>([]);
   const [filteredData, setFilteredData] = useState<dynamicData[]>([]);
   const [filteredSearch, setFilteredSearch] = useState<string>("");
@@ -274,25 +273,16 @@ export default function PhoneList() {
                   />
                 </div>
               ) : (
-                <DataTable
+                <AdvancedDataTable
                   columns={userColumns.map((col) => ({
                     ...col,
                     name: typeof col.name === "string" && col.name,
                   }))}
                   data={filteredData}
-                  pagination
-                  theme={theme === "dark" ? "tailwindDark" : "default"}
-                  highlightOnHover
-                  pointerOnHover
-                  progressPending={loading}
-                  progressComponent={
-                    <div className="p-8 text-sm text-center text-gray-500">
-                      Loading phones...
-                    </div>
-                  }
-                  onRowClicked={(row) => handleView(row)}
-                  keyField="id"
-                  className="text-2xl p-2"
+                  storageKey="phone_list"
+                  loading={loading}
+                  onRowActivate={handleEdit}
+                  rowKeyField="id"
                 />
               )}
             </div>

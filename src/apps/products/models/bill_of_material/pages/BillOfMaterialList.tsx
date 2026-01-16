@@ -191,8 +191,7 @@ export default function BillOfMaterialList() {
                 data={data}
                 storageKey="bill_of_material_list"
                 onRowActivate={handleEdit}
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading bill of materials...</div>}
+                loading={loading}
               />
             </div>
           </ComponentCard>

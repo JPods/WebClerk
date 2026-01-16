@@ -152,8 +152,7 @@ export default function OrgItemList() {
                 data={data}
                 storageKey="org_item_list"
                 onRowActivate={handleEdit}
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading org items...</div>}
+                loading={loading}
               />
             </div>
           </ComponentCard>

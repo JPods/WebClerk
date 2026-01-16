@@ -146,8 +146,7 @@ export default function VariantList() {
                 data={data}
                 storageKey="variant_list"
                 onRowActivate={handleEdit}
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading variants...</div>}
+                loading={loading}
               />
             </div>
           </ComponentCard>

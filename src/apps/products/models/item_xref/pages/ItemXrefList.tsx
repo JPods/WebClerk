@@ -152,8 +152,7 @@ export default function ItemXrefList() {
                 data={data}
                 storageKey="item_xref_list"
                 onRowActivate={handleEdit}
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading item xrefs...</div>}
+                loading={loading}
               />
             </div>
           </ComponentCard>

@@ -126,11 +126,7 @@ export default function CampaignList() {
                 }))}
                 data={data}
                 storageKey="campaign_list"
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading campaigns...</div>}
-                onRowClicked={(row) => handleView(row)}
+                loading={loading}
                 onRowActivate={handleEdit}
               />
             </div>

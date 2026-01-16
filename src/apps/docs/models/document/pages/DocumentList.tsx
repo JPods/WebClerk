@@ -145,7 +145,7 @@ export default function DocumentList() {
               columns={userColumns}
               data={data}
               storageKey="document_list"
-              progressPending={loading}
+              loading={loading}
               onRowActivate={handleEdit}
             />
           </ComponentCard>

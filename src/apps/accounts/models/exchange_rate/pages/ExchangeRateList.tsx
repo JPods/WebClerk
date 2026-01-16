@@ -131,13 +131,9 @@ export default function ExchangeRateList() {
                 }))}
                 data={data}
                 storageKey="exchange_rate_list"
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading exchange rates...</div>}
-                onRowClicked={(row) => handleView(row)}
+                loading={loading}
                 onRowActivate={handleEdit}
-                keyField="id"
+                rowKeyField="id"
               />
             </div>
           </ComponentCard>

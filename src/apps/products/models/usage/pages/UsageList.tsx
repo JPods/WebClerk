@@ -152,8 +152,7 @@ export default function UsageList() {
                 data={data}
                 storageKey="usage_list"
                 onRowActivate={handleEdit}
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading usages...</div>}
+                loading={loading}
               />
             </div>
           </ComponentCard>

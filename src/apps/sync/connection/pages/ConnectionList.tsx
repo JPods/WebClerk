@@ -155,11 +155,7 @@ export default function ConnectionList() {
                 }))}
                 data={data}
                 storageKey="connection_list"
-                highlightOnHover
-                pointerOnHover
-                progressPending={loading}
-                progressComponent={<div className="p-8 text-center">Loading connections...</div>}
-                onRowClicked={(row) => handleView(row)}
+                loading={loading}
                 onRowActivate={handleEdit}
               />
             </div>

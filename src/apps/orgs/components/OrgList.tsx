@@ -280,22 +280,9 @@ const OrgList: React.FC<OrgListProps> = ({
           <AdvancedDataTable
             columns={columns}
             data={filteredData}
-            progressPending={loading}
-            paginationServer
-            paginationTotalRows={totalRows}
-            paginationPerPage={perPage}
-            onChangePage={(page: number) => setCurrentPage(page)}
-            onChangeRowsPerPage={(newPerPage: number) => setPerPage(newPerPage)}
-            highlightOnHover
-            pointerOnHover
-            onRowClicked={handleView}
+            loading={loading}
             storageKey="org_list"
-            onRowActivate={handleEdit}
-            noDataComponent={
-              <div className="py-10 text-center text-slate-500 dark:text-slate-400">
-                No {title.toLowerCase()} found
-              </div>
-            }
+            onRowActivate={handleView}
           />
         </ComponentCard>
       </div>
