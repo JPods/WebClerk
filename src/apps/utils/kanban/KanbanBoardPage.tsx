@@ -815,50 +815,69 @@ const KanbanBoardPage: React.FC = () => {
   );
 
   const persistTaskReorder = useCallback(
-    async (boardSnapshot: BoardData, taskId: string, dropResult: DropResult | null) => {
+    async (
+      previousBoard: BoardData,
+      nextBoard: BoardData,
+      item: DragItem,
+      dropResult: DropResult | null
+    ) => {
       if (!dropResult) {
         return;
       }
 
-      const targetColumn = boardSnapshot.columns[dropResult.columnId];
-      const task = boardSnapshot.tasks[taskId];
-      if (!targetColumn || !task) {
-        return;
+      const wrap = (value: unknown) => ({ mode: "update", value });
+      const destinationColumn = nextBoard.columns[dropResult.columnId];
+      if (!destinationColumn) return;
+
+      const destinationTaskIds = destinationColumn.taskIds;
+      const targetIndex = dropResult.index;
+      const prevTaskId = destinationTaskIds[targetIndex - 1];
+      const nextTaskId = destinationTaskIds[targetIndex + 1];
+
+      const prevSeq = prevTaskId ? nextBoard.tasks[prevTaskId]?.sequence : undefined;
+      const nextSeq = nextTaskId ? nextBoard.tasks[nextTaskId]?.sequence : undefined;
+
+      const BASE_SPACING = 1000;
+      const clampSequence = (value: number) => Math.max(1, Math.round(value));
+
+      let newSequence: number;
+      if (typeof prevSeq === "number" && typeof nextSeq === "number" && nextSeq > prevSeq + 1) {
+        // There is room between neighbors; pick a midpoint integer.
+        newSequence = clampSequence(prevSeq + Math.floor((nextSeq - prevSeq) / 2));
+      } else if (typeof prevSeq === "number" && typeof nextSeq !== "number") {
+        // Append to the end of the column with padded spacing.
+        newSequence = clampSequence(prevSeq + BASE_SPACING);
+      } else if (typeof prevSeq !== "number" && typeof nextSeq === "number") {
+        // Insert at the start; keep spacing before the next item.
+        newSequence = clampSequence(Math.max(nextSeq - BASE_SPACING, BASE_SPACING));
+      } else {
+        // Either no neighbors or neighbors are colliding; fall back to index-based spacing.
+        newSequence = clampSequence((targetIndex + 1) * BASE_SPACING);
       }
 
-      // Build full ordering payload for the target column so backend receives complete sequence.
-      const wrap = (value: unknown) => ({ mode: "update", value });
-      const payload = targetColumn.taskIds.map((id, index) => {
-        const targetTask = boardSnapshot.tasks[id];
-        const base: Record<string, unknown> = {
-          model_name: "action",
-          kanban_column: wrap(targetColumn.title),
-          kanban_column_id: wrap(targetColumn.id),
-          sequence: wrap(index),
-          order: wrap(index),
-          position: wrap(index),
-        };
-        if (targetTask?.id) {
-          base.id = targetTask.id;
-        }
-        if (selectedProjectName) {
-          base.project_name = wrap(selectedProjectName);
-        }
-        return base;
-      });
+      const targetTask = nextBoard.tasks[item.taskId];
+      if (!targetTask?.id) return;
+
+      const entry: Record<string, unknown> = {
+        model_name: "action",
+        id: targetTask.id,
+        kanban_column: wrap(destinationColumn.title),
+        kanban_column_id: wrap(destinationColumn.id),
+        sequence: wrap(newSequence),
+        order: wrap(newSequence),
+        position: wrap(newSequence),
+      };
+      if (selectedProjectName) {
+        entry.project_name = wrap(selectedProjectName);
+      }
 
       try {
-        const projectPayload: Record<string, unknown> = {
-          model_name: "project",
-          ...(selectedProjectId ? { id: selectedProjectId } : {}),
-          bulk: payload,
-        };
-        await patchAction(projectPayload);
+        await patchAction(entry);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
       }
     },
-    [selectedProjectId, selectedProjectName]
+    [selectedProjectName]
   );
 
   const handleDragEnd = useCallback(
@@ -869,7 +888,7 @@ const KanbanBoardPage: React.FC = () => {
       setBoard((prev) => {
         const next = handleBoardMove(prev, { item, result: dropResult });
         if (next !== prev) {
-          void persistTaskReorder(next, item.taskId, dropResult);
+          void persistTaskReorder(prev, next, item, dropResult);
         }
         return next;
       });

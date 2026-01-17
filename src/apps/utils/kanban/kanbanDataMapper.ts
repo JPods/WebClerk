@@ -344,12 +344,26 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
   return firstKey ? map[firstKey] : undefined;
 };
 
-export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
+  export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   const tasks: Record<string, KanbanTask> = {};
   const columns: Record<string, KanbanColumnType> = {};
   const columnOrder: string[] = [];
 
-  items.forEach((item) => {
+    const sortedItems = items
+      .map((item, index) => ({ item, index, sequence: extractSequenceValue(item) }))
+      .sort((a, b) => {
+        const aSeq = a.sequence;
+        const bSeq = b.sequence;
+        if (typeof aSeq === "number" && typeof bSeq === "number") {
+          if (aSeq !== bSeq) return aSeq - bSeq;
+          return a.index - b.index;
+        }
+        if (typeof aSeq === "number") return -1;
+        if (typeof bSeq === "number") return 1;
+        return a.index - b.index;
+      });
+
+    sortedItems.forEach(({ item }) => {
     if (!item?.id) return;
     if (isTrue(item.is_deleted) || isTrue(item.is_archived) || isFalse(item.is_active)) return;
 
