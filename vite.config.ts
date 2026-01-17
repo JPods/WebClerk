@@ -52,6 +52,15 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@excalidraw/excalidraw',
+      ],
+      exclude: ['@excalidraw/excalidraw/locales'],
+    },
     resolve: {
       alias: [
         { find: "@", replacement: path.resolve(__dirname, "./src") },
