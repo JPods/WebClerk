@@ -1,5 +1,6 @@
 import os
 import sys
+import socket
 from pathlib import Path
 from decouple import config
 import sentry_sdk
@@ -100,24 +101,45 @@ TEMPLATES = [
 WSGI_APPLICATION = 'webclerk3_api.wsgi.application'
 
 # Database selection
-# Previous logic defaulted to in-memory SQLite which caused missing tables in dev.
-# New logic: default to Postgres; only use in-memory SQLite during pytest (PYTEST_CURRENT_TEST) or when USE_SQLITE_TEST=1 explicitly.
+# - Use in-memory SQLite only for pytest (or when USE_SQLITE_TEST=1).
+# - Otherwise prefer local Postgres; if local is unreachable, fall back to remote automatically.
 _force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
 _explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
 _running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
 
-if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg):
-    # Postgres path (default)
+def _can_reach(host: str, port: str, timeout: float = 1.0) -> bool:
+    """Lightweight TCP probe used only for startup routing."""
+    try:
+        with socket.create_connection((host, int(port)), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+def _pg_config(prefix: str):
+    return {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config(f'{prefix}_DATABASE_NAME', default='commerce_expert'),
+        'USER': config(f'{prefix}_DATABASE_USER', default='postgres'),
+        'PASSWORD': config(f'{prefix}_DATABASE_PASS', default=''),
+        'HOST': config(f'{prefix}_DATABASE_HOST', default='localhost'),
+        'PORT': config(f'{prefix}_DATABASE_PORT', default='5432'),
+        'ATOMIC_REQUESTS': False,
+    }
+
+if _force_pg or (not _explicit_sqlite and not _running_pytest):
+    _db_mode = config('DB_MODE', default='local').lower()
+    _local_db = _pg_config('LOCAL')
+    _remote_db = _pg_config('REMOTE')
+
+    # Default selection based on DB_MODE, with auto-fallback from local to remote when unreachable.
+    _selected = _local_db if _db_mode == 'local' else _remote_db
+
+    if _db_mode == 'local' and not _can_reach(_local_db['HOST'], _local_db['PORT']):
+        print('[DB] Local Postgres unreachable; falling back to remote database settings.')
+        _selected = _remote_db
+
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DATABASE_NAME', default='commerce_expert'),
-            'USER': config('DATABASE_USER', default='postgres'),
-            'PASSWORD': config('DATABASE_PASS', default=''),
-            'HOST': config('DATABASE_HOST', default='localhost'),
-            'PORT': config('DATABASE_PORT', default='5432'),
-            'ATOMIC_REQUESTS': False,
-        }
+        'default': _selected,
     }
 else:
     # Fast in-memory database for tests
