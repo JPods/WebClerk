@@ -2,7 +2,7 @@
 
 ## Objective
 
-Identify useful business logic in WebClerk2 and create a plan to implement in WebClerk3 and React2025. Focus on Orders, include Proposals, Invoices, POs. Step by step, table by table. Include schema alignments, jsonb recommendations, function summaries, additional recommendations. Stub notices for commissions and special discounts. Ensure the plan is comprehensive and actionable.
+Identify useful business logic in WebClerk2 and create a plan to implement in WebClerk3 and React2025. Focus on Orders, Proposals, Invoices, POs, and WorkOrders. Step by step, table by table. Include schema alignments, jsonb recommendations, function summaries, additional recommendations. Stub notices for commissions and special discounts. Ensure the plan is comprehensive and actionable.
 
 ## Overview
 
@@ -43,7 +43,7 @@ The WebClerk2 `DInventory` table functionality has been implemented in WebClerk3
 | `PO` | `PO` | Purchase Order |
 | `WO` | `WO` | Work Order |
 | `IV` | `IV` | Invoice |
-| (n/a) | `PP` | Proposal (no inventory) |
+| (n/a) | `PP` | Proposal (forecast demand) |
 
 **Usage**:
 ```python
