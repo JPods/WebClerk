@@ -793,6 +793,7 @@ const KanbanBoardPage: React.FC = () => {
 
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
@@ -1467,6 +1468,26 @@ const KanbanBoardPage: React.FC = () => {
     error: editLanguagePickerError,
   };
 
+  const cleanActionPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
+    const mutable = payload as Record<string, unknown>;
+
+    if ("action_id" in mutable) {
+      const value = mutable.action_id as unknown;
+      if (value === "" || value === null || value === undefined) {
+        delete mutable.action_id;
+      }
+    }
+
+    if ("description_id" in mutable) {
+      const value = mutable.description_id as unknown;
+      if (value === "") {
+        delete mutable.description_id;
+      }
+    }
+
+    return mutable;
+  };
+
   const buildActionPayload = (
     mode: "create" | "edit",
     state: TaskFormState,
@@ -1615,12 +1636,12 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
     }
 
-    if (selectedProjectId) {
+    if (mode === "create" && selectedProjectId) {
       const numericId = Number(selectedProjectId);
       const projectPayload: Record<string, unknown> = {
         model_name: "project",
         id: Number.isNaN(numericId) ? selectedProjectId : numericId,
-        bulk: [payloadItem],
+        bulk: [cleanActionPayload(payloadItem)],
       };
 
       if (resolvedProjectName) {
@@ -1630,7 +1651,7 @@ const KanbanBoardPage: React.FC = () => {
       return { payload: projectPayload };
     }
 
-    return { payload: payloadItem };
+    return { payload: cleanActionPayload(payloadItem) };
   };
 
   const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -1650,8 +1671,13 @@ const KanbanBoardPage: React.FC = () => {
     try {
       setIsSavingCreate(true);
       const response = await patchAction(result.payload);
+      const body: any = response?.data ?? response;
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to save task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the save request.");
       }
       await fetchActions({
         projectId: selectedProjectId || undefined,
@@ -1687,8 +1713,13 @@ const KanbanBoardPage: React.FC = () => {
     try {
       setIsSavingEdit(true);
       const response = await patchAction(result.payload);
+      const body: any = response?.data ?? response;
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to update task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the update request.");
       }
       await fetchActions({
         projectId: selectedProjectId || undefined,
@@ -1704,6 +1735,51 @@ const KanbanBoardPage: React.FC = () => {
       setEditModalError(message);
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  const handleRemoveTaskFromKanban = async () => {
+    if (!editingTask || isSavingEdit || isRemovingTask) {
+      return;
+    }
+
+    setEditModalError(null);
+    const parsedId = Number(editingTask.id);
+    const payloadId = Number.isNaN(parsedId) ? editingTask.id : parsedId;
+
+    try {
+      setIsRemovingTask(true);
+      const response = await patchAction({
+        model_name: "action",
+        id: payloadId,
+        is_deleted: { mode: "update", value: true },
+        is_active: { mode: "update", value: false },
+        status: { mode: "update", value: "Removed" },
+        kanban_column: { mode: "update", value: "Removed" },
+        kanban_column_id: { mode: "update", value: "column-removed" },
+      });
+      const body: any = response?.data ?? response;
+      if (response?.status !== 200 && response?.status !== 201) {
+        throw new Error("Failed to remove task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the remove request.");
+      }
+      await fetchActions({
+        projectId: selectedProjectId || undefined,
+        contactId: selectedContactId || undefined,
+      });
+      handleCloseEditModal();
+    } catch (error) {
+      console.error("Failed to remove kanban task", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Unable to remove task. Please try again.";
+      setEditModalError(message);
+    } finally {
+      setIsRemovingTask(false);
     }
   };
 
@@ -2001,6 +2077,8 @@ const KanbanBoardPage: React.FC = () => {
         onLanguagePickerCancel={handleEditLanguagePickerCancel}
         extraContent={editModalExtraContent}
         currentTask={editingTask}
+        onRemoveFromKanban={handleRemoveTaskFromKanban}
+        isRemoving={isRemovingTask}
       />
 
       {/* Contact Manager Modal */}
