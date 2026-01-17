@@ -1,10 +1,56 @@
 from __future__ import annotations
 import json
+import logging
 from decimal import Decimal
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from django.forms.models import model_to_dict
 from django.db.models import Model, QuerySet
 from apps.core.utils import registry, policy
+
+logger = logging.getLogger(__name__)
+
+
+def _log_save_action(
+    request: Any,
+    model_name: str,
+    record_id: int,
+    action: str,
+    old_values: Optional[Dict[str, Any]],
+    new_values: Dict[str, Any],
+) -> None:
+    """Log a save action to the audit log.
+    
+    Uses a savepoint to ensure audit logging failures don't poison the transaction.
+    """
+    from django.db import connection
+    
+    # Use a savepoint so audit logging failures don't poison any active transaction
+    sid = connection.savepoint()
+    try:
+        from apps.core.models.audit import AuditLog
+        
+        changes = {'new': new_values}
+        if old_values:
+            changes['old'] = old_values
+        
+        AuditLog.log_action(
+            request=request,
+            model_name=model_name,
+            id_record=record_id,
+            action=action,
+            changes=changes,
+            metadata={},
+        )
+        connection.savepoint_commit(sid)
+    except Exception as e:
+        # Roll back the savepoint so any active transaction can continue
+        connection.savepoint_rollback(sid)
+        # Don't fail the save if audit logging fails
+        logger.warning(
+            "Failed to create audit log: model=%s id=%s action=%s error=%s",
+            model_name, record_id, action, str(e)
+        )
+
 
 def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     data = model_to_dict(obj)
@@ -59,8 +105,8 @@ def get_item(model_key: str, *, request, id: Any) -> Optional[Model]:
     ModelCls, qs = get_queryset(model_key, request=request)
     try:
         obj = qs.get(pk=id)
-        # Force refresh from database to get latest data
-        obj.refresh_from_db()
+        # Note: removed refresh_from_db() as it clears prefetch_related cache
+        # The get() query already fetches fresh data from the database
         return obj
     except ModelCls.DoesNotExist:  # type: ignore[attr-defined]
         return None
@@ -129,14 +175,20 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
         obj = qs.filter(pk=id).first()
         if obj is None:
             raise LookupError("not found")
+        # Capture old values for audit logging
+        old_values = {k: getattr(obj, k, None) for k in clean.keys()}
         for k, v in clean.items():
             setattr(obj, k, v)
         obj.save()
+        # Log the update to audit trail
+        _log_save_action(request, model_key, obj.pk, 'updated', old_values, clean)
         # For updates we do not currently attempt auto-linking; return linked=False
         return obj.pk, "updated", False
 
     # Create the object
     obj = ModelCls.objects.create(**clean)
+    # Log the creation to audit trail
+    _log_save_action(request, model_key, obj.pk, 'created', None, clean)
 
     # Track whether we successfully linked this creation to a contact
     linked = False
@@ -258,5 +310,7 @@ def delete_item(model_key: str, *, request, id: Any) -> bool:
     obj = qs.filter(pk=id).first()
     if not obj:
         return False
+    # Log the deletion to audit trail before actually deleting
+    _log_save_action(request, model_key, id, 'deleted', None, {})
     obj.delete()
     return True

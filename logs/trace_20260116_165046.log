@@ -1,0 +1,97 @@
+
+═══ TRACE ENABLED ═══
+Watching items: [249, 250, 251]
+Log file: /Users/williamjames/Documents/CommerceExpert/webClerk3/logs/trace_20260116_165046.log
+
+
+======================================================================
+  TRANSACTION TRACE LOG
+  Started: 2026-01-16 16:50:46
+  Items:   [249, 250, 251]
+  Log:     /Users/williamjames/Documents/CommerceExpert/webClerk3/logs/trace_20260116_165046.log
+======================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│  LINE ADD  │  16:50:47.830                                           │
+└─────────────────────────────────────────────────────────────────┘
+  Transaction: salesorder #33 (TEST-SO-001)
+  Item:        #249 (BB100)
+  Line PK:     78
+  Quantity:    5.0
+  Unit Price:  $0.0000
+  Unit Cost:   $0.0000
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING CREATED  │  16:50:47.992                                    │
+└─────────────────────────────────────────────────────────────────┘
+  Pending PK:  24
+  Purpose:     inventory_line_add
+  Type:        SO
+  Item:        #249 (BB100)
+  Deltas:      {'on_so': 5.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  LINE ADD  │  16:50:48.352                                           │
+└─────────────────────────────────────────────────────────────────┘
+  Transaction: salesorder #33 (TEST-SO-001)
+  Item:        #250 (BB005)
+  Line PK:     79
+  Quantity:    10.0
+  Unit Price:  $0.0000
+  Unit Cost:   $0.0000
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING CREATED  │  16:50:48.514                                    │
+└─────────────────────────────────────────────────────────────────┘
+  Pending PK:  25
+  Purpose:     inventory_line_add
+  Type:        SO
+  Item:        #250 (BB005)
+  Deltas:      {'on_so': 10.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  LINE ADD  │  16:50:48.986                                           │
+└─────────────────────────────────────────────────────────────────┘
+  Transaction: salesorder #33 (TEST-SO-001)
+  Item:        #251 (BB7F)
+  Line PK:     80
+  Quantity:    3.0
+  Unit Price:  $0.0000
+  Unit Cost:   $0.0000
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING CREATED  │  16:50:49.103                                    │
+└─────────────────────────────────────────────────────────────────┘
+  Pending PK:  26
+  Purpose:     inventory_line_add
+  Type:        SO
+  Item:        #251 (BB7F)
+  Deltas:      {'on_so': 3.0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS START  │  16:50:49.682                             │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #249 (BB100)
+  Records:     1 pending record(s) to process
+  Before:
+    {'on_hand': 100, 'available': 100, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0, 'on_wo': 0, 'on_so': 0, 'invoiced': 0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS START  │  16:50:59.584                             │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #250 (BB005)
+  Records:     1 pending record(s) to process
+  Before:
+    {'on_hand': 100, 'available': 100, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0, 'on_wo': 0, 'on_so': 0, 'invoiced': 0}
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PENDING PROCESS START  │  16:51:09.432                             │
+└─────────────────────────────────────────────────────────────────┘
+  Item:        #251 (BB7F)
+  Records:     1 pending record(s) to process
+  Before:
+    {'on_hand': 100, 'available': 100, 'allocated': 0, 'sell_default': 1, 'purchase_default': 1, 'on_po': 0, 'on_wo': 0, 'on_so': 0, 'invoiced': 0}
+
+======================================================================
+  TRACE ENDED: 2026-01-16 16:51:19
+======================================================================

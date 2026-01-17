@@ -356,6 +356,7 @@ class CoreModel(models.Model):
     # Unified active flag (subclasses can override default or help_text). Not all models currently
     # declare this; adding here allows a consistent queryset helper. If a concrete model already
     # defines is_active, its field overrides this definition (no duplicate schema field in migration).
+    is_locked = models.BooleanField(default=False, db_index=True, help_text="Record is logically locked")
     is_active = models.BooleanField(default=True, db_index=True, help_text="Record is logically active")
     security_level = models.IntegerField(default=0, blank=True, db_index=True, help_text="Security level or classification")
     # Legacy suffix style (dt_created / dt_modified) fully removed; ALWAYS use dt_created / dt_modified.
@@ -438,6 +439,9 @@ class MetadataMixin(models.Model):
 
     feature_flags = {"metadata"}
     metadata = models.JSONField(default=default_metadata, help_text="Universal metadata envelope")
+
+    # Factory for auto-populating this mixin's JSON field on save
+    JSON_DEFAULT_FACTORIES = {"metadata": default_metadata}
 
     class Meta:
         abstract = True
@@ -533,6 +537,9 @@ class RefsMixin(models.Model):
     feature_flags = {"refs"}
     refs = models.JSONField(default=default_refs, help_text="Keywords / tags / lightweight links")
 
+    # Factory for auto-populating this mixin's JSON field on save
+    JSON_DEFAULT_FACTORIES = {"refs": default_refs}
+
     class Meta:
         abstract = True
 
@@ -607,6 +614,9 @@ class PrefsMixin(models.Model):
     feature_flags = {"prefs"}
     prefs = models.JSONField(default=default_prefs, help_text="User preferences / settings")
 
+    # Factory for auto-populating this mixin's JSON field on save
+    JSON_DEFAULT_FACTORIES = {"prefs": default_prefs}
+
     class Meta:
         abstract = True
 
@@ -647,6 +657,9 @@ class CommentsMixin(models.Model):
 
     feature_flags = {"comments"}
     comments = models.JSONField(default=default_comments, help_text="Threaded notes / comment fields")
+
+    # Factory for auto-populating this mixin's JSON field on save
+    JSON_DEFAULT_FACTORIES = {"comments": default_comments}
 
     class Meta:
         abstract = True
@@ -1243,6 +1256,54 @@ class BaseModel(
                 changed.append(name)
         return changed
 
+    # --- JSON envelope auto-population ------------------------------------
+    def _collect_json_default_factories(self) -> Dict[str, Any]:
+        """Collect JSON_DEFAULT_FACTORIES from all classes in MRO.
+        
+        Walks the method resolution order to gather factories from mixins
+        and parent classes, allowing each layer to define defaults for its fields.
+        Later classes (closer to the concrete model) override earlier ones.
+        """
+        factories: Dict[str, Any] = {}
+        for cls in reversed(type(self).__mro__):
+            cls_factories = getattr(cls, "JSON_DEFAULT_FACTORIES", None)
+            if isinstance(cls_factories, dict):
+                factories.update(cls_factories)
+        return factories
+
+    def _merge_json_defaults(self, current: Any, defaults: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge current JSON with defaults, preserving existing values.
+        
+        Missing keys from defaults are added; existing keys are preserved.
+        """
+        if not isinstance(current, dict):
+            return dict(defaults)
+        result = dict(defaults)
+        for key, value in current.items():
+            result[key] = value
+        return result
+
+    def ensure_json_defaults(self) -> None:
+        """Initialize JSON envelope fields with factory defaults if empty or partial.
+        
+        Called automatically on save(). Collects factories from all mixins/parents
+        in the class hierarchy and applies them, ensuring all JSON fields have
+        their expected structure with missing keys filled in.
+        """
+        factories = self._collect_json_default_factories()
+        for field_name, factory in factories.items():
+            if not hasattr(self, field_name):
+                continue
+            current = getattr(self, field_name, None)
+            if not current or (isinstance(current, dict) and len(current) == 0):
+                # Field is empty/None - use full defaults
+                setattr(self, field_name, factory())
+            elif isinstance(current, dict):
+                # Field has data - merge with defaults to fill missing keys
+                defaults = factory()
+                merged = self._merge_json_defaults(current, defaults)
+                setattr(self, field_name, merged)
+
     # Lightweight helper to record the client's original submission payload.
     # Stores a bounded snapshot under prefs.submission.as_submitted: {data, dt, by}
     def record_submission_snapshot(self, data: Dict[str, Any], actor_id: int | None = None, max_bytes: int = 16384):
@@ -1276,6 +1337,9 @@ class BaseModel(
                     f"Version conflict: expected {expected_version} got {current}"
                 )
     # (Removed) dt_created immutability guard: legacy enforcement deleted for flexibility.
+
+        # Auto-populate JSON envelope defaults from all mixins in the hierarchy
+        self.ensure_json_defaults()
 
         # attach changed_fields for updates
         if self.pk and isinstance(getattr(self, "metadata", None), dict):

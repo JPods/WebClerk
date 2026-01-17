@@ -11,6 +11,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serial
 from apps.core.services import wcapi as services
 from apps.core.utils import policy
 from apps.core.utils.registry import resolve, get as get_registry_config
+from apps.core.utils.model_name_resolver import resolve_model_name
 from common.api_responses import api_response
 
 try:  # pragma: no cover - optional dependency in some deployments
@@ -49,7 +50,14 @@ class WCAPIGetView(APIView):
 
     @staticmethod
     def _normalize_model_key(model_key: str | None) -> str:
-        return (model_key or "").replace("/", "").replace("_", "").lower()
+        """Normalize model key using centralized resolver for consistent model name handling."""
+        if not model_key:
+            return ""
+        try:
+            return resolve_model_name(model_key)
+        except ValueError:
+            # Fallback to basic normalization if resolver fails
+            return (model_key or "").replace("/", "").replace("_", "").replace("-", "").lower()
 
     def _should_include_lines(self, model_key: str | None) -> bool:
         return self._normalize_model_key(model_key) in self.LINE_MODEL_KEYS
@@ -205,23 +213,18 @@ class WCAPIGetView(APIView):
         return merged
 
     def _collect_lines(self, obj, model_key: str, request) -> List[Dict[str, Any]]:
+        """
+        Collect lines using FK relation as primary source.
+        refs.links is kept for informational purposes but FK is authoritative.
+        """
         print(f"[_collect_lines] Starting for model_key={model_key}, obj.id={getattr(obj, 'id', '?')}")
         
+        # Primary source: FK relation (authoritative)
         db_lines = self._serialize_lines(obj, request)
-        print(f"[_collect_lines] db_lines count: {len(db_lines)}, ids: {[l.get('id') for l in db_lines]}")
+        print(f"[_collect_lines] FK lines count: {len(db_lines)}, ids: {[l.get('id') for l in db_lines]}")
         
-        ref_lines = self._extract_lines_from_refs(obj, model_key, request)
-        print(f"[_collect_lines] ref_lines count: {len(ref_lines)}, ids: {[l.get('id') for l in ref_lines]}")
-        
-        if not db_lines:
-            print(f"[_collect_lines] No db_lines, returning ref_lines")
-            return ref_lines
-        if not ref_lines:
-            print(f"[_collect_lines] No ref_lines, returning db_lines")
-            return db_lines
-        merged = self._merge_line_records(db_lines, ref_lines)
-        print(f"[_collect_lines] Merged count: {len(merged)}, ids: {[l.get('id') for l in merged]}")
-        return merged
+        # Return FK lines directly - this is the authoritative source
+        return db_lines
 
     def _parse_filters(self, request, model_key: str, ModelCls) -> Dict[str, Any]:
         """
@@ -855,9 +858,32 @@ class ModelDetailView(APIView):
         if not ModelCls:
             return Response({"detail": "invalid model"}, status=status.HTTP_400_BAD_REQUEST)
 
-        fields = []
+        # Collect fields with their type info
+        all_fields = []
         for f in ModelCls._meta.fields:
-            fields.append({"name": f.name, "type": f.__class__.__name__})
+            all_fields.append({"name": f.name, "type": f.__class__.__name__})
+
+        # Define object/complex field types (relations, JSON, etc.)
+        OBJECT_TYPES = {
+            "ForeignKey", "OneToOneField", "ManyToManyField",
+            "JSONField", "ArrayField", "HStoreField",
+        }
+
+        # Separate into scalars and objects
+        scalar_fields = []
+        object_fields = []
+        for f in all_fields:
+            if f["type"] in OBJECT_TYPES:
+                object_fields.append(f)
+            else:
+                scalar_fields.append(f)
+
+        # Sort each group alphabetically by name
+        scalar_fields.sort(key=lambda x: x["name"])
+        object_fields.sort(key=lambda x: x["name"])
+
+        # Combine: scalars first, then objects
+        fields = scalar_fields + object_fields
 
         return Response(
             {

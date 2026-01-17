@@ -23,7 +23,40 @@ The following alignments map WebClerk2 tables to WebClerk3 models:
 - Payment → Payment
 - QA → question_answer
 - PurchaseJournal, SalesJournal, CashJournal → gl_journal
-- DCash, DInventory → pending
+- DCash, DInventory → pending (via `apps.core.models.Pending`)
+
+## DInventory → Pending Implementation
+
+**Status**: ✅ Implemented (2026-01-16)
+
+The WebClerk2 `DInventory` table functionality has been implemented in WebClerk3 using the `Pending` model and the `LineItemService`. When transaction lines are added, modified, or deleted, pending records are created for deferred inventory updates.
+
+**Key Components**:
+- `apps/transactions/services/line_item_service.py` - Creates pending records on line changes
+- `apps/transactions/services/pending_inventory_processor.py` - Processes pending records
+- `apps/transactions/management/commands/process_line_item_pending.py` - Management command
+
+**Type Code Mapping**:
+| WebClerk2 | WebClerk3 | Transaction Type |
+|-----------|-----------|------------------|
+| `SO` | `SO` | Sales Order |
+| `PO` | `PO` | Purchase Order |
+| `WO` | `WO` | Work Order |
+| `IV` | `IV` | Invoice |
+| (n/a) | `PP` | Proposal (no inventory) |
+
+**Usage**:
+```python
+# LineItemService automatically creates pending records
+from apps.transactions.services import LineItemService
+service = LineItemService(create_pending=True)  # default
+line = service.add_item_to_transaction(order, item_id=123, quantity=5)
+
+# Process pending records
+python manage.py process_line_item_pending --limit 200
+```
+
+See: [transaction-services.md](../../../React2025/readmes/topics/transaction-services.md) for full API documentation.
 
 ## Jsonb Recommendations
 

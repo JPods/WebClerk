@@ -1,5 +1,7 @@
 # Transaction Testing Guide
 
+> **Note**: This document contains manual testing procedures. For the comprehensive test plan including automated tests, see [Transaction Test Plan](transaction_test_plan.md).
+
 This guide covers testing procedures for the main transaction types: Proposals, Sales Orders, Invoices, and Purchase Orders.
 
 ## Overview

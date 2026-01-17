@@ -30,7 +30,25 @@ except Exception:
     _MISC_EXPORTS = []
 
 from .policy import get_accessible_fields
+from .model_name_resolver import (
+    resolve_model_name,
+    parse_restful_path,
+    url_to_model_name,
+    model_name_to_url,
+    get_transaction_type,
+    get_model_class,
+    validate_model_name,
+    MODEL_NAME_MAP,
+)
 
 __all__ = _MISC_EXPORTS + [
     'get_accessible_fields',
+    'resolve_model_name',
+    'parse_restful_path',
+    'url_to_model_name',
+    'model_name_to_url',
+    'get_transaction_type',
+    'get_model_class',
+    'validate_model_name',
+    'MODEL_NAME_MAP',
 ]

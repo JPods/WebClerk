@@ -19,6 +19,14 @@
     - [Example (Programmatic)](#example-programmatic)
     - [Smoke Test Pattern](#smoke-test-pattern)
   - [Cost Update Helper](#cost-update-helper)
+  - [Line Item Pending Inventory (Transaction-Level)](#line-item-pending-inventory-transaction-level)
+    - [Flow](#flow)
+    - [Purpose Codes](#purpose-codes)
+    - [Transaction Type Codes](#transaction-type-codes)
+    - [Processor](#processor)
+    - [Data Structure](#data-structure)
+    - [Integration Note](#integration-note)
+    - [Related Documentation](#related-documentation)
   - [Roadmap / Next Steps](#roadmap--next-steps)
   - [Design Rationale](#design-rationale)
   - [Operational Metrics & Monitoring](#operational-metrics--monitoring)
@@ -216,6 +224,101 @@ Expected: `['applied']` and remaining qty 40.
 
 `InventoryLayer.update_cost_after_receipt(unit_po, freight=0, duty=0, handling=0, vat=0, prior_moving_avg=None, trend_baseline=None)` populates/adjusts cost JSON. Caller provides weighted moving average math externally (function does not currently compute weighted average).
 
+## Line Item Pending Inventory (Transaction-Level)
+
+Separate from the `PendingInventoryAdjustment` queue (which targets InventoryLayer stacks), the **Line Item Service** creates `Pending` records to track inventory effects from transaction line edits. This mirrors the WebClerk2 "DInventory" deferred pattern.
+
+### Flow
+
+```
+┌──────────────────┐     ┌───────────────────┐     ┌────────────────┐
+│  LineItemService │────▶│  Pending Record   │────▶│  Item.record   │
+│  (add/edit/del)  │     │  (JSON snapshot)  │     │  qty buckets   │
+└──────────────────┘     └───────────────────┘     └────────────────┘
+         │                        │                        │
+         │ create_pending=True    │ dt_processed=0         │ processor
+         └────────────────────────┴────────────────────────┘
+```
+
+### Purpose Codes
+
+| Purpose | Trigger | Effect |
+|---------|---------|--------|
+| `inventory_line_add` | Line created | Reserve qty (SO: qty_on_so+, PO: qty_on_po+, WO: qty_on_wo+) |
+| `inventory_qty_change` | Line qty updated | Adjust delta (new - old) |
+| `inventory_line_delete` | Line removed | Release reserved qty |
+| `inventory_cost_change` | Line cost updated | Update Item moving avg (future) |
+
+### Transaction Type Codes
+
+| Code | Model | Inventory Effect |
+|------|-------|------------------|
+| `SO` | SalesOrder | `qty_on_so` |
+| `PO` | PurchaseOrder | `qty_on_po` |
+| `WO` | WorkOrder | `qty_on_wo` |
+| `IV` | Invoice | `qty_invoiced` (actual issue) |
+| `PP` | Proposal | None (quotes don't affect inventory) |
+
+### Processor
+
+Management command:
+
+```bash
+python manage.py process_line_item_pending --limit 100
+python manage.py process_line_item_pending --item-id 123 --dry-run
+python manage.py process_line_item_pending --force-locked  # process even if Item locked
+```
+
+Service functions:
+
+```python
+from apps.transactions.services import process_line_item_pending, process_pending_for_item
+
+# Global batch processing
+result = process_line_item_pending(limit=100, dry_run=False)
+# {"processed": 42, "skipped": 3, "errors": 0}
+
+# Single item focus
+result = process_pending_for_item(item_id=123)
+```
+
+### Data Structure
+
+Pending record `data` JSON:
+
+```json
+{
+  "type_code": "SO",
+  "type_id": 1,
+  "item_id": 123,
+  "doc_id": 456,
+  "line_id": 789,
+  "qty_on_so": 10.0,
+  "qty_on_po": 0,
+  "qty_on_wo": 0,
+  "qty_invoiced": 0,
+  "price_snapshot": {"unit_price": 25.0, "cost": 15.0},
+  "created_by": "api",
+  "dt_action": "2025-01-15T10:30:00Z"
+}
+```
+
+### Integration Note
+
+The two pending systems serve different layers:
+
+| System | Model | Target | Trigger |
+|--------|-------|--------|---------|
+| **PendingInventoryAdjustment** | InventoryLayer (stack) | Physical qty (issued/received) | Receipt, pick, scrap |
+| **Pending (Line Item)** | Item.record buckets | Logical qty (on_so, on_po, etc.) | Transaction line CRUD |
+
+Both use deferred processing to reduce lock contention. Celery beat schedules run both processors periodically.
+
+### Related Documentation
+
+- [Transaction Services](../../../React2025/readmes/topics/transaction-services.md#line-item-service) – Frontend/backend API details
+- [Transaction Flow Plan](transactions/transaction_flow_calc_plan.md) – WebClerk2 migration mapping
+
 ## Roadmap / Next Steps
 
 - Batch recompute of moving average across historical layers (service + command).
@@ -325,11 +428,15 @@ inventory_processor_global_duration_bucket{le="0.25"} 1
 
 | Action | Path |
 |--------|------|
-| Management command | `process_pending_inventory` |
-| Celery task | `products.tasks.process_pending_inventory` |
+| Management command (stacks) | `process_pending_inventory` |
+| Management command (line items) | `process_line_item_pending` |
+| Celery task (stacks) | `products.tasks.process_pending_inventory` |
+| Celery task (line items) | `transactions.tasks.process_line_item_pending` |
 | Signal auto-run | InventoryLayer post-save (unlock) |
 | Single stack processor | `process_pending_for_stack` |
-| Global processor | `process_pending_inventory` |
+| Single item processor | `process_pending_for_item` |
+| Global processor (stacks) | `process_pending_inventory` |
+| Global processor (line items) | `process_line_item_pending` |
 
 Add enhancements to this document; keep README root concise by linking here.
 

@@ -46,6 +46,24 @@ def default_cost() -> Dict[str, Any]:
         }
 
 
+def default_sell() -> Dict[str, Any]:
+    """Default sell envelope for transaction header.
+    Mirrors cost structure for sell-side aggregates.
+    """
+    return {
+        "line_sum_goods": None,
+        "line_sum_tax": None,
+        "line_sum_shipping": None,
+        "line_sum_handling": None,
+        "handling": None,
+        "freight": None,
+        "tax_rate": None,
+        "tax": None,
+        "discount": None,
+        "total": None
+    }
+
+
 def default_finance() -> Dict[str, Any]:
     return {
         "sales_tax_id": 0,
@@ -106,6 +124,8 @@ class TransactionBaseModel(BaseModel):
     """Abstract Django base for transaction headers.
 
     Minimal fields only; JSON envelopes and lifecycle come from common.BaseModel.
+    Defines JSON_DEFAULT_FACTORIES for transaction-specific fields; BaseModel.save()
+    automatically populates them via ensure_json_defaults().
     """
 
     STATUS_PLANNED = "planned"
@@ -124,6 +144,8 @@ class TransactionBaseModel(BaseModel):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PLANNED, db_index=True)
     priority = models.CharField(max_length=32, blank=True, null=True)
     price_level = models.CharField(max_length=50, blank=True, null=True)
+    terms = models.CharField(max_length=128, blank=True, null=True, help_text="Payment terms")
+    po_number = models.CharField(max_length=128, blank=True, null=True, help_text="Customer PO number")
     customer_id = models.BigIntegerField(default=0, db_index=True)
     manufacturer_id = models.BigIntegerField(default=0, db_index=True)
     vendor_id = models.BigIntegerField(default=0, db_index=True)
@@ -138,8 +160,19 @@ class TransactionBaseModel(BaseModel):
     flow = models.JSONField(default=dict, blank=True, null=True)
     source = models.JSONField(default=dict, blank=True, null=True)
     action = models.JSONField(default=dict, blank=True, null=True)
-    
-    
+
+    # Factory functions for transaction-specific JSON fields.
+    # BaseModel.save() collects these from the MRO and auto-populates on save.
+    JSON_DEFAULT_FACTORIES: Dict[str, Callable[[], Dict[str, Any]]] = {
+        "totals": default_totals,
+        "cost": default_cost,
+        "sell": default_sell,
+        "finance": default_finance,
+        "flow": default_transaction_flow,
+        "source": default_source,
+        "action": default_action,
+    }
+
     class Meta:
         abstract = True
 
