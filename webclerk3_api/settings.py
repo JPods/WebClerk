@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     'apps.docs',
     'apps.orgs',
     'apps.products',
-    'apps.scheduler',
     'apps.support',
     'apps.sync',
     'apps.transactions',
@@ -107,41 +106,19 @@ _force_pg = os.environ.get('PYTEST_FORCE_DB') == '1'
 _explicit_sqlite = os.environ.get('USE_SQLITE_TEST') == '1'
 _running_pytest = bool(os.environ.get('PYTEST_CURRENT_TEST'))
 
-# DB_MODE toggle: "remote" or "local" - set in .env to switch databases easily
-_db_mode = config('DB_MODE', default='remote').lower()
-
 if _force_pg or (not _explicit_sqlite and not _running_pytest and not _force_pg):
     # Postgres path (default)
-    if _db_mode == 'local':
-        # Local database for debugging
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': config('LOCAL_DATABASE_NAME', default='commerce_expert'),
-                'USER': config('LOCAL_DATABASE_USER', default='williamjames'),
-                'PASSWORD': config('LOCAL_DATABASE_PASS', default=''),
-                'HOST': config('LOCAL_DATABASE_HOST', default='localhost'),
-                'PORT': config('LOCAL_DATABASE_PORT', default='5432'),
-                'ATOMIC_REQUESTS': False,
-            }
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DATABASE_NAME', default='commerce_expert'),
+            'USER': config('DATABASE_USER', default='postgres'),
+            'PASSWORD': config('DATABASE_PASS', default=''),
+            'HOST': config('DATABASE_HOST', default='localhost'),
+            'PORT': config('DATABASE_PORT', default='5432'),
+            'ATOMIC_REQUESTS': False,
         }
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: LOCAL @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
-    else:
-        # Remote database for team collaboration (default)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': config('REMOTE_DATABASE_NAME', default=config('DATABASE_NAME', default='commerce_expert')),
-                'USER': config('REMOTE_DATABASE_USER', default=config('DATABASE_USER', default='postgres')),
-                'PASSWORD': config('REMOTE_DATABASE_PASS', default=config('DATABASE_PASS', default='')),
-                'HOST': config('REMOTE_DATABASE_HOST', default=config('DATABASE_HOST', default='localhost')),
-                'PORT': config('REMOTE_DATABASE_PORT', default=config('DATABASE_PORT', default='5432')),
-                'ATOMIC_REQUESTS': False,
-            }
-        }
-        print(f'\n[webClerk3] Data Set: {config("DATA_SET_ID", default="UNKNOWN")} - {config("DATA_SET_NAME", default="Unknown")}')
-        print(f'[webClerk3] Database: REMOTE @ {DATABASES["default"]["HOST"]}:{DATABASES["default"]["PORT"]}/{DATABASES["default"]["NAME"]}\n')
+    }
 else:
     # Fast in-memory database for tests
     DATABASES = {

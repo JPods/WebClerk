@@ -3,28 +3,11 @@ from __future__ import annotations
 from typing import Dict, Optional
 from django.apps import apps as django_apps
 
-# Import centralized model name resolver
-from apps.core.utils.model_name_resolver import resolve_model_name as _resolve_model_name
-
 # Optional, lightweight cache
 _MODEL_CACHE: Dict[str, object] = {}
 
 def _normalize(s: str) -> str:
-    """Basic string normalization - strip whitespace, slashes, lowercase."""
     return (s or "").strip().strip("/").lower()
-
-def _normalize_with_resolver(s: str) -> str:
-    """
-    Normalize using centralized resolver for consistent model name handling.
-    Falls back to basic normalization if resolver fails.
-    """
-    if not s:
-        return ""
-    try:
-        return _resolve_model_name(s)
-    except (ValueError, Exception):
-        # Fallback to basic normalization
-        return _normalize(s)
 
 def _singularize(s: str) -> str:
     # naive singularization to help map "domains" -> "domain"
@@ -108,11 +91,7 @@ def to_model_name(model_cls) -> Optional[str]:
         return None
 
 def normalize_table_key(k: str) -> str:
-    """
-    Normalize a table/model key using the centralized resolver.
-    Handles various formats: kebab-case, snake_case, camelCase, etc.
-    """
-    return _normalize_with_resolver(k)
+    return _normalize(k)
 
 def _discover_allowed_keys():
     keys = set()
