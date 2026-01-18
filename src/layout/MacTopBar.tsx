@@ -79,7 +79,7 @@ export default function MacTopBar({ activePath }: Props) {
 
       <div className="flex items-center gap-3 text-xs">
         <TaskManagerIndicator />
-        <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1 pr-3">
+        <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
           <img
             src="/images/user/owner.jpg"
             alt="avatar"

@@ -1735,7 +1735,7 @@ const KanbanBoardPage: React.FC = () => {
     return { payload: cleanActionPayload(payloadItem) };
   };
 
-  const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSavingCreate) {
       return;
@@ -1749,35 +1749,30 @@ const KanbanBoardPage: React.FC = () => {
       return;
     }
 
-    try {
-      setIsSavingCreate(true);
-      const response = await patchAction(result.payload);
-      const body: any = response?.data ?? response;
-      if (response?.status !== 200 && response?.status !== 201) {
-        throw new Error("Failed to save task.");
-      }
-      if (body?.status === "fail") {
-        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-        throw new Error(details || "Backend rejected the save request.");
-      }
-      await fetchActions({
-        projectId: selectedProjectId || undefined,
-        contactId: selectedContactId || undefined,
+    setIsSavingCreate(true);
+    handleCloseCreateModal();
+
+    void patchAction(result.payload)
+      .then((response) => {
+        const body: any = response?.data ?? response;
+        if (body?.status === "fail") {
+          const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+          throw new Error(details || "Backend rejected the save request.");
+        }
+        void fetchActions({
+          projectId: selectedProjectId || undefined,
+          contactId: selectedContactId || undefined,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to create kanban task", error);
+      })
+      .finally(() => {
+        setIsSavingCreate(false);
       });
-      handleCloseCreateModal();
-    } catch (error) {
-      console.error("Failed to create kanban task", error);
-      const message =
-        (error as any)?.response?.data?.message ||
-        (error as any)?.message ||
-        "Unable to save task. Please try again.";
-      setCreateModalError(message);
-    } finally {
-      setIsSavingCreate(false);
-    }
   };
 
-  const handleEditTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleEditTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingTask || isSavingEdit) {
       return;
@@ -1791,31 +1786,27 @@ const KanbanBoardPage: React.FC = () => {
       return;
     }
 
-    try {
-      setIsSavingEdit(true);
-      const response = await patchAction(result.payload);
-      const body: any = response?.data ?? response;
-      if (response?.status !== 200 && response?.status !== 201) {
-        throw new Error("Failed to update task.");
-      }
-      if (body?.status === "fail") {
-        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-        throw new Error(details || "Backend rejected the update request.");
-      }
-      await fetchActions({
-        projectId: selectedProjectId || undefined,
-        contactId: selectedContactId || undefined,
+    setIsSavingEdit(true);
+    handleCloseEditModal();
+
+    void patchAction(result.payload)
+      .then((response) => {
+        const body: any = response?.data ?? response;
+        if (body?.status === "fail") {
+          const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+          throw new Error(details || "Backend rejected the update request.");
+        }
+        void fetchActions({
+          projectId: selectedProjectId || undefined,
+          contactId: selectedContactId || undefined,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to update kanban task", error);
+      })
+      .finally(() => {
+        setIsSavingEdit(false);
       });
-    } catch (error) {
-      console.error("Failed to update kanban task", error);
-      const message =
-        (error as any)?.response?.data?.message ||
-        (error as any)?.message ||
-        "Unable to update task. Please try again.";
-      setEditModalError(message);
-    } finally {
-      setIsSavingEdit(false);
-    }
   };
 
   const handleRemoveTaskFromKanban = async () => {
