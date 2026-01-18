@@ -80,12 +80,12 @@ export const TaskManagerIndicator: React.FC = () => {
         onClick={() => setOpen((v) => !v)}
       >
         <span className={clsx("h-2.5 w-2.5 rounded-full", total > 0 ? "bg-indigo-500" : "bg-gray-400")} />
-        {total > 0 ? `${total} in progress` : "No pending tasks"}
+        {total > 0 ? `${total} in progress` : "No pending operations"}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-96 rounded-xl border border-gray-200 bg-white p-3 text-xs shadow-lg dark:border-gray-700 dark:bg-gray-900">
           <div className="mb-3 flex flex-col items-start justify-between gap-2">
-            <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">Pending Operations</p>
+            <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">Background Operations</p>
             <div className="flex items-center gap-2">
               <Chip label="GET" count={methodCounts.GET} />
               <Chip label="POST" count={methodCounts.POST} />
