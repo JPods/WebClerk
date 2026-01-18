@@ -642,7 +642,50 @@ const toTimestampMilliseconds = (value: string): number | null => {
   return date ? date.getTime() : null;
 };
 
-const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, value: string): TaskFormState => {
+const STATUS_COLUMN_KEYWORDS: Record<string, string[]> = {
+  "0": ["backlog", "todo", "uncategorized", "icebox"],
+  "5": ["hold", "paused", "waiting"],
+  "30": ["progress", "inprogress", "doing", "in-process"],
+  review: ["review", "qa", "verify", "quality"],
+  "100": ["complete", "done", "completed"],
+  "101": ["cancel", "canceled", "closed"],
+};
+
+const normalizeKey = (label: string) => label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+const pickColumnForStatus = (
+  statusValue: string,
+  columns: Array<{ id: string; title: string }>,
+  fallback: string
+): string => {
+  const keywords = STATUS_COLUMN_KEYWORDS[statusValue];
+  if (!keywords?.length) {
+    return fallback;
+  }
+
+  const normalizedColumns = columns.map((column) => ({
+    id: column.id,
+    titleKey: normalizeKey(column.title),
+    idKey: normalizeKey(column.id.replace(/^column-/, "")),
+  }));
+
+  for (const keyword of keywords) {
+    const key = normalizeKey(keyword);
+    const match = normalizedColumns.find((column) => column.titleKey === key || column.idKey === key);
+    if (match) {
+      return match.id;
+    }
+  }
+
+  return fallback;
+};
+
+const updateTaskFormState = (
+  prev: TaskFormState,
+  field: TaskFormEditableField,
+  value: string,
+  options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
+): TaskFormState => {
   if (field === "startDate") {
     const next: TaskFormState = { ...prev, startDate: value };
     next.endDate = ensureEndAfterStart(value, prev.endDate);
@@ -653,7 +696,7 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
   if (field === "endDate") {
     const nextEnd = ensureEndAfterStart(prev.startDate, value);
     const next: TaskFormState = { ...prev, endDate: nextEnd };
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+    next.dueDate = calculateDueDate(prev.startDate, next.endDate);
     return next;
   }
 
@@ -697,7 +740,33 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
   }
 
   if (field === "progress") {
-    return { ...prev, progress: value };
+    const next: TaskFormState = { ...prev, progress: value };
+    const numericProgress = Number(value);
+    if (Number.isFinite(numericProgress)) {
+      let derivedStatus: string | null = null;
+      if (numericProgress >= 100) {
+        derivedStatus = "review";
+      } else if (numericProgress <= 0) {
+        derivedStatus = "0";
+      } else {
+        derivedStatus = "30";
+      }
+
+      next.percent_complete = derivedStatus;
+
+      if (options?.columns?.length && options.fallbackColumnId) {
+        next.columnId = pickColumnForStatus(derivedStatus, options.columns, options.fallbackColumnId);
+      }
+    }
+    return next;
+  }
+
+  if (field === "percent_complete") {
+    const next: TaskFormState = { ...prev, percent_complete: value };
+    if (options?.columns?.length && options.fallbackColumnId) {
+      next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
+    }
+    return next;
   }
 
   return prev;
@@ -1304,11 +1373,21 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
-    setCreateTaskState((prev) => updateTaskFormState(prev, field, value));
+    setCreateTaskState((prev) =>
+      updateTaskFormState(prev, field, value, {
+        columns: columnOptions,
+        fallbackColumnId: resolveDefaultColumnId(),
+      })
+    );
   };
 
   const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
-    setEditTaskState((prev) => updateTaskFormState(prev, field, value));
+    setEditTaskState((prev) =>
+      updateTaskFormState(prev, field, value, {
+        columns: columnOptions,
+        fallbackColumnId: resolveDefaultColumnId(),
+      })
+    );
   };
 
   const updateTranslations = (
@@ -1787,7 +1866,6 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setIsSavingEdit(true);
-    handleCloseEditModal();
 
     void patchAction(result.payload)
       .then((response) => {

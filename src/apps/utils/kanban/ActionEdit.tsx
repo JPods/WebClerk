@@ -141,6 +141,7 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                 <option value="0">Backlog</option>
                 <option value="5">On hold</option>
                 <option value="30">In progress</option>
+                <option value="review">Review</option>
                 <option value="100">Completed</option>
                 <option value="101">Canceled</option>
               </select>

@@ -95,8 +95,8 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
   const canRemoveTranslation = translations.length > 1;
 
   const modal = (
-    <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-xl no-scrollbar dark:border-gray-800 dark:bg-gray-900">
+    <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
+      <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-y-auto border-l border-gray-200 bg-white shadow-2xl no-scrollbar dark:border-gray-800 dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
         <div className="mb-4 flex items-start justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
@@ -115,7 +115,7 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
           </button>
         </div>
 
-        <form className="space-y-5" onSubmit={onSubmit}>
+        <form className="space-y-5 px-5 pb-5" onSubmit={onSubmit}>
           {modalError && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
               {modalError}
@@ -141,6 +141,7 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                 <option value="0">Backlog</option>
                 <option value="5">On hold</option>
                 <option value="30">In progress</option>
+                <option value="review">Review</option>
                 <option value="100">Completed</option>
                 <option value="101">Canceled</option>
               </select>
