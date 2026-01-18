@@ -1733,8 +1733,8 @@ const KanbanBoardPage: React.FC = () => {
     const endTimestamp = toTimestampMilliseconds(state.endDate);
     const dueTimestamp = toTimestampMilliseconds(state.dueDate);
 
-    if (startTimestamp !== null && endTimestamp !== null && endTimestamp <= startTimestamp) {
-      return { error: "End date must be after start date." };
+    if (startTimestamp !== null && endTimestamp !== null && endTimestamp < startTimestamp) {
+      return { error: "End date must be on or after start date." };
     }
 
     if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
