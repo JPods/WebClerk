@@ -218,31 +218,33 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
-                <span>priority</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{formState.priority}</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={4}
-                step={1}
-                value={currentPriorityNumeric}
-                onChange={(e) => {
-                  const next = Number(e.target.value) || currentPriorityNumeric;
-                  const mapped = numericToPriority[next] ?? formState.priority;
-                  onFieldChange("priority", mapped as TaskPriority);
-                }}
-                disabled={isSaving}
-                className="w-full accent-indigo-600"
-              />
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>Low</span>
-                <span>Medium</span>
-                <span>High</span>
-                <span>Critical</span>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">assignee_to</label>
+
+              {assigneeOptions.length > 0 ? (
+                <select
+                  className={controlClass}
+                  value={formState.assignee}
+                  onChange={(event) => onFieldChange("assignee", event.target.value)}
+                  disabled={isSaving}
+                >
+                  <option value="">Select assignee...</option>
+                  {assigneeOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={controlClass}
+                  value={formState.assignee}
+                  onChange={(event) => onFieldChange("assignee", event.target.value)}
+                  placeholder="Select a project to see contacts"
+                  disabled={isSaving}
+                />
+              )}
+
             </div>
 
             <div className="space-y-2">
@@ -271,6 +273,33 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span>priority</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{formState.priority}</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={4}
+                step={1}
+                value={currentPriorityNumeric}
+                onChange={(e) => {
+                  const next = Number(e.target.value) || currentPriorityNumeric;
+                  const mapped = numericToPriority[next] ?? formState.priority;
+                  onFieldChange("priority", mapped as TaskPriority);
+                }}
+                disabled={isSaving}
+                className="w-full accent-indigo-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Low</span>
+                <span>Medium</span>
+                <span>High</span>
+                <span>Critical</span>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">progress</label>
               <div className="space-y-1">
@@ -290,35 +319,6 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <span>100%</span>
                 </div>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">assignee_to</label>
-
-              {assigneeOptions.length > 0 ? (
-                <select
-                  className={controlClass}
-                  value={formState.assignee}
-                  onChange={(event) => onFieldChange("assignee", event.target.value)}
-                  disabled={isSaving}
-                >
-                  <option value="">Select assignee...</option>
-                  {assigneeOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className={controlClass}
-                  value={formState.assignee}
-                  onChange={(event) => onFieldChange("assignee", event.target.value)}
-                  placeholder="Select a project to see contacts"
-                  disabled={isSaving}
-                />
-              )}
-
             </div>
           </div>
 
