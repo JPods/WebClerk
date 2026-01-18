@@ -362,6 +362,7 @@ const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
   columnId,
+  projectId: "",
   priority: "medium",
   dueDate: "",
   startDate: "",
@@ -370,6 +371,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
   percent_complete: "0",
+  is_active: "true",
 });
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
@@ -731,12 +733,20 @@ const updateTaskFormState = (
     return { ...prev, columnId: value };
   }
 
+  if (field === "projectId") {
+    return { ...prev, projectId: value };
+  }
+
   if (field === "assignee") {
     return { ...prev, assignee: value };
   }
 
   if (field === "difficulty") {
     return { ...prev, difficulty: value };
+  }
+
+  if (field === "is_active") {
+    return { ...prev, is_active: value };
   }
 
   if (field === "progress") {
@@ -765,6 +775,10 @@ const updateTaskFormState = (
     const next: TaskFormState = { ...prev, percent_complete: value };
     if (options?.columns?.length && options.fallbackColumnId) {
       next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
+    }
+    if (value === "100" && !prev.endDate) {
+      const now = formatDateTimeLocalString(new Date());
+      next.endDate = ensureEndAfterStart(prev.startDate, now);
     }
     return next;
   }
@@ -1309,13 +1323,16 @@ const KanbanBoardPage: React.FC = () => {
 
   const resetCreateState = useCallback(() => {
     const firstColumn = resolveDefaultColumnId();
-    setCreateTaskState(createInitialTaskFormState(firstColumn));
+    setCreateTaskState((prev) => {
+      const base = createInitialTaskFormState(firstColumn);
+      return { ...base, projectId: selectedProjectId || base.projectId };
+    });
     setCreateModalError(null);
     setCreateLanguagePickerOpen(false);
     setCreateLanguageSelection("");
     setCreateCustomLanguage("");
     setCreateLanguagePickerError(null);
-  }, [resolveDefaultColumnId]);
+  }, [resolveDefaultColumnId, selectedProjectId]);
 
   const handleOpenCreateModal = () => {
     resetCreateState();
@@ -1340,10 +1357,13 @@ const KanbanBoardPage: React.FC = () => {
       DEFAULT_DIFFICULTY
     );
     const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+    const normalizedProjectId = (task as any)?.project_id ?? selectedProjectId ?? "";
+    const normalizedIsActive = (task as any)?.is_active;
 
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
+      projectId: typeof normalizedProjectId === "string" || typeof normalizedProjectId === "number" ? String(normalizedProjectId) : "",
       priority: task.priority,
       dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
       startDate: normalizedStart,
@@ -1352,6 +1372,7 @@ const KanbanBoardPage: React.FC = () => {
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
       percent_complete: String(normalizedProgress),
+      is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -1776,14 +1797,14 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.needtoremove = "";
     }
 
+    const projectIdFromState = state.projectId?.trim();
+    const resolvedProjectId = projectIdFromState || selectedProjectId || "";
     const resolvedProjectName = (() => {
-      const selected = selectedProjectName.trim();
-      if (selected) {
-        return selected;
-      }
-      if (mode === "edit" && baseTask?.projectName) {
-        return baseTask.projectName;
-      }
+      const selected = projectOptions.find((option) => option.id === resolvedProjectId);
+      if (selected?.name) return selected.name;
+      if (selected?.intent) return selected.intent;
+      if (selectedProjectName.trim()) return selectedProjectName.trim();
+      if (mode === "edit" && baseTask?.projectName) return baseTask.projectName;
       return "";
     })();
 
@@ -1791,16 +1812,18 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_name = resolvedProjectName;
     }
 
-    if (selectedProjectId) {
-      const numericId = Number(selectedProjectId);
-      payloadItem.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
+    if (resolvedProjectId) {
+      const numericId = Number(resolvedProjectId);
+      payloadItem.project_id = Number.isNaN(numericId) ? resolvedProjectId : numericId;
     }
 
-    if (mode === "create" && selectedProjectId) {
-      const numericId = Number(selectedProjectId);
+    payloadItem.is_active = state.is_active !== "false";
+
+    if (mode === "create" && resolvedProjectId) {
+      const numericId = Number(resolvedProjectId);
       const projectPayload: Record<string, unknown> = {
         model_name: "project",
-        id: Number.isNaN(numericId) ? selectedProjectId : numericId,
+        id: Number.isNaN(numericId) ? resolvedProjectId : numericId,
         bulk: [cleanActionPayload(payloadItem)],
       };
 
@@ -1939,23 +1962,7 @@ const KanbanBoardPage: React.FC = () => {
     [columnsPerRow]
   );
 
-  const editModalExtraContent = editingTask ? (
-    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
-      <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Progress:</span>
-          <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
-        </div>
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Tags:</span>
-          <span className="ml-1 font-medium text-gray-900 dark:text-white">
-            {editingTask.tags?.join(", ") || "None"}
-          </span>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  const editModalExtraContent = null;
 
   return (
     <div className="space-y-6">
@@ -2169,6 +2176,7 @@ const KanbanBoardPage: React.FC = () => {
         formState={createTaskState}
         onFieldChange={handleCreateTaskChange}
         columnOptions={columnOptions}
+        projectOptions={projectOptions}
         priorityOptions={priorityOptions}
         difficultyOptions={createDifficultyOptions}
         progressOptions={createProgressOptions}
@@ -2178,7 +2186,6 @@ const KanbanBoardPage: React.FC = () => {
           handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={(entryId) => handleRemoveTranslation("create", entryId)}
-        languageOptions={languageOptions}
         languagePickerOptions={availableCreateLanguages}
         languagePickerState={createLanguagePickerState}
         onLanguagePickerToggle={handleCreateLanguagePickerToggle}
@@ -2201,6 +2208,7 @@ const KanbanBoardPage: React.FC = () => {
         formState={editTaskState}
         onFieldChange={handleEditTaskChange}
         columnOptions={columnOptions}
+        projectOptions={projectOptions}
         priorityOptions={priorityOptions}
         difficultyOptions={editDifficultyOptions}
         progressOptions={editProgressOptions}
@@ -2210,7 +2218,6 @@ const KanbanBoardPage: React.FC = () => {
           handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={(entryId) => handleRemoveTranslation("edit", entryId)}
-        languageOptions={languageOptions}
         languagePickerOptions={availableEditLanguages}
         languagePickerState={editLanguagePickerState}
         onLanguagePickerToggle={handleEditLanguagePickerToggle}
