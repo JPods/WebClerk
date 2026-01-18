@@ -190,10 +190,11 @@ class ActionAdmin(admin.ModelAdmin):
         'updated_by',
     )
     fields = scalar_fields + object_fields
-    actions = ['assign_project_id']
+    actions = ['assign_project_id', 'delete_selected']
 
     class AssignProjectIdActionForm(ActionForm):
-        project_id = forms.CharField(required=True, label='Project ID')
+        # Keep optional so other actions (like delete_selected) don't fail validation
+        project_id = forms.CharField(required=False, label='Project ID')
 
     action_form = AssignProjectIdActionForm
     
