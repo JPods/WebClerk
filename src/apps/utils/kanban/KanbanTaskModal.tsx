@@ -138,6 +138,87 @@ export const KanbanActionEdit: React.FC<KanbanTaskModalProps> = ({
 
           {/* Translations & language picker */}
           <div className="space-y-3">
+            <div
+              className={
+                translations.length > 1
+                  ? "grid grid-cols-1 gap-4 md:grid-cols-2"
+                  : "grid grid-cols-1 gap-4"
+              }
+            >
+              {translations.map((translation, index) => {
+                const modePrefix = mode === "create" ? "create" : "edit";
+
+                return (
+                  <div
+                    key={translation.id}
+                    className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-800/40"
+                  >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Language {index + 1}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {translation.language
+                          ? languageOptions.find((option) => option.value === translation.language)?.label ?? translation.language.toUpperCase()
+                          : "Set the language code"}
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                        {translation.language || "—"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveTranslation(translation.id)}
+                        disabled={!canRemoveTranslation || isSaving}
+                        className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* <div>
+                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">language</label>
+                      <input
+                        className={controlClass}
+                        value={translation.language}
+                        onChange={(event) => onTranslationFieldChange(translation.id, "language", event.target.value)}
+                        placeholder="e.g. en"
+                        list={datalistId}
+                        disabled={isSaving}
+                      />
+                    </div> */}
+
+                    <div className="sm:col-span-2">
+                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">action</label>
+                      <input
+                        className={controlClass}
+                        value={translation.title}
+                        onChange={(event) => onTranslationFieldChange(translation.id, "title", event.target.value)}
+                        placeholder="Localized task title"
+                        required={index === 0}
+                        disabled={isSaving}
+                        data-testid={`${modePrefix}-translation-title-${index}`}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">description</label>
+                      <textarea
+                        className={textareaClass}
+                        rows={1}
+                        value={translation.description}
+                        onChange={(event) => onTranslationFieldChange(translation.id, "description", event.target.value)}
+                        placeholder="Localized context, acceptance criteria, or notes"
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </div>
+                  </div>
+                );
+              })}
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">status</label>
@@ -152,38 +233,6 @@ export const KanbanActionEdit: React.FC<KanbanTaskModalProps> = ({
                   <option value="30">In progress</option>
                   <option value="100">Completed</option>
                   <option value="101">Canceled</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">priority</label>
-                <select
-                  className={controlClass}
-                  value={formState.priority}
-                  onChange={(e) => onFieldChange("priority", e.target.value)}
-                  disabled={isSaving}
-                >
-                  {priorityOptions.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">difficulty</label>
-                <select
-                  className={controlClass}
-                  value={formState.difficulty}
-                  onChange={(e) => onFieldChange("difficulty", e.target.value)}
-                  disabled={isSaving}
-                >
-                  {difficultyOptions.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
                 </select>
               </div>
 
@@ -246,6 +295,37 @@ export const KanbanActionEdit: React.FC<KanbanTaskModalProps> = ({
                   {columnOptions.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">priority</label>
+                <select
+                  className={controlClass}
+                  value={formState.priority}
+                  onChange={(e) => onFieldChange("priority", e.target.value)}
+                  disabled={isSaving}
+                >
+                  {priorityOptions.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">difficulty</label>
+                <select
+                  className={controlClass}
+                  value={formState.difficulty}
+                  onChange={(e) => onFieldChange("difficulty", e.target.value)}
+                  disabled={isSaving}
+                >
+                  {difficultyOptions.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
                     </option>
                   ))}
                 </select>
@@ -353,88 +433,6 @@ export const KanbanActionEdit: React.FC<KanbanTaskModalProps> = ({
               )}
               
             </div>
-            
-            <div
-              className={
-                translations.length > 1
-                  ? "grid grid-cols-1 gap-4 md:grid-cols-2"
-                  : "grid grid-cols-1 gap-4"
-              }
-            >
-              {translations.map((translation, index) => {
-                const modePrefix = mode === "create" ? "create" : "edit";
-
-                return (
-                  <div
-                    key={translation.id}
-                    className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-800/40"
-                  >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Language {index + 1}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {translation.language
-                          ? languageOptions.find((option) => option.value === translation.language)?.label ?? translation.language.toUpperCase()
-                          : "Set the language code"}
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                        {translation.language || "—"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveTranslation(translation.id)}
-                        disabled={!canRemoveTranslation || isSaving}
-                        className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300 dark:text-rose-300 dark:hover:bg-rose-900/40"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {/* <div>
-                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">language</label>
-                      <input
-                        className={controlClass}
-                        value={translation.language}
-                        onChange={(event) => onTranslationFieldChange(translation.id, "language", event.target.value)}
-                        placeholder="e.g. en"
-                        list={datalistId}
-                        disabled={isSaving}
-                      />
-                    </div> */}
-
-                    <div className="sm:col-span-2">
-                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">action</label>
-                      <input
-                        className={controlClass}
-                        value={translation.title}
-                        onChange={(event) => onTranslationFieldChange(translation.id, "title", event.target.value)}
-                        placeholder="Localized task title"
-                        required={index === 0}
-                        disabled={isSaving}
-                        data-testid={`${modePrefix}-translation-title-${index}`}
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">description</label>
-                      <textarea
-                        className={textareaClass}
-                        rows={1}
-                        value={translation.description}
-                        onChange={(event) => onTranslationFieldChange(translation.id, "description", event.target.value)}
-                        placeholder="Localized context, acceptance criteria, or notes"
-                        disabled={isSaving}
-                      />
-                    </div>
-                  </div>
-                  </div>
-                );
-              })}
-            </div>
 
           </div>
 
@@ -464,7 +462,7 @@ export const KanbanActionEdit: React.FC<KanbanTaskModalProps> = ({
         </form>
 
         <div className="mt-4 flex items-center justify-end gap-3 border-t border-gray-200 bg-white/95 py-3 backdrop-blur dark:border-gray-800 lg:mt-6">
-          {/* {mode === "edit" && onRemoveFromKanban && (
+          {mode === "edit" && onRemoveFromKanban && (
             <button
               type="button"
               onClick={onRemoveFromKanban}
@@ -473,7 +471,7 @@ export const KanbanActionEdit: React.FC<KanbanTaskModalProps> = ({
             >
               {isRemoving ? "Removing..." : "Remove from Kanban"}
             </button>
-          )} */}
+          )}
           <button
             type="button"
             onClick={onClose}
