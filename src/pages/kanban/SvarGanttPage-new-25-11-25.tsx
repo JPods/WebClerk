@@ -5,7 +5,7 @@ import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import clsx from "clsx";
 import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../apps/utils/kanban/taskFormTypes";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import type { BoardData, KanbanTask, TaskPriority } from "../../type/kanban";

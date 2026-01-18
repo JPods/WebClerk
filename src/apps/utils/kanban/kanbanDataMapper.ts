@@ -52,6 +52,9 @@ export interface ApiKanbanItem {
     tags?: string[];
     links?: {
       parent?: string;
+      items?: unknown[];
+      contacts?: unknown[];
+      [key: string]: unknown;
     };
     [key: string]: unknown;
   };

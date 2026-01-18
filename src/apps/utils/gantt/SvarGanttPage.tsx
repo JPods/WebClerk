@@ -3,8 +3,8 @@ import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IApi, IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
-import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import KanbanTaskModal from "../../utils/kanban/KanbanTaskModal";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../kanban/taskFormTypes";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "../kanban/kanbanDataMapper";
 import type { BoardData, KanbanTask } from "../../../type/kanban";
@@ -29,7 +29,7 @@ import {
   priorityOptions,
   toTimestampMilliseconds,
   updateTaskFormState,
-} from "../kanban/KanbanGanttPage";
+} from "./GanttPage";
 const screenshotInspiredTasks = [
   { id: 1, text: "Project planning", start: new Date(2024, 3, 2), duration: 16, type: "summary", progress: 65 },
   { id: 2, parent: 1, text: "Marketing analysis", start: new Date(2024, 3, 3), duration: 3, type: "task" },
@@ -745,18 +745,19 @@ const SvarGanttPage: React.FC = () => {
       const normalizedProgressValue = toProgressPercentage(task.progress);
       const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
 
-      return {
-        translations: createTranslationEntriesFromTask(task),
-        columnId: taskColumn?.id ?? resolveDefaultColumnId(),
-        priority: task.priority,
-        dueDate: resolvedDueDate,
-        startDate: resolvedStartDate,
-        endDate: resolvedEndDate,
-        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
-        difficulty: normalizedDifficulty,
-        progress: normalizedProgress,
-        ...overrides,
-      };
+       return {
+         translations: createTranslationEntriesFromTask(task),
+         columnId: taskColumn?.id ?? resolveDefaultColumnId(),
+         priority: task.priority,
+         dueDate: resolvedDueDate,
+         startDate: resolvedStartDate,
+         endDate: resolvedEndDate,
+         assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+         difficulty: normalizedDifficulty,
+         progress: normalizedProgress,
+         percent_complete: normalizedProgress,
+         ...overrides,
+       } as TaskFormState;
     },
     [board.columns, resolveDefaultColumnId]
   );

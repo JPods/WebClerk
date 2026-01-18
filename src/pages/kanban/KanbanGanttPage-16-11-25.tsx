@@ -6,7 +6,7 @@ import { KanbanTask, TaskPriority } from "../../type/kanban";
 import clsx from "clsx";
 import { Actions, patchAction } from "../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../apps/utils/kanban/taskFormTypes";
 
 // Sample data used as a fallback when the API is unavailable
 // const FALLBACK_GANTT_TASKS: KanbanTask[] = [

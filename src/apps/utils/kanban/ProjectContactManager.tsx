@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, ChangeEvent } from "react";
-import { getRecords, saveRecord } from "../../api/wcapi";
-import { useAuth } from "../../hooks/useAuth";
+import { getRecords, saveRecord } from "../../../api/wcapi";
+import { useAuth } from "../../../hooks/useAuth";
 
 /**
  * ProjectContactManager
