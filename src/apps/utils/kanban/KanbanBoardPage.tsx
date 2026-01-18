@@ -3,13 +3,13 @@ import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
-import { KanbanColumn } from "../../../components/kanban/KanbanColumn";
-import { KanbanDragLayer } from "../../../components/kanban/KanbanDragLayer";
-import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
-import { ProjectContactManager } from "../../../components/kanban/ProjectContactManager";
-import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
-import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import { KanbanColumn } from "./KanbanColumn";
+import { KanbanDragLayer } from "./KanbanDragLayer";
+import KanbanTaskModal from "./KanbanTaskModal";
+import { ProjectContactManager } from "./ProjectContactManager";
+import type { DragItem, DropResult } from "./dndTypes";
+import { DRAG_TYPE_TASK } from "./dndTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
@@ -369,6 +369,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   assignee: "",
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
+  percent_complete: "0",
 });
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
@@ -1225,6 +1226,7 @@ const KanbanBoardPage: React.FC = () => {
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
+      percent_complete: String(normalizedProgress),
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -2017,4 +2019,3 @@ const KanbanBoardPage: React.FC = () => {
 };
 
 export default KanbanBoardPage;
-

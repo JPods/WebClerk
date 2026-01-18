@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import clsx from "clsx";
-import type { KanbanTask, TaskPriority } from "../../type/kanban";
+import type { KanbanTask, TaskPriority } from "../../../type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 
 const priorityStyles: Record<TaskPriority, string> = {

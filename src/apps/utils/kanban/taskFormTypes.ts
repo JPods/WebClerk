@@ -1,4 +1,4 @@
-import type { TaskPriority } from "../../type/kanban";
+import type { TaskPriority } from "../../../type/kanban";
 
 export type TranslationFormEntry = {
   id: string;
@@ -17,6 +17,7 @@ export type TaskFormState = {
   assignee: string;
   difficulty: string;
   progress: string;
+  percent_complete: string;
 };
 
 export type TaskFormEditableField = Exclude<keyof TaskFormState, "translations">;

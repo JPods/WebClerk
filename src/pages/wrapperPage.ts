@@ -59,7 +59,7 @@ import TagList from "../apps/docs/models/tag/pages/TagList";
 
 import KanbanBoardPage from "../apps/utils/kanban/KanbanBoardPage";
 import KanbanBoardDataPage from "../apps/utils/kanban/KanbanBoardDataPage";
-import KanbanGanttPage from "../apps/utils/kanban/KanbanGanttPage";
+import KanbanGanttPage from "../apps/utils/gantt/GanttPage";
 import SvarGanttPage from "../apps/utils/gantt/SvarGanttPage";
 import MultiProjectGanttPage from "../apps/utils/gantt/MultiProjectGanttPage";
 import NotionTrackerPage from "./notion/NotionTrackerPage";
