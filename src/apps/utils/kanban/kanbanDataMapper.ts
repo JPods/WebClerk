@@ -18,14 +18,18 @@ export interface ApiKanbanItem {
   is_archived?: boolean | string | number;
   is_active?: boolean | string | number;
   project_name?: string | null;
+  action?: Record<string, string> | null;
+  description?: Record<string, string> | null;
   action_en?: string | null;
   action_ar?: string | null;
   action_bn?: string | null;
   action_es?: string | null;
+  action_id?: string | null;
   description_en?: string | null;
   description_ar?: string | null;
   description_bn?: string | null;
   description_es?: string | null;
+  description_id?: string | null;
   languages?: string[];
   kanban_column?: string | null;
   priority?: number | null;
@@ -319,12 +323,7 @@ const collectLocalizedEntries = (
   const record = item as Record<string, unknown>;
   const pattern = new RegExp(`^${fieldPrefix}(?:[._])([a-z0-9-]+)$`, "i");
 
-  Object.entries(record).forEach(([key, raw]) => {
-    const match = key.match(pattern);
-    if (!match) return;
-    assignTranslationValue(collected, match[1], raw);
-  });
-
+  // Process nested objects FIRST (highest priority)
   const nestedField = record[fieldPrefix];
   if (nestedField && typeof nestedField === "object" && !Array.isArray(nestedField)) {
     Object.entries(nestedField as Record<string, unknown>).forEach(([language, rawValue]) => {
@@ -332,6 +331,14 @@ const collectLocalizedEntries = (
     });
   }
 
+  // Then process flat fields (medium priority)
+  Object.entries(record).forEach(([key, raw]) => {
+    const match = key.match(pattern);
+    if (!match) return;
+    assignTranslationValue(collected, match[1], raw);
+  });
+
+  // Finally process fallback entries (lowest priority)
   fallbackEntries.forEach(([language, value]) => {
     assignTranslationValue(collected, language, value);
   });
@@ -385,6 +392,7 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
       ["ar", item.action_ar],
       ["bn", item.action_bn],
       ["es", item.action_es],
+      ["id", item.action_id],
     ]);
 
     const descriptionEntries = collectLocalizedEntries(item, "description", [
@@ -392,6 +400,7 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
       ["ar", item.description_ar],
       ["bn", item.description_bn],
       ["es", item.description_es],
+      ["id", item.description_id],
     ]);
 
     const titleTranslations = buildTranslations(actionEntries);

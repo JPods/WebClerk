@@ -140,10 +140,20 @@ export default function ActionDetail({
   const onSubmit = async (formData: z.infer<typeof actionSchema>) => {
     try {
       const payload = preparePayload(formData);
+      const actionId = data?.id ?? data?.pk ?? data?.uuid;
+      if (mode === "edit" && (actionId === undefined || actionId === null)) {
+        dispatch(
+          showToast({
+            message: "Action id is missing. Please reopen the action and try again.",
+            type: "error",
+          })
+        );
+        return;
+      }
       const res =
         mode === "add"
           ? await createAction(payload)
-          : await updateAction(data && data.id, payload);
+          : await updateAction(actionId, payload);
       
       if (res) {
         dispatch(

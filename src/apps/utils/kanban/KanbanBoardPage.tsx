@@ -416,6 +416,42 @@ const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntr
   });
 };
 
+const buildTranslationMapsFromEntries = (entries: TranslationFormEntry[]) => {
+  const titleTranslations: Record<string, string> = {};
+  const descriptionTranslations: Record<string, string> = {};
+  const languageCodes = new Set<string>();
+
+  entries.forEach((entry) => {
+    const language = normalizeLanguageCode(entry.language);
+    if (!language) {
+      return;
+    }
+
+    const title = entry.title?.trim() ?? "";
+    const description = entry.description?.trim() ?? "";
+
+    if (title) {
+      titleTranslations[language] = title;
+      languageCodes.add(language);
+    }
+    if (description) {
+      descriptionTranslations[language] = description;
+      languageCodes.add(language);
+    }
+  });
+
+  const firstTitle = Object.values(titleTranslations).find(Boolean);
+  const firstDescription = Object.values(descriptionTranslations).find(Boolean);
+
+  return {
+    titleTranslations: Object.keys(titleTranslations).length ? titleTranslations : undefined,
+    descriptionTranslations: Object.keys(descriptionTranslations).length ? descriptionTranslations : undefined,
+    title: titleTranslations.en || firstTitle,
+    description: descriptionTranslations.en || firstDescription,
+    languageCodes: languageCodes.size ? Array.from(languageCodes) : undefined,
+  };
+};
+
 interface OnDragEndArgs {
   item: DragItem;
   result: DropResult | null;
@@ -972,7 +1008,7 @@ const KanbanBoardPage: React.FC = () => {
       }
 
       const items = extractKanbanItems(response);
-      
+
       // Backend now filters by contact_id, so no client-side filtering needed
       if (items.length === 0) {
         setBoard(createEmptyBoardData());
@@ -1530,18 +1566,40 @@ const KanbanBoardPage: React.FC = () => {
       });
     });
 
-    const hasTitle = Array.from(normalized.values()).some((value) => value.title.length > 0);
+    const effectiveTranslations = new Map(
+      Array.from(normalized.entries()).filter(
+        ([, value]) => value.title.length > 0 || value.description.length > 0
+      )
+    );
+
+    const hasTitle = Array.from(effectiveTranslations.values()).some(
+      (value) => value.title.length > 0
+    );
     if (!hasTitle) {
       return { error: "Add at least one language with a title." };
     }
 
     const translationFields: Record<string, string> = {};
-    normalized.forEach((value, language) => {
-      translationFields[`action_${language}`] = value.title || "";
-      translationFields[`description_${language}`] = value.description || "";
+    effectiveTranslations.forEach((value, language) => {
+      if (value.title) {
+        translationFields[`action_${language}`] = value.title;
+      }
+      if (value.description) {
+        translationFields[`description_${language}`] = value.description;
+      }
     });
 
-    const languages = Array.from(normalized.keys());
+    const languages = Array.from(effectiveTranslations.keys());
+    const actionPayload: Record<string, string> = {};
+    const descriptionPayload: Record<string, string> = {};
+    effectiveTranslations.forEach((value, language) => {
+      if (value.title) {
+        actionPayload[language] = value.title;
+      }
+      if (value.description) {
+        descriptionPayload[language] = value.description;
+      }
+    });
 
     const removalTokens: string[] = [];
     if (mode === "edit" && baseTask) {
@@ -1557,7 +1615,7 @@ const KanbanBoardPage: React.FC = () => {
       );
 
       originalLanguages.forEach((language) => {
-        if (language && !normalized.has(language)) {
+        if (language && !effectiveTranslations.has(language)) {
           removalTokens.push(`action_${language}`);
           removalTokens.push(`description_${language}`);
         }
@@ -1601,6 +1659,8 @@ const KanbanBoardPage: React.FC = () => {
       ...translationFields,
       languages,
       needtoremove: removalTokens.join(","),
+      ...(Object.keys(actionPayload).length ? { action: actionPayload } : {}),
+      ...(Object.keys(descriptionPayload).length ? { description: descriptionPayload } : {}),
       kanban_column: columnTitle,
       kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
       priority: PRIORITY_TO_VALUE[state.priority],
@@ -1746,7 +1806,6 @@ const KanbanBoardPage: React.FC = () => {
         projectId: selectedProjectId || undefined,
         contactId: selectedContactId || undefined,
       });
-      handleCloseEditModal();
     } catch (error) {
       console.error("Failed to update kanban task", error);
       const message =
