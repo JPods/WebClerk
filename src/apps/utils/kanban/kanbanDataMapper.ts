@@ -14,6 +14,9 @@ export interface ApiKanbanAssignment {
 
 export interface ApiKanbanItem {
   id: string;
+  is_deleted?: boolean | string | number;
+  is_archived?: boolean | string | number;
+  is_active?: boolean | string | number;
   project_name?: string | null;
   action_en?: string | null;
   action_ar?: string | null;
@@ -77,6 +80,9 @@ export interface ApiKanbanItem {
   position?: number | null;
   [key: string]: unknown;
 }
+
+const isTrue = (value: unknown): boolean => value === true || value === "true" || value === 1 || value === "1";
+const isFalse = (value: unknown): boolean => value === false || value === "false" || value === 0 || value === "0";
 
 export const createEmptyBoardData = (): BoardData => ({
   tasks: {},
@@ -341,13 +347,28 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
   return firstKey ? map[firstKey] : undefined;
 };
 
-export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
+  export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   const tasks: Record<string, KanbanTask> = {};
   const columns: Record<string, KanbanColumnType> = {};
   const columnOrder: string[] = [];
 
-  items.forEach((item) => {
+    const sortedItems = items
+      .map((item, index) => ({ item, index, sequence: extractSequenceValue(item) }))
+      .sort((a, b) => {
+        const aSeq = a.sequence;
+        const bSeq = b.sequence;
+        if (typeof aSeq === "number" && typeof bSeq === "number") {
+          if (aSeq !== bSeq) return aSeq - bSeq;
+          return a.index - b.index;
+        }
+        if (typeof aSeq === "number") return -1;
+        if (typeof bSeq === "number") return 1;
+        return a.index - b.index;
+      });
+
+    sortedItems.forEach(({ item }) => {
     if (!item?.id) return;
+    if (isTrue(item.is_deleted) || isTrue(item.is_archived) || isFalse(item.is_active)) return;
 
     const rawColumnTitle = (item.kanban_column && String(item.kanban_column).trim()) || "Uncategorized";
     const columnId = slugifyColumn(rawColumnTitle);

@@ -16,7 +16,7 @@ const toTitleCase = (value: string): string => {
     .join(' ');
 };
 
-const colBase = 'flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm';
+const colBase = 'relative flex h-full min-h-0 flex-col rounded-lg border border-gray-200 bg-white shadow-sm';
 
 type WorkbenchRecord = {
   id?: number | string;
@@ -423,6 +423,29 @@ const AdminWorkbench: React.FC = () => {
                   )}
                 </div>
               </div>
+              <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-xs font-semibold">List fields</div>
+                  <div className="space-x-2">
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'all')}>Select all</button>
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'clear')}>Clear</button>
+                  </div>
+                </div>
+                <div className="flex max-h-24 flex-wrap gap-2 overflow-auto">
+                  {allFields.map((f: string) => {
+                    const active = workbenchSetting?.list.includes(f) || false;
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => toggleField('list', f)}
+                        className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
+                      >
+                        {f}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {recordsLoading && (
                   <div className="text-xs text-gray-500">Loading records…</div>
@@ -471,29 +494,6 @@ const AdminWorkbench: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="text-xs font-semibold">List fields</div>
-                  <div className="space-x-2">
-                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'all')}>Select all</button>
-                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('list', 'clear')}>Clear</button>
-                  </div>
-                </div>
-                <div className="flex max-h-40 flex-wrap gap-2 overflow-auto">
-                  {allFields.map((f: string) => {
-                    const active = workbenchSetting?.list.includes(f) || false;
-                    return (
-                      <button
-                        key={f}
-                        onClick={() => toggleField('list', f)}
-                        className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
-                      >
-                        {f}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
             <div className={`${colBase} w-full flex-1 md:basis-[50%]`}>
               <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
@@ -507,6 +507,29 @@ const AdminWorkbench: React.FC = () => {
                 </div>
                 <div className="space-x-2">
                   <button className="px-3 py-1 text-sm rounded border hover:bg-gray-100" onClick={handleSave} disabled={!selectedRecord}>Save</button>
+                </div>
+              </div>
+              <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-xs font-semibold">Detail fields</div>
+                  <div className="space-x-2">
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'all')}>Select all</button>
+                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'clear')}>Clear</button>
+                  </div>
+                </div>
+                <div className="flex max-h-24 flex-wrap gap-2 overflow-auto">
+                  {allFields.map((f) => {
+                    const active = visibleDetailFields.includes(f);
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => toggleField('detail', f)}
+                        className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
+                      >
+                        {f}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -536,29 +559,6 @@ const AdminWorkbench: React.FC = () => {
                 ) : (
                   <div className="text-sm text-gray-500">Select a record to edit.</div>
                 )}
-              </div>
-              <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="text-xs font-semibold">Detail fields</div>
-                  <div className="space-x-2">
-                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'all')}>Select all</button>
-                    <button className="px-2 py-0.5 text-xs rounded border hover:bg-gray-100" onClick={() => bulkSetFields('detail', 'clear')}>Clear</button>
-                  </div>
-                </div>
-                <div className="flex max-h-40 flex-wrap gap-2 overflow-auto">
-                  {allFields.map((f) => {
-                    const active = visibleDetailFields.includes(f);
-                    return (
-                      <button
-                        key={f}
-                        onClick={() => toggleField('detail', f)}
-                        className={`px-2 py-1 rounded text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-100'}`}
-                      >
-                        {f}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           </div>

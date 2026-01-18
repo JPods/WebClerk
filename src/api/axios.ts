@@ -2,8 +2,12 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
 import { clearUser } from "../store/slices/authSlice";
-import { setApiLoading } from "../store/slices/loadingSlice";
 import { onRequestStart, onResponseSuccess, onResponseError } from "./apiLogger";
+import {
+  startRequestTracking,
+  completeRequestTracking,
+  cancelTrackedRequest,
+} from "./requestTracker";
 
 // Access tokens are short-lived; keep latest in memory for fast access
 // Helpers
@@ -22,9 +26,6 @@ let accessToken: string | null = (() => {
 })();
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
-let inflightRequests = 0;
-let spinnerTimer: ReturnType<typeof setTimeout> | null = null;
-let safetyTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Simple session-scoped cache for GET requests to reduce reloads while tab is open
 type CachedEntry = {
@@ -131,39 +132,9 @@ const wrapGetWithCache = (client: AxiosInstance) => {
   }) as typeof client.get;
 };
 
-const clearTimers = () => {
-  if (spinnerTimer) {
-    clearTimeout(spinnerTimer);
-    spinnerTimer = null;
-  }
-  if (safetyTimer) {
-    clearTimeout(safetyTimer);
-    safetyTimer = null;
-  }
-};
-
-const updateLoading = (delta: number) => {
-  inflightRequests = Math.max(0, inflightRequests + delta);
-
-  if (inflightRequests > 0) {
-    // Show spinner only if network is busy for a short stretch (reduce flicker for quick calls)
-    if (!spinnerTimer) {
-      spinnerTimer = setTimeout(() => {
-        store.dispatch(setApiLoading(true));
-      }, 300);
-    }
-
-    // Safety: ensure spinner clears after long-running background calls to avoid being stuck
-    if (safetyTimer) clearTimeout(safetyTimer);
-    safetyTimer = setTimeout(() => {
-      inflightRequests = 0;
-      store.dispatch(setApiLoading(false));
-      clearTimers();
-    }, 12000);
-  } else {
-    clearTimers();
-    store.dispatch(setApiLoading(false));
-  }
+const updateLoading = (_delta: number) => {
+  // Spinner intentionally disabled
+  return;
 };
 
 // Helper to process queued requests waiting for refresh
@@ -209,6 +180,10 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
     updateLoading(1);
     // Add correlation ID and start time for logging
     onRequestStart(config);
+    const tracking = startRequestTracking(config);
+    (config as any)._requestTrackId = tracking.id;
+    (config as any)._requestCancel = tracking.cancel;
+    config.signal = tracking.signal;
     if (!accessToken && typeof localStorage !== "undefined") {
       accessToken = localStorage.getItem("accessToken");
     }
@@ -224,10 +199,13 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
       updateLoading(-1);
       // Log successful response
       onResponseSuccess(res);
+      const trackId = (res.config as any)?._requestTrackId;
+      if (trackId) completeRequestTracking(trackId, "success");
       return res;
     },
     async (error: AxiosError) => {
       const originalRequest: any = error.config;
+      const trackId = (originalRequest as any)?._requestTrackId;
 
       if (error.response?.status === 401 && !originalRequest?._retry) {
         if (isRefreshing) {
@@ -267,6 +245,7 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
           processQueue(newToken);
           originalRequest.headers = originalRequest.headers ?? {};
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          if (trackId) completeRequestTracking(trackId, "canceled", "retrying with refreshed token");
           return client(originalRequest);
         } catch (refreshErr) {
           processQueue(null);
@@ -277,6 +256,7 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
           } catch {}
           // Log the error before rejecting
           onResponseError(error);
+          if (trackId) completeRequestTracking(trackId, "error", (refreshErr as any)?.message);
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
@@ -287,6 +267,10 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
       updateLoading(-1);
       // Log the error
       onResponseError(error);
+      if (trackId) {
+        const wasCanceled = (error as any)?.code === "ERR_CANCELED" || (error as any)?.message === "canceled";
+        completeRequestTracking(trackId, wasCanceled ? "canceled" : "error", (error as any)?.message);
+      }
       return Promise.reject(error);
     }
   );
@@ -295,16 +279,27 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
 const attachLoadingOnly = (client: AxiosInstance) => {
   client.interceptors.request.use((config) => {
     updateLoading(1);
+    const tracking = startRequestTracking(config);
+    (config as any)._requestTrackId = tracking.id;
+    (config as any)._requestCancel = tracking.cancel;
+    config.signal = tracking.signal;
     return config;
   });
 
   client.interceptors.response.use(
     (res) => {
       updateLoading(-1);
+      const trackId = (res.config as any)?._requestTrackId;
+      if (trackId) completeRequestTracking(trackId, "success");
       return res;
     },
     (error) => {
       updateLoading(-1);
+      const trackId = (error.config as any)?._requestTrackId;
+      if (trackId) {
+        const wasCanceled = (error as any)?.code === "ERR_CANCELED" || (error as any)?.message === "canceled";
+        completeRequestTracking(trackId, wasCanceled ? "canceled" : "error", (error as any)?.message);
+      }
       return Promise.reject(error);
     }
   );
