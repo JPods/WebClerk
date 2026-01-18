@@ -354,8 +354,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <input
                     type="datetime-local"
                     step={60}
-                    value={formState.endDate}
-                    onChange={(e) => onFieldChange("endDate", e.target.value)}
+ value={formState.completedDate}
+ onChange={(e) => onFieldChange("completedDate", e.target.value)}
                     disabled={isSaving}
                     className={controlClass}
                   />

@@ -366,7 +366,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   priority: "medium",
   dueDate: "",
   startDate: "",
-  endDate: "",
+   completedDate: "",
   assignee: "",
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
@@ -690,21 +690,36 @@ const updateTaskFormState = (
 ): TaskFormState => {
   if (field === "startDate") {
     const next: TaskFormState = { ...prev, startDate: value };
-    next.endDate = ensureEndAfterStart(value, prev.endDate);
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+
+    // If dt_due exists and is earlier than new dt_start, shift dt_due up to dt_start
+    if (value && prev.dueDate) {
+      const start = parseDateTimeInputValue(value);
+      const due = parseDateTimeInputValue(prev.dueDate);
+      if (start && due && due.getTime() < start.getTime()) {
+        next.dueDate = value;
+      }
+    }
+
     return next;
   }
 
-  if (field === "endDate") {
-    const nextEnd = ensureEndAfterStart(prev.startDate, value);
-    const next: TaskFormState = { ...prev, endDate: nextEnd };
-    next.dueDate = calculateDueDate(prev.startDate, next.endDate);
+  if (field === "completedDate") {
+    const next: TaskFormState = { ...prev, completedDate: value };
+    if (value) {
+      if (!prev.startDate) next.startDate = value;
+      if (!prev.dueDate) next.dueDate = value;
+      const startDate = parseDateTimeInputValue(next.startDate);
+      const compDate = parseDateTimeInputValue(value);
+      if (startDate && compDate && compDate.getTime() < startDate.getTime()) {
+        next.completedDate = formatDateTimeLocalString(startDate);
+      }
+    }
     return next;
   }
 
   if (field === "dueDate") {
     if (!value) {
-      return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.endDate) };
+       return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.completedDate) };
     }
 
     const parsedDue = parseDateTimeInputValue(value);
@@ -712,14 +727,14 @@ const updateTaskFormState = (
       return prev;
     }
 
-    const endDate = parseDateTimeInputValue(prev.endDate);
-    if (endDate && parsedDue.getTime() < endDate.getTime()) {
+     const endDate = parseDateTimeInputValue(prev.completedDate);
+     if (endDate && parsedDue.getTime() < endDate.getTime()) {
       return { ...prev, dueDate: formatDateTimeLocalString(endDate) };
     }
 
-    const startDate = parseDateTimeInputValue(prev.startDate);
-    if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
-      return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
+     const startDate = parseDateTimeInputValue(prev.startDate);
+     if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
+       return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
     }
 
     return { ...prev, dueDate: formatDateTimeLocalString(parsedDue) };
@@ -776,9 +791,9 @@ const updateTaskFormState = (
     if (options?.columns?.length && options.fallbackColumnId) {
       next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
     }
-    if (value === "100" && !prev.endDate) {
+     if (value === "100" && !prev.completedDate) {
       const now = formatDateTimeLocalString(new Date());
-      next.endDate = ensureEndAfterStart(prev.startDate, now);
+       next.completedDate = ensureEndAfterStart(prev.startDate, now);
     }
     return next;
   }
@@ -1367,7 +1382,7 @@ const KanbanBoardPage: React.FC = () => {
       priority: task.priority,
       dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
       startDate: normalizedStart,
-      endDate: normalizedEnd,
+      completedDate: normalizedEnd,
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
@@ -1729,17 +1744,20 @@ const KanbanBoardPage: React.FC = () => {
       ? [{ name: assigneeValue }]
       : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
-    const startTimestamp = toTimestampMilliseconds(state.startDate);
-    const endTimestamp = toTimestampMilliseconds(state.endDate);
-    const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let startTimestamp = toTimestampMilliseconds(state.startDate);
+    let dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let completedTimestamp = toTimestampMilliseconds(state.completedDate);
+    // dt_completed 
 
-    if (startTimestamp !== null && endTimestamp !== null && endTimestamp < startTimestamp) {
-      return { error: "End date must be on or after start date." };
+    // completedTimestamp must not modify dueTimestamp or startTimestamp
+    // Remove auto-propagation logic to keep fields independent
+    if (startTimestamp === null && dueTimestamp !== null) {
+      startTimestamp = dueTimestamp;
+    }
+    if (startTimestamp !== null && dueTimestamp !== null && dueTimestamp < startTimestamp) {
+      startTimestamp = dueTimestamp;
     }
 
-    if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
-      return { error: "Due date must be on or after end date." };
-    }
 
     const fallbackDifficulty = baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority];
     const parsedDifficulty = Number(state.difficulty);
@@ -1768,7 +1786,7 @@ const KanbanBoardPage: React.FC = () => {
       status: baseTask?.status ?? "In progress",
       dt_due: dueTimestamp ?? null,
       dt_start: startTimestamp ?? null,
-      dt_end: endTimestamp ?? null,
+       dt_completed: completedTimestamp ?? null,
       progress: resolvedProgress,
       // Backend drops numeric 0 via truthy checks; keep as string to satisfy NOT NULL constraint.
       burndown: serializeBurndownValue(resolvedBurndown),
@@ -1856,7 +1874,7 @@ const KanbanBoardPage: React.FC = () => {
 
     void patchAction(result.payload)
       .then((response) => {
-        const body: any = response?.data ?? response;
+        const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           throw new Error(details || "Backend rejected the save request.");
@@ -1892,7 +1910,7 @@ const KanbanBoardPage: React.FC = () => {
 
     void patchAction(result.payload)
       .then((response) => {
-        const body: any = response?.data ?? response;
+        const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           throw new Error(details || "Backend rejected the update request.");
@@ -1930,8 +1948,8 @@ const KanbanBoardPage: React.FC = () => {
         kanban_column: { mode: "update", value: "Removed" },
         kanban_column_id: { mode: "update", value: "column-removed" },
       });
-      const body: any = response?.data ?? response;
-      if (response?.status !== 200 && response?.status !== 201) {
+      const body: any = (response as any)?.data ?? response;
+      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
         throw new Error("Failed to remove task.");
       }
       if (body?.status === "fail") {

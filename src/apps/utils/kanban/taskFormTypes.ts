@@ -14,7 +14,7 @@ export type TaskFormState = {
   priority: TaskPriority;
   dueDate: string;
   startDate: string;
-  endDate: string;
+   completedDate: string;
   assignee: string;
   difficulty: string;
   progress: string;

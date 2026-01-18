@@ -57,8 +57,8 @@ export const normalizeNumericSelectValue = (
   return isNaN(n) ? String(fallback) : String(n);
 };
 
-export const calculateDueDate = (start: string, end: string): string => {
-  const endDate = new Date(end);
+ export const calculateDueDate = (start: string, completedDate: string): string => {
+   const endDate = new Date(completedDate);
   if (!isNaN(endDate.getTime())) return endDate.toISOString().slice(0, 16);
   const startDate = new Date(start);
   if (!isNaN(startDate.getTime())) {
@@ -97,7 +97,7 @@ export const createInitialTaskFormState = (
   priority: "medium",
   dueDate: "",
   startDate: "",
-  endDate: "",
+   completedDate: "",
   assignee: "",
   difficulty: String(DEFAULT_DIFFICULTY),
   progress: String(DEFAULT_PROGRESS),

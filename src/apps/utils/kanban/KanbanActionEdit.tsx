@@ -199,8 +199,8 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                 <input type="datetime-local" step={60} value={formState.startDate} onChange={(e)=>onFieldChange("startDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_end</label>
-                <input type="datetime-local" step={60} value={formState.endDate} onChange={(e)=>onFieldChange("endDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_completed</label>
+                <input type="datetime-local" step={60} value={formState.completedDate} onChange={(e)=>onFieldChange("completedDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
@@ -456,29 +456,27 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                 disabled={isSaving}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_end</label>
-              <input
-                type="datetime-local"
-                step={60}
-                min={formState.startDate || undefined}
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                value={formState.endDate}
-                onChange={(event) => onFieldChange("endDate", event.target.value)}
-                disabled={isSaving}
-              />
-            </div>
+             <div>
+               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_completed</label>
+               <input
+                 type="datetime-local"
+                 step={60}
+                 className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  value={formState.endDate}
+                  onChange={(event) => onFieldChange("endDate", event.target.value)}
+                 disabled={isSaving}
+               />
+             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
-              <input
-                type="datetime-local"
-                step={60}
-                min={formState.endDate || formState.startDate || undefined}
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                value={formState.dueDate}
-                onChange={(event) => onFieldChange("dueDate", event.target.value)}
-                disabled={isSaving}
-              />
+                <input
+                  type="datetime-local"
+                  step={60}
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  value={formState.dueDate}
+                  onChange={(event) => onFieldChange("dueDate", event.target.value)}
+                  disabled={isSaving}
+                />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
