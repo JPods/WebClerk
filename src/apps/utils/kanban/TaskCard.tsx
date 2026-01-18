@@ -1,7 +1,8 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
+import { getEmptyImage } from "react-dnd-html5-backend";
 import clsx from "clsx";
-import type { KanbanTask, TaskPriority } from "../../type/kanban";
+import type { KanbanTask, TaskPriority } from "../../../type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 
 const priorityStyles: Record<TaskPriority, string> = {
@@ -36,7 +37,7 @@ interface TaskCardProps {
 const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onDragEnd, onTaskClick, isSubtask = false }) => {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const [{ isDragging }, drag] = useDrag(
+  const [{ isDragging }, drag, preview] = useDrag(
     () => ({
       type: DRAG_TYPE_TASK,
       item: { type: DRAG_TYPE_TASK, taskId: task.id, sourceColumnId: columnId, index },
@@ -52,6 +53,11 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
     }),
     [task.id, columnId, index, onDragEnd]
   );
+
+  useEffect(() => {
+    // Disable the default browser drag preview so only the custom layer is shown
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
 
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
     () => ({
@@ -83,7 +89,8 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
       className={clsx(
         "group relative rounded-xl border border-transparent p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer",
         {
-          "opacity-60": isDragging,
+          // Hide the original card while dragging so only the drag preview shows
+          "opacity-0": isDragging,
           "ring-2 ring-indigo-400": isOver && canDrop,
           // Subtask styling
           "bg-indigo-50/80 border-indigo-100 dark:bg-indigo-500/5 dark:border-indigo-500/20": isSubtask,

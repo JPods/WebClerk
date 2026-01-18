@@ -54,7 +54,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
 
   return (
     <div
-      className={`absolute flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-xl backdrop-blur-sm ${transitionClass} will-change-transform`}
+      className={`absolute flex flex-col overflow-hidden bg-white text-slate-900 backdrop-blur-sm ${maximized ? "rounded-none border-0 shadow-none" : "rounded-2xl border border-slate-200 shadow-xl"} ${transitionClass} will-change-transform`}
       style={baseStyle}
       onMouseDown={() => {
         activateWindow(path);
@@ -63,6 +63,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
     >
       <div
         className={`flex items-center gap-3 border-b border-slate-200 bg-slate-100 px-4 py-2 text-sm text-slate-900 ${maximized ? "cursor-default" : ""}`}
+        onDoubleClick={() => maximizeWindow(path, !maximized)}
         {...(maximized ? {} : draggable.handleProps)}
       >
         <div className="flex items-center gap-2">
@@ -109,9 +110,7 @@ export default function MacWindowChrome({ path, title, children, onActivate, x, 
           className="absolute bottom-1 right-1 h-4 w-4 rounded-sm border border-transparent bg-transparent"
           data-stop-drag="true"
           {...resizable.handleProps}
-        >
-          <div className="pointer-events-none absolute inset-0 rotate-45 border-b-2 border-r-2 border-slate-300" />
-        </div>
+        />
       )}
     </div>
   );

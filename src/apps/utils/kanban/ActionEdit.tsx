@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { KanbanTask, TaskPriority } from "../../type/kanban";
+import type { KanbanTask, TaskPriority } from "../../../type/kanban";
 import type {
   TaskFormEditableField,
   TaskFormState,
@@ -56,7 +56,7 @@ interface KanbanTaskModalProps {
   currentTask?: KanbanTask | null;
 }
 
-export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
+export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
   mode,
   isOpen,
   title,
@@ -129,6 +129,98 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </datalist>
 
           <div className="space-y-4">
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">status</label>
+              <select
+                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={formState.percent_complete}
+                onChange={(e)=>onFieldChange("percent_complete", e.target.value)}
+                disabled={isSaving}
+              >
+                <option value="0">Backlog</option>
+                <option value="5">On hold</option>
+                <option value="30">In progress</option>
+                <option value="100">Completed</option>
+                <option value="101">Canceled</option>
+              </select>
+            </div>
+            {/* Priority */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">priority</label>
+              <select
+                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={formState.priority}
+                onChange={(e)=>onFieldChange("priority", e.target.value)}
+                disabled={isSaving}
+              >
+                {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            {/* Assignee */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignee</label>
+              <input
+                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={formState.assignee}
+                onChange={(e)=>onFieldChange("assignee", e.target.value)}
+                disabled={isSaving}
+              />
+            </div>
+            {/* Difficulty */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">difficulty</label>
+              <select
+                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={formState.difficulty}
+                onChange={(e)=>onFieldChange("difficulty", e.target.value)}
+                disabled={isSaving}
+              >
+                {difficultyOptions.map(o=> <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            {/* Progress */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">progress</label>
+              <select
+                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={formState.progress}
+                onChange={(e)=>onFieldChange("progress", e.target.value)}
+                disabled={isSaving}
+              >
+                {progressOptions.map(o=> <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            {/* Dates */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
+                <input type="datetime-local" step={60} value={formState.startDate} onChange={(e)=>onFieldChange("startDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_end</label>
+                <input type="datetime-local" step={60} value={formState.endDate} onChange={(e)=>onFieldChange("endDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
+                <input type="datetime-local" step={60} value={formState.dueDate} onChange={(e)=>onFieldChange("dueDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">status</label>
+              <select
+                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={formState.percent_complete}
+                onChange={(e)=>onFieldChange("percent_complete", e.target.value)}
+                disabled={isSaving}
+              >
+                <option value="0">Backlog</option>
+                <option value="5">On hold</option>
+                <option value="30">In progress</option>
+                <option value="100">Completed</option>
+                <option value="101">Canceled</option>
+              </select>
+            </div>
             {translations.map((translation, index) => {
               const canRemove = canRemoveTranslation;
               const modePrefix = mode === "create" ? "create" : "edit";
@@ -460,4 +552,4 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   return createPortal(modal, document.body);
 };
 
-export default KanbanTaskModal;
+export default ActionEdit;

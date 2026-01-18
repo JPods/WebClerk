@@ -3,13 +3,13 @@ import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
-import { KanbanColumn } from "../../../components/kanban/KanbanColumn";
-import { KanbanDragLayer } from "../../../components/kanban/KanbanDragLayer";
-import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
-import { ProjectContactManager } from "../../../components/kanban/ProjectContactManager";
-import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
-import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import { KanbanColumn } from "./KanbanColumn";
+import { KanbanDragLayer } from "./KanbanDragLayer";
+import KanbanTaskModal from "./KanbanTaskModal";
+import { ProjectContactManager } from "./ProjectContactManager";
+import type { DragItem, DropResult } from "./dndTypes";
+import { DRAG_TYPE_TASK } from "./dndTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
@@ -369,6 +369,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   assignee: "",
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
+  percent_complete: "0",
 });
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
@@ -829,6 +830,7 @@ const KanbanBoardPage: React.FC = () => {
 
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
@@ -850,50 +852,69 @@ const KanbanBoardPage: React.FC = () => {
   );
 
   const persistTaskReorder = useCallback(
-    async (boardSnapshot: BoardData, taskId: string, dropResult: DropResult | null) => {
+    async (
+      previousBoard: BoardData,
+      nextBoard: BoardData,
+      item: DragItem,
+      dropResult: DropResult | null
+    ) => {
       if (!dropResult) {
         return;
       }
 
-      const targetColumn = boardSnapshot.columns[dropResult.columnId];
-      const task = boardSnapshot.tasks[taskId];
-      if (!targetColumn || !task) {
-        return;
+      const wrap = (value: unknown) => ({ mode: "update", value });
+      const destinationColumn = nextBoard.columns[dropResult.columnId];
+      if (!destinationColumn) return;
+
+      const destinationTaskIds = destinationColumn.taskIds;
+      const targetIndex = dropResult.index;
+      const prevTaskId = destinationTaskIds[targetIndex - 1];
+      const nextTaskId = destinationTaskIds[targetIndex + 1];
+
+      const prevSeq = prevTaskId ? nextBoard.tasks[prevTaskId]?.sequence : undefined;
+      const nextSeq = nextTaskId ? nextBoard.tasks[nextTaskId]?.sequence : undefined;
+
+      const BASE_SPACING = 1000;
+      const clampSequence = (value: number) => Math.max(1, Math.round(value));
+
+      let newSequence: number;
+      if (typeof prevSeq === "number" && typeof nextSeq === "number" && nextSeq > prevSeq + 1) {
+        // There is room between neighbors; pick a midpoint integer.
+        newSequence = clampSequence(prevSeq + Math.floor((nextSeq - prevSeq) / 2));
+      } else if (typeof prevSeq === "number" && typeof nextSeq !== "number") {
+        // Append to the end of the column with padded spacing.
+        newSequence = clampSequence(prevSeq + BASE_SPACING);
+      } else if (typeof prevSeq !== "number" && typeof nextSeq === "number") {
+        // Insert at the start; keep spacing before the next item.
+        newSequence = clampSequence(Math.max(nextSeq - BASE_SPACING, BASE_SPACING));
+      } else {
+        // Either no neighbors or neighbors are colliding; fall back to index-based spacing.
+        newSequence = clampSequence((targetIndex + 1) * BASE_SPACING);
       }
 
-      // Build full ordering payload for the target column so backend receives complete sequence.
-      const wrap = (value: unknown) => ({ mode: "update", value });
-      const payload = targetColumn.taskIds.map((id, index) => {
-        const targetTask = boardSnapshot.tasks[id];
-        const base: Record<string, unknown> = {
-          model_name: "action",
-          kanban_column: wrap(targetColumn.title),
-          kanban_column_id: wrap(targetColumn.id),
-          sequence: wrap(index),
-          order: wrap(index),
-          position: wrap(index),
-        };
-        if (targetTask?.id) {
-          base.id = targetTask.id;
-        }
-        if (selectedProjectName) {
-          base.project_name = wrap(selectedProjectName);
-        }
-        return base;
-      });
+      const targetTask = nextBoard.tasks[item.taskId];
+      if (!targetTask?.id) return;
+
+      const entry: Record<string, unknown> = {
+        model_name: "action",
+        id: targetTask.id,
+        kanban_column: wrap(destinationColumn.title),
+        kanban_column_id: wrap(destinationColumn.id),
+        sequence: wrap(newSequence),
+        order: wrap(newSequence),
+        position: wrap(newSequence),
+      };
+      if (selectedProjectName) {
+        entry.project_name = wrap(selectedProjectName);
+      }
 
       try {
-        const projectPayload: Record<string, unknown> = {
-          model_name: "project",
-          ...(selectedProjectId ? { id: selectedProjectId } : {}),
-          bulk: payload,
-        };
-        await patchAction(projectPayload);
+        await patchAction(entry);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
       }
     },
-    [selectedProjectId, selectedProjectName]
+    [selectedProjectName]
   );
 
   const handleDragEnd = useCallback(
@@ -904,7 +925,7 @@ const KanbanBoardPage: React.FC = () => {
       setBoard((prev) => {
         const next = handleBoardMove(prev, { item, result: dropResult });
         if (next !== prev) {
-          void persistTaskReorder(next, item.taskId, dropResult);
+          void persistTaskReorder(prev, next, item, dropResult);
         }
         return next;
       });
@@ -1261,6 +1282,7 @@ const KanbanBoardPage: React.FC = () => {
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
+      percent_complete: String(normalizedProgress),
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -1503,6 +1525,26 @@ const KanbanBoardPage: React.FC = () => {
     error: editLanguagePickerError,
   };
 
+  const cleanActionPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
+    const mutable = payload as Record<string, unknown>;
+
+    if ("action_id" in mutable) {
+      const value = mutable.action_id as unknown;
+      if (value === "" || value === null || value === undefined) {
+        delete mutable.action_id;
+      }
+    }
+
+    if ("description_id" in mutable) {
+      const value = mutable.description_id as unknown;
+      if (value === "") {
+        delete mutable.description_id;
+      }
+    }
+
+    return mutable;
+  };
+
   const buildActionPayload = (
     mode: "create" | "edit",
     state: TaskFormState,
@@ -1675,12 +1717,12 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
     }
 
-    if (selectedProjectId) {
+    if (mode === "create" && selectedProjectId) {
       const numericId = Number(selectedProjectId);
       const projectPayload: Record<string, unknown> = {
         model_name: "project",
         id: Number.isNaN(numericId) ? selectedProjectId : numericId,
-        bulk: [payloadItem],
+        bulk: [cleanActionPayload(payloadItem)],
       };
 
       if (resolvedProjectName) {
@@ -1690,7 +1732,7 @@ const KanbanBoardPage: React.FC = () => {
       return { payload: projectPayload };
     }
 
-    return { payload: payloadItem };
+    return { payload: cleanActionPayload(payloadItem) };
   };
 
   const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -1710,11 +1752,14 @@ const KanbanBoardPage: React.FC = () => {
     try {
       setIsSavingCreate(true);
       const response = await patchAction(result.payload);
+      const body: any = response?.data ?? response;
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to save task.");
       }
-      
-      // Refresh the board to include the new task
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the save request.");
+      }
       await fetchActions({
         projectId: selectedProjectId || undefined,
         contactId: selectedContactId || undefined,
@@ -1749,40 +1794,15 @@ const KanbanBoardPage: React.FC = () => {
     try {
       setIsSavingEdit(true);
       const response = await patchAction(result.payload);
+      const body: any = response?.data ?? response;
       if (response?.status !== 200 && response?.status !== 201) {
         throw new Error("Failed to update task.");
       }
-
-      // Optimistically update the board from the edit form state so the card updates immediately.
-      const optimistic = buildTranslationMapsFromEntries(editTaskState.translations);
-      setBoard((prevBoard) => {
-        const existingTask = prevBoard.tasks[editingTask.id];
-        if (!existingTask) {
-          return prevBoard;
-        }
-
-        const nextTask: KanbanTask = {
-          ...existingTask,
-          ...(optimistic.title ? { title: optimistic.title } : {}),
-          ...(optimistic.description !== undefined ? { description: optimistic.description } : {}),
-          ...(optimistic.titleTranslations ? { titleTranslations: optimistic.titleTranslations } : {}),
-          ...(optimistic.descriptionTranslations ? { descriptionTranslations: optimistic.descriptionTranslations } : {}),
-          ...(optimistic.languageCodes ? { languageCodes: optimistic.languageCodes } : {}),
-        };
-
-        return {
-          ...prevBoard,
-          tasks: {
-            ...prevBoard.tasks,
-            [editingTask.id]: nextTask,
-          },
-        };
-      });
-      
-      handleCloseEditModal();
-
-      // Reconcile with server in the background (covers caching / delayed persistence).
-      void fetchActions({
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the update request.");
+      }
+      await fetchActions({
         projectId: selectedProjectId || undefined,
         contactId: selectedContactId || undefined,
       });
@@ -1795,6 +1815,51 @@ const KanbanBoardPage: React.FC = () => {
       setEditModalError(message);
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  const handleRemoveTaskFromKanban = async () => {
+    if (!editingTask || isSavingEdit || isRemovingTask) {
+      return;
+    }
+
+    setEditModalError(null);
+    const parsedId = Number(editingTask.id);
+    const payloadId = Number.isNaN(parsedId) ? editingTask.id : parsedId;
+
+    try {
+      setIsRemovingTask(true);
+      const response = await patchAction({
+        model_name: "action",
+        id: payloadId,
+        is_deleted: { mode: "update", value: true },
+        is_active: { mode: "update", value: false },
+        status: { mode: "update", value: "Removed" },
+        kanban_column: { mode: "update", value: "Removed" },
+        kanban_column_id: { mode: "update", value: "column-removed" },
+      });
+      const body: any = response?.data ?? response;
+      if (response?.status !== 200 && response?.status !== 201) {
+        throw new Error("Failed to remove task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the remove request.");
+      }
+      await fetchActions({
+        projectId: selectedProjectId || undefined,
+        contactId: selectedContactId || undefined,
+      });
+      handleCloseEditModal();
+    } catch (error) {
+      console.error("Failed to remove kanban task", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Unable to remove task. Please try again.";
+      setEditModalError(message);
+    } finally {
+      setIsRemovingTask(false);
     }
   };
 
@@ -2092,6 +2157,8 @@ const KanbanBoardPage: React.FC = () => {
         onLanguagePickerCancel={handleEditLanguagePickerCancel}
         extraContent={editModalExtraContent}
         currentTask={editingTask}
+        onRemoveFromKanban={handleRemoveTaskFromKanban}
+        isRemoving={isRemovingTask}
       />
 
       {/* Contact Manager Modal */}
@@ -2108,4 +2175,3 @@ const KanbanBoardPage: React.FC = () => {
 };
 
 export default KanbanBoardPage;
-

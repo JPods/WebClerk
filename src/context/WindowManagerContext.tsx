@@ -54,7 +54,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           path,
           title,
           minimized: false,
-          maximized: false,
+          maximized: true,
           x: stagger,
           y: stagger,
           width: 980,
