@@ -10,14 +10,16 @@ export type TranslationFormEntry = {
 export type TaskFormState = {
   translations: TranslationFormEntry[];
   columnId: string;
+  projectId?: string;
   priority: TaskPriority;
   dueDate: string;
   startDate: string;
-  endDate: string;
+   completedDate: string;
   assignee: string;
   difficulty: string;
   progress: string;
   percent_complete: string;
+  is_active?: string;
 };
 
 export type TaskFormEditableField = Exclude<keyof TaskFormState, "translations">;

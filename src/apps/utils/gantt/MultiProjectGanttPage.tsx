@@ -863,7 +863,6 @@ const MultiProjectGanttPage: React.FC = () => {
           handleEditTranslationFieldChange(entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={handleRemoveEditTranslation}
-        languageOptions={languageOptions}
         languagePickerOptions={availableEditLanguages}
         languagePickerState={editLanguagePickerState}
         onLanguagePickerToggle={handleEditLanguagePickerToggle}

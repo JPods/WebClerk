@@ -362,14 +362,16 @@ const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
   columnId,
+  projectId: "",
   priority: "medium",
   dueDate: "",
   startDate: "",
-  endDate: "",
+   completedDate: "",
   assignee: "",
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
   percent_complete: "0",
+  is_active: "true",
 });
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
@@ -642,24 +644,82 @@ const toTimestampMilliseconds = (value: string): number | null => {
   return date ? date.getTime() : null;
 };
 
-const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, value: string): TaskFormState => {
+const STATUS_COLUMN_KEYWORDS: Record<string, string[]> = {
+  "0": ["backlog", "todo", "uncategorized", "icebox"],
+  "5": ["hold", "paused", "waiting"],
+  "30": ["progress", "inprogress", "doing", "in-process"],
+  review: ["review", "qa", "verify", "quality"],
+  "100": ["complete", "done", "completed"],
+  "101": ["cancel", "canceled", "closed"],
+};
+
+const normalizeKey = (label: string) => label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+const pickColumnForStatus = (
+  statusValue: string,
+  columns: Array<{ id: string; title: string }>,
+  fallback: string
+): string => {
+  const keywords = STATUS_COLUMN_KEYWORDS[statusValue];
+  if (!keywords?.length) {
+    return fallback;
+  }
+
+  const normalizedColumns = columns.map((column) => ({
+    id: column.id,
+    titleKey: normalizeKey(column.title),
+    idKey: normalizeKey(column.id.replace(/^column-/, "")),
+  }));
+
+  for (const keyword of keywords) {
+    const key = normalizeKey(keyword);
+    const match = normalizedColumns.find((column) => column.titleKey === key || column.idKey === key);
+    if (match) {
+      return match.id;
+    }
+  }
+
+  return fallback;
+};
+
+const updateTaskFormState = (
+  prev: TaskFormState,
+  field: TaskFormEditableField,
+  value: string,
+  options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
+): TaskFormState => {
   if (field === "startDate") {
     const next: TaskFormState = { ...prev, startDate: value };
-    next.endDate = ensureEndAfterStart(value, prev.endDate);
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+
+    // If dt_due exists and is earlier than new dt_start, shift dt_due up to dt_start
+    if (value && prev.dueDate) {
+      const start = parseDateTimeInputValue(value);
+      const due = parseDateTimeInputValue(prev.dueDate);
+      if (start && due && due.getTime() < start.getTime()) {
+        next.dueDate = value;
+      }
+    }
+
     return next;
   }
 
-  if (field === "endDate") {
-    const nextEnd = ensureEndAfterStart(prev.startDate, value);
-    const next: TaskFormState = { ...prev, endDate: nextEnd };
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+  if (field === "completedDate") {
+    const next: TaskFormState = { ...prev, completedDate: value };
+    if (value) {
+      if (!prev.startDate) next.startDate = value;
+      if (!prev.dueDate) next.dueDate = value;
+      const startDate = parseDateTimeInputValue(next.startDate);
+      const compDate = parseDateTimeInputValue(value);
+      if (startDate && compDate && compDate.getTime() < startDate.getTime()) {
+        next.completedDate = formatDateTimeLocalString(startDate);
+      }
+    }
     return next;
   }
 
   if (field === "dueDate") {
     if (!value) {
-      return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.endDate) };
+       return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.completedDate) };
     }
 
     const parsedDue = parseDateTimeInputValue(value);
@@ -667,14 +727,14 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
       return prev;
     }
 
-    const endDate = parseDateTimeInputValue(prev.endDate);
-    if (endDate && parsedDue.getTime() < endDate.getTime()) {
+     const endDate = parseDateTimeInputValue(prev.completedDate);
+     if (endDate && parsedDue.getTime() < endDate.getTime()) {
       return { ...prev, dueDate: formatDateTimeLocalString(endDate) };
     }
 
-    const startDate = parseDateTimeInputValue(prev.startDate);
-    if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
-      return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
+     const startDate = parseDateTimeInputValue(prev.startDate);
+     if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
+       return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
     }
 
     return { ...prev, dueDate: formatDateTimeLocalString(parsedDue) };
@@ -688,6 +748,10 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
     return { ...prev, columnId: value };
   }
 
+  if (field === "projectId") {
+    return { ...prev, projectId: value };
+  }
+
   if (field === "assignee") {
     return { ...prev, assignee: value };
   }
@@ -696,8 +760,42 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
     return { ...prev, difficulty: value };
   }
 
+  if (field === "is_active") {
+    return { ...prev, is_active: value };
+  }
+
   if (field === "progress") {
-    return { ...prev, progress: value };
+    const next: TaskFormState = { ...prev, progress: value };
+    const numericProgress = Number(value);
+    if (Number.isFinite(numericProgress)) {
+      let derivedStatus: string | null = null;
+      if (numericProgress >= 100) {
+        derivedStatus = "review";
+      } else if (numericProgress <= 0) {
+        derivedStatus = "0";
+      } else {
+        derivedStatus = "30";
+      }
+
+      next.percent_complete = derivedStatus;
+
+      if (options?.columns?.length && options.fallbackColumnId) {
+        next.columnId = pickColumnForStatus(derivedStatus, options.columns, options.fallbackColumnId);
+      }
+    }
+    return next;
+  }
+
+  if (field === "percent_complete") {
+    const next: TaskFormState = { ...prev, percent_complete: value };
+    if (options?.columns?.length && options.fallbackColumnId) {
+      next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
+    }
+     if (value === "100" && !prev.completedDate) {
+      const now = formatDateTimeLocalString(new Date());
+       next.completedDate = ensureEndAfterStart(prev.startDate, now);
+    }
+    return next;
   }
 
   return prev;
@@ -1240,13 +1338,16 @@ const KanbanBoardPage: React.FC = () => {
 
   const resetCreateState = useCallback(() => {
     const firstColumn = resolveDefaultColumnId();
-    setCreateTaskState(createInitialTaskFormState(firstColumn));
+    setCreateTaskState((prev) => {
+      const base = createInitialTaskFormState(firstColumn);
+      return { ...base, projectId: selectedProjectId || base.projectId };
+    });
     setCreateModalError(null);
     setCreateLanguagePickerOpen(false);
     setCreateLanguageSelection("");
     setCreateCustomLanguage("");
     setCreateLanguagePickerError(null);
-  }, [resolveDefaultColumnId]);
+  }, [resolveDefaultColumnId, selectedProjectId]);
 
   const handleOpenCreateModal = () => {
     resetCreateState();
@@ -1271,18 +1372,22 @@ const KanbanBoardPage: React.FC = () => {
       DEFAULT_DIFFICULTY
     );
     const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+    const normalizedProjectId = (task as any)?.project_id ?? selectedProjectId ?? "";
+    const normalizedIsActive = (task as any)?.is_active;
 
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
+      projectId: typeof normalizedProjectId === "string" || typeof normalizedProjectId === "number" ? String(normalizedProjectId) : "",
       priority: task.priority,
       dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
       startDate: normalizedStart,
-      endDate: normalizedEnd,
+      completedDate: normalizedEnd,
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
       percent_complete: String(normalizedProgress),
+      is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -1304,11 +1409,21 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
-    setCreateTaskState((prev) => updateTaskFormState(prev, field, value));
+    setCreateTaskState((prev) =>
+      updateTaskFormState(prev, field, value, {
+        columns: columnOptions,
+        fallbackColumnId: resolveDefaultColumnId(),
+      })
+    );
   };
 
   const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
-    setEditTaskState((prev) => updateTaskFormState(prev, field, value));
+    setEditTaskState((prev) =>
+      updateTaskFormState(prev, field, value, {
+        columns: columnOptions,
+        fallbackColumnId: resolveDefaultColumnId(),
+      })
+    );
   };
 
   const updateTranslations = (
@@ -1629,17 +1744,20 @@ const KanbanBoardPage: React.FC = () => {
       ? [{ name: assigneeValue }]
       : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
-    const startTimestamp = toTimestampMilliseconds(state.startDate);
-    const endTimestamp = toTimestampMilliseconds(state.endDate);
-    const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let startTimestamp = toTimestampMilliseconds(state.startDate);
+    let dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let completedTimestamp = toTimestampMilliseconds(state.completedDate);
+    // dt_completed 
 
-    if (startTimestamp !== null && endTimestamp !== null && endTimestamp <= startTimestamp) {
-      return { error: "End date must be after start date." };
+    // completedTimestamp must not modify dueTimestamp or startTimestamp
+    // Remove auto-propagation logic to keep fields independent
+    if (startTimestamp === null && dueTimestamp !== null) {
+      startTimestamp = dueTimestamp;
+    }
+    if (startTimestamp !== null && dueTimestamp !== null && dueTimestamp < startTimestamp) {
+      startTimestamp = dueTimestamp;
     }
 
-    if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
-      return { error: "Due date must be on or after end date." };
-    }
 
     const fallbackDifficulty = baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority];
     const parsedDifficulty = Number(state.difficulty);
@@ -1668,7 +1786,7 @@ const KanbanBoardPage: React.FC = () => {
       status: baseTask?.status ?? "In progress",
       dt_due: dueTimestamp ?? null,
       dt_start: startTimestamp ?? null,
-      dt_end: endTimestamp ?? null,
+       dt_completed: completedTimestamp ?? null,
       progress: resolvedProgress,
       // Backend drops numeric 0 via truthy checks; keep as string to satisfy NOT NULL constraint.
       burndown: serializeBurndownValue(resolvedBurndown),
@@ -1697,14 +1815,14 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.needtoremove = "";
     }
 
+    const projectIdFromState = state.projectId?.trim();
+    const resolvedProjectId = projectIdFromState || selectedProjectId || "";
     const resolvedProjectName = (() => {
-      const selected = selectedProjectName.trim();
-      if (selected) {
-        return selected;
-      }
-      if (mode === "edit" && baseTask?.projectName) {
-        return baseTask.projectName;
-      }
+      const selected = projectOptions.find((option) => option.id === resolvedProjectId);
+      if (selected?.name) return selected.name;
+      if (selected?.intent) return selected.intent;
+      if (selectedProjectName.trim()) return selectedProjectName.trim();
+      if (mode === "edit" && baseTask?.projectName) return baseTask.projectName;
       return "";
     })();
 
@@ -1712,16 +1830,18 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_name = resolvedProjectName;
     }
 
-    if (selectedProjectId) {
-      const numericId = Number(selectedProjectId);
-      payloadItem.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
+    if (resolvedProjectId) {
+      const numericId = Number(resolvedProjectId);
+      payloadItem.project_id = Number.isNaN(numericId) ? resolvedProjectId : numericId;
     }
 
-    if (mode === "create" && selectedProjectId) {
-      const numericId = Number(selectedProjectId);
+    payloadItem.is_active = state.is_active !== "false";
+
+    if (mode === "create" && resolvedProjectId) {
+      const numericId = Number(resolvedProjectId);
       const projectPayload: Record<string, unknown> = {
         model_name: "project",
-        id: Number.isNaN(numericId) ? selectedProjectId : numericId,
+        id: Number.isNaN(numericId) ? resolvedProjectId : numericId,
         bulk: [cleanActionPayload(payloadItem)],
       };
 
@@ -1754,7 +1874,7 @@ const KanbanBoardPage: React.FC = () => {
 
     void patchAction(result.payload)
       .then((response) => {
-        const body: any = response?.data ?? response;
+        const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           throw new Error(details || "Backend rejected the save request.");
@@ -1787,11 +1907,10 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setIsSavingEdit(true);
-    handleCloseEditModal();
 
     void patchAction(result.payload)
       .then((response) => {
-        const body: any = response?.data ?? response;
+        const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           throw new Error(details || "Backend rejected the update request.");
@@ -1829,8 +1948,8 @@ const KanbanBoardPage: React.FC = () => {
         kanban_column: { mode: "update", value: "Removed" },
         kanban_column_id: { mode: "update", value: "column-removed" },
       });
-      const body: any = response?.data ?? response;
-      if (response?.status !== 200 && response?.status !== 201) {
+      const body: any = (response as any)?.data ?? response;
+      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
         throw new Error("Failed to remove task.");
       }
       if (body?.status === "fail") {
@@ -1861,36 +1980,33 @@ const KanbanBoardPage: React.FC = () => {
     [columnsPerRow]
   );
 
-  const editModalExtraContent = editingTask ? (
-    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
-      <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Progress:</span>
-          <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
-        </div>
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Tags:</span>
-          <span className="ml-1 font-medium text-gray-900 dark:text-white">
-            {editingTask.tags?.join(", ") || "None"}
-          </span>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  const editModalExtraContent = null;
 
   return (
     <div className="space-y-6">
       <PageBreadcrumb pageTitle="Kanban Board" />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Keep work flowing</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Drag tasks across columns to reshuffle priorities, track progress, and visualize throughput in real time.
-          </p>
-        </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={PageRoutes.kanbanGantt}
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Gantt
+          </Link>
+          <Link
+            to={PageRoutes.multiProjectGantt}
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Multi-Project
+          </Link>
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <span>Project</span>
             <select
@@ -1963,25 +2079,6 @@ const KanbanBoardPage: React.FC = () => {
             </svg>
             New Task
           </button>
-          <Link
-            to={PageRoutes.kanbanGantt}
-            className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Gantt
-          </Link>
-          <Link
-            to={PageRoutes.multiProjectGantt}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Multi-Project
-          </Link>
           <button
             onClick={() => void handleManualRefresh()}
             disabled={isRefreshing || isLoading}
@@ -2097,6 +2194,7 @@ const KanbanBoardPage: React.FC = () => {
         formState={createTaskState}
         onFieldChange={handleCreateTaskChange}
         columnOptions={columnOptions}
+        projectOptions={projectOptions}
         priorityOptions={priorityOptions}
         difficultyOptions={createDifficultyOptions}
         progressOptions={createProgressOptions}
@@ -2106,7 +2204,6 @@ const KanbanBoardPage: React.FC = () => {
           handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={(entryId) => handleRemoveTranslation("create", entryId)}
-        languageOptions={languageOptions}
         languagePickerOptions={availableCreateLanguages}
         languagePickerState={createLanguagePickerState}
         onLanguagePickerToggle={handleCreateLanguagePickerToggle}
@@ -2129,6 +2226,7 @@ const KanbanBoardPage: React.FC = () => {
         formState={editTaskState}
         onFieldChange={handleEditTaskChange}
         columnOptions={columnOptions}
+        projectOptions={projectOptions}
         priorityOptions={priorityOptions}
         difficultyOptions={editDifficultyOptions}
         progressOptions={editProgressOptions}
@@ -2138,7 +2236,6 @@ const KanbanBoardPage: React.FC = () => {
           handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={(entryId) => handleRemoveTranslation("edit", entryId)}
-        languageOptions={languageOptions}
         languagePickerOptions={availableEditLanguages}
         languagePickerState={editLanguagePickerState}
         onLanguagePickerToggle={handleEditLanguagePickerToggle}
