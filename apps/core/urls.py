@@ -7,6 +7,7 @@ from apps.core.views.save_view import SaveWcapiView
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
 from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailView
 from apps.core.views.choices import ChoiceCatalogView
+from apps.core.views.system_info import SystemInfoView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 
 urlpatterns = [
@@ -26,4 +27,5 @@ urlpatterns = [
     path("wcapi/model_name/list/", ModelNameListView.as_view(), name="model-name-list"),
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
+    path("wcapi/system-info/", SystemInfoView.as_view(), name="system-info"),
 ]
