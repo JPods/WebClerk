@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { KanbanTask, TaskPriority } from "../../../type/kanban";
+import type { KanbanTask, TaskPriority } from "./type/kanban";
 import type {
   TaskFormEditableField,
   TaskFormState,

@@ -8,7 +8,7 @@ import type {
   KanbanColumn as KanbanColumnType,
   KanbanTask,
   TaskPriority,
-} from "../../../type/kanban";
+} from "./type/kanban";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import { ApiKanbanItem, createBoardDataFromApi } from "./kanbanDataMapper";

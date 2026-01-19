@@ -4,7 +4,7 @@ import type {
   KanbanTask,
   LocalizedTextMap,
   TaskPriority,
-} from "../../../type/kanban";
+} from "./type/kanban";
 
 export interface ApiKanbanAssignment {
   id?: string | number;
@@ -18,6 +18,7 @@ export interface ApiKanbanItem {
   is_archived?: boolean | string | number;
   is_active?: boolean | string | number;
   project_name?: string | null;
+  project_id?: number | null;
   action?: Record<string, string> | null;
   description?: Record<string, string> | null;
   action_en?: string | null;
@@ -51,7 +52,7 @@ export interface ApiKanbanItem {
   end_by?: string | null;
   assigned_to?: ApiKanbanAssignment[];
   linkage?: number | null;
-  kanban_meta?: unknown;
+  project_metadata?: unknown;
   refs?: {
     tags?: string[];
     links?: {
@@ -94,10 +95,10 @@ export const createEmptyBoardData = (): BoardData => ({
     "column-uncategorized": {
       id: "column-uncategorized",
       title: "Uncategorized",
-      taskIds: [],
+      task_ids: [],
     },
   },
-  columnOrder: ["column-uncategorized"],
+  column_order: ["column-uncategorized"],
 });
 
 const PREFERRED_COLUMN_GROUPS: string[][] = [
@@ -381,11 +382,11 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
     const columnId = slugifyColumn(rawColumnTitle);
 
     if (!columns[columnId]) {
-      columns[columnId] = { id: columnId, title: rawColumnTitle, taskIds: [] };
+    columns[columnId] = { id: columnId, title: rawColumnTitle, task_ids: [] };
       columnOrder.push(columnId);
     }
 
-    columns[columnId].taskIds.push(item.id);
+    columns[columnId].task_ids.push(item.id);
 
     const actionEntries = collectLocalizedEntries(item, "action", [
       ["en", item.action_en],
@@ -445,18 +446,23 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
         item.description_es ??
         undefined,
       priority: mapPriorityValue(item.priority),
-      projectName: item.project_name ?? undefined,
-      priorityValue: item.priority ?? undefined,
+      project_name: item.project_name ?? undefined,
+      project_id: item.project_id ?? undefined,
+      priority_value: item.priority ?? undefined,
       difficulty: item.difficulty ?? undefined,
       status: item.status ?? undefined,
-      dueDate: item.dt_due ?? undefined,
-  startDate: item.dt_start ?? undefined,
-  endDate: item.dt_end ?? undefined,
+      dt_due: item.dt_due ?? undefined,
+      dt_start: item.dt_start ?? undefined,
+      // dt_end removed per canonical wc3 model
+      dt_expected: item.dt_expected ?? undefined,
+      dt_completed: item.dt_completed ?? undefined,
+      dt_created: item.dt_created ?? undefined,
+      dt_updated: item.dt_updated ?? undefined,
       assignee: assignedToRecords[0]?.name,
-      assignedTo: assignedToRecords.length ? assignedToRecords : undefined,
-      languageCodes,
-      titleTranslations,
-      descriptionTranslations,
+      assigned_to: assignedToRecords.length ? assignedToRecords : undefined,
+      language_codes: languageCodes,
+      title_translations: titleTranslations,
+      description_translations: descriptionTranslations,
       tags: tags.length ? tags : undefined,
       linkage: item.linkage ?? undefined,
       remarks: item.comments?.public || undefined,
@@ -480,7 +486,7 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
     })
     .map(({ id }) => id);
 
-  return { tasks, columns, columnOrder: sortedColumnOrder };
+  return { tasks, columns, column_order: sortedColumnOrder };
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>

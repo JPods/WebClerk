@@ -7,7 +7,7 @@ import KanbanTaskModal from "../../utils/kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../kanban/taskFormTypes";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "../kanban/kanbanDataMapper";
-import type { BoardData, KanbanTask } from "../../../type/kanban";
+import type { BoardData, KanbanTask } from "../kanban/type/kanban";
 import {
   DEFAULT_LANGUAGE_ORDER,
   DEFAULT_DIFFICULTY,

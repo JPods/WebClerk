@@ -1,4 +1,4 @@
-import type { TaskPriority } from "../../../type/kanban";
+import type { TaskPriority } from "./type/kanban";
 
 export type TranslationFormEntry = {
   id: string;
@@ -12,9 +12,9 @@ export type TaskFormState = {
   columnId: string;
   projectId?: string;
   priority: TaskPriority;
-  dueDate: string;
-  startDate: string;
-   completedDate: string;
+  dt_start: string;
+  dt_due: string;
+  dt_completed: string;
   assignee: string;
   difficulty: string;
   progress: string;

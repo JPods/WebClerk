@@ -10,7 +10,7 @@ import { ProjectContactManager } from "./ProjectContactManager";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
-import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
+import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
@@ -364,9 +364,9 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   columnId,
   projectId: "",
   priority: "medium",
-  dueDate: "",
-  startDate: "",
-   completedDate: "",
+  dt_due: "",
+  dt_start: "",
+  dt_completed: "",
   assignee: "",
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
@@ -390,9 +390,9 @@ const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string 
 
 const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
   const languages = new Set<string>();
-  task.languageCodes?.forEach((code) => languages.add(normalizeLanguageCode(code)));
-  Object.keys(task.titleTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
-  Object.keys(task.descriptionTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
+ task.language_codes?.forEach((code: string) => languages.add(normalizeLanguageCode(code)));
+ Object.keys(task.title_translations ?? {}).forEach((code: string) => languages.add(normalizeLanguageCode(code)));
+ Object.keys(task.description_translations ?? {}).forEach((code: string) => languages.add(normalizeLanguageCode(code)));
 
   if (languages.size === 0) {
     languages.add("en");
@@ -412,8 +412,8 @@ const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntr
     const fallbackDescription = language === "en" ? task.description ?? "" : "";
     return createTranslationEntry(
       language,
-      task.titleTranslations?.[language] ?? fallbackTitle,
-      task.descriptionTranslations?.[language] ?? fallbackDescription
+       task.title_translations?.[language] ?? fallbackTitle,
+       task.description_translations?.[language] ?? fallbackDescription
     );
   });
 };
@@ -473,7 +473,7 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
     return prev;
   }
 
-  const sourceIndex = sourceColumn.taskIds.indexOf(item.taskId);
+  const sourceIndex = sourceColumn.task_ids.indexOf(item.taskId);
   if (sourceIndex === -1) {
     return prev;
   }
@@ -488,9 +488,9 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
   const nextColumns: Record<string, KanbanColumnType> = { ...prev.columns };
 
   const removeFromSource = () => {
-    const updated = [...sourceColumn.taskIds];
+    const updated = [...sourceColumn.task_ids];
     updated.splice(sourceIndex, 1);
-    nextColumns[sourceColumn.id] = { ...sourceColumn, taskIds: updated };
+    nextColumns[sourceColumn.id] = { ...sourceColumn, task_ids: updated };
     return updated;
   };
 
@@ -504,20 +504,20 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
     const reordered = [...withoutTask];
     reordered.splice(clampedIndex, 0, item.taskId);
 
-    if (sourceColumn.taskIds.join() === reordered.join()) {
+    if (sourceColumn.task_ids.join() === reordered.join()) {
       return prev;
     }
 
-    nextColumns[sourceColumn.id] = { ...sourceColumn, taskIds: reordered };
+    nextColumns[sourceColumn.id] = { ...sourceColumn, task_ids: reordered };
     return { ...prev, columns: nextColumns };
   }
 
   removeFromSource();
-  const destinationTaskIds = [...destinationColumn.taskIds];
+   const destinationTaskIds = [...destinationColumn.task_ids];
   const clampedIndex = Math.max(0, Math.min(rawDestinationIndex, destinationTaskIds.length));
   destinationTaskIds.splice(clampedIndex, 0, item.taskId);
 
-  nextColumns[destinationColumn.id] = { ...destinationColumn, taskIds: destinationTaskIds };
+  nextColumns[destinationColumn.id] = { ...destinationColumn, task_ids: destinationTaskIds };
 
   return {
     ...prev,
@@ -682,6 +682,12 @@ const pickColumnForStatus = (
   return fallback;
 };
 
+
+
+
+
+
+
 const updateTaskFormState = (
   prev: TaskFormState,
   field: TaskFormEditableField,
@@ -800,6 +806,12 @@ const updateTaskFormState = (
 
   return prev;
 };
+
+
+
+
+
+
 
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
@@ -945,8 +957,8 @@ const KanbanBoardPage: React.FC = () => {
   //const navigate = useNavigate();
 
   const resolveDefaultColumnId = useCallback(
-    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
-    [board.columnOrder]
+    () => board.column_order[0] ?? FALLBACK_COLUMN_ID,
+    [board.column_order]
   );
 
   const persistTaskReorder = useCallback(
@@ -964,7 +976,7 @@ const KanbanBoardPage: React.FC = () => {
       const destinationColumn = nextBoard.columns[dropResult.columnId];
       if (!destinationColumn) return;
 
-      const destinationTaskIds = destinationColumn.taskIds;
+       const destinationTaskIds = destinationColumn.task_ids;
       const targetIndex = dropResult.index;
       const prevTaskId = destinationTaskIds[targetIndex - 1];
       const nextTaskId = destinationTaskIds[targetIndex + 1];
@@ -1217,12 +1229,12 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (board.columnOrder.length === 0) {
+     if (board.column_order.length === 0) {
       return;
     }
     // Keep columnsPerRow at 4 by default, don't clamp based on available columns
     // This ensures the grid always shows 4 columns per row
-  }, [board.columnOrder]);
+   }, [board.column_order]);
 
   // Handler for when contacts are updated via the Contact Manager modal
   const handleContactsUpdated = useCallback((updatedContacts: ProjectContact[]) => {
@@ -1256,7 +1268,7 @@ const KanbanBoardPage: React.FC = () => {
 
   const columns = useMemo(
     () =>
-      board.columnOrder
+      board.column_order
         .map((columnId) => board.columns[columnId])
         .filter((column): column is KanbanColumnType => Boolean(column)),
     [board]
@@ -1290,9 +1302,9 @@ const KanbanBoardPage: React.FC = () => {
   const languageOptions = useMemo(() => {
     const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
     Object.values(board.tasks).forEach((task) => {
-      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+       task.language_codes?.forEach((code: string) => codes.add(normalizeLanguageCode(code)));
+       Object.keys(task.title_translations ?? {}).forEach((code: string) => codes.add(normalizeLanguageCode(code)));
+       Object.keys(task.description_translations ?? {}).forEach((code: string) => codes.add(normalizeLanguageCode(code)));
     });
 
     const orderedCodes = Array.from(codes).sort((a, b) => {
@@ -1362,18 +1374,18 @@ const KanbanBoardPage: React.FC = () => {
   const handleOpenEditModal = (task: KanbanTask) => {
     setEditingTask(task);
 
-    const taskColumn = Object.values(board.columns).find((column) => column.taskIds.includes(task.id));
+ const taskColumn = Object.values(board.columns).find((column) => column.task_ids.includes(task.id));
 
-    const normalizedStart = normalizeIncomingDateValue(task.startDate);
-    const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-    const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+ const normalizedStart = normalizeIncomingDateValue(task.dt_start);
+ const normalizedEnd = normalizeIncomingDateValue(task.dt_end);
+ const normalizedDue = normalizeIncomingDateValue(task.dt_due);
     const normalizedDifficulty = normalizeNumericSelectValue(
       task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
       DEFAULT_DIFFICULTY
     );
     const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
-    const normalizedProjectId = (task as any)?.project_id ?? selectedProjectId ?? "";
-    const normalizedIsActive = (task as any)?.is_active;
+     const normalizedProjectId = task.project_id ?? selectedProjectId ?? "";
+     const normalizedIsActive = task.is_active;
 
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
@@ -1383,7 +1395,7 @@ const KanbanBoardPage: React.FC = () => {
       dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
       startDate: normalizedStart,
       completedDate: normalizedEnd,
-      assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+  assignee: task.assignee || task.assigned_to?.[0]?.name || "",
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
       percent_complete: String(normalizedProgress),
@@ -1719,13 +1731,13 @@ const KanbanBoardPage: React.FC = () => {
     const removalTokens: string[] = [];
     if (mode === "edit" && baseTask) {
       const originalLanguages = new Set<string>();
-      baseTask.languageCodes?.forEach((code) => {
+       baseTask.language_codes?.forEach((code: string) => {
         if (typeof code === "string") {
           originalLanguages.add(normalizeLanguageCode(code));
         }
       });
-      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) =>
+       Object.keys(baseTask.title_translations ?? {}).forEach((code: string) => originalLanguages.add(normalizeLanguageCode(code)));
+       Object.keys(baseTask.description_translations ?? {}).forEach((code: string) =>
         originalLanguages.add(normalizeLanguageCode(code))
       );
 
@@ -1742,7 +1754,7 @@ const KanbanBoardPage: React.FC = () => {
     const assigneeValue = typeof state.assignee === "string" ? state.assignee.trim() : "";
     const assignedTo: Array<{ name: string; id?: number }> = assigneeValue
       ? [{ name: assigneeValue }]
-      : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+       : baseTask?.assigned_to?.map((assignment: any) => ({ name: assignment.name })) ?? [];
 
     let startTimestamp = toTimestampMilliseconds(state.startDate);
     let dueTimestamp = toTimestampMilliseconds(state.dueDate);
@@ -1822,7 +1834,7 @@ const KanbanBoardPage: React.FC = () => {
       if (selected?.name) return selected.name;
       if (selected?.intent) return selected.intent;
       if (selectedProjectName.trim()) return selectedProjectName.trim();
-      if (mode === "edit" && baseTask?.projectName) return baseTask.projectName;
+       if (mode === "edit" && baseTask?.project_name) return baseTask.project_name;
       return "";
     })();
 
@@ -2172,7 +2184,7 @@ const KanbanBoardPage: React.FC = () => {
               <KanbanColumn
                 key={column.id}
                 column={column}
-                tasks={column.taskIds.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
+                 tasks={column.task_ids.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
                 onDragEnd={handleDragEnd}
                 onTaskClick={handleOpenEditModal}
               />

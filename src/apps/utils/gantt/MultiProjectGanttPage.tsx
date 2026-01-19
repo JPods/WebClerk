@@ -15,7 +15,7 @@ import KanbanTaskModal from "../../utils/kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
 import { patchAction } from "../../../api/userProfile";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
-import type { BoardData, KanbanTask, TaskPriority } from "../../../type/kanban";
+import type { BoardData, KanbanTask, TaskPriority } from "../kanban/type/kanban";
 import {
   DEFAULT_LANGUAGE_ORDER,
   DEFAULT_DIFFICULTY,
