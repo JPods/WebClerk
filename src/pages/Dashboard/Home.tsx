@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../../api/axios";
-import { PostLoginURL } from "../../routes/network";
+import { PostLoginURL, NetworkInfo } from "../../routes/network";
 import { useAppSelector } from "../../store/hooks";
+import { formatNetworkError, logNetworkDiagnostics } from "../../utils/networkDiagnostics";
 
 type StatCard = {
   label: string;
@@ -166,7 +167,17 @@ export default function Home() {
           }
         }
       } catch (err: any) {
-        if (mounted) setError(err?.message ?? "Failed to load dashboard");
+        if (mounted) {
+          const formatted = formatNetworkError(err);
+          const message = `${formatted.message} (${formatted.code})${formatted.status ? ` [${formatted.status}]` : ''}`;
+          setError(message);
+          
+          // Log diagnostics for debugging
+          if (formatted.code === 'ERR_NETWORK') {
+            console.error('Network error detected. Running diagnostics...');
+            logNetworkDiagnostics(NetworkInfo.API_URL).catch(console.error);
+          }
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -227,7 +238,18 @@ export default function Home() {
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200">
-          {error}
+          <div className="flex items-center justify-between gap-2">
+            <span>{error}</span>
+            <button
+              onClick={() => {
+                console.clear();
+                logNetworkDiagnostics(NetworkInfo.API_URL);
+              }}
+              className="whitespace-nowrap rounded bg-rose-200 px-2 py-1 text-xs font-semibold text-rose-900 hover:bg-rose-300 dark:bg-rose-900 dark:text-rose-100"
+            >
+              Debug
+            </button>
+          </div>
         </div>
       )}
 
