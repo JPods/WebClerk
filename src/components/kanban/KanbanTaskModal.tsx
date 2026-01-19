@@ -371,7 +371,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_deadline</label>
                 <input
                   type="datetime-local"
                   step={60}

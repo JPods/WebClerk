@@ -24,7 +24,7 @@ export const updateKanbanTaskStatus = async (
 ): Promise<KanbanApiTask> => {
   const mapped = { ...payload };
   if ((mapped as any).dueDate) {
-    (mapped as any).dt_due = (mapped as any).dueDate;
+    (mapped as any).dt_deadline = (mapped as any).dueDate;
     delete (mapped as any).dueDate;
   }
   const res = await apiClient.patch(`${PostLoginURL.kanbanTasks}${taskId}/`, mapped);
@@ -36,7 +36,7 @@ export const createKanbanTask = async (
 ): Promise<KanbanApiTask> => {
   const mapped = { ...payload } as any;
   if (mapped.dueDate) {
-    mapped.dt_due = mapped.dueDate;
+    mapped.dt_deadline = mapped.dueDate;
     delete mapped.dueDate;
   }
   const res = await apiClient.post(PostLoginURL.kanbanTasks, mapped);

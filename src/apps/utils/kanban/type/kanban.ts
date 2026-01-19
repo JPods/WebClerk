@@ -41,7 +41,7 @@ export interface KanbanTask {
   dt_expected?: number | null;
   dt_completed?: number | null;
   dt_start?: number | null;
-  dt_due?: number | null;
+  dt_deadline?: number | null;
   duration?: number | null;
   created_by?: any;
   updated_by?: any;
@@ -84,7 +84,7 @@ export interface KanbanTask {
   assignee_avatar_url?: string;
    dt_start?: string | null;
    dt_expected?: string | null;
-   dt_due?: string | null;
+   dt_deadline?: string | null;
    dt_completed?: string | null;
   project_metadata?: any;
   created_by?: any;
@@ -165,7 +165,7 @@ export interface CreateKanbanTaskRequest {
   remarks?: string;
    dt_start?: string | null;
    dt_expected?: string | null;
-   dt_due?: string | null;
+   dt_deadline?: string | null;
    dt_completed?: string | null;
   assignee?: string;
 }

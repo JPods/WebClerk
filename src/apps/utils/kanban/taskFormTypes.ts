@@ -37,7 +37,7 @@ export type TaskFormState = BaseModelFields &
     projectId?: string;
     priority_value: TaskPriority;
     dt_start: string;
-    dt_due: string;
+    dt_deadline: string;
     dt_completed: string;
     dt_expected: string;
     actor_id: string;

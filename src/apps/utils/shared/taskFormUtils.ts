@@ -95,7 +95,7 @@ export const createInitialTaskFormState = (
   translations: [createTranslationEntry("en")],
   columnId,
   priority: "medium",
-  dt_due: "",
+  dt_deadline: "",
   dt_start: "",
   dt_completed: "",
   assignee: "",
@@ -130,11 +130,11 @@ export const updateTaskFormState = (
 ): TaskFormState => {
   if (field === "dt_start") {
     const next: TaskFormState = { ...prev, dt_start: value };
-    if (value && prev.dt_due) {
+    if (value && prev.dt_deadline) {
       const start = new Date(value);
-      const due = new Date(prev.dt_due);
+      const due = new Date(prev.dt_deadline);
       if (!isNaN(start.getTime()) && !isNaN(due.getTime()) && due.getTime() < start.getTime()) {
-        next.dt_due = value;
+        next.dt_deadline = value;
       }
     }
     return next;
@@ -144,7 +144,7 @@ export const updateTaskFormState = (
     const next: TaskFormState = { ...prev, dt_completed: value };
     if (value) {
       if (!prev.dt_start) next.dt_start = value;
-      if (!prev.dt_due) next.dt_due = value;
+      if (!prev.dt_deadline) next.dt_deadline = value;
       const startDate = new Date(next.dt_start);
       const compDate = new Date(value);
       if (!isNaN(startDate.getTime()) && !isNaN(compDate.getTime()) && compDate.getTime() < startDate.getTime()) {
@@ -154,17 +154,17 @@ export const updateTaskFormState = (
     return next;
   }
 
-  if (field === "dt_due") {
+  if (field === "dt_deadline") {
     if (!value) {
-      if (prev.dt_completed) return { ...prev, dt_due: prev.dt_completed };
+      if (prev.dt_completed) return { ...prev, dt_deadline: prev.dt_completed };
       if (prev.dt_start) {
         const d = new Date(prev.dt_start);
         if (!isNaN(d.getTime())) {
           d.setDate(d.getDate() + 1);
-          return { ...prev, dt_due: d.toISOString().slice(0, 16) };
+          return { ...prev, dt_deadline: d.toISOString().slice(0, 16) };
         }
       }
-      return { ...prev, dt_due: "" };
+      return { ...prev, dt_deadline: "" };
     }
 
     const parsedDue = new Date(value);
@@ -172,15 +172,15 @@ export const updateTaskFormState = (
 
     const endDate = new Date(prev.dt_completed);
     if (!isNaN(endDate.getTime()) && parsedDue.getTime() < endDate.getTime()) {
-      return { ...prev, dt_due: endDate.toISOString().slice(0, 16) };
+      return { ...prev, dt_deadline: endDate.toISOString().slice(0, 16) };
     }
 
     const startDate = new Date(prev.dt_start);
     if (isNaN(endDate.getTime()) && !isNaN(startDate.getTime()) && parsedDue.getTime() < startDate.getTime()) {
-      return { ...prev, dt_due: startDate.toISOString().slice(0, 16) };
+      return { ...prev, dt_deadline: startDate.toISOString().slice(0, 16) };
     }
 
-    return { ...prev, dt_due: parsedDue.toISOString().slice(0, 16) };
+    return { ...prev, dt_deadline: parsedDue.toISOString().slice(0, 16) };
   }
 
   if (field === "dt_expected") {

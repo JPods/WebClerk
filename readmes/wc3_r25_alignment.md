@@ -4,7 +4,7 @@ WC3 ↔ R25 Field Alignment Guide
 This document maps canonical WC3 Action/BaseModel/CoreModel fields to their current R25 Kanban variable names. Update R25 files to match WC3 naming exactly.
 
 dt_start marks the start of an action
-dt_due as the deadline
+dt_deadline as the deadline
 dt_expected marks the expected end of an action
 dt_completed marks the actual end of an action
 
@@ -49,7 +49,7 @@ KANBAN FIELDS
 DATE FIELDS
 dt_start → dt_start (actual start of action)
 dt_expected → dt_expected (expected end of action)
-dt_due → dt_due (committed deadline)
+dt_deadline → dt_deadline (committed deadline)
 dt_completed → dt_completed (actual end of action – authoritative)
 
 Deprecated

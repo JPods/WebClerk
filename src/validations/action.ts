@@ -12,7 +12,7 @@ export const actionSchema = z.object({
   assignee: z.string().optional(),
   dt_start: z.string().optional(),
   dt_end: z.string().optional(),
-  dt_due: z.string().optional(),
+  dt_deadline: z.string().optional(),
 });
 
 export const contactSchema = z.object({

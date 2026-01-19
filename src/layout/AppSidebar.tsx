@@ -36,11 +36,7 @@ const navItems: NavItem[] = [
     name: "Kanban Board",
     path: "/kanban-board",
   },
-  {
-    icon: <CalenderIcon />,
-    name: "SVAR Gantt",
-    path: "/svar-gantt",
-  },
+  // moved to bottom
   {
     icon: <GridIcon />,
     name: "Accounts",
@@ -173,6 +169,16 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "User Profile",
     path: "/profile",
+  },
+  {
+    icon: <CalenderIcon />,
+    name: "SVAR Gantt",
+    path: "/svar-gantt",
+  },
+  {
+    icon: <CalenderIcon />,
+    name: "Multi‑Project Gantt",
+    path: PageRoutes.multiProjectGantt,
   },
   // {
   //   name: "Pages",

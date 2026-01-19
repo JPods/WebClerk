@@ -265,9 +265,9 @@ const mapKanbanTaskToSvarTask = (
   columnTitle?: string
 ): ITask => {
   const explicitStart = parseDateValue(task.dt_start as any) ?? parseDateValue(task.dt_expected as any);
-  const fallbackStart = parseDateValue(task.dt_due as any) ?? buildFallbackStartDate(fallbackOffset);
+  const fallbackStart = parseDateValue(task.dt_deadline as any) ?? buildFallbackStartDate(fallbackOffset);
   const start = explicitStart ?? fallbackStart;
-  const explicitEnd = parseDateValue(task.dt_expected as any) ?? parseDateValue(task.dt_due as any);
+  const explicitEnd = parseDateValue(task.dt_expected as any) ?? parseDateValue(task.dt_deadline as any);
   const duration = deriveDurationInDays(start, explicitEnd);
   const end = ensureEndDate(start, explicitEnd, duration);
 
@@ -733,7 +733,7 @@ const SvarGanttPage: React.FC = () => {
       const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
        const normalizedStart = normalizeIncomingDateValue(task.dt_start);
        const normalizedEnd = normalizeIncomingDateValue(task.dt_expected ?? task.dt_end);
-       const normalizedDue = normalizeIncomingDateValue(task.dt_due);
+       const normalizedDue = normalizeIncomingDateValue(task.dt_deadline);
       const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
       const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
       const resolvedEndDate = normalizedEnd || createFallbackEndFromStart(resolvedStartDate);
@@ -749,7 +749,7 @@ const SvarGanttPage: React.FC = () => {
          translations: createTranslationEntriesFromTask(task),
          columnId: taskColumn?.id ?? resolveDefaultColumnId(),
          priority: task.priority,
-          dt_due: resolvedDueDate,
+          dt_deadline: resolvedDueDate,
           dt_start: resolvedStartDate,
           dt_expected: resolvedEndDate,
          assignee: task.assignee || task.assignedTo?.[0]?.name || "",
@@ -950,7 +950,7 @@ const SvarGanttPage: React.FC = () => {
         ? [{ name: state.assignee }]
         : baseTask.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
-       const dueTimestamp = toTimestampMilliseconds(state.dt_due);
+       const dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
        const startTimestamp = toTimestampMilliseconds(state.dt_start);
        const endTimestamp = toTimestampMilliseconds(state.dt_expected);
       const resolvedProgress = Number(state.progress) || 0;
@@ -978,7 +978,7 @@ const SvarGanttPage: React.FC = () => {
           mode: "update",
           value: baseTask.status ?? "In progress",
         },
-        dt_due: {
+        dt_deadline: {
           mode: "update",
           value: dueTimestamp,
         },

@@ -25,7 +25,7 @@ const actionSchema = z.object({
   difficulty: z.number().min(1).max(5).optional(),
   status: z.string().optional(),
   progress: z.number().min(0).max(100).optional(),
-  dt_due: z.string().optional(),
+  dt_deadline: z.string().optional(),
   dt_start: z.string().optional(),
   dt_end: z.string().optional(),
   project_name: z.string().optional(),
@@ -89,10 +89,10 @@ export default function ActionDetail({
       setValue("project_name", data.project_name || "");
       
       // Format dates for input fields
-      if (data.dt_due) {
-        const dueDate = new Date(data.dt_due);
+      if (data.dt_deadline) {
+        const dueDate = new Date(data.dt_deadline);
         if (!isNaN(dueDate.getTime())) {
-          setValue("dt_due", dueDate.toISOString().split('T')[0]);
+          setValue("dt_deadline", dueDate.toISOString().split('T')[0]);
         }
       }
       if (data.dt_start) {
@@ -129,7 +129,7 @@ export default function ActionDetail({
       difficulty: formValues.difficulty || 1,
       status: formValues.status || "active",
       progress: formValues.progress || 0,
-      dt_due: formValues.dt_due ? new Date(formValues.dt_due).toISOString() : null,
+      dt_deadline: formValues.dt_deadline ? new Date(formValues.dt_deadline).toISOString() : null,
       dt_start: formValues.dt_start ? new Date(formValues.dt_start).toISOString() : null,
       dt_end: formValues.dt_end ? new Date(formValues.dt_end).toISOString() : null,
       project_name: formValues.project_name || "",
@@ -378,11 +378,11 @@ export default function ActionDetail({
                 />
               </div>
               <div>
-                <Label htmlFor="dt_due">Due Date</Label>
+                <Label htmlFor="dt_deadline">Due Date</Label>
                 <Input
                   type="date"
-                  id="dt_due"
-                  {...register("dt_due")}
+                  id="dt_deadline"
+                  {...register("dt_deadline")}
                   disabled={mode === "view"}
                 />
               </div>

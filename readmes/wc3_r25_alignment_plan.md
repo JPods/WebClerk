@@ -4,7 +4,7 @@ This document outlines the exact steps required to fully align R25 Kanban + Gant
 
 The goal is:
 - Replace dt_end with dt_completed everywhere
-- Enforce canonical WC3 fields: dt_start, dt_expected, dt_due, dt_completed
+- Enforce canonical WC3 fields: dt_start, dt_expected, dt_deadline, dt_completed
 - Update interfaces, forms, mappers, UI, and internal logic
 
 ---
@@ -12,7 +12,7 @@ The goal is:
 ## STEP 1 — Update TypeScript Types (BEST FIRST STEP)
 - Update all kanban and gantt interfaces to remove dt_end
 - Add dt_completed
-- Ensure dt_start, dt_expected, dt_due all exist
+- Ensure dt_start, dt_expected, dt_deadline all exist
 
 Files:
 - src/apps/utils/kanban/kanbanDataMapper.ts
@@ -28,7 +28,7 @@ Map incoming WC3 fields directly into TS objects.
 
 Ensure outgoing updates (PATCH payloads) use:
 - dt_completed
-- dt_due
+- dt_deadline
 - dt_expected
 - dt_start
 
@@ -51,7 +51,7 @@ Add expected date where appropriate:
 
 ## STEP 4 — Update Gantt UI (FOURTH STEP)
 Gantt uses dt_end heavily. Replace hierarchy:
-- END = dt_completed → dt_due → fallback
+- END = dt_completed → dt_deadline → fallback
 - START = dt_start → dt_expected → fallback
 
 Files:
@@ -60,6 +60,67 @@ Files:
 - MultiProjectGanttPage
 - GanttPage
 - KanbanGanttPage
+
+---
+## STEP 4B — Dedicated Gantt Implementation Plan
+Normalize Gantt to canonical WC3 fields.
+
+1. Normalize model
+- Use dt_start, dt_expected, dt_deadline, dt_completed
+- Remove dt_end
+
+2. Update mappers
+- Convert dt_end → dt_completed
+- start = dt_start || dt_expected
+- end = dt_completed || dt_deadline || dt_expected
+
+3. Update modals
+- Update [`GanttActionModal.tsx`](src/apps/utils/gantt/GanttActionModal.tsx)
+
+4. Update views
+- [`GanttPage.tsx`](src/apps/utils/gantt/GanttPage.tsx)
+- [`KanbanGanttPage.tsx`](src/apps/utils/gantt/KanbanGanttPage.tsx)
+- [`MultiProjectGanttPage.tsx`](src/apps/utils/gantt/MultiProjectGanttPage.tsx)
+- [`SvarGanttPage.tsx`](src/apps/utils/gantt/SvarGanttPage.tsx)
+
+5. Timeline rendering
+- dt_start primary start
+- dt_completed primary end
+- dt_deadline = deadline visual
+- dt_expected = predictive
+
+6. Interaction logic
+- Drag/resize updates dt_start/dt_completed
+
+7. Dependency lines update to WC3 fields
+
+8. Regression tests for scaling, overlaps, drag/edit, deadlines
+
+---
+
+## STEP 4C — Current Gantt Codebase Targets
+The following files under [`src/apps/utils/gantt`](src/apps/utils/gantt) require full WC3 schema alignment:
+
+### Primary UI Entry Points
+- [`MultiProjectGanttPage.tsx`](src/apps/utils/gantt/MultiProjectGanttPage.tsx)
+- [`GanttPage.tsx`](src/apps/utils/gantt/GanttPage.tsx)
+- [`SvarGanttPage.tsx`](src/apps/utils/gantt/SvarGanttPage.tsx)
+- [`KanbanGanttPage.tsx`](src/apps/utils/gantt/KanbanGanttPage.tsx)
+
+### Modals and Editors
+- [`GanttActionModal.tsx`](src/apps/utils/gantt/GanttActionModal.tsx)
+
+### Requirements
+- All components must exclusively use WC3 fields:
+  - dt_start
+  - dt_expected
+  - dt_deadline
+  - dt_completed
+- Remove all uses of deprecated dt_end
+- Ensure all timeline, dragging, and resizing logic reads/writes only WC3-compliant fields
+- Ensure Multi‑Project view uses canonical fields consistently across merged datasets
+
+These files will be updated in sequence after mapper normalization.
 
 ---
 
@@ -73,7 +134,7 @@ Files:
 Ensure all team members use the canonical WC3 field set:
 - dt_start = actual start
 - dt_expected = expected end
-- dt_due = committed deadline
+- dt_deadline = committed deadline
 - dt_completed = actual completion
 
 ---

@@ -310,7 +310,7 @@ const MultiProjectGanttPage: React.FC = () => {
       const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
       const normalizedStart = normalizeIncomingDateValue((task as any).dt_start);
       const normalizedEnd = normalizeIncomingDateValue((task as any).dt_end);
-      const normalizedDue = normalizeIncomingDateValue((task as any).dt_due);
+      const normalizedDue = normalizeIncomingDateValue((task as any).dt_deadline);
       const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
       const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
       const resolvedEndDate = normalizedEnd || "";
@@ -326,7 +326,7 @@ const MultiProjectGanttPage: React.FC = () => {
          translations: createTranslationEntriesFromTask(task),
          columnId: taskColumn?.id ?? task.status ?? FALLBACK_COLUMN_ID,
          priority: task.priority,
-         dt_due: resolvedDueDate,
+         dt_deadline: resolvedDueDate,
          dt_start: resolvedStartDate,
          dt_completed: "",
          dt_expected: resolvedEndDate,
@@ -352,7 +352,7 @@ const MultiProjectGanttPage: React.FC = () => {
         description: ganttTask.details || "",
         priority: (ganttTask.priority as TaskPriority) || "medium",
         status: ganttTask.columnTitle || "Uncategorized",
-         dt_due: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
+         dt_deadline: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
          dt_start: ganttTask.start instanceof Date ? ganttTask.start.toISOString() : undefined,
          dt_end: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
         progress: toProgressPercentage(ganttTask.progress),
@@ -504,7 +504,7 @@ const MultiProjectGanttPage: React.FC = () => {
          ? [{ name: state.assignee }]
          : baseTask.assigned_to?.map((assignment: any) => ({ name: assignment.name })) ?? [];
 
-       const dueTimestamp = toTimestampMilliseconds(state.dt_due);
+       const dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
        const startTimestamp = toTimestampMilliseconds(state.dt_start);
        const endTimestamp = toTimestampMilliseconds(state.dt_expected);
       const resolvedProgress = Number(state.progress) || 0;
@@ -532,7 +532,7 @@ const MultiProjectGanttPage: React.FC = () => {
           mode: "update",
           value: baseTask.status ?? "In progress",
         },
-        dt_due: {
+        dt_deadline: {
           mode: "update",
           value: dueTimestamp,
         },
@@ -609,7 +609,7 @@ const MultiProjectGanttPage: React.FC = () => {
         }
         if (task.end instanceof Date) {
           payload["dt_end"] = { mode: "update", value: task.end.getTime() };
-          payload["dt_due"] = { mode: "update", value: task.end.getTime() };
+          payload["dt_deadline"] = { mode: "update", value: task.end.getTime() };
         }
         if (typeof task.progress === "number") {
           payload["prefs.userdefined.progress"] = {

@@ -2320,7 +2320,7 @@ export interface components {
             /** Format: date-time */
             dt_completed?: string | null;
             /** Format: date-time */
-            dt_due?: string | null;
+            dt_deadline?: string | null;
             /** Format: date-time */
             dt_updated?: string | null;
         };
@@ -3144,7 +3144,7 @@ export interface components {
             /** Format: date-time */
             dt_completed?: string | null;
             /** Format: date-time */
-            dt_due?: string | null;
+            dt_deadline?: string | null;
             /** Format: date-time */
             dt_updated?: string | null;
         };

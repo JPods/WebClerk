@@ -364,7 +364,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   columnId,
   projectId: "",
   priority: "medium",
-  dt_due: "",
+  dt_deadline: "",
   dt_start: "",
   dt_completed: "",
   dt_expected: "",
@@ -686,12 +686,12 @@ const updateTaskFormState = (
   if (field === "dt_start") {
     const next: TaskFormState = { ...prev, dt_start: value };
 
-    // If dt_due exists and is earlier than new dt_start, shift dt_due up to dt_start
-    if (value && prev.dt_due) {
+    // If dt_deadline exists and is earlier than new dt_start, shift dt_deadline up to dt_start
+    if (value && prev.dt_deadline) {
       const start = parseDateTimeInputValue(value);
-      const due = parseDateTimeInputValue(prev.dt_due);
+      const due = parseDateTimeInputValue(prev.dt_deadline);
       if (start && due && due.getTime() < start.getTime()) {
-         next.dt_due = value;
+         next.dt_deadline = value;
       }
     }
 
@@ -702,7 +702,7 @@ const updateTaskFormState = (
     const next: TaskFormState = { ...prev, dt_completed: value };
     if (value) {
       if (!prev.dt_start) next.dt_start = value;
-      if (!prev.dt_due) next.dt_due = value;
+      if (!prev.dt_deadline) next.dt_deadline = value;
       const startDate = parseDateTimeInputValue(next.dt_start);
       const compDate = parseDateTimeInputValue(value);
       if (startDate && compDate && compDate.getTime() < startDate.getTime()) {
@@ -712,9 +712,9 @@ const updateTaskFormState = (
     return next;
   }
 
-  if (field === "dt_due") {
+  if (field === "dt_deadline") {
     if (!value) {
-       return { ...prev, dt_due: calculateDueDate(prev.dt_start, prev.dt_completed) };
+       return { ...prev, dt_deadline: calculateDueDate(prev.dt_start, prev.dt_completed) };
     }
 
     const parsedDue = parseDateTimeInputValue(value);
@@ -724,15 +724,15 @@ const updateTaskFormState = (
 
      const endDate = parseDateTimeInputValue(prev.dt_completed);
      if (endDate && parsedDue.getTime() < endDate.getTime()) {
-       return { ...prev, dt_due: formatDateTimeLocalString(endDate) };
+       return { ...prev, dt_deadline: formatDateTimeLocalString(endDate) };
     }
 
      const startDate = parseDateTimeInputValue(prev.dt_start);
      if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
-       return { ...prev, dt_due: formatDateTimeLocalString(startDate) };
+       return { ...prev, dt_deadline: formatDateTimeLocalString(startDate) };
     }
 
-    return { ...prev, dt_due: formatDateTimeLocalString(parsedDue) };
+    return { ...prev, dt_deadline: formatDateTimeLocalString(parsedDue) };
   }
 
   if (field === "priority") {
@@ -1381,7 +1381,7 @@ const KanbanBoardPage: React.FC = () => {
 
  const normalizedStart = normalizeIncomingDateValue(task.dt_start);
  const normalizedEnd = normalizeIncomingDateValue(task.dt_completed);
- const normalizedDue = normalizeIncomingDateValue(task.dt_due);
+ const normalizedDue = normalizeIncomingDateValue(task.dt_deadline);
     const normalizedDifficulty = normalizeNumericSelectValue(
       task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
       DEFAULT_DIFFICULTY
@@ -1395,7 +1395,7 @@ const KanbanBoardPage: React.FC = () => {
       columnId: taskColumn?.id || resolveDefaultColumnId(),
       projectId: typeof normalizedProjectId === "string" || typeof normalizedProjectId === "number" ? String(normalizedProjectId) : "",
       priority: task.priority,
-      dt_due: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+      dt_deadline: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
       dt_start: normalizedStart,
        dt_completed: normalizedEnd,
        dt_expected: normalizeIncomingDateValue(task.dt_expected),
@@ -1761,10 +1761,10 @@ const KanbanBoardPage: React.FC = () => {
        : baseTask?.assigned_to?.map((assignment: any) => ({ name: assignment.name })) ?? [];
 
     let startTimestamp = toTimestampMilliseconds(state.dt_start);
-    let dueTimestamp = toTimestampMilliseconds(state.dt_due);
+    let dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
     let completedTimestamp = toTimestampMilliseconds(state.dt_completed);
 
-    // WC3 minimal ordering: dt_start <= dt_due <= dt_completed
+    // WC3 minimal ordering: dt_start <= dt_deadline <= dt_completed
     if (startTimestamp && dueTimestamp && dueTimestamp < startTimestamp) {
       dueTimestamp = startTimestamp;
     }
@@ -1798,7 +1798,7 @@ const KanbanBoardPage: React.FC = () => {
       priority: PRIORITY_TO_VALUE[state.priority],
       difficulty: resolvedDifficulty,
       status: baseTask?.status ?? "In progress",
-       dt_due: dueTimestamp ?? null,
+       dt_deadline: dueTimestamp ?? null,
        dt_start: startTimestamp ?? null,
        dt_completed: completedTimestamp ?? null,
        dt_expected: toTimestampMilliseconds(state.dt_expected) ?? null,

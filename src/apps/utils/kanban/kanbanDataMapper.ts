@@ -39,7 +39,7 @@ export interface ApiKanbanItem {
   dt_created?: string | null;
   dt_updated?: string | null;
   dt_expected?: string | null;
-  dt_due?: string | null;
+  dt_deadline?: string | null;
   dt_completed?: string | null;
   dt_start?: string | null;
   dt_end?: string | null;
@@ -451,7 +451,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       priority_value: item.priority ?? undefined,
       difficulty: item.difficulty ?? undefined,
       status: item.status ?? undefined,
-      dt_due: normalizeDate(item.dt_due),
+      dt_deadline: normalizeDate(item.dt_deadline),
       dt_start: normalizeDate(item.dt_start),
       dt_expected: normalizeDate(item.dt_expected),
       dt_completed: normalizeDate(item.dt_completed),
@@ -498,7 +498,7 @@ const normalizeDate = (value?: string|null): string|undefined => {
 export const mapToApi = (task: KanbanTask): ApiKanbanItem => {
   return {
     id: task.id,
-    dt_due: normalizeDate(task.dt_due),
+    dt_deadline: normalizeDate(task.dt_deadline),
     dt_start: normalizeDate(task.dt_start),
     dt_expected: normalizeDate(task.dt_expected),
     dt_completed: normalizeDate(task.dt_completed),
