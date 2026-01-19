@@ -450,12 +450,12 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       project_id: item.project_id ?? undefined,
       priority_value: item.priority ?? undefined,
       difficulty: item.difficulty ?? undefined,
-      status: item.status ?? undefined,
+      status: typeof item.status === "string" ? item.status : undefined,
       dt_deadline: normalizeDate(item.dt_deadline),
       dt_start: normalizeDate(item.dt_start),
       dt_expected: normalizeDate(item.dt_expected),
       dt_completed: normalizeDate(item.dt_completed),
-      dt_created: normalizeDate(item.dt_created),
+      dt_created: normalizeDate(item.dt_created) ?? undefined,
       dt_updated: normalizeDate(item.dt_updated),
       assignee: assignedToRecords[0]?.name,
       assigned_to: assignedToRecords.length ? assignedToRecords : undefined,
@@ -488,11 +488,11 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   return { tasks, columns, column_order: sortedColumnOrder };
 };
 
-const normalizeDate = (value?: string|null): string|undefined => {
-  if (!value) return undefined;
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return undefined;
-  return d.toISOString();
+const normalizeDate = (value?: string | number | null): number | null | undefined => {
+  if (value == null) return undefined;
+  const dateObj = typeof value === "number" ? new Date(value) : new Date(value);
+  const time = dateObj.getTime();
+  return isNaN(time) ? undefined : time;
 };
 
 export const mapToApi = (task: KanbanTask): ApiKanbanItem => {

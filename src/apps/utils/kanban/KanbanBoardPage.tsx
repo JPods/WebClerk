@@ -1120,7 +1120,8 @@ const KanbanBoardPage: React.FC = () => {
         throw new Error("Request failed");
       }
 
-      const items = extractKanbanItems(response);
+      let items = extractKanbanItems(response);
+      items = items.filter((item:any)=>String(item.status).toLowerCase() !== "on hold");
 
       // Backend now filters by contact_id, so no client-side filtering needed
       if (items.length === 0) {
