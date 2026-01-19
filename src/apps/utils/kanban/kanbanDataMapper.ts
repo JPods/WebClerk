@@ -14,15 +14,22 @@ export interface ApiKanbanAssignment {
 
 export interface ApiKanbanItem {
   id: string;
+  is_deleted?: boolean | string | number;
+  is_archived?: boolean | string | number;
+  is_active?: boolean | string | number;
   project_name?: string | null;
+  action?: Record<string, string> | null;
+  description?: Record<string, string> | null;
   action_en?: string | null;
   action_ar?: string | null;
   action_bn?: string | null;
   action_es?: string | null;
+  action_id?: string | null;
   description_en?: string | null;
   description_ar?: string | null;
   description_bn?: string | null;
   description_es?: string | null;
+  description_id?: string | null;
   languages?: string[];
   kanban_column?: string | null;
   priority?: number | null;
@@ -49,6 +56,9 @@ export interface ApiKanbanItem {
     tags?: string[];
     links?: {
       parent?: string;
+      items?: unknown[];
+      contacts?: unknown[];
+      [key: string]: unknown;
     };
     [key: string]: unknown;
   };
@@ -74,6 +84,9 @@ export interface ApiKanbanItem {
   position?: number | null;
   [key: string]: unknown;
 }
+
+const isTrue = (value: unknown): boolean => value === true || value === "true" || value === 1 || value === "1";
+const isFalse = (value: unknown): boolean => value === false || value === "false" || value === 0 || value === "0";
 
 export const createEmptyBoardData = (): BoardData => ({
   tasks: {},
@@ -310,12 +323,7 @@ const collectLocalizedEntries = (
   const record = item as Record<string, unknown>;
   const pattern = new RegExp(`^${fieldPrefix}(?:[._])([a-z0-9-]+)$`, "i");
 
-  Object.entries(record).forEach(([key, raw]) => {
-    const match = key.match(pattern);
-    if (!match) return;
-    assignTranslationValue(collected, match[1], raw);
-  });
-
+  // Process nested objects FIRST (highest priority)
   const nestedField = record[fieldPrefix];
   if (nestedField && typeof nestedField === "object" && !Array.isArray(nestedField)) {
     Object.entries(nestedField as Record<string, unknown>).forEach(([language, rawValue]) => {
@@ -323,6 +331,14 @@ const collectLocalizedEntries = (
     });
   }
 
+  // Then process flat fields (medium priority)
+  Object.entries(record).forEach(([key, raw]) => {
+    const match = key.match(pattern);
+    if (!match) return;
+    assignTranslationValue(collected, match[1], raw);
+  });
+
+  // Finally process fallback entries (lowest priority)
   fallbackEntries.forEach(([language, value]) => {
     assignTranslationValue(collected, language, value);
   });
@@ -338,13 +354,28 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
   return firstKey ? map[firstKey] : undefined;
 };
 
-export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
+  export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   const tasks: Record<string, KanbanTask> = {};
   const columns: Record<string, KanbanColumnType> = {};
   const columnOrder: string[] = [];
 
-  items.forEach((item) => {
+    const sortedItems = items
+      .map((item, index) => ({ item, index, sequence: extractSequenceValue(item) }))
+      .sort((a, b) => {
+        const aSeq = a.sequence;
+        const bSeq = b.sequence;
+        if (typeof aSeq === "number" && typeof bSeq === "number") {
+          if (aSeq !== bSeq) return aSeq - bSeq;
+          return a.index - b.index;
+        }
+        if (typeof aSeq === "number") return -1;
+        if (typeof bSeq === "number") return 1;
+        return a.index - b.index;
+      });
+
+    sortedItems.forEach(({ item }) => {
     if (!item?.id) return;
+    if (isTrue(item.is_deleted) || isTrue(item.is_archived) || isFalse(item.is_active)) return;
 
     const rawColumnTitle = (item.kanban_column && String(item.kanban_column).trim()) || "Uncategorized";
     const columnId = slugifyColumn(rawColumnTitle);
@@ -361,6 +392,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       ["ar", item.action_ar],
       ["bn", item.action_bn],
       ["es", item.action_es],
+      ["id", item.action_id],
     ]);
 
     const descriptionEntries = collectLocalizedEntries(item, "description", [
@@ -368,6 +400,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       ["ar", item.description_ar],
       ["bn", item.description_bn],
       ["es", item.description_es],
+      ["id", item.description_id],
     ]);
 
     const titleTranslations = buildTranslations(actionEntries);

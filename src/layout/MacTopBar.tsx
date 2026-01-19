@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { FiLogOut } from "react-icons/fi";
 import { GridIcon } from "../icons";
 import { useWindowManager } from "../context/WindowManagerContext";
 import { logout as logoutRequest } from "../api/auth";
 import { useAppSelector } from "../store/hooks";
 import { clearTokens } from "../api/axios";
 import { clearUser } from "../store/slices/authSlice";
+import TaskManagerIndicator from "../components/header/TaskManagerIndicator";
 
 type Props = {
   activePath: string;
@@ -20,11 +22,10 @@ export default function MacTopBar({ activePath }: Props) {
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const pendingTasks = useMemo(() => windows.filter((w) => w.minimized).length, [windows]);
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
 
   return (
-    <div className="sticky top-0 z-[200] flex items-center gap-4 border-b border-slate-200 bg-white/95 px-4 py-2 text-sm text-slate-900 shadow-md backdrop-blur">
+    <div className="sticky top-0 z-200 flex items-center gap-4 border-b border-slate-200 bg-white/95 px-4 py-2 text-sm text-slate-900 shadow-md backdrop-blur">
       <div className="flex items-center gap-3 text-base font-semibold text-slate-900">
         <GridIcon className="h-5 w-5 text-emerald-500" />
         <span>WebClerk 3.0</span>
@@ -77,8 +78,8 @@ export default function MacTopBar({ activePath }: Props) {
       </div>
 
       <div className="flex items-center gap-3 text-xs">
-        <div className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">Tasks: {pendingTasks}</div>
-        <div className="flex items-center gap-2 rounded-full bg-slate-100 px-2 py-1">
+        <TaskManagerIndicator />
+        <div className="flex items-center gap-3 rounded-full bg-slate-100 px-2 py-1">
           <img
             src="/images/user/owner.jpg"
             alt="avatar"
@@ -88,25 +89,28 @@ export default function MacTopBar({ activePath }: Props) {
             <p className="text-[11px] text-slate-500">{user?.email || "user"}</p>
             <p className="text-xs font-semibold">{user?.name_first || "Profile"}</p>
           </div>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-70"
+            onClick={async () => {
+              if (loggingOut) return;
+              setLoggingOut(true);
+              try {
+                await logoutRequest();
+              } catch {
+                // ignore logout failures
+              }
+              clearTokens();
+              dispatch(clearUser());
+              navigate("/");
+              setLoggingOut(false);
+            }}
+            title="Sign out"
+            aria-label="Sign out"
+            disabled={loggingOut}
+          >
+            <FiLogOut className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-          onClick={async () => {
-            if (loggingOut) return;
-            setLoggingOut(true);
-            try {
-              await logoutRequest();
-            } catch {
-              // ignore logout failures
-            }
-            clearTokens();
-            dispatch(clearUser());
-            navigate("/");
-            setLoggingOut(false);
-          }}
-        >
-          {loggingOut ? "Signing out…" : "Sign out"}
-        </button>
       </div>
     </div>
   );

@@ -1,12 +1,16 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import KanbanTaskModal from "../../components/kanban/KanbanTaskModal";
-import type { BoardData } from "../../type/kanban";
-import { KanbanTask, TaskPriority } from "../../type/kanban";
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
+import type { BoardData } from "../../../type/kanban";
+import { KanbanTask, TaskPriority } from "../../../type/kanban";
 import clsx from "clsx";
-import { Actions, patchAction } from "../../api/userProfile";
-import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../components/kanban/taskFormTypes";
+import { Actions, patchAction } from "../../../api/userProfile";
+import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "../kanban/kanbanDataMapper";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import { Link } from "react-router";
+import { PageRoutes } from "../../../routes/Routes";
 
 // Sample data used as a fallback when the API is unavailable
 // const FALLBACK_GANTT_TASKS: KanbanTask[] = [
@@ -76,30 +80,32 @@ import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from 
 //   }
 // ];
 
-const priorityColors: Record<TaskPriority, string> = {
+export const priorityColors: Record<TaskPriority, string> = {
   low: "bg-emerald-500",
   medium: "bg-amber-500",
   high: "bg-orange-500",
   critical: "bg-rose-500",
 };
 
-const priorityBgColors: Record<TaskPriority, string> = {
+export const priorityBgColors: Record<TaskPriority, string> = {
   low: "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20",
   medium: "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20",
   high: "bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20",
   critical: "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20",
 };
 
-const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
+export const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
   low: 1,
   medium: 2,
   high: 3,
   critical: 4,
 };
 
-const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
+export const priorityOptions: TaskPriority[] = ["low", "medium", "high", "critical"];
 
-const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
+const DRAG_TYPE_GANTT_TASK = "GANTT_TASK";
+
+export const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"];
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
@@ -108,7 +114,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   es: "Spanish",
 };
 
-const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
+export const getLanguageLabel = (code: string) => LANGUAGE_LABELS[code.toLowerCase()] ?? code.toUpperCase();
 
 const createLocalId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -117,25 +123,26 @@ const createLocalId = () => {
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
-const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
-const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
+export const DIFFICULTY_OPTIONS: readonly number[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 101];
+export const PROGRESS_OPTIONS: readonly number[] = [0, 5, 30, 50, 70, 90, 100];
 
-const DEFAULT_DIFFICULTY = DIFFICULTY_OPTIONS[2] ?? DIFFICULTY_OPTIONS[0];
-const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
+export const DEFAULT_DIFFICULTY = DIFFICULTY_OPTIONS[2] ?? DIFFICULTY_OPTIONS[0];
+export const DEFAULT_PROGRESS = PROGRESS_OPTIONS[0];
 
-const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
-const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
+export const DEFAULT_DIFFICULTY_STRING = String(DEFAULT_DIFFICULTY);
+export const DEFAULT_PROGRESS_STRING = String(DEFAULT_PROGRESS);
+export const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
+export const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 
-const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
+export const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
   id: createLocalId(),
   language,
   title,
   description,
 });
 
-const createInitialTaskFormState = (columnId: string): TaskFormState => ({
+export const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
   columnId,
   priority: "medium",
@@ -147,7 +154,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   progress: DEFAULT_PROGRESS_STRING,
 });
 
-const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
+export const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
   for (const code of DEFAULT_LANGUAGE_ORDER) {
     if (!used.has(code)) {
       return code;
@@ -161,7 +168,7 @@ const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string 
   return "";
 };
 
-const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
+export const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
   const languages = new Set<string>();
   task.languageCodes?.forEach((code) => languages.add(normalizeLanguageCode(code)));
   Object.keys(task.titleTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
@@ -191,7 +198,7 @@ const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntr
   });
 };
 
-const FALLBACK_COLUMN_ID = "column-uncategorized";
+export const FALLBACK_COLUMN_ID = "column-uncategorized";
 
 const padTwo = (value: number) => value.toString().padStart(2, "0");
 
@@ -238,12 +245,12 @@ const coerceDateFromUnknown = (value: unknown): Date | null => {
   return null;
 };
 
-const normalizeIncomingDateValue = (value: unknown): string => {
+export const normalizeIncomingDateValue = (value: unknown): string => {
   const date = coerceDateFromUnknown(value);
   return date ? formatDateTimeLocalString(date) : "";
 };
 
-const normalizeNumericSelectValue = (value: unknown, fallback: number): string => {
+export const normalizeNumericSelectValue = (value: unknown, fallback: number): string => {
   if (value === null || value === undefined) {
     return String(fallback);
   }
@@ -261,7 +268,7 @@ const normalizeNumericSelectValue = (value: unknown, fallback: number): string =
   return Number.isNaN(numeric) ? String(fallback) : String(numeric);
 };
 
-const extendNumericOptionStrings = (options: readonly number[], current: string): string[] => {
+export const extendNumericOptionStrings = (options: readonly number[], current: string): string[] => {
   const base = options.map((value) => String(value));
   if (current && !base.includes(current)) {
     return [...base, current];
@@ -293,7 +300,7 @@ const ensureEndAfterStart = (start: string, candidate: string): string => {
   return formatDateTimeLocalString(candidateDate);
 };
 
-const calculateDueDate = (start: string, end: string): string => {
+export const calculateDueDate = (start: string, end: string): string => {
   const endDate = parseDateTimeInputValue(end);
   if (endDate) {
     return formatDateTimeLocalString(endDate);
@@ -307,12 +314,12 @@ const calculateDueDate = (start: string, end: string): string => {
   return "";
 };
 
-const toTimestampMilliseconds = (value: string): number | null => {
+export const toTimestampMilliseconds = (value: string): number | null => {
   const date = parseDateTimeInputValue(value);
   return date ? date.getTime() : null;
 };
 
-const updateTaskFormState = (
+export const updateTaskFormState = (
   prev: TaskFormState,
   field: TaskFormEditableField,
   value: string
@@ -406,8 +413,35 @@ interface GanttBarProps {
   onEdit?: (task: KanbanTask) => void;
 }
 
+interface DragItem {
+  type: string;
+  task: KanbanTask;
+}
+
 const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false, onEdit }) => {
-  const taskStart = new Date();
+  const [{ isDragging }, drag, preview] = useDrag<DragItem, void, { isDragging: boolean }>(() => ({
+    type: DRAG_TYPE_GANTT_TASK,
+    item: { type: DRAG_TYPE_GANTT_TASK, task },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [task]);
+
+  const attachDragRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node) {
+        return;
+      }
+      drag(node);
+      preview(node, {
+        anchorX: 0.5,
+        anchorY: 0.5,
+      });
+    },
+    [drag, preview]
+  );
+  
+  const taskStart = task.startDate ? new Date(task.startDate) : new Date();
   const taskEnd = task.dueDate ? new Date(task.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   
   const totalDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
@@ -423,7 +457,12 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
 
   return (
     <div 
-      className="relative h-10 rounded-lg shadow-sm transition-all hover:shadow-md group"
+      ref={attachDragRefs}
+      className={clsx(
+        "relative h-10 rounded-lg shadow-sm transition-all hover:shadow-md group",
+        isDragging && "opacity-50 cursor-grabbing",
+        !isDragging && "cursor-grab"
+      )}
       style={{
         left: `${Math.max(0, leftPercentage)}%`,
         width: `${Math.max(8, Math.min(widthPercentage, 100 - leftPercentage))}%`,
@@ -456,7 +495,7 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
         <div className="absolute inset-0 flex items-center justify-between px-3">
           <button
             type="button"
-            onClick={(event) => {
+            onDoubleClick={(event) => {
               event.stopPropagation();
               onEdit?.(task);
             }}
@@ -499,9 +538,10 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
 
 interface TimelineHeaderProps {
   dateRange: GanttDateRange;
+  onDropTask?: (task: KanbanTask, date: Date) => void;
 }
 
-const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange }) => {
+const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange, onDropTask }) => {
   const days = useMemo(() => {
     const result: Date[] = [];
     const current = new Date(dateRange.start);
@@ -515,34 +555,163 @@ const TimelineHeader: React.FC<TimelineHeaderProps> = ({ dateRange }) => {
   }, [dateRange]);
 
   return (
-    <div className="flex border-b border-gray-200 dark:border-gray-700">
+    <div
+      className="sticky top-[calc(var(--app-header-height,4.5rem)+0.5rem)] z-30 flex border-b border-gray-200 bg-white/95 px-4 shadow-sm backdrop-blur supports-[backdrop-filter]:backdrop-blur dark:border-gray-800 dark:bg-gray-900/90"
+    >
       {days.map((day, index) => {
         const isToday = day.toDateString() === new Date().toDateString();
         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
         
         return (
-          <div
+          <DroppableDate
             key={index}
-            className={clsx(
-              "flex-1 min-w-0 px-2 py-4 text-center border-r border-gray-100 dark:border-gray-800",
-              {
-                "bg-indigo-50 dark:bg-indigo-500/10": isToday,
-                "bg-gray-50 dark:bg-gray-800/50": isWeekend,
-              }
-            )}
-          >
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {day.toLocaleDateString('en', { weekday: 'short' })}
-            </div>
-            <div className={clsx(
-              "text-sm font-semibold",
-              isToday ? "text-indigo-600 dark:text-indigo-400" : "text-gray-900 dark:text-white"
-            )}>
-              {day.getDate()}
-            </div>
-          </div>
+            day={day}
+            isToday={isToday}
+            isWeekend={isWeekend}
+            onDropTask={onDropTask}
+          />
         );
       })}
+    </div>
+  );
+};
+
+interface TimelineGridOverlayProps {
+  dateRange: GanttDateRange;
+}
+
+const TimelineGridOverlay: React.FC<TimelineGridOverlayProps> = ({ dateRange }) => {
+  const columnCount = useMemo(() => {
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diffMs = Math.max(0, end.getTime() - start.getTime());
+    const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(totalDays, 1);
+  }, [dateRange]);
+
+  const boundaries = useMemo(() => Array.from({ length: columnCount + 1 }), [columnCount]);
+
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {boundaries.map((_, index) => (
+        <span
+          key={`timeline-grid-${index}`}
+          className="absolute inset-y-0 border-l border-gray-100 dark:border-gray-800"
+          style={{ left: `${(index / columnCount) * 100}%` }}
+        />
+      ))}
+    </div>
+  );
+};
+
+interface DroppableDateProps {
+  day: Date;
+  isToday: boolean;
+  isWeekend: boolean;
+  onDropTask?: (task: KanbanTask, date: Date) => void;
+}
+
+const DroppableDate: React.FC<DroppableDateProps> = ({ day, isToday, isWeekend, onDropTask }) => {
+  const [{ isOver, canDrop }, drop] = useDrop<DragItem, void, { isOver: boolean; canDrop: boolean }>({
+    accept: DRAG_TYPE_GANTT_TASK,
+    drop: (item) => {
+      onDropTask?.(item.task, day);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  });
+
+  return (
+    <div
+      ref={drop as any}
+      className={clsx(
+        "flex-1 min-w-0 px-2 py-4 text-center border-r border-gray-100 dark:border-gray-800 transition-colors",
+        {
+          "bg-indigo-50 dark:bg-indigo-500/10": isToday && !isOver,
+          "bg-gray-50 dark:bg-gray-800/50": isWeekend && !isOver,
+          "bg-indigo-200 dark:bg-indigo-500/30": isOver && canDrop,
+          "ring-2 ring-inset ring-indigo-400": isOver && canDrop,
+        }
+      )}
+    >
+      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        {day.toLocaleDateString('en', { weekday: 'short' })}
+      </div>
+      <div className={clsx(
+        "text-sm font-semibold",
+        isToday ? "text-indigo-600 dark:text-indigo-400" : "text-gray-900 dark:text-white"
+      )}>
+        {day.getDate()}
+      </div>
+    </div>
+  );
+};
+
+interface TimelineRowDropTargetProps {
+  task: KanbanTask;
+  dateRange: GanttDateRange;
+  onDropTask?: (task: KanbanTask, date: Date) => void;
+  children: ReactNode;
+}
+
+const TimelineRowDropTarget: React.FC<TimelineRowDropTargetProps> = ({
+  task,
+  dateRange,
+  onDropTask,
+  children,
+}) => {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [{ isOver }, drop] = useDrop<DragItem, void, { isOver: boolean }>({
+    accept: DRAG_TYPE_GANTT_TASK,
+    drop: (_item, monitor) => {
+      if (!rowRef.current) {
+        return;
+      }
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) {
+        return;
+      }
+      const rect = rowRef.current.getBoundingClientRect();
+      const body = rowRef.current.querySelector('[data-timeline-row-body]') as HTMLElement | null;
+      let paddingLeft = 0;
+      let paddingRight = 0;
+      if (body) {
+        const styles = window.getComputedStyle(body);
+        paddingLeft = parseFloat(styles.paddingLeft || "0") || 0;
+        paddingRight = parseFloat(styles.paddingRight || "0") || 0;
+      }
+      const effectiveWidth = Math.max(rect.width - paddingLeft - paddingRight, 1);
+      const relativeX = clientOffset.x - (rect.left + paddingLeft);
+      const ratio = Math.min(Math.max(relativeX / effectiveWidth, 0), 1);
+      const totalDays = Math.max(
+        1,
+        Math.floor((dateRange.end.getTime() - dateRange.start.getTime()) / DAY_IN_MS) + 1
+      );
+      const dayIndex = Math.min(totalDays - 1, Math.floor(ratio * totalDays));
+      const dropDate = new Date(dateRange.start);
+      dropDate.setDate(dropDate.getDate() + dayIndex);
+      onDropTask?.(task, dropDate);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver({ shallow: true }),
+    }),
+  });
+
+  drop(rowRef);
+
+  return (
+    <div
+      ref={rowRef}
+      className={clsx(
+        "relative",
+        isOver && "ring-2 ring-inset ring-indigo-300/60 dark:ring-indigo-500/60"
+      )}
+    >
+      {children}
     </div>
   );
 };
@@ -566,6 +735,32 @@ const KanbanGanttPage: React.FC = () => {
   const [editLanguageSelection, setEditLanguageSelection] = useState<string>("");
   const [editCustomLanguage, setEditCustomLanguage] = useState<string>("");
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
+
+  const applyOptimisticTaskDates = useCallback(
+    (taskId: string, updates: Partial<Pick<KanbanTask, "startDate" | "endDate" | "dueDate">>) => {
+      setTasks((prev) =>
+        prev.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
+      );
+
+      setBoard((prev) => {
+        const targetTask = prev.tasks[taskId];
+        if (!targetTask) {
+          return prev;
+        }
+        return {
+          ...prev,
+          tasks: {
+            ...prev.tasks,
+            [taskId]: {
+              ...targetTask,
+              ...updates,
+            },
+          },
+        };
+      });
+    },
+    []
+  );
 
   const resolveDefaultColumnId = useCallback(
     () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
@@ -836,26 +1031,25 @@ const KanbanGanttPage: React.FC = () => {
         return { error: "Add at least one language with a title." };
       }
 
-      const translationFields: Record<string, string | null> = {};
+      // Build action and description with dot notation keys (e.g., action.en, description.en)
+      const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
+      
       normalized.forEach((value, language) => {
-        translationFields[`action_${language}`] = value.title || "";
-        translationFields[`description_${language}`] = value.description || "";
+        translationFields[`action.${language}`] = {
+          mode: "update",
+          value: value.title || ""
+        };
+        translationFields[`description.${language}`] = {
+          mode: "update",
+          value: value.description || ""
+        };
       });
 
-      const languages = Array.from(normalized.keys());
-
-      const removalTokens: string[] = [];
-      const originalLanguages = new Set<string>();
-      baseTask.languageCodes?.forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-
-      originalLanguages.forEach((language) => {
-        if (language && !normalized.has(language)) {
-          removalTokens.push(`action_${language}`);
-          removalTokens.push(`description_${language}`);
-        }
-      });
+      // Add languages with the same format
+      translationFields.languages = {
+        mode: "update",
+        value: Array.from(normalized.keys())
+      };
 
       const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
       const columnTitle = column?.title ?? "Uncategorized";
@@ -887,27 +1081,51 @@ const KanbanGanttPage: React.FC = () => {
       const payloadItem: Record<string, unknown> = {
         model_name: "action",
         ...translationFields,
-        languages,
-        needtoremove: removalTokens.join(","),
-        kanban_column: columnTitle,
-        kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
-        priority: PRIORITY_TO_VALUE[state.priority],
-        difficulty: resolvedDifficulty,
-        status: baseTask.status ?? "In progress",
-        dt_due: dueTimestamp,
-        dt_start: startTimestamp,
-        dt_end: endTimestamp,
-        assigned_to: assignedTo,
-        progress: resolvedProgress,
+        kanban_column: {
+          mode: "update",
+          value: columnTitle
+        },
+        kanban_column_id: {
+          mode: "update",
+          value: column?.id ?? FALLBACK_COLUMN_ID
+        },
+        priority: {
+          mode: "update",
+          value: PRIORITY_TO_VALUE[state.priority]
+        },
+        difficulty: {
+          mode: "update",
+          value: resolvedDifficulty
+        },
+        status: {
+          mode: "update",
+          value: baseTask.status ?? "In progress"
+        },
+        dt_due: {
+          mode: "update",
+          value: dueTimestamp
+        },
+        dt_start: {
+          mode: "update",
+          value: startTimestamp
+        },
+        dt_end: {
+          mode: "update",
+          value: endTimestamp
+        },
+        assigned_to: {
+          mode: "update",
+          value: assignedTo
+        },
+        progress: {
+          mode: "update",
+          value: resolvedProgress
+        },
         id: baseTask.id,
       };
 
       if (!state.assignee && assignedTo.length === 0) {
         delete payloadItem.assigned_to;
-      }
-
-      if (!removalTokens.length) {
-        payloadItem.needtoremove = "";
       }
 
       return { payload: payloadItem };
@@ -997,21 +1215,156 @@ const KanbanGanttPage: React.FC = () => {
       [editingTask, editTaskState, fetchGanttTasks, handleCloseEditModal, isSavingEdit]
     );
 
+  const handleTaskDrop = useCallback(
+    (task: KanbanTask, newDate: Date) => {
+      if (usingFallback) {
+        return;
+      }
+
+      // Calculate new dates based on dropped date
+      const newStartDate = new Date(newDate);
+      newStartDate.setHours(9, 0, 0, 0); // Set to 9 AM
+
+      const taskDuration = task.endDate && task.startDate
+        ? new Date(task.endDate).getTime() - new Date(task.startDate).getTime()
+        : 24 * 60 * 60 * 1000; // Default 1 day
+
+      const newEndDate = new Date(newStartDate.getTime() + taskDuration);
+      const newDueDate = new Date(newEndDate.getTime());
+
+      const isoStart = newStartDate.toISOString();
+      const isoEnd = newEndDate.toISOString();
+      const isoDue = newDueDate.toISOString();
+      applyOptimisticTaskDates(task.id, {
+        startDate: isoStart,
+        endDate: isoEnd,
+        dueDate: isoDue,
+      });
+
+      // Build the payload with updated dates
+      const normalized = new Map<string, { title: string; description: string }>();
+      
+      task.languageCodes?.forEach((code) => {
+        const lang = normalizeLanguageCode(code);
+        normalized.set(lang, {
+          title: task.titleTranslations?.[lang] || task.title,
+          description: task.descriptionTranslations?.[lang] || task.description || "",
+        });
+      });
+
+      if (normalized.size === 0) {
+        normalized.set("en", { title: task.title, description: task.description || "" });
+      }
+
+      // Build action and description with dot notation keys (e.g., action.en, description.en)
+      const translationFields: Record<string, { mode: string; value: string | string[] }> = {};
+      
+      normalized.forEach((value, language) => {
+        translationFields[`action.${language}`] = {
+          mode: "update",
+          value: value.title || ""
+        };
+        translationFields[`description.${language}`] = {
+          mode: "update",
+          value: value.description || ""
+        };
+      });
+
+      // Add languages with the same format
+      translationFields.languages = {
+        mode: "update",
+        value: Array.from(normalized.keys())
+      };
+
+      const column = Object.values(board.columns).find((col) => col.taskIds.includes(task.id));
+      const assignedTo = task.assignee
+        ? [{ name: task.assignee }]
+        : task.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+
+      const payload: Record<string, unknown> = {
+        id: task.id,
+        model_name: "action",
+        ...translationFields,
+        kanban_column: {
+          mode: "update",
+          value: column?.title ?? "Uncategorized"
+        },
+        kanban_column_id: {
+          mode: "update",
+          value: column?.id ?? FALLBACK_COLUMN_ID
+        },
+        priority: {
+          mode: "update",
+          value: PRIORITY_TO_VALUE[task.priority]
+        },
+        difficulty: {
+          mode: "update",
+          value: task.difficulty ?? PRIORITY_TO_VALUE[task.priority]
+        },
+        status: {
+          mode: "update",
+          value: task.status ?? "In progress"
+        },
+        dt_start: {
+          mode: "update",
+          value: newStartDate.getTime()
+        },
+        dt_end: {
+          mode: "update",
+          value: newEndDate.getTime()
+        },
+        dt_due: {
+          mode: "update",
+          value: newDueDate.getTime()
+        },
+        assigned_to: {
+          mode: "update",
+          value: assignedTo
+        },
+        progress: {
+          mode: "update",
+          value: task.progress ?? 0
+        },
+      };
+
+      if (assignedTo.length === 0) {
+        delete payload.assigned_to;
+      }
+
+      void (async () => {
+        try {
+          const response = await patchAction(payload);
+          if (response?.status !== 200 && response?.status !== 201) {
+            throw new Error("Failed to update task date.");
+          }
+        } catch (error) {
+          console.error("Failed to update task date via drag and drop", error);
+          setFetchError("Failed to update task. Re-syncing…");
+          await fetchGanttTasks();
+        }
+      })();
+    },
+    [applyOptimisticTaskDates, board.columns, fetchGanttTasks, usingFallback]
+  );
+
   const dateRange = useMemo((): GanttDateRange => {
     const start = new Date();
-    const end = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
     
     switch (selectedTimeRange) {
       case 'week':
-        end.setDate(start.getDate() + 7);
+        end.setDate(end.getDate() + 7);
         break;
       case 'month':
-        end.setDate(start.getDate() + 30);
+        end.setDate(end.getDate() + 30);
         break;
       case 'quarter':
-        end.setDate(start.getDate() + 90);
+        end.setDate(end.getDate() + 90);
         break;
     }
+    
+    end.setHours(0, 0, 0, 0);
     
     return { start, end };
   }, [selectedTimeRange]);
@@ -1132,15 +1485,15 @@ const KanbanGanttPage: React.FC = () => {
             <span>Show Completed</span>
           </label>
           
-          <a 
-            href="/kanban-board"
+          <Link
+            to={PageRoutes.kanbanBoard}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 11H3m6 0V9m0 2v2m0-2h6m-6 0a3 3 0 003 3v-3m-3 0a3 3 0 00-3 3v-3" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Kanban View
-          </a>
+          </Link>
           
           <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1234,31 +1587,41 @@ const KanbanGanttPage: React.FC = () => {
 
       {/* Legend */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Legend</h3>
-        <div className="flex flex-wrap items-center gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-2 rounded bg-emerald-500"></div>
-            <span className="text-gray-600 dark:text-gray-300">Low Priority</span>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Legend</h3>
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2 rounded bg-emerald-500"></div>
+                <span className="text-gray-600 dark:text-gray-300">Low Priority</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2 rounded bg-amber-500"></div>
+                <span className="text-gray-600 dark:text-gray-300">Medium Priority</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2 rounded bg-orange-500"></div>
+                <span className="text-gray-600 dark:text-gray-300">High Priority</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2 rounded bg-rose-500 ring-2 ring-orange-400 ring-opacity-50"></div>
+                <span className="text-gray-600 dark:text-gray-300">Critical Priority</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2 rounded bg-emerald-100 border-2 border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-500/40"></div>
+                <span className="text-gray-600 dark:text-gray-300">Completed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-2 rounded bg-rose-100 border-2 border-rose-300 dark:bg-rose-500/20 dark:border-rose-500/40"></div>
+                <span className="text-gray-600 dark:text-gray-300">Overdue</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-2 rounded bg-amber-500"></div>
-            <span className="text-gray-600 dark:text-gray-300">Medium Priority</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-2 rounded bg-orange-500"></div>
-            <span className="text-gray-600 dark:text-gray-300">High Priority</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-2 rounded bg-rose-500 ring-2 ring-orange-400 ring-opacity-50"></div>
-            <span className="text-gray-600 dark:text-gray-300">Critical Priority</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-2 rounded bg-emerald-100 border-2 border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-500/40"></div>
-            <span className="text-gray-600 dark:text-gray-300">Completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-2 rounded bg-rose-100 border-2 border-rose-300 dark:bg-rose-500/20 dark:border-rose-500/40"></div>
-            <span className="text-gray-600 dark:text-gray-300">Overdue</span>
+          <div className="flex items-start gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+            <svg className="h-4 w-4 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span>Drag task bars to any date to reschedule</span>
           </div>
         </div>
       </div>
@@ -1296,6 +1659,7 @@ const KanbanGanttPage: React.FC = () => {
                 organizedTasks.map(({ task, isSubtask }) => (
                   <div
                     key={task.id}
+                    onDoubleClick={() => handleOpenEditModal(task)}
                     onClick={() => handleTaskClick(task.id)}
                     className={clsx(
                       "cursor-pointer px-4 py-6 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50",
@@ -1315,7 +1679,7 @@ const KanbanGanttPage: React.FC = () => {
                         <div className="flex items-start justify-between gap-3">
                           <button
                             type="button"
-                            onClick={(event) => {
+                            onDoubleClick={(event) => {
                               event.stopPropagation();
                               if (!usingFallback) {
                                 handleOpenEditModal(task);
@@ -1333,7 +1697,7 @@ const KanbanGanttPage: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={(event) => {
+                            onDoubleClick={(event) => {
                               event.stopPropagation();
                               handleOpenEditModal(task);
                             }}
@@ -1381,53 +1745,65 @@ const KanbanGanttPage: React.FC = () => {
           </div> */}
 
           {/* Timeline */}
-          <div className="flex-1 overflow-x-auto">
-            <TimelineHeader dateRange={dateRange} />
-            
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {isLoading ? (
-                <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
-                  Loading timeline…
+          <DndProvider backend={HTML5Backend}>
+            <div className="flex-1 overflow-x-auto">
+              <TimelineHeader dateRange={dateRange} onDropTask={handleTaskDrop} />
+              
+              <div className="relative">
+                <TimelineGridOverlay dateRange={dateRange} />
+                <div className="relative z-10 divide-y divide-gray-100 dark:divide-gray-800">
+                  {isLoading ? (
+                    <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
+                      Loading timeline…
+                    </div>
+                  ) : !hasOrganizedTasks ? (
+                    <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
+                      {usingFallback ? "No timeline data in sample set." : "Add tasks to view the timeline."}
+                    </div>
+                  ) : (
+                    organizedTasks.map(({ task, isSubtask }) => (
+                      <TimelineRowDropTarget
+                        key={task.id}
+                        task={task}
+                        dateRange={dateRange}
+                        onDropTask={handleTaskDrop}
+                      >
+                        <div
+                          data-timeline-row-body
+                          onDoubleClick={() => handleOpenEditModal(task)}
+                          onClick={() => handleTaskClick(task.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleOpenEditModal(task);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          className={clsx(
+                            "relative h-20 flex items-center px-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60",
+                            {
+                              "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
+                              "h-16": isSubtask,
+                            }
+                          )}
+                        >
+                          <GanttBar
+                            task={task}
+                            dateRange={dateRange}
+                            isSubtask={isSubtask}
+                            onEdit={(clickedTask) => {
+                              handleOpenEditModal(clickedTask);
+                            }}
+                          />
+                        </div>
+                      </TimelineRowDropTarget>
+                    ))
+                  )}
                 </div>
-              ) : !hasOrganizedTasks ? (
-                <div className="flex h-40 items-center justify-center px-4 text-sm text-gray-500 dark:text-gray-400">
-                  {usingFallback ? "No timeline data in sample set." : "Add tasks to view the timeline."}
-                </div>
-              ) : (
-                organizedTasks.map(({ task, isSubtask }) => (
-                  <div
-                    key={task.id}
-                    onClick={() => handleTaskClick(task.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleTaskClick(task.id);
-                        handleOpenEditModal(task);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    className={clsx(
-                      "relative h-20 flex items-center px-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60",
-                      {
-                        "bg-indigo-50 dark:bg-indigo-500/10": selectedTask === task.id,
-                        "h-16": isSubtask,
-                      }
-                    )}
-                  >
-                    <GanttBar
-                      task={task}
-                      dateRange={dateRange}
-                      isSubtask={isSubtask}
-                      onEdit={(clickedTask) => {
-                        handleOpenEditModal(clickedTask);
-                      }}
-                    />
-                  </div>
-                ))
-              )}
+              </div>
             </div>
-          </div>
+          </DndProvider>
         </div>
       </div>
 
@@ -1444,7 +1820,7 @@ const KanbanGanttPage: React.FC = () => {
                   <div>
                     <button
                       type="button"
-                      onClick={() => {
+                      onDoubleClick={() => {
                         if (!usingFallback) {
                           handleOpenEditModal(task);
                         }
@@ -1459,7 +1835,7 @@ const KanbanGanttPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => handleOpenEditModal(task)}
+                      onDoubleClick={() => handleOpenEditModal(task)}
                       disabled={usingFallback}
                       className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                     >

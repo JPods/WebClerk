@@ -11,8 +11,8 @@ import { Gantt, Willow } from "@svar-ui/react-gantt";
 import type { IApi, IColumnConfig, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
-import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
-import type { TaskFormEditableField, TaskFormState } from "../../../components/kanban/taskFormTypes";
+import KanbanTaskModal from "../../utils/kanban/KanbanTaskModal";
+import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
 import { patchAction } from "../../../api/userProfile";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
 import type { BoardData, KanbanTask, TaskPriority } from "../../../type/kanban";
@@ -35,7 +35,7 @@ import {
   priorityOptions,
   toTimestampMilliseconds,
   updateTaskFormState,
-} from "../kanban/KanbanGanttPage";
+} from "./GanttPage";
 
 import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
@@ -332,6 +332,7 @@ const MultiProjectGanttPage: React.FC = () => {
         assignee: task.assignee || task.assignedTo?.[0]?.name || "",
         difficulty: String(normalizedDifficulty),
         progress: String(normalizedProgress),
+        percent_complete: String(normalizedProgress),
       };
     },
     [board.columns]
@@ -862,7 +863,6 @@ const MultiProjectGanttPage: React.FC = () => {
           handleEditTranslationFieldChange(entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={handleRemoveEditTranslation}
-        languageOptions={languageOptions}
         languagePickerOptions={availableEditLanguages}
         languagePickerState={editLanguagePickerState}
         onLanguagePickerToggle={handleEditLanguagePickerToggle}

@@ -19,7 +19,7 @@ const LOG_CONFIG = {
   // Log to console in development
   consoleLog: import.meta.env.DEV,
   // Send logs to backend
-  sendToBackend: import.meta.env.VITE_API_LOGGING_BACKEND !== 'false',
+  sendToBackend: false,
   // Endpoints to skip logging (to avoid infinite loops)
   skipEndpoints: ['/wcapi/log/api/', '/api/token/refresh/'],
   // Max body size to log (truncate large payloads)
@@ -131,11 +131,7 @@ export const onResponseSuccess = async (response: AxiosResponse): Promise<AxiosR
   }
   
   // Send to backend (async, don't block response)
-  if (LOG_CONFIG.sendToBackend) {
-    sendLogToBackend(logEntry).catch(() => {
-      // Silently fail - don't break the app if logging fails
-    });
-  }
+  // Backend logging disabled
   
   return response;
 };
@@ -176,11 +172,7 @@ export const onResponseError = async (error: AxiosError): Promise<never> => {
     }
     
     // Send to backend
-    if (LOG_CONFIG.sendToBackend) {
-      sendLogToBackend(logEntry).catch(() => {
-        // Silently fail
-      });
-    }
+    // Backend logging disabled
   }
   
   return Promise.reject(error);
@@ -191,21 +183,8 @@ export const onResponseError = async (error: AxiosError): Promise<never> => {
  */
 const sendLogToBackend = async (entry: APILogEntry): Promise<void> => {
   // Use fetch directly to avoid interceptor loops
-  try {
-    await fetch('/wcapi/log/api/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Get auth token if available
-        'Authorization': localStorage.getItem('accessToken') 
-          ? `Bearer ${localStorage.getItem('accessToken')}` 
-          : '',
-      },
-      body: JSON.stringify(entry),
-    });
-  } catch {
-    // Silently fail - logging shouldn't break the app
-  }
+  // Disabled
+  return Promise.resolve();
 };
 
 /**

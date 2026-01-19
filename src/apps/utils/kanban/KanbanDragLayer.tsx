@@ -14,11 +14,17 @@ const layerStyles: CSSProperties = {
   height: "100%",
 };
 
-const getItemStyles = (initialOffset: { x: number; y: number } | null, currentOffset: { x: number; y: number } | null) => {
-  if (!initialOffset || !currentOffset) {
+const PREVIEW_SIZE = { width: 288, height: 176 }; // approximate card size (w-72, padding)
+
+const getItemStyles = (
+  sourceOffset: { x: number; y: number } | null
+) => {
+  if (!sourceOffset) {
     return { display: "none" } as CSSProperties;
   }
-  const { x, y } = currentOffset;
+  // Center preview around cursor by offsetting half width/height
+  const x = sourceOffset.x - PREVIEW_SIZE.width / 2;
+  const y = sourceOffset.y - PREVIEW_SIZE.height / 2;
   const transform = `translate(${x}px, ${y}px)`;
   return {
     transform,
@@ -30,13 +36,12 @@ interface KanbanDragLayerProps {
   tasks: Record<string, KanbanTask>;
 }
 
-export const KanbanDragLayer: React.FC<KanbanDragLayerProps> = ({ tasks }) => {
-  const { item, itemType, isDragging, initialOffset, currentOffset } = useDragLayer((monitor) => ({
+  export const KanbanDragLayer: React.FC<KanbanDragLayerProps> = ({ tasks }) => {
+    const { item, itemType, isDragging, sourceOffset } = useDragLayer((monitor) => ({
     item: monitor.getItem() as DragItem | null,
     itemType: monitor.getItemType(),
     isDragging: monitor.isDragging(),
-    initialOffset: monitor.getInitialSourceClientOffset(),
-    currentOffset: monitor.getSourceClientOffset(),
+      sourceOffset: monitor.getSourceClientOffset(),
   }));
 
   if (!isDragging || itemType !== DRAG_TYPE_TASK || !item) {
@@ -50,7 +55,7 @@ export const KanbanDragLayer: React.FC<KanbanDragLayerProps> = ({ tasks }) => {
 
   return (
     <div style={layerStyles}>
-      <div style={getItemStyles(initialOffset, currentOffset)}>
+        <div style={getItemStyles(sourceOffset)}>
         <div className="w-72 rounded-xl border border-indigo-200 bg-white/95 p-4 shadow-2xl ring-2 ring-indigo-200/80 backdrop-blur dark:border-indigo-800 dark:bg-gray-900/90 dark:ring-indigo-700/60">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">

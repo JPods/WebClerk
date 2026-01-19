@@ -1,5 +1,6 @@
 import apiClient, { notionClient } from "./axios"; // unified protected API client
 import { IntegrationURL, PostLoginURL } from "../routes/network"; // Adjust the import path as necessary
+import { enqueueSaveRequest } from "./saveQueue";
 import {
   NotionModule,
   NotionModuleUpdatePayload,
@@ -196,13 +197,15 @@ export const Projects = async (params?: Record<string, WcapiQueryValue | WcapiQu
 };
 
 export const patchAction = async (data: any) => {
-  try {
-  const res = await apiClient.post(PostLoginURL.allSave, {...data});
-    return res;
-  }
-  catch (error: any) { 
-    return error.response?.data || error.message   
-  }  
+  const label = (() => {
+    if (data?.action?.value?.en) return `Action: ${data.action.value.en}`;
+    if (data?.action_en) return `Action: ${data.action_en}`;
+    if (data?.model_name) return `${data.model_name} save`;
+    return "Save";
+  })();
+
+  const { promise } = enqueueSaveRequest(data, label);
+  return promise;
 };
 
 // Generic fetch for any table by id via the allTypes endpoint

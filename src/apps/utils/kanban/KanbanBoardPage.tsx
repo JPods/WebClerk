@@ -3,13 +3,13 @@ import clsx from "clsx";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
-import { KanbanColumn } from "../../../components/kanban/KanbanColumn";
-import { KanbanDragLayer } from "../../../components/kanban/KanbanDragLayer";
-import KanbanTaskModal from "../../../components/kanban/KanbanTaskModal";
-import { ProjectContactManager } from "../../../components/kanban/ProjectContactManager";
-import type { DragItem, DropResult } from "../../../components/kanban/dndTypes";
-import { DRAG_TYPE_TASK } from "../../../components/kanban/dndTypes";
-import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../../../components/kanban/taskFormTypes";
+import { KanbanColumn } from "./KanbanColumn";
+import { KanbanDragLayer } from "./KanbanDragLayer";
+import KanbanTaskModal from "./KanbanTaskModal";
+import { ProjectContactManager } from "./ProjectContactManager";
+import type { DragItem, DropResult } from "./dndTypes";
+import { DRAG_TYPE_TASK } from "./dndTypes";
+import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
 import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
@@ -362,13 +362,16 @@ const normalizeLanguageCode = (code: string) => code.trim().toLowerCase();
 const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   translations: [createTranslationEntry(DEFAULT_LANGUAGE_ORDER[0])],
   columnId,
+  projectId: "",
   priority: "medium",
   dueDate: "",
   startDate: "",
-  endDate: "",
+   completedDate: "",
   assignee: "",
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
+  percent_complete: "0",
+  is_active: "true",
 });
 
 const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string }>): string => {
@@ -413,6 +416,42 @@ const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntr
       task.descriptionTranslations?.[language] ?? fallbackDescription
     );
   });
+};
+
+const buildTranslationMapsFromEntries = (entries: TranslationFormEntry[]) => {
+  const titleTranslations: Record<string, string> = {};
+  const descriptionTranslations: Record<string, string> = {};
+  const languageCodes = new Set<string>();
+
+  entries.forEach((entry) => {
+    const language = normalizeLanguageCode(entry.language);
+    if (!language) {
+      return;
+    }
+
+    const title = entry.title?.trim() ?? "";
+    const description = entry.description?.trim() ?? "";
+
+    if (title) {
+      titleTranslations[language] = title;
+      languageCodes.add(language);
+    }
+    if (description) {
+      descriptionTranslations[language] = description;
+      languageCodes.add(language);
+    }
+  });
+
+  const firstTitle = Object.values(titleTranslations).find(Boolean);
+  const firstDescription = Object.values(descriptionTranslations).find(Boolean);
+
+  return {
+    titleTranslations: Object.keys(titleTranslations).length ? titleTranslations : undefined,
+    descriptionTranslations: Object.keys(descriptionTranslations).length ? descriptionTranslations : undefined,
+    title: titleTranslations.en || firstTitle,
+    description: descriptionTranslations.en || firstDescription,
+    languageCodes: languageCodes.size ? Array.from(languageCodes) : undefined,
+  };
 };
 
 interface OnDragEndArgs {
@@ -605,24 +644,82 @@ const toTimestampMilliseconds = (value: string): number | null => {
   return date ? date.getTime() : null;
 };
 
-const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, value: string): TaskFormState => {
+const STATUS_COLUMN_KEYWORDS: Record<string, string[]> = {
+  "0": ["backlog", "todo", "uncategorized", "icebox"],
+  "5": ["hold", "paused", "waiting"],
+  "30": ["progress", "inprogress", "doing", "in-process"],
+  review: ["review", "qa", "verify", "quality"],
+  "100": ["complete", "done", "completed"],
+  "101": ["cancel", "canceled", "closed"],
+};
+
+const normalizeKey = (label: string) => label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+const pickColumnForStatus = (
+  statusValue: string,
+  columns: Array<{ id: string; title: string }>,
+  fallback: string
+): string => {
+  const keywords = STATUS_COLUMN_KEYWORDS[statusValue];
+  if (!keywords?.length) {
+    return fallback;
+  }
+
+  const normalizedColumns = columns.map((column) => ({
+    id: column.id,
+    titleKey: normalizeKey(column.title),
+    idKey: normalizeKey(column.id.replace(/^column-/, "")),
+  }));
+
+  for (const keyword of keywords) {
+    const key = normalizeKey(keyword);
+    const match = normalizedColumns.find((column) => column.titleKey === key || column.idKey === key);
+    if (match) {
+      return match.id;
+    }
+  }
+
+  return fallback;
+};
+
+const updateTaskFormState = (
+  prev: TaskFormState,
+  field: TaskFormEditableField,
+  value: string,
+  options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
+): TaskFormState => {
   if (field === "startDate") {
     const next: TaskFormState = { ...prev, startDate: value };
-    next.endDate = ensureEndAfterStart(value, prev.endDate);
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+
+    // If dt_due exists and is earlier than new dt_start, shift dt_due up to dt_start
+    if (value && prev.dueDate) {
+      const start = parseDateTimeInputValue(value);
+      const due = parseDateTimeInputValue(prev.dueDate);
+      if (start && due && due.getTime() < start.getTime()) {
+        next.dueDate = value;
+      }
+    }
+
     return next;
   }
 
-  if (field === "endDate") {
-    const nextEnd = ensureEndAfterStart(prev.startDate, value);
-    const next: TaskFormState = { ...prev, endDate: nextEnd };
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+  if (field === "completedDate") {
+    const next: TaskFormState = { ...prev, completedDate: value };
+    if (value) {
+      if (!prev.startDate) next.startDate = value;
+      if (!prev.dueDate) next.dueDate = value;
+      const startDate = parseDateTimeInputValue(next.startDate);
+      const compDate = parseDateTimeInputValue(value);
+      if (startDate && compDate && compDate.getTime() < startDate.getTime()) {
+        next.completedDate = formatDateTimeLocalString(startDate);
+      }
+    }
     return next;
   }
 
   if (field === "dueDate") {
     if (!value) {
-      return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.endDate) };
+       return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.completedDate) };
     }
 
     const parsedDue = parseDateTimeInputValue(value);
@@ -630,14 +727,14 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
       return prev;
     }
 
-    const endDate = parseDateTimeInputValue(prev.endDate);
-    if (endDate && parsedDue.getTime() < endDate.getTime()) {
+     const endDate = parseDateTimeInputValue(prev.completedDate);
+     if (endDate && parsedDue.getTime() < endDate.getTime()) {
       return { ...prev, dueDate: formatDateTimeLocalString(endDate) };
     }
 
-    const startDate = parseDateTimeInputValue(prev.startDate);
-    if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
-      return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
+     const startDate = parseDateTimeInputValue(prev.startDate);
+     if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
+       return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
     }
 
     return { ...prev, dueDate: formatDateTimeLocalString(parsedDue) };
@@ -651,6 +748,10 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
     return { ...prev, columnId: value };
   }
 
+  if (field === "projectId") {
+    return { ...prev, projectId: value };
+  }
+
   if (field === "assignee") {
     return { ...prev, assignee: value };
   }
@@ -659,8 +760,42 @@ const updateTaskFormState = (prev: TaskFormState, field: TaskFormEditableField, 
     return { ...prev, difficulty: value };
   }
 
+  if (field === "is_active") {
+    return { ...prev, is_active: value };
+  }
+
   if (field === "progress") {
-    return { ...prev, progress: value };
+    const next: TaskFormState = { ...prev, progress: value };
+    const numericProgress = Number(value);
+    if (Number.isFinite(numericProgress)) {
+      let derivedStatus: string | null = null;
+      if (numericProgress >= 100) {
+        derivedStatus = "review";
+      } else if (numericProgress <= 0) {
+        derivedStatus = "0";
+      } else {
+        derivedStatus = "30";
+      }
+
+      next.percent_complete = derivedStatus;
+
+      if (options?.columns?.length && options.fallbackColumnId) {
+        next.columnId = pickColumnForStatus(derivedStatus, options.columns, options.fallbackColumnId);
+      }
+    }
+    return next;
+  }
+
+  if (field === "percent_complete") {
+    const next: TaskFormState = { ...prev, percent_complete: value };
+    if (options?.columns?.length && options.fallbackColumnId) {
+      next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
+    }
+     if (value === "100" && !prev.completedDate) {
+      const now = formatDateTimeLocalString(new Date());
+       next.completedDate = ensureEndAfterStart(prev.startDate, now);
+    }
+    return next;
   }
 
   return prev;
@@ -793,6 +928,7 @@ const KanbanBoardPage: React.FC = () => {
 
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+  const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
@@ -814,50 +950,69 @@ const KanbanBoardPage: React.FC = () => {
   );
 
   const persistTaskReorder = useCallback(
-    async (boardSnapshot: BoardData, taskId: string, dropResult: DropResult | null) => {
+    async (
+      previousBoard: BoardData,
+      nextBoard: BoardData,
+      item: DragItem,
+      dropResult: DropResult | null
+    ) => {
       if (!dropResult) {
         return;
       }
 
-      const targetColumn = boardSnapshot.columns[dropResult.columnId];
-      const task = boardSnapshot.tasks[taskId];
-      if (!targetColumn || !task) {
-        return;
+      const wrap = (value: unknown) => ({ mode: "update", value });
+      const destinationColumn = nextBoard.columns[dropResult.columnId];
+      if (!destinationColumn) return;
+
+      const destinationTaskIds = destinationColumn.taskIds;
+      const targetIndex = dropResult.index;
+      const prevTaskId = destinationTaskIds[targetIndex - 1];
+      const nextTaskId = destinationTaskIds[targetIndex + 1];
+
+      const prevSeq = prevTaskId ? nextBoard.tasks[prevTaskId]?.sequence : undefined;
+      const nextSeq = nextTaskId ? nextBoard.tasks[nextTaskId]?.sequence : undefined;
+
+      const BASE_SPACING = 1000;
+      const clampSequence = (value: number) => Math.max(1, Math.round(value));
+
+      let newSequence: number;
+      if (typeof prevSeq === "number" && typeof nextSeq === "number" && nextSeq > prevSeq + 1) {
+        // There is room between neighbors; pick a midpoint integer.
+        newSequence = clampSequence(prevSeq + Math.floor((nextSeq - prevSeq) / 2));
+      } else if (typeof prevSeq === "number" && typeof nextSeq !== "number") {
+        // Append to the end of the column with padded spacing.
+        newSequence = clampSequence(prevSeq + BASE_SPACING);
+      } else if (typeof prevSeq !== "number" && typeof nextSeq === "number") {
+        // Insert at the start; keep spacing before the next item.
+        newSequence = clampSequence(Math.max(nextSeq - BASE_SPACING, BASE_SPACING));
+      } else {
+        // Either no neighbors or neighbors are colliding; fall back to index-based spacing.
+        newSequence = clampSequence((targetIndex + 1) * BASE_SPACING);
       }
 
-      // Build full ordering payload for the target column so backend receives complete sequence.
-      const wrap = (value: unknown) => ({ mode: "update", value });
-      const payload = targetColumn.taskIds.map((id, index) => {
-        const targetTask = boardSnapshot.tasks[id];
-        const base: Record<string, unknown> = {
-          model_name: "action",
-          kanban_column: wrap(targetColumn.title),
-          kanban_column_id: wrap(targetColumn.id),
-          sequence: wrap(index),
-          order: wrap(index),
-          position: wrap(index),
-        };
-        if (targetTask?.id) {
-          base.id = targetTask.id;
-        }
-        if (selectedProjectName) {
-          base.project_name = wrap(selectedProjectName);
-        }
-        return base;
-      });
+      const targetTask = nextBoard.tasks[item.taskId];
+      if (!targetTask?.id) return;
+
+      const entry: Record<string, unknown> = {
+        model_name: "action",
+        id: targetTask.id,
+        kanban_column: wrap(destinationColumn.title),
+        kanban_column_id: wrap(destinationColumn.id),
+        sequence: wrap(newSequence),
+        order: wrap(newSequence),
+        position: wrap(newSequence),
+      };
+      if (selectedProjectName) {
+        entry.project_name = wrap(selectedProjectName);
+      }
 
       try {
-        const projectPayload: Record<string, unknown> = {
-          model_name: "project",
-          ...(selectedProjectId ? { id: selectedProjectId } : {}),
-          bulk: payload,
-        };
-        await patchAction(projectPayload);
+        await patchAction(entry);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
       }
     },
-    [selectedProjectId, selectedProjectName]
+    [selectedProjectName]
   );
 
   const handleDragEnd = useCallback(
@@ -868,7 +1023,7 @@ const KanbanBoardPage: React.FC = () => {
       setBoard((prev) => {
         const next = handleBoardMove(prev, { item, result: dropResult });
         if (next !== prev) {
-          void persistTaskReorder(next, item.taskId, dropResult);
+          void persistTaskReorder(prev, next, item, dropResult);
         }
         return next;
       });
@@ -951,7 +1106,7 @@ const KanbanBoardPage: React.FC = () => {
       }
 
       const items = extractKanbanItems(response);
-      
+
       // Backend now filters by contact_id, so no client-side filtering needed
       if (items.length === 0) {
         setBoard(createEmptyBoardData());
@@ -1183,13 +1338,16 @@ const KanbanBoardPage: React.FC = () => {
 
   const resetCreateState = useCallback(() => {
     const firstColumn = resolveDefaultColumnId();
-    setCreateTaskState(createInitialTaskFormState(firstColumn));
+    setCreateTaskState((prev) => {
+      const base = createInitialTaskFormState(firstColumn);
+      return { ...base, projectId: selectedProjectId || base.projectId };
+    });
     setCreateModalError(null);
     setCreateLanguagePickerOpen(false);
     setCreateLanguageSelection("");
     setCreateCustomLanguage("");
     setCreateLanguagePickerError(null);
-  }, [resolveDefaultColumnId]);
+  }, [resolveDefaultColumnId, selectedProjectId]);
 
   const handleOpenCreateModal = () => {
     resetCreateState();
@@ -1214,17 +1372,22 @@ const KanbanBoardPage: React.FC = () => {
       DEFAULT_DIFFICULTY
     );
     const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+    const normalizedProjectId = (task as any)?.project_id ?? selectedProjectId ?? "";
+    const normalizedIsActive = (task as any)?.is_active;
 
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
+      projectId: typeof normalizedProjectId === "string" || typeof normalizedProjectId === "number" ? String(normalizedProjectId) : "",
       priority: task.priority,
       dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
       startDate: normalizedStart,
-      endDate: normalizedEnd,
+      completedDate: normalizedEnd,
       assignee: task.assignee || task.assignedTo?.[0]?.name || "",
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
+      percent_complete: String(normalizedProgress),
+      is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
     });
     setEditModalError(null);
     setEditLanguagePickerOpen(false);
@@ -1246,11 +1409,21 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   const handleCreateTaskChange = (field: TaskFormEditableField, value: string) => {
-    setCreateTaskState((prev) => updateTaskFormState(prev, field, value));
+    setCreateTaskState((prev) =>
+      updateTaskFormState(prev, field, value, {
+        columns: columnOptions,
+        fallbackColumnId: resolveDefaultColumnId(),
+      })
+    );
   };
 
   const handleEditTaskChange = (field: TaskFormEditableField, value: string) => {
-    setEditTaskState((prev) => updateTaskFormState(prev, field, value));
+    setEditTaskState((prev) =>
+      updateTaskFormState(prev, field, value, {
+        columns: columnOptions,
+        fallbackColumnId: resolveDefaultColumnId(),
+      })
+    );
   };
 
   const updateTranslations = (
@@ -1467,6 +1640,26 @@ const KanbanBoardPage: React.FC = () => {
     error: editLanguagePickerError,
   };
 
+  const cleanActionPayload = (payload: Record<string, unknown>): Record<string, unknown> => {
+    const mutable = payload as Record<string, unknown>;
+
+    if ("action_id" in mutable) {
+      const value = mutable.action_id as unknown;
+      if (value === "" || value === null || value === undefined) {
+        delete mutable.action_id;
+      }
+    }
+
+    if ("description_id" in mutable) {
+      const value = mutable.description_id as unknown;
+      if (value === "") {
+        delete mutable.description_id;
+      }
+    }
+
+    return mutable;
+  };
+
   const buildActionPayload = (
     mode: "create" | "edit",
     state: TaskFormState,
@@ -1488,18 +1681,40 @@ const KanbanBoardPage: React.FC = () => {
       });
     });
 
-    const hasTitle = Array.from(normalized.values()).some((value) => value.title.length > 0);
+    const effectiveTranslations = new Map(
+      Array.from(normalized.entries()).filter(
+        ([, value]) => value.title.length > 0 || value.description.length > 0
+      )
+    );
+
+    const hasTitle = Array.from(effectiveTranslations.values()).some(
+      (value) => value.title.length > 0
+    );
     if (!hasTitle) {
       return { error: "Add at least one language with a title." };
     }
 
     const translationFields: Record<string, string> = {};
-    normalized.forEach((value, language) => {
-      translationFields[`action_${language}`] = value.title || "";
-      translationFields[`description_${language}`] = value.description || "";
+    effectiveTranslations.forEach((value, language) => {
+      if (value.title) {
+        translationFields[`action_${language}`] = value.title;
+      }
+      if (value.description) {
+        translationFields[`description_${language}`] = value.description;
+      }
     });
 
-    const languages = Array.from(normalized.keys());
+    const languages = Array.from(effectiveTranslations.keys());
+    const actionPayload: Record<string, string> = {};
+    const descriptionPayload: Record<string, string> = {};
+    effectiveTranslations.forEach((value, language) => {
+      if (value.title) {
+        actionPayload[language] = value.title;
+      }
+      if (value.description) {
+        descriptionPayload[language] = value.description;
+      }
+    });
 
     const removalTokens: string[] = [];
     if (mode === "edit" && baseTask) {
@@ -1515,7 +1730,7 @@ const KanbanBoardPage: React.FC = () => {
       );
 
       originalLanguages.forEach((language) => {
-        if (language && !normalized.has(language)) {
+        if (language && !effectiveTranslations.has(language)) {
           removalTokens.push(`action_${language}`);
           removalTokens.push(`description_${language}`);
         }
@@ -1529,17 +1744,20 @@ const KanbanBoardPage: React.FC = () => {
       ? [{ name: assigneeValue }]
       : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
-    const startTimestamp = toTimestampMilliseconds(state.startDate);
-    const endTimestamp = toTimestampMilliseconds(state.endDate);
-    const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let startTimestamp = toTimestampMilliseconds(state.startDate);
+    let dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let completedTimestamp = toTimestampMilliseconds(state.completedDate);
+    // dt_completed 
 
-    if (startTimestamp !== null && endTimestamp !== null && endTimestamp <= startTimestamp) {
-      return { error: "End date must be after start date." };
+    // completedTimestamp must not modify dueTimestamp or startTimestamp
+    // Remove auto-propagation logic to keep fields independent
+    if (startTimestamp === null && dueTimestamp !== null) {
+      startTimestamp = dueTimestamp;
+    }
+    if (startTimestamp !== null && dueTimestamp !== null && dueTimestamp < startTimestamp) {
+      startTimestamp = dueTimestamp;
     }
 
-    if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
-      return { error: "Due date must be on or after end date." };
-    }
 
     const fallbackDifficulty = baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority];
     const parsedDifficulty = Number(state.difficulty);
@@ -1559,6 +1777,8 @@ const KanbanBoardPage: React.FC = () => {
       ...translationFields,
       languages,
       needtoremove: removalTokens.join(","),
+      ...(Object.keys(actionPayload).length ? { action: actionPayload } : {}),
+      ...(Object.keys(descriptionPayload).length ? { description: descriptionPayload } : {}),
       kanban_column: columnTitle,
       kanban_column_id: column?.id ?? FALLBACK_COLUMN_ID,
       priority: PRIORITY_TO_VALUE[state.priority],
@@ -1566,7 +1786,7 @@ const KanbanBoardPage: React.FC = () => {
       status: baseTask?.status ?? "In progress",
       dt_due: dueTimestamp ?? null,
       dt_start: startTimestamp ?? null,
-      dt_end: endTimestamp ?? null,
+       dt_completed: completedTimestamp ?? null,
       progress: resolvedProgress,
       // Backend drops numeric 0 via truthy checks; keep as string to satisfy NOT NULL constraint.
       burndown: serializeBurndownValue(resolvedBurndown),
@@ -1595,14 +1815,14 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.needtoremove = "";
     }
 
+    const projectIdFromState = state.projectId?.trim();
+    const resolvedProjectId = projectIdFromState || selectedProjectId || "";
     const resolvedProjectName = (() => {
-      const selected = selectedProjectName.trim();
-      if (selected) {
-        return selected;
-      }
-      if (mode === "edit" && baseTask?.projectName) {
-        return baseTask.projectName;
-      }
+      const selected = projectOptions.find((option) => option.id === resolvedProjectId);
+      if (selected?.name) return selected.name;
+      if (selected?.intent) return selected.intent;
+      if (selectedProjectName.trim()) return selectedProjectName.trim();
+      if (mode === "edit" && baseTask?.projectName) return baseTask.projectName;
       return "";
     })();
 
@@ -1610,17 +1830,19 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_name = resolvedProjectName;
     }
 
-    if (selectedProjectId) {
-      const numericId = Number(selectedProjectId);
-      payloadItem.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
+    if (resolvedProjectId) {
+      const numericId = Number(resolvedProjectId);
+      payloadItem.project_id = Number.isNaN(numericId) ? resolvedProjectId : numericId;
     }
 
-    if (selectedProjectId) {
-      const numericId = Number(selectedProjectId);
+    payloadItem.is_active = state.is_active !== "false";
+
+    if (mode === "create" && resolvedProjectId) {
+      const numericId = Number(resolvedProjectId);
       const projectPayload: Record<string, unknown> = {
         model_name: "project",
-        id: Number.isNaN(numericId) ? selectedProjectId : numericId,
-        bulk: [payloadItem],
+        id: Number.isNaN(numericId) ? resolvedProjectId : numericId,
+        bulk: [cleanActionPayload(payloadItem)],
       };
 
       if (resolvedProjectName) {
@@ -1630,10 +1852,10 @@ const KanbanBoardPage: React.FC = () => {
       return { payload: projectPayload };
     }
 
-    return { payload: payloadItem };
+    return { payload: cleanActionPayload(payloadItem) };
   };
 
-  const handleCreateTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSavingCreate) {
       return;
@@ -1647,30 +1869,30 @@ const KanbanBoardPage: React.FC = () => {
       return;
     }
 
-    try {
-      setIsSavingCreate(true);
-      const response = await patchAction(result.payload);
-      if (response?.status !== 200 && response?.status !== 201) {
-        throw new Error("Failed to save task.");
-      }
-      await fetchActions({
-        projectId: selectedProjectId || undefined,
-        contactId: selectedContactId || undefined,
+    setIsSavingCreate(true);
+    handleCloseCreateModal();
+
+    void patchAction(result.payload)
+      .then((response) => {
+        const body: any = (response as any)?.data ?? response;
+        if (body?.status === "fail") {
+          const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+          throw new Error(details || "Backend rejected the save request.");
+        }
+        void fetchActions({
+          projectId: selectedProjectId || undefined,
+          contactId: selectedContactId || undefined,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to create kanban task", error);
+      })
+      .finally(() => {
+        setIsSavingCreate(false);
       });
-      handleCloseCreateModal();
-    } catch (error) {
-      console.error("Failed to create kanban task", error);
-      const message =
-        (error as any)?.response?.data?.message ||
-        (error as any)?.message ||
-        "Unable to save task. Please try again.";
-      setCreateModalError(message);
-    } finally {
-      setIsSavingCreate(false);
-    }
   };
 
-  const handleEditTaskSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleEditTaskSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingTask || isSavingEdit) {
       return;
@@ -1684,11 +1906,55 @@ const KanbanBoardPage: React.FC = () => {
       return;
     }
 
+    setIsSavingEdit(true);
+
+    void patchAction(result.payload)
+      .then((response) => {
+        const body: any = (response as any)?.data ?? response;
+        if (body?.status === "fail") {
+          const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+          throw new Error(details || "Backend rejected the update request.");
+        }
+        void fetchActions({
+          projectId: selectedProjectId || undefined,
+          contactId: selectedContactId || undefined,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to update kanban task", error);
+      })
+      .finally(() => {
+        setIsSavingEdit(false);
+      });
+  };
+
+  const handleRemoveTaskFromKanban = async () => {
+    if (!editingTask || isSavingEdit || isRemovingTask) {
+      return;
+    }
+
+    setEditModalError(null);
+    const parsedId = Number(editingTask.id);
+    const payloadId = Number.isNaN(parsedId) ? editingTask.id : parsedId;
+
     try {
-      setIsSavingEdit(true);
-      const response = await patchAction(result.payload);
-      if (response?.status !== 200 && response?.status !== 201) {
-        throw new Error("Failed to update task.");
+      setIsRemovingTask(true);
+      const response = await patchAction({
+        model_name: "action",
+        id: payloadId,
+        is_deleted: { mode: "update", value: true },
+        is_active: { mode: "update", value: false },
+        status: { mode: "update", value: "Removed" },
+        kanban_column: { mode: "update", value: "Removed" },
+        kanban_column_id: { mode: "update", value: "column-removed" },
+      });
+      const body: any = (response as any)?.data ?? response;
+      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
+        throw new Error("Failed to remove task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the remove request.");
       }
       await fetchActions({
         projectId: selectedProjectId || undefined,
@@ -1696,14 +1962,14 @@ const KanbanBoardPage: React.FC = () => {
       });
       handleCloseEditModal();
     } catch (error) {
-      console.error("Failed to update kanban task", error);
+      console.error("Failed to remove kanban task", error);
       const message =
         (error as any)?.response?.data?.message ||
         (error as any)?.message ||
-        "Unable to update task. Please try again.";
+        "Unable to remove task. Please try again.";
       setEditModalError(message);
     } finally {
-      setIsSavingEdit(false);
+      setIsRemovingTask(false);
     }
   };
 
@@ -1714,36 +1980,33 @@ const KanbanBoardPage: React.FC = () => {
     [columnsPerRow]
   );
 
-  const editModalExtraContent = editingTask ? (
-    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
-      <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Progress:</span>
-          <span className="ml-1 font-medium text-gray-900 dark:text-white">{editingTask.progress || 0}%</span>
-        </div>
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Tags:</span>
-          <span className="ml-1 font-medium text-gray-900 dark:text-white">
-            {editingTask.tags?.join(", ") || "None"}
-          </span>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  const editModalExtraContent = null;
 
   return (
     <div className="space-y-6">
       <PageBreadcrumb pageTitle="Kanban Board" />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Keep work flowing</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Drag tasks across columns to reshuffle priorities, track progress, and visualize throughput in real time.
-          </p>
-        </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={PageRoutes.kanbanGantt}
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Gantt
+          </Link>
+          <Link
+            to={PageRoutes.multiProjectGantt}
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Multi-Project
+          </Link>
           <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             <span>Project</span>
             <select
@@ -1816,25 +2079,6 @@ const KanbanBoardPage: React.FC = () => {
             </svg>
             New Task
           </button>
-          <Link
-            to={PageRoutes.kanbanGantt}
-            className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Gantt
-          </Link>
-          <Link
-            to={PageRoutes.multiProjectGantt}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Multi-Project
-          </Link>
           <button
             onClick={() => void handleManualRefresh()}
             disabled={isRefreshing || isLoading}
@@ -1950,6 +2194,7 @@ const KanbanBoardPage: React.FC = () => {
         formState={createTaskState}
         onFieldChange={handleCreateTaskChange}
         columnOptions={columnOptions}
+        projectOptions={projectOptions}
         priorityOptions={priorityOptions}
         difficultyOptions={createDifficultyOptions}
         progressOptions={createProgressOptions}
@@ -1959,7 +2204,6 @@ const KanbanBoardPage: React.FC = () => {
           handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={(entryId) => handleRemoveTranslation("create", entryId)}
-        languageOptions={languageOptions}
         languagePickerOptions={availableCreateLanguages}
         languagePickerState={createLanguagePickerState}
         onLanguagePickerToggle={handleCreateLanguagePickerToggle}
@@ -1982,6 +2226,7 @@ const KanbanBoardPage: React.FC = () => {
         formState={editTaskState}
         onFieldChange={handleEditTaskChange}
         columnOptions={columnOptions}
+        projectOptions={projectOptions}
         priorityOptions={priorityOptions}
         difficultyOptions={editDifficultyOptions}
         progressOptions={editProgressOptions}
@@ -1991,7 +2236,6 @@ const KanbanBoardPage: React.FC = () => {
           handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
         }
         onRemoveTranslation={(entryId) => handleRemoveTranslation("edit", entryId)}
-        languageOptions={languageOptions}
         languagePickerOptions={availableEditLanguages}
         languagePickerState={editLanguagePickerState}
         onLanguagePickerToggle={handleEditLanguagePickerToggle}
@@ -2001,6 +2245,8 @@ const KanbanBoardPage: React.FC = () => {
         onLanguagePickerCancel={handleEditLanguagePickerCancel}
         extraContent={editModalExtraContent}
         currentTask={editingTask}
+        onRemoveFromKanban={handleRemoveTaskFromKanban}
+        isRemoving={isRemovingTask}
       />
 
       {/* Contact Manager Modal */}
@@ -2017,4 +2263,3 @@ const KanbanBoardPage: React.FC = () => {
 };
 
 export default KanbanBoardPage;
-
