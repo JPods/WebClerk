@@ -8,6 +8,7 @@ from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView
 from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
+from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 
 urlpatterns = [
@@ -28,4 +29,8 @@ urlpatterns = [
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
     path("wcapi/system-info/", SystemInfoView.as_view(), name="system-info"),
+    # Dev tools endpoints (development only)
+    path("wcapi/dev/config/", dev_config_status, name="dev-config"),
+    path("wcapi/dev/switch/", dev_switch_mode, name="dev-switch"),
+    path("wcapi/dev/restart/", dev_restart_servers, name="dev-restart"),
 ]
