@@ -16,7 +16,6 @@ from apps.transactions.models import Project
 from .models import Contact, Action, Setting, Template, Pending, SoftDeleteLedger
 
 
-
 @admin.register(Contact)
 class ContactAdmin(BaseUserAdmin):
     """Admin interface for Contact model (custom user model)."""
@@ -191,10 +190,11 @@ class ActionAdmin(admin.ModelAdmin):
         'updated_by',
     )
     fields = scalar_fields + object_fields
-    actions = ['assign_project_id']
+    actions = ['assign_project_id', 'delete_selected']
 
     class AssignProjectIdActionForm(ActionForm):
-        project_id = forms.CharField(required=True, label='Project ID')
+        # Keep optional so other actions (like delete_selected) don't fail validation
+        project_id = forms.CharField(required=False, label='Project ID')
 
     action_form = AssignProjectIdActionForm
     
@@ -245,27 +245,10 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'id_record', 'purpose', 'dt_processed', 'on_so', 'on_po', 'on_wo', 'on_p')
+    list_display = ('id', 'model_name', 'id_record', 'purpose', 'dt_processed')
     list_filter = ('model_name', 'purpose')
     search_fields = ('model_name', 'id_record', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
-
-    @admin.display(description="on_so")
-    def on_so(self, obj):
-        return (obj.data or {}).get('on_so', '')
-
-    @admin.display(description="on_po")
-    def on_po(self, obj):
-        return (obj.data or {}).get('on_po', '')
-
-    @admin.display(description="on_wo")
-    def on_wo(self, obj):
-        return (obj.data or {}).get('on_wo', '')
-
-    @admin.display(description="on_p")
-    def on_p(self, obj):
-        return (obj.data or {}).get('on_p', '')
-
 
 
 @admin.register(SoftDeleteLedger)

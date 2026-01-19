@@ -13,17 +13,14 @@ class OrgBaseAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Make all JSON/object fields optional
-        json_fields = [
-            # OrgBase aspects
+        # Make all JSON aspect fields optional
+        aspect_fields = [
             'contacts', 'locations', 'domains', 'phones', 'emails', 
             'relations', 'financial', 'docs', 'connections', 'data', 
-            'metrics', 'gl_accounts',
-            # BaseModel mixins
-            'metadata', 'refs', 'prefs', 'comments', 'actions',
+            'metrics', 'gl_accounts'
         ]
         
-        for field_name in json_fields:
+        for field_name in aspect_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = False
         
@@ -37,6 +34,7 @@ class OrgBaseAdminForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        print(f"Form cleaned_data: {cleaned_data}")
         return cleaned_data
 
 
@@ -45,67 +43,24 @@ class OrgBaseAdmin(admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
     list_display = ("id", "company", "org_type", "status", "is_active", "version")
-    list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
-    search_fields = ("display_name", "ida")
-    readonly_fields = ("id", "uuid", "ida", "version", "dt_created", "dt_modified", "health_rating")
-    
-    # Fieldsets organized: Scalar fields (alphabetically), then Object fields (alphabetically)
+    list_filter = ("org_type", "status", "is_active")
+    search_fields = ("display_name", "domains", "contacts")
+    readonly_fields = ("version", "dt_created", "dt_modified")
     fieldsets = (
-        ("Identity & Status (Scalars)", {
-            "fields": (
-                # Scalars alphabetically
-                "display_name",
-                "dt_created",
-                "dt_modified",
-                "health_rating",
-                "id",
-                "ida",
-                "is_active",
-                "is_archived",
-                "is_deleted",
-                "org_type",
-                "security_level",
-                "status",
-                "uuid",
-                "version",
-            )
-        }),
-        ("OrgBase Aspects (Objects)", {
-            "fields": (
-                # OrgBase JSON fields alphabetically
-                "connections",
-                "contacts",
-                "data",
-                "docs",
-                "domains",
-                "emails",
-                "financial",
-                "gl_accounts",
-                "locations",
-                "metrics",
-                "phones",
-                "relations",
-            ),
-            "classes": ("collapse",),
-        }),
-        ("BaseModel Mixins (Objects)", {
-            "fields": (
-                # BaseModel mixin JSON fields alphabetically
-                "actions",
-                "comments",
-                "metadata",
-                "prefs",
-                "refs",
-            ),
-            "classes": ("collapse",),
-        }),
+        (None, {"fields": ("display_name", "org_type", "status", "is_active")}),
+        ("Aspects", {"fields": ("contacts", "locations", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
+        ("Versioning", {"fields": ("version", "dt_created", "dt_modified")}),
     )
     
     def save_model(self, request, obj, form, change):
         """Ensure org_type is set correctly based on the admin model being used."""
+        # Log for debugging
+        print(f"save_model called: {obj.__class__.__name__}, proxy={getattr(obj._meta, 'proxy', False)}, change={change}")
+        
         # For proxy models, always set the correct org_type (override form data)
         if getattr(obj._meta, 'proxy', False):
             model_name = obj.__class__.__name__
+            print(f"Detected proxy model: {model_name}")
             if model_name == 'Customer':
                 obj.org_type = 'customer'
             elif model_name == 'Vendor':
@@ -114,10 +69,16 @@ class OrgBaseAdmin(admin.ModelAdmin):
                 obj.org_type = 'rep'
             elif model_name == 'Employee':
                 obj.org_type = 'employee'
+                print("Setting org_type to 'employee'")
             elif model_name == 'Manufacturer':
                 obj.org_type = 'manufacturer'
         
-        super().save_model(request, obj, form, change)
+        try:
+            super().save_model(request, obj, form, change)
+            print(f"Successfully saved {obj.__class__.__name__} with ID {obj.id}")
+        except Exception as e:
+            print(f"Error saving {obj.__class__.__name__}: {e}")
+            raise
 
 
 def _proxy_admin(model, base: type[OrgBaseAdmin]):  # helper to clone config

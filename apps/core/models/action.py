@@ -36,10 +36,9 @@ class Action(BaseModel):
     dt_created = models.BigIntegerField(default=0, db_index=True)
     dt_updated = models.BigIntegerField(default=0, db_index=True)
     dt_expected = models.BigIntegerField(blank=True, null=True)
-    dt_due = models.BigIntegerField(blank=True, null=True)
     dt_completed = models.BigIntegerField(blank=True, null=True)
     dt_start = models.BigIntegerField(blank=True, null=True)
-    dt_end = models.BigIntegerField(blank=True, null=True)
+    dt_due = models.BigIntegerField(blank=True, null=True)
     #days
     duration = models.IntegerField(blank=True, null=True)
 
@@ -69,6 +68,96 @@ class Action(BaseModel):
         action_dict = self.action or {}
         action_text = action_dict.get('en') or action_dict.get('bn') or action_dict.get('ar') or 'Untitled'
         return f"{action_text} ({self.kanban_column})"
+
+    def pre_save_hook(self, data, is_update=False, context=None):
+        """Normalize common alias fields from clients into canonical columns.
+
+        - action_<lang> / description_<lang> -> action / description JSON
+        - progress -> percent_complete
+        - kanban_column_id -> kanban_column (title-cased)
+        - merges derived languages into languages list
+        """
+        if not isinstance(data, dict):
+            return None
+
+        def _extract_value(raw):
+            if isinstance(raw, dict) and 'value' in raw:
+                return raw.get('value')
+            return raw
+
+        title_by_lang = {}
+        desc_by_lang = {}
+        derived_langs: set[str] = set()
+
+        for key in list(data.keys()):
+            if not isinstance(key, str):
+                continue
+            if key.startswith('action_'):
+                lang = key.split('_', 1)[1] or 'en'
+                val = _extract_value(data.pop(key))
+                if val not in (None, ''):
+                    title_by_lang[lang] = val
+                    derived_langs.add(lang)
+            elif key.startswith('description_'):
+                lang = key.split('_', 1)[1] or 'en'
+                val = _extract_value(data.pop(key))
+                if val not in (None, ''):
+                    desc_by_lang[lang] = val
+                    derived_langs.add(lang)
+
+        if title_by_lang:
+            current_action: dict = {}
+            raw_action = data.get('action')
+            if isinstance(raw_action, dict) and 'value' in raw_action and isinstance(raw_action.get('value'), dict):
+                current_action = raw_action.get('value') or {}
+            elif isinstance(self.action, dict):
+                current_action = self.action or {}
+            merged_action = {**current_action, **title_by_lang}
+            data['action'] = {'mode': 'update', 'value': merged_action}
+
+        if desc_by_lang:
+            current_desc: dict = {}
+            raw_desc = data.get('description')
+            if isinstance(raw_desc, dict) and 'value' in raw_desc and isinstance(raw_desc.get('value'), dict):
+                current_desc = raw_desc.get('value') or {}
+            elif isinstance(self.description, dict):
+                current_desc = self.description or {}
+            merged_desc = {**current_desc, **desc_by_lang}
+            data['description'] = {'mode': 'update', 'value': merged_desc}
+
+        progress_raw = data.pop('progress', None)
+        progress_val = _extract_value(progress_raw)
+        try:
+            progress_int = int(progress_val) if progress_val not in (None, '') else None
+        except (TypeError, ValueError):
+            progress_int = None
+        if progress_int is not None and 'percent_complete' not in data:
+            data['percent_complete'] = {'mode': 'update', 'value': progress_int}
+
+        column_raw = data.pop('kanban_column_id', None)
+        column_val = _extract_value(column_raw)
+        if column_val and 'kanban_column' not in data:
+            col_str = str(column_val)
+            if col_str.startswith('column-'):
+                col_str = col_str[len('column-'):]
+            normalized = col_str.replace('-', ' ').strip().title()
+            if normalized:
+                data['kanban_column'] = {'mode': 'update', 'value': normalized}
+
+        languages_field = data.get('languages')
+        existing_langs: set[str] = set()
+        if isinstance(languages_field, dict) and isinstance(languages_field.get('value'), list):
+            existing_langs = {str(l).strip() for l in languages_field.get('value') if str(l).strip()}
+        elif isinstance(languages_field, list):
+            existing_langs = {str(l).strip() for l in languages_field if str(l).strip()}
+        elif isinstance(self.languages, list):
+            existing_langs = {str(l).strip() for l in self.languages if str(l).strip()}
+
+        merged_langs = sorted((existing_langs | derived_langs) - {''})
+        if derived_langs:
+            data['languages'] = {'mode': 'update', 'value': merged_langs or ['en']}
+
+        return None
 
     def update_keywords(self):
         """Update keywords for this action record."""   

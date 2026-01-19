@@ -1,16 +1,9 @@
 from typing import Dict
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
 from .base_transaction_model import TransactionBaseModel
 from apps.transactions.services.proposal_totals import compute_proposal_sell_cost_totals
 
 class Proposal(TransactionBaseModel):
-    probability = models.IntegerField(
-        default=50,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Probability of closing this proposal (0-100%)"
-    )
-
     class Meta:
         db_table = "proposals"
 

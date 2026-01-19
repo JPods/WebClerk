@@ -9,45 +9,8 @@ from .models import (
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ("id", "sku", "price_base", "cost_avg", "name", "description", "on_hand", "on_so", "on_po", "on_wo","on_p")
+    list_display = ("id",)
 
-    @admin.display(description="price.base")
-    def price_base(self, obj):
-        if obj.price and isinstance(obj.price, dict):
-            return obj.price.get("base")
-        return None
-
-    @admin.display(description="cost.avg")
-    def cost_avg(self, obj):
-        if obj.cost and isinstance(obj.cost, dict):
-            return obj.cost.get("avg")
-        return None
-
-    @admin.display(description="on_hand")
-    def on_hand(self, obj):
-        if obj.quantity and isinstance(obj.quantity, dict):
-            return obj.quantity.get("on_hand")
-        return None
-    @admin.display(description="on_so")
-    def on_so(self, obj):
-        if obj.quantity and isinstance(obj.quantity, dict):
-            return obj.quantity.get("on_so")
-        return None
-    @admin.display(description="on_po")
-    def on_po(self, obj):
-        if obj.quantity and isinstance(obj.quantity, dict):
-            return obj.quantity.get("on_po")
-        return None
-    @admin.display(description="on_wo")
-    def on_wo(self, obj):
-        if obj.quantity and isinstance(obj.quantity, dict):
-            return obj.quantity.get("on_wo")
-        return None
-    @admin.display(description="on_p")
-    def on_p(self, obj):
-        if obj.quantity and isinstance(obj.quantity, dict):
-            return obj.quantity.get("on_p")
-        return None
 
 @admin.register(ItemXRef)
 class ItemXRefAdmin(admin.ModelAdmin):

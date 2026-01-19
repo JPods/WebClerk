@@ -1,6 +1,5 @@
 from apps.core.views.save_view import SaveWcapiView
 from apps.core.views.choices import ChoiceCatalogView
-from apps.core.views.api_log import APILogView
 
 # Alias for backward compatibility
 WcapiView = SaveWcapiView
