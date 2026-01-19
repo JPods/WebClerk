@@ -355,7 +355,7 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
   return firstKey ? map[firstKey] : undefined;
 };
 
-  export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
+export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   const tasks: Record<string, KanbanTask> = {};
   const columns: Record<string, KanbanColumnType> = {};
   const columnOrder: string[] = [];
@@ -451,13 +451,12 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
       priority_value: item.priority ?? undefined,
       difficulty: item.difficulty ?? undefined,
       status: item.status ?? undefined,
-      dt_due: item.dt_due ?? undefined,
-      dt_start: item.dt_start ?? undefined,
-      // dt_end removed per canonical wc3 model
-      dt_expected: item.dt_expected ?? undefined,
-      dt_completed: item.dt_completed ?? undefined,
-      dt_created: item.dt_created ?? undefined,
-      dt_updated: item.dt_updated ?? undefined,
+      dt_due: normalizeDate(item.dt_due),
+      dt_start: normalizeDate(item.dt_start),
+      dt_expected: normalizeDate(item.dt_expected),
+      dt_completed: normalizeDate(item.dt_completed),
+      dt_created: normalizeDate(item.dt_created),
+      dt_updated: normalizeDate(item.dt_updated),
       assignee: assignedToRecords[0]?.name,
       assigned_to: assignedToRecords.length ? assignedToRecords : undefined,
       language_codes: languageCodes,
@@ -487,6 +486,23 @@ const getFirstTranslationValue = (map?: LocalizedTextMap): string | undefined =>
     .map(({ id }) => id);
 
   return { tasks, columns, column_order: sortedColumnOrder };
+};
+
+const normalizeDate = (value?: string|null): string|undefined => {
+  if (!value) return undefined;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+};
+
+export const mapToApi = (task: KanbanTask): ApiKanbanItem => {
+  return {
+    id: task.id,
+    dt_due: normalizeDate(task.dt_due),
+    dt_start: normalizeDate(task.dt_start),
+    dt_expected: normalizeDate(task.dt_expected),
+    dt_completed: normalizeDate(task.dt_completed),
+  } as ApiKanbanItem;
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>

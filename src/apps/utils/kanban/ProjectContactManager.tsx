@@ -155,7 +155,7 @@ export const ProjectContactManager: React.FC<ProjectContactManagerProps> = ({
     try {
       // Build the payload to update project.refs.links.contact
       const payload = {
-        id: Number(projectId),
+        project_id: Number(projectId),
         refs: {
           links: {
             contact: contacts.map((c) => ({

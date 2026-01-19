@@ -28,7 +28,7 @@ export const createTranslationEntriesFromTask=(task:any)=>{
   return [...codes].map(code=>createTranslationEntry(code,task.title||"",task.description||""));
 };
 export const createInitialTaskFormState=(columnId:string)=>({
-  translations:[createTranslationEntry("en")],columnId,priority:"medium",dueDate:"",startDate:"",endDate:"",
+  translations:[createTranslationEntry("en")],columnId,priority:"medium",dt_due:"",dt_start:"",dt_completed:"",dt_expected:"",
   assignee:"",difficulty:String(DEFAULT_DIFFICULTY),progress:String(DEFAULT_PROGRESS),percent_complete:"0"
 });
 export const findNextLanguageCode=(used:Set<string>,opts:any[])=>opts.find(o=>!used.has(o.value))?.value||"";

@@ -1,34 +1,91 @@
-export type TaskPriority = "low" | "medium" | "high" | "critical";
+export interface LocalizedTextMap {
+  [languageCode: string]: string;
+}
+
+export interface KanbanRefId {
+  id: number | string;
+}
+
+export interface KanbanDateRecord {
+  dt: number | null;
+  who: KanbanRefId | null;
+}
+
+export interface KanbanTask {
+  // WC3 authoritative identity fields only
+  id: string; // authoritative WC3 id
+  uuid?: string;
+  ida?: string;
+  // removed legacy action_id
+  properties: {
+    action: LocalizedTextMap;
+    description?: LocalizedTextMap;
+    assigned_to?: KanbanRefId[];
+    languages?: string[];
+    priority?: number;
+    difficulty?: number;
+    status?: string;
+    percent_complete?: number;
+    burndown?: number;
+    dates?: Record<string, KanbanDateRecord | null | undefined>;
+    remarks?: string;
+    linkage?: number;
+    sequence?: number;
+    kanban_column?: string;
+  };
+  project_id?: number;
+  project_name?: string;
+  refs?: Record<string, any>;
+  dt_created?: number;
+  dt_modified?: number;
+  dt_expected?: number | null;
+  dt_completed?: number | null;
+  dt_start?: number | null;
+  dt_due?: number | null;
+  duration?: number | null;
+  created_by?: any;
+  updated_by?: any;
+  expected_by?: any;
+  due_by?: any;
+  completed_by?: any;
+  start_by?: any;
+  end_by?: any;
+  project_metadata?: any;
+}
 
 export interface LocalizedTextMap {
   [languageCode: string]: string;
 }
 
-export interface KanbanAssignment {
+export interface KanbanRefId {
   id: string;
-  name: string;
 }
 
 export interface KanbanDateRecord {
   dt: string;
-  who: KanbanAssignment;
+  who: KanbanRefId | null;
 }
 
 export interface KanbanTask {
   id: string;
-  title: string;
-  description?: string;
-  priority: TaskPriority;
+  properties: {
+    action: LocalizedTextMap;
+    description?: LocalizedTextMap;
+    status?: string;
+    priority?: number;
+    difficulty?: number;
+    dates?: Record<string, KanbanDateRecord | null | undefined>;
+    assigned_to?: KanbanRefId[];
+    linkage?: number;
+    remarks?: string;
+  };
   project_name?: string;
   assignee?: string;
   assignee_avatar_url?: string;
-  dt_due?: string;
-  dt_start?: string;
-  dt_end?: string;
-  dt_expected?: string;
-  dt_completed?: string;
-  dt_created?: string;
-  dt_updated?: string;
+   dt_start?: string | null;
+   dt_expected?: string | null;
+   dt_due?: string | null;
+   dt_completed?: string | null;
   project_metadata?: any;
   created_by?: any;
   updated_by?: any;
@@ -48,9 +105,7 @@ export interface KanbanTask {
   priority_value?: number;
   difficulty?: number;
   linkage?: number;
-  assigned_to?: KanbanAssignment[];
-  dates?: Record<string, KanbanDateRecord | null | undefined>;
-  children?: Array<{ id: string | number; name: string }>;
+  // removed non-WC3 fields
   sequence?: number;
   refs?: {
     links?: {
@@ -88,7 +143,7 @@ export interface KanbanApiTask {
     priority: number;
     difficulty: number;
     dates: Record<string, KanbanDateRecord | null | undefined>;
-    assigned_to: KanbanAssignment[];
+    assigned_to: KanbanRefId[];
     linkage?: number;
     description: LocalizedTextMap;
     children?: Array<{ id: number | string; name: string }>;
@@ -105,10 +160,13 @@ export interface CreateKanbanTaskRequest {
   priority: number;
   difficulty: number;
   dates?: Record<string, KanbanDateRecord | null | undefined>;
-  assigned_to?: KanbanAssignment[];
+  assigned_to?: KanbanRefId[];
   linkage?: number;
   remarks?: string;
-  dueDate?: string;
+   dt_start?: string | null;
+   dt_expected?: string | null;
+   dt_due?: string | null;
+   dt_completed?: string | null;
   assignee?: string;
 }
 

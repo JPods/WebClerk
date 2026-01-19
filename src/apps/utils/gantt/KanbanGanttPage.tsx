@@ -441,8 +441,8 @@ const GanttBar: React.FC<GanttBarProps> = ({ task, dateRange, isSubtask = false,
     [drag, preview]
   );
   
-  const taskStart = task.startDate ? new Date(task.startDate) : new Date();
-  const taskEnd = task.dueDate ? new Date(task.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const taskStart = task.dt_start ? new Date(task.dt_start) : new Date();
+  const taskEnd = task.dt_due ? new Date(task.dt_due) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   
   const totalDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
   const startOffset = Math.ceil((taskStart.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
@@ -737,7 +737,7 @@ const KanbanGanttPage: React.FC = () => {
   const [editLanguagePickerError, setEditLanguagePickerError] = useState<string | null>(null);
 
   const applyOptimisticTaskDates = useCallback(
-    (taskId: string, updates: Partial<Pick<KanbanTask, "startDate" | "endDate" | "dueDate">>) => {
+  (taskId: string, updates: Partial<Pick<KanbanTask, "dt_start" | "dt_end" | "dt_due">>) => {
       setTasks((prev) =>
         prev.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
       );
@@ -1137,9 +1137,9 @@ const KanbanGanttPage: React.FC = () => {
         setSelectedTask(task.id);
         const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
 
-        const normalizedStart = normalizeIncomingDateValue(task.startDate);
-        const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-        const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+  const normalizedStart = normalizeIncomingDateValue(task.dt_start);
+  const normalizedEnd = normalizeIncomingDateValue(task.dt_end);
+  const normalizedDue = normalizeIncomingDateValue(task.dt_due);
         const normalizedDifficulty = normalizeNumericSelectValue(
           task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
           DEFAULT_DIFFICULTY
@@ -1222,24 +1222,24 @@ const KanbanGanttPage: React.FC = () => {
       }
 
       // Calculate new dates based on dropped date
-      const newStartDate = new Date(newDate);
+ const newStartDate = new Date(newDate);
       newStartDate.setHours(9, 0, 0, 0); // Set to 9 AM
 
-      const taskDuration = task.endDate && task.startDate
-        ? new Date(task.endDate).getTime() - new Date(task.startDate).getTime()
+ const taskDuration = task.dt_end && task.dt_start
+         ? new Date(task.dt_end).getTime() - new Date(task.dt_start).getTime()
         : 24 * 60 * 60 * 1000; // Default 1 day
 
-      const newEndDate = new Date(newStartDate.getTime() + taskDuration);
-      const newDueDate = new Date(newEndDate.getTime());
+ const newEndDate = new Date(newStartDate.getTime() + taskDuration);
+ const newDueDate = new Date(newEndDate.getTime());
 
-      const isoStart = newStartDate.toISOString();
-      const isoEnd = newEndDate.toISOString();
-      const isoDue = newDueDate.toISOString();
-      applyOptimisticTaskDates(task.id, {
-        startDate: isoStart,
-        endDate: isoEnd,
-        dueDate: isoDue,
-      });
+ const isoStart = newStartDate.toISOString();
+ const isoEnd = newEndDate.toISOString();
+ const isoDue = newDueDate.toISOString();
+ applyOptimisticTaskDates(task.id, {
+   dt_start: isoStart,
+   dt_end: isoEnd,
+   dt_due: isoDue,
+ });
 
       // Build the payload with updated dates
       const normalized = new Map<string, { title: string; description: string }>();
@@ -1731,11 +1731,11 @@ const KanbanGanttPage: React.FC = () => {
                             👤 {task.assignee}
                           </p>
                         )}
-                        {task.dueDate && (
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            📅 Due: {new Date(task.dueDate).toLocaleDateString()}
-                          </p>
-                        )}
+ {task.dt_due && (
+   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+     📅 Due: {new Date(task.dt_due).toLocaleDateString()}
+   </p>
+ )}
                       </div>
                     </div>
                   </div>
@@ -1874,10 +1874,10 @@ const KanbanGanttPage: React.FC = () => {
                   </div>
                   
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Due Date</h4>
-                    <p className="mt-2 text-sm text-gray-900 dark:text-white">
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
-                    </p>
+ <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Due Date</h4>
+ <p className="mt-2 text-sm text-gray-900 dark:text-white">
+   {task.dt_due ? new Date(task.dt_due).toLocaleDateString() : 'No due date'}
+ </p>
                   </div>
                 </div>
                 

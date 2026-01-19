@@ -57,10 +57,10 @@ export const normalizeNumericSelectValue = (
   return isNaN(n) ? String(fallback) : String(n);
 };
 
- export const calculateDueDate = (start: string, completedDate: string): string => {
-   const endDate = new Date(completedDate);
+export const calculateDueDate = (dt_start: string, dt_completed: string): string => {
+  const endDate = new Date(dt_completed);
   if (!isNaN(endDate.getTime())) return endDate.toISOString().slice(0, 16);
-  const startDate = new Date(start);
+  const startDate = new Date(dt_start);
   if (!isNaN(startDate.getTime())) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + 1);
@@ -181,6 +181,12 @@ export const updateTaskFormState = (
     }
 
     return { ...prev, dt_due: parsedDue.toISOString().slice(0, 16) };
+  }
+
+  if (field === "dt_expected") {
+    const parsed = new Date(value);
+    if (isNaN(parsed.getTime())) return { ...prev, dt_expected: "" };
+    return { ...prev, dt_expected: parsed.toISOString().slice(0, 16) };
   }
 
   return { ...prev, [field]: value };

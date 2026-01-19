@@ -308,9 +308,9 @@ const MultiProjectGanttPage: React.FC = () => {
   const deriveFormStateFromTask = useCallback(
     (task: KanbanTask): TaskFormState => {
       const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
-      const normalizedStart = normalizeIncomingDateValue(task.startDate);
-      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+      const normalizedStart = normalizeIncomingDateValue((task as any).dt_start);
+      const normalizedEnd = normalizeIncomingDateValue((task as any).dt_end);
+      const normalizedDue = normalizeIncomingDateValue((task as any).dt_due);
       const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
       const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
       const resolvedEndDate = normalizedEnd || "";
@@ -322,18 +322,19 @@ const MultiProjectGanttPage: React.FC = () => {
       const normalizedProgressValue = toProgressPercentage(task.progress);
       const normalizedProgress = normalizeNumericSelectValue(normalizedProgressValue, DEFAULT_PROGRESS);
 
-      return {
-        translations: createTranslationEntriesFromTask(task),
-        columnId: taskColumn?.id ?? task.status ?? FALLBACK_COLUMN_ID,
-        priority: task.priority,
-        dueDate: resolvedDueDate,
-        startDate: resolvedStartDate,
-        endDate: resolvedEndDate,
-        assignee: task.assignee || task.assignedTo?.[0]?.name || "",
-        difficulty: String(normalizedDifficulty),
-        progress: String(normalizedProgress),
-        percent_complete: String(normalizedProgress),
-      };
+       return {
+         translations: createTranslationEntriesFromTask(task),
+         columnId: taskColumn?.id ?? task.status ?? FALLBACK_COLUMN_ID,
+         priority: task.priority,
+         dt_due: resolvedDueDate,
+         dt_start: resolvedStartDate,
+         dt_completed: "",
+         dt_expected: resolvedEndDate,
+         assignee: task.assignee || task.assigned_to?.[0]?.name || "",
+         difficulty: String(normalizedDifficulty),
+         progress: String(normalizedProgress),
+         percent_complete: String(normalizedProgress),
+       };
     },
     [board.columns]
   );
@@ -351,15 +352,15 @@ const MultiProjectGanttPage: React.FC = () => {
         description: ganttTask.details || "",
         priority: (ganttTask.priority as TaskPriority) || "medium",
         status: ganttTask.columnTitle || "Uncategorized",
-        dueDate: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
-        startDate: ganttTask.start instanceof Date ? ganttTask.start.toISOString() : undefined,
-        endDate: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
+         dt_due: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
+         dt_start: ganttTask.start instanceof Date ? ganttTask.start.toISOString() : undefined,
+         dt_end: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
         progress: toProgressPercentage(ganttTask.progress),
         assignee: ganttTask.assignee,
         tags: [],
-        titleTranslations: { en: ganttTask.text || "" },
-        descriptionTranslations: { en: ganttTask.details || "" },
-        languageCodes: ["en"],
+         title_translations: { en: ganttTask.text || "" },
+         description_translations: { en: ganttTask.details || "" },
+         language_codes: ["en"],
       };
 
       setEditingTask(kanbanTask);
@@ -499,13 +500,13 @@ const MultiProjectGanttPage: React.FC = () => {
       };
 
       const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
-      const assignedTo = state.assignee
-        ? [{ name: state.assignee }]
-        : baseTask.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+       const assignedTo = state.assignee
+         ? [{ name: state.assignee }]
+         : baseTask.assigned_to?.map((assignment: any) => ({ name: assignment.name })) ?? [];
 
-      const dueTimestamp = toTimestampMilliseconds(state.dueDate);
-      const startTimestamp = toTimestampMilliseconds(state.startDate);
-      const endTimestamp = toTimestampMilliseconds(state.endDate);
+       const dueTimestamp = toTimestampMilliseconds(state.dt_due);
+       const startTimestamp = toTimestampMilliseconds(state.dt_start);
+       const endTimestamp = toTimestampMilliseconds(state.dt_expected);
       const resolvedProgress = Number(state.progress) || 0;
 
       const payloadItem: Record<string, unknown> = {
