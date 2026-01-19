@@ -82,10 +82,10 @@ export interface KanbanTask {
   project_name?: string;
   assignee?: string;
   assignee_avatar_url?: string;
-   dt_start?: string | null;
-   dt_expected?: string | null;
-   dt_deadline?: string | null;
-   dt_completed?: string | null;
+  dt_start?: string | null;
+  dt_expected?: string | null;
+  dt_deadline?: string | null;
+  dt_completed?: string | null;
   project_metadata?: any;
   created_by?: any;
   updated_by?: any;
@@ -102,6 +102,8 @@ export interface KanbanTask {
   title_translations?: LocalizedTextMap;
   description_translations?: LocalizedTextMap;
   remarks?: string;
+  title?: string;
+  description?: string;
   priority_value?: number;
   difficulty?: number;
   linkage?: number;
