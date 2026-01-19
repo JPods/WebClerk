@@ -36,10 +36,9 @@ class Action(BaseModel):
     dt_created = models.BigIntegerField(default=0, db_index=True)
     dt_updated = models.BigIntegerField(default=0, db_index=True)
     dt_expected = models.BigIntegerField(blank=True, null=True)
-    dt_due = models.BigIntegerField(blank=True, null=True)
     dt_completed = models.BigIntegerField(blank=True, null=True)
     dt_start = models.BigIntegerField(blank=True, null=True)
-    dt_end = models.BigIntegerField(blank=True, null=True)
+    dt_due = models.BigIntegerField(blank=True, null=True)
     #days
     duration = models.IntegerField(blank=True, null=True)
 
