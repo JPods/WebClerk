@@ -1,4 +1,4 @@
-import type { TaskPriority } from "../../../type/kanban";
+import type { TaskPriority } from "../kanban/type/kanban";
 import type { TranslationFormEntry, TaskFormState } from "../kanban/taskFormTypes";
 
 export const DEFAULT_LANGUAGE_ORDER = ["en", "ar", "bn", "es"] as const;
@@ -57,10 +57,10 @@ export const normalizeNumericSelectValue = (
   return isNaN(n) ? String(fallback) : String(n);
 };
 
- export const calculateDueDate = (start: string, completedDate: string): string => {
-   const endDate = new Date(completedDate);
+export const calculateDueDate = (dt_start: string, dt_completed: string): string => {
+  const endDate = new Date(dt_completed);
   if (!isNaN(endDate.getTime())) return endDate.toISOString().slice(0, 16);
-  const startDate = new Date(start);
+  const startDate = new Date(dt_start);
   if (!isNaN(startDate.getTime())) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + 1);
@@ -95,9 +95,9 @@ export const createInitialTaskFormState = (
   translations: [createTranslationEntry("en")],
   columnId,
   priority: "medium",
-  dueDate: "",
-  startDate: "",
-   completedDate: "",
+  dt_deadline: "",
+  dt_start: "",
+  dt_completed: "",
   assignee: "",
   difficulty: String(DEFAULT_DIFFICULTY),
   progress: String(DEFAULT_PROGRESS),
@@ -124,6 +124,70 @@ export const normalizeIncomingDateValue = (value: unknown): string => {
 
 export const updateTaskFormState = (
   prev: TaskFormState,
-  field: keyof TaskFormState,
-  value: string
-): TaskFormState => ({ ...prev, [field]: value });
+  field: any,
+  value: string,
+  options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
+): TaskFormState => {
+  if (field === "dt_start") {
+    const next: TaskFormState = { ...prev, dt_start: value };
+    if (value && prev.dt_deadline) {
+      const start = new Date(value);
+      const due = new Date(prev.dt_deadline);
+      if (!isNaN(start.getTime()) && !isNaN(due.getTime()) && due.getTime() < start.getTime()) {
+        next.dt_deadline = value;
+      }
+    }
+    return next;
+  }
+
+  if (field === "dt_completed") {
+    const next: TaskFormState = { ...prev, dt_completed: value };
+    if (value) {
+      if (!prev.dt_start) next.dt_start = value;
+      if (!prev.dt_deadline) next.dt_deadline = value;
+      const startDate = new Date(next.dt_start);
+      const compDate = new Date(value);
+      if (!isNaN(startDate.getTime()) && !isNaN(compDate.getTime()) && compDate.getTime() < startDate.getTime()) {
+        next.dt_completed = startDate.toISOString().slice(0, 16);
+      }
+    }
+    return next;
+  }
+
+  if (field === "dt_deadline") {
+    if (!value) {
+      if (prev.dt_completed) return { ...prev, dt_deadline: prev.dt_completed };
+      if (prev.dt_start) {
+        const d = new Date(prev.dt_start);
+        if (!isNaN(d.getTime())) {
+          d.setDate(d.getDate() + 1);
+          return { ...prev, dt_deadline: d.toISOString().slice(0, 16) };
+        }
+      }
+      return { ...prev, dt_deadline: "" };
+    }
+
+    const parsedDue = new Date(value);
+    if (isNaN(parsedDue.getTime())) return prev;
+
+    const endDate = new Date(prev.dt_completed);
+    if (!isNaN(endDate.getTime()) && parsedDue.getTime() < endDate.getTime()) {
+      return { ...prev, dt_deadline: endDate.toISOString().slice(0, 16) };
+    }
+
+    const startDate = new Date(prev.dt_start);
+    if (isNaN(endDate.getTime()) && !isNaN(startDate.getTime()) && parsedDue.getTime() < startDate.getTime()) {
+      return { ...prev, dt_deadline: startDate.toISOString().slice(0, 16) };
+    }
+
+    return { ...prev, dt_deadline: parsedDue.toISOString().slice(0, 16) };
+  }
+
+  if (field === "dt_expected") {
+    const parsed = new Date(value);
+    if (isNaN(parsed.getTime())) return { ...prev, dt_expected: "" };
+    return { ...prev, dt_expected: parsed.toISOString().slice(0, 16) };
+  }
+
+  return { ...prev, [field]: value };
+};

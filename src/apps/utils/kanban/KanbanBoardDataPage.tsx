@@ -8,7 +8,7 @@ import type {
   KanbanColumn as KanbanColumnType,
   KanbanTask,
   TaskPriority,
-} from "../../../type/kanban";
+} from "./type/kanban";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import { ApiKanbanItem, createBoardDataFromApi } from "./kanbanDataMapper";
@@ -108,7 +108,7 @@ const rawKanbanData: ApiKanbanItem[] = [
     dt_created: "2025-10-28T14:12:21.519752Z",
     dt_updated: "2025-10-28T14:12:25.190219Z",
     dt_expected: null,
-    dt_due: null,
+    dt_deadline: null,
     dt_completed: null,
     dt_start: null,
     dt_end: null,
@@ -218,7 +218,7 @@ const rawKanbanData: ApiKanbanItem[] = [
     dt_created: "2025-10-28T14:12:21.521577Z",
     dt_updated: "2025-10-28T14:12:26.955174Z",
     dt_expected: null,
-    dt_due: null,
+    dt_deadline: null,
     dt_completed: null,
     dt_start: null,
     dt_end: null,

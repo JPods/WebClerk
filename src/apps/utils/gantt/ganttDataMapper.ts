@@ -65,13 +65,13 @@ const parseDateValue = (value?: string | number | null): Date | null => {
 
 /**
  * Resolve the start date for a task with fallback to today - 5 days
- * Priority: dt_start → dt_expected → dt_due → (today - 5 days)
+ * Priority: dt_start → dt_expected → dt_deadline → (today - 5 days)
  */
 export const resolveTaskStartDate = (action: ApiKanbanItem): Date => {
   const candidates = [
     action.dt_start,
     action.dt_expected,
-    action.dt_due,
+    action.dt_deadline,
   ];
   
   for (const candidate of candidates) {
@@ -90,12 +90,12 @@ export const resolveTaskStartDate = (action: ApiKanbanItem): Date => {
 
 /**
  * Resolve the end date for a task
- * Priority: dt_end → dt_due → (start + 1 day)
+ * Priority: dt_end → dt_deadline → (start + 1 day)
  */
 export const resolveTaskEndDate = (action: ApiKanbanItem, start: Date): Date => {
   const candidates = [
     action.dt_end,
-    action.dt_due,
+    action.dt_deadline,
   ];
   
   for (const candidate of candidates) {

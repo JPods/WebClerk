@@ -330,19 +330,19 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <input
                     type="datetime-local"
                     step={60}
-                    value={formState.startDate}
-                    onChange={(e) => onFieldChange("startDate", e.target.value)}
+                    value={formState.dt_start}
+                    onChange={(e) => onFieldChange("dt_start", e.target.value)}
                     disabled={isSaving}
                     className={controlClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_deadline</label>
                   <input
                     type="datetime-local"
                     step={60}
-                    value={formState.dueDate}
-                    onChange={(e) => onFieldChange("dueDate", e.target.value)}
+                    value={formState.dt_deadline}
+                    onChange={(e) => onFieldChange("dt_deadline", e.target.value)}
                     disabled={isSaving}
                     className={controlClass}
                   />
@@ -354,8 +354,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <input
                     type="datetime-local"
                     step={60}
- value={formState.completedDate}
- onChange={(e) => onFieldChange("completedDate", e.target.value)}
+  value={formState.dt_completed}
+  onChange={(e) => onFieldChange("dt_completed", e.target.value)}
                     disabled={isSaving}
                     className={controlClass}
                   />

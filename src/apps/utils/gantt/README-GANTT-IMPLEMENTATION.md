@@ -104,13 +104,13 @@ const resolveTaskStartDate = (task: ApiKanbanItem): Date => {
   // Priority order:
   // 1. dt_start (explicit start date)
   // 2. dt_expected (expected date)
-  // 3. dt_due (due date - use as proxy for start)
+  // 3. dt_deadline (due date - use as proxy for start)
   // 4. Fallback: today - 5 days
   
   const candidates = [
     task.dt_start,
     task.dt_expected,
-    task.dt_due,
+    task.dt_deadline,
   ];
   
   for (const candidate of candidates) {
@@ -375,7 +375,7 @@ const updatePayload = {
 
 - [ ] **Phase 3:** Implement date fallback logic
   - [ ] Default to today - 5 days
-  - [ ] Priority: dt_start → dt_expected → dt_due → fallback
+  - [ ] Priority: dt_start → dt_expected → dt_deadline → fallback
 
 - [ ] **Phase 4:** Create `ganttDataMapper.ts`
   - [ ] Map API response to SVAR format

@@ -21,7 +21,7 @@ interface ActionData {
   difficulty?: number;
   status?: string;
   progress?: number;
-  dt_due?: number | string | null;
+  dt_deadline?: number | string | null;
   dt_start?: number | string | null;
   dt_end?: number | string | null;
   project_name?: string;
@@ -365,11 +365,11 @@ const ActionListPage = () => {
       },
       {
         name: "Due Date",
-        selector: (row: ActionData) => row.dt_due || "-",
+        selector: (row: ActionData) => row.dt_deadline || "-",
         sortable: true,
         width: "120px",
         cell: (row: ActionData) => (
-          <span className="text-sm">{formatDate(row.dt_due)}</span>
+          <span className="text-sm">{formatDate(row.dt_deadline)}</span>
         ),
       },
       {

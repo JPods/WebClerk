@@ -7,7 +7,7 @@ import KanbanTaskModal from "../../utils/kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "../kanban/taskFormTypes";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "../kanban/kanbanDataMapper";
-import type { BoardData, KanbanTask } from "../../../type/kanban";
+import type { BoardData, KanbanTask } from "../kanban/type/kanban";
 import {
   DEFAULT_LANGUAGE_ORDER,
   DEFAULT_DIFFICULTY,
@@ -264,10 +264,10 @@ const mapKanbanTaskToSvarTask = (
   columnId?: string,
   columnTitle?: string
 ): ITask => {
-  const explicitStart = parseDateValue(task.startDate) ?? parseDateValue(task.endDate);
-  const fallbackStart = parseDateValue(task.dueDate) ?? buildFallbackStartDate(fallbackOffset);
+  const explicitStart = parseDateValue(task.dt_start as any) ?? parseDateValue(task.dt_expected as any);
+  const fallbackStart = parseDateValue(task.dt_deadline as any) ?? buildFallbackStartDate(fallbackOffset);
   const start = explicitStart ?? fallbackStart;
-  const explicitEnd = parseDateValue(task.endDate) ?? parseDateValue(task.dueDate);
+  const explicitEnd = parseDateValue(task.dt_expected as any) ?? parseDateValue(task.dt_deadline as any);
   const duration = deriveDurationInDays(start, explicitEnd);
   const end = ensureEndDate(start, explicitEnd, duration);
 
@@ -347,7 +347,7 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
   const mappedLinks: ILink[] = [];
   const filters: ColumnFilterOption[] = [];
 
-  boardData.columnOrder.forEach((columnId) => {
+  boardData.column_order.forEach((columnId) => {
     const column = boardData.columns[columnId];
     if (!column) {
       return;
@@ -355,7 +355,7 @@ const mapBoardToSvarGantt = (boardData: BoardData): GanttDataset => {
 
     const columnTasks: ITask[] = [];
 
-    column.taskIds.forEach((taskId, index) => {
+    column.task_ids.forEach((taskId, index) => {
       const kanbanTask = boardData.tasks[taskId];
       if (!kanbanTask) {
         return;
@@ -672,13 +672,13 @@ const SvarGanttPage: React.FC = () => {
   );
 
   const resolveDefaultColumnId = useCallback(
-    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
-    [board.columnOrder]
+     () => board.column_order[0] ?? FALLBACK_COLUMN_ID,
+     [board.column_order]
   );
 
   const columnOptions = useMemo(
     () =>
-      board.columnOrder
+      board.column_order
         .map((columnId) => board.columns[columnId])
         .filter((column): column is NonNullable<(typeof board.columns)[string]> => Boolean(column))
         .map((column) => ({ id: column.id, title: column.title })),
@@ -701,9 +701,9 @@ const SvarGanttPage: React.FC = () => {
       if (!task) {
         return;
       }
-      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      task.language_codes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.title_translations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.description_translations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
     });
 
     const orderedCodes = Array.from(codes).sort((a, b) => {
@@ -731,9 +731,9 @@ const SvarGanttPage: React.FC = () => {
   const deriveFormStateFromTask = useCallback(
     (task: KanbanTask, overrides?: Partial<TaskFormState>): TaskFormState => {
       const taskColumn = Object.values(board.columns).find((column) => column?.taskIds.includes(task.id));
-      const normalizedStart = normalizeIncomingDateValue(task.startDate);
-      const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-      const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+       const normalizedStart = normalizeIncomingDateValue(task.dt_start);
+       const normalizedEnd = normalizeIncomingDateValue(task.dt_expected ?? task.dt_end);
+       const normalizedDue = normalizeIncomingDateValue(task.dt_deadline);
       const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
       const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
       const resolvedEndDate = normalizedEnd || createFallbackEndFromStart(resolvedStartDate);
@@ -749,9 +749,9 @@ const SvarGanttPage: React.FC = () => {
          translations: createTranslationEntriesFromTask(task),
          columnId: taskColumn?.id ?? resolveDefaultColumnId(),
          priority: task.priority,
-         dueDate: resolvedDueDate,
-         startDate: resolvedStartDate,
-         endDate: resolvedEndDate,
+          dt_deadline: resolvedDueDate,
+          dt_start: resolvedStartDate,
+          dt_expected: resolvedEndDate,
          assignee: task.assignee || task.assignedTo?.[0]?.name || "",
          difficulty: normalizedDifficulty,
          progress: normalizedProgress,
@@ -950,9 +950,9 @@ const SvarGanttPage: React.FC = () => {
         ? [{ name: state.assignee }]
         : baseTask.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
 
-      const dueTimestamp = toTimestampMilliseconds(state.dueDate);
-      const startTimestamp = toTimestampMilliseconds(state.startDate);
-      const endTimestamp = toTimestampMilliseconds(state.endDate);
+       const dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
+       const startTimestamp = toTimestampMilliseconds(state.dt_start);
+       const endTimestamp = toTimestampMilliseconds(state.dt_expected);
       const resolvedProgress = Number(state.progress) || 0;
 
       const payloadItem: Record<string, unknown> = {
@@ -978,7 +978,7 @@ const SvarGanttPage: React.FC = () => {
           mode: "update",
           value: baseTask.status ?? "In progress",
         },
-        dt_due: {
+        dt_deadline: {
           mode: "update",
           value: dueTimestamp,
         },
@@ -986,10 +986,10 @@ const SvarGanttPage: React.FC = () => {
           mode: "update",
           value: startTimestamp,
         },
-        dt_end: {
-          mode: "update",
-          value: endTimestamp,
-        },
+         dt_expected: {
+           mode: "update",
+           value: endTimestamp,
+         },
         assigned_to: {
           mode: "update",
           value: assignedTo,

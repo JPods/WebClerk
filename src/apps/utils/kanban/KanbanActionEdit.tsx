@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { KanbanTask, TaskPriority } from "../../../type/kanban";
+import type { KanbanTask, TaskPriority } from "./type/kanban";
 import type {
   TaskFormEditableField,
   TaskFormState,
@@ -196,15 +196,15 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
-                <input type="datetime-local" step={60} value={formState.startDate} onChange={(e)=>onFieldChange("startDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                 <input type="datetime-local" step={60} value={formState.dt_start} onChange={(e)=>onFieldChange("dt_start", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_completed</label>
-                <input type="datetime-local" step={60} value={formState.completedDate} onChange={(e)=>onFieldChange("completedDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_expected</label>
+                  <input type="datetime-local" step={60} value={formState.dt_expected} onChange={(e)=>onFieldChange("dt_expected", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
-                <input type="datetime-local" step={60} value={formState.dueDate} onChange={(e)=>onFieldChange("dueDate", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_deadline</label>
+                 <input type="datetime-local" step={60} value={formState.dt_deadline} onChange={(e)=>onFieldChange("dt_deadline", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
               </div>
             </div>
             <div>
@@ -451,8 +451,8 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                 type="datetime-local"
                 step={60}
                 className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                value={formState.startDate}
-                onChange={(event) => onFieldChange("startDate", event.target.value)}
+                 value={formState.dt_start}
+                 onChange={(event) => onFieldChange("dt_start", event.target.value)}
                 disabled={isSaving}
               />
             </div>
@@ -462,19 +462,19 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                  type="datetime-local"
                  step={60}
                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  value={formState.endDate}
-                  onChange={(event) => onFieldChange("endDate", event.target.value)}
+                    value={formState.dt_completed}
+                    onChange={(event) => onFieldChange("dt_completed", event.target.value)}
                  disabled={isSaving}
                />
              </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_deadline</label>
                 <input
                   type="datetime-local"
                   step={60}
                   className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  value={formState.dueDate}
-                  onChange={(event) => onFieldChange("dueDate", event.target.value)}
+                   value={formState.dt_deadline}
+                   onChange={(event) => onFieldChange("dt_deadline", event.target.value)}
                   disabled={isSaving}
                 />
             </div>

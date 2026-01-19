@@ -4,7 +4,7 @@ import type {
   CreateKanbanTaskRequest,
   KanbanApiTask,
   UpdateKanbanTaskStatusRequest,
-} from "../type/kanban";
+} from "../apps/utils/kanban/type/kanban";
 
 const unwrap = <T>(response: any): T => {
   if (!response) return [] as unknown as T;
@@ -22,14 +22,24 @@ export const updateKanbanTaskStatus = async (
   taskId: string,
   payload: UpdateKanbanTaskStatusRequest
 ): Promise<KanbanApiTask> => {
-  const res = await apiClient.patch(`${PostLoginURL.kanbanTasks}${taskId}/`, payload);
+  const mapped = { ...payload };
+  if ((mapped as any).dueDate) {
+    (mapped as any).dt_deadline = (mapped as any).dueDate;
+    delete (mapped as any).dueDate;
+  }
+  const res = await apiClient.patch(`${PostLoginURL.kanbanTasks}${taskId}/`, mapped);
   return unwrap<KanbanApiTask>(res);
 };
 
 export const createKanbanTask = async (
   payload: CreateKanbanTaskRequest
 ): Promise<KanbanApiTask> => {
-  const res = await apiClient.post(PostLoginURL.kanbanTasks, payload);
+  const mapped = { ...payload } as any;
+  if (mapped.dueDate) {
+    mapped.dt_deadline = mapped.dueDate;
+    delete mapped.dueDate;
+  }
+  const res = await apiClient.post(PostLoginURL.kanbanTasks, mapped);
   return unwrap<KanbanApiTask>(res);
 };
 

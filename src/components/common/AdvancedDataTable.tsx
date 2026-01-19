@@ -9,6 +9,7 @@ import DataTable, { TableColumn } from "react-data-table-component";
 import {
   FaFileExcel,
   FaFilePdf,
+  FaFileCode,
   FaSearch,
   FaTimes,
   FaFilter,
@@ -763,6 +764,45 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     [visibleColumns, filteredData, selectedRows, title, exportFileName]
   );
 
+  // Export to JSON
+  const exportToJSON = useCallback(
+    (selectedOnly = false) => {
+      const dataToExport =
+        selectedOnly && selectedRows.length > 0 ? selectedRows : filteredData;
+
+      // Extract only the visible columns
+      const exportData = dataToExport.map((row) => {
+        const exportRow: Record<string, any> = {};
+        visibleColumns.forEach((col) => {
+          if (col.name && col.selector) {
+            const key = String(col.name);
+            const value =
+              typeof col.selector === "function"
+                ? col.selector(row)
+                : row[col.selector as keyof T];
+            exportRow[key] = value;
+          }
+        });
+        return exportRow;
+      });
+
+      // Create JSON string with proper formatting
+      const jsonString = JSON.stringify(exportData, null, 2);
+      
+      // Create blob and download
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${exportFileName}_${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    [visibleColumns, filteredData, selectedRows, exportFileName]
+  );
+
   // Clear filters
   const clearFilters = useCallback(() => {
     setSearchTerm("");
@@ -896,6 +936,13 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                       <FaFilePdf className="w-4 h-4 text-red-600" />
                       PDF ({tableData.length} rows)
                     </button>
+                    <button
+                      onClick={() => exportToJSON(false)}
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      <FaFileCode className="w-4 h-4 text-blue-600" />
+                      JSON ({filteredData.length} rows)
+                    </button>
 
                     {enableSelection && selectedRows.length > 0 && (
                       <>
@@ -916,6 +963,13 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                         >
                           <FaFilePdf className="w-4 h-4 text-red-600" />
                           PDF ({selectedRows.length} selected)
+                        </button>
+                        <button
+                          onClick={() => exportToJSON(true)}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <FaFileCode className="w-4 h-4 text-blue-600" />
+                          JSON ({selectedRows.length} selected)
                         </button>
                       </>
                     )}

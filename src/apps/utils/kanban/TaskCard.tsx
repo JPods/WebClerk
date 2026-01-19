@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import clsx from "clsx";
-import type { KanbanTask, TaskPriority } from "../../../type/kanban";
+import type { KanbanTask, TaskPriority } from "./type/kanban";
 import { DRAG_TYPE_TASK, type DragItem, type DropResult } from "./dndTypes";
 
 const priorityStyles: Record<TaskPriority, string> = {
@@ -73,12 +73,15 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
 
   drag(drop(ref));
 
-  const priorityClass = priorityStyles[task.priority];
-  const priorityText = priorityLabel[task.priority];
+  const wc3PriorityRaw = task.priority_value;
+  const wc3Priority: TaskPriority = wc3PriorityRaw >= 4 ? "critical" : wc3PriorityRaw >= 3 ? "high" : wc3PriorityRaw >= 2 ? "medium" : "low";
+  const priorityClass = priorityStyles[wc3Priority];
+  const priorityText = priorityLabel[wc3Priority];
 
   const progressLabel = useMemo(() => {
-    if (typeof task.progress !== "number") return null;
-    const clamped = Math.max(0, Math.min(100, Math.round(task.progress)));
+    const pct = task.progress;
+    if (typeof pct !== "number") return null;
+    const clamped = Math.max(0, Math.min(100, Math.round(pct)));
     return `${clamped}%`;
   }, [task.progress]);
 
@@ -119,9 +122,9 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
             </div>
           )}
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title}</p>
-            {task.description && (
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-300 line-clamp-2">{task.description}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title_translations?.en ?? Object.values(task.title_translations ?? {})[0]}</p>
+            {task.description_translations && (
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-300 line-clamp-2">{task.description_translations.en ?? Object.values(task.description_translations)[0]}</p>
             )}
           </div>
         </div>
@@ -129,21 +132,31 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        {task.dueDate && (
+        {task.properties?.dates?.start?.dt && (
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
-            <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M6 2v2M14 2v2M3 8h14M4 4h12a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
-                stroke="currentColor"
-                strokeWidth={1.4}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {new Date(task.dueDate).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
+            Start:
+             {new Date(task.properties.dates.start.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+        )}
+
+        {task.properties?.dates?.expected?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+            Expected:
+             {new Date(task.properties.dates.expected.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+        )}
+
+        {task.properties?.dates?.due?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+            Due:
+             {new Date(task.properties.dates.due.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+        )}
+
+        {task.properties?.dates?.completed?.dt && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+            Completed:
+             {new Date(task.properties.dates.completed.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
           </span>
         )}
         {progressLabel && (
@@ -167,9 +180,9 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
         </div>
         {task.assignee && (
           <div className="flex items-center gap-2">
-            {task.assigneeAvatarUrl ? (
+          {task.assignee_avatar_url ? (
               <span className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full">
-                <img src={task.assigneeAvatarUrl} alt={task.assignee} className="h-full w-full object-cover" />
+                <img src={task.assignee_avatar_url} alt={task.assignee} className="h-full w-full object-cover" />
               </span>
             ) : (
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-semibold uppercase text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-200">
