@@ -87,23 +87,23 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         "/wcapi": {
-          target: "http://localhost:8000",
+          target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
         "/api": {
-          target: "http://localhost:8000",
+          target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
         "/communications": {
-          target: "http://localhost:8000",
+          target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
         "/orgs": {
-          target: "http://localhost:8000",
+          target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
         "/tx": {
-          target: "http://localhost:8000",
+          target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },
       },

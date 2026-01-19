@@ -161,8 +161,10 @@ export const clearTokens = () => {
 };
 
 // Instance for protected API calls
+// Use relative URL in development so Vite proxy intercepts it
+// In production, use absolute URL from NetworkInfo
 export const apiClient = axios.create({
-  baseURL: NetworkInfo.API_URL,
+  baseURL: typeof window !== 'undefined' && window.location.protocol === 'http:' ? '' : NetworkInfo.API_URL,
 });
 
 // Separate client for Notion integration endpoints
@@ -172,7 +174,7 @@ export const notionClient = axios.create({
 
 // Separate instance for auth endpoints (login, signup, refresh)
 export const authClient = axios.create({
-  baseURL: NetworkInfo.AUTH_URL,
+  baseURL: typeof window !== 'undefined' && window.location.protocol === 'http:' ? '' : NetworkInfo.AUTH_URL,
 });
 
 const attachAuthInterceptors = (client: AxiosInstance) => {

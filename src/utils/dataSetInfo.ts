@@ -38,7 +38,8 @@ export function getFrontendDataSet(): DataSetInfo {
  * Fetch backend system info including data set identification
  */
 export async function fetchBackendSystemInfo(apiBaseUrl: string = ''): Promise<SystemInfo> {
-  const url = `${apiBaseUrl}/wcapi/system-info/`;
+  // Use relative path so Vite proxy can intercept in dev mode
+  const url = `/wcapi/system-info/`;
   const response = await fetch(url, {
     method: 'GET',
     credentials: 'include',
@@ -51,7 +52,14 @@ export async function fetchBackendSystemInfo(apiBaseUrl: string = ''): Promise<S
     throw new Error(`Failed to fetch system info: ${response.status}`);
   }
   
-  return response.json();
+  const json = await response.json();
+  
+  // Unwrap envelope if present (AutoEnvelopeMiddleware wraps responses)
+  if (json.data && typeof json.data === 'object' && json.data.data_set) {
+    return json.data;
+  }
+  
+  return json;
 }
 
 /**
