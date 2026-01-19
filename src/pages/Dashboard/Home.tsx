@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import apiClient from "../../api/axios";
 import { PostLoginURL, NetworkInfo } from "../../routes/network";
 import { useAppSelector } from "../../store/hooks";
-import { formatNetworkError, logNetworkDiagnostics } from "../../utils/networkDiagnostics";
+import {
+  formatNetworkError,
+  logNetworkDiagnostics,
+} from "../../utils/networkDiagnostics";
 
 type StatCard = {
   label: string;
@@ -54,7 +57,9 @@ const normalizeStats = (input: DashboardPayload["stats"]): StatCard[] => {
   if (!input) return [];
   if (Array.isArray(input)) {
     return input.map((item, idx) => ({
-      label: String((item as any).label ?? (item as any).name ?? `Metric ${idx + 1}`),
+      label: String(
+        (item as any).label ?? (item as any).name ?? `Metric ${idx + 1}`,
+      ),
       value: String((item as any).value ?? (item as any).count ?? "0"),
       change: (item as any).change ? String((item as any).change) : undefined,
       trend: (item as any).trend ?? "flat",
@@ -71,60 +76,73 @@ const normalizeStats = (input: DashboardPayload["stats"]): StatCard[] => {
 
 const normalizeNotifications = (input?: any): NotificationItem[] => {
   if (!input) return [];
-  if (Array.isArray(input)) return input.map((item) => ({
-    title: String(item.title ?? item.message ?? item.text ?? ""),
-    time: item.time ?? item.created_at ?? item.when ?? "",
-    badge: item.badge ?? item.category ?? item.type ?? "",
-  }));
+  if (Array.isArray(input))
+    return input.map((item) => ({
+      title: String(item.title ?? item.message ?? item.text ?? ""),
+      time: item.time ?? item.created_at ?? item.when ?? "",
+      badge: item.badge ?? item.category ?? item.type ?? "",
+    }));
   return [];
 };
 
 const normalizeActivities = (input?: any): TimelineItem[] => {
   if (!input) return [];
-  if (Array.isArray(input)) return input.map((item) => ({
-    title: String(item.title ?? item.event ?? item.name ?? ""),
-    meta: item.meta ?? item.by ?? item.actor ?? item.time ?? "",
-    detail: item.detail ?? item.description ?? item.note ?? "",
-  }));
+  if (Array.isArray(input))
+    return input.map((item) => ({
+      title: String(item.title ?? item.event ?? item.name ?? ""),
+      meta: item.meta ?? item.by ?? item.actor ?? item.time ?? "",
+      detail: item.detail ?? item.description ?? item.note ?? "",
+    }));
   return [];
 };
 
 const normalizeActions = (input?: any): ActionItem[] => {
   if (!input) return [];
-  if (Array.isArray(input)) return input.map((item) => {
-    // Handle owner - may be string or object {id, name}
-    let ownerStr = "";
-    const rawOwner = item.owner ?? item.assignee ?? item.by;
-    if (rawOwner) {
-      ownerStr = typeof rawOwner === "object" ? (rawOwner.name ?? rawOwner.id ?? "") : String(rawOwner);
-    }
-    return {
-      title: String(item.title ?? item.task ?? item.name ?? ""),
-      owner: ownerStr,
-      due: item.due ?? item.due_date ?? item.when ?? "",
-      severity: item.severity ?? item.priority ?? "low",
-    };
-  });
+  if (Array.isArray(input))
+    return input.map((item) => {
+      // Handle owner - may be string or object {id, name}
+      let ownerStr = "";
+      const rawOwner = item.owner ?? item.assignee ?? item.by;
+      if (rawOwner) {
+        ownerStr =
+          typeof rawOwner === "object"
+            ? rawOwner.name ?? rawOwner.id ?? ""
+            : String(rawOwner);
+      }
+      return {
+        title: String(item.title ?? item.task ?? item.name ?? ""),
+        owner: ownerStr,
+        due: item.due ?? item.due_date ?? item.when ?? "",
+        severity: item.severity ?? item.priority ?? "low",
+      };
+    });
   return [];
 };
 
-const normalizeShortcuts = (input?: any): { label: string; to?: string; desc?: string }[] => {
+const normalizeShortcuts = (
+  input?: any,
+): { label: string; to?: string; desc?: string }[] => {
   if (!input) return [];
-  if (Array.isArray(input)) return input.map((item, idx) => ({
-    label: String(item.label ?? item.title ?? item.name ?? `Shortcut ${idx + 1}`),
-    to: item.to ?? item.href ?? item.url ?? "#",
-    desc: item.desc ?? item.description ?? "",
-  }));
+  if (Array.isArray(input))
+    return input.map((item, idx) => ({
+      label: String(
+        item.label ?? item.title ?? item.name ?? `Shortcut ${idx + 1}`,
+      ),
+      to: item.to ?? item.href ?? item.url ?? "#",
+      desc: item.desc ?? item.description ?? "",
+    }));
   return [];
 };
 
 const normalizePulse = (input?: any): PulseMetric[] => {
   if (!input) return [];
-  if (Array.isArray(input)) return input.map((item, idx) => ({
-    label: String(item.label ?? item.name ?? `Metric ${idx + 1}`),
-    value: item.value ?? item.score ?? 0,
-  }));
-  if (typeof input === "object") return Object.entries(input).map(([label, value]) => ({ label, value }));
+  if (Array.isArray(input))
+    return input.map((item, idx) => ({
+      label: String(item.label ?? item.name ?? `Metric ${idx + 1}`),
+      value: item.value ?? item.score ?? 0,
+    }));
+  if (typeof input === "object")
+    return Object.entries(input).map(([label, value]) => ({ label, value }));
   return [];
 };
 
@@ -155,7 +173,9 @@ export default function Home() {
       setLoading(!cached);
       setError(null);
       try {
-        const res = await apiClient.get(PostLoginURL.allTypes + "model_name=dashboard");
+        const res = await apiClient.get(
+          PostLoginURL.allTypes + "model_name=dashboard",
+        );
         const body = (res as any)?.data ?? res;
         const payload = body?.data ?? body; // handle enveloped or direct
         if (mounted) {
@@ -169,12 +189,14 @@ export default function Home() {
       } catch (err: any) {
         if (mounted) {
           const formatted = formatNetworkError(err);
-          const message = `${formatted.message} (${formatted.code})${formatted.status ? ` [${formatted.status}]` : ''}`;
+          const message = `${formatted.message} (${formatted.code})${
+            formatted.status ? ` [${formatted.status}]` : ""
+          }`;
           setError(message);
-          
+
           // Log diagnostics for debugging
-          if (formatted.code === 'ERR_NETWORK') {
-            console.error('Network error detected. Running diagnostics...');
+          if (formatted.code === "ERR_NETWORK") {
+            console.error("Network error detected. Running diagnostics...");
             logNetworkDiagnostics(NetworkInfo.API_URL).catch(console.error);
           }
         }
@@ -189,21 +211,37 @@ export default function Home() {
     };
   }, []);
 
-  const stats = useMemo(() => normalizeStats(data.stats ?? data.metrics ?? data.summary ?? data.cards), [data]);
+  const stats = useMemo(
+    () =>
+      normalizeStats(data.stats ?? data.metrics ?? data.summary ?? data.cards),
+    [data],
+  );
   const notifications = useMemo(
-    () => normalizeNotifications(data.notifications ?? data.alerts ?? data.messages),
-    [data]
+    () =>
+      normalizeNotifications(
+        data.notifications ?? data.alerts ?? data.messages,
+      ),
+    [data],
   );
   const activities = useMemo(
     () => normalizeActivities(data.activities ?? data.events ?? data.timeline),
-    [data]
+    [data],
   );
-  const actions = useMemo(() => normalizeActions(data.actions ?? data.tasks ?? data.assigned), [data]);
+  const actions = useMemo(
+    () => normalizeActions(data.actions ?? data.tasks ?? data.assigned),
+    [data],
+  );
   const shortcuts = useMemo(
-    () => normalizeShortcuts(data.shortcuts ?? data.quick_links ?? data.quick_actions),
-    [data]
+    () =>
+      normalizeShortcuts(
+        data.shortcuts ?? data.quick_links ?? data.quick_actions,
+      ),
+    [data],
   );
-  const pulse = useMemo(() => normalizePulse(data.pulse ?? data.health ?? data.project_pulse), [data]);
+  const pulse = useMemo(
+    () => normalizePulse(data.pulse ?? data.health ?? data.project_pulse),
+    [data],
+  );
 
   const accentFallback = [
     "bg-emerald-100 text-emerald-700",
@@ -216,9 +254,15 @@ export default function Home() {
     <div className="space-y-8 p-6 lg:p-8">
       <header className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-blue-500">Overview</p>
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Welcome back{user?.name_first ? `, ${user.name_first}` : ""}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Live data from your workspace.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-blue-500">
+            Overview
+          </p>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">
+            Welcome back{user?.name_first ? `, ${user.name_first}` : ""}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Live data from your workspace.
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Link
@@ -268,17 +312,29 @@ export default function Home() {
               className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-[2px] hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5"
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{item.label}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {item.label}
+                </p>
                 {item.change && (
-                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${item.accent ?? accentFallback[idx % accentFallback.length]}`}>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                      item.accent ?? accentFallback[idx % accentFallback.length]
+                    }`}
+                  >
                     {item.change}
                   </span>
                 )}
               </div>
-              <p className="mt-3 text-3xl font-semibold text-gray-900 dark:text-white">{item.value}</p>
+              <p className="mt-3 text-3xl font-semibold text-gray-900 dark:text-white">
+                {item.value}
+              </p>
               {item.trend && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {item.trend === "up" ? "Improving" : item.trend === "down" ? "Needs attention" : "Stable"}
+                  {item.trend === "up"
+                    ? "Improving"
+                    : item.trend === "down"
+                    ? "Needs attention"
+                    : "Stable"}
                 </p>
               )}
             </div>
@@ -295,17 +351,27 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Notifications</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Updates from your data source.</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Recent Notifications
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Updates from your data source.
+                </p>
               </div>
-              <Link to="/notifications" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+              <Link
+                to="/notifications"
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
                 View all
               </Link>
             </div>
             <div className="mt-4 space-y-3">
               {loading && notifications.length === 0 ? (
                 Array.from({ length: 3 }).map((_, idx) => (
-                  <div key={idx} className="h-16 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60" />
+                  <div
+                    key={idx}
+                    className="h-16 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
+                  />
                 ))
               ) : notifications.length ? (
                 notifications.map((note, idx) => (
@@ -313,11 +379,20 @@ export default function Home() {
                     key={`${note.title}-${idx}`}
                     className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3 transition hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/50 dark:hover:border-blue-500/40"
                   >
-                    <div className="mt-0.5 h-2 w-2 rounded-full bg-blue-500" aria-hidden />
+                    <div
+                      className="mt-0.5 h-2 w-2 rounded-full bg-blue-500"
+                      aria-hidden
+                    />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{note.title}</p>
-                        {note.time && <span className="text-xs text-gray-500 dark:text-gray-400">{note.time}</span>}
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {note.title}
+                        </p>
+                        {note.time && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {note.time}
+                          </span>
+                        )}
                       </div>
                       {note.badge && (
                         <span className="mt-1 inline-flex rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
@@ -338,29 +413,55 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Activity Timeline</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Latest movements from the backend.</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Activity Timeline
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Latest movements from the backend.
+                </p>
               </div>
-              <Link to="/activity" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+              <Link
+                to="/activity"
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
                 See timeline
               </Link>
             </div>
             <div className="mt-4 space-y-4">
               {loading && activities.length === 0 ? (
                 Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={idx} className="h-20 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60" />
+                  <div
+                    key={idx}
+                    className="h-20 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
+                  />
                 ))
               ) : activities.length ? (
                 activities.map((item, idx) => (
                   <div key={`${item.title}-${idx}`} className="relative pl-6">
                     {idx !== activities.length - 1 && (
-                      <span className="absolute left-2 top-3 h-full w-px bg-gray-200 dark:bg-gray-700" aria-hidden />
+                      <span
+                        className="absolute left-2 top-3 h-full w-px bg-gray-200 dark:bg-gray-700"
+                        aria-hidden
+                      />
                     )}
-                    <span className="absolute left-0 top-2 h-3 w-3 rounded-full bg-blue-500" aria-hidden />
+                    <span
+                      className="absolute left-0 top-2 h-3 w-3 rounded-full bg-blue-500"
+                      aria-hidden
+                    />
                     <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-800/60">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.title}</p>
-                      {item.meta && <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{item.meta}</p>}
-                      {item.detail && <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{item.detail}</p>}
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {item.title}
+                      </p>
+                      {item.meta && (
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                          {item.meta}
+                        </p>
+                      )}
+                      {item.detail && (
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                          {item.detail}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))
@@ -375,12 +476,19 @@ export default function Home() {
 
         <div className="space-y-6">
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Shortcuts</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Rendered from backend links.</p>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Quick Shortcuts
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Rendered from backend links.
+            </p>
             <div className="mt-4 grid gap-3">
               {loading && shortcuts.length === 0 ? (
                 Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={idx} className="h-14 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60" />
+                  <div
+                    key={idx}
+                    className="h-14 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
+                  />
                 ))
               ) : shortcuts.length ? (
                 shortcuts.map((action, idx) => (
@@ -389,8 +497,14 @@ export default function Home() {
                     to={action.to ?? "#"}
                     className="group rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/50"
                   >
-                    <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">{action.label}</p>
-                    {action.desc && <p className="text-xs text-gray-500 dark:text-gray-400">{action.desc}</p>}
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">
+                      {action.label}
+                    </p>
+                    {action.desc && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {action.desc}
+                      </p>
+                    )}
                   </Link>
                 ))
               ) : (
@@ -404,17 +518,27 @@ export default function Home() {
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Assigned Actions</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Directly from backend payload.</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Assigned Actions
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Directly from backend payload.
+                </p>
               </div>
-              <Link to="/tasks" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+              <Link
+                to="/tasks"
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
                 Open tasks
               </Link>
             </div>
             <div className="mt-4 space-y-3">
               {loading && actions.length === 0 ? (
                 Array.from({ length: 3 }).map((_, idx) => (
-                  <div key={idx} className="h-16 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60" />
+                  <div
+                    key={idx}
+                    className="h-16 rounded-xl border border-gray-100 bg-gray-50/60 p-3 animate-pulse dark:border-gray-800 dark:bg-gray-800/60"
+                  />
                 ))
               ) : actions.length ? (
                 actions.map((item, idx) => (
@@ -423,19 +547,31 @@ export default function Home() {
                     className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/40"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.title}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {item.title}
+                      </p>
                       {item.severity && (
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            severityColor[String(item.severity).toLowerCase()] ?? "bg-gray-200 text-gray-700"
+                            severityColor[
+                              String(item.severity).toLowerCase()
+                            ] ?? "bg-gray-200 text-gray-700"
                           }`}
                         >
                           {item.severity}
                         </span>
                       )}
                     </div>
-                    {item.owner && <p className="text-xs text-gray-500 dark:text-gray-400">Owner: {item.owner}</p>}
-                    {item.due && <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Due: {item.due}</p>}
+                    {item.owner && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Owner: {item.owner}
+                      </p>
+                    )}
+                    {item.due && (
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        Due: {item.due}
+                      </p>
+                    )}
                   </div>
                 ))
               ) : (
@@ -448,11 +584,16 @@ export default function Home() {
 
           <div className="rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-5 text-white shadow-lg">
             <h2 className="text-lg font-semibold">Project Pulse</h2>
-            <p className="text-sm text-white/80">Surfaced from backend metrics.</p>
+            <p className="text-sm text-white/80">
+              Surfaced from backend metrics.
+            </p>
             <div className="mt-4 space-y-3">
               {loading && pulse.length === 0 ? (
                 Array.from({ length: 3 }).map((_, idx) => (
-                  <div key={idx} className="h-6 rounded-full bg-white/20 animate-pulse" />
+                  <div
+                    key={idx}
+                    className="h-6 rounded-full bg-white/20 animate-pulse"
+                  />
                 ))
               ) : pulse.length ? (
                 pulse.map((item, idx) => (
@@ -464,7 +605,12 @@ export default function Home() {
                     <div className="h-2 w-full rounded-full bg-white/20">
                       <div
                         className="h-2 rounded-full bg-white shadow-inner"
-                        style={{ width: typeof item.value === "number" ? `${Math.min(100, Math.max(0, item.value))}%` : undefined }}
+                        style={{
+                          width:
+                            typeof item.value === "number"
+                              ? `${Math.min(100, Math.max(0, item.value))}%`
+                              : undefined,
+                        }}
                       />
                     </div>
                   </div>

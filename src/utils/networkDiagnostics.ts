@@ -1,6 +1,6 @@
 /**
  * Network Diagnostics Utility
- * 
+ *
  * Helps diagnose network errors like ERR_NETWORK in Axios requests.
  * Use this to debug connectivity issues between frontend and backend.
  */
@@ -28,14 +28,16 @@ export interface DiagnosticReport {
 /**
  * Run full network diagnostics
  */
-export async function runNetworkDiagnostics(apiBaseUrl: string): Promise<DiagnosticReport> {
+export async function runNetworkDiagnostics(
+  apiBaseUrl: string,
+): Promise<DiagnosticReport> {
   const recommendations: string[] = [];
   const report: DiagnosticReport = {
     timestamp: new Date().toISOString(),
     frontend: {
       url: window.location.href,
       apiBaseUrl: apiBaseUrl,
-      environment: String(import.meta.env.VITE_ENV || 'UNKNOWN'),
+      environment: String(import.meta.env.VITE_ENV || "UNKNOWN"),
       hasToken: !!getAuthToken(),
       tokenPrefix: getAuthToken()?.substring(0, 20),
     },
@@ -53,34 +55,41 @@ export async function runNetworkDiagnostics(apiBaseUrl: string): Promise<Diagnos
     if (resp.ok) {
       report.backend.systemInfo = await resp.json();
     } else {
-      recommendations.push(`Backend returned ${resp.status}: ${resp.statusText}`);
+      recommendations.push(
+        `Backend returned ${resp.status}: ${resp.statusText}`,
+      );
     }
   } catch (err) {
-    recommendations.push(`❌ Cannot reach backend at ${apiBaseUrl}: ${String(err)}`);
+    recommendations.push(
+      `❌ Cannot reach backend at ${apiBaseUrl}: ${String(err)}`,
+    );
   }
 
   // Test 2: Check authentication token
   if (!report.frontend.hasToken) {
     recommendations.push(
       "❌ No authentication token found. You may not be logged in. " +
-      "Try logging in first before accessing protected endpoints."
+        "Try logging in first before accessing protected endpoints.",
     );
   }
 
   // Test 3: Check CORS preflight
   try {
-    const preflightResp = await fetch(`${apiBaseUrl}/wcapi/get/?model_name=dashboard`, {
-      method: 'OPTIONS',
-      headers: {
-        'Access-Control-Request-Method': 'GET',
-        'Access-Control-Request-Headers': 'content-type,authorization',
+    const preflightResp = await fetch(
+      `${apiBaseUrl}/wcapi/get/?model_name=dashboard`,
+      {
+        method: "OPTIONS",
+        headers: {
+          "Access-Control-Request-Method": "GET",
+          "Access-Control-Request-Headers": "content-type,authorization",
+        },
       },
-    });
+    );
     report.backend.cors.preflight = preflightResp.ok;
     if (!preflightResp.ok) {
       recommendations.push(
         `⚠️ CORS preflight failed (${preflightResp.status}). ` +
-        `Server may not allow requests from ${window.location.origin}`
+          `Server may not allow requests from ${window.location.origin}`,
       );
     }
   } catch (err) {
@@ -94,7 +103,9 @@ export async function runNetworkDiagnostics(apiBaseUrl: string): Promise<Diagnos
   }
 
   if (recommendations.length === 0) {
-    recommendations.push("✅ Network appears healthy. Issue may be elsewhere (check DevTools).");
+    recommendations.push(
+      "✅ Network appears healthy. Issue may be elsewhere (check DevTools).",
+    );
   }
 
   return report;
@@ -104,8 +115,8 @@ export async function runNetworkDiagnostics(apiBaseUrl: string): Promise<Diagnos
  * Get the current authentication token
  */
 function getAuthToken(): string | null {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('accessToken');
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem("accessToken");
 }
 
 /**
@@ -113,29 +124,29 @@ function getAuthToken(): string | null {
  */
 export async function logNetworkDiagnostics(apiBaseUrl: string) {
   const report = await runNetworkDiagnostics(apiBaseUrl);
-  
-  console.group('🔍 Network Diagnostics Report');
+
+  console.group("🔍 Network Diagnostics Report");
   console.table({
-    'Timestamp': report.timestamp,
-    'Frontend URL': report.frontend.url,
-    'API Base URL': report.frontend.apiBaseUrl,
-    'Environment': report.frontend.environment,
-    'Authenticated': report.frontend.hasToken ? '✅ Yes' : '❌ No',
-    'Backend Reachable': report.backend.isReachable ? '✅ Yes' : '❌ No',
+    Timestamp: report.timestamp,
+    "Frontend URL": report.frontend.url,
+    "API Base URL": report.frontend.apiBaseUrl,
+    Environment: report.frontend.environment,
+    Authenticated: report.frontend.hasToken ? "✅ Yes" : "❌ No",
+    "Backend Reachable": report.backend.isReachable ? "✅ Yes" : "❌ No",
   });
 
   if (report.backend.systemInfo) {
-    console.log('Backend System Info:', report.backend.systemInfo);
+    console.log("Backend System Info:", report.backend.systemInfo);
   }
 
   if (report.recommendations.length > 0) {
-    console.group('Recommendations:');
-    report.recommendations.forEach(rec => console.log(rec));
+    console.group("Recommendations:");
+    report.recommendations.forEach((rec) => console.log(rec));
     console.groupEnd();
   }
 
   console.groupEnd();
-  
+
   return report;
 }
 
@@ -148,26 +159,26 @@ export function formatNetworkError(error: any): {
   status?: number;
   hint: string;
 } {
-  const code = error?.code || 'UNKNOWN_ERROR';
+  const code = error?.code || "UNKNOWN_ERROR";
   const message = error?.message || String(error);
   const status = error?.response?.status;
 
-  let hint = 'Unknown error';
+  let hint = "Unknown error";
 
-  if (code === 'ERR_NETWORK') {
-    hint = 'Network connection failed. Backend may be down or unreachable.';
-  } else if (code === 'ERR_BAD_RESPONSE') {
+  if (code === "ERR_NETWORK") {
+    hint = "Network connection failed. Backend may be down or unreachable.";
+  } else if (code === "ERR_BAD_RESPONSE") {
     hint = `Server returned ${status}. Check backend logs for details.`;
   } else if (status === 401) {
-    hint = 'Unauthorized. You may not be logged in or your token expired.';
+    hint = "Unauthorized. You may not be logged in or your token expired.";
   } else if (status === 403) {
-    hint = 'Forbidden. You may not have permission to access this resource.';
+    hint = "Forbidden. You may not have permission to access this resource.";
   } else if (status === 404) {
-    hint = 'Endpoint not found. The API route may have changed.';
+    hint = "Endpoint not found. The API route may have changed.";
   } else if (status === 500) {
-    hint = 'Server error. Check backend logs.';
-  } else if (code === 'ECONNABORTED') {
-    hint = 'Request timeout. Backend may be slow or unresponsive.';
+    hint = "Server error. Check backend logs.";
+  } else if (code === "ECONNABORTED") {
+    hint = "Request timeout. Backend may be slow or unresponsive.";
   }
 
   return { code, message, status, hint };
