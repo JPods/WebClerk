@@ -62,7 +62,7 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
     () => ({
       accept: DRAG_TYPE_TASK,
-      drop: () => ({ columnId, index }),
+      drop: () => ({ columnId, index, dropType: "column" as const }),
       collect: (monitor) => ({
         isOver: monitor.isOver({ shallow: true }),
         canDrop: monitor.canDrop(),

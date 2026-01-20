@@ -1,6 +1,6 @@
 import { CSSProperties, ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { DndProvider } from "react-dnd";
+import { DndProvider, useDragLayer, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "./KanbanColumn";
@@ -528,6 +528,99 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
   };
 };
 
+const removeTaskFromBoardState = (prev: BoardData, taskId: string): BoardData => {
+  let columnsChanged = false;
+
+  const nextColumns = Object.entries(prev.columns).reduce<Record<string, KanbanColumnType>>((acc, [columnId, column]) => {
+    const nextTaskIds = column.task_ids.filter((id) => id !== taskId);
+    if (nextTaskIds.length !== column.task_ids.length) {
+      columnsChanged = true;
+      acc[columnId] = { ...column, task_ids: nextTaskIds };
+    } else {
+      acc[columnId] = column;
+    }
+    return acc;
+  }, {});
+
+  if (!columnsChanged) {
+    return prev;
+  }
+
+  const { [taskId]: _removed, ...remainingTasks } = prev.tasks;
+
+  return {
+    ...prev,
+    columns: nextColumns,
+    tasks: remainingTasks,
+  };
+};
+
+const TrashDropZone: React.FC<{ isDeleting?: boolean }> = ({ isDeleting = false }) => {
+  const { isDragging, itemType } = useDragLayer((monitor) => ({
+    isDragging: monitor.isDragging(),
+    itemType: monitor.getItemType(),
+  }));
+
+  const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
+    () => ({
+      accept: DRAG_TYPE_TASK,
+      drop: () => ({ columnId: "trash", index: -1, dropType: "trash" }),
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+        canDrop: monitor.canDrop(),
+      }),
+    }),
+    []
+  );
+
+  if (!isDragging || itemType !== DRAG_TYPE_TASK) {
+    return null;
+  }
+
+  const isActive = isOver && canDrop;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
+      <div
+        ref={drop}
+        className={clsx(
+          "flex items-center gap-3 rounded-2xl border-2 border-dashed px-5 py-4 shadow-xl backdrop-blur transition",
+          isActive
+            ? "border-rose-400/80 bg-rose-50 text-rose-700 dark:border-rose-500/70 dark:bg-rose-500/20 dark:text-rose-100"
+            : "border-gray-200 bg-white/90 text-gray-600 dark:border-gray-700 dark:bg-gray-900/80 dark:text-gray-200",
+          isDeleting && "ring-2 ring-rose-300/60 dark:ring-rose-600/60"
+        )}
+      >
+        <div
+          className={clsx(
+            "flex h-12 w-12 items-center justify-center rounded-xl border-2 text-xl font-semibold transition",
+            isActive
+              ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-500/80 dark:bg-rose-500/30 dark:text-rose-50"
+              : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-600 dark:bg-gray-800"
+          )}
+        >
+          {isDeleting ? (
+            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.4} strokeOpacity={0.2} />
+              <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5h6m-7 3h8" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 10v6m4-6v6" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" />
+              <path d="M5 8h14l-1 12H6L5 8Zm4-3.5a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V8h-6V4.5Z" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Delete task</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">Drop here to remove</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const padTwo = (value: number) => value.toString().padStart(2, "0");
 
 const formatDateTimeLocalString = (date: Date) =>
@@ -949,6 +1042,7 @@ const KanbanBoardPage: React.FC = () => {
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
+  const [isTrashDeleting, setIsTrashDeleting] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
@@ -1035,11 +1129,60 @@ const KanbanBoardPage: React.FC = () => {
     [selectedProjectName]
   );
 
+  const removeTaskInBackend = useCallback(async (taskId: string | number) => {
+    const parsedId = typeof taskId === "number" ? taskId : Number(taskId);
+    const payloadId = Number.isNaN(parsedId) ? taskId : parsedId;
+
+    try {
+      const response = await patchAction({
+        model_name: "action",
+        id: payloadId,
+        is_deleted: { mode: "update", value: true },
+        is_active: { mode: "update", value: false },
+        status: { mode: "update", value: "Removed" },
+        kanban_column: { mode: "update", value: "Removed" },
+        kanban_column_id: { mode: "update", value: "column-removed" },
+      });
+
+      const body: any = (response as any)?.data ?? response;
+      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
+        throw new Error("Failed to remove task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the remove request.");
+      }
+
+      return { success: true } as const;
+    } catch (error) {
+      console.error("Failed to remove kanban task", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Unable to remove task. Please try again.";
+      return { success: false, error: message } as const;
+    }
+  }, []);
+
   const handleDragEnd = useCallback(
     (item: DragItem, dropResult: DropResult | null) => {
       if (item.type !== DRAG_TYPE_TASK) {
         return;
       }
+
+      if (dropResult?.dropType === "trash") {
+        setBoard((prev) => removeTaskFromBoardState(prev, item.taskId));
+        setIsTrashDeleting(true);
+        void removeTaskInBackend(item.taskId).then((result) => {
+          if (!result.success) {
+            setFetchError((current) => current ?? result.error ?? null);
+          }
+        }).finally(() => {
+          setIsTrashDeleting(false);
+        });
+        return;
+      }
+
       setBoard((prev) => {
         const next = handleBoardMove(prev, { item, result: dropResult });
         if (next !== prev) {
@@ -1048,7 +1191,7 @@ const KanbanBoardPage: React.FC = () => {
         return next;
       });
     },
-    [persistTaskReorder]
+    [persistTaskReorder, removeTaskInBackend]
   );
 
   const fetchProjects = useCallback(async () => {
@@ -1947,40 +2090,19 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setEditModalError(null);
-    const parsedId = Number(editingTask.id);
-    const payloadId = Number.isNaN(parsedId) ? editingTask.id : parsedId;
-
     try {
       setIsRemovingTask(true);
-      const response = await patchAction({
-        model_name: "action",
-        id: payloadId,
-        is_deleted: { mode: "update", value: true },
-        is_active: { mode: "update", value: false },
-        status: { mode: "update", value: "Removed" },
-        kanban_column: { mode: "update", value: "Removed" },
-        kanban_column_id: { mode: "update", value: "column-removed" },
-      });
-      const body: any = (response as any)?.data ?? response;
-      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
-        throw new Error("Failed to remove task.");
+      const result = await removeTaskInBackend(editingTask.id);
+      if (!result.success) {
+        setEditModalError(result.error ?? "Unable to remove task. Please try again.");
+        return;
       }
-      if (body?.status === "fail") {
-        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-        throw new Error(details || "Backend rejected the remove request.");
-      }
+
       await fetchActions({
         projectId: selectedProjectId || undefined,
         contactId: selectedContactId || undefined,
       });
       handleCloseEditModal();
-    } catch (error) {
-      console.error("Failed to remove kanban task", error);
-      const message =
-        (error as any)?.response?.data?.message ||
-        (error as any)?.message ||
-        "Unable to remove task. Please try again.";
-      setEditModalError(message);
     } finally {
       setIsRemovingTask(false);
     }
@@ -2165,6 +2287,7 @@ const KanbanBoardPage: React.FC = () => {
 
       <DndProvider backend={HTML5Backend}>
         <KanbanDragLayer tasks={board.tasks} />
+        <TrashDropZone isDeleting={isTrashDeleting} />
         {isLoading ? (
           <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
             Loading kanban board...

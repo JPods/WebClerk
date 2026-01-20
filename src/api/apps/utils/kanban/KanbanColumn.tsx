@@ -69,7 +69,7 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
       accept: DRAG_TYPE_TASK,
       drop: (_item, monitor) => {
         if (!monitor.didDrop()) {
-          return { columnId: column.id, index: tasks.length };
+          return { columnId: column.id, index: tasks.length, dropType: "column" as const };
         }
         return undefined;
       },
