@@ -122,6 +122,7 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
             </div>
           )}
           <div>
+            <p className="text-sm text-gray-600 rounded-full bg-indigo-100 px-3 mb-2 w-fit dark:text-white">{task.project_name ?? ""}</p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">{task.title_translations?.en ?? Object.values(task.title_translations ?? {})[0]}</p>
             {task.description_translations && (
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-300 line-clamp-2">{task.description_translations.en ?? Object.values(task.description_translations)[0]}</p>
