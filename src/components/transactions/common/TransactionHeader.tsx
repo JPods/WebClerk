@@ -21,7 +21,7 @@ export interface TransactionHeaderProps {
     price_level?: string;
     dt_created?: string;
     dt_modified?: string;
-    dt_due?: string;
+    dt_deadline?: string;
     dt_shipped?: string;
     // JSON fields
     cost?: any;
@@ -235,8 +235,8 @@ export const TransactionHeader: React.FC<TransactionHeaderProps> = ({
             <label className="block text-sm font-medium text-gray-700">Due Date</label>
             <input
               type="date"
-              value={data.dt_due ? data.dt_due.split('T')[0] : ''}
-              onChange={(e) => handleFieldChange('dt_due', e.target.value)}
+              value={data.dt_deadline ? data.dt_deadline.split('T')[0] : ''}
+              onChange={(e) => handleFieldChange('dt_deadline', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>

@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { KanbanTask, TaskPriority } from "../../type/kanban";
+import type { KanbanTask, TaskPriority } from "../../api/apps/utils/kanban/type/kanban";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
 
 interface LanguageOption {
@@ -371,7 +371,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_due</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_deadline</label>
                 <input
                   type="datetime-local"
                   step={60}
