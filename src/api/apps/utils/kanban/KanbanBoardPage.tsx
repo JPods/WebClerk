@@ -6,8 +6,6 @@ import PageBreadcrumb from "../../../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanDragLayer } from "./KanbanDragLayer";
 import KanbanTaskModal from "./KanbanTaskModal";
-// Assignee UI mode state
-type AssigneeUIMode = 'dropdown' | 'chips';
 import { ProjectContactManager } from "./ProjectContactManager";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
@@ -912,9 +910,6 @@ const updateTaskFormState = (
 
 
 const KanbanBoardPage: React.FC = () => {
-  // Assignee UI mode state for create/edit modals
-  const [createAssigneeUIMode, setCreateAssigneeUIMode] = useState<AssigneeUIMode>('dropdown');
-  const [editAssigneeUIMode, setEditAssigneeUIMode] = useState<AssigneeUIMode>('dropdown');
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -1516,7 +1511,6 @@ const KanbanBoardPage: React.FC = () => {
   const handleOpenCreateModal = () => {
     resetCreateState();
     setIsCreateModalOpen(true);
-    setCreateAssigneeUIMode('dropdown');
   };
 
   const handleCloseCreateModal = () => {
@@ -1562,7 +1556,6 @@ const KanbanBoardPage: React.FC = () => {
     setEditLanguagePickerError(null);
 
     setIsEditModalOpen(true);
-    setEditAssigneeUIMode('dropdown');
   };
 
   const handleCloseEditModal = () => {
@@ -2329,8 +2322,6 @@ const KanbanBoardPage: React.FC = () => {
         difficultyOptions={createDifficultyOptions}
         progressOptions={createProgressOptions}
         assigneeOptions={contactOptions}
-        assigneeUIMode={createAssigneeUIMode}
-        onAssigneeUIModeChange={setCreateAssigneeUIMode}
         translations={createTaskState.translations}
         onTranslationFieldChange={(entryId, field, value) =>
           handleTranslationFieldChange("create", entryId, field as "language" | "title" | "description", value)
@@ -2363,8 +2354,6 @@ const KanbanBoardPage: React.FC = () => {
         difficultyOptions={editDifficultyOptions}
         progressOptions={editProgressOptions}
         assigneeOptions={contactOptions}
-        assigneeUIMode={editAssigneeUIMode}
-        onAssigneeUIModeChange={setEditAssigneeUIMode}
         translations={editTaskState.translations}
         onTranslationFieldChange={(entryId, field, value) =>
           handleTranslationFieldChange("edit", entryId, field as "language" | "title" | "description", value)
