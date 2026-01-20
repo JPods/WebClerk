@@ -577,6 +577,10 @@ class WCAPIGetView(APIView):
             except Exception:
                 return []
 
+            # Exclude status 'on hold' for actions
+            if model_key == "action":
+                qs = qs.exclude(status="on hold")
+
             try:
                 qs = qs.order_by("-dt_created")
             except Exception:
