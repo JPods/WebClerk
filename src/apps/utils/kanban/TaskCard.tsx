@@ -178,18 +178,11 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
             </span>
           ))}
         </div>
-        {task.assignee && (
+        {Array.isArray(task.assigned_to) && task.assigned_to.length > 0 && (
           <div className="flex items-center gap-2">
-          {task.assignee_avatar_url ? (
-              <span className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full">
-                <img src={task.assignee_avatar_url} alt={task.assignee} className="h-full w-full object-cover" />
-              </span>
-            ) : (
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-semibold uppercase text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-200">
-                {getInitials(task.assignee)}
-              </span>
-            )}
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{task.assignee}</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              {task.assigned_to.map((a:any) => a.name).join(', ')}
+            </span>
           </div>
         )}
       </div>

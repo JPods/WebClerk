@@ -1,0 +1,24 @@
+// WC3 ↔ R25 TypeScript alignment interface for Email
+export interface Email {
+  id: number;
+  uuid?: string;
+  ida?: string;
+  dt_created?: number;
+  dt_modified?: number;
+  version?: number;
+  is_active?: boolean;
+  is_deleted?: boolean;
+  is_archived?: boolean;
+  email: string;
+  name?: string;
+  attention?: string;
+  type?: string;
+  opt_out?: string;
+  is_primary?: boolean;
+  is_verified?: boolean;
+  metadata?: Record<string, any>;
+  refs?: Record<string, any>;
+  prefs?: Record<string, any>;
+  comments?: Record<string, any>;
+  health_rating?: number;
+}

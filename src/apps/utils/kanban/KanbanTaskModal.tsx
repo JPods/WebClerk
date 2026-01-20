@@ -20,6 +20,8 @@ interface AssigneeOption {
   label: string;
 }
 
+type AssigneeUIMode = 'dropdown' | 'chips';
+
 interface KanbanTaskModalProps {
   mode: "create" | "edit";
   isOpen: boolean;
@@ -38,6 +40,8 @@ interface KanbanTaskModalProps {
   difficultyOptions: string[];
   progressOptions: string[];
   assigneeOptions?: AssigneeOption[];
+  assigneeUIMode?: AssigneeUIMode;
+  onAssigneeUIModeChange?: (mode: AssigneeUIMode) => void;
   translations: TranslationFormEntry[];
   onTranslationFieldChange: (entryId: string, field: keyof TranslationFormEntry, value: string) => void;
   onRemoveTranslation: (entryId: string) => void;
@@ -219,32 +223,59 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">assignee_to</label>
-
-              {assigneeOptions.length > 0 ? (
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignees</label>
+              {/* UI mode toggle for dev/testing */}
+              <div className="mb-2 flex gap-2">
+                <span className="text-xs text-gray-500">UI:</span>
+                <button type="button" className={`px-2 py-1 rounded ${assigneeUIMode==='dropdown'?'bg-indigo-100':'bg-gray-100'}`} onClick={()=>onAssigneeUIModeChange?.('dropdown')}>Dropdown</button>
+                <button type="button" className={`px-2 py-1 rounded ${assigneeUIMode==='chips'?'bg-indigo-100':'bg-gray-100'}`} onClick={()=>onAssigneeUIModeChange?.('chips')}>Chips</button>
+              </div>
+              {assigneeUIMode === 'dropdown' ? (
                 <select
                   className={controlClass}
-                  value={formState.assignee}
-                  onChange={(event) => onFieldChange("assignee", event.target.value)}
+                  multiple
+                  value={formState.assigned_to?.map((a:any)=>a.id)||[]}
+                  onChange={e => {
+                    const selected = Array.from(e.target.selectedOptions).map(opt => ({id: opt.value, name: opt.text}));
+                    onFieldChange('assigned_to', selected);
+                  }}
                   disabled={isSaving}
+                  size={Math.min(assigneeOptions.length, 6)}
                 >
-                  <option value="">Select assignee...</option>
-                  {assigneeOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
+                  {assigneeOptions.map(option => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
                   ))}
                 </select>
               ) : (
-                <input
-                  className={controlClass}
-                  value={formState.assignee}
-                  onChange={(event) => onFieldChange("assignee", event.target.value)}
-                  placeholder="Select a project to see contacts"
-                  disabled={isSaving}
-                />
+                <div className="flex flex-wrap gap-2">
+                  {(formState.assigned_to||[]).map((a:any) => (
+                    <span key={a.id} className="inline-flex items-center bg-indigo-100 text-indigo-800 rounded px-2 py-1 text-xs">
+                      {a.name}
+                      <button type="button" className="ml-1 text-xs text-red-500" onClick={()=>{
+                        const next = (formState.assigned_to||[]).filter((x:any)=>x.id!==a.id);
+                        onFieldChange('assigned_to', next);
+                      }}>×</button>
+                    </span>
+                  ))}
+                  <select
+                    className={controlClass+" w-auto"}
+                    value=""
+                    onChange={e => {
+                      const opt = assigneeOptions.find(o=>o.id===e.target.value);
+                      if(opt){
+                        const next = [...(formState.assigned_to||[]), {id: opt.id, name: opt.label}];
+                        onFieldChange('assigned_to', next);
+                      }
+                    }}
+                    disabled={isSaving}
+                  >
+                    <option value="">Add assignee…</option>
+                    {assigneeOptions.filter(opt=>!(formState.assigned_to||[]).some((a:any)=>a.id===opt.id)).map(opt=>(
+                      <option key={opt.id} value={opt.id}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               )}
-
             </div>
 
             <div className="space-y-2">

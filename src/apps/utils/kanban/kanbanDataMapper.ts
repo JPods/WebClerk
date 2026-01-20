@@ -145,12 +145,7 @@ const getColumnWeight = (column: KanbanColumnType): number => {
 };
 
 const PROGRESS_FIELD_CANDIDATES = [
-  "progress",
-  "progress_percent",
-  "progress_percentage",
-  "completion",
-  "completion_percent",
-  "completion_percentage",
+  "percent_complete",
 ];
 
 const SEQUENCE_FIELD_CANDIDATES = [
@@ -185,36 +180,11 @@ const normalizeProgressInput = (value?: number): number | undefined => {
 };
 
 const extractProgressValue = (item: ApiKanbanItem): number | undefined => {
-  // First check root level
-  for (const key of PROGRESS_FIELD_CANDIDATES) {
-    const candidate = coerceNumericValue((item as Record<string, unknown>)[key]);
-    if (candidate !== undefined) {
-      console.log(`Found progress in root [${key}]:`, candidate, "for task", item.id);
-      return normalizeProgressInput(candidate);
-    }
+  // Only use percent_complete as canonical field
+  const candidate = coerceNumericValue((item as Record<string, unknown>)["percent_complete"]);
+  if (candidate !== undefined) {
+    return normalizeProgressInput(candidate);
   }
-
-  // Then check nested sources
-  const metaSources = [
-    { name: 'kanban_meta', data: item.kanban_meta },
-    { name: 'refs', data: item.refs },
-    { name: 'prefs.userdefined', data: item.prefs?.userdefined }
-  ];
-  
-  for (const source of metaSources) {
-    if (!source.data || typeof source.data !== "object") {
-      continue;
-    }
-    for (const key of PROGRESS_FIELD_CANDIDATES) {
-      const candidate = coerceNumericValue((source.data as Record<string, unknown>)[key]);
-      if (candidate !== undefined) {
-        console.log(`Found progress in ${source.name}[${key}]:`, candidate, "for task", item.id);
-        return normalizeProgressInput(candidate);
-      }
-    }
-  }
-
-  console.log("No progress found for task", item.id, "prefs:", item.prefs);
   return undefined;
 };
 

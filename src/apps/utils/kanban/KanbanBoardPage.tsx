@@ -368,7 +368,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   dt_start: "",
   dt_completed: "",
   dt_expected: "",
-  assignee: "",
+  assigned_to: [],
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
   percent_complete: "0",
@@ -747,8 +747,8 @@ const updateTaskFormState = (
     return { ...prev, projectId: value };
   }
 
-  if (field === "assignee") {
-    return { ...prev, assignee: value };
+  if (field === "assigned_to") {
+    return { ...prev, assigned_to: value };
   }
 
   if (field === "difficulty") {
@@ -1400,7 +1400,7 @@ const KanbanBoardPage: React.FC = () => {
       dt_start: normalizedStart,
        dt_completed: normalizedEnd,
        dt_expected: normalizeIncomingDateValue(task.dt_expected),
-      assignee: task.assignee || task.assigned_to?.[0]?.name || "",
+      assigned_to: Array.isArray(task.assigned_to) ? task.assigned_to.map(a => ({ id: a.id, name: a.name || a.id })) : [],
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
       percent_complete: String(normalizedProgress),
@@ -1756,10 +1756,7 @@ const KanbanBoardPage: React.FC = () => {
 
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
-    const assigneeValue = typeof state.assignee === "string" ? state.assignee.trim() : "";
-    const assignedTo: Array<{ name: string; id?: number }> = assigneeValue
-      ? [{ name: assigneeValue }]
-       : baseTask?.assigned_to?.map((assignment: any) => ({ name: assignment.name })) ?? [];
+    const assignedTo = Array.isArray(state.assigned_to) ? state.assigned_to : [];
 
     let startTimestamp = toTimestampMilliseconds(state.dt_start);
     let dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
@@ -1813,17 +1810,10 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     if (assignedTo.length > 0) {
-      payloadItem.assigned_to = assignedTo;
-      // If we have a selected contact, include contact_id for direct assignment
-      if (selectedContactId) {
-        const numericContactId = Number(selectedContactId);
-        if (!Number.isNaN(numericContactId) && numericContactId > 0) {
-          payloadItem.contact_id = numericContactId;
-          // Also add id to assigned_to entry for backend reference
-          if (assignedTo[0] && typeof assignedTo[0] === "object") {
-            assignedTo[0].id = numericContactId;
-          }
-        }
+      payloadItem.assigned_to = assignedTo.map(a => ({ id: a.id, name: a.name }));
+      // Optionally, set contact_id if only one selected
+      if (assignedTo.length === 1 && assignedTo[0].id) {
+        payloadItem.contact_id = assignedTo[0].id;
       }
     }
 

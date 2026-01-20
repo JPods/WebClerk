@@ -1,3 +1,6 @@
+// This file defines TypeScript types and interfaces for phone models only.
+// Do not place implementation logic here. For logic, use Phone.ts.
+
 export interface PhoneAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any; // TODO: Type this properly
