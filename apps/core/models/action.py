@@ -34,21 +34,21 @@ class Action(BaseModel):
     burndown = models.SmallIntegerField(default=0)
     # Date fields with detailed meta info
     dt_created = models.BigIntegerField(default=0, db_index=True)
-    dt_updated = models.BigIntegerField(default=0, db_index=True)
+    dt_start = models.BigIntegerField(blank=True, null=True)
+    dt_deadline = models.BigIntegerField(blank=True, null=True)
     dt_expected = models.BigIntegerField(blank=True, null=True)
     dt_completed = models.BigIntegerField(blank=True, null=True)
-    dt_start = models.BigIntegerField(blank=True, null=True)
-    dt_due = models.BigIntegerField(blank=True, null=True)
+    dt_updated = models.BigIntegerField(default=0, db_index=True)
     #days
     duration = models.IntegerField(blank=True, null=True)
 
     # Audit info: who created / updated etc.
     created_by = models.JSONField(blank=True, null=True)
-    updated_by = models.JSONField(blank=True, null=True)
-    expected_by = models.JSONField(blank=True, null=True)
-    due_by = models.JSONField(blank=True, null=True)
-    completed_by = models.JSONField(blank=True, null=True)
     start_by = models.JSONField(blank=True, null=True)
+    deadline_by = models.JSONField(blank=True, null=True)
+    expected_by = models.JSONField(blank=True, null=True)
+    completed_by = models.JSONField(blank=True, null=True)
+    updated_by = models.JSONField(blank=True, null=True)
     end_by = models.JSONField(blank=True, null=True)
 
  
