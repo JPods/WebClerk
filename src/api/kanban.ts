@@ -4,7 +4,7 @@ import type {
   CreateKanbanTaskRequest,
   KanbanApiTask,
   UpdateKanbanTaskStatusRequest,
-} from "./apps/utils/kanban/type/kanban";
+} from "../apps/utils/kanban/type/kanban";
 
 const unwrap = <T>(response: any): T => {
   if (!response) return [] as unknown as T;
