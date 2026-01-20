@@ -1,41 +1,6 @@
-export interface RepAddProps {
-  modeProp?: "add" | "edit" | "view";
-  dataProp?: any; // TODO: Type this properly
-  hideBreadcrumb?: boolean;
-  onSaved?: () => void;
-  inline?: boolean;
-  onCancelInline?: () => void;
-}
-
-export interface CreateRepRequest {
-  display_name: string;
-  status: string;
-  org_type?: string;
-  is_active: boolean;
-  version?: number;
-}
-
-export interface RepApiTask {
+export interface OtherType {
   id: number;
-  display_name: string;
-  status: string;
-  org_type?: string;
-  is_active: boolean;
-  version?: number;
-}
-
-export interface UpdateRepRequest {
-  id: number;
-  display_name: string;
-  status: string;
-  org_type?: string;
-  is_active: boolean;
-  version?: number;
-}
-
-export interface RepType {
-  id: number;
-  org_type: "rep";
+  org_type: "other";
   contacts?: Array<{id: number; name: string; role?: string; phones?: string[]; emails?: string[]}>;
   locations?: Array<{id: number; type?: string; address?: any; geo?: {lat: number; lng: number}}>; 
   domains?: Array<{domain: string; verified: boolean; dt_verified: number}>;
