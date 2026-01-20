@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode } from "react";
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
 import type {
@@ -23,7 +23,6 @@ interface AssigneeOption {
   id: string;
   label: string;
 }
-type AssigneeUIMode = 'dropdown' | 'chips';
 
 interface KanbanTaskModalProps {
   mode: "create" | "edit";
@@ -42,8 +41,6 @@ interface KanbanTaskModalProps {
   difficultyOptions: string[];
   progressOptions: string[];
   assigneeOptions?: AssigneeOption[];
-  assigneeUIMode?: AssigneeUIMode;
-  onAssigneeUIModeChange?: (mode: AssigneeUIMode) => void;
   translations: TranslationFormEntry[];
   onTranslationFieldChange: (entryId: string, field: keyof TranslationFormEntry, value: string) => void;
   onRemoveTranslation: (entryId: string) => void;
@@ -93,6 +90,25 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
   if (!isOpen) {
     return null;
   }
+
+  const [assigneeSelection, setAssigneeSelection] = useState<string>("");
+
+  useEffect(() => {
+    setAssigneeSelection("");
+  }, [isOpen]);
+
+  const handleAssigneeSelect = (event: ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = event.target.value;
+    if (!selectedId) return;
+
+    const option = assigneeOptions.find((opt) => opt.id === selectedId);
+    const label = option?.label ?? selectedId;
+    const existing = (formState.assigned_to || []).some((assignee: any) => assignee.id === selectedId);
+    if (!existing) {
+      onFieldChange("assigned_to", [...(formState.assigned_to || []), { id: selectedId, name: label }]);
+    }
+    setAssigneeSelection("");
+  };
 
   const datalistId = `language-options-${mode}`;
   const canRemoveTranslation = translations.length > 1;
@@ -174,58 +190,37 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
             {/* Assignees */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignees</label>
-              {/* UI mode toggle for dev/testing */}
-              <div className="mb-2 flex gap-2">
-                <span className="text-xs text-gray-500">UI:</span>
-                <button type="button" className={`px-2 py-1 rounded ${assigneeUIMode==='dropdown'?'bg-indigo-100':'bg-gray-100'}`} onClick={()=>onAssigneeUIModeChange?.('dropdown')}>Dropdown</button>
-                <button type="button" className={`px-2 py-1 rounded ${assigneeUIMode==='chips'?'bg-indigo-100':'bg-gray-100'}`} onClick={()=>onAssigneeUIModeChange?.('chips')}>Chips</button>
-              </div>
-              {assigneeUIMode === 'dropdown' ? (
-                <select
-                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  multiple
-                  value={formState.assigned_to?.map((a:any)=>a.id)||[]}
-                  onChange={e => {
-                    const selected = Array.from(e.target.selectedOptions).map(opt => ({id: opt.value, name: opt.text}));
-                    onFieldChange('assigned_to', selected);
-                  }}
-                  disabled={isSaving}
-                  size={Math.min(assigneeOptions.length, 6)}
-                >
-                  {assigneeOptions.map(option => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {(formState.assigned_to||[]).map((a:any) => (
-                    <span key={a.id} className="inline-flex items-center bg-indigo-100 text-indigo-800 rounded px-2 py-1 text-xs">
-                      {a.name}
-                      <button type="button" className="ml-1 text-xs text-red-500" onClick={()=>{
-                        const next = (formState.assigned_to||[]).filter((x:any)=>x.id!==a.id);
-                        onFieldChange('assigned_to', next);
-                      }}>×</button>
-                    </span>
-                  ))}
-                  <select
-                    className="mt-1 w-auto rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    value=""
-                    onChange={e => {
-                      const opt = assigneeOptions.find(o=>o.id===e.target.value);
-                      if(opt){
-                        const next = [...(formState.assigned_to||[]), {id: opt.id, name: opt.label}];
-                        onFieldChange('assigned_to', next);
-                      }
-                    }}
-                    disabled={isSaving}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(formState.assigned_to || []).map((a: any) => (
+                  <span
+                    key={a.id}
+                    className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-100 dark:ring-indigo-500/40"
                   >
-                    <option value="">Add assignee…</option>
-                    {assigneeOptions.filter(opt=>!(formState.assigned_to||[]).some((a:any)=>a.id===opt.id)).map(opt=>(
-                      <option key={opt.id} value={opt.id}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                    {a.name}
+                    <button
+                      type="button"
+                      className="ml-2 text-indigo-500 hover:text-rose-500"
+                      onClick={() => {
+                        const next = (formState.assigned_to || []).filter((x: any) => x.id !== a.id);
+                        onFieldChange("assigned_to", next);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <select
+                className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={assigneeSelection}
+                onChange={handleAssigneeSelect}
+                disabled={isSaving}
+              >
+                <option value="">Select assignee...</option>
+                {assigneeOptions.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </select>
             </div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
                  <input type="datetime-local" step={60} value={formState.dt_start} onChange={(e)=>onFieldChange("dt_start", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />

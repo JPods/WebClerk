@@ -10,4 +10,5 @@ export interface DragItem {
 export interface DropResult {
   columnId: string;
   index: number;
+  dropType?: "column" | "trash";
 }

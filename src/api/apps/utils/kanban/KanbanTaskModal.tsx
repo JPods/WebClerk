@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "../../type/kanban";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
@@ -20,8 +20,6 @@ interface AssigneeOption {
   label: string;
 }
 
-type AssigneeUIMode = 'dropdown' | 'chips';
-
 interface KanbanTaskModalProps {
   mode: "create" | "edit";
   isOpen: boolean;
@@ -40,8 +38,6 @@ interface KanbanTaskModalProps {
   difficultyOptions: string[];
   progressOptions: string[];
   assigneeOptions?: AssigneeOption[];
-  assigneeUIMode?: AssigneeUIMode;
-  onAssigneeUIModeChange?: (mode: AssigneeUIMode) => void;
   translations: TranslationFormEntry[];
   onTranslationFieldChange: (entryId: string, field: keyof TranslationFormEntry, value: string) => void;
   onRemoveTranslation: (entryId: string) => void;
@@ -82,12 +78,29 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   onLanguageCustomChange,
   onLanguagePickerSubmit,
   onLanguagePickerCancel,
-  assigneeUIMode = 'dropdown',
-  onAssigneeUIModeChange,
   onRemoveFromKanban: _onRemoveFromKanban,
   isRemoving: _isRemoving = false,
 }) => {
   if (!isOpen) return null;
+
+  const [assigneeSelection, setAssigneeSelection] = useState<string>("");
+
+  useEffect(() => {
+    setAssigneeSelection("");
+  }, [isOpen]);
+
+  const handleAssigneeSelect = (event: ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = event.target.value;
+    if (!selectedId) return;
+
+    const option = assigneeOptions.find((opt) => opt.id === selectedId);
+    const label = option?.label ?? selectedId;
+    const existing = (formState.assigned_to || []).some((assignee: any) => assignee.id === selectedId);
+    if (!existing) {
+      onFieldChange("assigned_to", [...(formState.assigned_to || []), { id: selectedId, name: label }]);
+    }
+    setAssigneeSelection("");
+  };
 
   const statusOptions = useMemo(
     () => [
@@ -187,7 +200,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </button>
         </div>
 
-        <form id={formId} className="flex-1 space-y-6 overflow-y-auto px-5 py-5 no-scrollbar" onSubmit={onSubmit}>
+        <form id={formId} className="flex-1 space-y-4 overflow-y-auto px-5 py-5 no-scrollbar" onSubmit={onSubmit}>
           {modalError && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
               {modalError}
@@ -220,90 +233,44 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   disabled={isSaving}
                 />
               </div>
-            </div>
-          )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignees</label>
-              {/* UI mode toggle for dev/testing */}
-              <div className="mb-2 flex gap-2">
-                <span className="text-xs text-gray-500">UI:</span>
-                <button type="button" className={`px-2 py-1 rounded ${assigneeUIMode==='dropdown'?'bg-indigo-100':'bg-gray-100'}`} onClick={()=>onAssigneeUIModeChange?.('dropdown')}>Dropdown</button>
-                <button type="button" className={`px-2 py-1 rounded ${assigneeUIMode==='chips'?'bg-indigo-100':'bg-gray-100'}`} onClick={()=>onAssigneeUIModeChange?.('chips')}>Chips</button>
-              </div>
-              {assigneeUIMode === 'dropdown' ? (
-                <select
-                  className={controlClass}
-                  multiple
-                  value={formState.assigned_to?.map((a:any)=>a.id)||[]}
-                  onChange={e => {
-                    const selected = Array.from(e.target.selectedOptions).map(opt => ({id: opt.value, name: opt.text}));
-                    onFieldChange('assigned_to', selected);
-                  }}
-                  disabled={isSaving}
-                  size={Math.min(assigneeOptions.length, 6)}
-                >
-                  {assigneeOptions.map(option => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
-                  ))}
-                </select>
-              ) : (
+              <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
-                  {(formState.assigned_to||[]).map((a:any) => (
-                    <span key={a.id} className="inline-flex items-center bg-indigo-100 text-indigo-800 rounded px-2 py-1 text-xs">
+                  {(formState.assigned_to || []).map((a: any) => (
+                    <span
+                      key={a.id}
+                      className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-100 dark:ring-indigo-500/40"
+                    >
                       {a.name}
-                      <button type="button" className="ml-1 text-xs text-red-500" onClick={()=>{
-                        const next = (formState.assigned_to||[]).filter((x:any)=>x.id!==a.id);
-                        onFieldChange('assigned_to', next);
-                      }}>×</button>
+                      <button
+                        type="button"
+                        className="ml-2 text-indigo-500 hover:text-rose-500"
+                        onClick={() => {
+                          const next = (formState.assigned_to || []).filter((x: any) => x.id !== a.id);
+                          onFieldChange("assigned_to", next);
+                        }}
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
-                  <select
-                    className={controlClass+" w-auto"}
-                    value=""
-                    onChange={e => {
-                      const opt = assigneeOptions.find(o=>o.id===e.target.value);
-                      if(opt){
-                        const next = [...(formState.assigned_to||[]), {id: opt.id, name: opt.label}];
-                        onFieldChange('assigned_to', next);
-                      }
-                    }}
-                    disabled={isSaving}
-                  >
-                    <option value="">Add assignee…</option>
-                    {assigneeOptions.filter(opt=>!(formState.assigned_to||[]).some((a:any)=>a.id===opt.id)).map(opt=>(
-                      <option key={opt.id} value={opt.id}>{opt.label}</option>
-                    ))}
-                  </select>
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
-                <span>difficulty</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{difficultyValue}</span>
-              </div>
-              <input
-                type="range"
-                min={10}
-                max={100}
-                step={5}
-                value={difficultyValue}
-                onChange={(e) => {
-                  const next = snapToDifficultyStop(Number(e.target.value) || difficultyValue);
-                  onFieldChange("difficulty", String(next));
-                }}
-                disabled={isSaving}
-                className="w-full accent-indigo-600"
-              />
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>Easy</span>
-                <span>Hard</span>
+                <select
+                  className={`${controlClass}`}
+                  value={assigneeSelection}
+                  onChange={handleAssigneeSelect}
+                  disabled={isSaving}
+                >
+                  <option value="">Select assignee...</option>
+                  {assigneeOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -333,25 +300,47 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">progress</label>
-              <div className="space-y-1">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={progressValue}
-                  onChange={(e) => onFieldChange("progress", String(Math.max(0, Math.min(100, Number(e.target.value) || 0))))}
-                  disabled={isSaving}
-                  className="w-full accent-indigo-600"
-                />
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <span>0%</span>
-                  <span>50%</span>
-                  <span>100%</span>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span>difficulty</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{difficultyValue}</span>
               </div>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                step={5}
+                value={difficultyValue}
+                onChange={(e) => {
+                  const next = snapToDifficultyStop(Number(e.target.value) || difficultyValue);
+                  onFieldChange("difficulty", String(next));
+                }}
+                disabled={isSaving}
+                className="w-full accent-indigo-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Easy</span>
+                <span>Hard</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">progress</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={progressValue}
+              onChange={(e) => onFieldChange("progress", String(Math.max(0, Math.min(100, Number(e.target.value) || 0))))}
+              disabled={isSaving}
+              className="w-full accent-indigo-600"
+            />
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
             </div>
           </div>
 
@@ -387,8 +376,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <input
                     type="datetime-local"
                     step={60}
-  value={formState.dt_completed}
-  onChange={(e) => onFieldChange("dt_completed", e.target.value)}
+                    value={formState.dt_completed}
+                    onChange={(e) => onFieldChange("dt_completed", e.target.value)}
                     disabled={isSaving}
                     className={controlClass}
                   />
