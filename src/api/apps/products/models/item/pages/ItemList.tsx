@@ -3,7 +3,9 @@ import ComponentCard from "../../../../../../components/common/ComponentCard";
 import AdvancedDataTable, { ColumnFilter } from "../../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus, FaTrash, FaTachometerAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { PageRoutes } from "../../../../../../routes/Routes";
 import { useDispatch } from "react-redux";
 import { deleteAction } from "../../../../../userProfile";
 import { showToast } from "../../../../../../store/slices/toastSlice";
@@ -53,6 +55,7 @@ const extractItems = (payload: any): any[] => {
 };
 
 export default function ItemList() {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [items, setItems] = useState<any[]>([]);
@@ -98,6 +101,14 @@ export default function ItemList() {
     setSelectedItem(row);
     setFormMode("view");
   }, []);
+
+  const handleDashboard = useCallback((row: any) => {
+    const id = getItemId(row);
+    console.log('Dashboard button clicked, id:', id);
+    if (id) {
+      navigate(PageRoutes.productsItemDashboard.replace(":id", String(id)));
+    }
+  }, [navigate, getItemId]);
 
   const handleEdit = useCallback((row: any) => {
     setSelectedItem(row);
@@ -208,6 +219,9 @@ export default function ItemList() {
             <button onClick={() => handleEdit(row)} title="Edit">
               <FaEdit className="text-green-600 hover:scale-110 transition" />
             </button>
+            <button onClick={() => handleDashboard(row)} title="Dashboard">
+              <FaTachometerAlt className="text-purple-600 hover:scale-110 transition" />
+            </button>
             <button onClick={() => handleDelete(row)} title="Delete">
               <FaTrash className="text-red-600 hover:scale-110 transition" />
             </button>
@@ -216,7 +230,7 @@ export default function ItemList() {
         ignoreRowClick: true,
         allowOverflow: true,
         button: true,
-        width: "100px",
+        width: "120px",
       },
     ];
   }, [handleDelete, handleEdit, handleView]);
@@ -238,7 +252,7 @@ export default function ItemList() {
               enableSelection={true}
               onSelectionChange={setSelectedItems}
               exportFileName="items_export"
-              onRowActivate={handleEdit}
+              // onRowActivate={handleEdit}
               searchPlaceholder="Search items..."
               noDataMessage="No items found"
               customActions={

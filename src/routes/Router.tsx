@@ -1,3 +1,4 @@
+import ItemDashboard from "../api/apps/products/models/item/pages/ItemDashboard";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./PrivateRoute";
@@ -251,6 +252,10 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.productsItemList}
             element={<ItemList />}
+          />
+          <Route
+            path={PageRoutes.productsItemDashboard}
+            element={<ItemDashboard />}
           />
           <Route
             path={PageRoutes.productsItemXrefList}
