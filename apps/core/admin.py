@@ -134,7 +134,7 @@ class ContactAdmin(BaseUserAdmin):
 @admin.register(Action)
 class ActionAdmin(admin.ModelAdmin):
     """Admin interface for Action model."""
-    list_display = ('id', 'get_action_title', 'project_id', 'project_name', 'kanban_column', 'status', 'priority', 'dt_created')
+    list_display = ('id', 'get_action_title', 'project_id', 'project_name', 'kanban_column', 'status', 'priority', 'dt_deadline')
     list_filter = ('kanban_column', 'status', 'priority')
     search_fields = ('project_id', 'action')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
@@ -145,15 +145,12 @@ class ActionAdmin(admin.ModelAdmin):
         'difficulty',
         'dt_completed',
         'dt_created',
-        'dt_due',
-        'dt_end',
         'dt_expected',
         'dt_modified',
         'dt_start',
         'dt_updated',
         'duration',
         'health_rating',
-        'id',
         'ida',
         'is_active',
         'is_archived',
@@ -178,7 +175,6 @@ class ActionAdmin(admin.ModelAdmin):
         'completed_by',
         'created_by',
         'description',
-        'due_by',
         'end_by',
         'expected_by',
         'languages',
