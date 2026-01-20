@@ -1,5 +1,5 @@
 // Utility to create a blank record matching WC3 CoreModel, BaseModel, and model_name
-import { BaseModelFields } from '../api/apps/utils/kanban/taskFormTypes';
+import { BaseModelFields } from '../apps/utils/kanban/taskFormTypes';
 
 export function createBlankRecord(modelName: string, fields: string[]): BaseModelFields & { model_name: string } {
   // Default values for CoreModelFields
