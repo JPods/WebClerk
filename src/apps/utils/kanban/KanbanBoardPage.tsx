@@ -2036,7 +2036,11 @@ const KanbanBoardPage: React.FC = () => {
       })
       .catch((error) => {
         console.error("Failed to create kanban task", error);
-        setCreateModalError(error?.message || "Failed to create kanban task");
+        const message =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          "Failed to create task. Please try again.";
+        setCreateModalError(message);
       })
       .finally(() => {
         setIsSavingCreate(false);
