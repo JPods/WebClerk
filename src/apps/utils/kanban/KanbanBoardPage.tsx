@@ -1069,7 +1069,6 @@ const KanbanBoardPage: React.FC = () => {
         return;
       }
 
-      const wrap = (value: unknown) => ({ mode: "update", value });
       const destinationColumn = nextBoard.columns[dropResult.columnId];
       if (!destinationColumn) return;
 
@@ -1102,26 +1101,51 @@ const KanbanBoardPage: React.FC = () => {
       const targetTask = nextBoard.tasks[item.taskId];
       if (!targetTask?.id) return;
 
+      // Build complete payload with all necessary fields
       const entry: Record<string, unknown> = {
         model_name: "action",
         id: targetTask.id,
-        kanban_column: wrap(destinationColumn.title),
-        kanban_column_id: wrap(destinationColumn.id),
-        sequence: wrap(newSequence),
-        order: wrap(newSequence),
-        position: wrap(newSequence),
+        kanban_column: destinationColumn.title,
+        kanban_column_id: destinationColumn.id,
+        sequence: newSequence,
+        order: newSequence,
+        position: newSequence,
       };
+      
+      // Include action titles to ensure backend has them
+      if (targetTask.title) {
+        entry.action_en = targetTask.title;
+      }
+      
+      // Include translations if available
+      if (targetTask.title_translations) {
+        Object.entries(targetTask.title_translations).forEach(([lang, text]) => {
+          if (text) {
+            entry[`action_${lang}`] = text;
+          }
+        });
+      }
+      
       if (selectedProjectName) {
-        entry.project_name = wrap(selectedProjectName);
+        entry.project_name = selectedProjectName;
+      }
+      
+      if (selectedProjectId) {
+        const numericId = Number(selectedProjectId);
+        entry.project_id = Number.isNaN(numericId) ? selectedProjectId : numericId;
       }
 
+      console.log("Dragging task - payload:", entry);
+
       try {
-        await patchAction(entry);
+        const response = await patchAction(entry);
+        console.log("Drag persist response:", response);
       } catch (error) {
         console.error("Failed to persist kanban reorder", error);
+        console.error("Error details:", error);
       }
     },
-    [selectedProjectName]
+    [selectedProjectName, selectedProjectId]
   );
 
   const removeTaskInBackend = useCallback(async (taskId: string | number) => {
