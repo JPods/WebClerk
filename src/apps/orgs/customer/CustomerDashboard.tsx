@@ -16,6 +16,8 @@ const RelationshipsContainer = () => <section><h3>Relationships</h3>{/* Vendor, 
 const CatalogsContainer = () => <section><h3>Catalogs</h3>{/* View/Edit catalogs */}</section>;
 const CampaignsContainer = () => <section><h3>Campaigns</h3>{/* View/Edit campaigns */}</section>;
 
+
+export const CustomerDashboard = () => {
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
