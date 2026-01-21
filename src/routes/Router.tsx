@@ -1,3 +1,4 @@
+import CustomerDashboardPage from './CustomerDashboardRoute';
 import ItemDashboard from "../apps/products/models/item/pages/ItemDashboard";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -118,6 +119,7 @@ const Router: React.FC = () => {
             element={<CoreContactDetail />}
           />
           <Route path={PageRoutes.customerList} element={<CustomerList />} />
+          <Route path="/org/customer/dashboard/:customerId" element={<CustomerDashboardPage />} />
           <Route path={PageRoutes.employeeList} element={<EmployeeList />} />
           <Route
             path={PageRoutes.manufacturerList}

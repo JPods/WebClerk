@@ -1,5 +1,6 @@
 import React from "react";
 import { PageRoutes } from "./Routes";
+import CustomerDashboardPage from '../apps/orgs/customer/pages/CustomerDashboardPage';
 import {
   CustomerList,
   EmployeeList,
@@ -164,6 +165,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.ledgerList, element: <LedgerList /> },
   { path: PageRoutes.taxJurisdictionList, element: <TaxJurisdictionList /> },
   { path: PageRoutes.termList, element: <TermList /> },
+  { path: "/org/customer/dashboard/:customerId", element: <CustomerDashboardPage /> },
   { path: "/core/audit/list", element: <Placeholder title="Core Audit" /> },
   { path: "/core/notification/list", element: <Placeholder title="Notifications" /> },
   { path: "/core/pending/list", element: <Placeholder title="Pending Items" /> },
