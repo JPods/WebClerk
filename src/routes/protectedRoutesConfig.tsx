@@ -1,5 +1,6 @@
 import React from "react";
 import { PageRoutes } from "./Routes";
+import CustomerDashboardPage from '../apps/orgs/customer/pages/CustomerDashboardPage';
 import {
   CustomerList,
   EmployeeList,
@@ -55,32 +56,32 @@ import {
 } from "../pages/wrapperPage";
 import AdminWorkbench from "../pages/admin/AdminWorkbench";
 import WhitelistTester from "../pages/tools/WhitelistTester";
-import BillOfMaterialList from "../api/apps/products/models/bill_of_material/pages/BillOfMaterialList";
-import CatalogList from "../api/apps/products/models/catalog/pages/CatalogList";
-import FlowList from "../api/apps/products/models/flow/pages/FlowList";
-import ItemList from "../api/apps/products/models/item/pages/ItemList";
-import ItemXrefList from "../api/apps/products/models/item_xref/pages/ItemXrefList";
-import MatricsList from "../api/apps/products/models/matrics/pages/MatricsList";
-import OrgItemList from "../api/apps/products/models/org_item/pages/OrgItemList";
-import SerialList from "../api/apps/products/models/serial/pages/SerialList";
-import ServiceList from "../api/apps/products/models/service/pages/ServiceList";
-import SpecificationList from "../api/apps/products/models/specification/pages/SpecificationList";
-import UsageList from "../api/apps/products/models/usage/pages/UsageList";
-import VariantList from "../api/apps/products/models/variant/pages/VariantList";
-import WarehouseList from "../api/apps/products/models/warehouse/pages/WarehouseList";
-import SalesOrderDetail from "../api/apps/transactions/models/sales_order/pages/SalesOrderDetail";
-import InvoiceList from "../api/apps/transactions/models/invoice/pages/InvoiceList";
-import InvoiceDetail from "../api/apps/transactions/models/invoice/pages/InvoiceDetail";
-import PurchaseOrderDetail from "../api/apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
-import ProposalDetail from "../api/apps/transactions/models/proposal/pages/ProposalDetail";
-import ProposalList from "../api/apps/transactions/models/proposal/pages/ProposalList";
-import PurchaseOrderList from "../api/apps/transactions/models/purchase_order/pages/PurchaseOrderList";
-import SalesOrderList from "../api/apps/transactions/models/sales_order/pages/SalesOrderList";
-import DocumentIndex from "../api/apps/docs/models/document/pages/DocumentIndex";
-import ActionListPage from "../api/apps/core/models/action/pages/ActionList";
-import ActionDetail from "../api/apps/core/models/action/pages/ActionDetail";
-import APILogList from "../api/apps/core/models/api_log/pages/APILogList";
-import AllModelsWorkbench from "../api/apps/utils/scaffold/AllModelsWorkbench";
+import BillOfMaterialList from "../apps/products/models/bill_of_material/pages/BillOfMaterialList";
+import CatalogList from "../apps/products/models/catalog/pages/CatalogList";
+import FlowList from "../apps/products/models/flow/pages/FlowList";
+import ItemList from "../apps/products/models/item/pages/ItemList";
+import ItemXrefList from "../apps/products/models/item_xref/pages/ItemXrefList";
+import MatricsList from "../apps/products/models/matrics/pages/MatricsList";
+import OrgItemList from "../apps/products/models/org_item/pages/OrgItemList";
+import SerialList from "../apps/products/models/serial/pages/SerialList";
+import ServiceList from "../apps/products/models/service/pages/ServiceList";
+import SpecificationList from "../apps/products/models/specification/pages/SpecificationList";
+import UsageList from "../apps/products/models/usage/pages/UsageList";
+import VariantList from "../apps/products/models/variant/pages/VariantList";
+import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList";
+import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
+import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
+import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
+import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
+import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
+import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
+import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
+import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesOrderList";
+import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
+import ActionListPage from "../apps/core/models/action/pages/ActionList";
+import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
+import APILogList from "../apps/core/models/api_log/pages/APILogList";
+import AllModelsWorkbench from "../apps/utils/scaffold/AllModelsWorkbench";
 import Placeholder from "../pages/Placeholder";
 
 export const protectedRoutesConfig = [
@@ -164,6 +165,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.ledgerList, element: <LedgerList /> },
   { path: PageRoutes.taxJurisdictionList, element: <TaxJurisdictionList /> },
   { path: PageRoutes.termList, element: <TermList /> },
+  { path: "/org/customer/dashboard/:customerId", element: <CustomerDashboardPage /> },
   { path: "/core/audit/list", element: <Placeholder title="Core Audit" /> },
   { path: "/core/notification/list", element: <Placeholder title="Notifications" /> },
   { path: "/core/pending/list", element: <Placeholder title="Pending Items" /> },
