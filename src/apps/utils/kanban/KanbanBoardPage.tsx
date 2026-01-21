@@ -2019,7 +2019,6 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setIsSavingCreate(true);
-    handleCloseCreateModal();
 
     void patchAction(result.payload)
       .then((response) => {
@@ -2028,6 +2027,7 @@ const KanbanBoardPage: React.FC = () => {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           throw new Error(details || "Backend rejected the save request.");
         }
+        handleCloseCreateModal();
         void fetchActions({
           projectId: selectedProjectId || undefined,
           contactId: selectedContactId || undefined,
@@ -2035,6 +2035,11 @@ const KanbanBoardPage: React.FC = () => {
       })
       .catch((error) => {
         console.error("Failed to create kanban task", error);
+        const message =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          "Failed to create task. Please try again.";
+        setCreateModalError(message);
       })
       .finally(() => {
         setIsSavingCreate(false);

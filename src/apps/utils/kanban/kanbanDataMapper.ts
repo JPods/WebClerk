@@ -123,6 +123,23 @@ const slugifyColumn = (rawTitle: string): string => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+  
+  // Map common variations to standard column IDs
+  const normalized = normalizeColumnKey(rawTitle);
+  
+  if (["backlog", "todo", "uncategorized", "icebox"].includes(normalized)) {
+    return "column-backlog";
+  }
+  if (["progress", "inprogress", "inprocess", "inprogress", "doing", "wip", "workinprogress"].includes(normalized)) {
+    return "column-in-progress";
+  }
+  if (["review", "testing", "qa", "verification"].includes(normalized)) {
+    return "column-review";
+  }
+  if (["complete", "completed", "done", "finished"].includes(normalized)) {
+    return "column-complete";
+  }
+  
   return `column-${cleaned || "uncategorized"}`;
 };
 
@@ -329,6 +346,19 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
   const tasks: Record<string, KanbanTask> = {};
   const columns: Record<string, KanbanColumnType> = {};
   const columnOrder: string[] = [];
+
+  // Always ensure standard columns exist, even if empty
+  const standardColumns = [
+    { id: "column-backlog", title: "Backlog" },
+    { id: "column-in-progress", title: "In Progress" },
+    { id: "column-review", title: "Review" },
+    { id: "column-complete", title: "Complete" },
+  ];
+
+  standardColumns.forEach((col) => {
+    columns[col.id] = { id: col.id, title: col.title, task_ids: [] };
+    columnOrder.push(col.id);
+  });
 
     const sortedItems = items
       .map((item, index) => ({ item, index, sequence: extractSequenceValue(item) }))
