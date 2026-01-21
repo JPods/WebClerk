@@ -1986,21 +1986,7 @@ const KanbanBoardPage: React.FC = () => {
 
     payloadItem.is_active = state.is_active !== "false";
 
-    if (mode === "create" && resolvedProjectId) {
-      const numericId = Number(resolvedProjectId);
-      const projectPayload: Record<string, unknown> = {
-        model_name: "project",
-        id: Number.isNaN(numericId) ? resolvedProjectId : numericId,
-        bulk: [cleanActionPayload(payloadItem)],
-      };
-
-      if (resolvedProjectName) {
-        projectPayload.project_name = resolvedProjectName;
-      }
-
-      return { payload: projectPayload };
-    }
-
+    // Backend doesn't process 'bulk' arrays - always send action directly
     return { payload: cleanActionPayload(payloadItem) };
   };
 
@@ -2022,17 +2008,36 @@ const KanbanBoardPage: React.FC = () => {
 
     void patchAction(result.payload)
       .then((response) => {
+        console.log("Create task response:", response);
         const body: any = (response as any)?.data ?? response;
+        
+        // Check for fail status in both single and bulk responses
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           setCreateModalError(details || "Backend rejected the save request.");
           return;
         }
+        
+        // For project bulk operations, check the bulk array response
+        if (body?.bulk && Array.isArray(body.bulk)) {
+          const failedItems = body.bulk.filter((item: any) => item?.status === "fail");
+          if (failedItems.length > 0) {
+            const errors = failedItems.map((item: any) => 
+              Array.isArray(item?.error?.details) ? item.error.details.join("; ") : item?.message || "Unknown error"
+            );
+            throw new Error(errors.join("; "));
+          }
+        }
+        
         handleCloseCreateModal();
-        void fetchActions({
-          projectId: selectedProjectId || undefined,
-          contactId: selectedContactId || undefined,
-        });
+        
+        // Add a small delay to ensure backend has processed the action
+        setTimeout(() => {
+          void fetchActions({
+            projectId: selectedProjectId || undefined,
+            contactId: selectedContactId || undefined,
+          });
+        }, 300);
       })
       .catch((error) => {
         console.error("Failed to create kanban task", error);
