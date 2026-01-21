@@ -1,6 +1,6 @@
 import React from "react";
 import { PageRoutes } from "./Routes";
-import CustomerDashboardPage from '../apps/orgs/customer/pages/CustomerDashboardPage';
+import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import {
   CustomerList,
   EmployeeList,

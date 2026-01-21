@@ -1,4 +1,4 @@
-import CustomerDashboardPage from './CustomerDashboardRoute';
+import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import ItemDashboard from "../apps/products/models/item/pages/ItemDashboard";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";

@@ -2025,7 +2025,8 @@ const KanbanBoardPage: React.FC = () => {
         const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-          throw new Error(details || "Backend rejected the save request.");
+          setCreateModalError(details || "Backend rejected the save request.");
+          return;
         }
         handleCloseCreateModal();
         void fetchActions({
