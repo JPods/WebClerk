@@ -103,11 +103,10 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <GridIcon />,
+    icon: <GridIcon />, 
     name: "Orgs",
     subItems: [
-      { name: "Customer List", path: "/org/customer/list" },
-      { name: "Customers (Demo Dashboard)", path: "/org/customer/dashboard/81" },
+      { name: "Customer", path: "/org/customer/list" },
       { name: "Employees", path: "/org/employee/list" },
       { name: "Manufacturers", path: "/org/manufacturer/list" },
       { name: "Organizations", path: "/org/organization/list" },

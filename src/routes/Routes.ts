@@ -16,6 +16,9 @@
   static readonly actionsTaskMarkerDetail: string = "/actions/task-markers/:id";
 
   static readonly customerList: string = "/org/customer/list";
+  static readonly customerDetail: string = "/org/customer/detail";
+  static readonly customerAdd: string = "/org/customer/add";
+  static readonly customerEdit: string = "/org/customer/edit";
   static readonly employeeList: string = "/org/employee/list";
   static readonly manufacturerList: string = "/org/manufacturer/list";
   static readonly organizationList: string = "/org/organization/list";

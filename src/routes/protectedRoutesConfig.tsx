@@ -1,8 +1,11 @@
 import React from "react";
 import { PageRoutes } from "./Routes";
-import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
+// import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import {
   CustomerList,
+  CustomerDetailPage,
+  CustomerAddPage,
+  CustomerEditPage,
   EmployeeList,
   ManufacturerList,
   OrganizationsList,
@@ -90,6 +93,9 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.coreContactList, element: <CoreContactList /> },
   { path: PageRoutes.coreContactDetail, element: <CoreContactDetail /> },
   { path: PageRoutes.customerList, element: <CustomerList /> },
+  { path: `${PageRoutes.customerDetail}/:id`, element: <CustomerDetailPage /> },
+  { path: PageRoutes.customerAdd, element: <CustomerAddPage /> },
+  { path: `${PageRoutes.customerEdit}/:id`, element: <CustomerEditPage /> },
   { path: PageRoutes.employeeList, element: <EmployeeList /> },
   { path: PageRoutes.manufacturerList, element: <ManufacturerList /> },
   { path: PageRoutes.organizationList, element: <OrganizationsList /> },
@@ -165,7 +171,7 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.ledgerList, element: <LedgerList /> },
   { path: PageRoutes.taxJurisdictionList, element: <TaxJurisdictionList /> },
   { path: PageRoutes.termList, element: <TermList /> },
-  { path: "/org/customer/dashboard/:customerId", element: <CustomerDashboardPage /> },
+  // { path: "/org/customer/dashboard/:customerId", element: <CustomerDashboardPage /> },
   { path: "/core/audit/list", element: <Placeholder title="Core Audit" /> },
   { path: "/core/notification/list", element: <Placeholder title="Notifications" /> },
   { path: "/core/pending/list", element: <Placeholder title="Pending Items" /> },

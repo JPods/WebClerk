@@ -5,6 +5,11 @@ export interface CustomerAddProps {
   onSaved?: () => void;
   inline?: boolean;
   onCancelInline?: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  onCancel?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export interface CreateCustomerRequest {

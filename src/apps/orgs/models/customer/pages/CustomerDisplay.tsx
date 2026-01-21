@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,120 +11,98 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createCustomer, updateCustomer } from "../services/customerApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { FaChevronLeft, FaChevronRight, FaSave, FaTimes, FaEdit, FaTrash } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 
 
 // Dashboard-style containers for modular customer view
-import React from "react";
-function ScalarData({ data }: { data: any }) {
-  // Scalar fields (alphabetical): company, display_name, id, is_active, status, version, dt_created, dt_modified
-  // Object fields (alphabetical): contacts, data, domains, emails, financial, locations, phones, relations
-  if (!data) return <section><h3>Customer Data</h3><div>No data</div></section>;
-  const scalarFields = [
-    "company",
-    "display_name",
-    "id",
-    "is_active",
-    "status",
-    "version",
-    "dt_created",
-    "dt_modified",
-  ];
-  const objectFields = [
-    "contacts",
-    "data",
-    "domains",
-    "emails",
-    "financial",
-    "locations",
-    "phones",
-    "relations",
-  ];
+type CustomerFormValues = z.infer<typeof customerSchema>;
+
+const formatLabel = (value: string) =>
+  value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const isObjectValue = (value: unknown) =>
+  typeof value === "object" && value !== null;
+
+const renderScalarValue = (value: unknown) => {
+  if (value === null || value === undefined || value === "") {
+    return <span className="text-slate-400">—</span>;
+  }
+  return <span className="text-slate-800 dark:text-slate-200">{String(value)}</span>;
+};
+
+function CustomerDataPanel({ data }: { data: any }) {
+  const entries = useMemo(() => Object.entries(data || {}), [data]);
+  const [scalarEntries, objectEntries] = useMemo(() => {
+    const scalars: Array<[string, unknown]> = [];
+    const objects: Array<[string, unknown]> = [];
+    entries.forEach(([key, value]) => {
+      if (Array.isArray(value) || isObjectValue(value)) {
+        objects.push([key, value]);
+      } else {
+        scalars.push([key, value]);
+      }
+    });
+    return [scalars, objects];
+  }, [entries]);
+
+  if (!entries.length) {
+    return (
+      <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
+        No customer data available.
+      </section>
+    );
+  }
+
   return (
-    <section>
-      <h3>Customer Data</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <div>
-          <h4 className="font-semibold mb-1">Scalars</h4>
-          <ul className="text-sm">
-            {scalarFields.map((field) => (
-              <li key={field}>
-                <span className="font-mono text-gray-700 dark:text-gray-200">{field}:</span> {String(data[field] ?? "")} 
-              </li>
-            ))}
-          </ul>
+    <section className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Scalar Fields</h3>
+          <span className="text-xs text-slate-400">{scalarEntries.length}</span>
         </div>
-        <div>
-          <h4 className="font-semibold mb-1">Objects</h4>
-          <ul className="text-sm">
-            {objectFields.map((field) => (
-              <li key={field}>
-                <span className="font-mono text-gray-700 dark:text-gray-200">{field}:</span>
-                <pre className="bg-gray-100 dark:bg-gray-800 rounded p-2 overflow-x-auto text-xs">
-                  {JSON.stringify(data[field], null, 2)}
-                </pre>
-              </li>
-            ))}
-          </ul>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {scalarEntries.map(([key, value]) => (
+            <div
+              key={key}
+              className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                {formatLabel(key)}
+              </div>
+              <div className="mt-1 text-sm">{renderScalarValue(value)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Object & List Fields</h3>
+          <span className="text-xs text-slate-400">{objectEntries.length}</span>
+        </div>
+        <div className="space-y-3">
+          {objectEntries.map(([key, value]) => (
+            <details
+              key={key}
+              className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+            >
+              <summary className="cursor-pointer text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {formatLabel(key)}
+              </summary>
+              <pre className="mt-2 max-h-60 overflow-auto rounded-lg bg-white p-3 text-xs text-slate-600 shadow-inner dark:bg-slate-900 dark:text-slate-300">
+                {JSON.stringify(value, null, 2)}
+              </pre>
+            </details>
+          ))}
         </div>
       </div>
     </section>
   );
-}
-function ContactContainer() {
-  // TODO: Add/Edit email, phone, domain, address
-  return <section><h3>Contact Information</h3></section>;
-}
-function BusinessObjects() {
-  // TODO: Proposals, Orders, Invoices, Payments, Ledgers, Projects
-  return <section><h3>Proposals, Orders, Invoices, Payments, Ledgers, Projects</h3></section>;
-}
-function CommentsContainer() {
-  // TODO: View/Add comments
-  return <section><h3>Comments</h3></section>;
-}
-function PrefsContainer() {
-  // TODO: View/Edit .prefs
-  return <section><h3>Preferences</h3></section>;
-}
-function ActionsContainer() {
-  // TODO: View/Edit actions
-  return <section><h3>Actions</h3></section>;
-}
-function LinkageContainer() {
-  // TODO: View/Edit linkage
-  return <section><h3>Linkage</h3></section>;
-}
-function DocumentContainer() {
-  // TODO: View/Edit documents
-  return <section><h3>Documents</h3></section>;
-}
-function QAContainer() {
-  // TODO: View/Edit question_answer
-  return <section><h3>Q&A</h3></section>;
-}
-function TagContainer() {
-  // TODO: View/Edit tags
-  return <section><h3>Tags</h3></section>;
-}
-function ProductsContainer() {
-  // TODO: View/Edit products/serials
-  return <section><h3>Products/Serials</h3></section>;
-}
-function RelationshipsContainer() {
-  // TODO: Vendor, Manufacturer, Rep, Employee
-  return <section><h3>Relationships</h3></section>;
-}
-function CatalogsContainer() {
-  // TODO: View/Edit catalogs
-  return <section><h3>Catalogs</h3></section>;
-}
-function CampaignsContainer() {
-  // TODO: View/Edit campaigns
-  return <section><h3>Campaigns</h3></section>;
 }
 
 export default function CustomerDetail({
@@ -134,18 +112,25 @@ export default function CustomerDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  onPrev,
+  onNext,
+  onCancel,
+  onEdit,
+  onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     register,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     reset,
     control,
-  } = useForm<z.infer<typeof customerSchema>>({
-    resolver: zodResolver(customerSchema),
+    watch,
+  } = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerSchema) as any,
     defaultValues: { is_active: false, version: 1, org_type: "customer" },
   });
 
@@ -166,8 +151,7 @@ export default function CustomerDetail({
       reset({});
     }
   }, [data, reset, setValue, mode]);
-  console.log("errors", errors);
-  const onSubmit = async (formData: z.infer<typeof customerSchema>) => {
+  const onSubmit = async (formData: CustomerFormValues) => {
     console.log("formData", formData);
     try {
       const res =
@@ -192,6 +176,18 @@ export default function CustomerDetail({
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    if (inline && onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    navigate(-1);
+  };
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -206,21 +202,100 @@ export default function CustomerDetail({
         />
       )}
       <ComponentCard>
-        {/* Dashboard containers for customer context */}
-        <ScalarData data={data} />
-        <ContactContainer />
-        <BusinessObjects />
-        <CommentsContainer />
-        <PrefsContainer />
-        <ActionsContainer />
-        <LinkageContainer />
-        <DocumentContainer />
-        <QAContainer />
-        <TagContainer />
-        <ProductsContainer />
-        <RelationshipsContainer />
-        <CatalogsContainer />
-        <CampaignsContainer />
+        {(mode === "edit" || mode === "view") && !inline && (
+          <div className="flex justify-end">
+            <div className="flex items-center gap-2 rounded-full bg-white shadow border border-slate-200 px-2 py-1">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="p-2 rounded-full hover:bg-slate-100"
+                title="Cancel"
+              >
+                <FaTimes className="text-slate-600" />
+              </button>
+              {mode === "edit" ? (
+                <button
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
+                  className="p-2 rounded-full hover:bg-slate-100"
+                  title="Save"
+                  disabled={isSubmitting}
+                >
+                  <FaSave className="text-slate-600" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className="p-2 rounded-full hover:bg-slate-100"
+                    title="Edit"
+                    disabled={!onEdit}
+                  >
+                    <FaEdit className="text-slate-600" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="p-2 rounded-full hover:bg-slate-100"
+                    title="Delete"
+                    disabled={!onDelete}
+                  >
+                    <FaTrash className="text-rose-600" />
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={onPrev}
+                className="p-2 rounded-full hover:bg-slate-100"
+                title="Previous"
+                disabled={!onPrev}
+              >
+                <FaChevronLeft className="text-slate-600" />
+              </button>
+              <button
+                type="button"
+                onClick={onNext}
+                className="p-2 rounded-full hover:bg-slate-100"
+                title="Next"
+                disabled={!onNext}
+              >
+                <FaChevronRight className="text-slate-600" />
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">Customer</div>
+              <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                {watch("display_name") || data?.display_name || "New Customer"}
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                ID: {data?.id ?? "—"}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {watch("status") || data?.status || "Unknown"}
+              </span>
+              <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 dark:border-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                {watch("org_type") || data?.org_type || "customer"}
+              </span>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${watch("is_active") ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}
+              >
+                {watch("is_active") ? "Active" : "Inactive"}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                v{watch("version") ?? data?.version ?? 1}
+              </span>
+            </div>
+          </div>
+        </div>
+        <CustomerDataPanel data={data} />
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
@@ -243,38 +318,59 @@ export default function CustomerDetail({
         )}
         {/* ...existing customer form and logic... */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="display_name">display_name</Label>
-              <Input
-                type="text"
-                id="display_name"
-                placeholder="Display Name"
-                {...register("display_name")}
-                error={
-                  errors.display_name && errors.display_name.message
-                    ? true
-                    : false
-                }
-                hint={errors.display_name && errors.display_name.message}
-                disabled={mode === "view"}
-              />
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">General Information</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="display_name">Display Name</Label>
+                <Input
+                  type="text"
+                  id="display_name"
+                  placeholder="Display Name"
+                  {...register("display_name")}
+                  error={
+                    errors.display_name && errors.display_name.message
+                      ? true
+                      : false
+                  }
+                  hint={errors.display_name && errors.display_name.message}
+                  disabled={mode === "view"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Input
+                  type="text"
+                  id="status"
+                  placeholder="Status"
+                  {...register("status")}
+                  error={errors.status && errors.status.message ? true : false}
+                  hint={errors.status && errors.status.message}
+                  disabled={mode === "view"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="org_type">Org Type</Label>
+                <Input
+                  type="text"
+                  id="org_type"
+                  placeholder="customer"
+                  {...register("org_type")}
+                  disabled={mode === "view"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="version">Version</Label>
+                <Input
+                  type="number"
+                  id="version"
+                  placeholder="1"
+                  {...register("version", { valueAsNumber: true })}
+                  disabled={mode === "view"}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="status">status</Label>
-              <Input
-                type="text"
-                id="status"
-                placeholder="status"
-                {...register("status")}
-                error={errors.status && errors.status.message ? true : false}
-                hint={errors.status && errors.status.message}
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
+            <div className="mt-4">
               <Controller
                 name="is_active"
                 control={control}
@@ -283,7 +379,7 @@ export default function CustomerDetail({
                     id="is_active"
                     checked={field.value ?? false}
                     onChange={field.onChange}
-                    label="is_active"
+                    label="Active"
                   />
                 )}
               />
