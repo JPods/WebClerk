@@ -12,10 +12,18 @@ export type WindowEntry = {
   openedAt: number;
 };
 
+export type EnsureWindowOptions = {
+  maximized?: boolean;
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+};
+
 type WindowManagerCtx = {
   windows: WindowEntry[];
   activePath: string | null;
-  ensureWindow: (path: string, title?: string) => void;
+  ensureWindow: (path: string, title?: string, options?: EnsureWindowOptions) => void;
   closeWindow: (path: string) => void;
   minimizeWindow: (path: string, minimized?: boolean) => void;
   activateWindow: (path: string) => void;
@@ -31,7 +39,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activePath, setActivePath] = useState<string | null>(null);
   const openedCounter = React.useRef(0);
 
-  const ensureWindow = useCallback((path: string, title = path) => {
+  const ensureWindow = useCallback((path: string, title = path, options?: EnsureWindowOptions) => {
     setWindows((prev) => {
       const existing = prev.find((w) => w.path === path);
       if (existing) {
@@ -41,12 +49,24 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           return prev;
         }
         const updated = prev.map((w) =>
-          w.path === path ? { ...w, minimized: false, title } : w
+          w.path === path
+            ? {
+                ...w,
+                minimized: false,
+                title,
+                maximized: options?.maximized ?? w.maximized,
+                width: options?.width ?? w.width,
+                height: options?.height ?? w.height,
+                x: options?.x ?? w.x,
+                y: options?.y ?? w.y,
+              }
+            : w
         );
         setActivePath(path);
         return updated;
       }
       const stagger = 28 * prev.length;
+      const maximized = options?.maximized ?? true;
       setActivePath(path);
       return [
         ...prev,
@@ -54,11 +74,11 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           path,
           title,
           minimized: false,
-          maximized: true,
-          x: stagger,
-          y: stagger,
-          width: 980,
-          height: 640,
+          maximized,
+          x: options?.x ?? stagger,
+          y: options?.y ?? stagger,
+          width: options?.width ?? 980,
+          height: options?.height ?? 640,
           openedAt: openedCounter.current++,
         },
       ];

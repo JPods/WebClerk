@@ -2038,7 +2038,8 @@ const KanbanBoardPage: React.FC = () => {
         // Check for fail status in both single and bulk responses
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-          throw new Error(details || "Backend rejected the save request.");
+          setCreateModalError(details || "Backend rejected the save request.");
+          return;
         }
         
         // For project bulk operations, check the bulk array response

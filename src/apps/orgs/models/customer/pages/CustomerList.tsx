@@ -3,27 +3,27 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable, { ColumnFilter } from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { getRecord } from "../../../../../api/wcapi";
 import { fetchCustomers, deleteCustomer } from "../services/customerApi";
-import { FaEye, FaEdit, FaTrash, FaPlus, FaCheck, FaTimes } from "react-icons/fa";
+import { FaCheck, FaTimes } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import CustomerDetail from "./CustomerDisplay";
+import { PageRoutes } from "../../../../../routes/Routes";
+import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { dynamicData } from "../../../../../model/dynamicData";
 
 export default function CustomerList() {
   const dispatch = useDispatch();
+  const { ensureWindow, activateWindow } = useWindowManager();
   const [data, setData] = useState<dynamicData[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<dynamicData | null>(null);
   const [selectedCustomers, setSelectedCustomers] = useState<dynamicData[]>([]);
-  const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const getCustomerData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetchCustomers();
-      setData(res.data.data.results || []);
+      const results = res.data.data.results || [];
+      setData(results);
     } catch (error) {
       console.error("Failed to fetch customers", error);
       dispatch(showToast({ message: "Failed to fetch customers", type: "error" }));
@@ -36,69 +36,49 @@ export default function CustomerList() {
     getCustomerData();
   }, [getCustomerData]);
 
-  const handleView = useCallback((row: dynamicData) => {
-    setSelectedCustomer(row);
-    setFormMode("view");
-  }, []);
+  const handleRowDoubleClick = useCallback((row: dynamicData) => {
+    const id = row.id;
+    const display = row.display_name || row.name || `Customer ${id}`;
+    const path = `${PageRoutes.customerDetail}/${id}`;
+    ensureWindow(path, display, { maximized: false });
+    activateWindow(path);
+  }, [ensureWindow, activateWindow]);
 
-  const handleEdit = useCallback(async (row: dynamicData) => {
-    try {
-      const res = await fetchCustomers(row.id);
-      if (res.status === 200) {
-        setSelectedCustomer(res.data.data.record);
-      } else {
-        setSelectedCustomer(row);
-      }
-    } catch {
-      setSelectedCustomer(row);
-    }
-    setFormMode("edit");
-  }, []);
+  const handleEdit = useCallback((row: dynamicData) => {
+    const id = row.id;
+    const display = row.display_name || row.name || `Customer ${id}`;
+    const path = `${PageRoutes.customerEdit}/${id}`;
+    ensureWindow(path, `Edit ${display}`, { maximized: false });
+    activateWindow(path);
+  }, [ensureWindow, activateWindow]);
 
   const handleAdd = () => {
-    setSelectedCustomer(null);
-    setFormMode("add");
+    const path = PageRoutes.customerAdd;
+    ensureWindow(path, "Add Customer", { maximized: false });
+    activateWindow(path);
   };
 
-  const handleDelete = useCallback(async (row: dynamicData) => {
-    if (!window.confirm(`Delete customer ${row.display_name || row.name}?`)) return;
-    
-    try {
-      await deleteCustomer(row.id);
-      dispatch(showToast({ message: "Customer deleted successfully", type: "success" }));
-      getCustomerData();
-      if (selectedCustomer && selectedCustomer.id === row.id) {
-        setFormMode(null);
-        setSelectedCustomer(null);
-      }
-    } catch (error) {
-      dispatch(showToast({ message: "Failed to delete customer", type: "error" }));
-    }
-  }, [dispatch, getCustomerData, selectedCustomer]);
-
-  const handleBulkDelete = useCallback(async () => {
-    if (!selectedCustomers.length) return;
-    if (!window.confirm(`Delete ${selectedCustomers.length} customer(s)?`)) return;
+  const handleBulkDelete = useCallback(async (rows?: dynamicData[]) => {
+    const targetRows = rows && rows.length ? rows : selectedCustomers;
+    if (!targetRows.length) return;
+    if (!window.confirm(`Delete ${targetRows.length} customer(s)?`)) return;
 
     try {
-      await Promise.all(selectedCustomers.map((c) => deleteCustomer(c.id)));
-      dispatch(showToast({ message: `${selectedCustomers.length} customer(s) deleted`, type: "success" }));
+      await Promise.all(targetRows.map((c) => deleteCustomer(c.id)));
+      dispatch(showToast({ message: `${targetRows.length} customer(s) deleted`, type: "success" }));
       getCustomerData();
       setSelectedCustomers([]);
-    } catch (error) {
+    } catch {
       dispatch(showToast({ message: "Failed to delete some customers", type: "error" }));
     }
   }, [selectedCustomers, dispatch, getCustomerData]);
 
-  const handleFormSaved = () => {
-    getCustomerData();
-    setFormMode(null);
-    setSelectedCustomer(null);
+  const handleImportFile = (file: File) => {
+    dispatch(showToast({ message: `Import not implemented. Selected: ${file.name}`, type: "info" }));
   };
 
-  const handleFormCancel = () => {
-    setFormMode(null);
-    setSelectedCustomer(null);
+  const handlePrint = () => {
+    window.print();
   };
 
   const filters: ColumnFilter[] = useMemo(() => [
@@ -111,15 +91,15 @@ export default function CustomerList() {
   ], []);
 
   const columns: TableColumn<dynamicData>[] = useMemo(() => [
-    { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
-    { id: "display_name", name: "Display Name", selector: (row) => row.display_name || "--", sortable: true, width: "25%" },
-    { id: "org_type", name: "Org Type", selector: (row) => row.org_type || "--", sortable: true, width: "12%" },
-    { id: "status", name: "Status", selector: (row) => row.status || "--", sortable: true, width: "15%" },
+    { id: "id", name: "ID", selector: (row: dynamicData) => row.id, sortable: true, width: "80px" },
+    { id: "display_name", name: "Display Name", selector: (row: dynamicData) => row.display_name || "--", sortable: true, width: "25%" },
+    { id: "org_type", name: "Org Type", selector: (row: dynamicData) => row.org_type || "--", sortable: true, width: "12%" },
+    { id: "status", name: "Status", selector: (row: dynamicData) => row.status || "--", sortable: true, width: "15%" },
     {
       id: "is_active",
       name: "Active",
-      selector: (row) => (row.is_active ? "yes" : "no"),
-      cell: (row) => (
+      selector: (row: dynamicData) => (row.is_active ? "yes" : "no"),
+      cell: (row: dynamicData) => (
         row.is_active 
           ? <FaCheck className="text-green-600" /> 
           : <FaTimes className="text-yellow-600" />
@@ -127,35 +107,14 @@ export default function CustomerList() {
       sortable: true,
       width: "10%",
     },
-    { id: "version", name: "Version", selector: (row) => row.version || "--", sortable: true, width: "10%" },
-    {
-      id: "actions",
-      name: "Actions",
-      cell: (row) => (
-        <div className="flex gap-2">
-          <button onClick={() => handleView(row)} title="View">
-            <FaEye className="text-blue-600 hover:scale-110 transition" />
-          </button>
-          <button onClick={() => handleEdit(row)} title="Edit">
-            <FaEdit className="text-green-600 hover:scale-110 transition" />
-          </button>
-          <button onClick={() => handleDelete(row)} title="Delete">
-            <FaTrash className="text-red-600 hover:scale-110 transition" />
-          </button>
-        </div>
-      ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-      width: "100px",
-    },
-  ], [handleDelete, handleEdit, handleView]);
+    { id: "version", name: "Version", selector: (row: dynamicData) => row.version || "--", sortable: true, width: "10%" },
+  ], []);
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Customer List" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
+      <PageBreadcrumb pageTitle="Customer" />
+      <div className="grid grid-cols-1 gap-6">
+        <div className="lg:col-span-3">
           <ComponentCard>
             <AdvancedDataTable
               data={data}
@@ -167,44 +126,24 @@ export default function CustomerList() {
               enableExport={true}
               enableSelection={true}
               onSelectionChange={setSelectedCustomers}
+              onVisibleRowsChange={(rows) => {
+                const ids = rows
+                  .map((row: dynamicData) => row.id)
+                  .filter((id: number) => Number.isFinite(id));
+                localStorage.setItem("customer-list-order", JSON.stringify(ids));
+              }}
+              onEditSelected={handleEdit}
               exportFileName="customers_export"
               onRowActivate={handleEdit}
-              searchPlaceholder="Search customers..."
+              onRowDoubleClicked={handleRowDoubleClick}
+              onAdd={handleAdd}
+              onDeleteSelected={handleBulkDelete}
+              onImportFile={handleImportFile}
+              onPrint={handlePrint}
               noDataMessage="No customers found"
-              customActions={
-                <div className="flex gap-2">
-                  {selectedCustomers.length > 0 && (
-                    <button
-                      onClick={handleBulkDelete}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                      Delete ({selectedCustomers.length})
-                    </button>
-                  )}
-                  <button
-                    onClick={handleAdd}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <FaPlus className="w-4 h-4" />
-                    Add Customer
-                  </button>
-                </div>
-              }
             />
           </ComponentCard>
         </div>
-        {formMode && (
-          <div className="lg:col-span-2">
-            <CustomerDetail
-              inline
-              modeProp={formMode}
-              dataProp={selectedCustomer}
-              onSaved={handleFormSaved}
-              onCancelInline={handleFormCancel}
-            />
-          </div>
-        )}
       </div>
     </>
   );

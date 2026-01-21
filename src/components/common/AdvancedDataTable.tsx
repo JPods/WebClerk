@@ -15,6 +15,11 @@ import {
   FaFilter,
   FaDownload,
   FaGripVertical,
+  FaPlus,
+  FaTrash,
+  FaEdit,
+  FaFileImport,
+  FaPrint,
 } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 import * as XLSX from "xlsx";
@@ -39,16 +44,38 @@ interface AdvancedDataTableProps<T> {
   title?: string;
   loading?: boolean;
   filters?: ColumnFilter[];
+  /** Show the global action menu (Add/Delete/Import/Export/Print/Filter/Search). */
+  showGlobalMenu?: boolean;
+  onAdd?: () => void;
+  onEditSelected?: (row: T) => void;
+  onDeleteSelected?: (rows: T[]) => void;
+  onImportFile?: (file: File) => void;
+  importAccept?: string;
+  onPrint?: () => void;
+  /** Hide built-in header (search/filter/export). Use when providing customActions as a full menu. */
+  hideHeader?: boolean;
+  /** External search value for a custom search box. */
+  externalSearchTerm?: string;
+  /** External search change handler. */
+  onExternalSearchTermChange?: (value: string) => void;
+  /** Control filters panel visibility externally. */
+  filtersOpen?: boolean;
+  /** External filters panel toggle handler. */
+  onFiltersOpenChange?: (open: boolean) => void;
   /** Unique key used to persist column order/visibility in localStorage. Use a different key per module/table. */
   storageKey?: string;
   enableExport?: boolean;
   enableSelection?: boolean;
   onSelectionChange?: (selectedRows: T[]) => void;
+  /** Emits the currently visible (filtered/sorted) rows. */
+  onVisibleRowsChange?: (rows: T[]) => void;
   customActions?: React.ReactNode;
   exportFileName?: string;
   onRowClicked?: (row: T) => void;
   /** Preferred over `onRowClicked`: called when user activates a row via ID cell / action icons. */
   onRowActivate?: (row: T) => void;
+  /** Called when user double-clicks a row. */
+  onRowDoubleClicked?: (row: T) => void;
   /** Stable row id field used for selection + DataTable keying. Defaults to "id". */
   rowKeyField?: string;
   /** How selection should work when `enableSelection` is true. */
@@ -143,14 +170,28 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   title = "Data Table",
   loading = false,
   filters = [],
+  hideHeader = false,
+  externalSearchTerm,
+  onExternalSearchTermChange,
+  filtersOpen,
+  onFiltersOpenChange,
+  showGlobalMenu = true,
+  onAdd,
+  onEditSelected,
+  onDeleteSelected,
+  onImportFile,
+  importAccept = ".json,.csv",
+  onPrint,
   storageKey,
   enableExport = true,
   enableSelection = false,
   onSelectionChange,
+  onVisibleRowsChange,
   customActions,
   exportFileName = "export",
   onRowClicked,
   onRowActivate,
+  onRowDoubleClicked,
   rowKeyField = "id",
   selectionMode = "rowClick",
   enableSelectedOnlyFilter = true,
@@ -170,9 +211,10 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   const [selectionAnchorKey, setSelectionAnchorKey] = useState<string | null>(null);
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFiltersState] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [columns, setColumns] = useState<TableColumn<T>[]>(initialColumns);
   const [columnVisibility, setColumnVisibility] = useState<boolean[]>(
     initialColumns.map(() => true)
@@ -181,6 +223,36 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   const columnManagerRef = useRef<HTMLDivElement>(null);
 
   const didHydrateLayoutRef = useRef(false);
+
+  const effectiveSearchTerm = externalSearchTerm ?? searchTerm;
+  const setEffectiveSearchTerm = onExternalSearchTermChange ?? setSearchTerm;
+
+  const effectiveShowFilters = filtersOpen ?? showFilters;
+  const setEffectiveShowFilters = useCallback(
+    (open: boolean) => {
+      if (onFiltersOpenChange) {
+        onFiltersOpenChange(open);
+      } else {
+        setShowFiltersState(open);
+      }
+    },
+    [onFiltersOpenChange]
+  );
+
+
+  const handleImportClick = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+
+  const handleImportChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      onImportFile?.(file);
+      event.target.value = "";
+    },
+    [onImportFile]
+  );
 
   const getColumnPersistKey = useCallback(
     (col: TableColumn<T>, index: number) => {
@@ -511,8 +583,8 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     let result = [...data];
 
     // Apply search
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
+    if (effectiveSearchTerm) {
+      const searchLower = effectiveSearchTerm.toLowerCase();
       result = result.filter((row) =>
         Object.values(row).some((value) =>
           String(value).toLowerCase().includes(searchLower)
@@ -531,7 +603,13 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     });
 
     return result;
-  }, [data, searchTerm, filterValues]);
+  }, [data, effectiveSearchTerm, filterValues]);
+
+  useEffect(() => {
+    if (onVisibleRowsChange) {
+      onVisibleRowsChange(filteredData);
+    }
+  }, [filteredData, onVisibleRowsChange]);
 
   const tableData = useMemo(() => {
     if (!enableSelection || !enableSelectedOnlyFilter || !showSelectedOnly) {
@@ -805,9 +883,9 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
 
   // Clear filters
   const clearFilters = useCallback(() => {
-    setSearchTerm("");
+    setEffectiveSearchTerm("");
     setFilterValues({});
-  }, []);
+  }, [setEffectiveSearchTerm]);
 
   // Custom styles for react-data-table-component
   const customStyles = {
@@ -843,279 +921,347 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
   return (
     <div className="w-full space-y-4">
       {/* Header Section */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        {/* Search Bar */}
-        <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <FaSearch className="w-4 h-4 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <FaTimes className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      {!hideHeader && (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {showGlobalMenu && (
+              <>
+                <button
+                  onClick={onAdd}
+                  disabled={!onAdd}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  title="Add"
+                >
+                  <FaPlus className="w-4 h-4" />
+                  Add
+                </button>
+                <button
+                  onClick={() => selectedRows.length === 1 && onEditSelected?.(selectedRows[0])}
+                  disabled={!onEditSelected || selectedRows.length !== 1}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  title="Edit"
+                >
+                  <FaEdit className="w-4 h-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDeleteSelected?.(selectedRows)}
+                  disabled={!onDeleteSelected || selectedRows.length === 0}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  title="Delete"
+                >
+                  <FaTrash className="w-4 h-4" />
+                  Delete
+                </button>
+                <button
+                  onClick={handleImportClick}
+                  disabled={!onImportFile}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-slate-600 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  title="Import"
+                >
+                  <FaFileImport className="w-4 h-4" />
+                  Import
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept={importAccept}
+                  className="hidden"
+                  onChange={handleImportChange}
+                />
+              </>
+            )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Filter Toggle */}
-          {filters.length > 0 && (
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                showFilters
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-              }`}
-            >
-              <FaFilter className="w-4 h-4" />
-              Filters
-              {Object.values(filterValues).filter(Boolean).length > 0 && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-white text-blue-600 dark:bg-gray-800 dark:text-blue-400">
-                  {Object.values(filterValues).filter(Boolean).length}
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Clear Filters */}
-          {(searchTerm || Object.values(filterValues).some(Boolean)) && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              <FaTimes className="w-4 h-4" />
-              Clear
-            </button>
-          )}
-
-          {/* Export Dropdown */}
-          {enableExport && (
-            <div className="relative" ref={exportDropdownRef}>
+            {/* Filter Toggle */}
+            {filters.length > 0 && (
               <button
-                onClick={() => setShowExportDropdown(!showExportDropdown)}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                onClick={() => setEffectiveShowFilters(!effectiveShowFilters)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  effectiveShowFilters
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                }`}
               >
-                <FaDownload className="w-4 h-4" />
-                Export
-                {selectedRows.length > 0 && (
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-white text-green-600">
-                    {selectedRows.length}
+                <FaFilter className="w-4 h-4" />
+                Filters
+                {Object.values(filterValues).filter(Boolean).length > 0 && (
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-white text-blue-600 dark:bg-gray-800 dark:text-blue-400">
+                    {Object.values(filterValues).filter(Boolean).length}
                   </span>
                 )}
               </button>
+            )}
 
-              {/* Dropdown Menu */}
-              {showExportDropdown && (
-                <div className="absolute right-0 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                  <div className="py-1">
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                      Export All Data
+            {/* Clear Filters */}
+            {(effectiveSearchTerm || Object.values(filterValues).some(Boolean)) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                <FaTimes className="w-4 h-4" />
+                Clear
+              </button>
+            )}
+
+            {showGlobalMenu && (
+              <button
+                onClick={onPrint}
+                disabled={!onPrint}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
+                title="Print"
+              >
+                <FaPrint className="w-4 h-4" />
+                Print
+              </button>
+            )}
+
+            {/* Export Dropdown */}
+            {enableExport && (
+              <div className="relative" ref={exportDropdownRef}>
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <FaDownload className="w-4 h-4" />
+                  Export
+                  {selectedRows.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs rounded-full bg-white text-green-600">
+                      {selectedRows.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown Menu */}
+                {showExportDropdown && (
+                  <div className="absolute right-0 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="py-1">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                        Export All Data
+                      </div>
+                      <button
+                        onClick={() => exportToExcel(false)}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        <FaFileExcel className="w-4 h-4 text-green-600" />
+                        Excel ({filteredData.length} rows)
+                      </button>
+                      <button
+                        onClick={() => exportToPDF(false)}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        <FaFilePdf className="w-4 h-4 text-red-600" />
+                        PDF ({tableData.length} rows)
+                      </button>
+                      <button
+                        onClick={() => exportToJSON(false)}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        <FaFileCode className="w-4 h-4 text-blue-600" />
+                        JSON ({filteredData.length} rows)
+                      </button>
+
+                      {enableSelection && selectedRows.length > 0 && (
+                        <>
+                          <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                            Export Selected
+                          </div>
+                          <button
+                            onClick={() => exportToExcel(true)}
+                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <FaFileExcel className="w-4 h-4 text-green-600" />
+                            Excel ({selectedRows.length} selected)
+                          </button>
+                          <button
+                            onClick={() => exportToPDF(true)}
+                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <FaFilePdf className="w-4 h-4 text-red-600" />
+                            PDF ({selectedRows.length} selected)
+                          </button>
+                          <button
+                            onClick={() => exportToJSON(true)}
+                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <FaFileCode className="w-4 h-4 text-blue-600" />
+                            JSON ({selectedRows.length} selected)
+                          </button>
+                        </>
+                      )}
                     </div>
-                    <button
-                      onClick={() => exportToExcel(false)}
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                      <FaFileExcel className="w-4 h-4 text-green-600" />
-                      Excel ({filteredData.length} rows)
-                    </button>
-                    <button
-                      onClick={() => exportToPDF(false)}
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                      <FaFilePdf className="w-4 h-4 text-red-600" />
-                      PDF ({tableData.length} rows)
-                    </button>
-                    <button
-                      onClick={() => exportToJSON(false)}
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                      <FaFileCode className="w-4 h-4 text-blue-600" />
-                      JSON ({filteredData.length} rows)
-                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
-                    {enableSelection && selectedRows.length > 0 && (
-                      <>
-                        <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
-                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          Export Selected
-                        </div>
-                        <button
-                          onClick={() => exportToExcel(true)}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <FaFileExcel className="w-4 h-4 text-green-600" />
-                          Excel ({selectedRows.length} selected)
-                        </button>
-                        <button
-                          onClick={() => exportToPDF(true)}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <FaFilePdf className="w-4 h-4 text-red-600" />
-                          PDF ({selectedRows.length} selected)
-                        </button>
-                        <button
-                          onClick={() => exportToJSON(true)}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <FaFileCode className="w-4 h-4 text-blue-600" />
-                          JSON ({selectedRows.length} selected)
-                        </button>
-                      </>
-                    )}
+            {/* Selected-only filter */}
+            {enableSelection &&
+              enableSelectedOnlyFilter &&
+              selectionMode === "rowClick" &&
+              selectedRowKeys.length > 0 && (
+                <button
+                  onClick={() => setShowSelectedOnly((v) => !v)}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    showSelectedOnly
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                  }`}
+                >
+                  {showSelectedOnly ? "Show All" : "Show Selected"}
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    showSelectedOnly
+                      ? "bg-white text-blue-600"
+                      : "bg-blue-600 text-white"
+                  }`}>
+                    {selectedRowKeys.length}
+                  </span>
+                </button>
+              )}
+
+            {/* Clear selection */}
+            {enableSelection && selectionMode === "rowClick" && selectedRowKeys.length > 0 && (
+              <button
+                onClick={clearSelection}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                <FaTimes className="w-4 h-4" />
+                Clear Selection
+              </button>
+            )}
+
+            {/* Column Manager */}
+            <div className="relative" ref={columnManagerRef}>
+              <button
+                onClick={() => setShowColumnManager(!showColumnManager)}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                <FaGripVertical className="w-4 h-4" />
+                Columns
+                <span className="px-2 py-0.5 text-xs rounded-full bg-blue-600 text-white">
+                  {columnVisibility.filter(Boolean).length}/{columns.length}
+                </span>
+              </button>
+
+              {/* Column Manager Dropdown */}
+              {showColumnManager && (
+                <div className="absolute right-0 z-10 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                  <div className="p-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        Manage Columns
+                      </h3>
+                      <button
+                        onClick={resetColumnOrder}
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                      >
+                        Reset All
+                      </button>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <button
+                        onClick={() => toggleAllColumns(true)}
+                        className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
+                      >
+                        Show All
+                      </button>
+                      <button
+                        onClick={() => toggleAllColumns(false)}
+                        className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                      >
+                        Hide All
+                      </button>
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        <strong>✓</strong> Check/uncheck to show/hide columns
+                        <br />
+                        <strong>↕</strong> Drag to reorder columns
+                      </p>
+                    </div>
+
+                    {/* Column List */}
+                    <DndProvider backend={HTML5Backend}>
+                      <div className="space-y-1 max-h-96 overflow-y-auto">
+                        {columns.map((col, index) => (
+                          <div
+                            key={getColumnPersistKey(col, index)}
+                            className={`flex items-center gap-2 p-3 rounded transition-colors ${
+                              columnVisibility[index]
+                                ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            <DraggableColumnHeader
+                              column={String(col.name)}
+                              index={index}
+                              visible={columnVisibility[index]}
+                              moveColumn={moveColumn}
+                              toggleVisibility={toggleColumnVisibility}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </DndProvider>
+
+                    {/* Footer Info */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        Visible:{" "}
+                        <span className="font-medium text-blue-600 dark:text-blue-400">
+                          {columnVisibility.filter(Boolean).length}
+                        </span>{" "}
+                        / Total:{" "}
+                        <span className="font-medium">{columns.length}</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Selected-only filter */}
-          {enableSelection &&
-            enableSelectedOnlyFilter &&
-            selectionMode === "rowClick" &&
-            selectedRowKeys.length > 0 && (
-              <button
-                onClick={() => setShowSelectedOnly((v) => !v)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                  showSelectedOnly
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
-                }`}
-              >
-                {showSelectedOnly ? "Show All" : "Show Selected"}
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  showSelectedOnly
-                    ? "bg-white text-blue-600"
-                    : "bg-blue-600 text-white"
-                }`}>
-                  {selectedRowKeys.length}
-                </span>
-              </button>
-            )}
-
-          {/* Clear selection */}
-          {enableSelection && selectionMode === "rowClick" && selectedRowKeys.length > 0 && (
-            <button
-              onClick={clearSelection}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              <FaTimes className="w-4 h-4" />
-              Clear Selection
-            </button>
-          )}
-
-          {/* Column Manager */}
-          <div className="relative" ref={columnManagerRef}>
-            <button
-              onClick={() => setShowColumnManager(!showColumnManager)}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
-            >
-              <FaGripVertical className="w-4 h-4" />
-              Columns
-              <span className="px-2 py-0.5 text-xs rounded-full bg-blue-600 text-white">
-                {columnVisibility.filter(Boolean).length}/{columns.length}
-              </span>
-            </button>
-
-            {/* Column Manager Dropdown */}
-            {showColumnManager && (
-              <div className="absolute right-0 z-10 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="p-4">
-                  {/* Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      Manage Columns
-                    </h3>
-                    <button
-                      onClick={resetColumnOrder}
-                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                    >
-                      Reset All
-                    </button>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <button
-                      onClick={() => toggleAllColumns(true)}
-                      className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
-                    >
-                      Show All
-                    </button>
-                    <button
-                      onClick={() => toggleAllColumns(false)}
-                      className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
-                    >
-                      Hide All
-                    </button>
-                  </div>
-
-                  {/* Instructions */}
-                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      <strong>✓</strong> Check/uncheck to show/hide columns
-                      <br />
-                      <strong>↕</strong> Drag to reorder columns
-                    </p>
-                  </div>
-
-                  {/* Column List */}
-                  <DndProvider backend={HTML5Backend}>
-                    <div className="space-y-1 max-h-96 overflow-y-auto">
-                      {columns.map((col, index) => (
-                        <div
-                          key={getColumnPersistKey(col, index)}
-                          className={`flex items-center gap-2 p-3 rounded transition-colors ${
-                            columnVisibility[index]
-                              ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          <DraggableColumnHeader
-                            column={String(col.name)}
-                            index={index}
-                            visible={columnVisibility[index]}
-                            moveColumn={moveColumn}
-                            toggleVisibility={toggleColumnVisibility}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </DndProvider>
-
-                  {/* Footer Info */}
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Visible:{" "}
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {columnVisibility.filter(Boolean).length}
-                      </span>{" "}
-                      / Total:{" "}
-                      <span className="font-medium">{columns.length}</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Custom Actions */}
+            {customActions}
           </div>
 
-          {/* Custom Actions */}
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaSearch className="w-4 h-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={effectiveSearchTerm}
+              onChange={(e) => setEffectiveSearchTerm(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+            />
+            {effectiveSearchTerm && (
+              <button
+                onClick={() => setEffectiveSearchTerm("")}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <FaTimes className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {hideHeader && customActions && (
+        <div className="flex flex-wrap items-center gap-2">
           {customActions}
         </div>
-      </div>
+      )}
 
       {/* Filters Panel */}
-      {showFilters && filters.length > 0 && (
+      {effectiveShowFilters && filters.length > 0 && (
         <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filters.map((filter) => (
@@ -1237,7 +1383,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                   {noDataMessage}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {searchTerm || Object.values(filterValues).some(Boolean)
+                  {effectiveSearchTerm || Object.values(filterValues).some(Boolean)
                     ? "Try adjusting your search or filters"
                     : "Start by adding some data"}
                 </p>
@@ -1257,6 +1403,9 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
             if (rowClickMode === "anywhere") {
               onActivate?.(row);
             }
+          }}
+          onRowDoubleClicked={(row: RowWithKey) => {
+            onRowDoubleClicked?.(row);
           }}
           responsive
           dense={false}

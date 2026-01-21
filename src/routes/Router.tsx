@@ -1,4 +1,4 @@
-import CustomerDashboardPage from './CustomerDashboardRoute';
+// import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import ItemDashboard from "../apps/products/models/item/pages/ItemDashboard";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -7,6 +7,9 @@ import { PageRoutes } from "./Routes";
 import { ScrollToTop, Toster } from "../components/wrapper";
 import {
   CustomerList,
+  CustomerDetailPage,
+  CustomerAddPage,
+  CustomerEditPage,
   EmployeeList,
   ManufacturerList,
   OrganizationsList,
@@ -119,7 +122,16 @@ const Router: React.FC = () => {
             element={<CoreContactDetail />}
           />
           <Route path={PageRoutes.customerList} element={<CustomerList />} />
-          <Route path="/org/customer/dashboard/:customerId" element={<CustomerDashboardPage />} />
+          <Route
+            path={`${PageRoutes.customerDetail}/:id`}
+            element={<CustomerDetailPage />}
+          />
+          <Route path={PageRoutes.customerAdd} element={<CustomerAddPage />} />
+          <Route
+            path={`${PageRoutes.customerEdit}/:id`}
+            element={<CustomerEditPage />}
+          />
+          {/* <Route path="/org/customer/dashboard/:customerId" element={<CustomerDashboardPage />} /> */}
           <Route path={PageRoutes.employeeList} element={<EmployeeList />} />
           <Route
             path={PageRoutes.manufacturerList}
