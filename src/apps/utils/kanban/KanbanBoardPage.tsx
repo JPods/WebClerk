@@ -1,6 +1,6 @@
 import { CSSProperties, ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { DndProvider } from "react-dnd";
+import { DndProvider, useDragLayer, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import { KanbanColumn } from "./KanbanColumn";
@@ -10,7 +10,7 @@ import { ProjectContactManager } from "./ProjectContactManager";
 import type { DragItem, DropResult } from "./dndTypes";
 import { DRAG_TYPE_TASK } from "./dndTypes";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
-import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "../../../type/kanban";
+import type { BoardData, KanbanColumn as KanbanColumnType, KanbanTask, TaskPriority } from "./type/kanban";
 import { Actions, patchAction } from "../../../api/userProfile";
 import { getRecords } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
@@ -22,13 +22,6 @@ const priorityPalette: Record<TaskPriority, string> = {
   medium: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
   high: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
   critical: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
-};
-
-const priorityCardPalette: Record<TaskPriority, string> = {
-  low: "border-emerald-100 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200",
-  medium: "border-amber-100 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200",
-  high: "border-orange-100 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-900/30 dark:text-orange-200",
-  critical: "border-rose-100 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-900/30 dark:text-rose-200",
 };
 
 const PRIORITY_TO_VALUE: Record<TaskPriority, number> = {
@@ -371,10 +364,11 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   columnId,
   projectId: "",
   priority: "medium",
-  dueDate: "",
-  startDate: "",
-  endDate: "",
-  assignee: "",
+  dt_deadline: "",
+  dt_start: "",
+  dt_completed: "",
+  dt_expected: "",
+  assigned_to: [],
   difficulty: DEFAULT_DIFFICULTY_STRING,
   progress: DEFAULT_PROGRESS_STRING,
   percent_complete: "0",
@@ -397,9 +391,9 @@ const findNextLanguageCode = (used: Set<string>, options: Array<{ value: string 
 
 const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntry[] => {
   const languages = new Set<string>();
-  task.languageCodes?.forEach((code) => languages.add(normalizeLanguageCode(code)));
-  Object.keys(task.titleTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
-  Object.keys(task.descriptionTranslations ?? {}).forEach((code) => languages.add(normalizeLanguageCode(code)));
+  task.language_codes?.forEach((code: string) => languages.add(normalizeLanguageCode(code)));
+  Object.keys(task.title_translations ?? {}).forEach((code: string) => languages.add(normalizeLanguageCode(code)));
+  Object.keys(task.description_translations ?? {}).forEach((code: string) => languages.add(normalizeLanguageCode(code)));
 
   if (languages.size === 0) {
     languages.add("en");
@@ -419,8 +413,8 @@ const createTranslationEntriesFromTask = (task: KanbanTask): TranslationFormEntr
     const fallbackDescription = language === "en" ? task.description ?? "" : "";
     return createTranslationEntry(
       language,
-      task.titleTranslations?.[language] ?? fallbackTitle,
-      task.descriptionTranslations?.[language] ?? fallbackDescription
+      task.title_translations?.[language] ?? fallbackTitle,
+      task.description_translations?.[language] ?? fallbackDescription
     );
   });
 };
@@ -480,7 +474,7 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
     return prev;
   }
 
-  const sourceIndex = sourceColumn.taskIds.indexOf(item.taskId);
+  const sourceIndex = sourceColumn.task_ids.indexOf(item.taskId);
   if (sourceIndex === -1) {
     return prev;
   }
@@ -495,9 +489,9 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
   const nextColumns: Record<string, KanbanColumnType> = { ...prev.columns };
 
   const removeFromSource = () => {
-    const updated = [...sourceColumn.taskIds];
+    const updated = [...sourceColumn.task_ids];
     updated.splice(sourceIndex, 1);
-    nextColumns[sourceColumn.id] = { ...sourceColumn, taskIds: updated };
+    nextColumns[sourceColumn.id] = { ...sourceColumn, task_ids: updated };
     return updated;
   };
 
@@ -511,25 +505,118 @@ const handleBoardMove = (prev: BoardData, { item, result }: OnDragEndArgs): Boar
     const reordered = [...withoutTask];
     reordered.splice(clampedIndex, 0, item.taskId);
 
-    if (sourceColumn.taskIds.join() === reordered.join()) {
+    if (sourceColumn.task_ids.join() === reordered.join()) {
       return prev;
     }
 
-    nextColumns[sourceColumn.id] = { ...sourceColumn, taskIds: reordered };
+    nextColumns[sourceColumn.id] = { ...sourceColumn, task_ids: reordered };
     return { ...prev, columns: nextColumns };
   }
 
   removeFromSource();
-  const destinationTaskIds = [...destinationColumn.taskIds];
+  const destinationTaskIds = [...destinationColumn.task_ids];
   const clampedIndex = Math.max(0, Math.min(rawDestinationIndex, destinationTaskIds.length));
   destinationTaskIds.splice(clampedIndex, 0, item.taskId);
 
-  nextColumns[destinationColumn.id] = { ...destinationColumn, taskIds: destinationTaskIds };
+  nextColumns[destinationColumn.id] = { ...destinationColumn, task_ids: destinationTaskIds };
 
   return {
     ...prev,
     columns: nextColumns,
   };
+};
+
+const removeTaskFromBoardState = (prev: BoardData, taskId: string): BoardData => {
+  let columnsChanged = false;
+
+  const nextColumns = Object.entries(prev.columns).reduce<Record<string, KanbanColumnType>>((acc, [columnId, column]) => {
+    const nextTaskIds = column.task_ids.filter((id) => id !== taskId);
+    if (nextTaskIds.length !== column.task_ids.length) {
+      columnsChanged = true;
+      acc[columnId] = { ...column, task_ids: nextTaskIds };
+    } else {
+      acc[columnId] = column;
+    }
+    return acc;
+  }, {});
+
+  if (!columnsChanged) {
+    return prev;
+  }
+
+  const { [taskId]: _removed, ...remainingTasks } = prev.tasks;
+
+  return {
+    ...prev,
+    columns: nextColumns,
+    tasks: remainingTasks,
+  };
+};
+
+const TrashDropZone: React.FC<{ isDeleting?: boolean }> = ({ isDeleting = false }) => {
+  const { isDragging, itemType } = useDragLayer((monitor) => ({
+    isDragging: monitor.isDragging(),
+    itemType: monitor.getItemType(),
+  }));
+
+  const [{ isOver, canDrop }, drop] = useDrop<DragItem, DropResult, { isOver: boolean; canDrop: boolean }>(
+    () => ({
+      accept: DRAG_TYPE_TASK,
+      drop: () => ({ columnId: "trash", index: -1, dropType: "trash" }),
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+        canDrop: monitor.canDrop(),
+      }),
+    }),
+    []
+  );
+
+  if (!isDragging || itemType !== DRAG_TYPE_TASK) {
+    return null;
+  }
+
+  const isActive = isOver && canDrop;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
+      <div
+        ref={drop}
+        className={clsx(
+          "flex items-center gap-3 rounded-2xl border-2 border-dashed px-5 py-4 shadow-xl backdrop-blur transition",
+          isActive
+            ? "border-rose-400/80 bg-rose-50 text-rose-700 dark:border-rose-500/70 dark:bg-rose-500/20 dark:text-rose-100"
+            : "border-gray-200 bg-white/90 text-gray-600 dark:border-gray-700 dark:bg-gray-900/80 dark:text-gray-200",
+          isDeleting && "ring-2 ring-rose-300/60 dark:ring-rose-600/60"
+        )}
+      >
+        <div
+          className={clsx(
+            "flex h-12 w-12 items-center justify-center rounded-xl border-2 text-xl font-semibold transition",
+            isActive
+              ? "border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-500/80 dark:bg-rose-500/30 dark:text-rose-50"
+              : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-600 dark:bg-gray-800"
+          )}
+        >
+          {isDeleting ? (
+            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.4} strokeOpacity={0.2} />
+              <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5h6m-7 3h8" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M10 10v6m4-6v6" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" />
+              <path d="M5 8h14l-1 12H6L5 8Zm4-3.5a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V8h-6V4.5Z" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Delete task</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">Drop here to remove</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const padTwo = (value: number) => value.toString().padStart(2, "0");
@@ -548,33 +635,11 @@ const parseDateTimeInputValue = (value?: string): Date | null => {
 };
 
 const coerceDateFromUnknown = (value: unknown): Date | null => {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      return null;
-    }
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return null;
-    }
-    if (/^\d+$/.test(trimmed)) {
-      const numeric = Number(trimmed);
-      const date = trimmed.length <= 10 ? new Date(numeric * 1000) : new Date(numeric);
-      return Number.isNaN(date.getTime()) ? null : date;
-    }
-    const parsed = new Date(trimmed);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) return null;
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const normalizeIncomingDateValue = (value: unknown): string => {
@@ -689,29 +754,60 @@ const pickColumnForStatus = (
   return fallback;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* WC3 strict date implementation */
 const updateTaskFormState = (
   prev: TaskFormState,
   field: TaskFormEditableField,
   value: string,
   options?: { columns?: Array<{ id: string; title: string }>; fallbackColumnId?: string }
 ): TaskFormState => {
-  if (field === "startDate") {
-    const next: TaskFormState = { ...prev, startDate: value };
-    next.endDate = ensureEndAfterStart(value, prev.endDate);
-    next.dueDate = calculateDueDate(next.startDate, next.endDate);
+  if (field === "dt_start") {
+    const next: TaskFormState = { ...prev, dt_start: value };
+
+    // If dt_deadline exists and is earlier than new dt_start, shift dt_deadline up to dt_start
+    if (value && prev.dt_deadline) {
+      const start = parseDateTimeInputValue(value);
+      const due = parseDateTimeInputValue(prev.dt_deadline);
+      if (start && due && due.getTime() < start.getTime()) {
+        next.dt_deadline = value;
+      }
+    }
+
     return next;
   }
 
-  if (field === "endDate") {
-    const nextEnd = ensureEndAfterStart(prev.startDate, value);
-    const next: TaskFormState = { ...prev, endDate: nextEnd };
-    next.dueDate = calculateDueDate(prev.startDate, next.endDate);
+  if (field === "dt_completed") {
+    const next: TaskFormState = { ...prev, dt_completed: value };
+    if (value) {
+      if (!prev.dt_start) next.dt_start = value;
+      if (!prev.dt_deadline) next.dt_deadline = value;
+      const startDate = parseDateTimeInputValue(next.dt_start);
+      const compDate = parseDateTimeInputValue(value);
+      if (startDate && compDate && compDate.getTime() < startDate.getTime()) {
+        next.dt_completed = formatDateTimeLocalString(startDate);
+      }
+    }
     return next;
   }
 
-  if (field === "dueDate") {
+  if (field === "dt_deadline") {
     if (!value) {
-      return { ...prev, dueDate: calculateDueDate(prev.startDate, prev.endDate) };
+      return { ...prev, dt_deadline: calculateDueDate(prev.dt_start, prev.dt_completed) };
     }
 
     const parsedDue = parseDateTimeInputValue(value);
@@ -719,17 +815,17 @@ const updateTaskFormState = (
       return prev;
     }
 
-    const endDate = parseDateTimeInputValue(prev.endDate);
+    const endDate = parseDateTimeInputValue(prev.dt_completed);
     if (endDate && parsedDue.getTime() < endDate.getTime()) {
-      return { ...prev, dueDate: formatDateTimeLocalString(endDate) };
+      return { ...prev, dt_deadline: formatDateTimeLocalString(endDate) };
     }
 
-    const startDate = parseDateTimeInputValue(prev.startDate);
+    const startDate = parseDateTimeInputValue(prev.dt_start);
     if (!endDate && startDate && parsedDue.getTime() < startDate.getTime()) {
-      return { ...prev, dueDate: formatDateTimeLocalString(startDate) };
+      return { ...prev, dt_deadline: formatDateTimeLocalString(startDate) };
     }
 
-    return { ...prev, dueDate: formatDateTimeLocalString(parsedDue) };
+    return { ...prev, dt_deadline: formatDateTimeLocalString(parsedDue) };
   }
 
   if (field === "priority") {
@@ -744,8 +840,8 @@ const updateTaskFormState = (
     return { ...prev, projectId: value };
   }
 
-  if (field === "assignee") {
-    return { ...prev, assignee: value };
+  if (field === "assigned_to") {
+    return { ...prev, assigned_to: value };
   }
 
   if (field === "difficulty") {
@@ -783,15 +879,35 @@ const updateTaskFormState = (
     if (options?.columns?.length && options.fallbackColumnId) {
       next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
     }
-    if (value === "100" && !prev.endDate) {
+    if (value === "100" && !prev.dt_completed) {
       const now = formatDateTimeLocalString(new Date());
-      next.endDate = ensureEndAfterStart(prev.startDate, now);
+      next.dt_completed = ensureEndAfterStart(prev.dt_start, now);
     }
     return next;
   }
 
   return prev;
+  return prev;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
@@ -921,6 +1037,7 @@ const KanbanBoardPage: React.FC = () => {
   const [isSavingCreate, setIsSavingCreate] = useState<boolean>(false);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [isRemovingTask, setIsRemovingTask] = useState<boolean>(false);
+  const [isTrashDeleting, setIsTrashDeleting] = useState<boolean>(false);
   const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalError, setEditModalError] = useState<string | null>(null);
 
@@ -937,8 +1054,8 @@ const KanbanBoardPage: React.FC = () => {
   //const navigate = useNavigate();
 
   const resolveDefaultColumnId = useCallback(
-    () => board.columnOrder[0] ?? FALLBACK_COLUMN_ID,
-    [board.columnOrder]
+    () => board.column_order[0] ?? FALLBACK_COLUMN_ID,
+    [board.column_order]
   );
 
   const persistTaskReorder = useCallback(
@@ -956,7 +1073,7 @@ const KanbanBoardPage: React.FC = () => {
       const destinationColumn = nextBoard.columns[dropResult.columnId];
       if (!destinationColumn) return;
 
-      const destinationTaskIds = destinationColumn.taskIds;
+      const destinationTaskIds = destinationColumn.task_ids;
       const targetIndex = dropResult.index;
       const prevTaskId = destinationTaskIds[targetIndex - 1];
       const nextTaskId = destinationTaskIds[targetIndex + 1];
@@ -1007,11 +1124,60 @@ const KanbanBoardPage: React.FC = () => {
     [selectedProjectName]
   );
 
+  const removeTaskInBackend = useCallback(async (taskId: string | number) => {
+    const parsedId = typeof taskId === "number" ? taskId : Number(taskId);
+    const payloadId = Number.isNaN(parsedId) ? taskId : parsedId;
+
+    try {
+      const response = await patchAction({
+        model_name: "action",
+        id: payloadId,
+        is_deleted: { mode: "update", value: true },
+        is_active: { mode: "update", value: false },
+        status: { mode: "update", value: "Removed" },
+        kanban_column: { mode: "update", value: "Removed" },
+        kanban_column_id: { mode: "update", value: "column-removed" },
+      });
+
+      const body: any = (response as any)?.data ?? response;
+      if ((response as any)?.status !== 200 && (response as any)?.status !== 201) {
+        throw new Error("Failed to remove task.");
+      }
+      if (body?.status === "fail") {
+        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
+        throw new Error(details || "Backend rejected the remove request.");
+      }
+
+      return { success: true } as const;
+    } catch (error) {
+      console.error("Failed to remove kanban task", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Unable to remove task. Please try again.";
+      return { success: false, error: message } as const;
+    }
+  }, []);
+
   const handleDragEnd = useCallback(
     (item: DragItem, dropResult: DropResult | null) => {
       if (item.type !== DRAG_TYPE_TASK) {
         return;
       }
+
+      if (dropResult?.dropType === "trash") {
+        setBoard((prev) => removeTaskFromBoardState(prev, item.taskId));
+        setIsTrashDeleting(true);
+        void removeTaskInBackend(item.taskId).then((result) => {
+          if (!result.success) {
+            setFetchError((current) => current ?? result.error ?? null);
+          }
+        }).finally(() => {
+          setIsTrashDeleting(false);
+        });
+        return;
+      }
+
       setBoard((prev) => {
         const next = handleBoardMove(prev, { item, result: dropResult });
         if (next !== prev) {
@@ -1020,7 +1186,7 @@ const KanbanBoardPage: React.FC = () => {
         return next;
       });
     },
-    [persistTaskReorder]
+    [persistTaskReorder, removeTaskInBackend]
   );
 
   const fetchProjects = useCallback(async () => {
@@ -1097,7 +1263,8 @@ const KanbanBoardPage: React.FC = () => {
         throw new Error("Request failed");
       }
 
-      const items = extractKanbanItems(response);
+      let items = extractKanbanItems(response);
+      items = items.filter((item: any) => String(item.status).toLowerCase() !== "on hold");
 
       // Backend now filters by contact_id, so no client-side filtering needed
       if (items.length === 0) {
@@ -1201,7 +1368,7 @@ const KanbanBoardPage: React.FC = () => {
     const diffMs = now.getTime() - date.getTime();
     const diffSecs = Math.floor(diffMs / 1000);
     const diffMins = Math.floor(diffSecs / 60);
-    
+
     if (diffSecs < 10) return "Just now";
     if (diffSecs < 60) return `${diffSecs}s ago`;
     if (diffMins < 60) return `${diffMins}m ago`;
@@ -1209,19 +1376,19 @@ const KanbanBoardPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (board.columnOrder.length === 0) {
+    if (board.column_order.length === 0) {
       return;
     }
     // Keep columnsPerRow at 4 by default, don't clamp based on available columns
     // This ensures the grid always shows 4 columns per row
-  }, [board.columnOrder]);
+  }, [board.column_order]);
 
   // Handler for when contacts are updated via the Contact Manager modal
   const handleContactsUpdated = useCallback((updatedContacts: ProjectContact[]) => {
     if (!selectedProjectId || !selectedProject) return;
 
     // Update the project option in our local state
-    setProjectOptions((prevOptions) => 
+    setProjectOptions((prevOptions) =>
       prevOptions.map((option) => {
         if (option.id === selectedProjectId) {
           return { ...option, contacts: updatedContacts };
@@ -1248,7 +1415,7 @@ const KanbanBoardPage: React.FC = () => {
 
   const columns = useMemo(
     () =>
-      board.columnOrder
+      board.column_order
         .map((columnId) => board.columns[columnId])
         .filter((column): column is KanbanColumnType => Boolean(column)),
     [board]
@@ -1282,9 +1449,9 @@ const KanbanBoardPage: React.FC = () => {
   const languageOptions = useMemo(() => {
     const codes = new Set<string>(DEFAULT_LANGUAGE_ORDER);
     Object.values(board.tasks).forEach((task) => {
-      task.languageCodes?.forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.titleTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
-      Object.keys(task.descriptionTranslations ?? {}).forEach((code) => codes.add(normalizeLanguageCode(code)));
+      task.language_codes?.forEach((code: string) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.title_translations ?? {}).forEach((code: string) => codes.add(normalizeLanguageCode(code)));
+      Object.keys(task.description_translations ?? {}).forEach((code: string) => codes.add(normalizeLanguageCode(code)));
     });
 
     const orderedCodes = Array.from(codes).sort((a, b) => {
@@ -1354,28 +1521,29 @@ const KanbanBoardPage: React.FC = () => {
   const handleOpenEditModal = (task: KanbanTask) => {
     setEditingTask(task);
 
-    const taskColumn = Object.values(board.columns).find((column) => column.taskIds.includes(task.id));
+    const taskColumn = Object.values(board.columns).find((column) => column.task_ids.includes(task.id));
 
-    const normalizedStart = normalizeIncomingDateValue(task.startDate);
-    const normalizedEnd = normalizeIncomingDateValue(task.endDate);
-    const normalizedDue = normalizeIncomingDateValue(task.dueDate);
+    const normalizedStart = normalizeIncomingDateValue(task.dt_start);
+    const normalizedEnd = normalizeIncomingDateValue(task.dt_completed);
+    const normalizedDue = normalizeIncomingDateValue(task.dt_deadline);
     const normalizedDifficulty = normalizeNumericSelectValue(
       task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
       DEFAULT_DIFFICULTY
     );
     const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
-    const normalizedProjectId = (task as any)?.project_id ?? selectedProjectId ?? "";
-    const normalizedIsActive = (task as any)?.is_active;
+    const normalizedProjectId = task.project_id ?? selectedProjectId ?? "";
+    const normalizedIsActive = task.is_active;
 
     setEditTaskState({
       translations: createTranslationEntriesFromTask(task),
       columnId: taskColumn?.id || resolveDefaultColumnId(),
       projectId: typeof normalizedProjectId === "string" || typeof normalizedProjectId === "number" ? String(normalizedProjectId) : "",
       priority: task.priority,
-      dueDate: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
-      startDate: normalizedStart,
-      endDate: normalizedEnd,
-      assignee: task.assignee || task.assignedTo?.[0]?.name || "",
+      dt_deadline: normalizedDue || calculateDueDate(normalizedStart, normalizedEnd),
+      dt_start: normalizedStart,
+      dt_completed: normalizedEnd,
+      dt_expected: normalizeIncomingDateValue(task.dt_expected),
+      assigned_to: Array.isArray(task.assigned_to) ? task.assigned_to.map(a => ({ id: a.id, name: a.name || a.id })) : [],
       difficulty: normalizedDifficulty,
       progress: normalizedProgress,
       percent_complete: String(normalizedProgress),
@@ -1711,13 +1879,13 @@ const KanbanBoardPage: React.FC = () => {
     const removalTokens: string[] = [];
     if (mode === "edit" && baseTask) {
       const originalLanguages = new Set<string>();
-      baseTask.languageCodes?.forEach((code) => {
+      baseTask.language_codes?.forEach((code: string) => {
         if (typeof code === "string") {
           originalLanguages.add(normalizeLanguageCode(code));
         }
       });
-      Object.keys(baseTask.titleTranslations ?? {}).forEach((code) => originalLanguages.add(normalizeLanguageCode(code)));
-      Object.keys(baseTask.descriptionTranslations ?? {}).forEach((code) =>
+      Object.keys(baseTask.title_translations ?? {}).forEach((code: string) => originalLanguages.add(normalizeLanguageCode(code)));
+      Object.keys(baseTask.description_translations ?? {}).forEach((code: string) =>
         originalLanguages.add(normalizeLanguageCode(code))
       );
 
@@ -1731,22 +1899,20 @@ const KanbanBoardPage: React.FC = () => {
 
     const column = board.columns[state.columnId] ?? board.columns[FALLBACK_COLUMN_ID];
     const columnTitle = column?.title ?? "Uncategorized";
-    const assigneeValue = typeof state.assignee === "string" ? state.assignee.trim() : "";
-    const assignedTo: Array<{ name: string; id?: number }> = assigneeValue
-      ? [{ name: assigneeValue }]
-      : baseTask?.assignedTo?.map((assignment) => ({ name: assignment.name })) ?? [];
+    const assignedTo = Array.isArray(state.assigned_to) ? state.assigned_to : [];
 
-    const startTimestamp = toTimestampMilliseconds(state.startDate);
-    const endTimestamp = toTimestampMilliseconds(state.endDate);
-    const dueTimestamp = toTimestampMilliseconds(state.dueDate);
+    let startTimestamp = toTimestampMilliseconds(state.dt_start);
+    let dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
+    let completedTimestamp = toTimestampMilliseconds(state.dt_completed);
 
-    if (startTimestamp !== null && endTimestamp !== null && endTimestamp < startTimestamp) {
-      return { error: "End date must be on or after start date." };
+    // WC3 minimal ordering: dt_start <= dt_deadline <= dt_completed
+    if (startTimestamp && dueTimestamp && dueTimestamp < startTimestamp) {
+      dueTimestamp = startTimestamp;
+    }
+    if (dueTimestamp && completedTimestamp && completedTimestamp < dueTimestamp) {
+      completedTimestamp = dueTimestamp;
     }
 
-    if (endTimestamp !== null && dueTimestamp !== null && dueTimestamp < endTimestamp) {
-      return { error: "Due date must be on or after end date." };
-    }
 
     const fallbackDifficulty = baseTask?.difficulty ?? PRIORITY_TO_VALUE[state.priority];
     const parsedDifficulty = Number(state.difficulty);
@@ -1773,9 +1939,10 @@ const KanbanBoardPage: React.FC = () => {
       priority: PRIORITY_TO_VALUE[state.priority],
       difficulty: resolvedDifficulty,
       status: baseTask?.status ?? "In progress",
-      dt_due: dueTimestamp ?? null,
+      dt_deadline: dueTimestamp ?? null,
       dt_start: startTimestamp ?? null,
-      dt_end: endTimestamp ?? null,
+      dt_completed: completedTimestamp ?? null,
+      dt_expected: toTimestampMilliseconds(state.dt_expected) ?? null,
       progress: resolvedProgress,
       // Backend drops numeric 0 via truthy checks; keep as string to satisfy NOT NULL constraint.
       burndown: serializeBurndownValue(resolvedBurndown),
@@ -1786,17 +1953,10 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     if (assignedTo.length > 0) {
-      payloadItem.assigned_to = assignedTo;
-      // If we have a selected contact, include contact_id for direct assignment
-      if (selectedContactId) {
-        const numericContactId = Number(selectedContactId);
-        if (!Number.isNaN(numericContactId) && numericContactId > 0) {
-          payloadItem.contact_id = numericContactId;
-          // Also add id to assigned_to entry for backend reference
-          if (assignedTo[0] && typeof assignedTo[0] === "object") {
-            assignedTo[0].id = numericContactId;
-          }
-        }
+      payloadItem.assigned_to = assignedTo.map(a => ({ id: a.id, name: a.name }));
+      // Optionally, set contact_id if only one selected
+      if (assignedTo.length === 1 && assignedTo[0].id) {
+        payloadItem.contact_id = assignedTo[0].id;
       }
     }
 
@@ -1811,7 +1971,7 @@ const KanbanBoardPage: React.FC = () => {
       if (selected?.name) return selected.name;
       if (selected?.intent) return selected.intent;
       if (selectedProjectName.trim()) return selectedProjectName.trim();
-      if (mode === "edit" && baseTask?.projectName) return baseTask.projectName;
+      if (mode === "edit" && baseTask?.project_name) return baseTask.project_name;
       return "";
     })();
 
@@ -1826,21 +1986,7 @@ const KanbanBoardPage: React.FC = () => {
 
     payloadItem.is_active = state.is_active !== "false";
 
-    if (mode === "create" && resolvedProjectId) {
-      const numericId = Number(resolvedProjectId);
-      const projectPayload: Record<string, unknown> = {
-        model_name: "project",
-        id: Number.isNaN(numericId) ? resolvedProjectId : numericId,
-        bulk: [cleanActionPayload(payloadItem)],
-      };
-
-      if (resolvedProjectName) {
-        projectPayload.project_name = resolvedProjectName;
-      }
-
-      return { payload: projectPayload };
-    }
-
+    // Backend doesn't process 'bulk' arrays - always send action directly
     return { payload: cleanActionPayload(payloadItem) };
   };
 
@@ -1859,22 +2005,47 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setIsSavingCreate(true);
-    handleCloseCreateModal();
 
     void patchAction(result.payload)
       .then((response) => {
-        const body: any = response?.data ?? response;
+        console.log("Create task response:", response);
+        const body: any = (response as any)?.data ?? response;
+        
+        // Check for fail status in both single and bulk responses
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-          throw new Error(details || "Backend rejected the save request.");
+          setCreateModalError(details || "Backend rejected the save request.");
+          return;
         }
-        void fetchActions({
-          projectId: selectedProjectId || undefined,
-          contactId: selectedContactId || undefined,
-        });
+        
+        // For project bulk operations, check the bulk array response
+        if (body?.bulk && Array.isArray(body.bulk)) {
+          const failedItems = body.bulk.filter((item: any) => item?.status === "fail");
+          if (failedItems.length > 0) {
+            const errors = failedItems.map((item: any) => 
+              Array.isArray(item?.error?.details) ? item.error.details.join("; ") : item?.message || "Unknown error"
+            );
+            throw new Error(errors.join("; "));
+          }
+        }
+        
+        handleCloseCreateModal();
+        
+        // Add a small delay to ensure backend has processed the action
+        setTimeout(() => {
+          void fetchActions({
+            projectId: selectedProjectId || undefined,
+            contactId: selectedContactId || undefined,
+          });
+        }, 300);
       })
       .catch((error) => {
         console.error("Failed to create kanban task", error);
+        const message =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          "Failed to create task. Please try again.";
+        setCreateModalError(message);
       })
       .finally(() => {
         setIsSavingCreate(false);
@@ -1899,7 +2070,7 @@ const KanbanBoardPage: React.FC = () => {
 
     void patchAction(result.payload)
       .then((response) => {
-        const body: any = response?.data ?? response;
+        const body: any = (response as any)?.data ?? response;
         if (body?.status === "fail") {
           const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
           throw new Error(details || "Backend rejected the update request.");
@@ -1923,40 +2094,19 @@ const KanbanBoardPage: React.FC = () => {
     }
 
     setEditModalError(null);
-    const parsedId = Number(editingTask.id);
-    const payloadId = Number.isNaN(parsedId) ? editingTask.id : parsedId;
-
     try {
       setIsRemovingTask(true);
-      const response = await patchAction({
-        model_name: "action",
-        id: payloadId,
-        is_deleted: { mode: "update", value: true },
-        is_active: { mode: "update", value: false },
-        status: { mode: "update", value: "Removed" },
-        kanban_column: { mode: "update", value: "Removed" },
-        kanban_column_id: { mode: "update", value: "column-removed" },
-      });
-      const body: any = response?.data ?? response;
-      if (response?.status !== 200 && response?.status !== 201) {
-        throw new Error("Failed to remove task.");
+      const result = await removeTaskInBackend(editingTask.id);
+      if (!result.success) {
+        setEditModalError(result.error ?? "Unable to remove task. Please try again.");
+        return;
       }
-      if (body?.status === "fail") {
-        const details = Array.isArray(body?.error?.details) ? body.error.details.join("; ") : body?.message;
-        throw new Error(details || "Backend rejected the remove request.");
-      }
+
       await fetchActions({
         projectId: selectedProjectId || undefined,
         contactId: selectedContactId || undefined,
       });
       handleCloseEditModal();
-    } catch (error) {
-      console.error("Failed to remove kanban task", error);
-      const message =
-        (error as any)?.response?.data?.message ||
-        (error as any)?.message ||
-        "Unable to remove task. Please try again.";
-      setEditModalError(message);
     } finally {
       setIsRemovingTask(false);
     }
@@ -2127,23 +2277,13 @@ const KanbanBoardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {(Object.keys(prioritySummary) as TaskPriority[]).map((priority) => (
-          <div
-            key={priority}
-            className={clsx(
-              "rounded-xl border px-3 py-2 text-sm shadow-sm transition",
-              "flex flex-col gap-1",
-              priorityCardPalette[priority]
-            )}
-          >
-            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide">
-              <span>{priority}</span>
-              <span className="text-[10px] font-medium opacity-70">{Math.round((prioritySummary[priority] / Math.max(totalTasks, 1)) * 100)}%</span>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-semibold">{prioritySummary[priority]}</span>
-              <span className="text-[11px] font-medium opacity-80">/ {totalTasks}</span>
+          <div key={priority} className={clsx("flex gap-2 items-center justify-between rounded-full px-3 py-1 text-xs font-semibold", priorityPalette[priority])}>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-800 dark:text-gray-400">{priority}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-semibold text-gray-900 dark:text-white">{prioritySummary[priority]}</span>
+              <span className="text-xs font-medium text-gray-400">/ {totalTasks} tasks</span>
             </div>
           </div>
         ))}
@@ -2151,6 +2291,7 @@ const KanbanBoardPage: React.FC = () => {
 
       <DndProvider backend={HTML5Backend}>
         <KanbanDragLayer tasks={board.tasks} />
+        <TrashDropZone isDeleting={isTrashDeleting} />
         {isLoading ? (
           <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
             Loading kanban board...
@@ -2165,7 +2306,7 @@ const KanbanBoardPage: React.FC = () => {
               <KanbanColumn
                 key={column.id}
                 column={column}
-                tasks={column.taskIds.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
+                tasks={column.task_ids.map((taskId) => board.tasks[taskId]).filter((task): task is KanbanTask => Boolean(task))}
                 onDragEnd={handleDragEnd}
                 onTaskClick={handleOpenEditModal}
               />

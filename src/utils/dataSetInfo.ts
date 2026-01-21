@@ -38,7 +38,7 @@ export function getFrontendDataSet(): DataSetInfo {
  * Fetch backend system info including data set identification
  */
 export async function fetchBackendSystemInfo(apiBaseUrl: string = ''): Promise<SystemInfo> {
-  const url = `${apiBaseUrl}/wcapi/system-info/`;
+  const url = `${apiBaseUrl}/wcapi/get/?model_name=system_info`;
   const response = await fetch(url, {
     method: 'GET',
     credentials: 'include',

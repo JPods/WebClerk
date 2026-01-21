@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createBlankRecord } from '../../tools/createBlankRecord';
 import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 import { NetworkInfo } from '../../routes/network';
@@ -374,6 +375,20 @@ const AdminWorkbench: React.FC = () => {
                   <span className="text-sm font-medium text-gray-700">Models</span>
                   <p className="text-xs text-gray-400">Choose a model to inspect</p>
                 </div>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2">
+                <div className="text-xs font-semibold">Records List</div>
+                <button
+                  className="px-3 py-1 text-xs rounded border bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={() => {
+                    if (selectedModel && allFields.length) {
+                      const blankRecord = createBlankRecord(selectedModel, allFields);
+                      setRecords(prev => [blankRecord, ...prev]);
+                      setSelectedId(null);
+                      setSelectedRecord(blankRecord);
+                    }
+                  }}
+                >Add Record</button>
               </div>
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {loadingModels && (

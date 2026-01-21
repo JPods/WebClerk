@@ -20,7 +20,7 @@ console.log(
 );
 
 // Fetch and display backend database mode
-fetch('/wcapi/dev/config/')
+fetch('/wcapi/get/?model_name=dev_config')
   .then(res => res.ok ? res.json() : null)
   .then(data => {
     if (data?.data) {
