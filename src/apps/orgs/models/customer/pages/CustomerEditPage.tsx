@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { fetchCustomers } from "../services/customerApi";
 import CustomerDetail from "./CustomerDisplay";
 import { dynamicData } from "../../../../../model/dynamicData";
@@ -30,6 +29,12 @@ export default function CustomerEditPage() {
       })
       .finally(() => setLoading(false));
   }, [id, customerId]);
+
+  useEffect(() => {
+    if (!record) return;
+    const title = record.display_name || record.name || `Customer ${record.id ?? customerId}`;
+    ensureWindow(location.pathname, title, { maximized: false });
+  }, [record, ensureWindow, location.pathname, customerId]);
 
   const listOrder = useMemo(() => {
     try {
@@ -61,7 +66,6 @@ export default function CustomerEditPage() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Edit Customer" />
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-600">{error}</div>}
       {!loading && !error && (

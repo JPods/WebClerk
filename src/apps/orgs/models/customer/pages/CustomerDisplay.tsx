@@ -1,13 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+import { Input, TextArea } from "../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createCustomer, updateCustomer } from "../services/customerApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -20,6 +19,36 @@ import Checkbox from "@/components/form/input/Checkbox";
 
 // Dashboard-style containers for modular customer view
 type CustomerFormValues = z.infer<typeof customerSchema>;
+
+const JSON_DEFAULTS: Record<string, string> = {
+  contacts: "[]",
+  locations: "[]",
+  domains: "[]",
+  phones: "[]",
+  emails: "[]",
+  docs: "[]",
+  connections: "{}",
+  relations: "{}",
+  financial: "{}",
+  data: "{}",
+  metrics: "{}",
+  gl_accounts: "{}",
+};
+
+const JSON_FIELDS: Array<{ key: keyof CustomerFormValues; label: string; placeholder: string }> = [
+  { key: "contacts", label: "Contacts", placeholder: "[]" },
+  { key: "locations", label: "Locations", placeholder: "[]" },
+  { key: "domains", label: "Domains", placeholder: "[]" },
+  { key: "phones", label: "Phones", placeholder: "[]" },
+  { key: "emails", label: "Emails", placeholder: "[]" },
+  { key: "relations", label: "Relations", placeholder: "{}" },
+  { key: "financial", label: "Financial", placeholder: "{}" },
+  { key: "docs", label: "Documents", placeholder: "[]" },
+  { key: "connections", label: "Connections", placeholder: "{}" },
+  { key: "data", label: "Data", placeholder: "{}" },
+  { key: "metrics", label: "Metrics", placeholder: "{}" },
+  { key: "gl_accounts", label: "GL Accounts", placeholder: "{}" },
+];
 
 const formatLabel = (value: string) =>
   value
@@ -108,7 +137,7 @@ function CustomerDataPanel({ data }: { data: any }) {
 export default function CustomerDetail({
   modeProp,
   dataProp,
-  hideBreadcrumb,
+  hideBreadcrumb: _hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
@@ -120,6 +149,7 @@ export default function CustomerDetail({
 }: CustomerAddProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview");
 
   const {
     register,
@@ -131,7 +161,12 @@ export default function CustomerDetail({
     watch,
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as any,
-    defaultValues: { is_active: false, version: 1, org_type: "customer" },
+    defaultValues: {
+      is_active: false,
+      version: 1,
+      org_type: "customer",
+      ...JSON_DEFAULTS,
+    },
   });
 
   const location = useLocation();
@@ -140,24 +175,69 @@ export default function CustomerDetail({
   const data = dataProp || routeState.data || null;
   useEffect(() => {
     if (mode === "add") {
-      reset();
-    } else if (data) {
+      reset({
+        is_active: false,
+        version: 1,
+        org_type: "customer",
+        ...JSON_DEFAULTS,
+      });
+      return;
+    }
+    if (data) {
       Object.keys(data).forEach((key: any) => {
         if (data[key] !== undefined) {
-          setValue(key, data[key]);
+          if (key in JSON_DEFAULTS) {
+            setValue(key, JSON.stringify(data[key] ?? JSON_DEFAULTS[key], null, 2));
+          } else {
+            setValue(key, data[key]);
+          }
+        }
+      });
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        if (data[key] === undefined) {
+          setValue(key as keyof CustomerFormValues, JSON_DEFAULTS[key]);
         }
       });
     } else {
-      reset({});
+      reset({
+        is_active: false,
+        version: 1,
+        org_type: "customer",
+        ...JSON_DEFAULTS,
+      });
     }
   }, [data, reset, setValue, mode]);
-  const onSubmit = async (formData: CustomerFormValues) => {
-    console.log("formData", formData);
+
+  const parseJsonField = (label: string, raw?: string) => {
+    if (!raw || raw.trim() === "") return undefined;
     try {
+      return JSON.parse(raw);
+    } catch {
+      dispatch(showToast({ message: `${label} must be valid JSON`, type: "error" }));
+      throw new Error(`${label} JSON invalid`);
+    }
+  };
+  const onSubmit = async (formData: CustomerFormValues) => {
+    try {
+      const jsonPayload: Record<string, any> = {};
+      JSON_FIELDS.forEach(({ key, label }) => {
+        const parsed = parseJsonField(label, formData[key] as string | undefined);
+        if (parsed !== undefined) {
+          jsonPayload[key] = parsed;
+        }
+      });
+      const payload = {
+        display_name: formData.display_name,
+        status: formData.status,
+        org_type: formData.org_type,
+        version: formData.version,
+        is_active: formData.is_active,
+        ...jsonPayload,
+      };
       const res =
         mode === "add"
-          ? await createCustomer(formData)
-          : await updateCustomer({ ...formData, id: data && data.id });
+          ? await createCustomer(payload)
+          : await updateCustomer({ ...payload, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
@@ -190,20 +270,15 @@ export default function CustomerDetail({
 
   return (
     <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Customer"
-              : mode === "view"
-              ? "View Customer"
-              : "Customer Detail"
-          }
-        />
-      )}
       <ComponentCard>
-        {(mode === "edit" || mode === "view") && !inline && (
-          <div className="flex justify-end">
+        {!inline && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">Customer</div>
+              <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                {watch("display_name") || data?.display_name || "New Customer"}
+              </div>
+            </div>
             <div className="flex items-center gap-2 rounded-full bg-white shadow border border-slate-200 px-2 py-1">
               <button
                 type="button"
@@ -213,17 +288,7 @@ export default function CustomerDetail({
               >
                 <FaTimes className="text-slate-600" />
               </button>
-              {mode === "edit" ? (
-                <button
-                  type="button"
-                  onClick={handleSubmit(onSubmit)}
-                  className="p-2 rounded-full hover:bg-slate-100"
-                  title="Save"
-                  disabled={isSubmitting}
-                >
-                  <FaSave className="text-slate-600" />
-                </button>
-              ) : (
+              {mode === "view" ? (
                 <>
                   <button
                     type="button"
@@ -244,6 +309,16 @@ export default function CustomerDetail({
                     <FaTrash className="text-rose-600" />
                   </button>
                 </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
+                  className="p-2 rounded-full hover:bg-slate-100"
+                  title="Save"
+                  disabled={isSubmitting}
+                >
+                  <FaSave className="text-slate-600" />
+                </button>
               )}
               <button
                 type="button"
@@ -266,16 +341,49 @@ export default function CustomerDetail({
             </div>
           </div>
         )}
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center gap-2 py-2">
+          <div className="flex-1 overflow-x-auto h-14">
+            <div className="flex min-w-max items-center gap-6">
+              {[
+                { id: "overview", label: "Overview" },
+                { id: "snapshot", label: "Snapshot" },
+                { id: "contacts", label: "Contacts" },
+                { id: "locations", label: "Locations" },
+                { id: "domains", label: "Domains" },
+                { id: "phones", label: "Phones" },
+                { id: "emails", label: "Emails" },
+                { id: "relations", label: "Relations" },
+                { id: "financial", label: "Financial" },
+                { id: "documents", label: "Documents" },
+                { id: "connections", label: "Connections" },
+                { id: "data", label: "Data" },
+                { id: "metrics", label: "Metrics" },
+                { id: "gl_accounts", label: "GL Accounts" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative pb-2 text-sm font-semibold transition ${
+                    activeTab === tab.id
+                      ? "text-indigo-600"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <span className="absolute -bottom-2.5 left-0 right-0 h-0.5 rounded-full bg-indigo-600" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">Customer</div>
-              <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
-                {watch("display_name") || data?.display_name || "New Customer"}
-              </div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                ID: {data?.id ?? "—"}
-              </div>
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">Snapshot</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">ID: {data?.id ?? "—"}</div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -295,7 +403,6 @@ export default function CustomerDetail({
             </div>
           </div>
         </div>
-        <CustomerDataPanel data={data} />
         {inline && (
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
@@ -318,73 +425,95 @@ export default function CustomerDetail({
         )}
         {/* ...existing customer form and logic... */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">General Information</h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="display_name">Display Name</Label>
-                <Input
-                  type="text"
-                  id="display_name"
-                  placeholder="Display Name"
-                  {...register("display_name")}
-                  error={
-                    errors.display_name && errors.display_name.message
-                      ? true
-                      : false
-                  }
-                  hint={errors.display_name && errors.display_name.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Input
-                  type="text"
-                  id="status"
-                  placeholder="Status"
-                  {...register("status")}
-                  error={errors.status && errors.status.message ? true : false}
-                  hint={errors.status && errors.status.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="org_type">Org Type</Label>
-                <Input
-                  type="text"
-                  id="org_type"
-                  placeholder="customer"
-                  {...register("org_type")}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="version">Version</Label>
-                <Input
-                  type="number"
-                  id="version"
-                  placeholder="1"
-                  {...register("version", { valueAsNumber: true })}
-                  disabled={mode === "view"}
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_active"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="Active"
+          {activeTab === "overview" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">General Information</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="display_name">Company</Label>
+                  <Input
+                    type="text"
+                    id="display_name"
+                    placeholder="Company"
+                    {...register("display_name")}
+                    error={
+                      errors.display_name && errors.display_name.message
+                        ? true
+                        : false
+                    }
+                    hint={errors.display_name && errors.display_name.message}
+                    disabled={mode === "view"}
                   />
-                )}
-              />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Input
+                    type="text"
+                    id="status"
+                    placeholder="Status"
+                    {...register("status")}
+                    error={errors.status && errors.status.message ? true : false}
+                    hint={errors.status && errors.status.message}
+                    disabled={mode === "view"}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="org_type">Org Type</Label>
+                  <Input
+                    type="text"
+                    id="org_type"
+                    placeholder="customer"
+                    {...register("org_type")}
+                    disabled={mode === "view"}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="version">Version</Label>
+                  <Input
+                    type="number"
+                    id="version"
+                    placeholder="1"
+                    {...register("version", { valueAsNumber: true })}
+                    disabled={mode === "view"}
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="is_active"
+                      checked={field.value ?? false}
+                      onChange={field.onChange}
+                      label="Active"
+                    />
+                  )}
+                />
+              </div>
             </div>
-          </div>
+          )}
+          {activeTab === "snapshot" && <CustomerDataPanel data={data} />}
+          {activeTab !== "overview" && activeTab !== "snapshot" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              {JSON_FIELDS.filter((field) => {
+                if (activeTab === "documents") return field.key === "docs";
+                return field.key === activeTab;
+              }).map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <Label htmlFor={String(field.key)}>{field.label}</Label>
+                  <TextArea
+                    register={register(field.key)}
+                    rows={12}
+                    placeholder={field.placeholder}
+                    disabled={mode === "view"}
+                  />
+                  <p className="text-xs text-slate-400">JSON format expected.</p>
+                </div>
+              ))}
+            </div>
+          )}
           {mode !== "view" && (
             <div className="flex items-center gap-2">
               <button
