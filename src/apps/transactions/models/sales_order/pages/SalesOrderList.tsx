@@ -293,7 +293,7 @@ export default function salesOrderList() {
                 handleView(row);
               }}
               title="View"
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
+              className="p-2 text-blue-600 text-xs hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
             >
               <FaEye className="w-4 h-4" />
             </button>
@@ -303,7 +303,7 @@ export default function salesOrderList() {
                 handleEdit(row);
               }}
               title="Edit"
-              className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
+              className="p-2 text-green-600 text-xs hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
             >
               <FaEdit className="w-4 h-4" />
             </button>
@@ -313,7 +313,7 @@ export default function salesOrderList() {
                 handle_delete(row);
               }}
               title="Delete"
-              className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+              className="p-2 text-red-600 text-xs hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
             >
               <FaTrash className="w-4 h-4" />
             </button>
@@ -435,7 +435,7 @@ export default function salesOrderList() {
               customActions={
                 <button
                   onClick={handleAdd}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium disabled:opacity-50 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <FaPlus className="w-4 h-4" />
                   Add Sales Order

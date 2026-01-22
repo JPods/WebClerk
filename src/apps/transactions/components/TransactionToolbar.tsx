@@ -1,6 +1,6 @@
 /**
  * TransactionToolbar - Action toolbar for transaction detail pages
- * 
+ *
  * Provides common actions:
  * - Save & Close
  * - Save
@@ -10,7 +10,7 @@
  * - Email
  * - Delete
  */
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   FaSave,
   FaSignOutAlt,
@@ -21,18 +21,18 @@ import {
   FaTrash,
   FaSpinner,
   FaChevronDown,
-} from 'react-icons/fa';
+} from "react-icons/fa";
 
 // Transaction types for transfer dropdown
 const TRANSACTION_TYPES = [
-  { value: 'invoice', label: 'Invoice' },
-  { value: 'sales_order', label: 'Sales Order' },
-  { value: 'proposal', label: 'Proposal' },
-  { value: 'purchase_order', label: 'Purchase Order' },
-  { value: 'workorder', label: 'Work Order' },
+  { value: "invoice", label: "Invoice" },
+  { value: "sales_order", label: "Sales Order" },
+  { value: "proposal", label: "Proposal" },
+  { value: "purchase_order", label: "Purchase Order" },
+  { value: "workorder", label: "Work Order" },
 ] as const;
 
-type TransactionType = typeof TRANSACTION_TYPES[number]['value'];
+type TransactionType = (typeof TRANSACTION_TYPES)[number]["value"];
 
 interface TransactionToolbarProps {
   /** Current transaction type */
@@ -88,7 +88,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   canDelete = true,
   canClone = true,
   canTransfer = true,
-  className = '',
+  className = "",
 }) => {
   const [showTransferMenu, setShowTransferMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -97,7 +97,10 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   const isNewRecord = !transactionId;
 
   // Wrapper to handle async actions with loading state
-  const handleAction = async (actionName: string, action?: () => Promise<void> | void) => {
+  const handleAction = async (
+    actionName: string,
+    action?: () => Promise<void> | void,
+  ) => {
     if (!action || actionInProgress) return;
     setActionInProgress(actionName);
     try {
@@ -113,14 +116,14 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   const handleTransfer = async (targetType: TransactionType) => {
     setShowTransferMenu(false);
     if (onTransfer) {
-      await handleAction('transfer', () => onTransfer(targetType));
+      await handleAction("transfer", () => onTransfer(targetType));
     }
   };
 
   // Handle delete with confirmation
   const handleDeleteClick = () => {
     if (showDeleteConfirm) {
-      handleAction('delete', onDelete);
+      handleAction("delete", onDelete);
       setShowDeleteConfirm(false);
     } else {
       setShowDeleteConfirm(true);
@@ -130,28 +133,33 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   };
 
   // Filter transfer options (exclude current type)
-  const transferOptions = TRANSACTION_TYPES.filter(t => t.value !== transactionType);
+  const transferOptions = TRANSACTION_TYPES.filter(
+    (t) => t.value !== transactionType,
+  );
 
   // Common button styles
-  const buttonBase = "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const buttonBase =
+    "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
   const primaryButton = `${buttonBase} bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed`;
   const secondaryButton = `${buttonBase} bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700`;
   const dangerButton = `${buttonBase} bg-red-600 text-white hover:bg-red-700 focus:ring-red-500`;
 
   return (
-    <div className={`flex items-center justify-between gap-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${className}`}>
+    <div
+      className={`flex items-center justify-between gap-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm ${className}`}
+    >
       {/* Left side: Primary actions */}
       <div className="flex items-center gap-2">
         {/* Save & Close */}
         {isEditing && onSaveAndClose && (
           <button
             type="button"
-            onClick={() => handleAction('saveAndClose', onSaveAndClose)}
+            onClick={() => handleAction("saveAndClose", onSaveAndClose)}
             disabled={isSaving || actionInProgress !== null}
-            className={primaryButton}
+            className={`${primaryButton} text-xs`}
             title="Save and close"
           >
-            {actionInProgress === 'saveAndClose' ? (
+            {actionInProgress === "saveAndClose" ? (
               <FaSpinner className="animate-spin" size={14} />
             ) : (
               <>
@@ -159,7 +167,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
                 <FaSignOutAlt size={12} />
               </>
             )}
-            <span className="hidden sm:inline">Save & Close</span>
+            <span className="hidden xs:inline">Save & Close</span>
           </button>
         )}
 
@@ -167,12 +175,12 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
         {isEditing && onSave && (
           <button
             type="button"
-            onClick={() => handleAction('save', onSave)}
+            onClick={() => handleAction("save", onSave)}
             disabled={isSaving || actionInProgress !== null || !isDirty}
-            className={secondaryButton}
+            className={`${secondaryButton} text-xs`}
             title="Save"
           >
-            {actionInProgress === 'save' || isSaving ? (
+            {actionInProgress === "save" || isSaving ? (
               <FaSpinner className="animate-spin" size={14} />
             ) : (
               <FaSave size={14} />
@@ -187,7 +195,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
             type="button"
             onClick={onCancel}
             disabled={isSaving || actionInProgress !== null}
-            className={secondaryButton}
+            className={`${secondaryButton} text-xs`}
             title="Cancel"
           >
             Cancel
@@ -204,12 +212,12 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
         {!isNewRecord && canClone && onClone && (
           <button
             type="button"
-            onClick={() => handleAction('clone', onClone)}
+            onClick={() => handleAction("clone", onClone)}
             disabled={actionInProgress !== null}
-            className={secondaryButton}
+            className={`${secondaryButton} text-xs`}
             title="Clone this transaction"
           >
-            {actionInProgress === 'clone' ? (
+            {actionInProgress === "clone" ? (
               <FaSpinner className="animate-spin" size={14} />
             ) : (
               <FaCopy size={14} />
@@ -225,10 +233,10 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
               type="button"
               onClick={() => setShowTransferMenu(!showTransferMenu)}
               disabled={actionInProgress !== null}
-              className={secondaryButton}
+              className={`${secondaryButton} text-xs`}
               title="Transfer lines to another transaction type"
             >
-              {actionInProgress === 'transfer' ? (
+              {actionInProgress === "transfer" ? (
                 <FaSpinner className="animate-spin" size={14} />
               ) : (
                 <FaExchangeAlt size={14} />
@@ -272,7 +280,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
             type="button"
             onClick={onPrint}
             disabled={actionInProgress !== null}
-            className={secondaryButton}
+            className={`${secondaryButton} text-xs`}
             title="Print"
           >
             <FaPrint size={14} />
@@ -286,7 +294,7 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
             type="button"
             onClick={onEmail}
             disabled={actionInProgress !== null}
-            className={secondaryButton}
+            className={`${secondaryButton} text-xs`}
             title="Email"
           >
             <FaEnvelope size={14} />
@@ -303,16 +311,22 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
             type="button"
             onClick={handleDeleteClick}
             disabled={actionInProgress !== null}
-            className={showDeleteConfirm ? dangerButton : secondaryButton}
-            title={showDeleteConfirm ? 'Click again to confirm delete' : 'Delete'}
+            className={
+              showDeleteConfirm
+                ? `${dangerButton} text-xs`
+                : `${secondaryButton} text-xs`
+            }
+            title={
+              showDeleteConfirm ? "Click again to confirm delete" : "Delete"
+            }
           >
-            {actionInProgress === 'delete' ? (
+            {actionInProgress === "delete" ? (
               <FaSpinner className="animate-spin" size={14} />
             ) : (
               <FaTrash size={14} />
             )}
-            <span className={showDeleteConfirm ? 'inline' : 'hidden md:inline'}>
-              {showDeleteConfirm ? 'Confirm?' : 'Delete'}
+            <span className={showDeleteConfirm ? "inline" : "hidden md:inline"}>
+              {showDeleteConfirm ? "Confirm?" : "Delete"}
             </span>
           </button>
         )}
@@ -328,48 +342,48 @@ export type { TransactionToolbarProps, TransactionType };
 
 /**
  * Example usage in a transaction detail page:
- * 
+ *
  * ```tsx
  * import TransactionToolbar from '../../../components/TransactionToolbar';
  * import { useNavigate } from 'react-router-dom';
- * 
+ *
  * const ProposalDetail = ({ isAdmin }) => {
  *   const navigate = useNavigate();
  *   const { id } = useParams();
  *   const [isSaving, setIsSaving] = useState(false);
  *   const { formState: { isDirty }, handleSubmit } = useForm();
- * 
+ *
  *   const handleSave = async () => {
  *     setIsSaving(true);
  *     await handleSubmit(onSubmit)();
  *     setIsSaving(false);
  *   };
- * 
+ *
  *   const handleSaveAndClose = async () => {
  *     await handleSave();
  *     navigate('/transactions/proposals');
  *   };
- * 
+ *
  *   const handleClone = async () => {
  *     // Clone creates new proposal with same customer, contacts, lines
  *     const clonedData = { ...data, id: undefined, ida: undefined };
  *     navigate('/transactions/proposals/new', { state: { clone: clonedData } });
  *   };
- * 
+ *
  *   const handleTransfer = async (targetType) => {
  *     // Transfer creates new transaction of targetType with lines from this one
- *     navigate(`/transactions/${targetType}s/new`, { 
+ *     navigate(`/transactions/${targetType}s/new`, {
  *       state: { transferFrom: { type: 'proposal', id, lines: data.lines } }
  *     });
  *   };
- * 
+ *
  *   const handlePrint = () => window.print();
  *   const handleEmail = () => { /* open email modal * / };
  *   const handleDelete = async () => {
  *     await api.delete(`/wcapi/delete/?model_name=Proposal&id=${id}`);
  *     navigate('/transactions/proposals');
  *   };
- * 
+ *
  *   return (
  *     <div>
  *       <TransactionToolbar

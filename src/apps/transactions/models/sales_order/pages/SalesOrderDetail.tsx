@@ -359,6 +359,7 @@ const SalesOrderHeader: React.FC<{
                 onChange={(party) =>
                   onChange && onChange("customer_id", party?.id ?? null)
                 }
+                className="text-sm"
               />
             </div>
           ) : customerInfo ? (

@@ -9,7 +9,14 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createSalesOrder, updateSalesOrder, fetchSalesOrderLines, createSalesOrderLine, updateSalesOrderLine, deleteSalesOrderLine } from "../services/salesOrderApi";
+import {
+  createSalesOrder,
+  updateSalesOrder,
+  fetchSalesOrderLines,
+  createSalesOrderLine,
+  updateSalesOrderLine,
+  deleteSalesOrderLine,
+} from "../services/salesOrderApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
@@ -31,8 +38,15 @@ export default function SalesOrderDetailTest({
   const dispatch = useDispatch();
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [editingLineId, setEditingLineId] = useState<number | null>(null);
-  const [newLine, setNewLine] = useState<any>({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
-  const [searchId, setSearchId] = useState<string>('');
+  const [newLine, setNewLine] = useState<any>({
+    item_id: undefined,
+    item_name: "",
+    description: "",
+    quantity: 1,
+    price: { sell: 0, cost: 0 },
+    discount_amount: 0,
+  });
+  const [searchId, setSearchId] = useState<string>("");
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchedData, setSearchedData] = useState<any>(null);
 
@@ -59,86 +73,88 @@ export default function SalesOrderDetailTest({
         setLineItems(response.data.results || []);
       }
     } catch (error) {
-      console.error('Failed to load line items:', error);
+      console.error("Failed to load line items:", error);
     }
   };
-  
+
   useEffect(() => {
     if (mode === "add") {
       reset({});
       setLineItems([]);
     } else if (data) {
       // Log the data to check what's being received
-      console.log('Sales Order Data received:', data);
+      console.log("Sales Order Data received:", data);
 
       const userDefined = data.prefs?.userdefined || {};
 
       // Map API response to form structure
       const formData = {
         // Fields from prefs.userdefined
-        sales_order_no: userDefined.sales_order_no || data.sales_order_no || '',
+        sales_order_no: userDefined.sales_order_no || data.sales_order_no || "",
         id_customer: userDefined.id_customer || data.id_customer || 0,
         total: userDefined.total || data.total || 0,
         tax: userDefined.tax || data.tax || 0,
         discount: userDefined.discount || data.discount || 0,
-        id_transaction: userDefined.id_transaction || data.id_transaction || '',
+        id_transaction: userDefined.id_transaction || data.id_transaction || "",
         subtotal: userDefined.subtotal || data.subtotal || 0,
-        id_manufacturer: userDefined.id_manufacturer || data.id_manufacturer || 0,
+        id_manufacturer:
+          userDefined.id_manufacturer || data.id_manufacturer || 0,
         id_vendor: userDefined.id_vendor || data.id_vendor || 0,
-        due_date: userDefined.due_date || data.due_date || '',
-        valid_until: userDefined.valid_until || data.valid_until || '',
+        due_date: userDefined.due_date || data.due_date || "",
+        valid_until: userDefined.valid_until || data.valid_until || "",
 
         // Contact / address fields
-        company: userDefined.company || data.company || '',
-        attention: userDefined.attention || data.attention || '',
-        address1: userDefined.address1 || data.address1 || '',
-        address2: userDefined.address2 || data.address2 || '',
-        city: userDefined.city || data.city || '',
-        state: userDefined.state || data.state || '',
-        zip: userDefined.zip || data.zip || '',
-        email: userDefined.email || data.email || '',
-        phoneCell: userDefined.phoneCell || data.phoneCell || '',
-        phone: userDefined.phone || data.phone || '',
+        company: userDefined.company || data.company || "",
+        attention: userDefined.attention || data.attention || "",
+        address1: userDefined.address1 || data.address1 || "",
+        address2: userDefined.address2 || data.address2 || "",
+        city: userDefined.city || data.city || "",
+        state: userDefined.state || data.state || "",
+        zip: userDefined.zip || data.zip || "",
+        email: userDefined.email || data.email || "",
+        phoneCell: userDefined.phoneCell || data.phoneCell || "",
+        phone: userDefined.phone || data.phone || "",
 
         // Workflow / assignment fields
-        actionBy: userDefined.actionBy || data.actionBy || '',
-        action: userDefined.action || data.action || '',
-        actionDate: userDefined.actionDate || data.actionDate || '',
-        actionTime: userDefined.actionTime || data.actionTime || '',
-        salesNameID: userDefined.salesNameID || data.salesNameID || '',
-        orderedBy: userDefined.orderedBy || data.orderedBy || '',
-        contractDetailTag: userDefined.contractDetailTag || data.contractDetailTag || '',
-        terms: userDefined.terms || data.terms || '',
-        typeSale: userDefined.typeSale || data.typeSale || '',
-        taxJuris: userDefined.taxJuris || data.taxJuris || '',
-        adSource: userDefined.adSource || data.adSource || '',
+        actionBy: userDefined.actionBy || data.actionBy || "",
+        action: userDefined.action || data.action || "",
+        actionDate: userDefined.actionDate || data.actionDate || "",
+        actionTime: userDefined.actionTime || data.actionTime || "",
+        salesNameID: userDefined.salesNameID || data.salesNameID || "",
+        orderedBy: userDefined.orderedBy || data.orderedBy || "",
+        contractDetailTag:
+          userDefined.contractDetailTag || data.contractDetailTag || "",
+        terms: userDefined.terms || data.terms || "",
+        typeSale: userDefined.typeSale || data.typeSale || "",
+        taxJuris: userDefined.taxJuris || data.taxJuris || "",
+        adSource: userDefined.adSource || data.adSource || "",
 
         // Commenting
-        addComment: '',
-        comment: userDefined.comment || data.comment || '',
-        contractDetail: userDefined.contractDetail || data.contractDetail || '',
-        
+        addComment: "",
+        comment: userDefined.comment || data.comment || "",
+        contractDetail: userDefined.contractDetail || data.contractDetail || "",
+
         // Fields from root level
-        status: data.status || 'draft',
-        priority: data.priority || '',
-        price_level: data.price_level || '',
+        status: data.status || "draft",
+        priority: data.priority || "",
+        price_level: data.price_level || "",
         version: data.version || 0,
-        
+
         // JSON fields - already at root level
-        cost: data.cost || '',
-        sell: data.sell || '',
-        finance: data.finance || '',
-        flow: data.flow || '',
-        source: data.source || '',
-        
+        cost: data.cost || "",
+        sell: data.sell || "",
+        finance: data.finance || "",
+        flow: data.flow || "",
+        source: data.source || "",
+
         // Timestamps
         dt_created: data.dt_created,
         dt_modified: data.dt_modified,
       };
-      
+
       // Reset form with mapped data
       reset(formData);
-      
+
       // Load line items for existing sales orders
       if (data.id) {
         loadLineItems(data.id);
@@ -162,14 +178,15 @@ export default function SalesOrderDetailTest({
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
-          })
+          }),
         );
         if (onSaved) {
           onSaved();
         }
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'An error occurred';
+      const message =
+        error instanceof Error ? error.message : "An error occurred";
       dispatch(showToast({ message, type: "error" }));
     }
   };
@@ -178,19 +195,32 @@ export default function SalesOrderDetailTest({
     if (!data?.id) return;
     try {
       await updateSalesOrder(data.id, { ...data, status: newStatus });
-      dispatch(showToast({ message: `Sales order marked as ${newStatus}`, type: "success" }));
+      dispatch(
+        showToast({
+          message: `Sales order marked as ${newStatus}`,
+          type: "success",
+        }),
+      );
       if (onSaved) {
         onSaved();
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to update status";
+      const message =
+        error instanceof Error ? error.message : "Failed to update status";
       dispatch(showToast({ message, type: "error" }));
     }
   };
 
   const handleAddLine = () => {
     setEditingLineId(-1); // -1 for new line
-    setNewLine({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+    setNewLine({
+      item_id: undefined,
+      item_name: "",
+      description: "",
+      quantity: 1,
+      price: { sell: 0, cost: 0 },
+      discount_amount: 0,
+    });
   };
 
   const handleEditLine = (line: any) => {
@@ -204,13 +234,23 @@ export default function SalesOrderDetailTest({
         // New line
         if (data?.id) {
           await createSalesOrderLine(data.id, newLine);
-          dispatch(showToast({ message: "Line item added successfully", type: "success" }));
+          dispatch(
+            showToast({
+              message: "Line item added successfully",
+              type: "success",
+            }),
+          );
         }
       } else {
         // Update line
         if (data?.id) {
           await updateSalesOrderLine(data.id, editingLineId!, newLine);
-          dispatch(showToast({ message: "Line item updated successfully", type: "success" }));
+          dispatch(
+            showToast({
+              message: "Line item updated successfully",
+              type: "success",
+            }),
+          );
         }
       }
       setEditingLineId(null);
@@ -219,26 +259,48 @@ export default function SalesOrderDetailTest({
         loadLineItems(data.id);
       }
     } catch (error: any) {
-      dispatch(showToast({ message: error.message || "Failed to save line item", type: "error" }));
+      dispatch(
+        showToast({
+          message: error.message || "Failed to save line item",
+          type: "error",
+        }),
+      );
     }
   };
 
   const handleDeleteLine = async (lineId: number) => {
     if (!data?.id) return;
-    if (window.confirm('Delete this line item?')) {
+    if (window.confirm("Delete this line item?")) {
       try {
         await deleteSalesOrderLine(data.id, lineId);
-        dispatch(showToast({ message: "Line item deleted successfully", type: "success" }));
+        dispatch(
+          showToast({
+            message: "Line item deleted successfully",
+            type: "success",
+          }),
+        );
         loadLineItems(data.id);
       } catch (error: any) {
-        dispatch(showToast({ message: error.message || "Failed to delete line item", type: "error" }));
+        dispatch(
+          showToast({
+            message: error.message || "Failed to delete line item",
+            type: "error",
+          }),
+        );
       }
     }
   };
 
   const handleCancelEdit = () => {
     setEditingLineId(null);
-    setNewLine({ item_id: undefined, item_name: '', description: '', quantity: 1, price: { sell: 0, cost: 0 }, discount_amount: 0 });
+    setNewLine({
+      item_id: undefined,
+      item_name: "",
+      description: "",
+      quantity: 1,
+      price: { sell: 0, cost: 0 },
+      discount_amount: 0,
+    });
   };
 
   console.log("Errors:", errors);
@@ -258,7 +320,7 @@ export default function SalesOrderDetailTest({
       <ComponentCard>
         {inline && (
           <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
+            <h3 className="dark:text-white text-md font-semibold">
               {mode === "edit"
                 ? "Edit Sales Order (id=" + (data?.id || "") + ")"
                 : mode === "view"
@@ -285,7 +347,11 @@ export default function SalesOrderDetailTest({
                 id="sales_order_no"
                 placeholder="Sales Order Number"
                 {...register("sales_order_no")}
-                error={errors.sales_order_no && errors.sales_order_no.message ? true : false}
+                error={
+                  errors.sales_order_no && errors.sales_order_no.message
+                    ? true
+                    : false
+                }
                 hint={errors.sales_order_no && errors.sales_order_no.message}
                 disabled={mode === "view"}
               />
@@ -304,7 +370,9 @@ export default function SalesOrderDetailTest({
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
               </select>
-              {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+              {errors.status && (
+                <p className="text-red-500 text-sm">{errors.status.message}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="id_customer">id_customer</Label>
@@ -313,7 +381,11 @@ export default function SalesOrderDetailTest({
                 id="id_customer"
                 placeholder="Customer ID"
                 {...register("id_customer")}
-                error={errors.id_customer && errors.id_customer.message ? true : false}
+                error={
+                  errors.id_customer && errors.id_customer.message
+                    ? true
+                    : false
+                }
                 hint={errors.id_customer && errors.id_customer.message}
                 disabled={mode === "view"}
               />
@@ -349,7 +421,9 @@ export default function SalesOrderDetailTest({
                 id="discount"
                 placeholder="Discount"
                 {...register("discount")}
-                error={errors.discount && errors.discount.message ? true : false}
+                error={
+                  errors.discount && errors.discount.message ? true : false
+                }
                 hint={errors.discount && errors.discount.message}
                 disabled={mode === "view"}
               />
@@ -362,7 +436,11 @@ export default function SalesOrderDetailTest({
                 id="id_transaction"
                 placeholder="Transaction ID"
                 {...register("id_transaction")}
-                error={errors.id_transaction && errors.id_transaction.message ? true : false}
+                error={
+                  errors.id_transaction && errors.id_transaction.message
+                    ? true
+                    : false
+                }
                 hint={errors.id_transaction && errors.id_transaction.message}
                 disabled={mode === "view"}
               />
@@ -374,7 +452,9 @@ export default function SalesOrderDetailTest({
                 id="priority"
                 placeholder="Priority"
                 {...register("priority")}
-                error={errors.priority && errors.priority.message ? true : false}
+                error={
+                  errors.priority && errors.priority.message ? true : false
+                }
                 hint={errors.priority && errors.priority.message}
                 disabled={mode === "view"}
               />
@@ -386,7 +466,11 @@ export default function SalesOrderDetailTest({
                 id="price_level"
                 placeholder="Price Level"
                 {...register("price_level")}
-                error={errors.price_level && errors.price_level.message ? true : false}
+                error={
+                  errors.price_level && errors.price_level.message
+                    ? true
+                    : false
+                }
                 hint={errors.price_level && errors.price_level.message}
                 disabled={mode === "view"}
               />
@@ -398,7 +482,11 @@ export default function SalesOrderDetailTest({
                 id="id_manufacturer"
                 placeholder="Manufacturer ID"
                 {...register("id_manufacturer")}
-                error={errors.id_manufacturer && errors.id_manufacturer.message ? true : false}
+                error={
+                  errors.id_manufacturer && errors.id_manufacturer.message
+                    ? true
+                    : false
+                }
                 hint={errors.id_manufacturer && errors.id_manufacturer.message}
                 disabled={mode === "view"}
               />
@@ -410,7 +498,9 @@ export default function SalesOrderDetailTest({
                 id="id_vendor"
                 placeholder="Vendor ID"
                 {...register("id_vendor")}
-                error={errors.id_vendor && errors.id_vendor.message ? true : false}
+                error={
+                  errors.id_vendor && errors.id_vendor.message ? true : false
+                }
                 hint={errors.id_vendor && errors.id_vendor.message}
                 disabled={mode === "view"}
               />
@@ -422,7 +512,9 @@ export default function SalesOrderDetailTest({
                 id="subtotal"
                 placeholder="Subtotal"
                 {...register("subtotal")}
-                error={errors.subtotal && errors.subtotal.message ? true : false}
+                error={
+                  errors.subtotal && errors.subtotal.message ? true : false
+                }
                 hint={errors.subtotal && errors.subtotal.message}
                 disabled={mode === "view"}
               />
@@ -433,7 +525,9 @@ export default function SalesOrderDetailTest({
                 type="date"
                 id="due_date"
                 {...register("due_date")}
-                error={errors.due_date && errors.due_date.message ? true : false}
+                error={
+                  errors.due_date && errors.due_date.message ? true : false
+                }
                 hint={errors.due_date && errors.due_date.message}
                 disabled={mode === "view"}
               />
@@ -444,7 +538,11 @@ export default function SalesOrderDetailTest({
                 type="date"
                 id="valid_until"
                 {...register("valid_until")}
-                error={errors.valid_until && errors.valid_until.message ? true : false}
+                error={
+                  errors.valid_until && errors.valid_until.message
+                    ? true
+                    : false
+                }
                 hint={errors.valid_until && errors.valid_until.message}
                 disabled={mode === "view"}
               />
@@ -464,7 +562,9 @@ export default function SalesOrderDetailTest({
           </div>
           {/* Contact & Address */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold dark:text-white">Contact & Address</h3>
+            <h3 className="text-lg font-semibold dark:text-white">
+              Contact & Address
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="company">company</Label>
@@ -612,8 +712,13 @@ export default function SalesOrderDetailTest({
                   id="action"
                   placeholder="Action"
                   {...register("action")}
-                  error={!!errors.action && typeof errors.action !== 'string'}
-                  hint={typeof errors.action === 'object' && 'message' in errors.action ? String(errors.action.message) : undefined}
+                  error={!!errors.action && typeof errors.action !== "string"}
+                  hint={
+                    typeof errors.action === "object" &&
+                    "message" in errors.action
+                      ? String(errors.action.message)
+                      : undefined
+                  }
                   disabled={mode === "view"}
                 />
               </div>
@@ -740,7 +845,9 @@ export default function SalesOrderDetailTest({
                   placeholder="Append a new comment"
                 />
                 {errors.addComment && (
-                  <p className="text-red-500 text-sm mt-1">{errors.addComment.message as string}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.addComment.message as string}
+                  </p>
                 )}
               </div>
               <div className="md:col-span-2">
@@ -753,7 +860,9 @@ export default function SalesOrderDetailTest({
                   placeholder="Existing comments"
                 />
                 {errors.comment && (
-                  <p className="text-red-500 text-sm mt-1">{errors.comment.message as string}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.comment.message as string}
+                  </p>
                 )}
               </div>
               <div className="md:col-span-2">
@@ -766,7 +875,9 @@ export default function SalesOrderDetailTest({
                   placeholder="Contract detail"
                 />
                 {errors.contractDetail && (
-                  <p className="text-red-500 text-sm mt-1">{errors.contractDetail.message as string}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.contractDetail.message as string}
+                  </p>
                 )}
               </div>
             </div>
@@ -783,9 +894,13 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
-              {errors.cost && typeof errors.cost === 'object' && 'message' in errors.cost && (
-                <p className="text-red-500 text-sm mt-1">{String(errors.cost.message)}</p>
-              )}
+              {errors.cost &&
+                typeof errors.cost === "object" &&
+                "message" in errors.cost && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {String(errors.cost.message)}
+                  </p>
+                )}
             </div>
             <div>
               <Label htmlFor="sell">sell (JSON)</Label>
@@ -796,9 +911,13 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
-              {errors.sell && typeof errors.sell === 'object' && 'message' in errors.sell && (
-                <p className="text-red-500 text-sm mt-1">{String(errors.sell.message)}</p>
-              )}
+              {errors.sell &&
+                typeof errors.sell === "object" &&
+                "message" in errors.sell && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {String(errors.sell.message)}
+                  </p>
+                )}
             </div>
             <div>
               <Label htmlFor="finance">finance (JSON)</Label>
@@ -809,9 +928,13 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
-              {errors.finance && typeof errors.finance === 'object' && 'message' in errors.finance && (
-                <p className="text-red-500 text-sm mt-1">{String(errors.finance.message)}</p>
-              )}
+              {errors.finance &&
+                typeof errors.finance === "object" &&
+                "message" in errors.finance && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {String(errors.finance.message)}
+                  </p>
+                )}
             </div>
             <div>
               <Label htmlFor="flow">flow (JSON)</Label>
@@ -822,9 +945,13 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
-              {errors.flow && typeof errors.flow === 'object' && 'message' in errors.flow && (
-                <p className="text-red-500 text-sm mt-1">{String(errors.flow.message)}</p>
-              )}
+              {errors.flow &&
+                typeof errors.flow === "object" &&
+                "message" in errors.flow && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {String(errors.flow.message)}
+                  </p>
+                )}
             </div>
             <div>
               <Label htmlFor="source">source (JSON)</Label>
@@ -835,12 +962,16 @@ export default function SalesOrderDetailTest({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder='{"key": "value"}'
               />
-              {errors.source && typeof errors.source === 'object' && 'message' in errors.source && (
-                <p className="text-red-500 text-sm mt-1">{String(errors.source.message)}</p>
-              )}
+              {errors.source &&
+                typeof errors.source === "object" &&
+                "message" in errors.source && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {String(errors.source.message)}
+                  </p>
+                )}
             </div>
           </div>
-          
+
           {/* Line Items Section */}
           {(mode === "edit" || mode === "add") && (
             <SalesOrderLineEditor
@@ -858,26 +989,54 @@ export default function SalesOrderDetailTest({
 
           {mode === "view" && data && lineItems.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold dark:text-white">Line Items</h3>
+              <h3 className="text-lg font-semibold dark:text-white">
+                Line Items
+              </h3>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border border-gray-300 dark:border-gray-600 text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Item</th>
-                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">Description</th>
-                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Qty</th>
-                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Price</th>
-                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">Total</th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">
+                        Item
+                      </th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-left">
+                        Description
+                      </th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">
+                        Qty
+                      </th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">
+                        Price
+                      </th>
+                      <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">
+                        Total
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {lineItems.map((item, index) => (
                       <tr key={item.id || index}>
-                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.item_name || 'Unknown'}</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">{item.description || ''}</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">{item.quantity || 0}</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">${item.price?.sell ? Number(item.price.sell).toFixed(2) : '0.00'}</td>
-                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">${item.extended_price ? Number(item.extended_price).toFixed(2) : '0.00'}</td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
+                          {item.item_name || "Unknown"}
+                        </td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">
+                          {item.description || ""}
+                        </td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">
+                          {item.quantity || 0}
+                        </td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right">
+                          $
+                          {item.price?.sell
+                            ? Number(item.price.sell).toFixed(2)
+                            : "0.00"}
+                        </td>
+                        <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-right font-medium">
+                          $
+                          {item.extended_price
+                            ? Number(item.extended_price).toFixed(2)
+                            : "0.00"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -896,14 +1055,16 @@ export default function SalesOrderDetailTest({
                   value={new Date(data.dt_created * 1000).toLocaleString()}
                   disabled
                 />
-                {data.id && <AuditTrail transactionId={data.id} model="sales_order" />}
+                {data.id && (
+                  <AuditTrail transactionId={data.id} model="sales_order" />
+                )}
               </div>
 
               {/* Status Management */}
               <div>
                 <Label>Sales Order Status</Label>
                 <SalesOrderStatus
-                  currentStatus={data.status || 'draft'}
+                  currentStatus={data.status || "draft"}
                   onStatusChange={handleStatusChange}
                   showHistory={true}
                 />
