@@ -325,7 +325,7 @@ const PurposeSection: React.FC<{
           </button>
         )}
       </div>
-      <div className="bg-success-50 hover:bg-success-100 dark:hover:bg-success-100 transition-colors">
+      <div className="bg-success-50 hover:bg-success-100 dark:hover:bg-success-100 transition-colors  min-h-[140px]">
         {contacts.length > 0 ? (
           contacts.map((contact) => (
             <ContactBlock
@@ -339,7 +339,7 @@ const PurposeSection: React.FC<{
             />
           ))
         ) : (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">
+          <p className="text-sm text-center text-slate-400 dark:text-slate-500 italic py-4">
             No contact assigned
           </p>
         )}
