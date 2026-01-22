@@ -20,15 +20,9 @@ console.log(
 );
 
 // Fetch and display backend database mode
-<<<<<<< HEAD
-fetch("/wcapi/dev/config/")
+fetch("/wcapi/get/?model_name=dev_config")
   .then((res) => (res.ok ? res.json() : null))
   .then((data) => {
-=======
-fetch('/wcapi/get/?model_name=dev_config')
-  .then(res => res.ok ? res.json() : null)
-  .then(data => {
->>>>>>> 812843c60d8e017d834a22fd74654e80a546d0f7
     if (data?.data) {
       const mode = data.data.db_mode?.toUpperCase() || "local";
       const color = mode === "REMOTE" ? "#22c55e" : "#3b82f6";
