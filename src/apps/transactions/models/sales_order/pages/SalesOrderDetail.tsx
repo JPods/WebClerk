@@ -42,6 +42,8 @@ import type {
   TransactionLine,
   ActionItem,
 } from "../../../types/transactionTypes";
+import { DropDown, Input } from "@/components/wrapper";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Sales Order specific fields that extend base Transaction
 interface SalesOrder extends Transaction {
@@ -143,6 +145,17 @@ const SalesOrderHeader: React.FC<{
     (c) => c.purpose === "shipto",
   );
 
+  const priceLable = [
+    { value: "A", label: "A - Retail" },
+    { value: "B", label: "B - Wholesale" },
+    { value: "C", label: "C - Distributor" },
+    { value: "D", label: "D - Volume" },
+    { value: "E", label: "E - Special" },
+  ];
+
+  // const handlePurposeChange = (value: string) => {
+  //   setValue("purpose", value);
+  // };
   return (
     <div className="space-y-6">
       {/* Sales Order Header Info */}
@@ -182,13 +195,13 @@ const SalesOrderHeader: React.FC<{
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <input
+                <Input
                   type="date"
                   value={
                     data.dt ? new Date(data.dt).toISOString().split("T")[0] : ""
                   }
                   onChange={(e) => onChange("dt", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -202,7 +215,7 @@ const SalesOrderHeader: React.FC<{
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <input
+                <Input
                   type="date"
                   value={
                     data.due_date
@@ -210,7 +223,7 @@ const SalesOrderHeader: React.FC<{
                       : ""
                   }
                   onChange={(e) => onChange("due_date", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -226,11 +239,11 @@ const SalesOrderHeader: React.FC<{
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <input
+                <Input
                   type="text"
                   value={data.terms ?? ""}
                   onChange={(e) => onChange("terms", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1  rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -244,11 +257,11 @@ const SalesOrderHeader: React.FC<{
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <input
+                <Input
                   type="text"
                   value={data.po_number ?? data.reference ?? ""}
                   onChange={(e) => onChange("po_number", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -262,11 +275,11 @@ const SalesOrderHeader: React.FC<{
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <input
+                <Input
                   type="text"
                   value={data.priority ?? ""}
                   onChange={(e) => onChange("priority", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -280,18 +293,15 @@ const SalesOrderHeader: React.FC<{
                 className="text-slate-500 dark:text-slate-400"
               />
               {isEditing && onChange ? (
-                <select
+                <DropDown
+                  id="purpose"
+                  options={priceLable}
+                  placeholder="Select Price Level"
                   value={data.price_level ?? ""}
                   onChange={(e) => onChange("price_level", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                >
-                  <option value="">-- Select --</option>
-                  <option value="A">A - Retail</option>
-                  <option value="B">B - Wholesale</option>
-                  <option value="C">C - Distributor</option>
-                  <option value="D">D - Volume</option>
-                  <option value="E">E - Special</option>
-                </select>
+                  className="dark:bg-dark-900"
+                  disabled={!isEditing}
+                />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
                   {data.price_level ?? "--"}
