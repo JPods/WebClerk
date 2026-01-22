@@ -1,4 +1,3 @@
-import PageBreadcrumb from "../../../../../../components/common/PageBreadcrumb";
 import ComponentCard from "../../../../../../components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
@@ -14,15 +13,16 @@ import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import SalesOrderDetail from "./SalesOrderDetail";
+import PageBreadcrumb from "../../../../../../components/common/PageBreadCrumb";
 
-export default function SalesOrderList() {
+export default function sales_order_list() {
   const [data, setData] = useState<any[]>([]);
   const [selectedSalesOrders, setSelectedSalesOrders] = useState<any[]>([]);
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<any | null>(
-    null
+    null,
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -37,13 +37,13 @@ export default function SalesOrderList() {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch sales orders", type: "error" })
+          showToast({ message: "Failed to fetch sales orders", type: "error" }),
         );
       }
     } catch (error) {
       console.error("Failed to fetch sales orders", error);
       dispatch(
-        showToast({ message: "Failed to fetch sales orders", type: "error" })
+        showToast({ message: "Failed to fetch sales orders", type: "error" }),
       );
     } finally {
       setLoading(false);
@@ -57,34 +57,40 @@ export default function SalesOrderList() {
   const openSalesOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
       const salesOrderId = row?.id;
-      console.log('[openSalesOrder] row:', row);
-      console.log('[openSalesOrder] salesOrderId:', salesOrderId);
-      console.log('[openSalesOrder] modeToSet:', modeToSet);
+      console.log("[openSalesOrder] row:", row);
+      console.log("[openSalesOrder] salesOrderId:", salesOrderId);
+      console.log("[openSalesOrder] modeToSet:", modeToSet);
       if (!salesOrderId) {
         dispatch(
-          showToast({ message: "Sales order id missing", type: "error" })
+          showToast({ message: "Sales order id missing", type: "error" }),
         );
         return;
       }
 
       setFormMode(modeToSet);
-      console.log('[openSalesOrder] formMode set to:', modeToSet);
+      console.log("[openSalesOrder] formMode set to:", modeToSet);
       setDetailLoading(true);
       setSelectedSalesOrder(null);
 
       try {
         const detail = await fetchSalesOrderDetail(salesOrderId);
-        console.log('[openSalesOrder] detail from API:', detail);
-        console.log('[openSalesOrder] detail.lines:', detail?.lines);
-        console.log('[openSalesOrder] detail.lines count:', detail?.lines?.length);
+        console.log("[openSalesOrder] detail from API:", detail);
+        console.log("[openSalesOrder] detail.lines:", detail?.lines);
+        console.log(
+          "[openSalesOrder] detail.lines count:",
+          detail?.lines?.length,
+        );
         const hasDetail = detail && Object.keys(detail).length > 0;
         if (!hasDetail) {
           throw new Error("Sales order not found");
         }
         const merged = { ...row, ...detail };
-        console.log('[openSalesOrder] merged:', merged);
-        console.log('[openSalesOrder] merged.lines:', merged?.lines);
-        console.log('[openSalesOrder] merged.lines count:', merged?.lines?.length);
+        console.log("[openSalesOrder] merged:", merged);
+        console.log("[openSalesOrder] merged.lines:", merged?.lines);
+        console.log(
+          "[openSalesOrder] merged.lines count:",
+          merged?.lines?.length,
+        );
         setSelectedSalesOrder(merged);
       } catch (error) {
         const message =
@@ -96,22 +102,22 @@ export default function SalesOrderList() {
         setDetailLoading(false);
       }
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleView = useCallback(
     (row: any) => {
-      console.log('[SalesOrderList] handleView called');
+      console.log("[SalesOrderList] handleView called");
       openSalesOrder(row, "view");
     },
-    [openSalesOrder]
+    [openSalesOrder],
   );
 
   const handleEdit = useCallback(
     (row: any) => {
       openSalesOrder(row, "edit");
     },
-    [openSalesOrder]
+    [openSalesOrder],
   );
 
   const handleAdd = () => {
@@ -139,12 +145,12 @@ export default function SalesOrderList() {
           showToast({
             message: "Sales order deleted successfully",
             type: "success",
-          })
+          }),
         );
         getSalesOrderData(); // Refresh data
       } catch (error) {
         dispatch(
-          showToast({ message: "Failed to delete sales order", type: "error" })
+          showToast({ message: "Failed to delete sales order", type: "error" }),
         );
       }
     }
@@ -309,7 +315,7 @@ export default function SalesOrderList() {
         ),
       },
     ],
-    [handleView, handleEdit, handleDelete]
+    [handleView, handleEdit, handleDelete],
   );
 
   // Filters configuration
@@ -338,18 +344,18 @@ export default function SalesOrderList() {
         type: "text",
       },
     ],
-    []
+    [],
   );
 
   // Calculate summary statistics
   const totalOrders = data.length;
   const totalValue = data.reduce(
     (sum, order) => sum + (order.total || order.total_amount || 0),
-    0
+    0,
   );
   const totalMargin = data.reduce(
     (sum, order) => sum + (order.margin_amount || 0),
-    0
+    0,
   );
   const avgMargin = totalOrders > 0 ? (totalMargin / totalValue) * 100 : 0;
   const statusCounts = data.reduce((acc, order) => {
@@ -443,7 +449,7 @@ export default function SalesOrderList() {
               </ComponentCard>
             ) : (
               <SalesOrderDetail
-                key={`${selectedSalesOrder?.id ?? 'new'}-${formMode}`}
+                key={`${selectedSalesOrder?.id ?? "new"}-${formMode}`}
                 inline
                 modeProp={formMode}
                 dataProp={formMode === "add" ? null : selectedSalesOrder}
