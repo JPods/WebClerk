@@ -28,9 +28,9 @@ export default tseslint.config(
         "error",
         {
           selector: "variableLike",
-          format: ["snake_case"],
-        }
+          format: ["snake_case", "camelCase"],
+        },
       ],
     },
-  }
+  },
 );
