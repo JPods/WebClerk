@@ -2374,7 +2374,7 @@ const KanbanBoardPage: React.FC = () => {
       <KanbanTaskModal
         mode="edit"
         isOpen={isEditModalOpen}
-        title="Update task"
+        title={editingTask ? `Update task (#${editingTask.id})` : "Update task"}
         description="Fine-tune translations, ownership, or schedule without losing context."
         isSaving={isSavingEdit}
         submitLabel={isSavingEdit ? "Saving..." : "Update task"}
