@@ -1,15 +1,10 @@
-<<<<<<< HEAD:src/api/apps/transactions/models/sales_order/services/salesOrderApi.ts
 import {
   getRecords,
   saveRecord,
   deleteRecord,
   getRecord,
-} from "../../../../../wcapi";
-import { patchAction } from "../../../../../userProfile";
-=======
-import { getRecords, saveRecord, deleteRecord, getRecord } from '../../../../../api/wcapi';
-import { patchAction } from '../../../../../api/userProfile';
->>>>>>> 812843c60d8e017d834a22fd74654e80a546d0f7:src/apps/transactions/models/sales_order/services/salesOrderApi.ts
+} from "../../../../../api/wcapi";
+import { patchAction } from "../../../../../api/userProfile";
 import {
   SalesOrderLine,
   CreateSalesOrderLineRequest,
