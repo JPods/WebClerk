@@ -102,7 +102,10 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
         }
       )}
     >
-      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
+          {task.ida && (
+            <span className="text-xs text-gray-400">{task.ida}</span>
+          )}
         <div className="flex items-start gap-2">
           {isSubtask && (
             <div className="mt-1 flex-shrink-0">

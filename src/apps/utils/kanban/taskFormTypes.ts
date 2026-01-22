@@ -34,6 +34,7 @@ export type TaskFormState = BaseModelFields &
   ActionModelFields & {
     translations: TranslationFormEntry[];
     columnId: string;
+    assigned_to?: Array<{ id: string; name: string }>;
     projectId?: string;
     priority_value: TaskPriority;
     dt_start: string;
