@@ -2,12 +2,12 @@ import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
-import tseslint from "typescript-eslint";
+import { defineConfig } from "typescript-eslint";
 
-export default tseslint.config(
+export default defineConfig([
   { ignores: ["dist"] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    extends: [js.configs.recommended, ...require("typescript-eslint").configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -28,9 +28,9 @@ export default tseslint.config(
         "error",
         {
           selector: "variableLike",
-          format: ["snake_case"],
-        }
+          format: ["snake_case", "camelCase"],
+        },
       ],
     },
-  }
-);
+  },
+]);
