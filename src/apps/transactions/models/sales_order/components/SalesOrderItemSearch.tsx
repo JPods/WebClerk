@@ -64,41 +64,59 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
         setLoading(false);
       }
     },
-    [dispatch, query]
+    [dispatch, query],
   );
 
   const handleQuantityChange = useCallback((key: string, value: string) => {
     const numeric = Number.parseFloat(value);
-    setQuantities((prev) => ({ ...prev, [key]: Number.isFinite(numeric) && numeric > 0 ? numeric : 0 }));
+    setQuantities((prev) => ({
+      ...prev,
+      [key]: Number.isFinite(numeric) && numeric > 0 ? numeric : 0,
+    }));
   }, []);
 
   const handleAddItem = useCallback(
     (item: ItemSearchResult) => {
       const key = resolveItemKey(item);
       if (!key) {
-        dispatch(showToast({ message: "Cannot add item without a stable identifier", type: "error" }));
+        dispatch(
+          showToast({
+            message: "Cannot add item without a stable identifier",
+            type: "error",
+          }),
+        );
         return;
       }
       const quantity = quantities[key] ?? 0;
       if (!quantity || quantity < quantityInputMin) {
-        dispatch(showToast({ message: "Enter a quantity greater than zero", type: "warning" }));
+        dispatch(
+          showToast({
+            message: "Enter a quantity greater than zero",
+            type: "warning",
+          }),
+        );
         return;
       }
       onAddItem(item, quantity);
       dispatch(
         showToast({
-          message: `Added ${quantity.toLocaleString()} × ${resolveItemCode(item) || "item"}`,
+          message: `Added ${quantity.toLocaleString()} × ${
+            resolveItemCode(item) || "item"
+          }`,
           type: "success",
-        })
+        }),
       );
       setQuantities((prev) => ({ ...prev, [key]: 0 }));
     },
-    [dispatch, onAddItem, quantities]
+    [dispatch, onAddItem, quantities],
   );
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex flex-col gap-3 md:flex-row md:items-end">
+      <form
+        onSubmit={handleSearch}
+        className="flex flex-col gap-3 md:flex-row md:items-end"
+      >
         <label className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200">
           Item search
           <input
@@ -124,9 +142,9 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+      <div className="overflow-x-auto cus-bg-purple-light overflow-y-scroll max-h-[180px]">
+        <table className="min-w-full text-left text-sm ">
+          <thead className="bg-success-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 sticky top-0 z-10">
             <tr>
               <th className="px-3 py-2">Item</th>
               <th className="px-3 py-2">Description</th>
@@ -140,38 +158,70 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
           <tbody>
             {!hasResults && !loading ? (
               <tr>
-                <td colSpan={7} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                  {query.trim() ? "No matching items" : "Enter a search term to find catalog items."}
+                <td
+                  colSpan={7}
+                  className="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400"
+                >
+                  {query.trim()
+                    ? "No matching items"
+                    : "Enter a search term to find catalog items."}
                 </td>
               </tr>
             ) : (
               results.map((item, index) => {
                 const itemKey = resolveItemKey(item);
-                const rowKey = itemKey || `${resolveItemCode(item) || "result"}-${index}`;
+                const rowKey =
+                  itemKey || `${resolveItemCode(item) || "result"}-${index}`;
                 const quantity = quantities[itemKey] ?? 0;
+                // Stripe: even rows get bg-gray-50 (light) or bg-gray-800 (dark)
+                const stripeClass =
+                  index % 2 === 1 ? "bg-gray-50 dark:bg-gray-800" : "";
                 return (
-                  <tr key={rowKey} className="border-b border-gray-100 last:border-none dark:border-gray-700">
-                    <td className="px-3 py-2 text-gray-800 dark:text-gray-100">{resolveItemCode(item) || "--"}</td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{resolveItemDescription(item) || "--"}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">{resolveQtyOnHand(item).toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">${resolveUnitPrice(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">${resolveUnitCost(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-300">
+                  <tr
+                    key={rowKey}
+                    className={`border-b border-gray-100 last:border-none dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${stripeClass}`}
+                  >
+                    <td className="px-3 py-1 text-xs text-gray-800 dark:text-gray-100">
+                      {resolveItemCode(item) || "--"}
+                    </td>
+                    <td className="px-3 py-1 text-xs text-gray-600 dark:text-gray-300">
+                      {resolveItemDescription(item) || "--"}
+                    </td>
+                    <td className="px-3 py-1 text-xs text-right text-gray-600 dark:text-gray-300">
+                      {resolveQtyOnHand(item).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-1 text-xs text-right text-gray-600 dark:text-gray-300">
+                      $
+                      {resolveUnitPrice(item).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="px-3 py-1 text-xs text-right text-gray-600 dark:text-gray-300">
+                      $
+                      {resolveUnitCost(item).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="px-3 py-1 text-xs text-right text-gray-600 dark:text-gray-300">
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={quantity || ""}
-                        onChange={(event) => handleQuantityChange(itemKey, event.target.value)}
-                        className="h-9 w-24 rounded border border-gray-300 px-2 text-right text-sm focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        onChange={(event) =>
+                          handleQuantityChange(itemKey, event.target.value)
+                        }
+                        className="h-9 w-24 rounded border border-gray-300 px-2 text-right text-xs focus:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                       />
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-1 text-xs text-right">
                       <button
                         type="button"
                         onClick={() => handleAddItem(item)}
                         disabled={!itemKey}
-                        className={`rounded-md px-3 py-1 text-sm font-medium text-white focus:outline-hidden focus:ring-2 focus:ring-green-400 ${
+                        className={`rounded-md px-3 py-1 text-xs font-medium text-white focus:outline-hidden focus:ring-2 focus:ring-green-400 ${
                           itemKey
                             ? "bg-green-500 hover:bg-green-600"
                             : "cursor-not-allowed bg-gray-400 dark:bg-gray-700"

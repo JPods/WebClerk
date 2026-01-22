@@ -153,7 +153,7 @@ const SalesOrderHeader: React.FC<{
             <FaShoppingCart className="text-blue-500" />
             Sales Order Details
           </h3>
-          <dl className="space-y-3 text-sm">
+          <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
                 label="Order No"
@@ -188,7 +188,7 @@ const SalesOrderHeader: React.FC<{
                     data.dt ? new Date(data.dt).toISOString().split("T")[0] : ""
                   }
                   onChange={(e) => onChange("dt", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -210,7 +210,7 @@ const SalesOrderHeader: React.FC<{
                       : ""
                   }
                   onChange={(e) => onChange("due_date", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -230,7 +230,7 @@ const SalesOrderHeader: React.FC<{
                   type="text"
                   value={data.terms ?? ""}
                   onChange={(e) => onChange("terms", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -248,7 +248,7 @@ const SalesOrderHeader: React.FC<{
                   type="text"
                   value={data.po_number ?? data.reference ?? ""}
                   onChange={(e) => onChange("po_number", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -266,7 +266,7 @@ const SalesOrderHeader: React.FC<{
                   type="text"
                   value={data.priority ?? ""}
                   onChange={(e) => onChange("priority", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -283,7 +283,7 @@ const SalesOrderHeader: React.FC<{
                 <select
                   value={data.price_level ?? ""}
                   onChange={(e) => onChange("price_level", e.target.value)}
-                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 >
                   <option value="">-- Select --</option>
                   <option value="A">A - Retail</option>
@@ -362,7 +362,7 @@ const SalesOrderHeader: React.FC<{
               />
             </div>
           ) : customerInfo ? (
-            <dl className="space-y-3 text-sm">
+            <dl className="space-y-3 text-xs">
               <div className="flex justify-between items-center">
                 <FieldLabel
                   label="Customer ID"
@@ -393,7 +393,7 @@ const SalesOrderHeader: React.FC<{
               </div>
             </dl>
           ) : (
-            <p className="text-slate-400 text-sm">No customer linked</p>
+            <p className="text-slate-400 text-xs">No customer linked</p>
           )}
 
           {billingContact && (
@@ -401,16 +401,16 @@ const SalesOrderHeader: React.FC<{
               <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                 Bill To
               </h4>
-              <p className="text-sm text-slate-900 dark:text-white">
+              <p className="text-xs text-slate-900 dark:text-white">
                 {billingContact.display_name}
               </p>
               {billingContact.email && (
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {billingContact.email}
                 </p>
               )}
               {billingContact.phone && (
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {billingContact.phone}
                 </p>
               )}
@@ -422,16 +422,16 @@ const SalesOrderHeader: React.FC<{
               <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                 Ship To
               </h4>
-              <p className="text-sm text-slate-900 dark:text-white">
+              <p className="text-xs text-slate-900 dark:text-white">
                 {shippingContact.display_name}
               </p>
               {shippingContact.email && (
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {shippingContact.email}
                 </p>
               )}
               {shippingContact.phone && (
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {shippingContact.phone}
                 </p>
               )}
@@ -444,7 +444,7 @@ const SalesOrderHeader: React.FC<{
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
             Order Totals
           </h3>
-          <dl className="space-y-3 text-sm">
+          <dl className="space-y-3 text-xs">
             <div className="flex justify-between items-center">
               <FieldLabel
                 label="Subtotal"
@@ -535,14 +535,14 @@ const SalesOrderHeader: React.FC<{
       <div className="flex gap-2">
         <button
           type="button"
-          className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
+          className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
         >
           <FaPrint size={14} />
           Print
         </button>
         <button
           type="button"
-          className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
+          className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
         >
           <FaEnvelope size={14} />
           Email
@@ -738,8 +738,8 @@ const SalesOrderLines: React.FC<{
 
       {/* Bulk Actions Bar */}
       {canEdit && selectedLineIds.size > 0 && (
-        <div className="flex items-center gap-4 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+        <div className="flex items-center gap-4 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
             {selectedLineIds.size} line{selectedLineIds.size > 1 ? "s" : ""}{" "}
             selected
           </span>
@@ -760,11 +760,11 @@ const SalesOrderLines: React.FC<{
 
       {/* Item Search Panel - only in edit mode and when not locked */}
       {isEditing && !isLocked && onLinesChange && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
             Add Items
           </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
             Search the catalog and add items to this order.
           </p>
           <SalesOrderItemSearch
@@ -868,19 +868,19 @@ const SalesOrderLines: React.FC<{
           <FaShoppingCart size={32} className="mx-auto mb-3 opacity-50" />
           <p>No line items on this order</p>
           {isEditing && (
-            <p className="mt-2 text-sm">
+            <p className="mt-2 text-xs">
               Use the search above to find and add products
             </p>
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900/50">
+        <div className="overflow-x-auto cus-bg-purple-light">
+          <table className="w-full my-0">
+            <thead className="bg-success-600 text-white text-sm">
               <tr>
                 {/* Checkbox column for bulk selection */}
                 {canEdit && (
-                  <th className="px-2 py-3 w-10">
+                  <th className="px-2 py-1 w-10">
                     <input
                       type="checkbox"
                       checked={
@@ -893,43 +893,46 @@ const SalesOrderLines: React.FC<{
                   </th>
                 )}
                 {/* Expand column */}
-                <th className="px-2 py-3 w-8"></th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-32">
+                <th className="px-2 py-1 w-8"></th>
+                <th className="px-2 py-1 text-left text-xs font-semibold uppercase tracking-wide w-32">
                   Item Code
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-2 py-1 w-30 text-left text-xs font-semibold uppercase tracking-wide">
                   Description
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-24">
+                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
                   Qty
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-24">
+                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-24">
                   UOM
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-28">
+                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-28">
                   Unit Price
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-28">
+                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-28">
                   Unit Cost
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-28">
+                <th className="px-2 py-1 text-right text-xs font-semibold uppercase tracking-wide w-28">
                   Extended
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-24">
+                <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide w-24">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-xs">
               {lines.map((line, idx) => {
                 // Handle different line data structures - use unknown first for safe casting
                 const lineRecord = line as unknown as Record<string, unknown>;
                 const itemCode = String(
                   lineRecord.ida_item ?? line.item?.ida_item ?? "--",
                 );
-                const description = String(
+                let description = String(
                   lineRecord.description ?? line.item?.description ?? "--",
                 );
+                if (description.length > 15) {
+                  description = description.substring(0, 15) + "...";
+                }
                 const qty = lineRecord.qty ?? line.quantity?.ordered ?? 0;
                 const uom = String(
                   lineRecord.unit_measure ?? line.item?.unit_measure ?? "EA",
@@ -985,7 +988,7 @@ const SalesOrderLines: React.FC<{
                           onBlur={handleEditSave}
                           onKeyDown={handleEditKeyDown}
                           autoFocus
-                          className="w-full px-2 py-1 text-sm border border-blue-500 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-2 py-1 text-xs border border-blue-500 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           style={
                             inputType === "number" ? { textAlign: "right" } : {}
                           }
@@ -1013,16 +1016,20 @@ const SalesOrderLines: React.FC<{
                   );
                 };
 
+                // Stripe effect: even rows get bg-slate-50/dark:bg-slate-800/30
+                const stripeClass =
+                  idx % 2 === 1 ? "bg-slate-50 dark:bg-slate-800/30" : "";
+
                 return (
                   <React.Fragment key={lineId}>
                     <tr
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                      className={`hover:bg-blue-50 dark:hover:bg-blue-900/20 ${stripeClass} ${
                         isSelected ? "bg-blue-50 dark:bg-blue-900/20" : ""
                       }`}
                     >
                       {/* Checkbox for bulk selection */}
                       {canEdit && (
-                        <td className="px-2 py-3 text-center">
+                        <td className="px-2 py-1 text-center">
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -1035,7 +1042,7 @@ const SalesOrderLines: React.FC<{
                         </td>
                       )}
                       {/* Expand button for notes */}
-                      <td className="px-2 py-3 text-center">
+                      <td className="px-2 py-1 text-center">
                         {hasNotes ? (
                           <button
                             type="button"
@@ -1060,36 +1067,42 @@ const SalesOrderLines: React.FC<{
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono font-medium text-slate-900 dark:text-white">
+                      <td className="px-2 py-1 text-xs font-mono font-medium text-slate-900 dark:text-white">
                         {itemCode}
                       </td>
-                      {renderEditableCell(
-                        "description",
-                        description,
-                        description,
-                        "px-4 py-3 text-sm text-slate-600 dark:text-slate-300",
-                      )}
+                      <td className="flex px-2 py-1 text-xs text-slate-600 dark:text-slate-300 relative group justify-right items-center">
+                        <span>{description}</span>
+                        {line.item?.description &&
+                          line.item.description.length > 15 && (
+                            <span
+                              className="ml-1 text-slate-400 cursor-pointer group-hover:text-blue-500"
+                              title={line.item.description}
+                            >
+                              <FaStickyNote size={12} />
+                            </span>
+                          )}
+                      </td>
                       {renderEditableCell(
                         "qty",
                         Number(qty),
                         formatNumber(Number(qty)),
-                        "px-4 py-3 text-sm text-right text-slate-900 dark:text-white",
+                        "px-2 py-1 text-xs text-right text-slate-900 dark:text-white",
                         "number",
                       )}
-                      <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-300">
+                      <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
                         {String(uom)}
                       </td>
                       {renderEditableCell(
                         "unit_price",
                         Number(unitPrice),
                         formatCurrency(Number(unitPrice)),
-                        "px-4 py-3 text-sm text-right text-slate-900 dark:text-white",
+                        "px-2 py-1 text-xs text-right text-slate-900 dark:text-white",
                         "number",
                       )}
-                      <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-300">
+                      <td className="px-2 py-1 text-xs text-right text-slate-600 dark:text-slate-300">
                         {formatCurrency(Number(unitCost))}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-medium text-slate-900 dark:text-white">
+                      <td className="px-2 py-1 text-xs text-right font-medium text-slate-900 dark:text-white">
                         {formatCurrency(Number(extended))}
                       </td>
                       {/* Actions column - always visible */}
@@ -1166,9 +1179,9 @@ const SalesOrderLines: React.FC<{
                     {isExpanded && hasNotes && (
                       <tr className="bg-amber-50 dark:bg-amber-900/20">
                         <td colSpan={canEdit ? 10 : 9} className="px-6 py-3">
-                          <div className="flex flex-wrap gap-4 text-sm">
+                          <div className="flex flex-wrap gap-4 text-xs">
                             {notesObj?.public && (
-                              <div className="flex-1 min-w-[200px]">
+                              <div className="flex-1 min-w-50">
                                 <span className="font-medium text-amber-700 dark:text-amber-400">
                                   Public:{" "}
                                 </span>
@@ -1178,7 +1191,7 @@ const SalesOrderLines: React.FC<{
                               </div>
                             )}
                             {notesObj?.internal && (
-                              <div className="flex-1 min-w-[200px]">
+                              <div className="flex-1 min-w-50">
                                 <span className="font-medium text-blue-700 dark:text-blue-400">
                                   Internal:{" "}
                                 </span>
@@ -1188,7 +1201,7 @@ const SalesOrderLines: React.FC<{
                               </div>
                             )}
                             {notesObj?.warehouse && (
-                              <div className="flex-1 min-w-[200px]">
+                              <div className="flex-1 min-w-50">
                                 <span className="font-medium text-green-700 dark:text-green-400">
                                   Warehouse:{" "}
                                 </span>
@@ -1211,20 +1224,20 @@ const SalesOrderLines: React.FC<{
                 {/* Skip checkbox and expand columns */}
                 {canEdit && <td></td>}
                 <td></td>
-                <td className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                <td className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300">
                   {lineCount} {lineCount === 1 ? "line" : "lines"}
                 </td>
-                <td className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300">
+                <td className="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">
                   {/* Description column empty */}
                 </td>
-                <td className="px-4 py-2 text-sm text-right text-slate-600 dark:text-slate-300">
+                <td className="px-4 py-2 text-xs text-right text-slate-600 dark:text-slate-300">
                   {formatNumber(totalQty)} items
                 </td>
                 <td colSpan={2}></td>
-                <td className="px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 text-right">
+                <td className="px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 text-right">
                   Total:
                 </td>
-                <td className="px-4 py-2 text-sm font-bold text-slate-900 dark:text-white text-right">
+                <td className="px-4 py-2 text-xs font-bold text-slate-900 dark:text-white text-right">
                   {formatCurrency(
                     lines.reduce((sum, l) => {
                       const lRecord = l as unknown as Record<string, unknown>;
@@ -1365,7 +1378,7 @@ const ActionsTable: React.FC<{
         <button
           type="button"
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
         >
           <FaPlus size={12} />
           Add Action
@@ -1388,7 +1401,7 @@ const ActionsTable: React.FC<{
                 onChange={(e) =>
                   setNewAction({ ...newAction, kind: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               >
                 <option value="task">Task</option>
                 <option value="followup">Follow Up</option>
@@ -1411,7 +1424,7 @@ const ActionsTable: React.FC<{
                     priority: e.target.value as ActionItem["priority"],
                   })
                 }
-                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
@@ -1435,7 +1448,7 @@ const ActionsTable: React.FC<{
                 onChange={(e) =>
                   setNewAction({ ...newAction, when: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
             <div>
@@ -1449,7 +1462,7 @@ const ActionsTable: React.FC<{
                 onChange={(e) =>
                   setNewAction({ ...newAction, who_name: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
             <div className="md:col-span-2 lg:col-span-4">
@@ -1463,7 +1476,7 @@ const ActionsTable: React.FC<{
                 onChange={(e) =>
                   setNewAction({ ...newAction, what: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
           </div>
@@ -1471,7 +1484,7 @@ const ActionsTable: React.FC<{
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              className="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -1479,7 +1492,7 @@ const ActionsTable: React.FC<{
               type="button"
               onClick={handleAddSubmit}
               disabled={!newAction.what}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+              className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
               Add Action
             </button>
@@ -1493,7 +1506,7 @@ const ActionsTable: React.FC<{
           <FaCheck size={32} className="mx-auto mb-3 opacity-50" />
           <p>No actions on this order</p>
           {canEdit && (
-            <p className="mt-2 text-sm">
+            <p className="mt-2 text-xs">
               Click "Add Action" to create a task or follow-up
             </p>
           )}
@@ -1504,22 +1517,22 @@ const ActionsTable: React.FC<{
             <thead className="bg-slate-50 dark:bg-slate-900/50">
               <tr>
                 {canEdit && <th className="px-3 py-3 w-10"></th>}
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-2 py-1 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-2 py-1 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Type
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-2 py-1 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Description
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-28">
+                <th className="px-2 py-1 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-28">
                   Due
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-32">
+                <th className="px-2 py-1 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-32">
                   Assigned
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-24">
+                <th className="px-2 py-1 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide w-24">
                   Priority
                 </th>
                 {canEdit && <th className="px-3 py-3 w-24"></th>}
@@ -1553,7 +1566,7 @@ const ActionsTable: React.FC<{
                       </button>
                     </td>
                   )}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-1">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
                         action.status,
@@ -1562,24 +1575,24 @@ const ActionsTable: React.FC<{
                       {action.status ?? "pending"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 capitalize">
+                  <td className="px-2 py-1 text-xs text-slate-600 dark:text-slate-300 capitalize">
                     {action.kind ?? "task"}
                   </td>
                   <td
-                    className={`px-4 py-3 text-sm text-slate-900 dark:text-white ${
+                    className={`px-2 py-1 text-xs text-slate-900 dark:text-white ${
                       action.status === "done" ? "line-through" : ""
                     }`}
                   >
                     {action.what ?? "--"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                  <td className="px-2 py-1 text-xs text-slate-600 dark:text-slate-300">
                     {formatDate(action.when)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                  <td className="px-2 py-1 text-xs text-slate-600 dark:text-slate-300">
                     {action.who_name ?? "--"}
                   </td>
                   <td
-                    className={`px-4 py-3 text-sm font-medium capitalize ${getPriorityColor(
+                    className={`px-2 py-1 text-xs font-medium capitalize ${getPriorityColor(
                       action.priority,
                     )}`}
                   >
@@ -1625,7 +1638,7 @@ const ActionsTable: React.FC<{
               <tr>
                 <td
                   colSpan={canEdit ? 8 : 6}
-                  className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300"
+                  className="px-4 py-2 text-xs text-slate-600 dark:text-slate-300"
                 >
                   {actions.length} {actions.length === 1 ? "action" : "actions"}{" "}
                   • {actions.filter((a) => a.status === "pending").length}{" "}
@@ -1658,7 +1671,7 @@ const ShippingTab: React.FC<{
         <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
           Shipping Details
         </h3>
-        <dl className="space-y-3 text-sm">
+        <dl className="space-y-3 text-xs">
           <div className="flex justify-between">
             <FieldLabel
               label="Ship Date"
@@ -1705,7 +1718,7 @@ const ShippingTab: React.FC<{
           Ship To Address
         </h3>
         {shippingContact ? (
-          <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
+          <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
             <p className="font-medium">{shippingContact.display_name}</p>
             {shippingContact.company && <p>{shippingContact.company}</p>}
             {shippingLocation?.address && (
@@ -1734,7 +1747,7 @@ const ShippingTab: React.FC<{
             )}
           </div>
         ) : (
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-400 text-xs">
             No shipping address specified
           </p>
         )}
