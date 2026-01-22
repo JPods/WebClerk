@@ -15,7 +15,7 @@ import { useDispatch } from "react-redux";
 import SalesOrderDetail from "./SalesOrderDetail";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 
-export default function sales_order_list() {
+export default function salesOrderList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedSalesOrders, setSelectedSalesOrders] = useState<any[]>([]);
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<any | null>(
@@ -137,24 +137,30 @@ export default function sales_order_list() {
     setSelectedSalesOrder(null);
   };
 
-  const handle_delete = useCallback(async (row: any) => {
-    if (window.confirm(`Delete sales order ${row.sales_order_no}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(
-          showToast({
-            message: "Sales order deleted successfully",
-            type: "success",
-          }),
-        );
-        getSalesOrderData(); // Refresh data
-      } catch (error) {
-        dispatch(
-          showToast({ message: "Failed to delete sales order", type: "error" }),
-        );
+  const handle_delete = useCallback(
+    async (row: any) => {
+      if (window.confirm(`Delete sales order ${row.sales_order_no}?`)) {
+        try {
+          await deleteAction(row.id);
+          dispatch(
+            showToast({
+              message: "Sales order deleted successfully",
+              type: "success",
+            }),
+          );
+          getSalesOrderData(); // Refresh data
+        } catch (error) {
+          dispatch(
+            showToast({
+              message: "Failed to delete sales order",
+              type: "error",
+            }),
+          );
+        }
       }
-    }
-  }, [dispatch, getSalesOrderData]);
+    },
+    [dispatch, getSalesOrderData],
+  );
 
   const userColumns: TableColumn<any>[] = useMemo(
     () => [
