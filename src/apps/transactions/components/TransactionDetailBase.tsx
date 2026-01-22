@@ -880,7 +880,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="pb-8">{renderTabContent()}</div>
+      <div className="pb-8 overflow-y-scroll max-h-[400px]">
+        {renderTabContent()}
+      </div>
     </div>
   );
 };

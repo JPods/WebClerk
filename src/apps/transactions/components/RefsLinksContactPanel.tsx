@@ -234,9 +234,7 @@ const ContactBlock: React.FC<{
       )}
       <div
         className={`text-sm p-2 rounded ${
-          isEditing && onEdit
-            ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
-            : ""
+          isEditing && onEdit ? "cursor-pointer" : ""
         }`}
         onClick={isEditing && onEdit ? onEdit : undefined}
       >
@@ -313,9 +311,9 @@ const PurposeSection: React.FC<{
   onEdit?: (contact: RefContact) => void;
 }> = ({ purpose, contacts, isEditing, onAdd, onRemove, onEdit }) => {
   return (
-    <div className="border-b border-slate-200 dark:border-slate-700 pb-4 last:border-0 last:pb-0">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+    <div className="border-b border-slate-200 dark:border-slate-700 pb-0 last:border-0 last:pb-0 bg-success-50 cus-bg-purple-light">
+      <div className="flex items-center justify-between bg-success-200">
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide p-2">
           {formatPurpose(purpose)}
         </h4>
         {isEditing && onAdd && (
@@ -327,7 +325,7 @@ const PurposeSection: React.FC<{
           </button>
         )}
       </div>
-      <div className="space-y-3">
+      <div className="bg-success-50 hover:bg-success-100 dark:hover:bg-success-100 transition-colors">
         {contacts.length > 0 ? (
           contacts.map((contact) => (
             <ContactBlock
@@ -415,7 +413,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         onSave={handleSaveContact}
       />
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 p-2 bg-gray-100 ">
         {Array.from(allPurposes).map((purpose) => (
           <PurposeSection
             key={purpose}
