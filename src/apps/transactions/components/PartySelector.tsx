@@ -1,32 +1,36 @@
 /**
  * PartySelector - Unified customer/vendor/manufacturer selector for transactions
- * 
+ *
  * Provides a searchable dropdown/modal for selecting parties (customers, vendors, manufacturers)
  * Reusable across all transaction types with appropriate party type based on transaction.
- * 
+ *
  * Usage:
  *   - Sales transactions (proposal, order, invoice): select customer
  *   - Purchase transactions (purchase_order, work_order): select vendor
  *   - Any transaction: optionally select manufacturer
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  FaSearch, 
-  FaUser, 
-  FaBuilding, 
-  FaTruck, 
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  FaSearch,
+  FaUser,
+  FaBuilding,
+  FaTruck,
   FaIndustry,
   FaTimes,
   FaPlus,
   FaSpinner,
   FaChevronDown,
-  FaHistory
-} from 'react-icons/fa';
-import { customerApi, vendorApi, manufacturerApi } from '@/apps/orgs/services/orgApi';
-import type { Organization } from '@/apps/orgs/types/orgTypes';
+  FaHistory,
+} from "react-icons/fa";
+import {
+  customerApi,
+  vendorApi,
+  manufacturerApi,
+} from "@/apps/orgs/services/orgApi";
+import type { Organization } from "@/apps/orgs/types/orgTypes";
 
 // Party type determines which entity we're selecting
-export type PartyType = 'customer' | 'vendor' | 'manufacturer';
+export type PartyType = "customer" | "vendor" | "manufacturer";
 
 // Selected party summary (minimal data needed for display)
 export interface SelectedParty {
@@ -40,80 +44,84 @@ export interface SelectedParty {
 export interface PartySelectorProps {
   /** Type of party to select */
   partyType: PartyType;
-  
+
   /** Currently selected party ID */
   value?: number | null;
-  
+
   /** Callback when party is selected */
   onChange: (party: SelectedParty | null) => void;
-  
+
   /** Label to display */
   label?: string;
-  
+
   /** Placeholder text */
   placeholder?: string;
-  
+
   /** Whether the field is required */
   required?: boolean;
-  
+
   /** Whether the selector is disabled */
   disabled?: boolean;
-  
+
   /** Error message to display */
   error?: string;
-  
+
   /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
-  
+  size?: "sm" | "md" | "lg";
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Show recent selections */
   showRecent?: boolean;
-  
+
   /** Maximum recent items to show */
   maxRecent?: number;
 }
 
 // Configuration per party type
-const partyConfig: Record<PartyType, {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  searchPlaceholder: string;
-  emptyMessage: string;
-  api: typeof customerApi;
-}> = {
+const partyConfig: Record<
+  PartyType,
+  {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    searchPlaceholder: string;
+    emptyMessage: string;
+    api: typeof customerApi;
+  }
+> = {
   customer: {
     icon: FaUser,
-    label: 'Customer',
-    searchPlaceholder: 'Search customers by name or ID...',
-    emptyMessage: 'No customers found',
+    label: "Customer",
+    searchPlaceholder: "Search customers by name or ID...",
+    emptyMessage: "No customers found",
     api: customerApi,
   },
   vendor: {
     icon: FaTruck,
-    label: 'Vendor',
-    searchPlaceholder: 'Search vendors by name or ID...',
-    emptyMessage: 'No vendors found',
+    label: "Vendor",
+    searchPlaceholder: "Search vendors by name or ID...",
+    emptyMessage: "No vendors found",
     api: vendorApi,
   },
   manufacturer: {
     icon: FaIndustry,
-    label: 'Manufacturer',
-    searchPlaceholder: 'Search manufacturers by name or ID...',
-    emptyMessage: 'No manufacturers found',
+    label: "Manufacturer",
+    searchPlaceholder: "Search manufacturers by name or ID...",
+    emptyMessage: "No manufacturers found",
     api: manufacturerApi,
   },
 };
 
 // Local storage key for recent selections
-const getRecentKey = (partyType: PartyType) => `partySelector_recent_${partyType}`;
+const getRecentKey = (partyType: PartyType) =>
+  `partySelector_recent_${partyType}`;
 
 // Size classes
 const sizeClasses = {
-  sm: 'h-8 text-sm px-2',
-  md: 'h-10 text-base px-3',
-  lg: 'h-12 text-lg px-4',
+  sm: "h-8 text-sm px-2",
+  md: "h-10 text-base px-3",
+  lg: "h-12 text-lg px-4",
 };
 
 export const PartySelector: React.FC<PartySelectorProps> = ({
@@ -125,18 +133,20 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
   required = false,
   disabled = false,
   error,
-  size = 'md',
-  className = '',
+  size = "md",
+  className = "",
   showRecent = true,
   maxRecent = 5,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedParty, setSelectedParty] = useState<SelectedParty | null>(null);
+  const [selectedParty, setSelectedParty] = useState<SelectedParty | null>(
+    null,
+  );
   const [recentParties, setRecentParties] = useState<SelectedParty[]>([]);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const config = partyConfig[partyType];
@@ -160,35 +170,38 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
   useEffect(() => {
     if (value && value > 0) {
       // Check if we already have this party in recent selections
-      const recentMatch = recentParties.find(p => p.id === value);
-      
+      const recentMatch = recentParties.find((p) => p.id === value);
+
       if (recentMatch) {
         setSelectedParty(recentMatch);
       } else {
         // Check search results (Organization type)
-        const searchMatch = searchResults.find(r => r.id === value);
+        const searchMatch = searchResults.find((r) => r.id === value);
         if (searchMatch) {
           setSelectedParty({
             id: value,
-            name: searchMatch.display_name || '',
+            name: searchMatch.display_name || "",
             ida: searchMatch.display_id,
             type: partyType,
           });
         } else {
           // Fetch the party details
-          config.api.get(value).then(party => {
-            if (party && party.id) {
-              setSelectedParty({
-                id: party.id,
-                name: party.display_name || '',
-                ida: party.display_id,
-                type: partyType,
-              });
-            }
-          }).catch(() => {
-            // Party not found, clear selection
-            setSelectedParty(null);
-          });
+          config.api
+            .get(value)
+            .then((party) => {
+              if (party && party.id) {
+                setSelectedParty({
+                  id: party.id,
+                  name: party.display_name || "",
+                  ida: party.display_id,
+                  type: partyType,
+                });
+              }
+            })
+            .catch(() => {
+              // Party not found, clear selection
+              setSelectedParty(null);
+            });
         }
       }
     } else {
@@ -197,27 +210,30 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
   }, [value, partyType, config.api, recentParties, searchResults]);
 
   // Search for parties
-  const handleSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
+  const handleSearch = useCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        return;
+      }
 
-    setIsLoading(true);
-    try {
-      const response = await config.api.list({
-        search: query,
-        is_active: true,
-        limit: 20,
-      });
-      setSearchResults(response.results || []);
-    } catch (err) {
-      console.error(`Error searching ${partyType}:`, err);
-      setSearchResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [config.api, partyType]);
+      setIsLoading(true);
+      try {
+        const response = await config.api.list({
+          search: query,
+          is_active: true,
+          limit: 20,
+        });
+        setSearchResults(response.results || []);
+      } catch (err) {
+        console.error(`Error searching ${partyType}:`, err);
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [config.api, partyType],
+  );
 
   // Debounced search
   useEffect(() => {
@@ -232,15 +248,18 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   // Save to recent selections
@@ -249,16 +268,16 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
       const key = getRecentKey(partyType);
       const current = localStorage.getItem(key);
       let recent: SelectedParty[] = current ? JSON.parse(current) : [];
-      
+
       // Remove if already exists
-      recent = recent.filter(p => p.id !== party.id);
-      
+      recent = recent.filter((p) => p.id !== party.id);
+
       // Add to front
       recent.unshift(party);
-      
+
       // Limit size
       recent = recent.slice(0, maxRecent);
-      
+
       localStorage.setItem(key, JSON.stringify(recent));
       setRecentParties(recent);
     } catch {
@@ -271,16 +290,16 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
   const handleSelectOrg = (org: Organization) => {
     const party: SelectedParty = {
       id: org.id,
-      name: org.display_name || '',
+      name: org.display_name || "",
       ida: org.display_id,
       type: partyType,
     };
-    
+
     setSelectedParty(party);
     saveToRecent(party);
     onChange(party);
     setIsOpen(false);
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchResults([]);
   };
 
@@ -289,7 +308,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
     saveToRecent(party);
     onChange(party);
     setIsOpen(false);
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchResults([]);
   };
 
@@ -314,7 +333,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
     <div className={`relative ${className}`} ref={dropdownRef}>
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -329,12 +348,17 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
           border rounded-lg cursor-pointer
           transition-colors duration-150
           ${sizeClasses[size]}
-          ${error 
-            ? 'border-red-500 dark:border-red-500' 
-            : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
+          ${
+            error
+              ? "border-red-500 dark:border-red-500"
+              : "border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
           }
-          ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900' : ''}
-          ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : ''}
+          ${
+            disabled
+              ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900"
+              : ""
+          }
+          ${isOpen ? "ring-2 ring-blue-500 border-blue-500" : ""}
         `}
       >
         <div className="flex items-center flex-1 min-w-0">
@@ -351,7 +375,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
               )}
             </div>
           ) : (
-            <span className="text-slate-400 dark:text-slate-500">
+            <span className="text-slate-400 dark:text-slate-500 text-xs">
               {placeholder || `Select ${config.label}...`}
             </span>
           )}
@@ -367,16 +391,16 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
               <FaTimes className="w-3 h-3" />
             </button>
           )}
-          <FaChevronDown 
-            className={`w-4 h-4 text-slate-400 ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          <FaChevronDown
+            className={`w-4 h-4 text-slate-400 ml-1 transition-transform ${
+              isOpen ? "rotate-180" : ""
+            }`}
           />
         </div>
       </div>
 
       {/* Error message */}
-      {error && (
-        <p className="mt-1 text-sm text-red-500">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
 
       {/* Dropdown */}
       {isOpen && (
@@ -471,12 +495,13 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
             )}
 
             {/* Empty State - No Recent */}
-            {!searchQuery.trim() && (!showRecent || recentParties.length === 0) && (
-              <div className="px-3 py-8 text-center text-slate-400 dark:text-slate-500">
-                <FaSearch className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>Start typing to search for {partyType}s</p>
-              </div>
-            )}
+            {!searchQuery.trim() &&
+              (!showRecent || recentParties.length === 0) && (
+                <div className="px-3 py-8 text-center text-slate-400 dark:text-slate-500">
+                  <FaSearch className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Start typing to search for {partyType}s</p>
+                </div>
+              )}
           </div>
 
           {/* Create New Option */}
@@ -501,44 +526,47 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
 
 // --- Convenience components for specific party types ---
 
-export interface CustomerSelectorProps extends Omit<PartySelectorProps, 'partyType'> {}
+export interface CustomerSelectorProps
+  extends Omit<PartySelectorProps, "partyType"> {}
 
 export const CustomerSelector: React.FC<CustomerSelectorProps> = (props) => (
   <PartySelector {...props} partyType="customer" />
 );
 
-export interface VendorSelectorProps extends Omit<PartySelectorProps, 'partyType'> {}
+export interface VendorSelectorProps
+  extends Omit<PartySelectorProps, "partyType"> {}
 
 export const VendorSelector: React.FC<VendorSelectorProps> = (props) => (
   <PartySelector {...props} partyType="vendor" />
 );
 
-export interface ManufacturerSelectorProps extends Omit<PartySelectorProps, 'partyType'> {}
+export interface ManufacturerSelectorProps
+  extends Omit<PartySelectorProps, "partyType"> {}
 
-export const ManufacturerSelector: React.FC<ManufacturerSelectorProps> = (props) => (
-  <PartySelector {...props} partyType="manufacturer" />
-);
+export const ManufacturerSelector: React.FC<ManufacturerSelectorProps> = (
+  props,
+) => <PartySelector {...props} partyType="manufacturer" />;
 
 // --- Transaction-aware party selector ---
 
-export type TransactionPartyType = 'sales' | 'purchase';
+export type TransactionPartyType = "sales" | "purchase";
 
-export interface TransactionPartySelectorProps extends Omit<PartySelectorProps, 'partyType'> {
+export interface TransactionPartySelectorProps
+  extends Omit<PartySelectorProps, "partyType"> {
   /** Transaction type determines which party (customer for sales, vendor for purchase) */
   transactionType: TransactionPartyType;
 }
 
 /**
  * TransactionPartySelector - Automatically selects the correct party type based on transaction
- * 
+ *
  * - Sales transactions (proposal, order, invoice): selects customer
  * - Purchase transactions (purchase_order, work_order): selects vendor
  */
-export const TransactionPartySelector: React.FC<TransactionPartySelectorProps> = ({
-  transactionType,
-  ...props
-}) => {
-  const partyType = transactionType === 'sales' ? 'customer' : 'vendor';
+export const TransactionPartySelector: React.FC<
+  TransactionPartySelectorProps
+> = ({ transactionType, ...props }) => {
+  const partyType = transactionType === "sales" ? "customer" : "vendor";
   return <PartySelector {...props} partyType={partyType} />;
 };
 

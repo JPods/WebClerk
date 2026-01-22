@@ -2,7 +2,11 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { AuthURL, NetworkInfo } from "../routes/network";
 import { store } from "../store";
 import { clearUser } from "../store/slices/authSlice";
-import { onRequestStart, onResponseSuccess, onResponseError } from "./apiLogger";
+import {
+  onRequestStart,
+  onResponseSuccess,
+  onResponseError,
+} from "./apiLogger";
 import {
   startRequestTracking,
   completeRequestTracking,
@@ -12,14 +16,21 @@ import {
 // Access tokens are short-lived; keep latest in memory for fast access
 // Helpers
 const isValidToken = (val: any): val is string =>
-  typeof val === 'string' && val.trim() !== '' && val !== 'undefined' && val !== 'null';
+  typeof val === "string" &&
+  val.trim() !== "" &&
+  val !== "undefined" &&
+  val !== "null";
 
 // Access tokens are short-lived; keep latest in memory for fast access
 let accessToken: string | null = (() => {
-  const raw = typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null;
+  const raw =
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem("accessToken")
+      : null;
   if (!isValidToken(raw)) {
     // Clean up any bad leftovers to avoid gating UI with a bogus token
-    if (typeof localStorage !== "undefined") localStorage.removeItem("accessToken");
+    if (typeof localStorage !== "undefined")
+      localStorage.removeItem("accessToken");
     return null;
   }
   return raw;
@@ -51,7 +62,11 @@ export const clearResponseCache = () => {
   }
 };
 
-const getCacheKey = (baseURL: string | undefined, url: string, params?: any): string => {
+const getCacheKey = (
+  baseURL: string | undefined,
+  url: string,
+  params?: any,
+): string => {
   const search = params ? JSON.stringify(params) : "";
   return `${CACHE_PREFIX}${baseURL ?? ""}${url}?${search}`;
 };
@@ -99,27 +114,30 @@ const writeCache = (key: string, res: AxiosResponse) => {
 // fetch them once and store in React state/context/Redux - NOT in session cache.
 
 const NEVER_CACHE_PATTERNS = [
-  '/wcapi/',      // ALL wcapi calls are database actions - never cache
-  '/api/wcapi/',  // Alternate mount point - also never cache
+  "/wcapi/", // ALL wcapi calls are database actions - never cache
+  "/api/wcapi/", // Alternate mount point - also never cache
 ];
 
 const shouldNeverCache = (url: string): boolean => {
-  return NEVER_CACHE_PATTERNS.some(pattern => url.includes(pattern));
+  return NEVER_CACHE_PATTERNS.some((pattern) => url.includes(pattern));
 };
 
 const wrapGetWithCache = (client: AxiosInstance) => {
   const originalGet = client.get.bind(client);
-  client.get = (async function patchedGet(url: any, config: any = {}) {
+  client.get = async function patchedGet(url: any, config: any = {}) {
     // WCAPI = Database = NEVER CACHE
     // These endpoints serve live database records that can change any moment
     if (shouldNeverCache(url)) {
       return originalGet(url, config);
     }
-    
+
     // For non-wcapi endpoints: respect explicit cache settings
-    const explicitNoCache = config?.cache === false || config?.headers?.["x-skip-cache"] === true;
+    const explicitNoCache =
+      config?.cache === false || config?.headers?.["x-skip-cache"] === true;
     const shouldCache = !explicitNoCache;
-    const cacheKey = shouldCache ? getCacheKey(client.defaults.baseURL, url, config?.params) : null;
+    const cacheKey = shouldCache
+      ? getCacheKey(client.defaults.baseURL, url, config?.params)
+      : null;
 
     if (cacheKey) {
       const cached = readCache(cacheKey);
@@ -129,7 +147,7 @@ const wrapGetWithCache = (client: AxiosInstance) => {
     const res = await originalGet(url, config);
     if (cacheKey) writeCache(cacheKey, res);
     return res;
-  }) as typeof client.get;
+  } as typeof client.get;
 };
 
 const updateLoading = (_delta: number) => {
@@ -161,8 +179,13 @@ export const clearTokens = () => {
 };
 
 // Instance for protected API calls
+// Use relative URL in development so Vite proxy intercepts it
+// In production, use absolute URL from NetworkInfo
 export const apiClient = axios.create({
-  baseURL: NetworkInfo.API_URL,
+  baseURL:
+    typeof window !== "undefined" && window.location.protocol === "http:"
+      ? ""
+      : NetworkInfo.API_URL,
 });
 
 // Separate client for Notion integration endpoints
@@ -172,7 +195,10 @@ export const notionClient = axios.create({
 
 // Separate instance for auth endpoints (login, signup, refresh)
 export const authClient = axios.create({
-  baseURL: NetworkInfo.AUTH_URL,
+  baseURL:
+    typeof window !== "undefined" && window.location.protocol === "http:"
+      ? ""
+      : NetworkInfo.AUTH_URL,
 });
 
 const attachAuthInterceptors = (client: AxiosInstance) => {
@@ -225,10 +251,15 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
         originalRequest._retry = true;
         isRefreshing = true;
         try {
-          const refreshToken = typeof localStorage !== "undefined" ? localStorage.getItem("refreshToken") : null;
+          const refreshToken =
+            typeof localStorage !== "undefined"
+              ? localStorage.getItem("refreshToken")
+              : null;
           if (!refreshToken) throw new Error("No refresh token");
 
-          const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, { refresh: refreshToken });
+          const refreshResponse = await authClient.post(AuthURL.REFRESH_TOKEN, {
+            refresh: refreshToken,
+          });
           // Backend wraps JSON responses in an envelope: { status, code, message, data: { access } }
           const body: any = (refreshResponse as any).data ?? {};
           const fromEnvelope = body?.data?.access;
@@ -238,14 +269,21 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
             : isValidToken(fromTopLevel)
             ? fromTopLevel
             : null;
-          if (!newToken) throw new Error("Invalid refresh response: missing access token");
+          if (!newToken)
+            throw new Error("Invalid refresh response: missing access token");
 
           accessToken = newToken;
-          if (typeof localStorage !== "undefined") localStorage.setItem("accessToken", newToken);
+          if (typeof localStorage !== "undefined")
+            localStorage.setItem("accessToken", newToken);
           processQueue(newToken);
           originalRequest.headers = originalRequest.headers ?? {};
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          if (trackId) completeRequestTracking(trackId, "canceled", "retrying with refreshed token");
+          if (trackId)
+            completeRequestTracking(
+              trackId,
+              "canceled",
+              "retrying with refreshed token",
+            );
           return client(originalRequest);
         } catch (refreshErr) {
           processQueue(null);
@@ -256,7 +294,12 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
           } catch {}
           // Log the error before rejecting
           onResponseError(error);
-          if (trackId) completeRequestTracking(trackId, "error", (refreshErr as any)?.message);
+          if (trackId)
+            completeRequestTracking(
+              trackId,
+              "error",
+              (refreshErr as any)?.message,
+            );
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
@@ -268,11 +311,17 @@ const attachAuthInterceptors = (client: AxiosInstance) => {
       // Log the error
       onResponseError(error);
       if (trackId) {
-        const wasCanceled = (error as any)?.code === "ERR_CANCELED" || (error as any)?.message === "canceled";
-        completeRequestTracking(trackId, wasCanceled ? "canceled" : "error", (error as any)?.message);
+        const wasCanceled =
+          (error as any)?.code === "ERR_CANCELED" ||
+          (error as any)?.message === "canceled";
+        completeRequestTracking(
+          trackId,
+          wasCanceled ? "canceled" : "error",
+          (error as any)?.message,
+        );
       }
       return Promise.reject(error);
-    }
+    },
   );
 };
 
@@ -297,11 +346,17 @@ const attachLoadingOnly = (client: AxiosInstance) => {
       updateLoading(-1);
       const trackId = (error.config as any)?._requestTrackId;
       if (trackId) {
-        const wasCanceled = (error as any)?.code === "ERR_CANCELED" || (error as any)?.message === "canceled";
-        completeRequestTracking(trackId, wasCanceled ? "canceled" : "error", (error as any)?.message);
+        const wasCanceled =
+          (error as any)?.code === "ERR_CANCELED" ||
+          (error as any)?.message === "canceled";
+        completeRequestTracking(
+          trackId,
+          wasCanceled ? "canceled" : "error",
+          (error as any)?.message,
+        );
       }
       return Promise.reject(error);
-    }
+    },
   );
 };
 

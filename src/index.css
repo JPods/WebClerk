@@ -198,9 +198,16 @@ layer(base);
   body {
     @apply relative font-normal font-outfit z-1;
     background-color: #e6e9f2;
-    background-image:
-      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.7), rgba(230, 233, 242, 0) 45%),
-      radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.5), rgba(230, 233, 242, 0) 40%);
+    background-image: radial-gradient(
+        circle at 25% 25%,
+        rgba(255, 255, 255, 0.7),
+        rgba(230, 233, 242, 0) 45%
+      ),
+      radial-gradient(
+        circle at 80% 10%,
+        rgba(255, 255, 255, 0.5),
+        rgba(230, 233, 242, 0) 40%
+      );
     background-size: 100% 100%, 100% 100%;
     background-attachment: fixed;
   }
@@ -825,7 +832,7 @@ span.flatpickr-weekday,
   outline-color: #9fa1ae !important;
 }
 .cus-bg-purple-light {
-  border: 1px dashed #3b4863cc;
+  border: 1px dashed #ff72ffcc;
 }
 .cus-bg-theme-purple-medium {
   background: #ffffff;
