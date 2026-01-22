@@ -43,11 +43,16 @@ export function getFrontendDataSet(): DataSetInfo {
 /**
  * Fetch backend system info including data set identification
  */
+<<<<<<< HEAD
 export async function fetchBackendSystemInfo(
   apiBaseUrl: string = "",
 ): Promise<SystemInfo> {
   // Use relative path so Vite proxy can intercept in dev mode
   const url = `/wcapi/system-info/`;
+=======
+export async function fetchBackendSystemInfo(apiBaseUrl: string = ''): Promise<SystemInfo> {
+  const url = `${apiBaseUrl}/wcapi/get/?model_name=system_info`;
+>>>>>>> 812843c60d8e017d834a22fd74654e80a546d0f7
   const response = await fetch(url, {
     method: "GET",
     credentials: "include",
