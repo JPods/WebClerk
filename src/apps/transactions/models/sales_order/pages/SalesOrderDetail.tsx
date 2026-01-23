@@ -772,12 +772,12 @@ const SalesOrderLines: React.FC<{
       {/* Item Search Panel - only in edit mode and when not locked */}
       {isEditing && !isLocked && onLinesChange && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+          {/* <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
             Add Items
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
             Search the catalog and add items to this order.
-          </p>
+          </p> */}
           <SalesOrderItemSearch
             onAddItem={(item, quantity) => {
               // Extract item ID - check multiple possible field names
