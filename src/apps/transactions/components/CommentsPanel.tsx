@@ -77,7 +77,7 @@ const NotesHistory: React.FC<NotesHistoryProps> = ({
   }, [notes.length]);
 
   return (
-    <div className="flex flex-col h-64">
+    <div className="flex flex-col h-64 bg-slate-100">
       {/* Message display */}
       {message && (
         <div className="mb-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs text-center">
@@ -87,7 +87,7 @@ const NotesHistory: React.FC<NotesHistoryProps> = ({
       {/* Notes history container */}
       <div
         ref={scrollRef}
-        className="flex-1 h-64 overflow-y-scroll border rounded bg-slate-50 dark:bg-slate-800 mb-2 pr-1 space-y-3"
+        className="flex-1 h-64 overflow-y-scroll border rounded bg-success-50 dark:bg-slate-800 mb-2 pr-1 space-y-3"
       >
         {notes.length === 0 && (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -98,9 +98,13 @@ const NotesHistory: React.FC<NotesHistoryProps> = ({
         {notes.map((note, idx) => (
           <div
             key={idx}
-            className="mb-2 px-2 py-1 border-b border-slate-200 dark:border-slate-700"
+            className={`mb-2 px-2 py-1 ${
+              idx !== notes.length - 1
+                ? "border-b border-purple-100 dark:border-slate-700"
+                : ""
+            }`}
           >
-            <div className="flex items-center gap-2 mb-1 text-xs text-slate-700 dark:text-white font-medium">
+            <div className="flex items-center gap-2 mb-1 text-xs text-slate-500 dark:text-white font-medium">
               <span>
                 {note.by === "current_user" ? "You" : note.by || "Unknown"}
               </span>
@@ -110,6 +114,9 @@ const NotesHistory: React.FC<NotesHistoryProps> = ({
                   ? new Date(note.ts).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
+                      year: "numeric",
+                      month: "short",
+                      day: "2-digit",
                     })
                   : "Unknown"}
               </span>
@@ -133,7 +140,7 @@ const NotesHistory: React.FC<NotesHistoryProps> = ({
               )}
             </div>
             <div
-              className={`text-sm break-words font-normal ${
+              className={`text-sm wrap-break-word font-medium ${
                 note.source === "Public"
                   ? "text-blue-700 dark:text-blue-300"
                   : note.source === "Process"
@@ -150,13 +157,13 @@ const NotesHistory: React.FC<NotesHistoryProps> = ({
       </div>
       {/* Input area container */}
       {isEditing && (
-        <div className="flex gap-2 p-2 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-b">
+        <div className="flex gap-2 p-2 bg-purple-200 dark:bg-slate-800 border-t border-purple-200 dark:border-slate-700 rounded-b">
           <Input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type a note..."
-            className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            className="flex-1 rounded border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
             onKeyDown={(e) => {
               if (e.key === "Enter" && inputValue.trim()) {
                 if (onAdd) {
@@ -256,13 +263,13 @@ const TabWithInput: React.FC<
 
   return (
     <div className="flex flex-col h-64">
-      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+      <label className="block text-xs font-medium text-slate-700 dark:text-slate-400 mb-1">
         {label}
       </label>
       {/* Message history container */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-scroll border rounded bg-slate-50 dark:bg-slate-800 mb-2 pr-1"
+        className="flex-1 overflow-y-scroll border rounded bg-purple-50 dark:bg-slate-800 mb-2 pr-1"
       >
         <div
           className={`text-sm px-2 py-1 ${
@@ -282,7 +289,7 @@ const TabWithInput: React.FC<
               <div key={idx} className="mb-2">
                 <span>{msg.text}</span>
                 {msg.ts && (
-                  <span className="ml-2 text-xs text-slate-400">{msg.ts}</span>
+                  <span className="ml-2 text-xs text-slate-500">{msg.ts}</span>
                 )}
               </div>
             ))
@@ -291,13 +298,13 @@ const TabWithInput: React.FC<
       </div>
       {/* Input area container */}
       {isEditing && (
-        <div className="flex gap-2 p-2 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-b">
+        <div className="flex gap-2 p-2 bg-success-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-b">
           <Input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            className="flex-1 rounded border border-success-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-success-500 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-white"
             onKeyDown={(e) => {
               if (e.key === "Enter" && inputValue.trim()) {
                 handleSend();
