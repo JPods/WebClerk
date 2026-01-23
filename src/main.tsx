@@ -10,29 +10,31 @@ import { SaveQueueProvider } from "./context/SaveQueueContext.tsx";
 import { RequestQueueProvider } from "./context/RequestQueueContext.tsx";
 
 // Data Set Identification - startup notice
-const dataSetId = import.meta.env.VITE_DATA_SET_ID || 'UNKNOWN';
-const dataSetName = import.meta.env.VITE_DATA_SET_NAME || 'Unknown';
-const env = import.meta.env.VITE_ENV || 'DEV';
+const dataSetId = import.meta.env.VITE_DATA_SET_ID || "UNKNOWN";
+const dataSetName = import.meta.env.VITE_DATA_SET_NAME || "Unknown";
+const env = import.meta.env.VITE_ENV || "DEV";
 
 console.log(
   `%c[React2025] Frontend: ${dataSetId} - ${dataSetName} (${env})`,
-  'color: #22c55e; font-weight: bold; font-size: 14px;'
+  "color: #22c55e; font-weight: bold; font-size: 14px;",
 );
 
 // Fetch and display backend database mode
-fetch('/wcapi/get/?model_name=dev_config')
-  .then(res => res.ok ? res.json() : null)
-  .then(data => {
+fetch("/wcapi/get/?model_name=dev_config")
+  .then((res) => (res.ok ? res.json() : null))
+  .then((data) => {
     if (data?.data) {
-      const mode = data.data.db_mode?.toUpperCase() || 'UNKNOWN';
-      const color = mode === 'REMOTE' ? '#22c55e' : '#3b82f6';
+      const mode = data.data.db_mode?.toUpperCase() || "local";
+      const color = mode === "REMOTE" ? "#22c55e" : "#3b82f6";
       console.log(
         `%c[React2025] Backend DB: ${mode} database`,
-        `color: ${color}; font-weight: bold; font-size: 14px;`
+        `color: ${color}; font-weight: bold; font-size: 14px;`,
       );
     }
   })
-  .catch(() => { /* Backend not available yet */ });
+  .catch(() => {
+    /* Backend not available yet */
+  });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -45,5 +47,5 @@ createRoot(document.getElementById("root")!).render(
         </SaveQueueProvider>
       </RequestQueueProvider>
     </ThemeProvider>
-  </StrictMode>
+  </StrictMode>,
 );

@@ -1,28 +1,28 @@
-import PageBreadcrumb from "../../../../../components/common/PageBreadcrumb";
-import ComponentCard from "../../../../../components/common/ComponentCard";
+import ComponentCard from "@/components/common/ComponentCard";
 import AdvancedDataTable, {
   ColumnFilter,
-} from "../../../../../components/common/AdvancedDataTable";
+} from "@/components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
+import { deleteAction } from "@/api/userProfile";
 import {
   fetchSalesOrders,
   fetchSalesOrderDetail,
 } from "../services/salesOrderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
-import { showToast } from "../../../../../store/slices/toastSlice";
+import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import SalesOrderDetail from "./SalesOrderDetail";
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 
-export default function SalesOrderList() {
+export default function salesOrderList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedSalesOrders, setSelectedSalesOrders] = useState<any[]>([]);
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<any | null>(
-    null
+    null,
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -37,13 +37,13 @@ export default function SalesOrderList() {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch sales orders", type: "error" })
+          showToast({ message: "Failed to fetch sales orders", type: "error" }),
         );
       }
     } catch (error) {
       console.error("Failed to fetch sales orders", error);
       dispatch(
-        showToast({ message: "Failed to fetch sales orders", type: "error" })
+        showToast({ message: "Failed to fetch sales orders", type: "error" }),
       );
     } finally {
       setLoading(false);
@@ -57,34 +57,40 @@ export default function SalesOrderList() {
   const openSalesOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
       const salesOrderId = row?.id;
-      console.log('[openSalesOrder] row:', row);
-      console.log('[openSalesOrder] salesOrderId:', salesOrderId);
-      console.log('[openSalesOrder] modeToSet:', modeToSet);
+      console.log("[openSalesOrder] row:", row);
+      console.log("[openSalesOrder] salesOrderId:", salesOrderId);
+      console.log("[openSalesOrder] modeToSet:", modeToSet);
       if (!salesOrderId) {
         dispatch(
-          showToast({ message: "Sales order id missing", type: "error" })
+          showToast({ message: "Sales order id missing", type: "error" }),
         );
         return;
       }
 
       setFormMode(modeToSet);
-      console.log('[openSalesOrder] formMode set to:', modeToSet);
+      console.log("[openSalesOrder] formMode set to:", modeToSet);
       setDetailLoading(true);
       setSelectedSalesOrder(null);
 
       try {
         const detail = await fetchSalesOrderDetail(salesOrderId);
-        console.log('[openSalesOrder] detail from API:', detail);
-        console.log('[openSalesOrder] detail.lines:', detail?.lines);
-        console.log('[openSalesOrder] detail.lines count:', detail?.lines?.length);
+        console.log("[openSalesOrder] detail from API:", detail);
+        console.log("[openSalesOrder] detail.lines:", detail?.lines);
+        console.log(
+          "[openSalesOrder] detail.lines count:",
+          detail?.lines?.length,
+        );
         const hasDetail = detail && Object.keys(detail).length > 0;
         if (!hasDetail) {
           throw new Error("Sales order not found");
         }
         const merged = { ...row, ...detail };
-        console.log('[openSalesOrder] merged:', merged);
-        console.log('[openSalesOrder] merged.lines:', merged?.lines);
-        console.log('[openSalesOrder] merged.lines count:', merged?.lines?.length);
+        console.log("[openSalesOrder] merged:", merged);
+        console.log("[openSalesOrder] merged.lines:", merged?.lines);
+        console.log(
+          "[openSalesOrder] merged.lines count:",
+          merged?.lines?.length,
+        );
         setSelectedSalesOrder(merged);
       } catch (error) {
         const message =
@@ -96,22 +102,22 @@ export default function SalesOrderList() {
         setDetailLoading(false);
       }
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleView = useCallback(
     (row: any) => {
-      console.log('[SalesOrderList] handleView called');
+      console.log("[SalesOrderList] handleView called");
       openSalesOrder(row, "view");
     },
-    [openSalesOrder]
+    [openSalesOrder],
   );
 
   const handleEdit = useCallback(
     (row: any) => {
       openSalesOrder(row, "edit");
     },
-    [openSalesOrder]
+    [openSalesOrder],
   );
 
   const handleAdd = () => {
@@ -131,24 +137,30 @@ export default function SalesOrderList() {
     setSelectedSalesOrder(null);
   };
 
-  const handleDelete = async (row: any) => {
-    if (window.confirm(`Delete sales order ${row.sales_order_no}?`)) {
-      try {
-        await deleteAction(row.id);
-        dispatch(
-          showToast({
-            message: "Sales order deleted successfully",
-            type: "success",
-          })
-        );
-        getSalesOrderData(); // Refresh data
-      } catch (error) {
-        dispatch(
-          showToast({ message: "Failed to delete sales order", type: "error" })
-        );
+  const handle_delete = useCallback(
+    async (row: any) => {
+      if (window.confirm(`Delete sales order ${row.sales_order_no}?`)) {
+        try {
+          await deleteAction(row.id);
+          dispatch(
+            showToast({
+              message: "Sales order deleted successfully",
+              type: "success",
+            }),
+          );
+          getSalesOrderData(); // Refresh data
+        } catch (error) {
+          dispatch(
+            showToast({
+              message: "Failed to delete sales order",
+              type: "error",
+            }),
+          );
+        }
       }
-    }
-  };
+    },
+    [dispatch, getSalesOrderData],
+  );
 
   const userColumns: TableColumn<any>[] = useMemo(
     () => [
@@ -281,7 +293,7 @@ export default function SalesOrderList() {
                 handleView(row);
               }}
               title="View"
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
+              className="p-2 text-blue-600 text-xs hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
             >
               <FaEye className="w-4 h-4" />
             </button>
@@ -291,17 +303,17 @@ export default function SalesOrderList() {
                 handleEdit(row);
               }}
               title="Edit"
-              className="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
+              className="p-2 text-green-600 text-xs hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
             >
               <FaEdit className="w-4 h-4" />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleDelete(row);
+                handle_delete(row);
               }}
               title="Delete"
-              className="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
+              className="p-2 text-red-600 text-xs hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"
             >
               <FaTrash className="w-4 h-4" />
             </button>
@@ -309,7 +321,7 @@ export default function SalesOrderList() {
         ),
       },
     ],
-    [handleView, handleEdit, handleDelete]
+    [handleView, handleEdit, handle_delete],
   );
 
   // Filters configuration
@@ -338,18 +350,18 @@ export default function SalesOrderList() {
         type: "text",
       },
     ],
-    []
+    [],
   );
 
   // Calculate summary statistics
   const totalOrders = data.length;
   const totalValue = data.reduce(
     (sum, order) => sum + (order.total || order.total_amount || 0),
-    0
+    0,
   );
   const totalMargin = data.reduce(
     (sum, order) => sum + (order.margin_amount || 0),
-    0
+    0,
   );
   const avgMargin = totalOrders > 0 ? (totalMargin / totalValue) * 100 : 0;
   const statusCounts = data.reduce((acc, order) => {
@@ -423,7 +435,7 @@ export default function SalesOrderList() {
               customActions={
                 <button
                   onClick={handleAdd}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium disabled:opacity-50 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <FaPlus className="w-4 h-4" />
                   Add Sales Order
@@ -443,7 +455,7 @@ export default function SalesOrderList() {
               </ComponentCard>
             ) : (
               <SalesOrderDetail
-                key={`${selectedSalesOrder?.id ?? 'new'}-${formMode}`}
+                key={`${selectedSalesOrder?.id ?? "new"}-${formMode}`}
                 inline
                 modeProp={formMode}
                 dataProp={formMode === "add" ? null : selectedSalesOrder}
