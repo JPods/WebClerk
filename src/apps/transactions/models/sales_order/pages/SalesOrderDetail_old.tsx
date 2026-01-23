@@ -29,7 +29,9 @@ import {
 } from "../services/salesOrderApi";
 import { deleteRecord } from "../../../../../api/wcapi";
 import { SalesOrderAddProps } from "../types/salesOrderType";
-import TransactionToolbar, { type TransactionType } from "../../../components/TransactionToolbar";
+import TransactionToolbar, {
+  type TransactionType,
+} from "../../../components/TransactionToolbar";
 import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
 import SalesOrderItemSearch from "../components/SalesOrderItemSearch";
@@ -91,7 +93,13 @@ const FIELD_GROUPS: FieldGroup[] = [
   {
     title: "Associations",
     fields: [
-      { name: "customer_id", label: "customer_id", type: "number", min: 1, required: true },
+      {
+        name: "customer_id",
+        label: "customer_id",
+        type: "number",
+        min: 1,
+        required: true,
+      },
       {
         name: "manufacturer_id",
         label: "manufacturer_id",
@@ -279,18 +287,18 @@ function normalizeLines(raw: unknown): SalesOrderLineRecord[] {
 
 // Default structures matching Django base_transaction_model.py
 const DEFAULT_TOTALS = {
-  subtotal: null,   // sum of line extended sell before tax/ship/discount
-  discount: null,   // header discount amount
-  taxable: null,    // subtotal - discount subject to tax
-  tax: null,        // sales tax amount
-  shipping: null,   // shipping/handling charged to customer
-  other: null,      // misc charges
-  total: null,      // grand total customer-facing
-  cost: null,       // total cost (for margin compute)
-  margin: null,     // total - cost
-  margin_pc: null,  // (margin / total)*100 (safe on total>0)
-  received: null,   // payments received (for invoices)
-  balance: null,    // total - received (for invoices)
+  subtotal: null, // sum of line extended sell before tax/ship/discount
+  discount: null, // header discount amount
+  taxable: null, // subtotal - discount subject to tax
+  tax: null, // sales tax amount
+  shipping: null, // shipping/handling charged to customer
+  other: null, // misc charges
+  total: null, // grand total customer-facing
+  cost: null, // total cost (for margin compute)
+  margin: null, // total - cost
+  margin_pc: null, // (margin / total)*100 (safe on total>0)
+  received: null, // payments received (for invoices)
+  balance: null, // total - received (for invoices)
 };
 
 const DEFAULT_COST = {
@@ -432,7 +440,7 @@ function extractValue(source: Record<string, unknown>, path: string): unknown {
 function setDeepValue(
   target: Record<string, unknown>,
   path: string,
-  value: unknown
+  value: unknown,
 ) {
   const segments = path.split(".");
   let cursor: Record<string, unknown> = target;
@@ -454,7 +462,7 @@ function setDeepValue(
 
 function resolveStringField(
   record: Record<string, unknown>,
-  keys: string[]
+  keys: string[],
 ): string {
   for (const key of keys) {
     const value = record[key];
@@ -529,7 +537,7 @@ function resolveCustomerAlias(record: Record<string, unknown>): string {
 }
 
 function resolveContactRecord(
-  entry: ContactLinkRecord
+  entry: ContactLinkRecord,
 ): Record<string, unknown> {
   if (entry.contact && typeof entry.contact === "object" && entry.contact) {
     return entry.contact;
@@ -639,7 +647,7 @@ function resolveContactPurpose(entry: ContactLinkRecord): string {
 
 function getErrorMessage(
   errors: Record<string, unknown>,
-  path: string
+  path: string,
 ): string | undefined {
   const segments = path.split(".");
   let cursor: unknown = errors;
@@ -711,7 +719,7 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
     const placedValue = toNumeric(
       extractValue(quantityObject, "placed") ??
         extractValue(quantityObject, "ordered") ??
-        0
+        0,
     );
     quantityObject.placed = placedValue;
     if ("ordered" in quantityObject) {
@@ -730,7 +738,7 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
       return toNumeric(
         extractValue(quantityObject, "placed") ??
           extractValue(quantityObject, "ordered") ??
-          0
+          0,
       );
     }
     return 0;
@@ -758,7 +766,7 @@ function recalculateLineFinancials(line: SalesOrderLineRecord): void {
   const priceFactor = 10 ** Math.max(0, pricePrecision);
   const extendedRaw = Math.max(
     unitValue * resolvedQuantity - discountAmount,
-    0
+    0,
   );
   const extendedValue = Number.isFinite(extendedRaw)
     ? Math.round(extendedRaw * priceFactor) / priceFactor
@@ -816,7 +824,7 @@ function resolveLineKey(line: SalesOrderLineRecord): string {
 
 function buildLineFromItem(
   item: ItemSearchResult,
-  quantity: number
+  quantity: number,
 ): SalesOrderLineRecord {
   const normalizedQuantity =
     Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
@@ -893,7 +901,7 @@ function SalesOrderLinesPanel({
   onFieldChange?: (
     index: number,
     field: "quantity.placed" | "price.unit",
-    value: number
+    value: number,
   ) => void;
 }) {
   if (!Array.isArray(lines) || lines.length === 0) {
@@ -964,11 +972,11 @@ function SalesOrderLinesPanel({
               const priceUnit = toNumeric(
                 extractValue(price ?? {}, "unit") ??
                   extractValue(price ?? {}, "sell") ??
-                  0
+                  0,
               );
               const priceDiscountPercent = extractValue(
                 price ?? {},
-                "discount_percent"
+                "discount_percent",
               );
               const priceExtended = extractValue(price ?? {}, "extended");
 
@@ -1092,7 +1100,7 @@ export default function SalesOrderDetail({
         "refs.links": "",
       };
       return base;
-    }
+    },
   );
   const [jsonErrors, setJsonErrors] = useState<
     Record<JsonFieldPath, string | undefined>
@@ -1121,10 +1129,13 @@ export default function SalesOrderDetail({
   const isReadOnly = mode === "view";
 
   // Debug logging for data flow
-  console.log('[SalesOrderDetail] INIT dataProp:', dataProp);
-  console.log('[SalesOrderDetail] INIT dataProp?.lines:', (dataProp as any)?.lines);
-  console.log('[SalesOrderDetail] INIT data:', data);
-  console.log('[SalesOrderDetail] INIT data?.lines:', (data as any)?.lines);
+  console.log("[SalesOrderDetail] INIT dataProp:", dataProp);
+  console.log(
+    "[SalesOrderDetail] INIT dataProp?.lines:",
+    (dataProp as any)?.lines,
+  );
+  console.log("[SalesOrderDetail] INIT data:", data);
+  console.log("[SalesOrderDetail] INIT data?.lines:", (data as any)?.lines);
 
   const [recordData, setRecordData] = useState<
     (SalesOrderForm & { id?: number }) | null
@@ -1138,7 +1149,7 @@ export default function SalesOrderDetail({
   >([]);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [customerSearchError, setCustomerSearchError] = useState<string | null>(
-    null
+    null,
   );
   const [contactColumnOrder, setContactColumnOrder] = useState<
     ContactColumnKey[]
@@ -1158,7 +1169,7 @@ export default function SalesOrderDetail({
     setContactColumnOrder((prev) => {
       const knownKeys = CONTACT_LINK_COLUMN_DEFS.map((def) => def.key);
       const filtered = prev.filter((key): key is ContactColumnKey =>
-        knownKeys.includes(key)
+        knownKeys.includes(key),
       );
       if (filtered.length === knownKeys.length) {
         return filtered;
@@ -1180,7 +1191,7 @@ export default function SalesOrderDetail({
         draggingContactColumn.current = key;
         event.dataTransfer.effectAllowed = "move";
       },
-    []
+    [],
   );
 
   const handleContactColumnDragOver = useCallback(
@@ -1188,7 +1199,7 @@ export default function SalesOrderDetail({
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
     },
-    []
+    [],
   );
 
   const handleContactColumnDrop = useCallback(
@@ -1212,7 +1223,7 @@ export default function SalesOrderDetail({
         });
         draggingContactColumn.current = null;
       },
-    []
+    [],
   );
 
   const handleContactColumnDragEnd = useCallback(() => {
@@ -1236,7 +1247,7 @@ export default function SalesOrderDetail({
       .map((entry) =>
         typeof entry === "object" && entry
           ? (entry as ContactLinkRecord)
-          : ({} as ContactLinkRecord)
+          : ({} as ContactLinkRecord),
       )
       .map((entry) => {
         const id = resolveContactId(entry);
@@ -1254,8 +1265,14 @@ export default function SalesOrderDetail({
   }, [refsValue]);
 
   useEffect(() => {
-    console.log('[SalesOrderDetail] useEffect setRecordData called with data:', data);
-    console.log('[SalesOrderDetail] useEffect data?.lines:', (data as any)?.lines);
+    console.log(
+      "[SalesOrderDetail] useEffect setRecordData called with data:",
+      data,
+    );
+    console.log(
+      "[SalesOrderDetail] useEffect data?.lines:",
+      (data as any)?.lines,
+    );
     setRecordData(data);
   }, [data]);
 
@@ -1263,28 +1280,47 @@ export default function SalesOrderDetail({
     (message: string) => {
       dispatch(showToast({ message, type: "error" }));
     },
-    [dispatch]
+    [dispatch],
   );
 
   useEffect(() => {
-    console.log('[SalesOrderDetail] loadDetail useEffect - data?.id:', data?.id);
-    console.log('[SalesOrderDetail] loadDetail useEffect - data?.lines:', (data as Record<string, unknown>)?.lines);
-    console.log('[SalesOrderDetail] loadDetail useEffect - normalizeLines result:', normalizeLines((data as Record<string, unknown>)?.lines));
+    console.log(
+      "[SalesOrderDetail] loadDetail useEffect - data?.id:",
+      data?.id,
+    );
+    console.log(
+      "[SalesOrderDetail] loadDetail useEffect - data?.lines:",
+      (data as Record<string, unknown>)?.lines,
+    );
+    console.log(
+      "[SalesOrderDetail] loadDetail useEffect - normalizeLines result:",
+      normalizeLines((data as Record<string, unknown>)?.lines),
+    );
     if (!data?.id) {
-      console.log('[SalesOrderDetail] loadDetail useEffect - SKIPPING: no data.id');
+      console.log(
+        "[SalesOrderDetail] loadDetail useEffect - SKIPPING: no data.id",
+      );
       return;
     }
     if (normalizeLines((data as Record<string, unknown>)?.lines).length > 0) {
-      console.log('[SalesOrderDetail] loadDetail useEffect - SKIPPING: already have lines');
+      console.log(
+        "[SalesOrderDetail] loadDetail useEffect - SKIPPING: already have lines",
+      );
       return;
     }
-    console.log('[SalesOrderDetail] loadDetail useEffect - FETCHING detail...');
+    console.log("[SalesOrderDetail] loadDetail useEffect - FETCHING detail...");
     let cancelled = false;
     const loadDetail = async () => {
       try {
         const detail = await fetchSalesOrderDetail(data.id);
-        console.log('[SalesOrderDetail] loadDetail useEffect - fetched detail:', detail);
-        console.log('[SalesOrderDetail] loadDetail useEffect - fetched detail.lines:', (detail as any)?.lines);
+        console.log(
+          "[SalesOrderDetail] loadDetail useEffect - fetched detail:",
+          detail,
+        );
+        console.log(
+          "[SalesOrderDetail] loadDetail useEffect - fetched detail.lines:",
+          (detail as any)?.lines,
+        );
         if (!cancelled) {
           setRecordData(detail as SalesOrderForm & { id?: number });
         }
@@ -1367,7 +1403,7 @@ export default function SalesOrderDetail({
       customerSearchLoading,
       dispatchToastError,
       isReadOnly,
-    ]
+    ],
   );
 
   const handleAssignCustomer = useCallback(
@@ -1397,10 +1433,10 @@ export default function SalesOrderDetail({
         showToast({
           message: `Customer #${resolvedId} assigned`,
           type: "success",
-        })
+        }),
       );
     },
-    [dispatch, dispatchToastError, handleCustomerSearchReset, setValue, watch]
+    [dispatch, dispatchToastError, handleCustomerSearchReset, setValue, watch],
   );
 
   const mergedDefaults = useMemo(() => {
@@ -1411,13 +1447,13 @@ export default function SalesOrderDetail({
     const recordContainer = recordData as Record<string, unknown>;
 
     const resolvedCustomerId = extractNumericId(
-      recordContainer.customer_id ?? recordContainer.id_customer
+      recordContainer.customer_id ?? recordContainer.id_customer,
     );
     const resolvedManufacturerId = extractNumericId(
-      recordContainer.manufacturer_id ?? recordContainer.id_manufacturer
+      recordContainer.manufacturer_id ?? recordContainer.id_manufacturer,
     );
     const resolvedVendorId = extractNumericId(
-      recordContainer.vendor_id ?? recordContainer.id_vendor
+      recordContainer.vendor_id ?? recordContainer.id_vendor,
     );
     const resolvedIda = (() => {
       const candidates = [
@@ -1496,15 +1532,15 @@ export default function SalesOrderDetail({
     const drafts: Partial<Record<JsonFieldPath, string>> = {};
     JSON_FIELD_PATHS.forEach((path) => {
       drafts[path] = serializeJson(
-        extractValue(mergedDefaults as Record<string, unknown>, path)
+        extractValue(mergedDefaults as Record<string, unknown>, path),
       );
       setValue(
         path as any,
-        extractValue(mergedDefaults as Record<string, unknown>, path) as any
+        extractValue(mergedDefaults as Record<string, unknown>, path) as any,
       );
     });
     setJsonDrafts(
-      (prev) => ({ ...prev, ...drafts } as Record<JsonFieldPath, string>)
+      (prev) => ({ ...prev, ...drafts } as Record<JsonFieldPath, string>),
     );
     setJsonErrors({
       totals: undefined,
@@ -1524,14 +1560,26 @@ export default function SalesOrderDetail({
       const rawLines = (recordData as Record<string, unknown>).lines;
       console.log("[SalesOrderDetail] Raw lines from recordData:", rawLines);
       console.log("[SalesOrderDetail] Raw lines type:", typeof rawLines);
-      console.log("[SalesOrderDetail] Raw lines isArray:", Array.isArray(rawLines));
+      console.log(
+        "[SalesOrderDetail] Raw lines isArray:",
+        Array.isArray(rawLines),
+      );
       if (Array.isArray(rawLines)) {
         console.log("[SalesOrderDetail] Raw lines count:", rawLines.length);
-        console.log("[SalesOrderDetail] Raw line IDs:", rawLines.map((l: any) => l?.id));
+        console.log(
+          "[SalesOrderDetail] Raw line IDs:",
+          rawLines.map((l: any) => l?.id),
+        );
       }
       const normalized = normalizeLines(rawLines);
-      console.log("[SalesOrderDetail] Normalized lines count:", normalized.length);
-      console.log("[SalesOrderDetail] Normalized line IDs:", normalized.map(l => l.id));
+      console.log(
+        "[SalesOrderDetail] Normalized lines count:",
+        normalized.length,
+      );
+      console.log(
+        "[SalesOrderDetail] Normalized line IDs:",
+        normalized.map((l) => l.id),
+      );
       return normalized;
     }
     return [];
@@ -1539,7 +1587,10 @@ export default function SalesOrderDetail({
 
   useEffect(() => {
     const clonedLines = lineItems.map((line) => cloneLine(line));
-    console.log("[SalesOrderDetail] Setting lineDrafts, count:", clonedLines.length);
+    console.log(
+      "[SalesOrderDetail] Setting lineDrafts, count:",
+      clonedLines.length,
+    );
     setLineDrafts(clonedLines);
     setValue("lines" as any, clonedLines as any, {
       shouldDirty: false,
@@ -1558,29 +1609,29 @@ export default function SalesOrderDetail({
       const quantityPlaced = toNumeric(
         extractValue(line as Record<string, unknown>, "quantity.placed") ??
           extractValue(line as Record<string, unknown>, "quantity.ordered") ??
-          (line as Record<string, unknown>).quantity
+          (line as Record<string, unknown>).quantity,
       );
       const quantity = quantityPlaced || 0;
 
       const unitSell = toNumeric(
         extractValue(line as Record<string, unknown>, "price.unit") ??
           extractValue(line as Record<string, unknown>, "price.sell") ??
-          extractValue(line as Record<string, unknown>, "sell.unit")
+          extractValue(line as Record<string, unknown>, "sell.unit"),
       );
       const lineSubtotal = quantity ? quantity * unitSell : unitSell;
 
       let lineDiscount = toNumeric(
         extractValue(
           line as Record<string, unknown>,
-          "price.discount_amount"
-        ) ?? extractValue(line as Record<string, unknown>, "discount_amount")
+          "price.discount_amount",
+        ) ?? extractValue(line as Record<string, unknown>, "discount_amount"),
       );
       if (!lineDiscount) {
         const discountPercent = toNumeric(
           extractValue(
             line as Record<string, unknown>,
-            "price.discount_percent"
-          )
+            "price.discount_percent",
+          ),
         );
         if (discountPercent && lineSubtotal) {
           lineDiscount = (lineSubtotal * discountPercent) / 100;
@@ -1589,13 +1640,13 @@ export default function SalesOrderDetail({
 
       const lineTax = toNumeric(
         extractValue(line as Record<string, unknown>, "price.tax") ??
-          extractValue(line as Record<string, unknown>, "tax")
+          extractValue(line as Record<string, unknown>, "tax"),
       );
 
       const extractedExtended = toNumeric(
         extractValue(line as Record<string, unknown>, "price.extended") ??
           extractValue(line as Record<string, unknown>, "price.total") ??
-          extractValue(line as Record<string, unknown>, "extended_price")
+          extractValue(line as Record<string, unknown>, "extended_price"),
       );
       const lineSellBeforeTax =
         extractedExtended || Math.max(lineSubtotal - lineDiscount, 0);
@@ -1604,12 +1655,12 @@ export default function SalesOrderDetail({
       const unitCost = toNumeric(
         extractValue(line as Record<string, unknown>, "cost.unit") ??
           extractValue(line as Record<string, unknown>, "price.cost") ??
-          extractValue(line as Record<string, unknown>, "cost")
+          extractValue(line as Record<string, unknown>, "cost"),
       );
       const extractedCostExtended = toNumeric(
         extractValue(line as Record<string, unknown>, "cost.extended") ??
           extractValue(line as Record<string, unknown>, "cost.total") ??
-          extractValue(line as Record<string, unknown>, "extended_cost")
+          extractValue(line as Record<string, unknown>, "extended_cost"),
       );
       const lineCost =
         extractedCostExtended ||
@@ -1658,7 +1709,7 @@ export default function SalesOrderDetail({
         const currentLines = Array.isArray(previousLines) ? previousLines : [];
         const existingIndex = identifier
           ? currentLines.findIndex(
-              (line) => resolveLineKey(line) === identifier
+              (line) => resolveLineKey(line) === identifier,
             )
           : -1;
 
@@ -1689,14 +1740,14 @@ export default function SalesOrderDetail({
 
             const previousPlaced = toNumeric(
               extractValue(resolvedQuantity, "placed") ??
-                resolvedQuantity.placed
+                resolvedQuantity.placed,
             );
             const previousOrdered = Math.max(
               previousPlaced,
               toNumeric(
                 extractValue(resolvedQuantity, "ordered") ??
-                  resolvedQuantity.ordered
-              )
+                  resolvedQuantity.ordered,
+              ),
             );
             const nextPlaced = previousPlaced + quantity;
             const nextOrdered = previousOrdered + quantity;
@@ -1772,14 +1823,14 @@ export default function SalesOrderDetail({
         return nextLines;
       });
     },
-    [setValue]
+    [setValue],
   );
 
   const handleLineFieldChange = useCallback(
     (
       index: number,
       field: "quantity.placed" | "price.unit",
-      rawValue: number
+      rawValue: number,
     ) => {
       const value = Number.isFinite(rawValue) ? rawValue : 0;
       setLineDrafts((prev) => {
@@ -1828,7 +1879,7 @@ export default function SalesOrderDetail({
         return next;
       });
     },
-    [setValue]
+    [setValue],
   );
 
   useEffect(() => {
@@ -1899,7 +1950,7 @@ export default function SalesOrderDetail({
         setDeepValue(
           payload as unknown as Record<string, unknown>,
           path,
-          undefined
+          undefined,
         );
         return;
       }
@@ -1908,7 +1959,7 @@ export default function SalesOrderDetail({
         setDeepValue(
           payload as unknown as Record<string, unknown>,
           path,
-          parsed
+          parsed,
         );
       } catch (error) {
         throw new Error(`Invalid JSON for ${path}`);
@@ -1917,15 +1968,16 @@ export default function SalesOrderDetail({
   };
 
   const onSubmit = async (formData: SalesOrderForm) => {
-    dispatch(showToast({ message: 'Saving...', type: 'info' }));
-    
+    dispatch(showToast({ message: "Saving...", type: "info" }));
+
     // Use lineDrafts directly as the source of truth for lines
     // formData.lines may not be in sync due to react-hook-form setValue behavior
-    const linesForSync = Array.isArray(lineDrafts) && lineDrafts.length > 0
-      ? lineDrafts.map((line) => cloneLine(line))
-      : (Array.isArray(formData.lines)
+    const linesForSync =
+      Array.isArray(lineDrafts) && lineDrafts.length > 0
+        ? lineDrafts.map((line) => cloneLine(line))
+        : Array.isArray(formData.lines)
         ? formData.lines.map((line) => cloneLine(line))
-        : []);
+        : [];
 
     try {
       applyJsonDraftsToPayload(formData);
@@ -1949,12 +2001,16 @@ export default function SalesOrderDetail({
       // Include version from the original record data for optimistic concurrency control
       // If version is not a valid number, or forceSave is enabled, exclude it to skip version checking on backend
       const currentVersion = recordData?.version;
-      if (!forceSave && typeof currentVersion === 'number' && !Number.isNaN(currentVersion)) {
+      if (
+        !forceSave &&
+        typeof currentVersion === "number" &&
+        !Number.isNaN(currentVersion)
+      ) {
         orderPayload.version = currentVersion;
       } else {
         delete orderPayload.version;
       }
-      
+
       // Prepare lines for the payload
       // - New lines: no id, marked as dirty
       // - Existing lines: keep id
@@ -1965,39 +2021,41 @@ export default function SalesOrderDetail({
           originalLineIds.add(existingId);
         }
       });
-      
-      const preparedLines = linesForSync.map((line) => {
-        if (!line || typeof line !== "object") {
-          return null;
-        }
-        const linePayload = line as Record<string, unknown>;
-        const lineId = resolveLineId(line);
-        
-        // Clean up FK fields - backend will handle parent relationship
-        delete linePayload.salesorder_id;
-        delete linePayload.salesorder_id_id;
-        delete linePayload.parent;
-        
-        if (lineId) {
-          // Existing line - keep id
-          linePayload.id = lineId;
-        } else {
-          // New line - no id, mark as dirty
-          delete linePayload.id;
-          linePayload._dirty = true;
-        }
-        
-        // Remove version from line payload if forceSave
-        if (forceSave) {
-          delete linePayload.version;
-        }
-        
-        return linePayload;
-      }).filter(Boolean);
-      
+
+      const preparedLines = linesForSync
+        .map((line) => {
+          if (!line || typeof line !== "object") {
+            return null;
+          }
+          const linePayload = line as Record<string, unknown>;
+          const lineId = resolveLineId(line);
+
+          // Clean up FK fields - backend will handle parent relationship
+          delete linePayload.salesorder_id;
+          delete linePayload.salesorder_id_id;
+          delete linePayload.parent;
+
+          if (lineId) {
+            // Existing line - keep id
+            linePayload.id = lineId;
+          } else {
+            // New line - no id, mark as dirty
+            delete linePayload.id;
+            linePayload._dirty = true;
+          }
+
+          // Remove version from line payload if forceSave
+          if (forceSave) {
+            delete linePayload.version;
+          }
+
+          return linePayload;
+        })
+        .filter(Boolean);
+
       // Include lines in the order payload - backend will save them
       orderPayload.lines = preparedLines;
-      
+
       const saveResult =
         mode === "add"
           ? await createSalesOrder(orderPayload)
@@ -2025,7 +2083,7 @@ export default function SalesOrderDetail({
           }
           return extractNumericId(value);
         },
-        null
+        null,
       );
 
       if (!resolvedOrderId) {
@@ -2040,34 +2098,37 @@ export default function SalesOrderDetail({
           retainedLineIds.add(lineId);
         }
       });
-      
+
       const deleteOperations: Promise<void>[] = [];
       originalLineIds.forEach((lineId) => {
         if (!retainedLineIds.has(lineId)) {
-          deleteOperations.push(
-            deleteRecord("salesorderline", lineId)
-          );
+          deleteOperations.push(deleteRecord("salesorderline", lineId));
         }
       });
-      
+
       if (deleteOperations.length > 0) {
         await Promise.allSettled(deleteOperations);
       }
 
       try {
         const refreshed = await fetchSalesOrderDetail(resolvedOrderId);
-        console.log('[SalesOrderDetail] Refreshed data after save:', {
+        console.log("[SalesOrderDetail] Refreshed data after save:", {
           id: (refreshed as Record<string, unknown>)?.id,
           hasLines: !!(refreshed as Record<string, unknown>)?.lines,
-          linesCount: Array.isArray((refreshed as Record<string, unknown>)?.lines) 
-            ? ((refreshed as Record<string, unknown>).lines as unknown[]).length 
+          linesCount: Array.isArray(
+            (refreshed as Record<string, unknown>)?.lines,
+          )
+            ? ((refreshed as Record<string, unknown>).lines as unknown[]).length
             : 0,
         });
         if (refreshed && typeof refreshed === "object") {
           setRecordData(refreshed as SalesOrderForm & { id?: number });
         }
       } catch (refreshErr) {
-        console.error('[SalesOrderDetail] Error refreshing after save:', refreshErr);
+        console.error(
+          "[SalesOrderDetail] Error refreshing after save:",
+          refreshErr,
+        );
         // Best-effort refresh; ignore errors so a successful save is not blocked.
       }
 
@@ -2077,30 +2138,43 @@ export default function SalesOrderDetail({
             mode === "add" ? "created" : "updated"
           } successfully`,
           type: "success",
-        })
+        }),
       );
       if (onSaved) {
         onSaved();
       }
     } catch (error: unknown) {
       // Check for version conflict (412) and provide helpful message
-      const axiosError = error as { response?: { status?: number; data?: { error?: { details?: { expected?: number; current?: number } } } } };
+      const axiosError = error as {
+        response?: {
+          status?: number;
+          data?: {
+            error?: { details?: { expected?: number; current?: number } };
+          };
+        };
+      };
       if (axiosError?.response?.status === 412) {
         const details = axiosError.response?.data?.error?.details;
         const expectedVersion = details?.expected;
         const currentVersion = details?.current;
-        const conflictMsg = expectedVersion !== undefined && currentVersion !== undefined
-          ? `Version conflict: You have version ${expectedVersion}, but the record is now at version ${currentVersion}. Please refresh and try again.`
-          : 'This record was modified by another user. Please refresh and try again.';
+        const conflictMsg =
+          expectedVersion !== undefined && currentVersion !== undefined
+            ? `Version conflict: You have version ${expectedVersion}, but the record is now at version ${currentVersion}. Please refresh and try again.`
+            : "This record was modified by another user. Please refresh and try again.";
         dispatchToastError(conflictMsg);
-        
+
         // Auto-refresh the record to get the latest version
         if (recordData?.id) {
           try {
             const refreshed = await fetchSalesOrderDetail(recordData.id);
-            if (refreshed && typeof refreshed === 'object') {
+            if (refreshed && typeof refreshed === "object") {
               setRecordData(refreshed as SalesOrderForm & { id?: number });
-              dispatch(showToast({ message: 'Record refreshed with latest data', type: 'info' }));
+              dispatch(
+                showToast({
+                  message: "Record refreshed with latest data",
+                  type: "info",
+                }),
+              );
             }
           } catch {
             // Ignore refresh errors
@@ -2108,7 +2182,7 @@ export default function SalesOrderDetail({
         }
         return;
       }
-      
+
       const message =
         error instanceof Error ? error.message : "Operation failed";
       dispatchToastError(message);
@@ -2125,7 +2199,7 @@ export default function SalesOrderDetail({
       const statusPayload: Record<string, unknown> = {
         status: newStatus,
       };
-      if (typeof currentVersion === 'number' && !Number.isNaN(currentVersion)) {
+      if (typeof currentVersion === "number" && !Number.isNaN(currentVersion)) {
         statusPayload.version = currentVersion;
       }
       await updateSalesOrder(recordData.id, statusPayload);
@@ -2133,7 +2207,7 @@ export default function SalesOrderDetail({
         showToast({
           message: `Sales order marked as ${newStatus}`,
           type: "success",
-        })
+        }),
       );
       if (onSaved) {
         onSaved();
@@ -2169,7 +2243,7 @@ export default function SalesOrderDetail({
       await triggerFormSubmit();
       // Only navigate if not inline mode
       if (!inline) {
-        navigate('/transactions/sales-orders');
+        navigate("/transactions/sales-orders");
       } else if (onSaved) {
         onSaved(); // For inline mode, call the parent's callback
       }
@@ -2185,36 +2259,49 @@ export default function SalesOrderDetail({
       id: undefined,
       ida: undefined,
       version: undefined,
-      status: 'planned',
+      status: "planned",
       // Keep customer, refs (contacts), and lines
     };
-    navigate('/transactions/sales-orders/new', { 
-      state: { mode: 'add', data: cloneData, cloneFrom: recordData?.id }
+    navigate("/transactions/sales-orders/new", {
+      state: { mode: "add", data: cloneData, cloneFrom: recordData?.id },
     });
-    dispatch(showToast({ message: 'Cloning sales order...', type: 'info' }));
+    dispatch(showToast({ message: "Cloning sales order...", type: "info" }));
   }, [recordData, navigate, dispatch]);
 
-  const handleToolbarTransfer = useCallback(async (targetType: TransactionType) => {
-    // Transfer: Navigate to new transaction of targetType with lines from this SO
-    const transferData = {
-      customer_id: recordData?.customer_id,
-      refs: recordData?.refs,
-      lines: lineDrafts.map(line => ({
-        ...line,
-        id: undefined, // New lines
-        _dirty: true,
-      })),
-    };
-    const targetPath = targetType === 'purchase_order' 
-      ? 'purchase-orders' 
-      : targetType === 'sales_order'
-      ? 'sales-orders'
-      : `${targetType}s`;
-    navigate(`/transactions/${targetPath}/new`, { 
-      state: { mode: 'add', data: transferData, transferFrom: { type: 'sales_order', id: recordData?.id } }
-    });
-    dispatch(showToast({ message: `Transferring to ${targetType}...`, type: 'info' }));
-  }, [recordData, lineDrafts, navigate, dispatch]);
+  const handleToolbarTransfer = useCallback(
+    async (targetType: TransactionType) => {
+      // Transfer: Navigate to new transaction of targetType with lines from this SO
+      const transferData = {
+        customer_id: recordData?.customer_id,
+        refs: recordData?.refs,
+        lines: lineDrafts.map((line) => ({
+          ...line,
+          id: undefined, // New lines
+          _dirty: true,
+        })),
+      };
+      const targetPath =
+        targetType === "purchase_order"
+          ? "purchase-orders"
+          : targetType === "sales_order"
+          ? "sales-orders"
+          : `${targetType}s`;
+      navigate(`/transactions/${targetPath}/new`, {
+        state: {
+          mode: "add",
+          data: transferData,
+          transferFrom: { type: "sales_order", id: recordData?.id },
+        },
+      });
+      dispatch(
+        showToast({
+          message: `Transferring to ${targetType}...`,
+          type: "info",
+        }),
+      );
+    },
+    [recordData, lineDrafts, navigate, dispatch],
+  );
 
   const handleToolbarPrint = useCallback(() => {
     window.print();
@@ -2222,17 +2309,20 @@ export default function SalesOrderDetail({
 
   const handleToolbarEmail = useCallback(() => {
     // TODO: Open email modal/dialog
-    dispatch(showToast({ message: 'Email functionality coming soon', type: 'info' }));
+    dispatch(
+      showToast({ message: "Email functionality coming soon", type: "info" }),
+    );
   }, [dispatch]);
 
   const handleToolbarDelete = useCallback(async () => {
     if (!recordData?.id) return;
     try {
-      await deleteRecord('salesorder', recordData.id);
-      dispatch(showToast({ message: 'Sales order deleted', type: 'success' }));
-      navigate('/transactions/sales-orders');
+      await deleteRecord("salesorder", recordData.id);
+      dispatch(showToast({ message: "Sales order deleted", type: "success" }));
+      navigate("/transactions/sales-orders");
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete';
+      const message =
+        error instanceof Error ? error.message : "Failed to delete";
       dispatchToastError(message);
     }
   }, [recordData?.id, navigate, dispatch, dispatchToastError]);
@@ -2241,7 +2331,7 @@ export default function SalesOrderDetail({
     if (inline && onCancelInline) {
       onCancelInline();
     } else {
-      navigate('/transactions/sales-orders');
+      navigate("/transactions/sales-orders");
     }
   }, [inline, onCancelInline, navigate]);
 
@@ -2249,7 +2339,7 @@ export default function SalesOrderDetail({
     const inputId = field.name.replace(/\./g, "-");
     const errorMessage = getErrorMessage(
       errors as unknown as Record<string, unknown>,
-      field.name
+      field.name,
     );
     const isFieldReadOnly = READONLY_FIELD_NAMES.has(field.name);
     const labelClass = field.required ? "font-bold text-red-600" : "";
@@ -2258,7 +2348,8 @@ export default function SalesOrderDetail({
       return (
         <div key={field.name}>
           <Label htmlFor={inputId} className={labelClass}>
-            {field.label}{field.required && <span className="ml-1">*</span>}
+            {field.label}
+            {field.required && <span className="ml-1">*</span>}
           </Label>
           <select
             id={inputId}
@@ -2290,7 +2381,8 @@ export default function SalesOrderDetail({
     return (
       <div key={field.name}>
         <Label htmlFor={inputId} className={labelClass}>
-          {field.label}{field.required && <span className="ml-1">*</span>}
+          {field.label}
+          {field.required && <span className="ml-1">*</span>}
         </Label>
         <Input
           id={inputId}
@@ -2344,20 +2436,37 @@ export default function SalesOrderDetail({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit, (validationErrors) => {
-          console.error('[SalesOrderDetail] Form validation failed:', validationErrors);
-          Object.entries(validationErrors).forEach(([field, error]) => {
-            const errorInfo = error && typeof error === 'object' ? { message: (error as { message?: string }).message, type: (error as { type?: string }).type } : error;
-            console.error(`  Field "${field}":`, errorInfo);
-          });
-          const failedFields = Object.keys(validationErrors).join(', ');
-          dispatch(showToast({ message: `Validation failed: ${failedFields}`, type: 'error' }));
-        })} className="space-y-8">
+        <form
+          onSubmit={handleSubmit(onSubmit, (validationErrors) => {
+            console.error(
+              "[SalesOrderDetail] Form validation failed:",
+              validationErrors,
+            );
+            Object.entries(validationErrors).forEach(([field, error]) => {
+              const errorInfo =
+                error && typeof error === "object"
+                  ? {
+                      message: (error as { message?: string }).message,
+                      type: (error as { type?: string }).type,
+                    }
+                  : error;
+              console.error(`  Field "${field}":`, errorInfo);
+            });
+            const failedFields = Object.keys(validationErrors).join(", ");
+            dispatch(
+              showToast({
+                message: `Validation failed: ${failedFields}`,
+                type: "error",
+              }),
+            );
+          })}
+          className="space-y-8"
+        >
           {/* Transaction Toolbar */}
           <TransactionToolbar
             transactionType="sales_order"
             transactionId={recordData?.id}
-            isDirty={isDirty || lineDrafts.some(l => l._dirty)}
+            isDirty={isDirty || lineDrafts.some((l) => l._dirty)}
             isSaving={isSaving}
             isEditing={mode !== "view"}
             onSave={handleToolbarSave}
@@ -2412,7 +2521,7 @@ export default function SalesOrderDetail({
                     value={customerSearchId}
                     onChange={(event) =>
                       setCustomerSearchId(
-                        event.target.value.replace(/[^0-9]/g, "")
+                        event.target.value.replace(/[^0-9]/g, ""),
                       )
                     }
                     onKeyDown={(event) => {
@@ -2600,47 +2709,47 @@ export default function SalesOrderDetail({
 
           {/* Admin/Developer JSON Envelopes - only visible when isAdmin */}
           {isAdmin && (
-          <section>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
-              JSON envelopes (Admin)
-            </h4>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {JSON_FIELD_PATHS.map((path) => {
-                const inputId = path.replace(/\./g, "-");
-                const errorMessage = jsonErrors[path];
-                const isJsonReadOnly = READONLY_JSON_FIELDS.has(path);
-                return (
-                  <div key={path}>
-                    <Label htmlFor={inputId}>{path}</Label>
-                    <textarea
-                      id={inputId}
-                      className={`min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-hidden focus:ring-2 dark:text-white/90 ${
-                        errorMessage ? "border-error-500" : "border-gray-300"
-                      } ${
-                        isJsonReadOnly
-                          ? "bg-gray-50 dark:bg-gray-900/30"
-                          : "dark:bg-gray-900"
-                      }`}
-                      placeholder={`{ /* ${path} payload */ }`}
-                      value={jsonDrafts[path] ?? ""}
-                      onChange={(event) =>
-                        handleJsonDraftChange(path, event.target.value)
-                      }
-                      onBlur={() => handleJsonBlur(path)}
-                      readOnly={isJsonReadOnly || isReadOnly}
-                      aria-readonly={isJsonReadOnly || isReadOnly}
-                      disabled={isReadOnly}
-                    />
-                    {errorMessage && (
-                      <p className="mt-1 text-xs text-error-500">
-                        {errorMessage}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+            <section>
+              <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">
+                JSON envelopes (Admin)
+              </h4>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {JSON_FIELD_PATHS.map((path) => {
+                  const inputId = path.replace(/\./g, "-");
+                  const errorMessage = jsonErrors[path];
+                  const isJsonReadOnly = READONLY_JSON_FIELDS.has(path);
+                  return (
+                    <div key={path}>
+                      <Label htmlFor={inputId}>{path}</Label>
+                      <textarea
+                        id={inputId}
+                        className={`min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-hidden focus:ring-2 dark:text-white/90 ${
+                          errorMessage ? "border-error-500" : "border-gray-300"
+                        } ${
+                          isJsonReadOnly
+                            ? "bg-gray-50 dark:bg-gray-900/30"
+                            : "dark:bg-gray-900"
+                        }`}
+                        placeholder={`{ /* ${path} payload */ }`}
+                        value={jsonDrafts[path] ?? ""}
+                        onChange={(event) =>
+                          handleJsonDraftChange(path, event.target.value)
+                        }
+                        onBlur={() => handleJsonBlur(path)}
+                        readOnly={isJsonReadOnly || isReadOnly}
+                        aria-readonly={isJsonReadOnly || isReadOnly}
+                        disabled={isReadOnly}
+                      />
+                      {errorMessage && (
+                        <p className="mt-1 text-xs text-error-500">
+                          {errorMessage}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           )}
 
           <section>
@@ -2711,7 +2820,7 @@ export default function SalesOrderDetail({
                         Number(mergedDefaults.dt_created) *
                           (String(mergedDefaults.dt_created).length === 13
                             ? 1
-                            : 1000)
+                            : 1000),
                       ).toLocaleString()
                     : "--"}
                 </div>
@@ -2724,7 +2833,7 @@ export default function SalesOrderDetail({
                         Number(mergedDefaults.dt_modified) *
                           (String(mergedDefaults.dt_modified).length === 13
                             ? 1
-                            : 1000)
+                            : 1000),
                       ).toLocaleString()
                     : "--"}
                 </div>
@@ -2764,12 +2873,12 @@ export default function SalesOrderDetail({
 
       {!isReadOnly && (
         <ComponentCard>
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <h3 className="text-lg font-semibold dark:text-white">Add Items</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Search the catalog and append matching items to this sales order.
             </p>
-          </div>
+          </div> */}
           <SalesOrderItemSearch onAddItem={handleAddSearchedItem} />
         </ComponentCard>
       )}
