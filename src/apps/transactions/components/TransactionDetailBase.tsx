@@ -312,8 +312,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Build tabs list - use stable reference for badge count
   const contactCount = data?.refs?.links?.contact?.length ?? 0;
-  const lineCount = (data as Record<string, unknown>)?.lines
-    ? ((data as Record<string, unknown>).lines as unknown[]).length
+  const lineCount = (data as unknown as Record<string, unknown>)?.lines
+    ? ((data as unknown as Record<string, unknown>).lines as unknown[]).length
     : 0;
   const commentCount = data?.comments?.notes?.length ?? 0;
 
@@ -394,9 +394,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       canEditResult: data ? canEdit(data) : "no data",
     });
     if (data && canEdit(data)) {
-      console.log(
-        "[TransactionDetailBase] Setting editData and isEditing=true",
-      );
+      // Always initialize editData with the latest data (including comments)
       setEditData({ ...data });
       setIsEditing(true);
     }
@@ -433,8 +431,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         result = apiResult.record ?? apiResult;
       }
 
-      setData(result);
-      setEditData(result);
+      setData(result); // Update view state
+      setEditData(result); // Update edit state
       setIsEditing(false);
       setHasUnsavedChanges(false);
       dispatch(
@@ -584,7 +582,19 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       hasEditData: !!editData,
     });
     if (editData) {
-      const newData = { ...editData, [field]: value } as Transaction;
+      // Deep merge for comments to persist tab messages
+      let newData;
+      if (field === "comments" && typeof value === "object" && value !== null) {
+        newData = {
+          ...editData,
+          comments: {
+            ...editData.comments,
+            ...value,
+          },
+        };
+      } else {
+        newData = { ...editData, [field]: value } as Transaction;
+      }
       console.log("[TransactionDetailBase] Setting new editData");
       setEditData(newData);
     } else {
@@ -683,9 +693,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         );
 
       case "comments":
+        // Always use editData.comments if editing, otherwise data.comments
+        const commentsSource =
+          isEditing && editData ? editData.comments : data?.comments;
         return (
           <CommentsPanel
-            comments={currentData.comments ?? {}}
+            comments={commentsSource ?? {}}
             isEditing={isEditing}
             onChange={(val) => handleFieldChange("comments", val)}
           />
