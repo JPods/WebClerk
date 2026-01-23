@@ -109,7 +109,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
       { value: "30", label: "In progress" },
       { value: "review", label: "Review" },
       { value: "100", label: "Completed" },
-      { value: "101", label: "Canceled" },
+      // { value: "101", label: "Canceled" },
     ],
     []
   );
@@ -177,7 +177,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   const controlBaseClass =
     "w-full h-10 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white";
   const controlClass = `mt-1 ${controlBaseClass}`;
-  const textareaClass = `${controlBaseClass} mt-1 h-10 min-h-[2.5rem] resize-y`;
+  const textareaClass = `${controlBaseClass} mt-1 h-5 min-h-[1.5rem] resize-y`;
 
   const modal = (
     <div className="pointer-events-none fixed inset-0 z-200000 flex items-stretch justify-end">
@@ -200,7 +200,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </button>
         </div>
 
-        <form id={formId} className="flex-1 space-y-4 overflow-y-auto px-5 py-5 no-scrollbar" onSubmit={onSubmit}>
+        <form id={formId} className="flex-1 space-y-3 overflow-y-auto px-5 py-4 no-scrollbar" onSubmit={onSubmit}>
           {modalError && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
               {modalError}
@@ -208,7 +208,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           )}
 
           {activeTranslation && (
-            <div className="space-y-4">
+            <div className="space-y-2">{/* Translation section */}
               <div>
                 <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">action</label>
                 <input
@@ -225,8 +225,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               <div>
                 <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">description</label>
                 <textarea
-                  className={textareaClass + " min-h-64 h-full"}
-                  rows={6}
+                  className={textareaClass}
+                  rows={2}
                   value={activeTranslation.description}
                   onChange={(event) => onTranslationFieldChange(activeTranslation.id, "description", event.target.value)}
                   placeholder="Localized context, acceptance criteria, or notes"
@@ -272,7 +272,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
                 <span>priority</span>
@@ -344,9 +344,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
-              <div className="space-y-3">
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
+              <div className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
                   <input
@@ -370,7 +370,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   />
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_completed</label>
                   <input
