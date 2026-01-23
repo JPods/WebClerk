@@ -1,0 +1,38 @@
+DEBUG=True
+SECRET_KEY=1799934e7281a7a092b0136d173e328889e6cc678d38e997dd54bf901e853df1
+
+# Data Set Identification - helps identify which environment/database is in use
+# Options: LOCAL, DEV, STAGING, PRODUCTION, or a custom identifier
+DATA_SET_ID=DEV
+DATA_SET_NAME=Development Server
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+# Toggle: Change this ONE line to switch databases
+# Options: "remote" (team/production) or "local" (debugging)
+DB_MODE=remote
+
+# Remote Postgres (team collaboration)
+REMOTE_DATABASE_HOST=85.31.234.194
+REMOTE_DATABASE_PORT=5432
+REMOTE_DATABASE_NAME=commerce_expert
+REMOTE_DATABASE_USER=postgres
+REMOTE_DATABASE_PASS=wc_psql_server
+
+# Local Postgres (debugging)
+LOCAL_DATABASE_HOST=localhost
+LOCAL_DATABASE_PORT=5432
+LOCAL_DATABASE_NAME=commerce_expert
+LOCAL_DATABASE_USER=williamjames
+LOCAL_DATABASE_PASS=
+
+# Admin email serversss
+EMAIL_HOST=smtp.mail.me.com 
+EMAIL_PORT=587 
+EMAIL_HOST_USER=antor.mee@icloud.com 
+EMAIL_HOST_PASSWORD=lvfu-fpxf-jluc-rzku
+
+
+SENTRY_DSN=
+
