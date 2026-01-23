@@ -2,17 +2,17 @@
  * LineDetailsModal - Modal for viewing/editing full line item details
  * Includes all fields, notes, and link to open item record
  */
-import React, { useState, useEffect } from 'react';
-import { 
-  FaTimes, 
-  FaExternalLinkAlt, 
+import React, { useState, useEffect } from "react";
+import {
+  FaTimes,
+  FaExternalLinkAlt,
   FaSave,
   FaBox,
   FaStickyNote,
   FaDollarSign,
-  FaWarehouse
-} from 'react-icons/fa';
-import type { TransactionLine } from '../types/transactionTypes';
+  FaWarehouse,
+} from "react-icons/fa";
+import type { TransactionLine } from "../types/transactionTypes";
 
 interface LineDetailsModalProps {
   line: TransactionLine | null;
@@ -32,7 +32,9 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
   onOpenItem,
 }) => {
   const [editLine, setEditLine] = useState<TransactionLine | null>(null);
-  const [activeSection, setActiveSection] = useState<'details' | 'pricing' | 'notes'>('details');
+  const [activeSection, setActiveSection] = useState<
+    "details" | "pricing" | "notes"
+  >("details");
 
   // Reset edit state when line changes
   useEffect(() => {
@@ -44,21 +46,29 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
   if (!isOpen || !line) return null;
 
   const lineRecord = (editLine ?? line) as unknown as Record<string, unknown>;
-  
+
   const handleFieldChange = (field: string, value: unknown) => {
     if (!editLine) return;
-    setEditLine({ 
-      ...editLine, 
-      [field]: value 
+    setEditLine({
+      ...editLine,
+      [field]: value,
     } as TransactionLine);
   };
 
-  const handleNestedFieldChange = (parent: string, field: string, value: unknown) => {
+  const handleNestedFieldChange = (
+    parent: string,
+    field: string,
+    value: unknown,
+  ) => {
     if (!editLine) return;
-    const parentObj = (editLine as unknown as Record<string, unknown>)[parent] as Record<string, unknown> ?? {};
-    setEditLine({ 
-      ...editLine, 
-      [parent]: { ...parentObj, [field]: value }
+    const parentObj =
+      ((editLine as unknown as Record<string, unknown>)[parent] as Record<
+        string,
+        unknown
+      >) ?? {};
+    setEditLine({
+      ...editLine,
+      [parent]: { ...parentObj, [field]: value },
     } as TransactionLine);
   };
 
@@ -70,14 +80,17 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
   };
 
   const formatCurrency = (val: unknown) => {
-    if (val === undefined || val === null) return '--';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(val));
+    if (val === undefined || val === null) return "--";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(Number(val));
   };
 
   const itemId = lineRecord.item_id as number | undefined;
-  const priceObj = lineRecord.price as Record<string, unknown> ?? {};
-  const costObj = lineRecord.cost as Record<string, unknown> ?? {};
-  const notesObj = lineRecord.notes as Record<string, string> ?? {};
+  const priceObj = (lineRecord.price as Record<string, unknown>) ?? {};
+  const costObj = (lineRecord.cost as Record<string, unknown>) ?? {};
+  const notesObj = (lineRecord.notes as Record<string, string>) ?? {};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -88,10 +101,12 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
             <FaBox className="text-blue-500" size={20} />
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Line #{String(lineRecord.line_no ?? line.id ?? '?')}
+                Line #{String(lineRecord.line_no ?? line.id ?? "?")}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-mono">
-                {String(lineRecord.ida_item ?? line.item?.ida_item ?? 'No Item')}
+                {String(
+                  lineRecord.ida_item ?? line.item?.ida_item ?? "No Item",
+                )}
               </p>
             </div>
           </div>
@@ -118,17 +133,23 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
         {/* Section Tabs */}
         <div className="flex border-b border-slate-200 dark:border-slate-700">
           {[
-            { id: 'details', label: 'Details', icon: <FaBox size={12} /> },
-            { id: 'pricing', label: 'Pricing & Cost', icon: <FaDollarSign size={12} /> },
-            { id: 'notes', label: 'Notes', icon: <FaStickyNote size={12} /> },
+            { id: "details", label: "Details", icon: <FaBox size={12} /> },
+            {
+              id: "pricing",
+              label: "Pricing & Cost",
+              icon: <FaDollarSign size={12} />,
+            },
+            { id: "notes", label: "Notes", icon: <FaStickyNote size={12} /> },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveSection(tab.id as 'details' | 'pricing' | 'notes')}
+              onClick={() =>
+                setActiveSection(tab.id as "details" | "pricing" | "notes")
+              }
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeSection === tab.id
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
             >
               {tab.icon}
@@ -139,7 +160,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {activeSection === 'details' && (
+          {activeSection === "details" && (
             <div className="space-y-6">
               {/* Item Info */}
               <div className="grid grid-cols-2 gap-4">
@@ -149,8 +170,10 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={String(lineRecord.ida_item ?? '')}
-                    onChange={(e) => handleFieldChange('ida_item', e.target.value)}
+                    value={String(lineRecord.ida_item ?? "")}
+                    onChange={(e) =>
+                      handleFieldChange("ida_item", e.target.value)
+                    }
                     disabled={!isEditing}
                     className="w-full px-3 py-2 text-sm font-mono border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
@@ -162,7 +185,9 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   <input
                     type="number"
                     value={Number(lineRecord.line_no ?? 0)}
-                    onChange={(e) => handleFieldChange('line_no', Number(e.target.value))}
+                    onChange={(e) =>
+                      handleFieldChange("line_no", Number(e.target.value))
+                    }
                     disabled={!isEditing}
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
@@ -175,8 +200,10 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   Description
                 </label>
                 <textarea
-                  value={String(lineRecord.description ?? '')}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  value={String(lineRecord.description ?? "")}
+                  onChange={(e) =>
+                    handleFieldChange("description", e.target.value)
+                  }
                   disabled={!isEditing}
                   rows={2}
                   className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
@@ -192,7 +219,9 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   <input
                     type="number"
                     value={Number(lineRecord.qty ?? 0)}
-                    onChange={(e) => handleFieldChange('qty', Number(e.target.value))}
+                    onChange={(e) =>
+                      handleFieldChange("qty", Number(e.target.value))
+                    }
                     disabled={!isEditing}
                     step="0.01"
                     className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
@@ -204,8 +233,10 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={String(lineRecord.unit_measure ?? 'EA')}
-                    onChange={(e) => handleFieldChange('unit_measure', e.target.value)}
+                    value={String(lineRecord.unit_measure ?? "EA")}
+                    onChange={(e) =>
+                      handleFieldChange("unit_measure", e.target.value)
+                    }
                     disabled={!isEditing}
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
@@ -217,7 +248,9 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   <input
                     type="number"
                     value={Number(lineRecord.weight ?? 0)}
-                    onChange={(e) => handleFieldChange('weight', Number(e.target.value))}
+                    onChange={(e) =>
+                      handleFieldChange("weight", Number(e.target.value))
+                    }
                     disabled={!isEditing}
                     step="0.01"
                     className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
@@ -228,13 +261,15 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
               {/* Warehouse */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                     <FaWarehouse size={10} /> Warehouse
                   </label>
                   <input
                     type="text"
-                    value={String(lineRecord.warehouse ?? '')}
-                    onChange={(e) => handleFieldChange('warehouse', e.target.value)}
+                    value={String(lineRecord.warehouse ?? "")}
+                    onChange={(e) =>
+                      handleFieldChange("warehouse", e.target.value)
+                    }
                     disabled={!isEditing}
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
@@ -245,8 +280,10 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={String(lineRecord.location ?? '')}
-                    onChange={(e) => handleFieldChange('location', e.target.value)}
+                    value={String(lineRecord.location ?? "")}
+                    onChange={(e) =>
+                      handleFieldChange("location", e.target.value)
+                    }
                     disabled={!isEditing}
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
@@ -255,11 +292,13 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
             </div>
           )}
 
-          {activeSection === 'pricing' && (
+          {activeSection === "pricing" && (
             <div className="space-y-6">
               {/* Selling Price */}
               <div>
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Selling Price</h4>
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                  Selling Price
+                </h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
@@ -268,7 +307,13 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     <input
                       type="number"
                       value={Number(priceObj.unit ?? priceObj.sell ?? 0)}
-                      onChange={(e) => handleNestedFieldChange('price', 'unit', Number(e.target.value))}
+                      onChange={(e) =>
+                        handleNestedFieldChange(
+                          "price",
+                          "unit",
+                          Number(e.target.value),
+                        )
+                      }
                       disabled={!isEditing}
                       step="0.01"
                       className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
@@ -281,7 +326,13 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     <input
                       type="number"
                       value={Number(priceObj.discount_pc ?? 0)}
-                      onChange={(e) => handleNestedFieldChange('price', 'discount_pc', Number(e.target.value))}
+                      onChange={(e) =>
+                        handleNestedFieldChange(
+                          "price",
+                          "discount_pc",
+                          Number(e.target.value),
+                        )
+                      }
                       disabled={!isEditing}
                       step="0.1"
                       className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
@@ -300,7 +351,9 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
 
               {/* Cost */}
               <div>
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Cost</h4>
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                  Cost
+                </h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
@@ -309,7 +362,13 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     <input
                       type="number"
                       value={Number(costObj.unit ?? 0)}
-                      onChange={(e) => handleNestedFieldChange('cost', 'unit', Number(e.target.value))}
+                      onChange={(e) =>
+                        handleNestedFieldChange(
+                          "cost",
+                          "unit",
+                          Number(e.target.value),
+                        )
+                      }
                       disabled={!isEditing}
                       step="0.01"
                       className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
@@ -322,7 +381,13 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     <input
                       type="number"
                       value={Number(costObj.landed ?? 0)}
-                      onChange={(e) => handleNestedFieldChange('cost', 'landed', Number(e.target.value))}
+                      onChange={(e) =>
+                        handleNestedFieldChange(
+                          "cost",
+                          "landed",
+                          Number(e.target.value),
+                        )
+                      }
                       disabled={!isEditing}
                       step="0.01"
                       className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
@@ -341,17 +406,21 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
 
               {/* Margin */}
               <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Margin</h4>
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                  Margin
+                </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                       Margin Amount
                     </label>
-                    <div className={`px-3 py-2 text-sm text-right font-semibold rounded-lg ${
-                      Number(priceObj.margin ?? 0) >= 0 
-                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' 
-                        : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                    }`}>
+                    <div
+                      className={`px-3 py-2 text-sm text-right font-semibold rounded-lg ${
+                        Number(priceObj.margin ?? 0) >= 0
+                          ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+                          : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"
+                      }`}
+                    >
                       {formatCurrency(priceObj.margin)}
                     </div>
                   </div>
@@ -359,12 +428,16 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                       Margin %
                     </label>
-                    <div className={`px-3 py-2 text-sm text-right font-semibold rounded-lg ${
-                      Number(priceObj.margin_pc ?? 0) >= 0 
-                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20' 
-                        : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                    }`}>
-                      {priceObj.margin_pc != null ? `${Number(priceObj.margin_pc).toFixed(1)}%` : '--'}
+                    <div
+                      className={`px-3 py-2 text-sm text-right font-semibold rounded-lg ${
+                        Number(priceObj.margin_pc ?? 0) >= 0
+                          ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+                          : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"
+                      }`}
+                    >
+                      {priceObj.margin_pc != null
+                        ? `${Number(priceObj.margin_pc).toFixed(1)}%`
+                        : "--"}
                     </div>
                   </div>
                 </div>
@@ -372,15 +445,17 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
             </div>
           )}
 
-          {activeSection === 'notes' && (
+          {activeSection === "notes" && (
             <div className="space-y-6">
               <div>
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                   Public Notes (visible on documents)
                 </label>
                 <textarea
-                  value={String(notesObj.public ?? '')}
-                  onChange={(e) => handleNestedFieldChange('notes', 'public', e.target.value)}
+                  value={String(notesObj.public ?? "")}
+                  onChange={(e) =>
+                    handleNestedFieldChange("notes", "public", e.target.value)
+                  }
                   disabled={!isEditing}
                   rows={3}
                   placeholder="Notes that appear on invoices, packing slips, etc."
@@ -393,8 +468,10 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   Internal Notes (not visible to customer)
                 </label>
                 <textarea
-                  value={String(notesObj.internal ?? '')}
-                  onChange={(e) => handleNestedFieldChange('notes', 'internal', e.target.value)}
+                  value={String(notesObj.internal ?? "")}
+                  onChange={(e) =>
+                    handleNestedFieldChange("notes", "internal", e.target.value)
+                  }
                   disabled={!isEditing}
                   rows={3}
                   placeholder="Internal processing notes"
@@ -407,8 +484,14 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   Warehouse Instructions
                 </label>
                 <textarea
-                  value={String(notesObj.warehouse ?? '')}
-                  onChange={(e) => handleNestedFieldChange('notes', 'warehouse', e.target.value)}
+                  value={String(notesObj.warehouse ?? "")}
+                  onChange={(e) =>
+                    handleNestedFieldChange(
+                      "notes",
+                      "warehouse",
+                      e.target.value,
+                    )
+                  }
                   disabled={!isEditing}
                   rows={2}
                   placeholder="Special handling, packing instructions, etc."
@@ -425,7 +508,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
-            {isEditing ? 'Cancel' : 'Close'}
+            {isEditing ? "Cancel" : "Close"}
           </button>
           {isEditing && onSave && (
             <button
