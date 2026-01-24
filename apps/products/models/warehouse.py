@@ -30,6 +30,14 @@ def default_count():
 
 
 class Warehouse(BaseModel):
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        return self.name
+
     """Inventory storage location (physical or logical).
 
     Item relationships: instead of a direct FK or embedding `item_id` in the count JSON,

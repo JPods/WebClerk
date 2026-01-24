@@ -33,7 +33,7 @@ class Action(BaseModel):
     #set value between 0-100 based on difficulty and percent_complete
     burndown = models.SmallIntegerField(default=0)
     # Date fields with detailed meta info
-    dt_created = models.BigIntegerField(default=0, db_index=True)
+    # dt_created is inherited from BaseModel/CoreModel
     dt_start = models.BigIntegerField(blank=True, null=True)
     dt_deadline = models.BigIntegerField(blank=True, null=True)
     dt_expected = models.BigIntegerField(blank=True, null=True)

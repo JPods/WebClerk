@@ -5,11 +5,15 @@ from django.utils import timezone
 
 
 class Variant(models.Model):
+
     """Concrete materialized variant row for performance and clarity.
 
     Links a child item to its parent item with a normalized canonical key and attrs.
     Use item_id + canonical_key unique constraint to ensure one row per variant.
     """
+
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this variant")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this variant")
 
     item = models.OneToOneField('products.Item', on_delete=models.CASCADE, related_name='variant_row')
     parent_item = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name='variant_children')
@@ -17,8 +21,19 @@ class Variant(models.Model):
     attrs = models.JSONField(default=dict, blank=True)
     set_uuid = models.UUIDField(db_index=True)
     variant_uuid = models.UUIDField(db_index=True, unique=True)
-    dt_created = models.BigIntegerField(default=0, db_index=True)
-    dt_modified = models.BigIntegerField(default=0, db_index=True)
+    # dt_created and dt_modified are inherited from BaseModel/CoreModel
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or self.canonical_key
 
     class Meta:
         constraints = [
