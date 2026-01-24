@@ -42,6 +42,13 @@ from apps.products.choices import (
 
 
 class DeliveryVisit(BaseModel):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.notes
     """A routed stop (planned -> en_route -> arrived -> closed/canceled) between vendor & customer.
 
     Purpose:
@@ -100,6 +107,13 @@ class DeliveryVisit(BaseModel):
 
 
 class DeliveryLine(BaseModel):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.notes
     """Intent + execution record for a single org item on a DeliveryVisit.
 
     Quantity semantics:

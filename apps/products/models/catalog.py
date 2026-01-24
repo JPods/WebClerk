@@ -51,6 +51,13 @@ CATALOG_METRICS_KEY_INFO = {
 
 
 class Catalog(BaseModel):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.name
     """Collection of items with pricing overrides and discounts."""
 
     name = models.CharField(max_length=160)
@@ -138,6 +145,13 @@ class Catalog(BaseModel):
 
 
 class CatalogLine(ItemLinkedBase):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return str(self.catalog_id) if hasattr(self, 'catalog_id') else ""
     """Item entry in a catalog with specific pricing overrides."""
 
     catalog_id = models.ForeignKey(Catalog, on_delete=models.CASCADE, related_name="lines")

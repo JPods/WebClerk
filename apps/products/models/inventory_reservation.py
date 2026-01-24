@@ -44,7 +44,7 @@ class InventoryReservation(models.Model):
     dt_released = models.DateTimeField(null=True, blank=True)
     context = models.JSONField(default=default_context, blank=True)
     reason = models.CharField(max_length=80, blank=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
+    # dt_created is inherited from BaseModel/CoreModel
     dt_modified = models.DateTimeField(auto_now=True)
 
     class Meta:

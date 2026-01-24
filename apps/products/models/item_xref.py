@@ -9,6 +9,14 @@ from .item_base_model import ItemLinkedBase
 class ItemXRef(ItemLinkedBase):
     """External cross reference mapping for supplier/manufacturer identifiers."""
 
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        return self.source_name
+
     SOURCE_MANUFACTURER = "manufacturer"
     SOURCE_WHOLESALER = "wholesaler"
     SOURCE_OTHER = "other"

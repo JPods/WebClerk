@@ -27,7 +27,7 @@ class InventoryAdjustmentProcessorRun(models.Model):
     dry_run = models.BooleanField(default=False)
     summary = models.JSONField(default=dict, blank=True)
 
-    dt_created = models.DateTimeField(auto_now_add=True, db_index=True)
+    # dt_created is inherited from BaseModel/CoreModel
 
     class Meta:
         indexes = [

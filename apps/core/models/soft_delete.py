@@ -12,7 +12,7 @@ class SoftDeleteLedger(models.Model):
     target = GenericForeignKey("contenttype_id", "object_id")
 
     dt_purge = models.DateTimeField(db_index=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
+    # dt_created is inherited from BaseModel/CoreModel
 
     class Meta:
         indexes = [

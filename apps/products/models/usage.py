@@ -50,6 +50,13 @@ def default_metrics() -> Dict[str, Any]:
 
 
 class ItemUsage(ItemLinkedBase):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.metrics.get('meta', {}).get('description', "")
     """Monthly usage / planning / performance metrics snapshot.
 
     Simplified: all numeric facts & plan values live in `metrics` JSON.

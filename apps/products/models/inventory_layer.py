@@ -55,6 +55,13 @@ STANDARD_COST_KEYS = tuple(default_cost().keys())  # Exportable reference
 
 
 class InventoryLayer(ItemLinkedBase):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.lot
     """Received quantity at a specific unit cost (lot/stack)."""
 
     warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_layers")
@@ -202,6 +209,13 @@ class InventoryLayer(ItemLinkedBase):
 
 
 class SiteInventory(ItemLinkedBase):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.site_code
     """Aggregated item position at a site (rollup / denormalized quantities).
 
     Purpose: Fast lookups for availability (on hand / reserved / backordered) without scanning stacks.
@@ -224,6 +238,13 @@ class SiteInventory(ItemLinkedBase):
 
 
 class InventoryMovement(ItemLinkedBase):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return self.reason
     """Immutable movement ledger (optional future use; scaffold only).
 
     Records inventory-affecting events (receipts, issues, adjustments) for auditing and
@@ -269,7 +290,7 @@ class PendingInventoryAdjustment(models.Model):
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_PENDING, db_index=True)
     reason = models.CharField(max_length=80, blank=True)
     request_ref = models.JSONField(default=dict, blank=True)
-    dt_created = models.DateTimeField(auto_now_add=True)
+    # dt_created is inherited from BaseModel/CoreModel
     dt_applied = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.CharField(max_length=120, blank=True)
 

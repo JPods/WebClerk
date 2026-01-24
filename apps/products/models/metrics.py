@@ -4,13 +4,20 @@ from django.db import models
 
 
 class InventoryMetricsSnapshot(models.Model):
+        @property
+        def ida(self):
+            return str(self.pk)
+
+        @property
+        def description(self):
+            return f"Snapshot {self.dt_created}"
     """Periodic snapshot of summarized inventory metrics.
 
     Stores the JSON produced by summarize_inventory_metrics for time-series analysis.
     Keep lean; prune externally if growth becomes large.
     """
 
-    dt_created = models.DateTimeField(auto_now_add=True, db_index=True)
+    # dt_created is inherited from BaseModel/CoreModel
     metrics = models.JSONField()
 
     class Meta:
