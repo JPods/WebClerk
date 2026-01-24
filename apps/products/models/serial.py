@@ -19,7 +19,15 @@ class Serial(ItemLinkedBase):
     data = models.JSONField(default=dict, blank=True)
     qr_code = models.CharField(max_length=255, blank=True, db_index=True)
     # Access the parent item's primary key via `serial.item_id_id` (Django auto FK _id attribute).
-    # ItemLinkedBase already defines an index on `item`; no need to duplicate here.
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        # Use serial_ida or model_ida or status for description
+        return f"Serial {self.serial_ida} ({self.model_ida}) [{self.status}]"
 
 
 class SerialLog(BaseModel):
@@ -29,6 +37,16 @@ class SerialLog(BaseModel):
     action = models.CharField(max_length=60, db_index=True)
     dt = models.BigIntegerField(db_index=True)
     data = models.JSONField(default=dict, blank=True)
+
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        # Use action and dt for description
+        return f"{self.action} @ {self.dt}"
 
     class Meta:
         indexes = [

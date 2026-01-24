@@ -9,13 +9,14 @@ from .item import Item
 
 
 class BillOfMaterial(BaseModel):
-        @property
-        def ida(self):
-            return str(self.pk)
+    @property
+    def ida(self):
+        return str(self.pk)
 
-        @property
-        def description(self):
-            return str(self.component_id) if hasattr(self, 'component_id') else ""
+    @property
+    def description(self):
+        return str(self.component_id) if hasattr(self, 'component_id') else ""
+
     """Single component line for an assembled/bundle item.
 
     Extended with:

@@ -55,13 +55,14 @@ STANDARD_COST_KEYS = tuple(default_cost().keys())  # Exportable reference
 
 
 class InventoryLayer(ItemLinkedBase):
-        @property
-        def ida(self):
-            return str(self.pk)
+    @property
+    def ida(self):
+        return str(self.pk)
 
-        @property
-        def description(self):
-            return self.lot
+    @property
+    def description(self):
+        return self.lot
+
     """Received quantity at a specific unit cost (lot/stack)."""
 
     warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="inventory_layers")
@@ -209,13 +210,14 @@ class InventoryLayer(ItemLinkedBase):
 
 
 class SiteInventory(ItemLinkedBase):
-        @property
-        def ida(self):
-            return str(self.pk)
+    @property
+    def ida(self):
+        return str(self.pk)
 
-        @property
-        def description(self):
-            return self.site_code
+    @property
+    def description(self):
+        return self.site_code
+
     """Aggregated item position at a site (rollup / denormalized quantities).
 
     Purpose: Fast lookups for availability (on hand / reserved / backordered) without scanning stacks.
@@ -238,13 +240,14 @@ class SiteInventory(ItemLinkedBase):
 
 
 class InventoryMovement(ItemLinkedBase):
-        @property
-        def ida(self):
-            return str(self.pk)
+    @property
+    def ida(self):
+        return str(self.pk)
 
-        @property
-        def description(self):
-            return self.reason
+    @property
+    def description(self):
+        return self.reason
+
     """Immutable movement ledger (optional future use; scaffold only).
 
     Records inventory-affecting events (receipts, issues, adjustments) for auditing and

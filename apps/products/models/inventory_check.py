@@ -61,13 +61,14 @@ from apps.products.choices import INVENTORY_CHECK_STATUS_CHOICES
 
 
 class InventoryCheck(BaseModel):
-        @property
-        def ida(self):
-            return str(self.pk)
+    @property
+    def ida(self):
+        return str(self.pk)
 
-        @property
-        def description(self):
-            return self.notes
+    @property
+    def description(self):
+        return self.notes
+
     """Top-level inventory audit event.
 
     Key Fields:
@@ -114,13 +115,14 @@ class InventoryCheck(BaseModel):
 
 
 class InventoryCheckLine(BaseModel):
-        @property
-        def ida(self):
-            return str(self.pk)
+    @property
+    def ida(self):
+        return str(self.pk)
 
-        @property
-        def description(self):
-            return str(self.orgitem_id) if hasattr(self, 'orgitem_id') else ""
+    @property
+    def description(self):
+        return str(self.orgitem_id) if hasattr(self, 'orgitem_id') else ""
+
     """Per-item counted quantity within an InventoryCheck.
 
     Fields:

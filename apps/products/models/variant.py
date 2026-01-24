@@ -5,13 +5,7 @@ from django.utils import timezone
 
 
 class Variant(models.Model):
-        @property
-        def ida(self):
-            return str(self.pk)
 
-        @property
-        def description(self):
-            return self.canonical_key
     """Concrete materialized variant row for performance and clarity.
 
     Links a child item to its parent item with a normalized canonical key and attrs.
@@ -25,6 +19,14 @@ class Variant(models.Model):
     set_uuid = models.UUIDField(db_index=True)
     variant_uuid = models.UUIDField(db_index=True, unique=True)
     # dt_created and dt_modified are inherited from BaseModel/CoreModel
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        return self.canonical_key
 
     class Meta:
         constraints = [
