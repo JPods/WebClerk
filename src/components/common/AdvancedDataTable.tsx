@@ -968,15 +968,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
                   <FaEdit className="w-4 h-4" />
                   Edit
                 </button>
-                <button
-                  onClick={() => onDeleteSelected?.(selectedRows)}
-                  disabled={!onDeleteSelected || selectedRows.length === 0}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                  title="Delete"
-                >
-                  <FaTrash className="w-4 h-4" />
-                  Delete
-                </button>
+                {/* Delete moved after search bar for right-aligned placement */}
                 <button
                   onClick={handleImportClick}
                   disabled={!onImportFile}
@@ -1257,24 +1249,38 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
             {/* Custom Actions */}
             {customActions}
 
-            {/* Search Bar */}
-            <div className="relative ">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaSearch className="w-4 h-4 text-gray-400" />
+            {/* Search Bar + Delete (right-aligned) */}
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <FaSearch className="w-4 h-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={effectiveSearchTerm}
+                  onChange={(e) => setEffectiveSearchTerm(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="w-full pl-10 pr-10 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                />
+                {effectiveSearchTerm && (
+                  <button
+                    onClick={() => setEffectiveSearchTerm("")}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <FaTimes className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              <input
-                type="text"
-                value={effectiveSearchTerm}
-                onChange={(e) => setEffectiveSearchTerm(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full pl-10 pr-10 py-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-              />
-              {effectiveSearchTerm && (
+
+              {showGlobalMenu && (
                 <button
-                  onClick={() => setEffectiveSearchTerm("")}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  onClick={() => onDeleteSelected?.(selectedRows)}
+                  disabled={!onDeleteSelected || selectedRows.length === 0}
+                  className="ml-2 flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  title="Delete"
                 >
-                  <FaTimes className="w-4 h-4" />
+                  <FaTrash className="w-4 h-4" />
+                  Delete
                 </button>
               )}
             </div>
