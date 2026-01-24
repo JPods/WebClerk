@@ -9,6 +9,10 @@ from .warehouse import Warehouse
 class Serial(ItemLinkedBase):
     """One serialized unit of an item."""
     # We may not control serial number uniqueness. use internal id as PK.
+
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this serial")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this serial")
+
     serial_ida = models.CharField(max_length=120, unique=False)
     model_ida = models.CharField(max_length=120, blank=True, db_index=True)
     warranty = models.JSONField(default=dict, blank=True)
@@ -25,9 +29,12 @@ class Serial(ItemLinkedBase):
         return str(self.pk)
 
     @property
-    def description(self):
-        # Use serial_ida or model_ida or status for description
-        return f"Serial {self.serial_ida} ({self.model_ida}) [{self.status}]"
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or f"Serial {self.serial_ida} ({self.model_ida}) [{self.status}]"
 
 
 class SerialLog(BaseModel):

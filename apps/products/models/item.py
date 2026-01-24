@@ -154,7 +154,7 @@ FLAGS_SCHEMA_DESC = {
     "tally_by_type": "Aggregate counts by subtype classification"
 }
 
-QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in"}
+QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo"}
 
 
 def default_tax():
@@ -265,9 +265,14 @@ class Item(StatsMixin, BaseModel):
     def on_reciept(self):
         return self.quantity.get('on_reciept', None)
 
+
     @property
     def on_in(self):
         return self.quantity.get('on_in', None)
+
+    @property
+    def on_wo(self):
+        return self.quantity.get('on_wo', None)
 
     class Meta:
         indexes = [

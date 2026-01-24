@@ -9,13 +9,21 @@ from .item import Item
 
 
 class BillOfMaterial(BaseModel):
+
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this BOM line")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this BOM line")
+
     @property
     def ida(self):
         return str(self.pk)
 
     @property
-    def description(self):
-        return str(self.component_id) if hasattr(self, 'component_id') else ""
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or str(self.component_id) if hasattr(self, 'component_id') else ""
 
     """Single component line for an assembled/bundle item.
 

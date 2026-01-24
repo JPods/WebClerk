@@ -50,13 +50,21 @@ def default_metrics() -> Dict[str, Any]:
 
 
 class ItemUsage(ItemLinkedBase):
+
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this usage record")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this usage record")
+
     @property
     def ida(self):
         return str(self.pk)
 
     @property
-    def description(self):
-        return self.metrics.get('meta', {}).get('description', "")
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or self.metrics.get('meta', {}).get('description', "")
 
     """Monthly usage / planning / performance metrics snapshot.
 

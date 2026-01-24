@@ -34,7 +34,21 @@ class InventoryReservation(models.Model):
     STATE_EXPIRED = 'expired'
     STATES = INVENTORY_RESERVATION_STATE_CHOICES
 
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this reservation")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this reservation")
     item_id = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='reservations')
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or f"Reservation for item {self.item_id_id}"
     warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')
     inventorylayer_id = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     qty = models.DecimalField(max_digits=14, decimal_places=4)

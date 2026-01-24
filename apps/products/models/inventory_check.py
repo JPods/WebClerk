@@ -115,13 +115,21 @@ class InventoryCheck(BaseModel):
 
 
 class InventoryCheckLine(BaseModel):
+
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this inventory check line")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this inventory check line")
+
     @property
     def ida(self):
         return str(self.pk)
 
     @property
-    def description(self):
-        return str(self.orgitem_id) if hasattr(self, 'orgitem_id') else ""
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or str(self.orgitem_id) if hasattr(self, 'orgitem_id') else ""
 
     """Per-item counted quantity within an InventoryCheck.
 

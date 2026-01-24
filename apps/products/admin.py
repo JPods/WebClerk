@@ -9,7 +9,7 @@ from .models import (
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ("ida","description",)
+    list_display = ("ida","description","on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo")
 
 
 @admin.register(ItemXRef)

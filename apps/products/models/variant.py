@@ -12,6 +12,9 @@ class Variant(models.Model):
     Use item_id + canonical_key unique constraint to ensure one row per variant.
     """
 
+    item_ida = models.CharField(max_length=120, blank=True, db_index=True, help_text="String identifier for this variant")
+    description = models.CharField(max_length=255, blank=True, help_text="Description for this variant")
+
     item = models.OneToOneField('products.Item', on_delete=models.CASCADE, related_name='variant_row')
     parent_item = models.ForeignKey('products.Item', on_delete=models.CASCADE, related_name='variant_children')
     canonical_key = models.CharField(max_length=255, db_index=True)
@@ -25,8 +28,12 @@ class Variant(models.Model):
         return str(self.pk)
 
     @property
-    def description(self):
-        return self.canonical_key
+    def item_ida_value(self):
+        return self.item_ida or str(self.pk)
+
+    @property
+    def description_value(self):
+        return self.description or self.canonical_key
 
     class Meta:
         constraints = [
