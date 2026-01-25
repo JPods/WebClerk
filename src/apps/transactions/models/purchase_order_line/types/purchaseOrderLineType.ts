@@ -8,7 +8,7 @@ export interface PurchaseOrderLineAddProps {
 }
 
 export interface CreatePurchaseOrderLineRequest {
-  purchase_order_id: number;
+  purchaseorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -17,7 +17,7 @@ export interface CreatePurchaseOrderLineRequest {
 
 export interface PurchaseOrderLineApiTask {
   id: number;
-  purchase_order_id: number;
+  purchaseorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -30,7 +30,7 @@ export interface PurchaseOrderLineApiTask {
 
 export interface UpdatePurchaseOrderLineRequest {
   id: number;
-  purchase_order_id: number;
+  purchaseorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;

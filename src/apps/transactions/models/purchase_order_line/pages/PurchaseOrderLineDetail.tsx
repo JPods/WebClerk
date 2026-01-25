@@ -44,7 +44,7 @@ export default function PurchaseOrderLineDetail({
     if (mode === "add") {
       reset();
     } else if (data) {
-      const numericFields = new Set(["purchase_order_id", "item_id", "quantity", "unit_price", "line_total"]);
+      const numericFields = new Set(["purchaseorder_id", "item_id", "quantity", "unit_price", "line_total"]);
       Object.keys(data).forEach((key: any) => {
         if (data[key] === undefined) {
           return;
@@ -140,14 +140,14 @@ export default function PurchaseOrderLineDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="purchase_order_id">purchase_order_id</Label>
+            <Label htmlFor="purchaseorder_id">purchaseorder_id</Label>
             <Input
               type="number"
-              id="purchase_order_id"
+              id="purchaseorder_id"
               placeholder="Purchase Order ID"
-              {...register("purchase_order_id", { valueAsNumber: true })}
-              error={errors.purchase_order_id && errors.purchase_order_id.message ? true : false}
-              hint={errors.purchase_order_id && errors.purchase_order_id.message}
+              {...register("purchaseorder_id", { valueAsNumber: true })}
+              error={errors.purchaseorder_id && errors.purchaseorder_id.message ? true : false}
+              hint={errors.purchaseorder_id && errors.purchaseorder_id.message}
               disabled={mode === "view"}
             />
           </div>

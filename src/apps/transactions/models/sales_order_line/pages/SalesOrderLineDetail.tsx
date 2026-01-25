@@ -130,14 +130,14 @@ export default function SalesOrderLineDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="sales_order_id">sales_order_id</Label>
+            <Label htmlFor="salesorder_id">salesorder_id</Label>
             <Input
               type="number"
-              id="sales_order_id"
+              id="salesorder_id"
               placeholder="Sales Order ID"
-              {...register("sales_order_id", { valueAsNumber: true })}
-              error={errors.sales_order_id && errors.sales_order_id.message ? true : false}
-              hint={errors.sales_order_id && errors.sales_order_id.message}
+              {...register("salesorder_id", { valueAsNumber: true })}
+              error={errors.salesorder_id && errors.salesorder_id.message ? true : false}
+              hint={errors.salesorder_id && errors.salesorder_id.message}
               disabled={mode === "view"}
             />
           </div>

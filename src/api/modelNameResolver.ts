@@ -19,19 +19,19 @@
 // Canonical model name mappings
 // Keys are normalized (lowercase, no separators), values are the wcapi model_name
 const MODEL_NAME_MAP: Record<string, string> = {
-  // Transactions
-  salesorder: 'salesorder',
-  order: 'salesorder',
-  sales: 'salesorder',
+  // Transactions - canonical names use snake_case per WC3 model_registry
+  salesorder: 'sales_order',
+  order: 'sales_order',
+  sales: 'sales_order',
   invoice: 'invoice',
-  purchaseorder: 'purchaseorder',
-  purchase: 'purchaseorder',
-  po: 'purchaseorder',
+  purchaseorder: 'purchase_order',
+  purchase: 'purchase_order',
+  po: 'purchase_order',
   proposal: 'proposal',
   quote: 'proposal',
-  workorder: 'workorder',
-  work: 'workorder',
-  wo: 'workorder',
+  workorder: 'work_order',
+  work: 'work_order',
+  wo: 'work_order',
   requisition: 'requisition',
   req: 'requisition',
   
@@ -102,15 +102,15 @@ const MODEL_NAME_MAP: Record<string, string> = {
 // RESTful path patterns to model name
 // Handles paths like /api/transactions/salesorder/22
 const PATH_PATTERN_MAP: Record<string, string> = {
-  'transactions/sales-order': 'salesorder',
-  'transactions/salesorder': 'salesorder',
-  'transactions/order': 'salesorder',
+  'transactions/sales-order': 'sales_order',
+  'transactions/salesorder': 'sales_order',
+  'transactions/order': 'sales_order',
   'transactions/invoice': 'invoice',
-  'transactions/purchase-order': 'purchaseorder',
-  'transactions/purchaseorder': 'purchaseorder',
+  'transactions/purchase-order': 'purchase_order',
+  'transactions/purchaseorder': 'purchase_order',
   'transactions/proposal': 'proposal',
-  'transactions/work-order': 'workorder',
-  'transactions/workorder': 'workorder',
+  'transactions/work-order': 'work_order',
+  'transactions/workorder': 'work_order',
   'transactions/requisition': 'requisition',
   'orgs/customer': 'customer',
   'orgs/vendor': 'vendor',
@@ -230,9 +230,9 @@ export function urlToModelName(urlSegment: string): string {
 export function modelNameToUrl(modelName: string): string {
   // Special cases with hyphens in URL
   const URL_MAP: Record<string, string> = {
-    salesorder: 'sales-order',
-    purchaseorder: 'purchase-order',
-    workorder: 'work-order',
+    sales_order: 'sales-order',
+    purchase_order: 'purchase-order',
+    work_order: 'work-order',
     sales_order_line: 'sales-order-line',
     purchase_order_line: 'purchase-order-line',
     work_order_line: 'work-order-line',
@@ -255,11 +255,11 @@ export function modelNameToUrl(modelName: string): string {
  */
 export function getTransactionType(modelName: string): string {
   const TYPE_MAP: Record<string, string> = {
-    salesorder: 'sales_order',
+    sales_order: 'sales_order',
     invoice: 'invoice',
-    purchaseorder: 'purchase_order',
+    purchase_order: 'purchase_order',
     proposal: 'proposal',
-    workorder: 'work_order',
+    work_order: 'work_order',
     requisition: 'requisition',
   };
   

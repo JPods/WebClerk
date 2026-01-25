@@ -83,7 +83,7 @@ export default function WorkOrderLineList() {
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Work Order ID",
-      selector: (row) => row.work_order_id || "--",
+      selector: (row) => row.workorder_id || "--",
       sortable: true,
       width: "15%",
     },

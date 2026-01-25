@@ -8,7 +8,7 @@ export interface WorkOrderLineAddProps {
 }
 
 export interface CreateWorkOrderLineRequest {
-  work_order_id: number;
+  workorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -17,7 +17,7 @@ export interface CreateWorkOrderLineRequest {
 
 export interface WorkOrderLineApiTask {
   id: number;
-  work_order_id: number;
+  workorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -30,7 +30,7 @@ export interface WorkOrderLineApiTask {
 
 export interface UpdateWorkOrderLineRequest {
   id: number;
-  work_order_id: number;
+  workorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;

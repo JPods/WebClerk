@@ -113,14 +113,14 @@ export default function PurchaseReceiptDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="purchase_order_id">purchase_order_id</Label>
+            <Label htmlFor="purchaseorder_id">purchaseorder_id</Label>
             <Input
               type="number"
-              id="purchase_order_id"
+              id="purchaseorder_id"
               placeholder="Purchase Order ID"
-              {...register("purchase_order_id", { valueAsNumber: true })}
-              error={errors.purchase_order_id && errors.purchase_order_id.message ? true : false}
-              hint={errors.purchase_order_id && errors.purchase_order_id.message}
+              {...register("purchaseorder_id", { valueAsNumber: true })}
+              error={errors.purchaseorder_id && errors.purchaseorder_id.message ? true : false}
+              hint={errors.purchaseorder_id && errors.purchaseorder_id.message}
               disabled={mode === "view"}
             />
           </div>
