@@ -10,6 +10,7 @@ import { useDispatch } from "react-redux";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { dynamicData } from "../../../../../model/dynamicData";
+import CustomerDisplay from "./CustomerDisplay";
 
 export default function CustomerList() {
   const dispatch = useDispatch();
@@ -161,7 +162,6 @@ export default function CustomerList() {
             </div>
           </div>
         </div>
-      </div>
     </>
   );
 }
