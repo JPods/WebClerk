@@ -469,24 +469,17 @@ const PurposeSection: React.FC<{
   purpose: string;
   contacts: RefContact[];
   isEditing?: boolean;
-  onAdd?: () => void;
+  // Removed onAdd from props
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
-}> = ({ purpose, contacts, isEditing, onAdd, onRemove, onEdit }) => {
+}> = ({ purpose, contacts, isEditing, onRemove, onEdit }) => {
   return (
     <div className="border-b border-slate-200 dark:border-slate-700 pb-0 last:border-0 last:pb-0 bg-success-50 cus-bg-purple-light">
       <div className="flex items-center justify-between bg-success-200">
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide p-2">
           {formatPurpose(purpose)}
         </h4>
-        {isEditing && onAdd && (
-          <button
-            onClick={onAdd}
-            className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
-          >
-            <FaPlus size={10} /> Add
-          </button>
-        )}
+        {/* Removed individual Add button */}
       </div>
       <div className="bg-success-50 hover:bg-success-100 dark:hover:bg-success-100 transition-colors  min-h-[140px]">
         {contacts.length > 0 ? (
@@ -521,6 +514,8 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
 }) => {
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addContactPurpose, setAddContactPurpose] = useState<string>("");
 
   const grouped = groupContactsByPurpose(contacts);
 
@@ -529,6 +524,15 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
     ...STANDARD_PURPOSES.filter((p) => grouped[p]?.length > 0 || isEditing),
     ...Object.keys(grouped).filter((p) => !STANDARD_PURPOSES.includes(p)),
   ]);
+
+  // Generate a new unique contact_id (simple max+1)
+  const getNextContactId = () => {
+    return (
+      (contacts.length > 0
+        ? Math.max(...contacts.map((c) => c.contact_id || 0))
+        : 0) + 1
+    );
+  };
 
   const handleEditContact = (contact: RefContact) => {
     setEditingContact(contact);
@@ -544,6 +548,25 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
     }
     if (onEdit) {
       onEdit(updatedContact);
+    }
+  };
+
+  // Add new contact logic
+  const handleAddContact = (purpose?: string) => {
+    setAddContactPurpose(purpose || "");
+    setIsAddModalOpen(true);
+  };
+
+  const handleSaveNewContact = (newContact: RefContact) => {
+    const contactWithId = {
+      ...newContact,
+      contact_id: getNextContactId(),
+    };
+    if (onChange) {
+      onChange([...contacts, contactWithId]);
+    }
+    if (onAdd) {
+      onAdd(contactWithId.purpose);
     }
   };
 
@@ -566,6 +589,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
 
   return (
     <>
+      {/* Edit Contact Modal */}
       <ContactEditModal
         contact={editingContact}
         isOpen={isModalOpen}
@@ -576,18 +600,59 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         onSave={handleSaveContact}
       />
 
+      {/* Add Contact Modal (blank form) */}
+      <ContactEditModal
+        contact={
+          isAddModalOpen
+            ? {
+                contact_id: 0,
+                purpose: addContactPurpose,
+                attention: "",
+                email: "",
+                phone: "",
+                full: "",
+                domain: "",
+              }
+            : null
+        }
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setAddContactPurpose("");
+        }}
+        onSave={(c) => {
+          handleSaveNewContact(c);
+          setIsAddModalOpen(false);
+          setAddContactPurpose("");
+        }}
+      />
+
+      {/* Add Contact Section */}
+      {isEditing && (
+        <div className="flex justify-end mb-2 px-2">
+          <button
+            type="button"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            onClick={() => handleAddContact()}
+          >
+            + Add New Contact
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 p-2 bg-gray-100 ">
-        {Array.from(allPurposes).map((purpose) => (
-          <PurposeSection
-            key={purpose}
-            purpose={purpose}
-            contacts={grouped[purpose] || []}
-            isEditing={isEditing}
-            onAdd={onAdd ? () => onAdd(purpose as ContactPurpose) : undefined}
-            onRemove={isEditing ? handleRemoveContact : undefined}
-            onEdit={isEditing ? handleEditContact : undefined}
-          />
-        ))}
+        {Array.from(allPurposes).map((purpose) =>
+          grouped[purpose] && grouped[purpose].length > 0 ? (
+            <PurposeSection
+              key={purpose}
+              purpose={purpose}
+              contacts={grouped[purpose]}
+              isEditing={isEditing}
+              onRemove={isEditing ? handleRemoveContact : undefined}
+              onEdit={isEditing ? handleEditContact : undefined}
+            />
+          ) : null,
+        )}
       </div>
     </>
   );
