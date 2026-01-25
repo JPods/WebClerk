@@ -35,7 +35,7 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
     queryset = SalesOrder.objects.prefetch_related('lines').all()
     serializer_class = SalesOrderSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id', 'order_no']
+    filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
 
     @action(detail=True, methods=['post'])
     def convert_to_invoice(self, request, pk=None):
@@ -76,7 +76,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.prefetch_related('lines').all()
     serializer_class = PurchaseOrderSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id', 'po_no']
+    filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
 
     @action(detail=True, methods=['post'])
     def receive_goods(self, request, pk=None):
@@ -144,7 +144,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'payment_method', 'gateway', 'contact', 'invoice']
+    filterset_fields = ['status', 'gateway', 'contact_id', 'invoice_id', 'paymentmethod_id']
 
     @action(detail=True, methods=['post'])
     def process(self, request, pk=None):
