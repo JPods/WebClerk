@@ -1370,14 +1370,15 @@ const ActionsTable: React.FC<{
     <div className="space-y-4">
       {/* Add Action Button */}
       {canEdit && onAddAction && !showAddForm && (
-        <button
-          type="button"
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-        >
-          <FaPlus size={12} />
-          Add Action
-        </button>
+        <div className="flex justify-end mb-1 px-2">
+          <button
+            type="button"
+            onClick={() => setShowAddForm(true)}
+            className="flex px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
+          >
+            + Add Action
+          </button>
+        </div>
       )}
 
       {/* Add Action Modal */}

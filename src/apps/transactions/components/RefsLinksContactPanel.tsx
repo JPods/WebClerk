@@ -629,10 +629,10 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
 
       {/* Add Contact Section */}
       {isEditing && (
-        <div className="flex justify-end mb-2 px-2">
+        <div className="flex justify-end mb-1 px-2">
           <button
             type="button"
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
             onClick={() => handleAddContact()}
           >
             + Add New Contact
