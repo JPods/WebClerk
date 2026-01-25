@@ -113,14 +113,14 @@ export default function WorkOrderLineDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="work_order_id">work_order_id</Label>
+            <Label htmlFor="workorder_id">workorder_id</Label>
             <Input
               type="number"
-              id="work_order_id"
+              id="workorder_id"
               placeholder="Work Order ID"
-              {...register("work_order_id", { valueAsNumber: true })}
-              error={errors.work_order_id && errors.work_order_id.message ? true : false}
-              hint={errors.work_order_id && errors.work_order_id.message}
+              {...register("workorder_id", { valueAsNumber: true })}
+              error={errors.workorder_id && errors.workorder_id.message ? true : false}
+              hint={errors.workorder_id && errors.workorder_id.message}
               disabled={mode === "view"}
             />
           </div>

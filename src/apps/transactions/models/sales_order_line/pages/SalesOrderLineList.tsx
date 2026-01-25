@@ -83,7 +83,7 @@ export default function SalesOrderLineList() {
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Sales Order ID",
-      selector: (row) => row.sales_order_id || "--",
+      selector: (row) => row.salesorder_id || "--",
       sortable: true,
       width: "15%",
     },

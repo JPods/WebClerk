@@ -35,7 +35,7 @@ interface KanbanTaskModalProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   modalError?: string | null;
   formState: TaskFormState;
-  onFieldChange: (field: TaskFormEditableField, value: string) => void;
+  onFieldChange: (field: TaskFormEditableField, value: any) => void;
   columnOptions: Array<{ id: string; title: string }>;
   priorityOptions: TaskPriority[];
   difficultyOptions: string[];
@@ -117,6 +117,9 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
     <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
       <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-y-auto border-l border-gray-200 bg-white shadow-2xl no-scrollbar dark:border-gray-800 dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
         <div className="mb-4 flex items-start justify-between">
+          {currentTask?.ida ? (
+            <span className="text-xs text-gray-400 mr-3">{currentTask.ida}</span>
+          ) : null}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
@@ -187,8 +190,8 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                 disabled={isSaving}
               />
             </div>
-            {/* Assignees */}
-            <div>
+             {/* Assignees */}
+             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Assignees</label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(formState.assigned_to || []).map((a: any) => (
@@ -221,11 +224,12 @@ export const ActionEdit: React.FC<KanbanTaskModalProps> = ({
                   <option key={option.id} value={option.id}>{option.label}</option>
                 ))}
               </select>
-            </div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
-                 <input type="datetime-local" step={60} value={formState.dt_start} onChange={(e)=>onFieldChange("dt_start", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
-              </div>
-              <div>
+             </div>
+             <div>
+               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
+               <input type="datetime-local" step={60} value={formState.dt_start} onChange={(e)=>onFieldChange("dt_start", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+             </div>
+             <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_expected</label>
                   <input type="datetime-local" step={60} value={formState.dt_expected} onChange={(e)=>onFieldChange("dt_expected", e.target.value)} disabled={isSaving} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
               </div>

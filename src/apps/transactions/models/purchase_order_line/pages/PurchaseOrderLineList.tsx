@@ -83,7 +83,7 @@ export default function PurchaseOrderLineList() {
     { name: "ID", selector: (row) => row.id, sortable: true, width: "5%" },
     {
       name: "Purchase Order ID",
-      selector: (row) => row.purchase_order_id || "--",
+      selector: (row) => row.purchaseorder_id || "--",
       sortable: true,
       width: "15%",
     },

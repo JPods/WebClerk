@@ -8,7 +8,7 @@ export interface PurchaseReceiptAddProps {
 }
 
 export interface CreatePurchaseReceiptRequest {
-  purchase_order_id: number;
+  purchaseorder_id: number;  // FK matches Django model field name
   receipt_date: string;
   received_by: string;
   notes: string;
@@ -16,7 +16,7 @@ export interface CreatePurchaseReceiptRequest {
 
 export interface PurchaseReceiptApiTask {
   id: number;
-  purchase_order_id: number;
+  purchaseorder_id: number;  // FK matches Django model field name
   receipt_date: string;
   received_by: string;
   notes: string;
@@ -28,7 +28,7 @@ export interface PurchaseReceiptApiTask {
 
 export interface UpdatePurchaseReceiptRequest {
   id: number;
-  purchase_order_id: number;
+  purchaseorder_id: number;  // FK matches Django model field name
   receipt_date: string;
   received_by: string;
   notes: string;

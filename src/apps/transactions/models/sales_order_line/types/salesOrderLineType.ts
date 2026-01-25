@@ -8,7 +8,7 @@ export interface SalesOrderLineAddProps {
 }
 
 export interface CreateSalesOrderLineRequest {
-  sales_order_id: number;
+  salesorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -17,7 +17,7 @@ export interface CreateSalesOrderLineRequest {
 
 export interface SalesOrderLineApiTask {
   id: number;
-  sales_order_id: number;
+  salesorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -30,7 +30,7 @@ export interface SalesOrderLineApiTask {
 
 export interface UpdateSalesOrderLineRequest {
   id: number;
-  sales_order_id: number;
+  salesorder_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;

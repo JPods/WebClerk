@@ -97,7 +97,7 @@ export default function PurchaseReceiptList() {
 
   const columns: TableColumn<any>[] = useMemo(() => [
     { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
-    { id: "purchase_order_id", name: "Purchase Order ID", selector: (row) => row.purchase_order_id || "--", sortable: true, width: "15%" },
+    { id: "purchaseorder_id", name: "Purchase Order ID", selector: (row) => row.purchaseorder_id || "--", sortable: true, width: "15%" },
     { id: "receipt_date", name: "Receipt Date", selector: (row) => row.receipt_date || "--", sortable: true, width: "18%" },
     { id: "received_by", name: "Received By", selector: (row) => row.received_by || "--", sortable: true, width: "18%" },
     { id: "notes", name: "Notes", selector: (row) => row.notes || "--", sortable: true, width: "20%" },
