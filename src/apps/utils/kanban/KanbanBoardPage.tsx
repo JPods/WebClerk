@@ -350,6 +350,39 @@ const createProjectOption = (record: Record<string, unknown>): ProjectOption | n
   };
 };
 
+// Parse date from project name/slug using formats: title_YYYY-MM-DD or title-YYYY-MM-DD
+const parseProjectDateFromLabel = (label?: string): Date | null => {
+  if (!label) return null;
+  const m = label.match(/(?:_|-)(\d{4}-\d{2}-\d{2})$/);
+  if (!m) return null;
+  const dateStr = m[1];
+  const d = new Date(dateStr + "T00:00:00Z");
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+// Choose default project id: the project whose parsed date is the earliest date >= today
+const findDefaultProjectId = (projects: ProjectOption[]): string | undefined => {
+  if (!projects || projects.length === 0) return undefined;
+  const today = new Date();
+  // normalize to UTC date-only for comparison
+  const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+  let chosen: { id: string; date: Date } | undefined;
+  for (const p of projects) {
+    const label = p.name ?? p.slug ?? p.id;
+    const d = parseProjectDateFromLabel(label);
+    if (!d) continue;
+    // zero-time UTC normalization
+    const dUtc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    if (dUtc.getTime() < todayUtc.getTime()) continue; // skip past dates
+    if (!chosen || dUtc.getTime() < chosen.date.getTime()) {
+      chosen = { id: p.id, date: dUtc };
+    }
+  }
+
+  return chosen?.id;
+};
+
 const createTranslationEntry = (language: string, title = "", description = ""): TranslationFormEntry => ({
   id: createLocalId(),
   language,
@@ -911,19 +944,23 @@ const updateTaskFormState = (
 
 const KanbanBoardPage: React.FC = () => {
   const [board, setBoard] = useState<BoardData>(() => createEmptyBoardData());
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [columnsPerRow, setColumnsPerRow] = useState<number>(4);
 
   const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(true);
   const [projectFetchError, setProjectFetchError] = useState<string | null>(null);
   const selectedProject = useMemo(
     () => projectOptions.find((option) => option.id === selectedProjectId),
     [projectOptions, selectedProjectId]
   );
   const selectedProjectName = selectedProject?.name ?? selectedProject?.intent ?? "";
+
+  useEffect(() => {
+    console.log("selectedProjectId changed:", selectedProjectId, "projectOptions:", projectOptions.length);
+  }, [selectedProjectId, projectOptions.length]);
 
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
@@ -1255,9 +1292,13 @@ const KanbanBoardPage: React.FC = () => {
       setProjectFetchError(null);
       setSelectedProjectId((previous) => {
         if (previous && nextOptions.some((option) => option.id === previous)) {
+          console.log("fetchProjects: keeping previous selectedProjectId:", previous);
           return previous;
         }
-        return "";
+        // Try to find a sensible default project based on naming convention
+        const defaultId = findDefaultProjectId(nextOptions);
+        console.log("fetchProjects: previous selection not kept, defaultId:", defaultId);
+        return defaultId ?? "";
       });
     } catch (error) {
       console.error("Failed to fetch active projects", error);
@@ -1273,21 +1314,32 @@ const KanbanBoardPage: React.FC = () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string | number> = {};
       if (projectId) {
-        params.project_id = projectId;
+        // Prefer numeric project_id when possible (backend expects numeric IDs)
+        const numericId = Number(projectId);
+        if (!Number.isNaN(numericId) && String(numericId) === String(projectId)) {
+          params.project_id = numericId;
+        } else {
+          // If non-numeric (slug/uuid), also provide project_slug to increase match chance
+          params.project_id = projectId;
+          params.project_slug = projectId;
+        }
       }
       if (contactId) {
         // Use contact_id field which is indexed on the Action model
         params.contact_id = contactId;
       }
 
+      console.log("fetchActions - params:", params);
       const response = await Actions(Object.keys(params).length ? params : undefined);
+      console.log("fetchActions - raw response:", response);
       if (!response || response.status !== 200) {
         throw new Error("Request failed");
       }
 
       let items = extractKanbanItems(response);
+      console.log("fetchActions - items count:", Array.isArray(items) ? items.length : 0);
       items = items.filter((item: any) => String(item.status).toLowerCase() !== "on hold");
 
       // Backend now filters by contact_id, so no client-side filtering needed
@@ -1332,6 +1384,10 @@ const KanbanBoardPage: React.FC = () => {
   }, [selectedProjectId, selectedProject, updateContactsFromProject, fetchAllContacts]);
 
   useEffect(() => {
+    // Avoid fetching actions until project list has been loaded to prevent
+    // an initial unfiltered request returning all projects' actions.
+    if (isLoadingProjects) return;
+
     void fetchActions({
       projectId: selectedProjectId || undefined,
       contactId: selectedContactId || undefined,
