@@ -34,6 +34,7 @@ import { TransactionPartySelector } from "../../../components/PartySelector";
 import SalesOrderItemSearch from "../components/SalesOrderItemSearch";
 import SalesOrderStatus from "../components/SalesOrderStatus";
 import LineDetailsModal from "../../../components/LineDetailsModal";
+import ActionsModal from "../../../components/ActionsModal";
 import type { ItemSearchResult } from "../types/itemSearchType";
 
 // Import types
@@ -279,7 +280,8 @@ const SalesOrderHeader: React.FC<{
                   type="text"
                   value={data.priority ?? ""}
                   onChange={(e) => onChange("priority", e.target.value)}
-                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  style={{ maxWidth: 180 }}
                 />
               ) : (
                 <dd className="text-slate-900 dark:text-white">
@@ -1304,25 +1306,6 @@ const ActionsTable: React.FC<{
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [pendingDeleteIdx, setPendingDeleteIdx] = useState<number | null>(null);
-  const [newAction, setNewAction] = useState<Partial<ActionItem>>({
-    kind: "task",
-    status: "pending",
-    priority: "normal",
-    what: "",
-  });
-
-  const handleAddSubmit = () => {
-    if (newAction.what && onAddAction) {
-      onAddAction(newAction as ActionItem);
-      setNewAction({
-        kind: "task",
-        status: "pending",
-        priority: "normal",
-        what: "",
-      });
-      setShowAddForm(false);
-    }
-  };
 
   const handleDeleteClick = (idx: number) => {
     if (pendingDeleteIdx === idx) {
@@ -1396,120 +1379,16 @@ const ActionsTable: React.FC<{
         </button>
       )}
 
-      {/* Add Action Form */}
-      {showAddForm && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
-          <h4 className="font-medium text-slate-900 dark:text-white mb-3">
-            New Action
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Type
-              </label>
-              <select
-                value={newAction.kind || "task"}
-                onChange={(e) =>
-                  setNewAction({ ...newAction, kind: e.target.value })
-                }
-                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              >
-                <option value="task">Task</option>
-                <option value="followup">Follow Up</option>
-                <option value="call">Call</option>
-                <option value="email">Email</option>
-                <option value="review">Review</option>
-                <option value="approve">Approve</option>
-                <option value="ship">Ship</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Priority
-              </label>
-              <select
-                value={newAction.priority || "normal"}
-                onChange={(e) =>
-                  setNewAction({
-                    ...newAction,
-                    priority: e.target.value as ActionItem["priority"],
-                  })
-                }
-                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              >
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={
-                  newAction.when
-                    ? new Date(newAction.when as string)
-                        .toISOString()
-                        .split("T")[0]
-                    : ""
-                }
-                onChange={(e) =>
-                  setNewAction({ ...newAction, when: e.target.value })
-                }
-                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Assigned To
-              </label>
-              <input
-                type="text"
-                placeholder="Name"
-                value={newAction.who_name || ""}
-                onChange={(e) =>
-                  setNewAction({ ...newAction, who_name: e.target.value })
-                }
-                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              />
-            </div>
-            <div className="md:col-span-2 lg:col-span-4">
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Description *
-              </label>
-              <input
-                type="text"
-                placeholder="What needs to be done?"
-                value={newAction.what || ""}
-                onChange={(e) =>
-                  setNewAction({ ...newAction, what: e.target.value })
-                }
-                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              type="button"
-              onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleAddSubmit}
-              disabled={!newAction.what}
-              className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              Add Action
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Add Action Modal */}
+      <ActionsModal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        onSubmit={(action) => {
+          onAddAction?.(action);
+          setShowAddForm(false);
+        }}
+        mode="add"
+      />
 
       {/* Actions Table */}
       {!actions.length ? (
