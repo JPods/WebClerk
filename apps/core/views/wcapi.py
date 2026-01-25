@@ -702,7 +702,6 @@ Retrieve records from any configured model with comprehensive query support.
                 required=True,
                 location=OpenApiParameter.QUERY,
                 description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'salesorder')",
-                examples=["proposal", "salesorder", "invoice", "contact"],
             ),
             OpenApiParameter(
                 name="id",

@@ -93,7 +93,7 @@ class ProposalLineSerializer(BaseLineSerializer):
 class SalesOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesOrder
-        fields = ['id', 'order_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
@@ -123,7 +123,7 @@ class InvoiceLineSerializer(BaseLineSerializer):
 class PurchaseOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseOrder
-        fields = ['id', 'po_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
@@ -138,7 +138,7 @@ class PurchaseOrderLineSerializer(BaseLineSerializer):
 class WorkOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkOrder
-        fields = ['id', 'work_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
@@ -153,7 +153,7 @@ class WorkOrderLineSerializer(BaseLineSerializer):
 class RequisitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requisition
-        fields = ['id', 'req_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         ref_name = 'TxRequisitionHeader'
         read_only_fields = ['id', 'dt_created']
 
