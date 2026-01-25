@@ -84,29 +84,108 @@ const ContactEditModal: React.FC<{
   onSave: (contact: RefContact) => void;
 }> = ({ contact, isOpen, onClose, onSave }) => {
   // Always reset formData when a new contact is being edited (including same id with new data)
-  const [formData, setFormData] = useState<RefContact>(
-    contact || { contact_id: 0, purpose: "" },
-  );
+
+  // Support multiple emails, phones, domains, addresses
+  type MultiContact = Omit<
+    RefContact,
+    "email" | "phone" | "domain" | "full"
+  > & {
+    email?: string[];
+    phone?: string[];
+    domain?: string[];
+    full?: string[];
+  };
+  const toMulti = (c: RefContact | null): MultiContact => ({
+    ...c,
+    email: c?.email ? [c.email] : [""],
+    phone: c?.phone ? [c.phone] : [""],
+    domain: c?.domain ? [c.domain] : [""],
+    full: c?.full ? [c.full] : [""],
+  });
+  const fromMulti = (m: MultiContact): RefContact => ({
+    ...m,
+    email: m.email?.filter(Boolean).join(", "),
+    phone: m.phone?.filter(Boolean).join(", "),
+    domain: m.domain?.filter(Boolean).join(", "),
+    full: m.full?.filter(Boolean).join("\n"),
+  });
+  const [formData, setFormData] = useState<MultiContact>(toMulti(contact));
   React.useEffect(() => {
-    setFormData(contact || { contact_id: 0, purpose: "" });
+    setFormData(toMulti(contact));
   }, [contact]);
 
   if (!isOpen || !contact) return null;
 
-  const handleChange = (field: keyof RefContact, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleChange = (
+    field: keyof MultiContact,
+    value: string | string[],
+    idx?: number,
+  ) => {
+    if (["email", "phone", "domain", "full"].includes(field)) {
+      setFormData((prev) => {
+        const arr = Array.isArray(prev[field])
+          ? [...(prev[field] as string[])]
+          : [""];
+        if (typeof idx === "number") {
+          arr[idx] = value as string;
+        }
+        return { ...prev, [field]: arr };
+      });
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleAddField = (field: keyof MultiContact) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...(prev[field] as string[]), ""],
+    }));
+  };
+
+  const handleRemoveField = (field: keyof MultiContact, idx: number) => {
+    setFormData((prev) => {
+      const arr = Array.isArray(prev[field])
+        ? [...(prev[field] as string[])]
+        : [];
+      arr.splice(idx, 1);
+      return { ...prev, [field]: arr.length ? arr : [""] };
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Edit Contact
-          </h3>
+    <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
+      <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 shadow-2xl no-scrollbar sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
+        <div className="flex items-start justify-between border-b border-blue-200 dark:border-blue-800 px-5 py-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Edit Contact
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+            aria-label="Close panel"
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6 6l8 8M14 6l-8 8"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 pb-6 pt-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Purpose
@@ -138,56 +217,140 @@ const ContactEditModal: React.FC<{
             />
           </div>
 
+          {/* Multi Email */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Email
             </label>
-            <input
-              type="email"
-              value={formData.email || ""}
-              onChange={(e) => handleChange("email", e.target.value)}
-              placeholder="email@example.com"
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            />
+            {formData.email?.map((email, idx) => (
+              <div key={idx} className="flex gap-2 mb-1">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleChange("email", e.target.value, idx)}
+                  placeholder="email@example.com"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+                {formData.email.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveField("email", idx)}
+                    className="text-red-500 px-2"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => handleAddField("email")}
+              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
+            >
+              + Add Email
+            </button>
           </div>
 
+          {/* Multi Phone */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Phone
             </label>
-            <input
-              type="tel"
-              value={formData.phone || ""}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              placeholder="123-456-7890"
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            />
+            {formData.phone?.map((phone, idx) => (
+              <div key={idx} className="flex gap-2 mb-1">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => handleChange("phone", e.target.value, idx)}
+                  placeholder="123-456-7890"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+                {formData.phone.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveField("phone", idx)}
+                    className="text-red-500 px-2"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => handleAddField("phone")}
+              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
+            >
+              + Add Phone
+            </button>
           </div>
 
+          {/* Multi Domain */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Domain
             </label>
-            <input
-              type="url"
-              value={formData.domain || ""}
-              onChange={(e) => handleChange("domain", e.target.value)}
-              placeholder="www.example.com"
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            />
+            {formData.domain?.map((domain, idx) => (
+              <div key={idx} className="flex gap-2 mb-1">
+                <input
+                  type="url"
+                  value={domain}
+                  onChange={(e) => handleChange("domain", e.target.value, idx)}
+                  placeholder="www.example.com"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+                {formData.domain.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveField("domain", idx)}
+                    className="text-red-500 px-2"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => handleAddField("domain")}
+              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
+            >
+              + Add Domain
+            </button>
           </div>
 
+          {/* Multi Address */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Address
             </label>
-            <textarea
-              value={formData.full || ""}
-              onChange={(e) => handleChange("full", e.target.value)}
-              placeholder="Street address, city, state, zip"
-              rows={3}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            />
+            {formData.full?.map((full, idx) => (
+              <div key={idx} className="flex gap-2 mb-1">
+                <textarea
+                  value={full}
+                  onChange={(e) => handleChange("full", e.target.value, idx)}
+                  placeholder="Street address, city, state, zip"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+                {formData.full.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveField("full", idx)}
+                    className="text-red-500 px-2"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => handleAddField("full")}
+              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
+            >
+              + Add Address
+            </button>
           </div>
         </div>
 
@@ -200,7 +363,7 @@ const ContactEditModal: React.FC<{
           </button>
           <button
             onClick={() => {
-              onSave(formData);
+              onSave(fromMulti(formData));
               onClose();
             }}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
