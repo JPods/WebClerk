@@ -863,7 +863,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 dark:border-slate-700 mb-6">
+      <div className="border-b border-slate-200 dark:border-slate-700 mb-2">
         <nav className="flex gap-1 overflow-x-auto">
           {tabs
             .filter((tab) => !tab.adminOnly || isAdmin)
