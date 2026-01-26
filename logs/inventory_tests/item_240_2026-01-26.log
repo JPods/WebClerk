@@ -1,0 +1,6 @@
+[06:01:29] BASELINE: Initial baseline capture | on_hand=100.0, on_so=0.0, on_po=0.0 | UNAPPLIED_PENDING=0
+[06:01:42] ORDER_CREATED: Created Order #43 with 5.0 units of item 240 | order #43 | PENDING_CREATED #41 purpose=inventory_line_add | on_hand=100.0, on_so=0.0, on_po=0.0 | UNAPPLIED_PENDING=1 (inventory_line_add:1)
+[06:01:52] PURCHASE_CREATED: Created Purchase #34 with 20.0 units of item 240 | purchase #34 | PENDING_CREATED #42 purpose=inventory_line_add | on_hand=100.0, on_so=0.0, on_po=0.0 | UNAPPLIED_PENDING=2 (inventory_line_add:2)
+[06:02:46] PROPOSAL_CREATED: Created Proposal #54 with 8.0 units of item 240 | proposal #54 | PENDING_CREATED #43 purpose=inventory_line_add | on_hand=100.0, on_so=0.0, on_po=0.0 | UNAPPLIED_PENDING=3 (inventory_line_add:3)
+[06:02:55] PROCESS_PENDING_START: Starting pending processing: 3 unprocessed records for item 240 | on_hand=100.0, on_so=0.0, on_po=0.0 | UNAPPLIED_PENDING=3 (inventory_line_add:3)
+[06:02:56] PROCESS_PENDING_COMPLETE: Processed 3 pending records. Remaining unapplied: 0 | None #None | on_hand=100.0, on_so=5.0, on_po=20.0 | UNAPPLIED_PENDING=0 | DELTA: qty_on_so=+5.0, qty_on_po=+20.0, qty_on_p=+8.0
