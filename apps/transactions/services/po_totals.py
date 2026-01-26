@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Dict, Any
 
 # Do NOT import models at module scope to avoid cycles with model files.
 if TYPE_CHECKING:  # pragma: no cover
-    from apps.transactions.models.purchase_order import PurchaseOrder
+    from apps.transactions.models.purchase import Purchase
 
-def compute_purchase_order_cost_totals(po: "PurchaseOrder") -> Dict[str, Any]:
-    """Aggregate per-line cost fields into PurchaseOrder header totals.
+def compute_purchase_order_cost_totals(po: "Purchase") -> Dict[str, Any]:
+    """Aggregate per-line cost fields into Purchase header totals.
     Returns a dict shaped for header totals (cost-side).
     - line_sum_goods: sum of line.cost.extended
     - line_sum_tax: sum of line.cost.tax

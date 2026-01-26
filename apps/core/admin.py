@@ -21,39 +21,24 @@ class ContactAdmin(BaseUserAdmin):
     """Admin interface for Contact model (custom user model)."""
     scalar_fields = (
         'attention',
-        'comment',
-        'company',
-        'customer_id',
-        'department',
-        'dt_created',
-        'dt_joined',
-        'dt_modified',
+        'role',
         'email',
-        'employee_id',
-        'health_rating',
-        'id',
-        'ida',
-        'is_active',
-        'is_archived',
-        'is_deleted',
-        'is_staff',
-        'is_superuser',
-        'last_login',
-        'manufacturer_id',
         'name_first',
         'name_last',
-        'name_middle',
-        'name_prefix',
-        'name_suffix',
-        'other_id',
-        'password',
+        'company',
+        'is_staff',
+        'is_superuser',
+        'customer_id',
         'rep_id',
-        'role',
+        'employee_id',
+        'manufacturer_id',
+        'vendor_id',
+        'other_id',
         'security_level',
         'title',
-        'uuid',
-        'vendor_id',
-        'version',
+        'department',
+        'id',
+        'ida',
     )
     list_display = scalar_fields
     list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
@@ -241,9 +226,9 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'id_record', 'purpose', 'dt_processed')
+    list_display = ('id', 'model_name', 'record_id', 'purpose', 'dt_processed')
     list_filter = ('model_name', 'purpose')
-    search_fields = ('model_name', 'id_record', 'name')
+    search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 

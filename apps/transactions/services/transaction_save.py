@@ -252,7 +252,7 @@ def save_transaction_with_lines(
     """Save a transaction with its lines atomically.
     
     Args:
-        model_key: Transaction model key (e.g., 'invoice', 'salesorder')
+        model_key: Transaction model key (e.g., 'invoice', 'order')
         header_data: Transaction header data including id for updates
         lines_data: List of line data, each may have `_dirty` flag
         request: Django request for permissions

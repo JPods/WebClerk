@@ -8,9 +8,9 @@ Each entry describes:
  - aliases: optional list of legacy keys or equivalents (plural keys, legacy table names)
 
 Resolvers accept:
- - canonical key (singular snake, e.g., 'sales_order_line')
- - legacy alias (e.g., 'sales_order_lines', 'projects')
- - endpoint slug (e.g., 'sales-order-lines')
+ - canonical key (singular snake, e.g., 'order_line')
+ - legacy alias (e.g., 'order_lines', 'projects')
+ - endpoint slug (e.g., 'order-lines')
  - simple plural/singular variants (append/remove a single trailing 's')
  - hyphen/underscore variants are normalized where applicable
 """
@@ -109,8 +109,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
     'project_association': ModelMeta('project_association', 'apps.transactions.models.project_links.ProjectAssociation', 'Project Association', 'Project Associations', 'project-associations', kind='support', aliases=['project_associations']),
     'proposal': ModelMeta('proposal', 'apps.transactions.models.Proposal', 'Proposal', 'Proposals', 'proposals', kind='header', aliases=['proposals']),
     'proposal_line': ModelMeta('proposal_line', 'apps.transactions.models.ProposalLine', 'Proposal Line', 'Proposal Lines', 'proposal-lines', kind='line', aliases=['proposal_lines']),
-    'purchase_order': ModelMeta('purchase_order', 'apps.transactions.models.PurchaseOrder', 'Purchase Order', 'Purchase Orders', 'purchase-orders', kind='header', aliases=['purchase_orders']),
-    'purchase_order_line': ModelMeta('purchase_order_line', 'apps.transactions.models.PurchaseOrderLine', 'Purchase Order Line', 'Purchase Order Lines', 'purchase-order-lines', kind='line', aliases=['purchase_order_lines']),
+    'purchase': ModelMeta('purchase', 'apps.transactions.models.Purchase', 'Purchase', 'Purchases', 'purchases', kind='header', aliases=['purchases', 'purchase_order', 'purchase_orders', 'purchaseorder']),
+    'purchase_line': ModelMeta('purchase_line', 'apps.transactions.models.PurchaseLine', 'Purchase Line', 'Purchase Lines', 'purchase-lines', kind='line', aliases=['purchase_lines', 'purchase_order_line', 'purchase_order_lines', 'purchaseorderline']),
     'purchase_receipt': ModelMeta('purchase_receipt', 'apps.transactions.models.purchase_receipt.PurchaseReceipt', 'Purchase Receipt', 'Purchase Receipts', 'purchase-receipts', kind='support', aliases=['purchase_receipts']),
     'requisition': ModelMeta(
         'requisition',
@@ -130,8 +130,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
         kind='line',
         aliases=['requisition_lines', 'requisition-line', 'requisition-lines']  # minimal; rest auto-derived
     ),
-    'sales_order': ModelMeta('sales_order', 'apps.transactions.models.SalesOrder', 'Sales Order', 'Sales Orders', 'sales-orders', kind='header', aliases=['sales_orders']),
-    'sales_order_line': ModelMeta('sales_order_line', 'apps.transactions.models.SalesOrderLine', 'Sales Order Line', 'Sales Order Lines', 'sales-order-lines', kind='line', aliases=['sales_order_lines']),
+    'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders', 'sales_order', 'sales_orders', 'salesorder']),
+    'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines', 'sales_order_line', 'sales_order_lines', 'salesorderline']),
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
     'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
 }

@@ -5,10 +5,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from common.base_views import BaseOptimisticDetailView
 from apps.transactions.models import (
-    Proposal, SalesOrder, PurchaseOrder, Invoice, Payment
+    Proposal, Order, Purchase, Invoice, Payment
 )
 from apps.transactions.serializers import (
-    ProposalSerializer, SalesOrderSerializer, PurchaseOrderSerializer,
+    ProposalSerializer, OrderSerializer, PurchaseSerializer,
     InvoiceSerializer, PaymentSerializer
 )
 
@@ -23,19 +23,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def convert_to_order(self, request, pk=None):
-        """Convert proposal to sales order."""
+        """Convert proposal to order."""
         proposal = self.get_object()
         # Implementation would call transfer service
         return Response({'message': 'Conversion endpoint - implementation needed'})
 
 
-class SalesOrderViewSet(viewsets.ModelViewSet):
-    """ViewSet for Sales Order transactions."""
+class OrderViewSet(viewsets.ModelViewSet):
+    """ViewSet for Order transactions."""
 
-    queryset = SalesOrder.objects.prefetch_related('lines').all()
-    serializer_class = SalesOrderSerializer
+    queryset = Order.objects.prefetch_related('lines').all()
+    serializer_class = OrderSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id', 'order_no']
+    filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
 
     @action(detail=True, methods=['post'])
     def convert_to_invoice(self, request, pk=None):
@@ -44,8 +44,8 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Conversion endpoint - implementation needed'})
 
     @action(detail=True, methods=['post'])
-    def create_purchase_order(self, request, pk=None):
-        """Create purchase order from sales order."""
+    def create_purchase(self, request, pk=None):
+        """Create purchase from order."""
         from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
 
         order = self.get_object()
@@ -70,20 +70,20 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Inventory reservation endpoint - implementation needed'})
 
 
-class PurchaseOrderViewSet(viewsets.ModelViewSet):
-    """ViewSet for Purchase Order transactions."""
+class PurchaseViewSet(viewsets.ModelViewSet):
+    """ViewSet for Purchase transactions."""
 
-    queryset = PurchaseOrder.objects.prefetch_related('lines').all()
-    serializer_class = PurchaseOrderSerializer
+    queryset = Purchase.objects.prefetch_related('lines').all()
+    serializer_class = PurchaseSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'customer_id', 'vendor_id', 'po_no']
+    filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
 
     @action(detail=True, methods=['post'])
     def receive_goods(self, request, pk=None):
         """Record receipt of goods."""
-        from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+        from apps.transactions.services.flow import receive_purchase, ReceiveLine
 
-        po = self.get_object()
+        purchase = self.get_object()
         receipt_no = request.data.get('receipt_no')
         if not receipt_no:
             return Response({'error': 'receipt_no is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -95,7 +95,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         lines = []
         for ld in lines_data:
             lines.append(ReceiveLine(
-                po_line_id=ld['po_line_id'],
+                purchase_line_id=ld['purchase_line_id'],
                 qty=ld['qty'],
                 warehouse_code=ld['warehouse_code'],
                 unit_cost=ld.get('unit_cost'),
@@ -104,16 +104,16 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             ))
 
         try:
-            result = receive_purchase_order(po, receipt_no, lines)
+            result = receive_purchase(purchase, receipt_no, lines)
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):
-        """Get detailed totals for purchase order."""
-        po = self.get_object()
-        totals = po.update_sell_cost_totals(persist=False)
+        """Get detailed totals for purchase."""
+        purchase = self.get_object()
+        totals = purchase.update_sell_cost_totals(persist=False)
         return Response(totals)
 
 
@@ -144,7 +144,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['status', 'payment_method', 'gateway', 'contact', 'invoice']
+    filterset_fields = ['status', 'gateway', 'contact_id', 'invoice_id', 'paymentmethod_id']
 
     @action(detail=True, methods=['post'])
     def process(self, request, pk=None):
@@ -161,8 +161,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
 __all__ = [
     'ProposalViewSet',
-    'SalesOrderViewSet',
-    'PurchaseOrderViewSet',
+    'OrderViewSet',
+    'PurchaseViewSet',
     'InvoiceViewSet',
     'PaymentViewSet',
 ]

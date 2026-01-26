@@ -30,17 +30,17 @@ else:
 
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
-    SalesOrderSerializer, SalesOrderLineSerializer,
+    OrderSerializer, OrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseOrderSerializer, PurchaseOrderLineSerializer,
+    PurchaseSerializer, PurchaseLineSerializer,
     WorkOrderSerializer, WorkOrderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
 )
@@ -53,9 +53,9 @@ from apps.core.constants.model_registry import get_model_meta, import_model
 # Mapping helpers -----------------------------------------------------------
 HEADER_MAP = {
     'proposal': (Proposal, ProposalSerializer, ProposalLine, ProposalLineSerializer),
-    'sales-order': (SalesOrder, SalesOrderSerializer, SalesOrderLine, SalesOrderLineSerializer),
+    'order': (Order, OrderSerializer, OrderLine, OrderLineSerializer),
     'invoice': (Invoice, InvoiceSerializer, InvoiceLine, InvoiceLineSerializer),
-    'purchase-order': (PurchaseOrder, PurchaseOrderSerializer, PurchaseOrderLine, PurchaseOrderLineSerializer),
+    'purchase-order': (Purchase, PurchaseSerializer, PurchaseLine, PurchaseLineSerializer),
     'workorder': (WorkOrder, WorkOrderSerializer, WorkOrderLine, WorkOrderLineSerializer),
     'requisition': (Requisition, RequisitionSerializer, RequisitionLine, RequisitionLineSerializer),
 }
@@ -271,9 +271,9 @@ class LinkageCommentsView(generics.GenericAPIView):
         # Models to scan for linkage refs and comments
         model_names = [
             ("transactions", "ProposalLine"),
-            ("transactions", "SalesOrderLine"),
+            ("transactions", "OrderLine"),
             ("transactions", "InvoiceLine"),
-            ("transactions", "PurchaseOrderLine"),
+            ("transactions", "PurchaseLine"),
         ]
         items: List[Dict[str, Any]] = []
 

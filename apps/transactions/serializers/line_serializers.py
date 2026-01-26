@@ -2,9 +2,9 @@ from rest_framework import serializers
 from apps.core.permissions import get_role_field_rules
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
@@ -90,18 +90,18 @@ class ProposalLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class SalesOrderSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SalesOrder
-        fields = ['id', 'order_no', 'dt_created']
+        model = Order
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
-class SalesOrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=SalesOrder.objects.all())
+class OrderLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = SalesOrderLine
+        model = OrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
@@ -120,25 +120,25 @@ class InvoiceLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class PurchaseOrderSerializer(serializers.ModelSerializer):
+class PurchaseSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PurchaseOrder
-        fields = ['id', 'po_no', 'dt_created']
+        model = Purchase
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
-class PurchaseOrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=PurchaseOrder.objects.all())
+class PurchaseLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=Purchase.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = PurchaseOrderLine
+        model = PurchaseLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
 class WorkOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkOrder
-        fields = ['id', 'work_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
@@ -153,7 +153,7 @@ class WorkOrderLineSerializer(BaseLineSerializer):
 class RequisitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requisition
-        fields = ['id', 'req_no', 'dt_created']
+        fields = ['id', 'ida', 'dt_created']
         ref_name = 'TxRequisitionHeader'
         read_only_fields = ['id', 'dt_created']
 

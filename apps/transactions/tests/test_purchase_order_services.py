@@ -1,13 +1,13 @@
 from decimal import Decimal
 from django.test import TestCase
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import Purchase, PurchaseLine, Order, OrderLine
 from apps.transactions.services.purchase_order_totals import compute_purchase_order_sell_cost_totals
 from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
 from apps.core.models import Contact
 
 
-class PurchaseOrderTotalsServiceTest(TestCase):
-    """Test cases for purchase order totals service."""
+class PurchaseTotalsServiceTest(TestCase):
+    """Test cases for purchase totals service."""
 
     def setUp(self):
         """Set up test data."""
@@ -16,14 +16,14 @@ class PurchaseOrderTotalsServiceTest(TestCase):
             name_last="Doe",
             email="john.doe@example.com"
         )
-        self.purchase_order = PurchaseOrder.objects.create(
+        self.purchase = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
     def test_compute_totals_empty_order(self):
-        """Test computing totals for an empty purchase order."""
-        result = compute_purchase_order_sell_cost_totals(self.purchase_order)
+        """Test computing totals for an empty purchase."""
+        result = compute_purchase_order_sell_cost_totals(self.purchase)
 
         expected = {
             'sell': {
@@ -60,20 +60,20 @@ class PurchaseOrderTotalsServiceTest(TestCase):
     def test_compute_totals_with_lines(self):
         """Test computing totals with line items."""
         # Create line items
-        PurchaseOrderLine.objects.create(
-            parent=self.purchase_order,
+        PurchaseLine.objects.create(
+            purchase=self.purchase,
             description="Item 1",
             quantity={'placed': 2},
             cost={'unit': 8.00, 'extended': 16.00}
         )
-        PurchaseOrderLine.objects.create(
-            parent=self.purchase_order,
+        PurchaseLine.objects.create(
+            purchase=self.purchase,
             description="Item 2",
             quantity={'placed': 1},
             cost={'unit': 12.00, 'extended': 12.00}
         )
 
-        result = compute_purchase_order_sell_cost_totals(self.purchase_order)
+        result = compute_purchase_order_sell_cost_totals(self.purchase)
 
         # Check sell totals (empty for PO)
         self.assertEqual(result['sell']['line_sum_goods'], 0.0)
@@ -90,8 +90,8 @@ class PurchaseOrderTotalsServiceTest(TestCase):
 
     def test_compute_totals_with_additional_costs(self):
         """Test computing totals with additional cost components."""
-        PurchaseOrderLine.objects.create(
-            parent=self.purchase_order,
+        PurchaseLine.objects.create(
+            purchase=self.purchase,
             description="Item 1",
             quantity={'placed': 1},
             cost={
@@ -105,7 +105,7 @@ class PurchaseOrderTotalsServiceTest(TestCase):
             }
         )
 
-        result = compute_purchase_order_sell_cost_totals(self.purchase_order)
+        result = compute_purchase_order_sell_cost_totals(self.purchase)
 
         # Check sell totals
         self.assertEqual(result['sell']['line_sum_goods'], 0.0)
@@ -141,16 +141,16 @@ class OrderToPurchaseServiceTest(TestCase):
             name_last="Smith",
             email="jane.smith@example.com"
         )
-        self.sales_order = SalesOrder.objects.create(
+        self.order = Order.objects.create(
             status="released",
             customer_id=self.customer.id
         )
 
     def test_transfer_order_to_purchase_basic(self):
-        """Test basic transfer from sales order to purchase order."""
-        # Create sales order lines
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        """Test basic transfer from order to purchase order."""
+        # Create order lines
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 2},
             price={'unit': 10.00},
@@ -158,7 +158,7 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
         result = transfer_order_to_purchase(
-            order=self.sales_order,
+            order=self.order,
             group_by_vendor=False
         )
 
@@ -167,13 +167,13 @@ class OrderToPurchaseServiceTest(TestCase):
         self.assertEqual(result['lines_transferred'], 1)
 
         # Check PO was created
-        po = PurchaseOrder.objects.get(id=result['purchase_order_ids'][0])
+        po = Purchase.objects.get(id=result['purchase_order_ids'][0])
         self.assertEqual(po.status, "planned")
         self.assertEqual(po.customer_id, self.customer.id)
-        self.assertEqual(po.refs['source']['sales_order_id'], self.sales_order.id)
+        self.assertEqual(po.refs['source']['sales_order_id'], self.order.id)
 
         # Check PO line was created
-        po_lines = po.purchaseorderline_set.all()
+        po_lines = po.lines.all()
         self.assertEqual(len(po_lines), 1)
         line = po_lines[0]
         self.assertEqual(line.quantity['placed'], 2)
@@ -187,17 +187,17 @@ class OrderToPurchaseServiceTest(TestCase):
             email="bob@example.com"
         )
 
-        # Create sales order lines with different vendors
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        # Create order lines with different vendors
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00},
             vendor_id=self.vendor.id
         )
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 2",
             quantity={'placed': 1},
             price={'unit': 15.00},
@@ -206,7 +206,7 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
         result = transfer_order_to_purchase(
-            order=self.sales_order,
+            order=self.order,
             group_by_vendor=True
         )
 
@@ -216,7 +216,7 @@ class OrderToPurchaseServiceTest(TestCase):
         self.assertEqual(result['vendor_groups'], 2)
 
         # Check POs were created with correct vendors
-        pos = PurchaseOrder.objects.filter(id__in=result['purchase_order_ids'])
+        pos = Purchase.objects.filter(id__in=result['purchase_order_ids'])
         vendor_ids = [po.vendor_id for po in pos]
         self.assertIn(self.vendor.id, vendor_ids)
         self.assertIn(vendor2.id, vendor_ids)

@@ -11,7 +11,7 @@ class AuditLog(BaseModel):
     class Meta:
         db_table = 'audit_logs'
         indexes = [
-            models.Index(fields=['model_name', 'id_record']),
+            models.Index(fields=['model_name', 'record_id']),
             models.Index(fields=['user_id', 'dt_created']),
             models.Index(fields=['action', 'dt_created']),
         ]
@@ -31,7 +31,7 @@ class AuditLog(BaseModel):
         max_length=100,
         help_text="Model that was changed (e.g., 'proposal', 'sales_order')"
     )
-    id_record = models.BigIntegerField(
+    record_id = models.BigIntegerField(
         help_text="ID of the record that was changed"
     )
 
@@ -70,14 +70,14 @@ class AuditLog(BaseModel):
     )
 
     def __str__(self):
-        return f"AuditLog: {self.user_id} {self.action} {self.model_name} {self.id_record}"
+        return f"AuditLog: {self.user_id} {self.action} {self.model_name} {self.record_id}"
 
     @classmethod
     def log_action(
         cls,
         user=None,
         model_name=None,
-        id_record=None,
+        record_id=None,
         action=None,
         changes=None,
         ip_address=None,
@@ -99,7 +99,7 @@ class AuditLog(BaseModel):
         return cls.objects.create(
             user_id=user,
             model_name=model_name,
-            id_record=id_record,
+            record_id=record_id,
             action=action,
             changes=changes or {},
             ip_address=ip_address,

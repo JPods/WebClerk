@@ -438,7 +438,8 @@ class SaveWcapiView(APIView):
             
             # Determine the line model based on the parent model
             line_model_map = {
-                'salesorder': 'salesorderline',
+                'order': 'orderline',
+                'salesorder': 'orderline',  # backwards compatibility alias
                 'purchaseorder': 'purchaseorderline',
                 'invoice': 'invoiceline',
                 'quote': 'quoteline',
@@ -1321,15 +1322,15 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
             return api_response(success=False, status_code=500, message='Failed to save', error={'code':'save_failed','details': str(e)})
 
-        # Handle associated lines for header models (salesorder, invoice, etc.)
+        # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'workorder', 'work_order', 'proposal'}
+        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'workorder', 'work_order', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
         
         if is_header_model and 'lines' in data and isinstance(data['lines'], list):
             console_logger.info(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
-            from apps.transactions.models import SalesOrderLine
+            from apps.transactions.models import OrderLine
             
             new_line_ids = []
             for idx, line_data in enumerate(data['lines']):
@@ -1339,12 +1340,12 @@ class SaveWcapiView(APIView):
                     
                     if is_new:
                         # Create new line using direct ORM
-                        line_obj = SalesOrderLine()
-                        line_obj.salesorder_id_id = obj.id
+                        line_obj = OrderLine()
+                        line_obj.order_id_id = obj.id
                         
                         # Copy fields from line_data
                         for field_name, field_value in line_data.items():
-                            if field_name in ('id', 'model_name', 'salesorder_id', 'salesorder_id_id'):
+                            if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
                                 continue
                             if hasattr(line_obj, field_name):
                                 setattr(line_obj, field_name, field_value)
@@ -1355,15 +1356,15 @@ class SaveWcapiView(APIView):
                     else:
                         # Update existing line
                         try:
-                            line_obj = SalesOrderLine.objects.get(id=line_id)
+                            line_obj = OrderLine.objects.get(id=line_id)
                             for field_name, field_value in line_data.items():
-                                if field_name in ('id', 'model_name', 'salesorder_id', 'salesorder_id_id'):
+                                if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
                                     continue
                                 if hasattr(line_obj, field_name):
                                     setattr(line_obj, field_name, field_value)
                             line_obj.save()
                             console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
-                        except SalesOrderLine.DoesNotExist:
+                        except OrderLine.DoesNotExist:
                             console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
                 except Exception as e:
                     console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}")
@@ -1377,13 +1378,13 @@ class SaveWcapiView(APIView):
                     links = refs.get('links', {})
                     if not isinstance(links, dict):
                         links = {}
-                    line_refs = links.get('sales_order_line', [])
+                    line_refs = links.get('order_line', [])
                     if not isinstance(line_refs, list):
                         line_refs = []
                     for new_id in new_line_ids:
                         if {'id': new_id} not in line_refs:
                             line_refs.append({'id': new_id})
-                    links['sales_order_line'] = line_refs
+                    links['order_line'] = line_refs
                     refs['links'] = links
                     obj.refs = refs
                     obj.save(update_fields=['refs'])

@@ -1,5 +1,5 @@
 """Abstract base line model for transaction line items.
-Used by ProposalLine, SalesOrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseOrderLine.
+Used by ProposalLine, OrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseLine.
 The goal is to keep a compact set of JSON fields that capture the rich
 state of a line (pricing, cost, quantities, taxes, metadata, workflow, etc.)
     without exploding the relational schema. Each JSON field has a structured
@@ -114,7 +114,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
 
 def default_cost() -> Dict[str, Any]:
     """Firm cost schema for all line models (exec + sell).
-    Keys mirror what PurchaseOrder totals expect to aggregate.
+    Keys mirror what Purchase totals expect to aggregate.
     """
     return {
         # per-line unit and extended

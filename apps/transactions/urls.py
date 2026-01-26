@@ -25,17 +25,17 @@ app_name = 'transactions'
 # Transaction CRUD views (using DRF ViewSets)
 from apps.transactions.views.transaction_views import (
     ProposalViewSet,
-    SalesOrderViewSet,
-    PurchaseOrderViewSet,
+    OrderViewSet,
+    PurchaseViewSet,
     InvoiceViewSet,
     PaymentViewSet,
 )
-from apps.transactions.views.sales_order_views import SalesOrderToPurchaseOrderView
+from apps.transactions.views.order_views import OrderToPurchaseView
 
 router = DefaultRouter()
 router.register(r'proposals', ProposalViewSet, basename='proposal')
-router.register(r'orders', SalesOrderViewSet, basename='salesorder')
-router.register(r'purchase-orders', PurchaseOrderViewSet, basename='purchaseorder')
+router.register(r'orders', OrderViewSet, basename='order')
+router.register(r'purchases', PurchaseViewSet, basename='purchase')
 router.register(r'invoices', InvoiceViewSet, basename='invoice')
 router.register(r'payments', PaymentViewSet, basename='payment')
 
@@ -43,10 +43,10 @@ urlpatterns = [
     # DRF router URLs for CRUD operations
     path('', include(router.urls)),
 
-    # Backwards-compatible conversion endpoints (legacy paths used by docs/tests)
-    path('proposals/<int:pk>/convert-to-sales-order/', ProposalViewSet.as_view({'post': 'convert_to_order'}), name='proposal-convert-to-sales-order'),
-    path('sales-orders/<int:pk>/convert-to-invoice/', SalesOrderViewSet.as_view({'post': 'convert_to_invoice'}), name='salesorder-convert-to-invoice'),
-    path('sales-orders/<int:pk>/convert-to-purchase-order/', SalesOrderToPurchaseOrderView.as_view(), name='salesorder-convert-to-purchase-order'),
+    # Conversion endpoints
+    path('proposals/<int:pk>/convert-to-order/', ProposalViewSet.as_view({'post': 'convert_to_order'}), name='proposal-convert-to-order'),
+    path('orders/<int:pk>/convert-to-invoice/', OrderViewSet.as_view({'post': 'convert_to_invoice'}), name='order-convert-to-invoice'),
+    path('orders/<int:pk>/convert-to-purchase/', OrderToPurchaseView.as_view(), name='order-convert-to-purchase'),
 
     # Transfer operations
     path('transfers/validate/', validate_transfer, name='validate_transfer'),

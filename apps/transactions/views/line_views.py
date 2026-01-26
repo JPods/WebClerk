@@ -10,17 +10,17 @@ from apps.core.permissions import ViewEditPermission
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
-    SalesOrderSerializer, SalesOrderLineSerializer,
+    OrderSerializer, OrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseOrderSerializer, PurchaseOrderLineSerializer,
+    PurchaseSerializer, PurchaseLineSerializer,
     WorkOrderSerializer, WorkOrderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
     ProjectSerializer,
@@ -72,22 +72,22 @@ class ProposalLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateD
     serializer_class = ProposalLineSerializer
     permission_classes = [BasePermission]
 
-# SalesOrder
-class SalesOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
-    queryset = SalesOrder.objects.all().order_by('-id')
-    serializer_class = SalesOrderSerializer
+# Order
+class OrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
+    queryset = Order.objects.all().order_by('-id')
+    serializer_class = OrderSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class SalesOrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    queryset = SalesOrder.objects.all()
-    serializer_class = SalesOrderSerializer
+class OrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
     permission_classes = [BasePermission]
 
-@extend_schema(summary="List/Create sales order lines")
-class SalesOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
-    queryset = SalesOrderLine.objects.all().order_by('-id')
-    serializer_class = SalesOrderLineSerializer
+@extend_schema(summary="List/Create order lines")
+class OrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
+    queryset = OrderLine.objects.all().order_by('-id')
+    serializer_class = OrderLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
     filterset_fields = ['parent_id', 'status']
@@ -95,9 +95,9 @@ class SalesOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin,
     ordering_fields = ['id', 'parent_id', 'status']
     pagination_class = DefaultPagination
 
-class SalesOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    queryset = SalesOrderLine.objects.all()
-    serializer_class = SalesOrderLineSerializer
+class OrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = OrderLine.objects.all()
+    serializer_class = OrderLineSerializer
     permission_classes = [BasePermission]
 
 # Invoice
@@ -128,32 +128,32 @@ class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDe
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
 
-# PurchaseOrder
-class PurchaseOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
-    queryset = PurchaseOrder.objects.all().order_by('-id')
-    serializer_class = PurchaseOrderSerializer
+# Purchase
+class PurchaseListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
+    queryset = Purchase.objects.all().order_by('-id')
+    serializer_class = PurchaseSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class PurchaseOrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    queryset = PurchaseOrder.objects.all()
-    serializer_class = PurchaseOrderSerializer
+class PurchaseRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = Purchase.objects.all()
+    serializer_class = PurchaseSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create purchase order lines")
-class PurchaseOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
-    queryset = PurchaseOrderLine.objects.all().order_by('-id')
-    serializer_class = PurchaseOrderLineSerializer
+class PurchaseLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
+    queryset = PurchaseLine.objects.all().order_by('-id')
+    serializer_class = PurchaseLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['purchase_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'purchase_id', 'status']
     pagination_class = DefaultPagination
 
-class PurchaseOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    queryset = PurchaseOrderLine.objects.all()
-    serializer_class = PurchaseOrderLineSerializer
+class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = PurchaseLine.objects.all()
+    serializer_class = PurchaseLineSerializer
     permission_classes = [BasePermission]
 
 # WorkOrder
@@ -266,15 +266,15 @@ class FieldAuthMatrixView(APIView):
 
     MODEL_MAP = {
         'proposal-line': ProposalLine,
-    'sales-order-line': SalesOrderLine,
-    'invoice-line': InvoiceLine,
-    'purchase-order-line': PurchaseOrderLine,
+        'order-line': OrderLine,
+        'invoice-line': InvoiceLine,
+        'purchase-line': PurchaseLine,
         'workorder-line': WorkOrderLine,
         'requisition-line': RequisitionLine,
         'proposal': Proposal,
-    'sales-order': SalesOrder,
-    'invoice': Invoice,
-    'purchase-order': PurchaseOrder,
+        'order': Order,
+        'invoice': Invoice,
+        'purchase': Purchase,
         'workorder': WorkOrder,
         'requisition': Requisition,
     }

@@ -9,8 +9,8 @@ from django.db import transaction
 from apps.transactions.models import (
     Proposal,
     ProposalLine,
-    SalesOrder,
-    SalesOrderLine,
+    Order,
+    OrderLine,
 )
 from .transfer_utils import build_line_payload
 
@@ -137,12 +137,12 @@ def transfer_proposal_to_order(
     preserve_proposal: bool = True,
 ) -> Dict:
     """
-    Transfer proposal lines to a new sales order.
+    Transfer proposal lines to a new order.
 
     Returns:
       {
         'success': True,
-        'sales_order_id': int,
+        'order_id': int,
         'proposal_id': int,
         'lines_transferred': int,
         'line_mapping': {proposal_line_id: order_line_id, ...},
@@ -167,12 +167,12 @@ def transfer_proposal_to_order(
         "status": order_status,
         "refs": {"source": {"proposal_id": proposal.id}},
     }
-    # Copy party_id only if SalesOrder supports it and proposal provides it
+    # Copy party_id only if Order supports it and proposal provides it
     proposal_party_id = getattr(proposal, "party_id", None)
-    if proposal_party_id is not None and hasattr(SalesOrder(), "party_id"):
+    if proposal_party_id is not None and hasattr(Order(), "party_id"):
         order_kwargs["party_id"] = proposal_party_id
 
-    order = SalesOrder.objects.create(**order_kwargs)
+    order = Order.objects.create(**order_kwargs)
 
     # If party_id wasn't accepted at create but exists, set after
     if hasattr(order, "party_id") and proposal_party_id is not None and "party_id" not in order_kwargs:
@@ -187,7 +187,7 @@ def transfer_proposal_to_order(
     line_mapping: Dict[int, int] = {}
     for pl in selected_lines:
         qty = _convert_quantity_from_proposal(getattr(pl, "quantity", None))
-        ol = SalesOrderLine.objects.create(
+        ol = OrderLine.objects.create(
             parent=order,
             price=pl.price or {},
             cost=getattr(pl, "cost", None) or {},
@@ -217,7 +217,7 @@ def transfer_proposal_to_order(
 
     return {
         "success": True,
-        "sales_order_id": order.id,
+        "order_id": order.id,
         "proposal_id": proposal.id,
         "lines_transferred": len(selected_lines),
         "line_mapping": line_mapping,

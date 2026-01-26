@@ -1,0 +1,2 @@
+[2026-01-26 04:46:57] BASELINE: Initial baseline capture | on_hand=100.0, on_so=0.0, on_po=0.0
+[2026-01-26 04:47:56] ORDER_CREATED: Created Order #40 with 15.0 units of item 240 | order #40 | on_hand=100.0, on_so=0.0, on_po=0.0

@@ -1,0 +1,160 @@
+{
+  "item_id": 240,
+  "events": [
+    {
+      "timestamp": "2026-01-26T04:46:57.522947",
+      "event_type": "BASELINE",
+      "description": "Initial baseline capture",
+      "transaction": null,
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T04:46:56.976395",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "invoiced": 0,
+          "allocated": 0,
+          "available": 100,
+          "sell_default": 1,
+          "purchase_default": 1
+        }
+      },
+      "pending_records": [],
+      "pending_count": 0,
+      "transaction_counts": {
+        "order_lines": 1,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        },
+        {
+          "type": "invoice_line",
+          "error": "Invalid field name(s) given in select_related: 'parent'. Choices are: invoice_id"
+        },
+        {
+          "type": "proposal_line",
+          "error": "Invalid field name(s) given in select_related: 'parent'. Choices are: proposal_id"
+        }
+      ],
+      "delta": null
+    },
+    {
+      "timestamp": "2026-01-26T04:47:56.190240",
+      "event_type": "ORDER_CREATED",
+      "description": "Created Order #40 with 15.0 units of item 240",
+      "transaction": {
+        "type": "order",
+        "id": 40,
+        "line_id": 97,
+        "quantity": 15.0
+      },
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T04:47:55.447649",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "invoiced": 0,
+          "allocated": 0,
+          "available": 100,
+          "sell_default": 1,
+          "purchase_default": 1
+        }
+      },
+      "pending_records": [],
+      "pending_count": 0,
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": {
+        "qty_on_hand": 0.0,
+        "qty_allocated": 0.0,
+        "qty_available": 0.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0
+      }
+    }
+  ]
+}

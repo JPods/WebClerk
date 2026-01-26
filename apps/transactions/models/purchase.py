@@ -4,15 +4,16 @@ from typing import Dict, TYPE_CHECKING
 from django.db import models
 
 from .base_transaction_model import TransactionBaseModel
-from apps.transactions.services.purchase_order_totals import compute_purchase_order_sell_cost_totals
+from apps.transactions.services.purchase_totals import compute_purchase_sell_cost_totals
 
-class PurchaseOrder(TransactionBaseModel):
+
+class Purchase(TransactionBaseModel):
     class Meta:
-        db_table = "purchase_orders"
+        db_table = "purchases"
 
     def update_sell_cost_totals(self, persist: bool = False) -> Dict[str, Dict[str, float]]:
-        """Compute sell/cost/totals from lines. For PO, sell is empty, cost is aggregated."""
-        computed = compute_purchase_order_sell_cost_totals(self)
+        """Compute sell/cost/totals from lines. For Purchase, sell is empty, cost is aggregated."""
+        computed = compute_purchase_sell_cost_totals(self)
 
         if persist:
             update_fields: list[str] = []
@@ -32,9 +33,10 @@ class PurchaseOrder(TransactionBaseModel):
         return computed
 
     def __str__(self) -> str:
-        return f"PurchaseOrder #{self.id} ({getattr(self, 'ida', '') or ''})"
+        return f"Purchase #{self.id} ({getattr(self, 'ida', '') or ''})"
+
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .purchase_order_line import PurchaseOrderLine
+    from .purchase_line import PurchaseLine
 
-__all__ = ["PurchaseOrder"]
+__all__ = ["Purchase"]

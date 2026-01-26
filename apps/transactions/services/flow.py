@@ -9,9 +9,9 @@ from django.core.exceptions import ValidationError
 
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine
 )
 from apps.docs.models.linkage import Linkage
@@ -29,7 +29,7 @@ from apps.products.models.inventory_layer import InventoryLayer
 # 1. If you add a new JSONField to BaseLineModel (or concrete line models),
 #    append its name here AND add a sample value in the line copy parity test.
 # 2. The test `tests/test_line_copy_field_parity.py` will fail if a JSONField
-#    exists on a representative line model (SalesOrderLine) that's not listed.
+#    exists on a representative line model (OrderLine) that's not listed.
 # 3. Fields that are scalar (status, type_sale, probability) are handled
 #    explicitly below and are not part of this list.
 # 4. Missing attributes are skipped safely so forward additions won't break
@@ -56,8 +56,8 @@ class ReceiveLine:
     serial_batch: str | None = None
 
 
-def _copy_common_line_fields(src: ProposalLine | SalesOrderLine | PurchaseOrderLine,
-                             dst: SalesOrderLine | InvoiceLine | PurchaseOrderLine):
+def _copy_common_line_fields(src: ProposalLine | OrderLine | PurchaseLine,
+                             dst: OrderLine | InvoiceLine | PurchaseLine):
     """Copy scalar + JSON attributes from one line to a new line instance.
 
     Uses centralized LINE_JSON_FIELDS_TO_COPY for maintainability. Adding a
@@ -187,8 +187,8 @@ def ensure_linkage_for_lines(lines) -> int:
     return linkage.id
 
 
-def proposal_to_sales_order(proposal: Proposal, order_no: Optional[str] = None) -> SalesOrder:
-    so = SalesOrder.objects.create(order_no=order_no or f"SO-{proposal.pk or 'new'}")
+def proposal_to_order(proposal: Proposal, order_no: Optional[str] = None) -> Order:
+    so = Order.objects.create(order_no=order_no or f"SO-{proposal.pk or 'new'}")
     src_lines = list(ProposalLine.objects.filter(parent=proposal).order_by('id'))
     if src_lines:
         linkage_id = ensure_linkage_for_lines(src_lines)
@@ -196,7 +196,7 @@ def proposal_to_sales_order(proposal: Proposal, order_no: Optional[str] = None) 
         linkage_id = None
     # Copy lines after ensuring linkage id
     for pl in src_lines:
-        sol = SalesOrderLine(parent=so)
+        sol = OrderLine(parent=so)
         _copy_common_line_fields(pl, sol)
         if linkage_id:
             # Ensure propagated (could already be present from copy)
@@ -213,10 +213,10 @@ def proposal_to_sales_order(proposal: Proposal, order_no: Optional[str] = None) 
 
 
 @transaction.atomic
-def sales_order_to_invoice(so: SalesOrder, invoice_no: Optional[str] = None) -> Invoice:
+def order_to_invoice(so: Order, invoice_no: Optional[str] = None) -> Invoice:
     # invoice_no is deprecated; ida is auto-generated from id.
     inv = Invoice.objects.create()
-    src_lines = list(SalesOrderLine.objects.filter(parent=so).order_by('id'))
+    src_lines = list(OrderLine.objects.filter(parent=so).order_by('id'))
     linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
     for sol in src_lines:
         il = InvoiceLine(parent=inv)
@@ -235,17 +235,17 @@ def sales_order_to_invoice(so: SalesOrder, invoice_no: Optional[str] = None) -> 
 
 
 @transaction.atomic
-def sales_order_to_purchase_order(so: SalesOrder, po_no: Optional[str] = None) -> PurchaseOrder:
-    """Create a supporting PurchaseOrder from a SalesOrder.
+def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> Purchase:
+    """Create a supporting Purchase from an Order.
 
     Propagates / creates linkage id across involved lines to maintain unified
     comment & lineage chain.
     """
-    po = PurchaseOrder.objects.create(po_no=po_no or f"PO-SO-{so.pk or 'new'}")
-    src_lines = list(SalesOrderLine.objects.filter(parent=so).order_by('id'))
+    po = Purchase.objects.create(po_no=po_no or f"PO-SO-{so.pk or 'new'}")
+    src_lines = list(OrderLine.objects.filter(parent=so).order_by('id'))
     linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
     for sol in src_lines:
-        pol = PurchaseOrderLine(parent=po)
+        pol = PurchaseLine(purchase=po)
         _copy_common_line_fields(sol, pol)
         if linkage_id:
             refs = getattr(pol, 'refs', {}) or {}
@@ -259,14 +259,14 @@ def sales_order_to_purchase_order(so: SalesOrder, po_no: Optional[str] = None) -
     return po
 
 
-def _resolve_item_id_from_line(line: PurchaseOrderLine | SalesOrderLine | ProposalLine) -> Optional[int]:
+def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine) -> Optional[int]:
     item = getattr(line, 'item', {}) or {}
     # Prefer id_num, fallback: try 'id' or 'item_id' if present
     return item.get('id_num') or item.get('id') or item.get('item_id')
 
 
 @transaction.atomic
-def receive_purchase_order(po: PurchaseOrder,
+def receive_purchase_order(po: Purchase,
                            receipt_no: str,
                            lines: Sequence[ReceiveLine]) -> dict:
     """Post a receipt for a PO, create inventory stacks, and inventory deltas.
@@ -278,7 +278,7 @@ def receive_purchase_order(po: PurchaseOrder,
 
     Returns a summary dict with created receipt id, stack ids, and deltas created.
     """
-    from apps.transactions.models.purchase_receipt import PurchaseReceipt
+    from apps.transactions.models.receipt import Receipt
     from apps.core.models.pending import Pending
     from django.utils import timezone
     import uuid
@@ -286,14 +286,14 @@ def receive_purchase_order(po: PurchaseOrder,
     if not receipt_no:
         raise ValidationError({'receipt_no': 'Required'})
 
-    receipt = PurchaseReceipt.objects.create(receipt_no=receipt_no)
+    receipt = Receipt.objects.create(receipt_no=receipt_no)
     created_stack_ids: list[int] = []
     deltas_created = 0
 
     for rl in lines:
         try:
-            pol = PurchaseOrderLine.objects.select_related('parent').get(pk=rl.po_line_id, parent=po)
-        except PurchaseOrderLine.DoesNotExist:
+            pol = PurchaseLine.objects.select_related('purchase').get(pk=rl.po_line_id, purchase=po)
+        except PurchaseLine.DoesNotExist:
             raise ValidationError({'lines': f'po_line_id {rl.po_line_id} not found for this PO'})
         item_id = _resolve_item_id_from_line(pol)
         if not item_id:

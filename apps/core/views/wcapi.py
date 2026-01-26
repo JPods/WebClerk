@@ -38,12 +38,14 @@ class WCAPIGetView(APIView):
 
     http_method_names = ["get", "options", "head"]
 
-    LINE_MODEL_KEYS = {"proposal", "salesorder", "invoice", "purchaseorder", "workorder"}
+    LINE_MODEL_KEYS = {"proposal", "order", "salesorder", "invoice", "purchase", "purchaseorder", "workorder"}
     LINE_MODEL_MAP = {
         "proposal": "proposal_line",
-        "salesorder": "sales_order_line",
+        "order": "order_line",
+        "salesorder": "order_line",  # backwards compatibility alias
         "invoice": "invoice_line",
-        "purchaseorder": "purchase_order_line",
+        "purchase": "purchase_line",
+        "purchaseorder": "purchase_line",  # backwards compatibility alias
         "workorder": "work_order_line",
     }
 
@@ -456,7 +458,7 @@ class WCAPIGetView(APIView):
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
             # DEBUG: Check lines before serialization
-            if model_key in ('salesorder', 'sales_order'):
+            if model_key in ('salesorder', 'sales_order', 'order'):
                 print(f"[WCAPI DEBUG] Fetched {model_key} id={record_id}")
                 print(f"[WCAPI DEBUG] obj.lines.all() count: {obj.lines.count()}")
                 print(f"[WCAPI DEBUG] obj.lines.all() IDs: {list(obj.lines.values_list('id', flat=True))}")
@@ -702,7 +704,6 @@ Retrieve records from any configured model with comprehensive query support.
                 required=True,
                 location=OpenApiParameter.QUERY,
                 description="Model key from WCAPI registry (e.g., 'contact', 'invoice', 'salesorder')",
-                examples=["proposal", "salesorder", "invoice", "contact"],
             ),
             OpenApiParameter(
                 name="id",

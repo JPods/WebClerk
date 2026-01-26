@@ -2,12 +2,12 @@ import pytest
 from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
-from apps.transactions.models import SalesOrder, SalesOrderLine
+from apps.transactions.models import Order, OrderLine
 from apps.core.models import Contact
 
 
-class SalesOrderModelTest(TestCase):
-    """Test cases for SalesOrder model."""
+class OrderModelTest(TestCase):
+    """Test cases for Order model."""
 
     def setUp(self):
         """Set up test data."""
@@ -22,49 +22,49 @@ class SalesOrderModelTest(TestCase):
             email="jane.smith@example.com"
         )
 
-    def test_sales_order_creation(self):
-        """Test basic sales order creation."""
-        sales_order = SalesOrder.objects.create(
+    def test_order_creation(self):
+        """Test basic order creation."""
+        order = Order.objects.create(
             ida="SO-001",
             status="planned",
             customer_id=self.customer.id,
             vendor_id=self.vendor.id
         )
 
-        self.assertEqual(sales_order.ida, "SO-001")
-        self.assertEqual(sales_order.status, "planned")
-        self.assertEqual(sales_order.customer_id, self.customer.id)
-        self.assertEqual(sales_order.vendor_id, self.vendor.id)
-        self.assertIsNotNone(sales_order.dt_created)
-        self.assertIsNotNone(sales_order.dt_modified)
+        self.assertEqual(order.ida, "SO-001")
+        self.assertEqual(order.status, "planned")
+        self.assertEqual(order.customer_id, self.customer.id)
+        self.assertEqual(order.vendor_id, self.vendor.id)
+        self.assertIsNotNone(order.dt_created)
+        self.assertIsNotNone(order.dt_modified)
 
-    def test_sales_order_str_method(self):
-        """Test string representation of sales order."""
-        sales_order = SalesOrder.objects.create(
+    def test_order_str_method(self):
+        """Test string representation of order."""
+        order = Order.objects.create(
             ida="SO-001",
             status="planned",
             customer_id=self.customer.id
         )
 
         expected_str = "SO-001"
-        self.assertEqual(str(sales_order), expected_str)
+        self.assertEqual(str(order), expected_str)
 
-    def test_sales_order_name_property(self):
+    def test_order_name_property(self):
         """Test name property getter and setter."""
-        sales_order = SalesOrder.objects.create(
+        order = Order.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
         # Test getter with no name fields
-        self.assertEqual(sales_order.name, "")
+        self.assertEqual(order.name, "")
 
         # Test setter (should set _transient_order_no)
-        sales_order.name = "Test Order"
-        self.assertEqual(sales_order._transient_order_no, "Test Order")
-        self.assertEqual(sales_order.name, "Test Order")
+        order.name = "Test Order"
+        self.assertEqual(order._transient_order_no, "Test Order")
+        self.assertEqual(order.name, "Test Order")
 
-    def test_sales_order_status_choices(self):
+    def test_order_status_choices(self):
         """Test that status choices are properly defined."""
         expected_choices = [
             ('planned', 'Planned'),
@@ -75,25 +75,25 @@ class SalesOrderModelTest(TestCase):
             ('canceled', 'Canceled'),
         ]
 
-        self.assertEqual(SalesOrder.STATUS_CHOICES, expected_choices)
+        self.assertEqual(Order.STATUS_CHOICES, expected_choices)
 
-    def test_sales_order_update_sell_cost_totals_without_persist(self):
+    def test_order_update_sell_cost_totals_without_persist(self):
         """Test update_sell_cost_totals method without persistence."""
-        sales_order = SalesOrder.objects.create(
+        order = Order.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
         # Create some line items
-        line1 = SalesOrderLine.objects.create(
-            parent=sales_order,
+        line1 = OrderLine.objects.create(
+            parent=order,
             description="Item 1",
             quantity={'placed': 2, 'remaining': 2},
             price={'unit': 10.00, 'extended': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
-        line2 = SalesOrderLine.objects.create(
-            parent=sales_order,
+        line2 = OrderLine.objects.create(
+            parent=order,
             description="Item 2",
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 15.00, 'extended': 15.00},
@@ -101,7 +101,7 @@ class SalesOrderModelTest(TestCase):
         )
 
         # Test totals calculation
-        result = sales_order.update_sell_cost_totals(persist=False)
+        result = order.update_sell_cost_totals(persist=False)
 
         self.assertIn('sell', result)
         self.assertIn('cost', result)
@@ -121,16 +121,16 @@ class SalesOrderModelTest(TestCase):
         self.assertEqual(result['totals']['margin'], 7.00)
         self.assertAlmostEqual(result['totals']['margin_pc'], 20.00, places=2)
 
-    def test_sales_order_update_sell_cost_totals_with_persist(self):
+    def test_order_update_sell_cost_totals_with_persist(self):
         """Test update_sell_cost_totals method with persistence."""
-        sales_order = SalesOrder.objects.create(
+        order = Order.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
         # Create a line item
-        SalesOrderLine.objects.create(
-            parent=sales_order,
+        OrderLine.objects.create(
+            parent=order,
             description="Test Item",
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 100.00, 'extended': 100.00},
@@ -138,21 +138,21 @@ class SalesOrderModelTest(TestCase):
         )
 
         # Update totals with persistence
-        result = sales_order.update_sell_cost_totals(persist=True)
+        result = order.update_sell_cost_totals(persist=True)
 
         # Refresh from database
-        sales_order.refresh_from_db()
+        order.refresh_from_db()
 
         # Check that totals were saved
-        self.assertEqual(sales_order.sell['total'], 100.00)
-        self.assertEqual(sales_order.cost['total'], 80.00)
-        self.assertEqual(sales_order.totals['total'], 100.00)
-        self.assertEqual(sales_order.totals['cost'], 80.00)
-        self.assertEqual(sales_order.totals['margin'], 20.00)
+        self.assertEqual(order.sell['total'], 100.00)
+        self.assertEqual(order.cost['total'], 80.00)
+        self.assertEqual(order.totals['total'], 100.00)
+        self.assertEqual(order.totals['cost'], 80.00)
+        self.assertEqual(order.totals['margin'], 20.00)
 
 
-class SalesOrderLineModelTest(TestCase):
-    """Test cases for SalesOrderLine model."""
+class OrderLineModelTest(TestCase):
+    """Test cases for OrderLine model."""
 
     def setUp(self):
         """Set up test data."""
@@ -161,42 +161,42 @@ class SalesOrderLineModelTest(TestCase):
             name_last="Doe",
             email="john.doe@example.com"
         )
-        self.sales_order = SalesOrder.objects.create(
+        self.order = Order.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
-    def test_sales_order_line_creation(self):
-        """Test basic sales order line creation."""
-        line = SalesOrderLine.objects.create(
-            parent=self.sales_order,
+    def test_order_line_creation(self):
+        """Test basic order line creation."""
+        line = OrderLine.objects.create(
+            parent=self.order,
             description="Test Item",
             quantity={'placed': 5, 'remaining': 5},
             price={'unit': 20.00},
             cost={'unit': 15.00}
         )
 
-        self.assertEqual(line.parent, self.sales_order)
+        self.assertEqual(line.parent, self.order)
         self.assertEqual(line.description, "Test Item")
         self.assertEqual(line.quantity['placed'], 5)
         self.assertEqual(line.price['unit'], 20.00)
         self.assertEqual(line.cost['unit'], 15.00)
 
-    def test_sales_order_line_parent_ref_property(self):
+    def test_order_line_parent_ref_property(self):
         """Test parent_ref_id property."""
-        line = SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        line = OrderLine.objects.create(
+            parent=self.order,
             description="Test Item",
             quantity={'placed': 1, 'remaining': 1}
         )
 
         # Test getter
-        self.assertEqual(line.salesorder_ref_id, self.sales_order.id)
+        self.assertEqual(line.order_ref_id, self.order.id)
 
         # Test setter
-        new_sales_order = SalesOrder.objects.create(
+        new_order = Order.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
-        line.salesorder_ref_id = new_sales_order.id
-        self.assertEqual(line.parent_id, new_sales_order.id)
+        line.order_ref_id = new_order.id
+        self.assertEqual(line.parent_id, new_order.id)

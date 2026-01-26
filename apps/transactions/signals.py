@@ -1,14 +1,16 @@
 from __future__ import annotations
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
-from apps.transactions.models import ProposalLine, SalesOrderLine, InvoiceLine, Proposal, SalesOrder, Invoice, Payment
+from apps.transactions.models import ProposalLine, OrderLine, InvoiceLine, Proposal, Order, Invoice, Payment
 from apps.transactions.services.email_notifications import TransactionEmailService
 
 @receiver(post_save, sender=ProposalLine)
 def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
     if not created:
         return
-    header = instance.proposal_id
+    header = instance.parent
+    if not header:
+        return
     refs = header.refs or {}
     links = refs.setdefault("links", {})
     lst = links.setdefault("proposal_line", [])
@@ -21,24 +23,28 @@ def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
 @receiver(post_save, sender=ProposalLine)
 def update_proposal_totals_on_line_save(sender, instance: ProposalLine, **kwargs):
     """Update proposal totals when a line is saved."""
-    proposal = instance.proposal_id
-    proposal.update_sell_cost_totals(persist=True)
+    proposal = instance.parent
+    if proposal:
+        proposal.update_sell_cost_totals(persist=True)
 
 
 @receiver(post_delete, sender=ProposalLine)
 def update_proposal_totals_on_line_delete(sender, instance: ProposalLine, **kwargs):
     """Update proposal totals when a line is deleted."""
-    proposal = instance.proposal_id
-    proposal.update_sell_cost_totals(persist=True)
+    proposal = instance.parent
+    if proposal:
+        proposal.update_sell_cost_totals(persist=True)
 
-@receiver(post_save, sender=SalesOrderLine)
-def maintain_sales_order_links(sender, instance: SalesOrderLine, created, **kwargs):
+@receiver(post_save, sender=OrderLine)
+def maintain_order_links(sender, instance: OrderLine, created, **kwargs):
     if not created:
         return
-    header = instance.salesorder_id
+    header = instance.order
+    if not header:
+        return
     refs = header.refs or {}
     links = refs.setdefault("links", {})
-    lst = links.setdefault("sales_order_line", [])
+    lst = links.setdefault("order_line", [])
     if instance.id not in lst:
         lst.append(instance.id)
         header.refs = refs
@@ -48,7 +54,9 @@ def maintain_sales_order_links(sender, instance: SalesOrderLine, created, **kwar
 def maintain_invoice_links(sender, instance: InvoiceLine, created, **kwargs):
     if not created:
         return
-    header = instance.invoice_id
+    header = instance.parent
+    if not header:
+        return
     refs = header.refs or {}
     links = refs.setdefault("links", {})
     lst = links.setdefault("invoice_line", [])
@@ -82,8 +90,8 @@ def send_proposal_submitted_notification(sender, instance: Proposal, created, **
         TransactionEmailService.send_proposal_submitted_notification(instance)
 
 
-@receiver(post_save, sender=SalesOrder)
-def send_order_created_notification(sender, instance: SalesOrder, created, **kwargs):
+@receiver(post_save, sender=Order)
+def send_order_created_notification(sender, instance: Order, created, **kwargs):
     """Send email when order is created."""
     if not created:
         return

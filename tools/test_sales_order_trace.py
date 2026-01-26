@@ -46,7 +46,7 @@ print(f"  Added line {line3.pk}: Item 251, qty=3")
 # Check for pending records BEFORE processing
 pending_qs = Pending.objects.filter(
     model_name="item",
-    id_record__in=["249", "250", "251"],
+    record_id__in=["249", "250", "251"],
     dt_processed=0
 )
 print(f"\n--- Unprocessed Pending Records: {pending_qs.count()} ---")

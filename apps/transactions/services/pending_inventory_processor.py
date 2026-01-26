@@ -100,7 +100,7 @@ def process_line_item_pending(
     )
     
     if item_id:
-        query &= Q(id_record=str(item_id))
+        query &= Q(record_id=str(item_id))
     
     # Get pending records ordered by creation (FIFO)
     pending_records = Pending.objects.filter(query).order_by('dt_created')[:limit]
@@ -188,57 +188,57 @@ def _process_pending_for_item(
         'skipped_missing_item': 0,
     }
     
-    # Get the item
-    try:
-        item = Item.objects.select_for_update(nowait=True).get(pk=item_pk)
-    except Item.DoesNotExist:
-        logger.warning(f"Item {item_pk} not found, marking pending records as skipped")
-        result['skipped_missing_item'] = len(pending_records)
-        return result
-    except Exception as e:
-        # Could be locked
-        if not force_locked:
-            logger.debug(f"Item {item_pk} appears locked, skipping: {e}")
-            result['skipped_locked'] = len(pending_records)
-            return result
-        # Force mode - try regular get
-        item = Item.objects.get(pk=item_pk)
-    
-    # TRACE: Processing start
-    trace_pending_processing_start(
-        item_id=item_pk,
-        item_ida=item.ida or item.sku or item.name,
-        pending_count=len(pending_records),
-        current_quantity=item.quantity or {},
-    )
-    
-    # Aggregate quantity changes from all pending records
-    on_so_delta = Decimal('0')
-    on_po_delta = Decimal('0')
-    on_wo_delta = Decimal('0')
-    on_p_delta = Decimal('0')
-    invoiced_delta = Decimal('0')
-    
-    for pending in pending_records:
-        data = pending.data or {}
-        on_so_delta += Decimal(str(data.get('on_so', 0) or 0))
-        on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
-        on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
-        on_p_delta += Decimal(str(data.get('on_p', 0) or 0))
-        invoiced_delta += Decimal(str(data.get('invoiced', 0) or 0))
-    
-    logger.debug(
-        f"Item {item_pk}: SO={on_so_delta:+}, PO={on_po_delta:+}, "
-        f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IV={invoiced_delta:+}"
-    )
-    
-    if dry_run:
-        logger.info(f"[DRY RUN] Would update item {item_pk} quantities")
-        result['processed'] = len(pending_records)
-        return result
-    
-    # Apply updates within a transaction
+    # Wrap entire operation in transaction for select_for_update to work
     with db_transaction.atomic():
+        # Get the item with lock
+        try:
+            item = Item.objects.select_for_update(nowait=True).get(pk=item_pk)
+        except Item.DoesNotExist:
+            logger.warning(f"Item {item_pk} not found, marking pending records as skipped")
+            result['skipped_missing_item'] = len(pending_records)
+            return result
+        except Exception as e:
+            # Could be locked
+            if not force_locked:
+                logger.debug(f"Item {item_pk} appears locked, skipping: {e}")
+                result['skipped_locked'] = len(pending_records)
+                return result
+            # Force mode - try regular get
+            item = Item.objects.get(pk=item_pk)
+        
+        # TRACE: Processing start
+        trace_pending_processing_start(
+            item_id=item_pk,
+            item_ida=item.ida or item.sku or item.name,
+            pending_count=len(pending_records),
+            current_quantity=item.quantity or {},
+        )
+        
+        # Aggregate quantity changes from all pending records
+        on_so_delta = Decimal('0')
+        on_po_delta = Decimal('0')
+        on_wo_delta = Decimal('0')
+        on_p_delta = Decimal('0')
+        invoiced_delta = Decimal('0')
+        
+        for pending in pending_records:
+            data = pending.data or {}
+            on_so_delta += Decimal(str(data.get('on_so', 0) or 0))
+            on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
+            on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
+            on_p_delta += Decimal(str(data.get('on_p', 0) or 0))
+            invoiced_delta += Decimal(str(data.get('invoiced', 0) or 0))
+        
+        logger.debug(
+            f"Item {item_pk}: SO={on_so_delta:+}, PO={on_po_delta:+}, "
+            f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IV={invoiced_delta:+}"
+        )
+        
+        if dry_run:
+            logger.info(f"[DRY RUN] Would update item {item_pk} quantities")
+            result['processed'] = len(pending_records)
+            return result
+        
         # Get current values from item.quantity JSON
         quantity = item.quantity or {}
         

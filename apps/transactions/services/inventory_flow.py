@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from apps.transactions.models import SalesOrder, SalesOrderLine, Invoice, InvoiceLine, PurchaseOrder
+from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, Purchase
 from apps.products.models.item import Item
 from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
@@ -18,9 +18,9 @@ class InventoryFlowError(Exception):
 
 
 @transaction.atomic
-def reserve_inventory_for_order(order: SalesOrder) -> Dict[str, int]:
+def reserve_inventory_for_order(order: Order) -> Dict[str, int]:
     """
-    Create inventory reservations for sales order lines.
+    Create inventory reservations for order lines.
 
     Reserves available inventory to prevent overselling. Only reserves for items
     with sufficient available stock.
@@ -39,7 +39,7 @@ def reserve_inventory_for_order(order: SalesOrder) -> Dict[str, int]:
     lines_reserved = 0
     total_reserved = Decimal(0)
 
-    for line in SalesOrderLine.objects.filter(parent=order).select_related('parent'):
+    for line in OrderLine.objects.filter(parent=order).select_related('parent'):
         qty_needed = _get_order_quantity_needed(line)
         if qty_needed <= 0:
             continue
@@ -221,7 +221,7 @@ def release_inventory_on_invoice(invoice: Invoice) -> Dict[str, float]:
     }
 
 
-def _get_order_quantity_needed(line: SalesOrderLine) -> Decimal:
+def _get_order_quantity_needed(line: OrderLine) -> Decimal:
     """Get quantity that still needs to be fulfilled/reserved."""
     qty = line.quantity or {}
     ordered = Decimal(str(qty.get('remaining', qty.get('ordered', 0))))
@@ -242,22 +242,22 @@ def _resolve_item_id_from_line(line) -> Optional[int]:
 
 
 def _get_order_id_from_invoice_line(line: InvoiceLine) -> Optional[int]:
-    """Get original sales order ID from invoice line refs."""
+    """Get original order ID from invoice line refs."""
     refs = getattr(line, 'refs', {}) or {}
     source = refs.get('source', {})
-    return source.get('sales_order_id')
+    return source.get('order_id')
 
 
 def _get_order_line_ids_from_invoice_line(line: InvoiceLine) -> List[int]:
-    """Get original sales order line IDs from invoice line refs."""
+    """Get original order line IDs from invoice line refs."""
     refs = getattr(line, 'refs', {}) or {}
     source = refs.get('source', {})
-    order_line_id = source.get('sales_order_line_id')
+    order_line_id = source.get('order_line_id')
     return [order_line_id] if order_line_id else []
 
 
 @transaction.atomic
-def cancel_order_inventory_reservations(order: SalesOrder) -> Dict[str, int]:
+def cancel_order_inventory_reservations(order: Order) -> Dict[str, int]:
     """
     Release all inventory reservations for a canceled order.
 
@@ -268,7 +268,7 @@ def cancel_order_inventory_reservations(order: SalesOrder) -> Dict[str, int]:
         }
     """
     reservations = InventoryReservation.objects.filter(
-        source_type='sales_order',
+        source_type='order',
         source_id=order.id
     )
 
@@ -320,9 +320,9 @@ def cancel_order_inventory_reservations(order: SalesOrder) -> Dict[str, int]:
     }
 
 
-def create_inventory_deltas_for_order(order: SalesOrder) -> int:
+def create_inventory_deltas_for_order(order: Order) -> int:
     """
-    Create inventory deltas when a sales order is created.
+    Create inventory deltas when an order is created.
 
     Increases quantity_on_order for all order lines (or decreases for returns).
 
@@ -331,7 +331,7 @@ def create_inventory_deltas_for_order(order: SalesOrder) -> int:
     """
     deltas_created = 0
 
-    for line in SalesOrderLine.objects.filter(parent=order):
+    for line in OrderLine.objects.filter(parent=order):
         qty_ordered = _get_order_quantity_needed(line)
         if qty_ordered == 0:
             continue
@@ -342,18 +342,18 @@ def create_inventory_deltas_for_order(order: SalesOrder) -> int:
 
         _create_inventory_delta(
             item_id=item_id,
-            source_type='sales_order_line',
+            source_type='order_line',
             source_id=order.id,
             source_line_id=line.id,
             quantity_on_order_delta=qty_ordered,  # Increase on-order (or decrease for returns)
-            notes=f"Sales order {order.id} - ordered {qty_ordered} units"
+            notes=f"Order {order.id} - ordered {qty_ordered} units"
         )
         deltas_created += 1
 
     return deltas_created
 
 
-def create_inventory_deltas_for_purchase_order(po: PurchaseOrder) -> int:
+def create_inventory_deltas_for_purchase_order(po: Purchase) -> int:
     """
     Create inventory deltas when a purchase order is created.
 
@@ -364,8 +364,8 @@ def create_inventory_deltas_for_purchase_order(po: PurchaseOrder) -> int:
     """
     deltas_created = 0
 
-    from apps.transactions.models import PurchaseOrderLine
-    for line in PurchaseOrderLine.objects.filter(parent=po):
+    from apps.transactions.models import PurchaseLine
+    for line in PurchaseLine.objects.filter(purchase=po):
         qty_ordered = getattr(line, 'quantity', {}).get('ordered', 0) or 0
         if qty_ordered == 0:
             continue

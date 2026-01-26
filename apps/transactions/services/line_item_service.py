@@ -48,10 +48,10 @@ from apps.transactions.services.trace_debug import (
 
 if TYPE_CHECKING:
     from apps.transactions.models import (
-        SalesOrderLine,
+        OrderLine,
         ProposalLine,
         InvoiceLine,
-        PurchaseOrderLine,
+        PurchaseLine,
         WorkOrderLine,
     )
 
@@ -60,23 +60,24 @@ logger = logging.getLogger(__name__)
 
 # Model mapping for dynamic line creation
 LINE_MODEL_MAP = {
-    'sales_order': 'apps.transactions.models.SalesOrderLine',
-    'salesorder': 'apps.transactions.models.SalesOrderLine',
-    'order': 'apps.transactions.models.SalesOrderLine',
+    'sales_order': 'apps.transactions.models.OrderLine',
+    'salesorder': 'apps.transactions.models.OrderLine',
+    'order': 'apps.transactions.models.OrderLine',
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
-    'purchase_order': 'apps.transactions.models.PurchaseOrderLine',
-    'purchaseorder': 'apps.transactions.models.PurchaseOrderLine',
+    'purchase': 'apps.transactions.models.PurchaseLine',
+    'purchase_order': 'apps.transactions.models.PurchaseLine',
+    'purchaseorder': 'apps.transactions.models.PurchaseLine',
     'work_order': 'apps.transactions.models.WorkOrderLine',
     'workorder': 'apps.transactions.models.WorkOrderLine',
 }
 
 # FK field names for each line model (the field pointing to the parent transaction)
 LINE_FK_FIELD_MAP = {
-    'salesorderline': 'salesorder_id',
+    'orderline': 'order',
     'proposalline': 'proposal_id',
     'invoiceline': 'invoice_id',
-    'purchaseorderline': 'purchaseorder_id',
+    'purchaseline': 'purchase',
     'workorderline': 'workorder_id',
 }
 
@@ -118,6 +119,7 @@ PENDING_TYPE_MAP = {
     'order': 'SO',
     'proposal': 'PP',  # Proposals don't affect inventory until converted
     'invoice': 'IV',
+    'purchase': 'PO',
     'purchase_order': 'PO',
     'purchaseorder': 'PO',
     'work_order': 'WO',
@@ -202,7 +204,7 @@ class LineItemService:
         Add an item to a transaction as a new line.
         
         Args:
-            transaction: The parent transaction (SalesOrder, Proposal, Invoice, PurchaseOrder, WorkOrder)
+            transaction: The parent transaction (Order, Proposal, Invoice, Purchase, WorkOrder)
             item_id: ID of the item to add
             quantity: Quantity to order (default: 1)
             unit_price: Override unit price (if None, uses item's default price)
@@ -958,7 +960,7 @@ class LineItemService:
         
         pending = Pending.objects.create(
             model_name='item',
-            id_record=str(item.pk),
+            record_id=str(item.pk),
             purpose=PURPOSE_LINE_ADD,
             name=f'{pending_type} Line Add: {item.ida or item.pk}',
             data=pending_data,
@@ -1064,7 +1066,7 @@ class LineItemService:
         
         pending = Pending.objects.create(
             model_name='item',
-            id_record=str(item_id) if item_id else '',
+            record_id=str(item_id) if item_id else '',
             purpose=PURPOSE_LINE_QTY_CHANGE,
             name=f'{pending_type} Qty Change: {item_ida or item_id} ({quantity_delta:+.2f})',
             data=pending_data,
@@ -1163,7 +1165,7 @@ class LineItemService:
         
         pending = Pending.objects.create(
             model_name='item',
-            id_record=str(item_id) if item_id else '',
+            record_id=str(item_id) if item_id else '',
             purpose=PURPOSE_LINE_DELETE,
             name=f'{pending_type} Line Delete: {item_ida or item_id} (-{quantity_released:.2f})',
             data=pending_data,

@@ -9,9 +9,8 @@ def _d(x: Any, places: int = 2) -> Decimal:
     except Exception:
         return Decimal(0)
 
-def compute_purchase_order_sell_cost_totals(po) -> Dict[str, Dict[str, float]]:
-    """Aggregate sell and cost from purchase order lines."""
-    # For PO, sell is typically empty as it's procurement-focused
+def compute_order_sell_cost_totals(order) -> Dict[str, Dict[str, float]]:
+    """Aggregate sell and cost from order lines."""
     sell_goods = Decimal(0)
     sell_discount = Decimal(0)
 
@@ -22,8 +21,12 @@ def compute_purchase_order_sell_cost_totals(po) -> Dict[str, Dict[str, float]]:
     cost_freight = Decimal(0)
     cost_commissions = Decimal(0)
 
-    for ln in po.lines.all():
+    for ln in order.lines.all():
+        p = ln.price or {}
         c = ln.cost or {}
+
+        sell_goods += _d(p.get("extended", 0))
+        sell_discount += _d(p.get("discount_amount", 0))
 
         cost_goods += _d(c.get("extended", 0))
         cost_tax += _d(c.get("tax", 0))
@@ -54,13 +57,13 @@ def compute_purchase_order_sell_cost_totals(po) -> Dict[str, Dict[str, float]]:
         "total": float(cost_goods + cost_tax + cost_shipping + cost_handling + cost_freight + cost_commissions),
     }
 
-    total_amt = sell_goods  # For PO, total is cost total
+    total_amt = sell_goods
     total_cost = Decimal(str(cost["total"]))
-    margin = total_amt - total_cost  # Usually 0 for PO
+    margin = total_amt - total_cost
     margin_pc = (margin / total_amt * Decimal(100)) if total_amt > 0 else None
 
     totals = {
-        "total": float(total_cost),  # PO total is the cost
+        "total": float(total_amt),
         "cost": float(total_cost),
         "margin": float(margin),
         "margin_pc": float(margin_pc) if margin_pc is not None else None,
@@ -69,3 +72,7 @@ def compute_purchase_order_sell_cost_totals(po) -> Dict[str, Dict[str, float]]:
     }
 
     return {"sell": sell, "cost": cost, "totals": totals}
+
+
+# Backwards compatibility alias
+compute_sales_order_sell_cost_totals = compute_order_sell_cost_totals

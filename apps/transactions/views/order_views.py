@@ -9,9 +9,9 @@ try:
     from apps.core.views import BaseJSONAPIView
 except ImportError:
     from rest_framework.views import APIView as BaseJSONAPIView
-from apps.transactions.models.sales_order import SalesOrder
-from apps.transactions.serializers.transaction_serializers import SalesOrderSerializer, SalesOrderLineSerializer
-from apps.transactions.models import SalesOrderLine
+from apps.transactions.models.order import Order
+from apps.transactions.serializers.transaction_serializers import OrderSerializer, OrderLineSerializer
+from apps.transactions.models import OrderLine
 from apps.core.services import wcapi
 try:
     from apps.transactions.models.invoice import Invoice
@@ -22,76 +22,76 @@ except Exception:
 
 # Add these imports
 try:
-    from apps.transactions.models.purchase_order import PurchaseOrder
-    from apps.transactions.models.purchase_order_line import PurchaseOrderLine
+    from apps.transactions.models.purchase import Purchase
+    from apps.transactions.models.purchase_line import PurchaseLine
 except Exception:
-    PurchaseOrder = None
-    PurchaseOrderLine = None
+    Purchase = None
+    PurchaseLine = None
 
 
-class SalesOrderViewSet(viewsets.ModelViewSet):
+class OrderViewSet(viewsets.ModelViewSet):
     """
-    REST API viewset for Sales Order management.
+    REST API viewset for Order management.
     Uses WCAPI for all save operations to maintain consistency and security.
     """
-    queryset = SalesOrder.objects.all()
-    serializer_class = SalesOrderSerializer
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
     def get_queryset(self):
         """Filter queryset based on user permissions."""
         return self.queryset
 
     def perform_create(self, serializer):
-        """Create sales order using WCAPI save."""
+        """Create order using WCAPI save."""
         data = serializer.validated_data.copy()
-        data['model_name'] = 'sales_order'
+        data['model_name'] = 'order'
 
         # Use WCAPI save for consistency
-        result = wcapi.save_item('sales_order', request=self.request, data=data)
+        result = wcapi.save_item('order', request=self.request, data=data)
         if result[1] == 'created':
             # Set the created instance on serializer for response
-            instance = SalesOrder.objects.get(pk=result[0])
+            instance = Order.objects.get(pk=result[0])
             serializer.instance = instance
         else:
-            raise Exception("Failed to create sales order")
+            raise Exception("Failed to create order")
 
     def perform_update(self, serializer):
-        """Update sales order using WCAPI save."""
+        """Update order using WCAPI save."""
         instance = self.get_object()
         data = serializer.validated_data.copy()
-        data['model_name'] = 'sales_order'
+        data['model_name'] = 'order'
         data['id'] = instance.id
 
         # Use WCAPI save for consistency
-        result = wcapi.save_item('sales_order', request=self.request, data=data, id=instance.id)
+        result = wcapi.save_item('order', request=self.request, data=data, id=instance.id)
         if result[1] == 'updated':
             # Refresh instance
             instance.refresh_from_db()
             serializer.instance = instance
         else:
-            raise Exception("Failed to update sales order")
+            raise Exception("Failed to update order")
 
     @action(detail=True, methods=['post'])
     def convert_to_invoice(self, request, pk=None):
-        """Convert sales order to invoice."""
-        sales_order = self.get_object()
+        """Convert order to invoice."""
+        order = self.get_object()
 
-        # Validate sales order can be converted
-        if sales_order.status not in ['released']:
+        # Validate order can be converted
+        if order.status not in ['released']:
             return Response(
-                {'error': 'Only released sales orders can be converted to invoices'},
+                {'error': 'Only released orders can be converted to invoices'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Create invoice data
         invoice_data = {
             'model_name': 'invoice',
-            'customer_id': sales_order.customer_id,
-            'vendor_id': sales_order.vendor_id,
+            'customer_id': order.customer_id,
+            'vendor_id': order.vendor_id,
             'status': 'pending',
-            'sell': sales_order.sell,
-            'cost': sales_order.cost,
-            'refs': {'source': {'sales_order_id': sales_order.id}}
+            'sell': order.sell,
+            'cost': order.cost,
+            'refs': {'source': {'order_id': order.id}}
         }
 
         # Use WCAPI to create invoice
@@ -99,8 +99,8 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
         if result[1] == 'created':
             invoice_id = result[0]
 
-            # Copy sales order lines to invoice lines
-            for line in sales_order.lines.all():
+            # Copy order lines to invoice lines
+            for line in order.lines.all():
                 line_data = {
                     'model_name': 'invoice_line',
                     'parent': invoice_id,
@@ -112,9 +112,9 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
                 }
                 wcapi.save_item('invoice_line', request=request, data=line_data)
 
-            # Update sales order status
-            sales_order.status = 'invoiced'
-            sales_order.save()
+            # Update order status
+            order.status = 'invoiced'
+            order.save()
 
             return Response({'invoice_id': invoice_id}, status=status.HTTP_201_CREATED)
 
@@ -122,71 +122,71 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def totals(self, request, pk=None):
-        """Get detailed totals for sales order."""
-        sales_order = self.get_object()
-        totals = sales_order.update_sell_cost_totals(persist=False)
+        """Get detailed totals for order."""
+        order = self.get_object()
+        totals = order.update_sell_cost_totals(persist=False)
         return Response(totals)
 
 
-class SalesOrderLineViewSet(viewsets.ModelViewSet):
+class OrderLineViewSet(viewsets.ModelViewSet):
     """
-    REST API viewset for Sales Order Line management.
+    REST API viewset for Order Line management.
     Uses WCAPI for all save operations.
     """
-    queryset = SalesOrderLine.objects.all()
-    serializer_class = SalesOrderLineSerializer
+    queryset = OrderLine.objects.all()
+    serializer_class = OrderLineSerializer
 
     def get_queryset(self):
-        """Filter by sales order if specified."""
+        """Filter by order if specified."""
         queryset = self.queryset
-        sales_order_id = self.request.query_params.get('sales_order_id')
-        if sales_order_id:
-            queryset = queryset.filter(parent_id=sales_order_id)
+        order_id = self.request.query_params.get('order_id')
+        if order_id:
+            queryset = queryset.filter(parent_id=order_id)
         return queryset
 
     def perform_create(self, serializer):
-        """Create sales order line using WCAPI save."""
+        """Create order line using WCAPI save."""
         data = serializer.validated_data.copy()
-        data['model_name'] = 'sales_order_line'
+        data['model_name'] = 'order_line'
 
-        result = wcapi.save_item('sales_order_line', request=self.request, data=data)
+        result = wcapi.save_item('order_line', request=self.request, data=data)
         if result[1] == 'created':
-            instance = SalesOrderLine.objects.get(pk=result[0])
+            instance = OrderLine.objects.get(pk=result[0])
             serializer.instance = instance
         else:
-            raise Exception("Failed to create sales order line")
+            raise Exception("Failed to create order line")
 
     def perform_update(self, serializer):
-        """Update sales order line using WCAPI save."""
+        """Update order line using WCAPI save."""
         instance = self.get_object()
         data = serializer.validated_data.copy()
-        data['model_name'] = 'sales_order_line'
+        data['model_name'] = 'order_line'
         data['id'] = instance.id
 
-        result = wcapi.save_item('sales_order_line', request=self.request, data=data, id=instance.id)
+        result = wcapi.save_item('order_line', request=self.request, data=data, id=instance.id)
         if result[1] == 'updated':
             instance.refresh_from_db()
             serializer.instance = instance
         else:
-            raise Exception("Failed to update sales order line")
+            raise Exception("Failed to update order line")
 
     def perform_destroy(self, instance):
-        """Delete sales order line using WCAPI."""
-        wcapi.delete_item('sales_order_line', request=self.request, id=instance.id)
+        """Delete order line using WCAPI."""
+        wcapi.delete_item('order_line', request=self.request, id=instance.id)
 
 
-class SalesOrderToInvoiceView(BaseJSONAPIView):
+class OrderToInvoiceView(BaseJSONAPIView):
     """
-    POST /tx/sales-orders/<pk>/convert-to-invoice/
+    POST /tx/orders/<pk>/convert-to-invoice/
     """
     _allow_write = True
     permission_classes = [AllowAny]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, pk: int, *args, **kwargs):
-        so = SalesOrder.objects.filter(pk=pk).first()
-        if not so:
-            return api_response(success=False, status_code=404, message="Sales order not found.")
+        order = Order.objects.filter(pk=pk).first()
+        if not order:
+            return api_response(success=False, status_code=404, message="Order not found.")
 
         inv_id = None
         if Invoice is not None:
@@ -198,17 +198,17 @@ class SalesOrderToInvoiceView(BaseJSONAPIView):
                 concrete_fields = {f.name for f in InvoiceLine._meta.concrete_fields}
                 parent_key = "parent" if "parent" in concrete_fields else ("invoice" if "invoice" in concrete_fields else None)
 
-                for sl in getattr(so, "lines", []).all():
+                for ol in getattr(order, "lines", []).all():
                     # Linkage propagation
                     linkage = []
                     try:
-                        existing = (sl.refs or {}).get("links", {}).get("linkage", [])
+                        existing = (ol.refs or {}).get("links", {}).get("linkage", [])
                         if isinstance(existing, list):
                             linkage.extend(existing)
                     except Exception:
                         pass
-                    if sl.pk not in linkage:
-                        linkage.append(sl.pk)
+                    if ol.pk not in linkage:
+                        linkage.append(ol.pk)
                     refs = {"links": {"linkage": linkage}}
 
                     if not parent_key:
@@ -217,13 +217,13 @@ class SalesOrderToInvoiceView(BaseJSONAPIView):
                     kwargs = {parent_key: invoice}
                     # Minimal safe fields
                     if "status" in concrete_fields:
-                        kwargs["status"] = getattr(sl, "status", None) or "OPEN"
+                        kwargs["status"] = getattr(ol, "status", None) or "OPEN"
                     if "refs" in concrete_fields:
                         kwargs["refs"] = refs
                     # Opportunistically copy common JSON fields if present
                     for name in ("item", "quantity", "price", "cost", "tax", "physical", "comments"):
                         if name in concrete_fields:
-                            kwargs[name] = getattr(sl, name, None)
+                            kwargs[name] = getattr(ol, name, None)
 
                     try:
                         InvoiceLine.objects.create(**kwargs)
@@ -242,8 +242,8 @@ class SalesOrderToInvoiceView(BaseJSONAPIView):
             inv_id = 1  # Fallback
 
         data = {
-            "sales_order_id": so.pk,
-            "sales_order": {"id": so.pk},
+            "order_id": order.pk,
+            "order": {"id": order.pk},
             "invoice_id": inv_id,
             "invoice_ida": inv_id,  # alias expected by tests
             "invoice": {"id": inv_id},
@@ -252,45 +252,46 @@ class SalesOrderToInvoiceView(BaseJSONAPIView):
         }
         return api_response(data=data, status_code=201)
 
-# New: SO -> PO conversion view
-class SalesOrderToPurchaseOrderView(BaseJSONAPIView):
+
+# New: Order -> PO conversion view
+class OrderToPurchaseView(BaseJSONAPIView):
     """
-    POST /tx/sales-orders/<pk>/convert-to-purchase-order/
+    POST /tx/orders/<pk>/convert-to-purchase-order/
     """
     _allow_write = True
     permission_classes = [AllowAny]
     http_method_names = ["post", "options", "head"]
 
     def post(self, request, pk: int, *args, **kwargs):
-        so = SalesOrder.objects.filter(pk=pk).first()
-        if not so:
-            return api_response(success=False, status_code=404, message="Sales order not found.")
-        if PurchaseOrder is None:
-            return api_response(success=False, status_code=501, message="PurchaseOrder model unavailable.")
+        order = Order.objects.filter(pk=pk).first()
+        if not order:
+            return api_response(success=False, status_code=404, message="Order not found.")
+        if Purchase is None:
+            return api_response(success=False, status_code=501, message="Purchase model unavailable.")
 
-        po = PurchaseOrder.objects.create()
+        po = Purchase.objects.create()
         # Optional transient po number
         try:
             po.po_no = f"PO-{po.pk}"
         except Exception:
             pass
 
-        # Create purchase order lines with only supported fields on PurchaseOrderLine
-        if PurchaseOrderLine is not None:
-            concrete_fields = {f.name for f in PurchaseOrderLine._meta.concrete_fields}
-            parent_key = "parent" if "parent" in concrete_fields else ("purchase_order" if "purchase_order" in concrete_fields else None)
+        # Create purchase order lines with only supported fields on PurchaseLine
+        if PurchaseLine is not None:
+            concrete_fields = {f.name for f in PurchaseLine._meta.concrete_fields}
+            parent_key = "purchase" if "purchase" in concrete_fields else ("parent" if "parent" in concrete_fields else None)
 
-            for sl in getattr(so, "lines", []).all():
+            for ol in getattr(order, "lines", []).all():
                 # Linkage propagation
                 linkage = []
                 try:
-                    existing = (sl.refs or {}).get("links", {}).get("linkage", [])
+                    existing = (ol.refs or {}).get("links", {}).get("linkage", [])
                     if isinstance(existing, list):
                         linkage.extend(existing)
                 except Exception:
                     pass
-                if sl.pk not in linkage:
-                    linkage.append(sl.pk)
+                if ol.pk not in linkage:
+                    linkage.append(ol.pk)
                 refs = {"links": {"linkage": linkage}}
 
                 if not parent_key:
@@ -298,16 +299,16 @@ class SalesOrderToPurchaseOrderView(BaseJSONAPIView):
 
                 kwargs = {parent_key: po}
                 if "status" in concrete_fields:
-                    kwargs["status"] = getattr(sl, "status", None) or "OPEN"
+                    kwargs["status"] = getattr(ol, "status", None) or "OPEN"
                 if "refs" in concrete_fields:
                     kwargs["refs"] = refs
                 # Copy common JSON fields if present on target schema
                 for name in ("item", "quantity", "price", "cost", "tax", "physical", "comments"):
                     if name in concrete_fields:
-                        kwargs[name] = getattr(sl, name, None)
+                        kwargs[name] = getattr(ol, name, None)
 
                 try:
-                    PurchaseOrderLine.objects.create(**kwargs)
+                    PurchaseLine.objects.create(**kwargs)
                 except Exception:
                     # Fallback minimal create
                     fallback = {parent_key: po}
@@ -316,13 +317,13 @@ class SalesOrderToPurchaseOrderView(BaseJSONAPIView):
                     if "refs" in concrete_fields:
                         fallback["refs"] = refs
                     try:
-                        PurchaseOrderLine.objects.create(**fallback)
+                        PurchaseLine.objects.create(**fallback)
                     except Exception:
                         pass
 
         data = {
-            "sales_order_id": so.pk,
-            "sales_order": {"id": so.pk},
+            "order_id": order.pk,
+            "order": {"id": order.pk},
             "purchase_order_id": po.pk,
             "purchase_order": {"id": po.pk},
             "po_no": f"PO-{po.pk}",

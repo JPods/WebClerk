@@ -154,7 +154,7 @@ FLAGS_SCHEMA_DESC = {
     "tally_by_type": "Aggregate counts by subtype classification"
 }
 
-QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_order", "on_purchase_order"}
+QUANTITY_CANONICAL_KEYS = {"on_hand", "allocated", "available", "on_so", "on_po", "on_p", "on_reciept", "on_in", "on_wo"}
 
 
 def default_tax():
@@ -184,6 +184,15 @@ TAX_SCHEMA_DESC = {
 
 class Item(StatsMixin, BaseModel):
     """Catalog item (physical good, service placeholder, or bundle)."""
+
+    @property
+    def ida(self):
+        return str(self.pk)
+
+    @property
+    def description(self):
+        return self.description if self.description else self.name
+
 
     # README (tax localization):
     # Tax metadata in `tax_code` is intentionally minimal and highly localized.
@@ -226,6 +235,44 @@ class Item(StatsMixin, BaseModel):
     # number of returns, margins, margin velocity
     quantity = models.JSONField(default=dict, blank=True, help_text="Inventory quantity status (on hand, allocated, available, on order)")
     row_version = models.IntegerField(default=0, db_index=True, help_text="Optimistic concurrency version (increments on each save)")
+
+    # Properties for admin list_display
+    @property
+    def on_hand(self):
+        return self.quantity.get('on_hand', None)
+
+    @property
+    def allocated(self):
+        return self.quantity.get('allocated', None)
+
+    @property
+    def available(self):
+        return self.quantity.get('available', None)
+
+    @property
+    def on_so(self):
+        return self.quantity.get('on_so', None)
+
+    @property
+    def on_po(self):
+        return self.quantity.get('on_po', None)
+
+    @property
+    def on_p(self):
+        return self.quantity.get('on_p', None)
+
+    @property
+    def on_reciept(self):
+        return self.quantity.get('on_reciept', None)
+
+
+    @property
+    def on_in(self):
+        return self.quantity.get('on_in', None)
+
+    @property
+    def on_wo(self):
+        return self.quantity.get('on_wo', None)
 
     class Meta:
         indexes = [

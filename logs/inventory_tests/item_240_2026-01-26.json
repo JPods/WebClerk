@@ -1,0 +1,1326 @@
+{
+  "item_id": 240,
+  "date": "2026-01-26",
+  "events": [
+    {
+      "timestamp": "2026-01-26T06:01:29.717449",
+      "event_type": "BASELINE",
+      "description": "Initial baseline capture",
+      "transaction": null,
+      "pending_created": null,
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T06:01:28.792662",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_p": 0,
+          "on_in": 0,
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "allocated": 0,
+          "available": 100,
+          "on_reciept": 0
+        }
+      },
+      "pending_records": [],
+      "unprocessed_pending": {
+        "total": 0,
+        "by_purpose": {},
+        "records": []
+      },
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": null
+    },
+    {
+      "timestamp": "2026-01-26T06:01:42.161256",
+      "event_type": "ORDER_CREATED",
+      "description": "Created Order #43 with 5.0 units of item 240",
+      "transaction": {
+        "type": "order",
+        "id": 43,
+        "line_id": 99,
+        "quantity": 5.0
+      },
+      "pending_created": {
+        "id": 41,
+        "purpose": "inventory_line_add",
+        "data": {
+          "on_p": 0,
+          "on_po": 0,
+          "on_so": 5.0,
+          "on_wo": 0,
+          "doc_id": "43",
+          "doc_pk": 43,
+          "reason": "so line add",
+          "item_id": 240,
+          "line_id": 99,
+          "type_id": "SO",
+          "invoiced": 0,
+          "item_num": "240",
+          "line_num": 1,
+          "unit_cost": 0.0,
+          "changed_by": "",
+          "unit_price": 0.0,
+          "take_action": 1,
+          "transaction_type": "order",
+          "transaction_model": "order"
+        },
+        "dt_processed": 0
+      },
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T06:01:41.307923",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_p": 0,
+          "on_in": 0,
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "allocated": 0,
+          "available": 100,
+          "on_reciept": 0
+        }
+      },
+      "pending_records": [
+        {
+          "id": 41,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 5.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 0,
+            "on_so": 5.0,
+            "on_wo": 0,
+            "doc_id": "43",
+            "doc_pk": 43,
+            "reason": "so line add",
+            "item_id": 240,
+            "line_id": 99,
+            "type_id": "SO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "order",
+            "transaction_model": "order"
+          },
+          "created_at": "1769407300997"
+        }
+      ],
+      "unprocessed_pending": {
+        "total": 1,
+        "by_purpose": {
+          "inventory_line_add": 1
+        },
+        "records": [
+          {
+            "id": 41,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 0,
+              "on_so": 5.0,
+              "on_wo": 0,
+              "doc_id": "43",
+              "doc_pk": 43,
+              "reason": "so line add",
+              "item_id": 240,
+              "line_id": 99,
+              "type_id": "SO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 0.0,
+              "changed_by": "",
+              "unit_price": 0.0,
+              "take_action": 1,
+              "transaction_type": "order",
+              "transaction_model": "order"
+            },
+            "created": "1769407300997"
+          }
+        ]
+      },
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": {
+        "qty_on_hand": 0.0,
+        "qty_allocated": 0.0,
+        "qty_available": 0.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T06:01:52.117027",
+      "event_type": "PURCHASE_CREATED",
+      "description": "Created Purchase #34 with 20.0 units of item 240",
+      "transaction": {
+        "type": "purchase",
+        "id": 34,
+        "line_id": 60,
+        "quantity": 20.0
+      },
+      "pending_created": {
+        "id": 42,
+        "purpose": "inventory_line_add",
+        "data": {
+          "on_p": 0,
+          "on_po": 20.0,
+          "on_so": 0,
+          "on_wo": 0,
+          "doc_id": "34",
+          "doc_pk": 34,
+          "reason": "po line add",
+          "item_id": 240,
+          "line_id": 60,
+          "type_id": "PO",
+          "invoiced": 0,
+          "item_num": "240",
+          "line_num": 1,
+          "unit_cost": 10.0,
+          "changed_by": "",
+          "unit_price": 0,
+          "take_action": 1,
+          "transaction_type": "purchase",
+          "transaction_model": "purchase"
+        },
+        "dt_processed": 0
+      },
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T06:01:51.269414",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_p": 0,
+          "on_in": 0,
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "allocated": 0,
+          "available": 100,
+          "on_reciept": 0
+        }
+      },
+      "pending_records": [
+        {
+          "id": 42,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 20.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 20.0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "34",
+            "doc_pk": 34,
+            "reason": "po line add",
+            "item_id": 240,
+            "line_id": 60,
+            "type_id": "PO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 10.0,
+            "changed_by": "",
+            "unit_price": 0,
+            "take_action": 1,
+            "transaction_type": "purchase",
+            "transaction_model": "purchase"
+          },
+          "created_at": "1769407310963"
+        },
+        {
+          "id": 41,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 5.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 0,
+            "on_so": 5.0,
+            "on_wo": 0,
+            "doc_id": "43",
+            "doc_pk": 43,
+            "reason": "so line add",
+            "item_id": 240,
+            "line_id": 99,
+            "type_id": "SO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "order",
+            "transaction_model": "order"
+          },
+          "created_at": "1769407300997"
+        }
+      ],
+      "unprocessed_pending": {
+        "total": 2,
+        "by_purpose": {
+          "inventory_line_add": 2
+        },
+        "records": [
+          {
+            "id": 42,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 20.0,
+              "on_so": 0,
+              "on_wo": 0,
+              "doc_id": "34",
+              "doc_pk": 34,
+              "reason": "po line add",
+              "item_id": 240,
+              "line_id": 60,
+              "type_id": "PO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 10.0,
+              "changed_by": "",
+              "unit_price": 0,
+              "take_action": 1,
+              "transaction_type": "purchase",
+              "transaction_model": "purchase"
+            },
+            "created": "1769407310963"
+          },
+          {
+            "id": 41,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 0,
+              "on_so": 5.0,
+              "on_wo": 0,
+              "doc_id": "43",
+              "doc_pk": 43,
+              "reason": "so line add",
+              "item_id": 240,
+              "line_id": 99,
+              "type_id": "SO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 0.0,
+              "changed_by": "",
+              "unit_price": 0.0,
+              "take_action": 1,
+              "transaction_type": "order",
+              "transaction_model": "order"
+            },
+            "created": "1769407300997"
+          }
+        ]
+      },
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": {
+        "qty_on_hand": 0.0,
+        "qty_allocated": 0.0,
+        "qty_available": 0.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T06:02:46.068147",
+      "event_type": "PROPOSAL_CREATED",
+      "description": "Created Proposal #54 with 8.0 units of item 240",
+      "transaction": {
+        "type": "proposal",
+        "id": 54,
+        "line_id": 125,
+        "quantity": 8.0
+      },
+      "pending_created": {
+        "id": 43,
+        "purpose": "inventory_line_add",
+        "data": {
+          "on_p": 8.0,
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "doc_id": "54",
+          "doc_pk": 54,
+          "reason": "pp line add",
+          "item_id": 240,
+          "line_id": 125,
+          "type_id": "PP",
+          "invoiced": 0,
+          "item_num": "240",
+          "line_num": 1,
+          "unit_cost": 0.0,
+          "changed_by": "",
+          "unit_price": 0.0,
+          "take_action": 1,
+          "transaction_type": "proposal",
+          "transaction_model": "proposal"
+        },
+        "dt_processed": 0
+      },
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T06:02:45.271477",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_p": 0,
+          "on_in": 0,
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "allocated": 0,
+          "available": 100,
+          "on_reciept": 0
+        }
+      },
+      "pending_records": [
+        {
+          "id": 43,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 0.0,
+          "data": {
+            "on_p": 8.0,
+            "on_po": 0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "54",
+            "doc_pk": 54,
+            "reason": "pp line add",
+            "item_id": 240,
+            "line_id": 125,
+            "type_id": "PP",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "proposal",
+            "transaction_model": "proposal"
+          },
+          "created_at": "1769407364957"
+        },
+        {
+          "id": 42,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 20.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 20.0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "34",
+            "doc_pk": 34,
+            "reason": "po line add",
+            "item_id": 240,
+            "line_id": 60,
+            "type_id": "PO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 10.0,
+            "changed_by": "",
+            "unit_price": 0,
+            "take_action": 1,
+            "transaction_type": "purchase",
+            "transaction_model": "purchase"
+          },
+          "created_at": "1769407310963"
+        },
+        {
+          "id": 41,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 5.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 0,
+            "on_so": 5.0,
+            "on_wo": 0,
+            "doc_id": "43",
+            "doc_pk": 43,
+            "reason": "so line add",
+            "item_id": 240,
+            "line_id": 99,
+            "type_id": "SO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "order",
+            "transaction_model": "order"
+          },
+          "created_at": "1769407300997"
+        }
+      ],
+      "unprocessed_pending": {
+        "total": 3,
+        "by_purpose": {
+          "inventory_line_add": 3
+        },
+        "records": [
+          {
+            "id": 43,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 8.0,
+              "on_po": 0,
+              "on_so": 0,
+              "on_wo": 0,
+              "doc_id": "54",
+              "doc_pk": 54,
+              "reason": "pp line add",
+              "item_id": 240,
+              "line_id": 125,
+              "type_id": "PP",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 0.0,
+              "changed_by": "",
+              "unit_price": 0.0,
+              "take_action": 1,
+              "transaction_type": "proposal",
+              "transaction_model": "proposal"
+            },
+            "created": "1769407364957"
+          },
+          {
+            "id": 42,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 20.0,
+              "on_so": 0,
+              "on_wo": 0,
+              "doc_id": "34",
+              "doc_pk": 34,
+              "reason": "po line add",
+              "item_id": 240,
+              "line_id": 60,
+              "type_id": "PO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 10.0,
+              "changed_by": "",
+              "unit_price": 0,
+              "take_action": 1,
+              "transaction_type": "purchase",
+              "transaction_model": "purchase"
+            },
+            "created": "1769407310963"
+          },
+          {
+            "id": 41,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 0,
+              "on_so": 5.0,
+              "on_wo": 0,
+              "doc_id": "43",
+              "doc_pk": 43,
+              "reason": "so line add",
+              "item_id": 240,
+              "line_id": 99,
+              "type_id": "SO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 0.0,
+              "changed_by": "",
+              "unit_price": 0.0,
+              "take_action": 1,
+              "transaction_type": "order",
+              "transaction_model": "order"
+            },
+            "created": "1769407300997"
+          }
+        ]
+      },
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": {
+        "qty_on_hand": 0.0,
+        "qty_allocated": 0.0,
+        "qty_available": 0.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T06:02:55.292297",
+      "event_type": "PROCESS_PENDING_START",
+      "description": "Starting pending processing: 3 unprocessed records for item 240",
+      "transaction": null,
+      "pending_created": null,
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T06:02:54.391473",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_p": 0,
+          "on_in": 0,
+          "on_po": 0,
+          "on_so": 0,
+          "on_wo": 0,
+          "on_hand": 100,
+          "allocated": 0,
+          "available": 100,
+          "on_reciept": 0
+        }
+      },
+      "pending_records": [
+        {
+          "id": 43,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 0.0,
+          "data": {
+            "on_p": 8.0,
+            "on_po": 0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "54",
+            "doc_pk": 54,
+            "reason": "pp line add",
+            "item_id": 240,
+            "line_id": 125,
+            "type_id": "PP",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "proposal",
+            "transaction_model": "proposal"
+          },
+          "created_at": "1769407364957"
+        },
+        {
+          "id": 42,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 20.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 20.0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "34",
+            "doc_pk": 34,
+            "reason": "po line add",
+            "item_id": 240,
+            "line_id": 60,
+            "type_id": "PO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 10.0,
+            "changed_by": "",
+            "unit_price": 0,
+            "take_action": 1,
+            "transaction_type": "purchase",
+            "transaction_model": "purchase"
+          },
+          "created_at": "1769407310963"
+        },
+        {
+          "id": 41,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 0,
+          "quantity": 5.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 0,
+            "on_so": 5.0,
+            "on_wo": 0,
+            "doc_id": "43",
+            "doc_pk": 43,
+            "reason": "so line add",
+            "item_id": 240,
+            "line_id": 99,
+            "type_id": "SO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "order",
+            "transaction_model": "order"
+          },
+          "created_at": "1769407300997"
+        }
+      ],
+      "unprocessed_pending": {
+        "total": 3,
+        "by_purpose": {
+          "inventory_line_add": 3
+        },
+        "records": [
+          {
+            "id": 43,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 8.0,
+              "on_po": 0,
+              "on_so": 0,
+              "on_wo": 0,
+              "doc_id": "54",
+              "doc_pk": 54,
+              "reason": "pp line add",
+              "item_id": 240,
+              "line_id": 125,
+              "type_id": "PP",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 0.0,
+              "changed_by": "",
+              "unit_price": 0.0,
+              "take_action": 1,
+              "transaction_type": "proposal",
+              "transaction_model": "proposal"
+            },
+            "created": "1769407364957"
+          },
+          {
+            "id": 42,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 20.0,
+              "on_so": 0,
+              "on_wo": 0,
+              "doc_id": "34",
+              "doc_pk": 34,
+              "reason": "po line add",
+              "item_id": 240,
+              "line_id": 60,
+              "type_id": "PO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 10.0,
+              "changed_by": "",
+              "unit_price": 0,
+              "take_action": 1,
+              "transaction_type": "purchase",
+              "transaction_model": "purchase"
+            },
+            "created": "1769407310963"
+          },
+          {
+            "id": 41,
+            "purpose": "inventory_line_add",
+            "data": {
+              "on_p": 0,
+              "on_po": 0,
+              "on_so": 5.0,
+              "on_wo": 0,
+              "doc_id": "43",
+              "doc_pk": 43,
+              "reason": "so line add",
+              "item_id": 240,
+              "line_id": 99,
+              "type_id": "SO",
+              "invoiced": 0,
+              "item_num": "240",
+              "line_num": 1,
+              "unit_cost": 0.0,
+              "changed_by": "",
+              "unit_price": 0.0,
+              "take_action": 1,
+              "transaction_type": "order",
+              "transaction_model": "order"
+            },
+            "created": "1769407300997"
+          }
+        ]
+      },
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": {
+        "qty_on_hand": 0.0,
+        "qty_allocated": 0.0,
+        "qty_available": 0.0,
+        "qty_on_so": 0.0,
+        "qty_on_po": 0.0,
+        "qty_on_p": 0.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0
+      }
+    },
+    {
+      "timestamp": "2026-01-26T06:02:56.909725",
+      "event_type": "PROCESS_PENDING_COMPLETE",
+      "description": "Processed 3 pending records. Remaining unapplied: 0",
+      "transaction": {
+        "summary": {
+          "total_found": 3,
+          "processed": 3,
+          "skipped_locked": 0,
+          "skipped_missing_item": 0,
+          "errors": 0,
+          "dry_run": false
+        },
+        "unprocessed_before": {
+          "total": 3,
+          "by_purpose": {
+            "inventory_line_add": 3
+          },
+          "records": [
+            {
+              "id": 43,
+              "purpose": "inventory_line_add",
+              "data": {
+                "on_p": 8.0,
+                "on_po": 0,
+                "on_so": 0,
+                "on_wo": 0,
+                "doc_id": "54",
+                "doc_pk": 54,
+                "reason": "pp line add",
+                "item_id": 240,
+                "line_id": 125,
+                "type_id": "PP",
+                "invoiced": 0,
+                "item_num": "240",
+                "line_num": 1,
+                "unit_cost": 0.0,
+                "changed_by": "",
+                "unit_price": 0.0,
+                "take_action": 1,
+                "transaction_type": "proposal",
+                "transaction_model": "proposal"
+              },
+              "created": "1769407364957"
+            },
+            {
+              "id": 42,
+              "purpose": "inventory_line_add",
+              "data": {
+                "on_p": 0,
+                "on_po": 20.0,
+                "on_so": 0,
+                "on_wo": 0,
+                "doc_id": "34",
+                "doc_pk": 34,
+                "reason": "po line add",
+                "item_id": 240,
+                "line_id": 60,
+                "type_id": "PO",
+                "invoiced": 0,
+                "item_num": "240",
+                "line_num": 1,
+                "unit_cost": 10.0,
+                "changed_by": "",
+                "unit_price": 0,
+                "take_action": 1,
+                "transaction_type": "purchase",
+                "transaction_model": "purchase"
+              },
+              "created": "1769407310963"
+            },
+            {
+              "id": 41,
+              "purpose": "inventory_line_add",
+              "data": {
+                "on_p": 0,
+                "on_po": 0,
+                "on_so": 5.0,
+                "on_wo": 0,
+                "doc_id": "43",
+                "doc_pk": 43,
+                "reason": "so line add",
+                "item_id": 240,
+                "line_id": 99,
+                "type_id": "SO",
+                "invoiced": 0,
+                "item_num": "240",
+                "line_num": 1,
+                "unit_cost": 0.0,
+                "changed_by": "",
+                "unit_price": 0.0,
+                "take_action": 1,
+                "transaction_type": "order",
+                "transaction_model": "order"
+              },
+              "created": "1769407300997"
+            }
+          ]
+        },
+        "unprocessed_after": {
+          "total": 0,
+          "by_purpose": {},
+          "records": []
+        }
+      },
+      "pending_created": null,
+      "snapshot": {
+        "item_id": 240,
+        "timestamp": "2026-01-26T06:02:56.073667",
+        "qty_on_hand": 100.0,
+        "qty_allocated": 0.0,
+        "qty_available": 100.0,
+        "qty_on_so": 5.0,
+        "qty_on_po": 20.0,
+        "qty_on_p": 8.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0,
+        "quantity_raw": {
+          "on_p": 8.0,
+          "on_in": 0,
+          "on_po": 20.0,
+          "on_so": 5.0,
+          "on_wo": 0.0,
+          "on_hand": 100,
+          "invoiced": 0.0,
+          "allocated": 0,
+          "available": 100,
+          "on_reciept": 0
+        }
+      },
+      "pending_records": [
+        {
+          "id": 43,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 1769407375561,
+          "quantity": 0.0,
+          "data": {
+            "on_p": 8.0,
+            "on_po": 0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "54",
+            "doc_pk": 54,
+            "reason": "pp line add",
+            "item_id": 240,
+            "line_id": 125,
+            "type_id": "PP",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "proposal",
+            "transaction_model": "proposal"
+          },
+          "created_at": "1769407364957"
+        },
+        {
+          "id": 42,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 1769407375561,
+          "quantity": 20.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 20.0,
+            "on_so": 0,
+            "on_wo": 0,
+            "doc_id": "34",
+            "doc_pk": 34,
+            "reason": "po line add",
+            "item_id": 240,
+            "line_id": 60,
+            "type_id": "PO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 10.0,
+            "changed_by": "",
+            "unit_price": 0,
+            "take_action": 1,
+            "transaction_type": "purchase",
+            "transaction_model": "purchase"
+          },
+          "created_at": "1769407310963"
+        },
+        {
+          "id": 41,
+          "model_name": "item",
+          "record_id": "240",
+          "purpose": "inventory_line_add",
+          "is_active": true,
+          "dt_processed": 1769407375561,
+          "quantity": 5.0,
+          "data": {
+            "on_p": 0,
+            "on_po": 0,
+            "on_so": 5.0,
+            "on_wo": 0,
+            "doc_id": "43",
+            "doc_pk": 43,
+            "reason": "so line add",
+            "item_id": 240,
+            "line_id": 99,
+            "type_id": "SO",
+            "invoiced": 0,
+            "item_num": "240",
+            "line_num": 1,
+            "unit_cost": 0.0,
+            "changed_by": "",
+            "unit_price": 0.0,
+            "take_action": 1,
+            "transaction_type": "order",
+            "transaction_model": "order"
+          },
+          "created_at": "1769407300997"
+        }
+      ],
+      "unprocessed_pending": {
+        "total": 0,
+        "by_purpose": {},
+        "records": []
+      },
+      "transaction_counts": {
+        "order_lines": 2,
+        "purchase_lines": 1,
+        "invoice_lines": 0,
+        "proposal_lines": 0
+      },
+      "transaction_details": [
+        {
+          "type": "order_line",
+          "line_id": 96,
+          "header_id": 39,
+          "status": "draft",
+          "quantity": 5.0,
+          "quantity_raw": {
+            "ordered": 5.0
+          }
+        },
+        {
+          "type": "order_line",
+          "line_id": 97,
+          "header_id": 40,
+          "status": "draft",
+          "quantity": 15.0,
+          "quantity_raw": {
+            "ordered": 15.0
+          }
+        },
+        {
+          "type": "purchase_line",
+          "line_id": 58,
+          "header_id": 31,
+          "status": "draft",
+          "quantity": 10.0,
+          "quantity_raw": {
+            "ordered": 10.0
+          }
+        }
+      ],
+      "delta": {
+        "qty_on_hand": 0.0,
+        "qty_allocated": 0.0,
+        "qty_available": 0.0,
+        "qty_on_so": 5.0,
+        "qty_on_po": 20.0,
+        "qty_on_p": 8.0,
+        "qty_on_reciept": 0.0,
+        "qty_on_in": 0.0,
+        "qty_on_wo": 0.0
+      }
+    }
+  ]
+}

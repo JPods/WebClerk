@@ -4,10 +4,10 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
     WorkOrder, WorkOrderLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
 )
 from apps.orgs.models import OrgBase
 from apps.products.models import Item
@@ -39,10 +39,10 @@ class Command(BaseCommand):
         # Create transactions
         transaction_types = [
             (Proposal, ProposalLine),
-            (SalesOrder, SalesOrderLine),
+            (Order, OrderLine),
             (Invoice, InvoiceLine),
             (WorkOrder, WorkOrderLine),
-            (PurchaseOrder, PurchaseOrderLine),
+            (Purchase, PurchaseLine),
         ]
 
         for trans_model, line_model in transaction_types:
@@ -54,10 +54,10 @@ class Command(BaseCommand):
         """Drop all existing records from specified models."""
         models_to_drop = [
             Proposal, ProposalLine,
-            SalesOrder, SalesOrderLine,
+            Order, OrderLine,
             Invoice, InvoiceLine,
             WorkOrder, WorkOrderLine,
-            PurchaseOrder, PurchaseOrderLine,
+            Purchase, PurchaseLine,
         ]
 
         for model in models_to_drop:
@@ -70,10 +70,10 @@ class Command(BaseCommand):
         # Map line model to parent field name
         parent_fields = {
             'ProposalLine': 'proposal_id',
-            'SalesOrderLine': 'salesorder_id',
+            'OrderLine': 'order_id',
             'InvoiceLine': 'invoice_id',
             'WorkOrderLine': 'workorder_id',
-            'PurchaseOrderLine': 'purchaseorder_id',
+            'PurchaseLine': 'purchase_id',
             'RequisitionLine': 'requisition_id',
         }
         parent_field = parent_fields.get(line_model.__name__)

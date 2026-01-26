@@ -2,11 +2,11 @@ from django.contrib import admin, messages
 from django.db import models as dj_models
 from .models import (
     Invoice, InvoiceLine,
-    WorkOrderLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine,
+    WorkOrderLine, Order, OrderLine, Purchase, PurchaseLine,
     Proposal, ProposalLine, Requisition, RequisitionLine, WorkOrder,
     Project,
 )
-from .models.purchase_receipt import PurchaseReceipt
+from .models.receipt import Receipt
 
 
 # Scoped: other model admin registrations are deferred for now
@@ -143,21 +143,21 @@ class WorkOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     action_mark_done.short_description = "Mark selected lines as done"
 
 
-@admin.register(SalesOrder)
-class SalesOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+@admin.register(Order)
+class OrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
 
 
-@admin.register(SalesOrderLine)
-class SalesOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "salesorder_id", "status")
+@admin.register(OrderLine)
+class OrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "order_id", "status")
     list_filter = ("status",)
 
 
-@admin.register(PurchaseOrder)
-class PurchaseOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+@admin.register(Purchase)
+class PurchaseAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
@@ -170,9 +170,9 @@ class ProjectAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     search_fields = ("id", "name", "intent", "slug")
     details_fieldset_title = "Project Details"
 
-@admin.register(PurchaseOrderLine)
-class PurchaseOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "purchaseorder_id", "status")
+@admin.register(PurchaseLine)
+class PurchaseLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "purchase", "status")
     list_filter = ("status",)
 
 
@@ -202,8 +202,8 @@ class RequisitionLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_filter = ("status",)
 
 
-@admin.register(PurchaseReceipt)
-class PurchaseReceiptAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+@admin.register(Receipt)
+class ReceiptAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_received")
     search_fields = ("id",)
 

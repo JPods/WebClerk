@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
-from apps.transactions.models import Proposal, SalesOrder, Invoice
+from apps.transactions.models import Proposal, Order, Invoice
 
 
 class ValidationResult:
@@ -89,7 +89,7 @@ def validate_proposal_for_conversion(proposal: Proposal) -> ValidationResult:
     return ValidationResult(can_proceed, errors, warnings, data)
 
 
-def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
+def validate_order_for_invoicing(order: Order) -> ValidationResult:
     """
     Validate that an order can be converted to an invoice.
 
@@ -112,8 +112,8 @@ def validate_order_for_invoicing(order: SalesOrder) -> ValidationResult:
         warnings.append("Order is not fully fulfilled - partial invoicing possible")
 
     # Check for lines
-    from apps.transactions.models import SalesOrderLine
-    lines = list(SalesOrderLine.objects.filter(parent=order))
+    from apps.transactions.models import OrderLine
+    lines = list(OrderLine.objects.filter(parent=order))
     data['line_count'] = len(lines)
 
     if not lines:
@@ -215,7 +215,7 @@ def validate_transaction_flow(
     if source_type == 'proposal':
         source = Proposal.objects.filter(id=source_id).first()
     elif source_type == 'order':
-        source = SalesOrder.objects.filter(id=source_id).first()
+        source = Order.objects.filter(id=source_id).first()
     elif source_type == 'invoice':
         source = Invoice.objects.filter(id=source_id).first()
 

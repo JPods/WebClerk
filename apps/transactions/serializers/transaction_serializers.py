@@ -4,7 +4,7 @@ from decimal import Decimal
 from common.base_serializers import RoleAwareModelSerializer
 
 from apps.transactions.models import (
-    Proposal, ProposalLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine, Invoice, Payment, PaymentApplication
+    Proposal, ProposalLine, Order, OrderLine, Purchase, PurchaseLine, Invoice, Payment, PaymentApplication
 )
 from apps.core.models import Contact
 
@@ -21,7 +21,6 @@ class ProposalLineSerializer(RoleAwareModelSerializer):
 class ProposalSerializer(RoleAwareModelSerializer):
     """Serializer for Proposal transactions."""
 
-    proposal_no = serializers.CharField(read_only=True)
     total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
@@ -33,14 +32,14 @@ class ProposalSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Proposal
         fields = [
-            'id', 'uuid', 'ida', 'proposal_no', 'status', 'customer_id', 'vendor_id',
+            'id', 'uuid', 'ida', 'status', 'customer_id', 'vendor_id',
             'customer_name', 'vendor_name',
             'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
             'total_amount', 'line_count', 'margin_amount', 'margin_percentage', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = [
-            'id', 'uuid', 'dt_created', 'dt_modified', 'version', 'proposal_no', 'customer_name',
+            'id', 'uuid', 'dt_created', 'dt_modified', 'version', 'customer_name',
             'vendor_name', 'total_amount', 'line_count', 'margin_amount', 'margin_percentage', 'lines'
         ]
 
@@ -120,46 +119,45 @@ class ProposalSerializer(RoleAwareModelSerializer):
         return data
 
 
-class SalesOrderLineSerializer(RoleAwareModelSerializer):
-    """Serializer aligned with SalesOrderLine schema."""
+class OrderLineSerializer(RoleAwareModelSerializer):
+    """Serializer aligned with OrderLine schema."""
 
     class Meta:
-        model = SalesOrderLine
+        model = OrderLine
         fields = '__all__'
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
 
-class PurchaseOrderLineSerializer(RoleAwareModelSerializer):
-    """Serializer aligned with PurchaseOrderLine schema."""
+class PurchaseLineSerializer(RoleAwareModelSerializer):
+    """Serializer aligned with PurchaseLine schema."""
 
     class Meta:
-        model = PurchaseOrderLine
+        model = PurchaseLine
         fields = '__all__'
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
 
-class SalesOrderSerializer(RoleAwareModelSerializer):
-    """Serializer for Sales Order transactions."""
+class OrderSerializer(RoleAwareModelSerializer):
+    """Serializer for Order transactions."""
 
-    order_no = serializers.CharField(read_only=True)
     total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
     margin_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     margin_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
-    lines = SalesOrderLineSerializer(many=True, read_only=True)
+    lines = OrderLineSerializer(many=True, read_only=True)
 
     class Meta:
-        model = SalesOrder
+        model = Order
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
-            'order_no', 'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
+            'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'prefs', 'metadata',
             'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'order_no', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines']
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'margin_amount', 'margin_percentage', 'lines']
 
     def get_customer_name(self, obj):
         """Get customer name from Contact model."""
@@ -239,27 +237,28 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
             raise serializers.ValidationError("Customer and vendor cannot be the same entity.")
 
         return data
-class PurchaseOrderSerializer(RoleAwareModelSerializer):
-    """Serializer for Purchase Order transactions."""
 
-    po_no = serializers.CharField(read_only=True)
+
+class PurchaseSerializer(RoleAwareModelSerializer):
+    """Serializer for Purchase transactions."""
+
     total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
-    lines = PurchaseOrderLineSerializer(many=True, read_only=True)
+    lines = PurchaseLineSerializer(many=True, read_only=True)
 
     class Meta:
-        model = PurchaseOrder
+        model = Purchase
         fields = [
-            'id', 'uuid', 'ida', 'po_no', 'status', 'priority', 'price_level',
+            'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
             'customer_name', 'vendor_name',
             'cost', 'sell', 'finance', 'flow', 'source', 'action', 'refs', 'metadata',
             'total_amount', 'line_count', 'lines',
             'dt_created', 'dt_modified', 'version'
         ]
-        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'po_no', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'lines']
+        read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version', 'total_amount', 'line_count', 'customer_name', 'vendor_name', 'lines']
 
     def get_customer_name(self, obj):
         """Get customer name from Contact model."""
@@ -291,8 +290,8 @@ class PurchaseOrderSerializer(RoleAwareModelSerializer):
             data['total_amount'] = cost_data.get('total', 0)
 
         # Add line count
-        if hasattr(instance, 'purchaseorderline_set'):
-            data['line_count'] = instance.purchaseorderline_set.count()
+        if hasattr(instance, 'purchaseline_set'):
+            data['line_count'] = instance.purchaseline_set.count()
 
         return data
 
@@ -316,11 +315,11 @@ class PaymentSerializer(RoleAwareModelSerializer):
     class Meta:
         model = Payment
         fields = [
-            'id', 'uuid', 'amount', 'payment_date', 'payment_method', 'payment_term',
-            'reference_number', 'notes', 'gateway', 'gateway_transaction_id',
-            'gateway_payment_intent_id', 'status', 'gateway_response',
-            'processed_at', 'reconciled', 'reconciliation_date', 'fee_amount',
-            'contact', 'invoice', 'dt_created', 'dt_modified', 'version'
+            'id', 'uuid', 'amount', 'dt_payment', 'paymentmethod_id', 'paymentterm_id',
+            'reference_number', 'notes', 'gateway', 'id_gateway_transaction',
+            'id_gateway_payment_intent', 'status', 'gateway_response',
+            'dt_processed', 'reconciled', 'dt_reconciliation', 'fee_amount',
+            'contact_id', 'invoice_id', 'dt_created', 'dt_modified', 'version'
         ]
         read_only_fields = ['id', 'uuid', 'dt_created', 'dt_modified', 'version']
 
@@ -340,10 +339,10 @@ class PaymentApplicationSerializer(serializers.ModelSerializer):
 __all__ = [
     'ProposalSerializer',
     'ProposalLineSerializer',
-    'SalesOrderSerializer',
-    'SalesOrderLineSerializer',
-    'PurchaseOrderSerializer',
-    'PurchaseOrderLineSerializer',
+    'OrderSerializer',
+    'OrderLineSerializer',
+    'PurchaseSerializer',
+    'PurchaseLineSerializer',
     'InvoiceSerializer',
     'PaymentSerializer',
     'PaymentApplicationSerializer',

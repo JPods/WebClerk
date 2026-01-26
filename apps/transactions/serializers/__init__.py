@@ -5,15 +5,15 @@ from .transfer_serializers import *
 __all__ = [
     # Transaction serializers
     'ProposalSerializer',
-    'SalesOrderSerializer',
-    'PurchaseOrderSerializer',
+    'OrderSerializer',
+    'PurchaseSerializer',
     'InvoiceSerializer',
     'PaymentSerializer',
 
     # Line serializers
     'ProposalLineSerializer',
-    'SalesOrderLineSerializer',
-    'PurchaseOrderLineSerializer',
+    'OrderLineSerializer',
+    'PurchaseLineSerializer',
     'InvoiceLineSerializer',
 
     # Transfer serializers
