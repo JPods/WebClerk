@@ -1,5 +1,5 @@
 """Abstract base line model for transaction line items.
-Used by ProposalLine, SalesOrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseOrderLine.
+Used by ProposalLine, OrderLine, RequisitionLine, WorkOrderLine, InvoiceLine, PurchaseOrderLine.
 The goal is to keep a compact set of JSON fields that capture the rich
 state of a line (pricing, cost, quantities, taxes, metadata, workflow, etc.)
     without exploding the relational schema. Each JSON field has a structured

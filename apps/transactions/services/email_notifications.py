@@ -5,7 +5,7 @@ from django.utils.html import strip_tags
 from typing import Optional, Dict, Any
 from apps.communications.models import Email
 from apps.core.models import Contact
-from apps.transactions.models import Proposal, SalesOrder, Invoice, Payment
+from apps.transactions.models import Proposal, Order, Invoice, Payment
 
 
 class TransactionEmailService:
@@ -124,7 +124,7 @@ class TransactionEmailService:
         )
 
     @classmethod
-    def send_order_created_notification(cls, order: SalesOrder) -> bool:
+    def send_order_created_notification(cls, order: Order) -> bool:
         """Send notification when an order is created."""
         if not getattr(settings, 'EMAIL_NOTIFICATIONS_ENABLED', True):
             return False

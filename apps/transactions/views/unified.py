@@ -30,7 +30,7 @@ else:
 
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
     WorkOrder, WorkOrderLine,
@@ -38,7 +38,7 @@ from apps.transactions.models import (
 )
 from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
-    SalesOrderSerializer, SalesOrderLineSerializer,
+    OrderSerializer, OrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
     PurchaseOrderSerializer, PurchaseOrderLineSerializer,
     WorkOrderSerializer, WorkOrderLineSerializer,
@@ -53,7 +53,7 @@ from apps.core.constants.model_registry import get_model_meta, import_model
 # Mapping helpers -----------------------------------------------------------
 HEADER_MAP = {
     'proposal': (Proposal, ProposalSerializer, ProposalLine, ProposalLineSerializer),
-    'sales-order': (SalesOrder, SalesOrderSerializer, SalesOrderLine, SalesOrderLineSerializer),
+    'order': (Order, OrderSerializer, OrderLine, OrderLineSerializer),
     'invoice': (Invoice, InvoiceSerializer, InvoiceLine, InvoiceLineSerializer),
     'purchase-order': (PurchaseOrder, PurchaseOrderSerializer, PurchaseOrderLine, PurchaseOrderLineSerializer),
     'workorder': (WorkOrder, WorkOrderSerializer, WorkOrderLine, WorkOrderLineSerializer),
@@ -271,7 +271,7 @@ class LinkageCommentsView(generics.GenericAPIView):
         # Models to scan for linkage refs and comments
         model_names = [
             ("transactions", "ProposalLine"),
-            ("transactions", "SalesOrderLine"),
+            ("transactions", "OrderLine"),
             ("transactions", "InvoiceLine"),
             ("transactions", "PurchaseOrderLine"),
         ]

@@ -1,14 +1,14 @@
 from django.urls import path
 from rest_framework import generics, permissions
-from apps.transactions.models import Invoice, InvoiceLine, WorkOrder, WorkOrderLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import Invoice, InvoiceLine, WorkOrder, WorkOrderLine, Order, OrderLine
 from apps.transactions.serializers.invoice_serializers import (
     InvoiceSerializer, InvoiceLineSerializer,
 )
 from apps.transactions.serializers.workorder_serializers import (
     WorkOrderSerializer, WorkOrderLineSerializer,
 )
-from apps.transactions.serializers.sales_order_serializers import (
-    SalesOrderSerializer, SalesOrderLineSerializer,
+from apps.transactions.serializers.order_serializers import (
+    OrderSerializer, OrderLineSerializer,
 )
 
 
@@ -44,35 +44,35 @@ class InvoiceLineRetrieveUpdate(generics.RetrieveUpdateDestroyAPIView):
 
 
 urlpatterns = [
-    # Sales Orders
+    # Orders (formerly Sales Orders - URLs kept for backwards compatibility)
     path('sales-orders/',
          generics.ListCreateAPIView.as_view(
-             queryset=SalesOrder.objects.all().order_by('-id'),
-             serializer_class=SalesOrderSerializer,
+             queryset=Order.objects.all().order_by('-id'),
+             serializer_class=OrderSerializer,
              permission_classes=[BasePermission]
          ),
          name='sales-order-list'
     ),
     path('sales-orders/<int:pk>/',
          generics.RetrieveUpdateDestroyAPIView.as_view(
-             queryset=SalesOrder.objects.all(),
-             serializer_class=SalesOrderSerializer,
+             queryset=Order.objects.all(),
+             serializer_class=OrderSerializer,
              permission_classes=[BasePermission]
          ),
          name='sales-order-detail'
     ),
     path('sales-order-lines/',
          generics.ListCreateAPIView.as_view(
-             queryset=SalesOrderLine.objects.all().order_by('-id'),
-             serializer_class=SalesOrderLineSerializer,
+             queryset=OrderLine.objects.all().order_by('-id'),
+             serializer_class=OrderLineSerializer,
              permission_classes=[BasePermission]
          ),
          name='sales-order-line-list'
     ),
     path('sales-order-lines/<int:pk>/',
          generics.RetrieveUpdateDestroyAPIView.as_view(
-             queryset=SalesOrderLine.objects.all(),
-             serializer_class=SalesOrderLineSerializer,
+             queryset=OrderLine.objects.all(),
+             serializer_class=OrderLineSerializer,
              permission_classes=[BasePermission]
          ),
          name='sales-order-line-detail'

@@ -1,15 +1,16 @@
 from typing import Dict
 from django.db import models
 from .base_transaction_model import TransactionBaseModel
-from apps.transactions.services.sales_order_totals import compute_sales_order_sell_cost_totals
+from apps.transactions.services.order_totals import compute_order_sell_cost_totals
 
-class SalesOrder(TransactionBaseModel):
+
+class Order(TransactionBaseModel):
     class Meta:
-        db_table = "sales_orders"
+        db_table = "orders"
 
     def update_sell_cost_totals(self, persist: bool = False) -> Dict[str, Dict[str, float]]:
         """Compute sell/cost/totals from lines. If persist=True and fields exist, save them."""
-        computed = compute_sales_order_sell_cost_totals(self)
+        computed = compute_order_sell_cost_totals(self)
 
         if persist:
             update_fields: list[str] = []
@@ -29,7 +30,7 @@ class SalesOrder(TransactionBaseModel):
         return computed
 
     def __str__(self) -> str:
-        return str(getattr(self, "ida", "")) or f"SalesOrder({self.pk})"
+        return str(getattr(self, "ida", "")) or f"Order({self.pk})"
 
 
-__all__ = ["SalesOrder"]
+__all__ = ["Order"]

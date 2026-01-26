@@ -2,7 +2,7 @@ from rest_framework import serializers
 from apps.core.permissions import get_role_field_rules
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
     PurchaseOrder, PurchaseOrderLine,
     WorkOrder, WorkOrderLine,
@@ -90,18 +90,18 @@ class ProposalLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class SalesOrderSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SalesOrder
+        model = Order
         fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
-class SalesOrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=SalesOrder.objects.all())
+class OrderLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = SalesOrderLine
+        model = OrderLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 

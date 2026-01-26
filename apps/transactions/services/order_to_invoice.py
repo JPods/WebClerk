@@ -2,7 +2,8 @@ from __future__ import annotations
 from typing import List, Optional, Dict, Any, cast
 from datetime import datetime, timezone as dt_timezone
 from django.db import transaction
-from apps.transactions.models import SalesOrder, SalesOrderLine, Invoice, InvoiceLine
+from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine
+
 
 class OrderToInvoiceTransferError(Exception):
     """Custom exception for order-to-invoice transfer errors."""
@@ -10,7 +11,7 @@ class OrderToInvoiceTransferError(Exception):
 
 @transaction.atomic
 def transfer_order_to_invoice(
-    order: SalesOrder,
+    order: Order,
     line_ids: Optional[List[int]] = None,
     transfer_all: bool = True,
     invoice_status: str = "pending",
@@ -23,9 +24,9 @@ def transfer_order_to_invoice(
         raise OrderToInvoiceTransferError("Must specify line_ids when transfer_all=False")
 
     lines_to_transfer = (
-        SalesOrderLine.objects.filter(parent=order)
+        OrderLine.objects.filter(parent=order)
         if transfer_all
-        else SalesOrderLine.objects.filter(parent=order, id__in=line_ids)
+        else OrderLine.objects.filter(parent=order, id__in=line_ids)
     )
     if not lines_to_transfer.exists():
         raise OrderToInvoiceTransferError("No lines to transfer")
@@ -71,17 +72,17 @@ def transfer_order_to_invoice(
         _update_order_line_quantity(ol, remaining)
     if transfer_all:
         remaining_total = sum(
-            (l.quantity or {}).get("remaining", 0) for l in SalesOrderLine.objects.filter(parent=order)
+            (l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(parent=order)
         )
         if remaining_total <= 0:
             order.status = "fulfilled"
             order.save(update_fields=["status", "dt_modified", "version"])
-        remaining_total = sum((l.quantity or {}).get("remaining", 0) for l in SalesOrderLine.objects.filter(parent=order))
+        remaining_total = sum((l.quantity or {}).get("remaining", 0) for l in OrderLine.objects.filter(parent=order))
         if remaining_total <= 0:
             order.status = "fulfilled"
             order.save(update_fields=["status", "dt_modified", "version"])
     inv_refs = invoice.refs or {}
-    inv_refs.setdefault("source", {})["sales_order_id"] = order.id
+    inv_refs.setdefault("source", {})["order_id"] = order.id
     transfer_date_value: Any = getattr(invoice, "dt_created", None)
     if getattr(transfer_date_value, "isoformat", None):
         inv_refs["source"]["transfer_date"] = transfer_date_value.isoformat()
@@ -98,7 +99,7 @@ def transfer_order_to_invoice(
     return {
         "success": True,
         "invoice_id": invoice.id,
-        "sales_order_id": order.id,
+        "order_id": order.id,
         "lines_transferred": transferred,
         "line_mapping": line_mapping,
         "order_preserved": preserve_order,
@@ -106,7 +107,7 @@ def transfer_order_to_invoice(
         "invoice_type": invoice_type,
     }
     
-def _resolve_order_party(order: SalesOrder) -> Any:
+def _resolve_order_party(order: Order) -> Any:
     for attr in ("party", "customer", "client", "account", "counterparty"):
         if hasattr(order, attr):
             value = getattr(order, attr)
@@ -114,10 +115,10 @@ def _resolve_order_party(order: SalesOrder) -> Any:
                 return value
     raise OrderToInvoiceTransferError("Order missing party/customer association required for invoice creation")
     
-def _prepare_invoice_refs(order: SalesOrder, invoice_type: str) -> Dict[str, Any]:
+def _prepare_invoice_refs(order: Order, invoice_type: str) -> Dict[str, Any]:
     refs = dict(order.refs or {})
     src = refs.setdefault("source", {})
-    src["converted_from"] = "sales_order"
+    src["converted_from"] = "order"
     src["original_id"] = order.id
     src["invoice_type"] = invoice_type
     refs.setdefault("links", {})
@@ -125,29 +126,29 @@ def _prepare_invoice_refs(order: SalesOrder, invoice_type: str) -> Dict[str, Any
         src["original_proposal_id"] = src["proposal_id"]
     return refs
 
-def _prepare_invoice_metadata(order: SalesOrder, invoice_type: str) -> Dict[str, Any]:
+def _prepare_invoice_metadata(order: Order, invoice_type: str) -> Dict[str, Any]:
     md = dict(order.metadata or {})
     conv = md.setdefault("conversion", {})
-    conv["from_sales_order"] = order.id
+    conv["from_order"] = order.id
     conv["transfer_type"] = "order_to_invoice"
     conv["invoice_type"] = invoice_type
     if "from_proposal" in conv:
         conv["original_proposal"] = conv["from_proposal"]
     return md
 
-def _prepare_line_refs(ol: SalesOrderLine) -> Dict[str, Any]:
+def _prepare_line_refs(ol: OrderLine) -> Dict[str, Any]:
     refs = dict(ol.refs or {})
     src = refs.setdefault("source", {})
-    src["sales_order_line_id"] = ol.id
+    src["order_line_id"] = ol.id
     if "proposal_line_id" in src:
         src["original_proposal_line_id"] = src["proposal_line_id"]
     return refs
 
-def _prepare_line_metadata(ol: SalesOrderLine, order: SalesOrder) -> Dict[str, Any]:
+def _prepare_line_metadata(ol: OrderLine, order: Order) -> Dict[str, Any]:
     md = dict(ol.metadata or {})
     conv = md.setdefault("conversion", {})
-    conv["from_sales_order_line"] = ol.id
-    conv["from_sales_order"] = order.id
+    conv["from_order_line"] = ol.id
+    conv["from_order"] = order.id
     if "from_proposal_line" in conv:
         conv["original_proposal_line"] = conv["from_proposal_line"]
     return md
@@ -167,7 +168,7 @@ def _convert_quantity_for_invoice(order_quantity: Optional[Dict[str, Any]]) -> D
         },
     }
 
-def _update_order_line_quantity(ol: SalesOrderLine, invoiced_qty: float) -> None:
+def _update_order_line_quantity(ol: OrderLine, invoiced_qty: float) -> None:
     q = dict(ol.quantity or {})
     q["invoiced"] = q.get("invoiced", 0) + invoiced_qty
     q["remaining"] = max(0, q.get("remaining", 0) - invoiced_qty)

@@ -1,12 +1,12 @@
 from decimal import Decimal
 from django.test import TestCase
-from apps.transactions.models import SalesOrder, SalesOrderLine
-from apps.transactions.services.sales_order_totals import compute_sales_order_sell_cost_totals
+from apps.transactions.models import Order, OrderLine
+from apps.transactions.services.order_totals import compute_order_sell_cost_totals
 from apps.core.models import Contact
 
 
-class SalesOrderTotalsServiceTest(TestCase):
-    """Test cases for sales order totals service."""
+class OrderTotalsServiceTest(TestCase):
+    """Test cases for order totals service."""
 
     def setUp(self):
         """Set up test data."""
@@ -15,14 +15,14 @@ class SalesOrderTotalsServiceTest(TestCase):
             name_last="Doe",
             email="john.doe@example.com"
         )
-        self.sales_order = SalesOrder.objects.create(
+        self.order = Order.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
     def test_compute_totals_empty_order(self):
-        """Test computing totals for an empty sales order."""
-        result = compute_sales_order_sell_cost_totals(self.sales_order)
+        """Test computing totals for an empty order."""
+        result = compute_order_sell_cost_totals(self.order)
 
         expected = {
             'sell': {
@@ -59,22 +59,22 @@ class SalesOrderTotalsServiceTest(TestCase):
     def test_compute_totals_with_lines(self):
         """Test computing totals with line items."""
         # Create line items
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 2, 'remaining': 2},
             price={'unit': 10.00, 'extended': 20.00},
             cost={'unit': 8.00, 'extended': 16.00}
         )
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 2",
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 15.00, 'extended': 15.00},
             cost={'unit': 12.00, 'extended': 12.00}
         )
 
-        result = compute_sales_order_sell_cost_totals(self.sales_order)
+        result = compute_order_sell_cost_totals(self.order)
 
         # Check sell totals
         self.assertEqual(result['sell']['line_sum_goods'], 35.00)
@@ -92,15 +92,15 @@ class SalesOrderTotalsServiceTest(TestCase):
 
     def test_compute_totals_with_discounts(self):
         """Test computing totals with discounts."""
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 100.00, 'discount_amount': 10.00, 'extended': 90.00},
             cost={'unit': 80.00, 'extended': 80.00}
         )
 
-        result = compute_sales_order_sell_cost_totals(self.sales_order)
+        result = compute_order_sell_cost_totals(self.order)
 
         # Check sell totals include discount
         self.assertEqual(result['sell']['line_sum_goods'], 90.00)
@@ -119,8 +119,8 @@ class SalesOrderTotalsServiceTest(TestCase):
 
     def test_compute_totals_with_additional_costs(self):
         """Test computing totals with additional cost components."""
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 1, 'remaining': 1},
             price={'unit': 100.00, 'extended': 100.00},
@@ -135,7 +135,7 @@ class SalesOrderTotalsServiceTest(TestCase):
             }
         )
 
-        result = compute_sales_order_sell_cost_totals(self.sales_order)
+        result = compute_order_sell_cost_totals(self.order)
 
         # Check sell totals
         self.assertEqual(result['sell']['line_sum_goods'], 100.00)
@@ -154,4 +154,4 @@ class SalesOrderTotalsServiceTest(TestCase):
         self.assertEqual(result['totals']['total'], 100.00)
         self.assertEqual(result['totals']['cost'], 100.00)
         self.assertEqual(result['totals']['margin'], 0.00)
-        self.assertEqual(result['totals']['margin_pc'], 0.0)
+        self.assertAlmostEqual(result['totals']['margin_pc'], 0.00, places=2)

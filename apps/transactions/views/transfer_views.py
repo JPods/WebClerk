@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from apps.transactions.models import Proposal, SalesOrder, Invoice, Payment
+from apps.transactions.models import Proposal, Order, Invoice, Payment
 from apps.transactions.services import (
     proposal_to_order,
     order_to_invoice,
@@ -92,7 +92,7 @@ def execute_transfer(request):
 
             response_data = {
                 'success': result['success'],
-                'target_id': result['sales_order_id'],
+                'target_id': result['order_id'],
                 'source_id': result['proposal_id'],
                 'lines_transferred': result['lines_transferred'],
                 'line_mapping': result['line_mapping'],
@@ -102,7 +102,7 @@ def execute_transfer(request):
 
         elif data['source_type'] == 'order' and data['target_type'] == 'invoice':
             # Get order
-            order = get_object_or_404(SalesOrder, id=data['source_id'])
+            order = get_object_or_404(Order, id=data['source_id'])
 
             # Transfer
             result = order_to_invoice.transfer_order_to_invoice(
@@ -116,7 +116,7 @@ def execute_transfer(request):
             response_data = {
                 'success': result['success'],
                 'target_id': result['invoice_id'],
-                'source_id': result['sales_order_id'],
+                'source_id': result['order_id'],
                 'lines_transferred': result['lines_transferred'],
                 'line_mapping': result['line_mapping'],
                 'source_preserved': result['order_preserved'],
@@ -125,7 +125,7 @@ def execute_transfer(request):
 
         elif data['source_type'] == 'order' and data['target_type'] == 'purchase_order':
             # Get order
-            order = get_object_or_404(SalesOrder, id=data['source_id'])
+            order = get_object_or_404(Order, id=data['source_id'])
 
             # Transfer
             result = order_to_purchase.transfer_order_to_purchase(
@@ -139,7 +139,7 @@ def execute_transfer(request):
             response_data = {
                 'success': result['success'],
                 'target_id': result['purchase_order_id'],
-                'source_id': result['sales_order_id'],
+                'source_id': result['order_id'],
                 'lines_transferred': result['lines_transferred'],
                 'line_mapping': result['line_mapping'],
                 'source_preserved': result['order_preserved'],
@@ -219,7 +219,7 @@ def reserve_inventory(request):
     data = serializer.validated_data
 
     try:
-        order = get_object_or_404(SalesOrder, id=data['order_id'])
+        order = get_object_or_404(Order, id=data['order_id'])
 
         result = inventory_flow.reserve_inventory_for_order(order)
 
@@ -358,7 +358,7 @@ def bulk_transfer_orders(request):
 
     for order_id in order_ids:
         try:
-            order = get_object_or_404(SalesOrder, id=order_id)
+            order = get_object_or_404(Order, id=order_id)
 
             result = order_to_invoice.transfer_order_to_invoice(
                 order=order,

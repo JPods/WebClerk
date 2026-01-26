@@ -1,19 +1,19 @@
 from rest_framework import serializers
-from apps.transactions.models import SalesOrder, SalesOrderLine
+from apps.transactions.models import Order, OrderLine
 
 
-class SalesOrderSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SalesOrder
+        model = Order
         fields = ["id", "dt_created", "dt_modified"]
         read_only_fields = ["id", "dt_created", "dt_modified"]
 
 
-class SalesOrderLineSerializer(serializers.ModelSerializer):
+class OrderLineSerializer(serializers.ModelSerializer):
     parent_id = serializers.IntegerField(required=True)
 
     class Meta:
-        model = SalesOrderLine
+        model = OrderLine
         fields = [
             "id", "parent_id", "status", "price_level",
             "item", "quantity", "cost", "price", "tax", "action", "physical", "flow", "source",
@@ -26,9 +26,9 @@ class SalesOrderLineSerializer(serializers.ModelSerializer):
         if parent_id is None:
             raise serializers.ValidationError({"parent_id": "This field is required."})
         try:
-            parent = SalesOrder.objects.get(pk=parent_id)
-        except SalesOrder.DoesNotExist:
-            raise serializers.ValidationError({"parent_id": "Invalid sales order id"})
+            parent = Order.objects.get(pk=parent_id)
+        except Order.DoesNotExist:
+            raise serializers.ValidationError({"parent_id": "Invalid order id"})
         validated_data["parent"] = parent
         return super().create(validated_data)
 
@@ -36,8 +36,9 @@ class SalesOrderLineSerializer(serializers.ModelSerializer):
         if "parent_id" in validated_data:
             parent_id = validated_data.pop("parent_id")
             try:
-                parent = SalesOrder.objects.get(pk=parent_id)
-            except SalesOrder.DoesNotExist:
-                raise serializers.ValidationError({"parent_id": "Invalid sales order id"})
+                parent = Order.objects.get(pk=parent_id)
+            except Order.DoesNotExist:
+                raise serializers.ValidationError({"parent_id": "Invalid order id"})
             validated_data["parent"] = parent
         return super().update(instance, validated_data)
+

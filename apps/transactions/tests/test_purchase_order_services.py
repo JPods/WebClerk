@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.test import TestCase
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, Order, OrderLine
 from apps.transactions.services.purchase_order_totals import compute_purchase_order_sell_cost_totals
 from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
 from apps.core.models import Contact
@@ -141,16 +141,16 @@ class OrderToPurchaseServiceTest(TestCase):
             name_last="Smith",
             email="jane.smith@example.com"
         )
-        self.sales_order = SalesOrder.objects.create(
+        self.order = Order.objects.create(
             status="released",
             customer_id=self.customer.id
         )
 
     def test_transfer_order_to_purchase_basic(self):
-        """Test basic transfer from sales order to purchase order."""
-        # Create sales order lines
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        """Test basic transfer from order to purchase order."""
+        # Create order lines
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 2},
             price={'unit': 10.00},
@@ -158,7 +158,7 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
         result = transfer_order_to_purchase(
-            order=self.sales_order,
+            order=self.order,
             group_by_vendor=False
         )
 
@@ -170,7 +170,7 @@ class OrderToPurchaseServiceTest(TestCase):
         po = PurchaseOrder.objects.get(id=result['purchase_order_ids'][0])
         self.assertEqual(po.status, "planned")
         self.assertEqual(po.customer_id, self.customer.id)
-        self.assertEqual(po.refs['source']['sales_order_id'], self.sales_order.id)
+        self.assertEqual(po.refs['source']['order_id'], self.order.id)
 
         # Check PO line was created
         po_lines = po.purchaseorderline_set.all()
@@ -187,17 +187,17 @@ class OrderToPurchaseServiceTest(TestCase):
             email="bob@example.com"
         )
 
-        # Create sales order lines with different vendors
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        # Create order lines with different vendors
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 1",
             quantity={'placed': 2},
             price={'unit': 10.00},
             cost={'unit': 8.00},
             vendor_id=self.vendor.id
         )
-        SalesOrderLine.objects.create(
-            parent=self.sales_order,
+        OrderLine.objects.create(
+            parent=self.order,
             description="Item 2",
             quantity={'placed': 1},
             price={'unit': 15.00},
@@ -206,7 +206,7 @@ class OrderToPurchaseServiceTest(TestCase):
         )
 
         result = transfer_order_to_purchase(
-            order=self.sales_order,
+            order=self.order,
             group_by_vendor=True
         )
 

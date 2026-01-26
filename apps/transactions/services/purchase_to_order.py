@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from django.db import transaction
 
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, Order, OrderLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class PurchaseToOrderTransferError(Exception):
@@ -24,7 +24,7 @@ def transfer_purchase_to_order(
     except ValueError as e:
         raise PurchaseToOrderTransferError(str(e))
 
-    so = SalesOrder.objects.create(
+    so = Order.objects.create(
         status=order_status,
         refs={"source": {"purchase_order_id": purchase.id}},
     )
@@ -32,7 +32,7 @@ def transfer_purchase_to_order(
     line_mapping: Dict[int, int] = {}
     for pl in selected:
         qty = convert_quantity_from_source(getattr(pl, "quantity", None) or {}, "purchase_order")
-        sl = SalesOrderLine.objects.create(
+        sl = OrderLine.objects.create(
             parent=so,
             price=getattr(pl, "price", None) or {},
             cost=getattr(pl, "cost", None) or {},
@@ -55,7 +55,7 @@ def transfer_purchase_to_order(
             purchase.save(update_fields=["status"])
 
     return {
-        "sales_order_id": so.id,
+        "order_id": so.id,
         "purchase_order_id": purchase.id,
         "lines_transferred": len(selected),
         "line_mapping": line_mapping,

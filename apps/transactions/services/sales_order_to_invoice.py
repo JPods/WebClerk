@@ -1,4 +1,0 @@
-from .order_to_invoice import transfer_order_to_invoice, OrderToInvoiceTransferError
-
-# Alias for consistency
-sales_order_to_invoice = transfer_order_to_invoice
