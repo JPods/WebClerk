@@ -12,7 +12,7 @@ export interface Report {
   name?: string;
   purpose?: string;
   model_name?: string;
-  id_record?: string;
+  record_id?: string;
   data?: Record<string, any>;
   metadata?: Record<string, any>;
   refs?: Record<string, any>;

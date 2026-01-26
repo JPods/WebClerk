@@ -11,7 +11,7 @@ export interface AuditLog {
   is_archived?: boolean;
   user_id?: number;
   model_name: string;
-  id_record: number;
+  record_id: number;
   action: string;
   changes?: Record<string, any>;
   ip_address?: string;

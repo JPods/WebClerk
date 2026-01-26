@@ -12,7 +12,7 @@
  *   resolveModelName('order')           -> 'order'
  *   resolveModelName('sales_order')     -> 'order'
  *   resolveModelName('SalesOrder')      -> 'order'
- *   resolveModelName('purchase-order')  -> 'purchase_order'
+ *   resolveModelName('purchase-order')  -> 'purchase'
  *   resolveModelName('invoice')         -> 'invoice'
  */
 
@@ -24,9 +24,9 @@ const MODEL_NAME_MAP: Record<string, string> = {
   order: 'order',
   sales: 'order',
   invoice: 'invoice',
-  purchaseorder: 'purchase_order',
-  purchase: 'purchase_order',
-  po: 'purchase_order',
+  purchaseorder: 'purchase',
+  purchase: 'purchase',
+  po: 'purchase',
   proposal: 'proposal',
   quote: 'proposal',
   workorder: 'work_order',
@@ -39,8 +39,9 @@ const MODEL_NAME_MAP: Record<string, string> = {
   salesorderline: 'order_line',
   orderline: 'order_line',
   invoiceline: 'invoice_line',
-  purchaseorderline: 'purchase_order_line',
-  poline: 'purchase_order_line',
+  purchaseorderline: 'purchase_line',
+  purchaseline: 'purchase_line',
+  poline: 'purchase_line',
   proposalline: 'proposal_line',
   quoteline: 'proposal_line',
   workorderline: 'work_order_line',
@@ -102,12 +103,13 @@ const MODEL_NAME_MAP: Record<string, string> = {
 // RESTful path patterns to model name
 // Handles paths like /api/transactions/salesorder/22
 const PATH_PATTERN_MAP: Record<string, string> = {
-  'transactions/sales-order': 'sales_order',
-  'transactions/salesorder': 'sales_order',
-  'transactions/order': 'sales_order',
+  'transactions/sales-order': 'order',
+  'transactions/salesorder': 'order',
+  'transactions/order': 'order',
   'transactions/invoice': 'invoice',
-  'transactions/purchase-order': 'purchase_order',
-  'transactions/purchaseorder': 'purchase_order',
+  'transactions/purchase-order': 'purchase',
+  'transactions/purchaseorder': 'purchase',
+  'transactions/purchase': 'purchase',
   'transactions/proposal': 'proposal',
   'transactions/work-order': 'work_order',
   'transactions/workorder': 'work_order',
@@ -231,10 +233,12 @@ export function modelNameToUrl(modelName: string): string {
   // Special cases with hyphens in URL
   const URL_MAP: Record<string, string> = {
     sales_order: 'sales-order',
-    purchase_order: 'purchase-order',
+    order: 'order',
+    purchase: 'purchase',
     work_order: 'work-order',
     sales_order_line: 'sales-order-line',
-    purchase_order_line: 'purchase-order-line',
+    order_line: 'order-line',
+    purchase_line: 'purchase-line',
     work_order_line: 'work-order-line',
     invoice_line: 'invoice-line',
     proposal_line: 'proposal-line',
@@ -256,8 +260,9 @@ export function modelNameToUrl(modelName: string): string {
 export function getTransactionType(modelName: string): string {
   const TYPE_MAP: Record<string, string> = {
     sales_order: 'sales_order',
+    order: 'order',
     invoice: 'invoice',
-    purchase_order: 'purchase_order',
+    purchase: 'purchase',
     proposal: 'proposal',
     work_order: 'work_order',
     requisition: 'requisition',
