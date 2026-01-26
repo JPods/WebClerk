@@ -85,6 +85,15 @@ const startNext = () => {
   active = { ...next } as InternalSaveQueueItem;
   notify();
 
+  // Log payload for debugging save failures
+  try {
+    // Avoid logging huge payloads fully
+    const preview = JSON.stringify(next.payload, Object.keys(next.payload || {}).slice(0, 20));
+    console.debug("[saveQueue] Posting payload", { id: next.id, label: next.label, preview });
+  } catch (e) {
+    console.debug("[saveQueue] Posting payload", { id: next.id, label: next.label });
+  }
+
   apiClient
     .post(PostLoginURL.allSave, { ...next.payload }, { signal: next.controller.signal })
     .then((response) => {
