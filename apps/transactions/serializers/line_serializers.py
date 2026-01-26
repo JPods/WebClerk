@@ -4,7 +4,7 @@ from apps.transactions.models import (
     Proposal, ProposalLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
@@ -120,18 +120,18 @@ class InvoiceLineSerializer(BaseLineSerializer):
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 
-class PurchaseOrderSerializer(serializers.ModelSerializer):
+class PurchaseSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PurchaseOrder
+        model = Purchase
         fields = ['id', 'ida', 'dt_created']
         read_only_fields = ['id', 'dt_created']
 
 
-class PurchaseOrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=PurchaseOrder.objects.all())
+class PurchaseLineSerializer(BaseLineSerializer):
+    parent = serializers.PrimaryKeyRelatedField(queryset=Purchase.objects.all())
 
     class Meta(BaseLineSerializer.Meta):
-        model = PurchaseOrderLine
+        model = PurchaseLine
         fields = BaseLineSerializer.Meta.fields + ['parent']
 
 

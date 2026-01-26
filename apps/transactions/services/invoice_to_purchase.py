@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from django.db import transaction
 
-from apps.transactions.models import Invoice, InvoiceLine, PurchaseOrder, PurchaseOrderLine
+from apps.transactions.models import Invoice, InvoiceLine, Purchase, PurchaseLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class InvoiceToPurchaseTransferError(Exception):
@@ -24,7 +24,7 @@ def transfer_invoice_to_purchase(
     except ValueError as e:
         raise InvoiceToPurchaseTransferError(str(e))
 
-    po = PurchaseOrder.objects.create(
+    po = Purchase.objects.create(
         status=purchase_status,
         refs={"source": {"invoice_id": invoice.pk}},
     )
@@ -32,8 +32,8 @@ def transfer_invoice_to_purchase(
     line_mapping: Dict[int, int] = {}
     for il in selected:
         qty = convert_quantity_from_source(il.quantity or {}, "invoice")
-        pol = PurchaseOrderLine.objects.create(
-            parent=po,
+        pol = PurchaseLine.objects.create(
+            purchase=po,
             price=il.price or {},
             cost=getattr(il, "cost", None) or {},
             quantity=qty,

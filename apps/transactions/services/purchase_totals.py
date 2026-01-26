@@ -9,9 +9,9 @@ def _d(x: Any, places: int = 2) -> Decimal:
     except Exception:
         return Decimal(0)
 
-def compute_purchase_order_sell_cost_totals(po) -> Dict[str, Dict[str, float]]:
-    """Aggregate sell and cost from purchase order lines."""
-    # For PO, sell is typically empty as it's procurement-focused
+def compute_purchase_sell_cost_totals(purchase) -> Dict[str, Dict[str, float]]:
+    """Aggregate sell and cost from purchase lines."""
+    # For Purchase, sell is typically empty as it's procurement-focused
     sell_goods = Decimal(0)
     sell_discount = Decimal(0)
 
@@ -22,7 +22,7 @@ def compute_purchase_order_sell_cost_totals(po) -> Dict[str, Dict[str, float]]:
     cost_freight = Decimal(0)
     cost_commissions = Decimal(0)
 
-    for ln in po.lines.all():
+    for ln in purchase.lines.all():
         c = ln.cost or {}
 
         cost_goods += _d(c.get("extended", 0))

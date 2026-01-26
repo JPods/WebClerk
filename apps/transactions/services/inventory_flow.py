@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, PurchaseOrder
+from apps.transactions.models import Order, OrderLine, Invoice, InvoiceLine, Purchase
 from apps.products.models.item import Item
 from apps.products.models.inventory_layer import InventoryLayer
 from apps.products.models.inventory_reservation import InventoryReservation
@@ -353,7 +353,7 @@ def create_inventory_deltas_for_order(order: Order) -> int:
     return deltas_created
 
 
-def create_inventory_deltas_for_purchase_order(po: PurchaseOrder) -> int:
+def create_inventory_deltas_for_purchase_order(po: Purchase) -> int:
     """
     Create inventory deltas when a purchase order is created.
 
@@ -364,8 +364,8 @@ def create_inventory_deltas_for_purchase_order(po: PurchaseOrder) -> int:
     """
     deltas_created = 0
 
-    from apps.transactions.models import PurchaseOrderLine
-    for line in PurchaseOrderLine.objects.filter(parent=po):
+    from apps.transactions.models import PurchaseLine
+    for line in PurchaseLine.objects.filter(purchase=po):
         qty_ordered = getattr(line, 'quantity', {}).get('ordered', 0) or 0
         if qty_ordered == 0:
             continue

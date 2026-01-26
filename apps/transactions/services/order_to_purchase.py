@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 from django.db import transaction
 from collections import defaultdict
 
-from apps.transactions.models import Order, OrderLine, PurchaseOrder, PurchaseOrderLine
+from apps.transactions.models import Order, OrderLine, Purchase, PurchaseLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class OrderToPurchaseTransferError(Exception):
@@ -45,7 +45,7 @@ def transfer_order_to_purchase(
 
     for vendor_id, lines in vendor_groups.items():
         # Create PO for this vendor
-        po = PurchaseOrder.objects.create(
+        po = Purchase.objects.create(
             status=purchase_status,
             vendor_id=vendor_id,
             customer_id=order.customer_id,
@@ -55,8 +55,8 @@ def transfer_order_to_purchase(
 
         for sl in lines:
             qty = convert_quantity_from_source(sl.quantity or {}, "sales_order")
-            pol = PurchaseOrderLine.objects.create(
-                parent=po,
+            pol = PurchaseLine.objects.create(
+                purchase=po,
                 cost=getattr(sl, "cost", None) or {},
                 quantity=qty,
                 item=sl.item or {},

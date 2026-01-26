@@ -16,7 +16,7 @@ from django.db import transaction, connection
 
 # Clean up from previous tests
 print("\n--- CLEANUP ---")
-Pending.objects.filter(model_name='item', id_record__in=['249','250','251']).delete()
+Pending.objects.filter(model_name='item', record_id__in=['249','250','251']).delete()
 with connection.cursor() as cursor:
     for item_id in [249, 250, 251]:
         cursor.execute('''
@@ -61,7 +61,7 @@ print(f"  Added line {line3.pk}: Item 251, qty=3")
 # Check for pending records BEFORE processing
 pending_qs = Pending.objects.filter(
     model_name="item",
-    id_record__in=["249", "250", "251"],
+    record_id__in=["249", "250", "251"],
     dt_processed=0
 )
 print(f"\n--- Unprocessed Pending Records: {pending_qs.count()} ---")

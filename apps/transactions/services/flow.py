@@ -11,7 +11,7 @@ from apps.transactions.models import (
     Proposal, ProposalLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine
 )
 from apps.docs.models.linkage import Linkage
@@ -56,8 +56,8 @@ class ReceiveLine:
     serial_batch: str | None = None
 
 
-def _copy_common_line_fields(src: ProposalLine | OrderLine | PurchaseOrderLine,
-                             dst: OrderLine | InvoiceLine | PurchaseOrderLine):
+def _copy_common_line_fields(src: ProposalLine | OrderLine | PurchaseLine,
+                             dst: OrderLine | InvoiceLine | PurchaseLine):
     """Copy scalar + JSON attributes from one line to a new line instance.
 
     Uses centralized LINE_JSON_FIELDS_TO_COPY for maintainability. Adding a
@@ -235,17 +235,17 @@ def order_to_invoice(so: Order, invoice_no: Optional[str] = None) -> Invoice:
 
 
 @transaction.atomic
-def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> PurchaseOrder:
-    """Create a supporting PurchaseOrder from an Order.
+def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> Purchase:
+    """Create a supporting Purchase from an Order.
 
     Propagates / creates linkage id across involved lines to maintain unified
     comment & lineage chain.
     """
-    po = PurchaseOrder.objects.create(po_no=po_no or f"PO-SO-{so.pk or 'new'}")
+    po = Purchase.objects.create(po_no=po_no or f"PO-SO-{so.pk or 'new'}")
     src_lines = list(OrderLine.objects.filter(parent=so).order_by('id'))
     linkage_id = ensure_linkage_for_lines(src_lines) if src_lines else None
     for sol in src_lines:
-        pol = PurchaseOrderLine(parent=po)
+        pol = PurchaseLine(purchase=po)
         _copy_common_line_fields(sol, pol)
         if linkage_id:
             refs = getattr(pol, 'refs', {}) or {}
@@ -259,14 +259,14 @@ def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> PurchaseO
     return po
 
 
-def _resolve_item_id_from_line(line: PurchaseOrderLine | OrderLine | ProposalLine) -> Optional[int]:
+def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine) -> Optional[int]:
     item = getattr(line, 'item', {}) or {}
     # Prefer id_num, fallback: try 'id' or 'item_id' if present
     return item.get('id_num') or item.get('id') or item.get('item_id')
 
 
 @transaction.atomic
-def receive_purchase_order(po: PurchaseOrder,
+def receive_purchase_order(po: Purchase,
                            receipt_no: str,
                            lines: Sequence[ReceiveLine]) -> dict:
     """Post a receipt for a PO, create inventory stacks, and inventory deltas.
@@ -292,8 +292,8 @@ def receive_purchase_order(po: PurchaseOrder,
 
     for rl in lines:
         try:
-            pol = PurchaseOrderLine.objects.select_related('parent').get(pk=rl.po_line_id, parent=po)
-        except PurchaseOrderLine.DoesNotExist:
+            pol = PurchaseLine.objects.select_related('purchase').get(pk=rl.po_line_id, purchase=po)
+        except PurchaseLine.DoesNotExist:
             raise ValidationError({'lines': f'po_line_id {rl.po_line_id} not found for this PO'})
         item_id = _resolve_item_id_from_line(pol)
         if not item_id:

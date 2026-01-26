@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from django.db import transaction
 
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, Order, OrderLine
+from apps.transactions.models import Purchase, PurchaseLine, Order, OrderLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class PurchaseToOrderTransferError(Exception):
@@ -12,13 +12,13 @@ class PurchaseToOrderTransferError(Exception):
 @transaction.atomic
 def transfer_purchase_to_order(
     *,
-    purchase: PurchaseOrder,
+    purchase: Purchase,
     line_ids: Optional[List[int]] = None,
     transfer_all: bool = False,
     order_status: str = "confirmed",
     preserve_purchase: bool = True,
 ) -> Dict:
-    qs = PurchaseOrderLine.objects.select_for_update().filter(parent=purchase)
+    qs = PurchaseLine.objects.select_for_update().filter(purchase=purchase)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:

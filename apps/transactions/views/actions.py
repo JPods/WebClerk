@@ -6,11 +6,11 @@ from rest_framework.views import APIView
 from common.decorators import allow_write
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.transactions.models import Proposal, Order, PurchaseOrder, WorkOrder, WorkOrderLine
+from apps.transactions.models import Proposal, Order, Purchase, WorkOrder, WorkOrderLine
 from apps.core.models.action import Action
 from apps.transactions.serializers.actions import (
     ConvertRequestSerializer,
-    ReceivePurchaseOrderSerializer,
+    ReceivePurchaseSerializer,
     TransitionRequestSerializer,
 )
 from apps.transactions.services.flow import (
@@ -109,7 +109,7 @@ class OrderToInvoiceView(APIView):
 
 
 @allow_write
-class OrderToPurchaseOrderView(APIView):
+class OrderToPurchaseView(APIView):
     permission_classes = [BasePermission]
     queryset = Order.objects.all()
 
@@ -137,9 +137,9 @@ class LinkageCommentsAggregateView(APIView):
         aggregated: list[dict] = []
         links = (getattr(linkage, 'refs', {}) or {}).get('links', {})
         from apps.transactions.models import (
-            ProposalLine, OrderLine, InvoiceLine, PurchaseOrderLine
+            ProposalLine, OrderLine, InvoiceLine, PurchaseLine
         )
-        line_models = [ProposalLine, OrderLine, InvoiceLine, PurchaseOrderLine]
+        line_models = [ProposalLine, OrderLine, InvoiceLine, PurchaseLine]
         if isinstance(links, dict):
             for id_list in links.values():
                 if not isinstance(id_list, list):
@@ -178,17 +178,17 @@ class LinkageCommentsAggregateView(APIView):
 
 
 @allow_write
-class ReceivePurchaseOrderView(APIView):
+class ReceivePurchaseView(APIView):
     permission_classes = [BasePermission]
-    queryset = PurchaseOrder.objects.all()
+    queryset = Purchase.objects.all()
 
-    @extend_schema(request=ReceivePurchaseOrderSerializer, responses={201: OpenApiResponse(description="Receipt posted & inventory updated")})
+    @extend_schema(request=ReceivePurchaseSerializer, responses={201: OpenApiResponse(description="Receipt posted & inventory updated")})
     def post(self, request, *args, **kwargs):
         po_id = kwargs.get('pk')
-        po = PurchaseOrder.objects.filter(pk=po_id).first()
+        po = Purchase.objects.filter(pk=po_id).first()
         if not po:
             return response.Response({'detail': 'Purchase order not found'}, status=404)
-        ser = ReceivePurchaseOrderSerializer(data=request.data)
+        ser = ReceivePurchaseSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         vd: Dict[str, Any] = cast(Dict[str, Any], ser.validated_data)  # dict-like with required keys
         receipt_no = str(vd['receipt_no'])

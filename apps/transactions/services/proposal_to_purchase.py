@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from django.db import transaction
 
-from apps.transactions.models import Proposal, ProposalLine, PurchaseOrder, PurchaseOrderLine
+from apps.transactions.models import Proposal, ProposalLine, Purchase, PurchaseLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class ProposalToPurchaseTransferError(Exception):
@@ -24,7 +24,7 @@ def transfer_proposal_to_purchase(
     except ValueError as e:
         raise ProposalToPurchaseTransferError(str(e))
 
-    po = PurchaseOrder.objects.create(
+    po = Purchase.objects.create(
         status=purchase_status,
         refs={"source": {"proposal_id": proposal.id}},
     )
@@ -32,8 +32,8 @@ def transfer_proposal_to_purchase(
     line_mapping: Dict[int, int] = {}
     for pl in selected:
         qty = convert_quantity_from_source(pl.quantity or {}, "proposal")
-        pol = PurchaseOrderLine.objects.create(
-            parent=po,
+        pol = PurchaseLine.objects.create(
+            purchase=po,
             price=pl.price or {},
             cost=getattr(pl, "cost", None) or {},
             quantity=qty,

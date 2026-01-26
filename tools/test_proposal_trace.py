@@ -53,7 +53,7 @@ for item_id in [249, 250, 251]:
 # Check for pending records
 pending_count = Pending.objects.filter(
     model_name="item",
-    id_record__in=["249", "250", "251"],
+    record_id__in=["249", "250", "251"],
     dt_processed=0
 ).count()
 print(f"\nUnprocessed pending records: {pending_count}")

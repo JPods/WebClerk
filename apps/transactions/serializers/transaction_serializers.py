@@ -4,7 +4,7 @@ from decimal import Decimal
 from common.base_serializers import RoleAwareModelSerializer
 
 from apps.transactions.models import (
-    Proposal, ProposalLine, Order, OrderLine, PurchaseOrder, PurchaseOrderLine, Invoice, Payment, PaymentApplication
+    Proposal, ProposalLine, Order, OrderLine, Purchase, PurchaseLine, Invoice, Payment, PaymentApplication
 )
 from apps.core.models import Contact
 
@@ -128,11 +128,11 @@ class OrderLineSerializer(RoleAwareModelSerializer):
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
 
-class PurchaseOrderLineSerializer(RoleAwareModelSerializer):
-    """Serializer aligned with PurchaseOrderLine schema."""
+class PurchaseLineSerializer(RoleAwareModelSerializer):
+    """Serializer aligned with PurchaseLine schema."""
 
     class Meta:
-        model = PurchaseOrderLine
+        model = PurchaseLine
         fields = '__all__'
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
@@ -239,17 +239,17 @@ class OrderSerializer(RoleAwareModelSerializer):
         return data
 
 
-class PurchaseOrderSerializer(RoleAwareModelSerializer):
-    """Serializer for Purchase Order transactions."""
+class PurchaseSerializer(RoleAwareModelSerializer):
+    """Serializer for Purchase transactions."""
 
     total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     line_count = serializers.IntegerField(read_only=True)
     customer_name = serializers.SerializerMethodField(read_only=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
-    lines = PurchaseOrderLineSerializer(many=True, read_only=True)
+    lines = PurchaseLineSerializer(many=True, read_only=True)
 
     class Meta:
-        model = PurchaseOrder
+        model = Purchase
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
@@ -290,8 +290,8 @@ class PurchaseOrderSerializer(RoleAwareModelSerializer):
             data['total_amount'] = cost_data.get('total', 0)
 
         # Add line count
-        if hasattr(instance, 'purchaseorderline_set'):
-            data['line_count'] = instance.purchaseorderline_set.count()
+        if hasattr(instance, 'purchaseline_set'):
+            data['line_count'] = instance.purchaseline_set.count()
 
         return data
 
@@ -341,8 +341,8 @@ __all__ = [
     'ProposalLineSerializer',
     'OrderSerializer',
     'OrderLineSerializer',
-    'PurchaseOrderSerializer',
-    'PurchaseOrderLineSerializer',
+    'PurchaseSerializer',
+    'PurchaseLineSerializer',
     'InvoiceSerializer',
     'PaymentSerializer',
     'PaymentApplicationSerializer',
