@@ -7,7 +7,7 @@ from apps.transactions.models import (
     Order, OrderLine,
     Invoice, InvoiceLine,
     WorkOrder, WorkOrderLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
 )
 from apps.orgs.models import OrgBase
 from apps.products.models import Item
@@ -42,7 +42,7 @@ class Command(BaseCommand):
             (Order, OrderLine),
             (Invoice, InvoiceLine),
             (WorkOrder, WorkOrderLine),
-            (PurchaseOrder, PurchaseOrderLine),
+            (Purchase, PurchaseLine),
         ]
 
         for trans_model, line_model in transaction_types:
@@ -57,7 +57,7 @@ class Command(BaseCommand):
             Order, OrderLine,
             Invoice, InvoiceLine,
             WorkOrder, WorkOrderLine,
-            PurchaseOrder, PurchaseOrderLine,
+            Purchase, PurchaseLine,
         ]
 
         for model in models_to_drop:
@@ -73,7 +73,7 @@ class Command(BaseCommand):
             'OrderLine': 'order_id',
             'InvoiceLine': 'invoice_id',
             'WorkOrderLine': 'workorder_id',
-            'PurchaseOrderLine': 'purchaseorder_id',
+            'PurchaseLine': 'purchase_id',
             'RequisitionLine': 'requisition_id',
         }
         parent_field = parent_fields.get(line_model.__name__)

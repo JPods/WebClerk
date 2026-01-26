@@ -32,7 +32,7 @@ from apps.transactions.models import (
     Proposal, ProposalLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
@@ -40,7 +40,7 @@ from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
     OrderSerializer, OrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseOrderSerializer, PurchaseOrderLineSerializer,
+    PurchaseSerializer, PurchaseLineSerializer,
     WorkOrderSerializer, WorkOrderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
 )
@@ -55,7 +55,7 @@ HEADER_MAP = {
     'proposal': (Proposal, ProposalSerializer, ProposalLine, ProposalLineSerializer),
     'order': (Order, OrderSerializer, OrderLine, OrderLineSerializer),
     'invoice': (Invoice, InvoiceSerializer, InvoiceLine, InvoiceLineSerializer),
-    'purchase-order': (PurchaseOrder, PurchaseOrderSerializer, PurchaseOrderLine, PurchaseOrderLineSerializer),
+    'purchase-order': (Purchase, PurchaseSerializer, PurchaseLine, PurchaseLineSerializer),
     'workorder': (WorkOrder, WorkOrderSerializer, WorkOrderLine, WorkOrderLineSerializer),
     'requisition': (Requisition, RequisitionSerializer, RequisitionLine, RequisitionLineSerializer),
 }
@@ -273,7 +273,7 @@ class LinkageCommentsView(generics.GenericAPIView):
             ("transactions", "ProposalLine"),
             ("transactions", "OrderLine"),
             ("transactions", "InvoiceLine"),
-            ("transactions", "PurchaseOrderLine"),
+            ("transactions", "PurchaseLine"),
         ]
         items: List[Dict[str, Any]] = []
 

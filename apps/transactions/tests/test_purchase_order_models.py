@@ -2,12 +2,12 @@ import pytest
 from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine
+from apps.transactions.models import Purchase, PurchaseLine
 from apps.core.models import Contact
 
 
-class PurchaseOrderModelTest(TestCase):
-    """Test cases for PurchaseOrder model."""
+class PurchaseModelTest(TestCase):
+    """Test cases for Purchase model."""
 
     def setUp(self):
         """Set up test data."""
@@ -22,9 +22,9 @@ class PurchaseOrderModelTest(TestCase):
             email="jane.smith@example.com"
         )
 
-    def test_purchase_order_creation(self):
-        """Test basic purchase order creation."""
-        po = PurchaseOrder.objects.create(
+    def test_purchase_creation(self):
+        """Test basic purchase creation."""
+        po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id,
             vendor_id=self.vendor.id
@@ -36,19 +36,19 @@ class PurchaseOrderModelTest(TestCase):
         self.assertIsNotNone(po.dt_created)
         self.assertIsNotNone(po.dt_modified)
 
-    def test_purchase_order_str_method(self):
-        """Test string representation of purchase order."""
-        po = PurchaseOrder.objects.create(
+    def test_purchase_str_method(self):
+        """Test string representation of purchase."""
+        po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
-        expected_str = f"PurchaseOrder #{po.id} ()"
+        expected_str = f"Purchase #{po.id} ()"
         self.assertEqual(str(po), expected_str)
 
-    def test_purchase_order_name_property(self):
+    def test_purchase_name_property(self):
         """Test name property getter and setter."""
-        po = PurchaseOrder.objects.create(
+        po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
@@ -61,9 +61,9 @@ class PurchaseOrderModelTest(TestCase):
         self.assertEqual(po._transient_name, "Test PO")
         self.assertEqual(po.name, "Test PO")
 
-    def test_purchase_order_po_no_property(self):
+    def test_purchase_po_no_property(self):
         """Test po_no property getter and setter."""
-        po = PurchaseOrder.objects.create(
+        po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
@@ -76,22 +76,22 @@ class PurchaseOrderModelTest(TestCase):
         self.assertEqual(po._transient_po_no, "PO-001")
         self.assertEqual(po.po_no, "PO-001")
 
-    def test_purchase_order_update_sell_cost_totals_without_persist(self):
+    def test_purchase_update_sell_cost_totals_without_persist(self):
         """Test update_sell_cost_totals method without persistence."""
-        po = PurchaseOrder.objects.create(
+        po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
         # Create some line items
-        line1 = PurchaseOrderLine.objects.create(
-            parent=po,
+        line1 = PurchaseLine.objects.create(
+            purchase=po,
             description="Item 1",
             quantity={'placed': 2},
             cost={'unit': 8.00, 'extended': 16.00}
         )
-        line2 = PurchaseOrderLine.objects.create(
-            parent=po,
+        line2 = PurchaseLine.objects.create(
+            purchase=po,
             description="Item 2",
             quantity={'placed': 1},
             cost={'unit': 12.00, 'extended': 12.00}
@@ -117,16 +117,16 @@ class PurchaseOrderModelTest(TestCase):
         self.assertEqual(result['totals']['cost'], 28.00)
         self.assertEqual(result['totals']['margin'], -28.00)
 
-    def test_purchase_order_update_sell_cost_totals_with_persist(self):
+    def test_purchase_update_sell_cost_totals_with_persist(self):
         """Test update_sell_cost_totals method with persistence."""
-        po = PurchaseOrder.objects.create(
+        po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
         # Create a line item
-        PurchaseOrderLine.objects.create(
-            parent=po,
+        PurchaseLine.objects.create(
+            purchase=po,
             description="Test Item",
             quantity={'placed': 1},
             cost={'unit': 80.00, 'extended': 80.00}
@@ -145,8 +145,8 @@ class PurchaseOrderModelTest(TestCase):
         self.assertEqual(po.totals['cost'], 80.00)
 
 
-class PurchaseOrderLineModelTest(TestCase):
-    """Test cases for PurchaseOrderLine model."""
+class PurchaseLineModelTest(TestCase):
+    """Test cases for PurchaseLine model."""
 
     def setUp(self):
         """Set up test data."""
@@ -155,40 +155,40 @@ class PurchaseOrderLineModelTest(TestCase):
             name_last="Doe",
             email="john.doe@example.com"
         )
-        self.po = PurchaseOrder.objects.create(
+        self.po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
 
-    def test_purchase_order_line_creation(self):
-        """Test basic purchase order line creation."""
-        line = PurchaseOrderLine.objects.create(
-            parent=self.po,
+    def test_purchase_line_creation(self):
+        """Test basic purchase line creation."""
+        line = PurchaseLine.objects.create(
+            purchase=self.po,
             description="Test Item",
             quantity={'placed': 5},
             cost={'unit': 15.00, 'extended': 75.00}
         )
 
-        self.assertEqual(line.parent, self.po)
+        self.assertEqual(line.purchase, self.po)
         self.assertEqual(line.description, "Test Item")
         self.assertEqual(line.quantity['placed'], 5)
         self.assertEqual(line.cost['unit'], 15.00)
 
-    def test_purchase_order_line_parent_ref_property(self):
+    def test_purchase_line_parent_ref_property(self):
         """Test parent_ref_id property."""
-        line = PurchaseOrderLine.objects.create(
-            parent=self.po,
+        line = PurchaseLine.objects.create(
+            purchase=self.po,
             description="Test Item",
             quantity={'placed': 1}
         )
 
         # Test getter
-        self.assertEqual(line.purchaseorder_ref_id, self.po.id)
+        self.assertEqual(line.purchase_ref_id, self.po.id)
 
         # Test setter
-        new_po = PurchaseOrder.objects.create(
+        new_po = Purchase.objects.create(
             status="planned",
             customer_id=self.customer.id
         )
-        line.purchaseorder_ref_id = new_po.id
-        self.assertEqual(line.purchaseorder_id, new_po.id)
+        line.purchase_ref_id = new_po.id
+        self.assertEqual(line.purchase_id, new_po.id)

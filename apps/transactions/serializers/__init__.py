@@ -6,14 +6,14 @@ __all__ = [
     # Transaction serializers
     'ProposalSerializer',
     'OrderSerializer',
-    'PurchaseOrderSerializer',
+    'PurchaseSerializer',
     'InvoiceSerializer',
     'PaymentSerializer',
 
     # Line serializers
     'ProposalLineSerializer',
     'OrderLineSerializer',
-    'PurchaseOrderLineSerializer',
+    'PurchaseLineSerializer',
     'InvoiceLineSerializer',
 
     # Transfer serializers

@@ -25,9 +25,9 @@ except Exception:
     InvoiceLine = None  # type: ignore
 
 try:
-    from apps.transactions.models.purchase_order_line import PurchaseOrderLine
+    from apps.transactions.models.purchase_line import PurchaseLine
 except Exception:
-    PurchaseOrderLine = None  # type: ignore
+    PurchaseLine = None  # type: ignore
 
 
 class LinkageCommentsView(BaseJSONAPIView):
@@ -69,8 +69,8 @@ class LinkageCommentsView(BaseJSONAPIView):
             collect_from_qs(OrderLine.objects.filter(refs__isnull=False), "order_line")
         if InvoiceLine is not None:
             collect_from_qs(InvoiceLine.objects.filter(refs__isnull=False), "invoice_line")
-        if PurchaseOrderLine is not None:
-            collect_from_qs(PurchaseOrderLine.objects.filter(refs__isnull=False), "purchase_order_line")
+        if PurchaseLine is not None:
+            collect_from_qs(PurchaseLine.objects.filter(refs__isnull=False), "purchase_line")
 
         data = {
             "linkage_id": linkage_id,

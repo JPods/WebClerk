@@ -20,7 +20,7 @@ class ReceiveLineSerializer(serializers.Serializer):
     serial_batch = serializers.CharField(max_length=80, required=False, allow_blank=True)
 
 
-class ReceivePurchaseOrderSerializer(serializers.Serializer):
+class ReceivePurchaseSerializer(serializers.Serializer):
     receipt_no = serializers.CharField(max_length=40)
     lines = ReceiveLineSerializer(many=True)
 

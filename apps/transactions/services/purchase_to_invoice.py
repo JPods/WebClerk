@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from django.db import transaction
 
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, Invoice, InvoiceLine
+from apps.transactions.models import Purchase, PurchaseLine, Invoice, InvoiceLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class PurchaseToInvoiceTransferError(Exception):
@@ -12,13 +12,13 @@ class PurchaseToInvoiceTransferError(Exception):
 @transaction.atomic
 def transfer_purchase_to_invoice(
     *,
-    purchase: PurchaseOrder,
+    purchase: Purchase,
     line_ids: Optional[List[int]] = None,
     transfer_all: bool = False,
     invoice_status: str = "draft",
     preserve_purchase: bool = True,
 ) -> Dict:
-    qs = PurchaseOrderLine.objects.select_for_update().filter(parent=purchase)
+    qs = PurchaseLine.objects.select_for_update().filter(purchase=purchase)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:
@@ -44,13 +44,13 @@ def transfer_purchase_to_invoice(
         )
         line_mapping[pl.pk] = il.pk
         try:
-            PurchaseOrderLine.objects.filter(pk=pl.pk).update(status="transferred")
+            PurchaseLine.objects.filter(pk=pl.pk).update(status="transferred")
         except Exception:
             pass
 
     if not preserve_purchase:
         try:
-            PurchaseOrder.objects.filter(pk=purchase.pk).update(status="converted")
+            Purchase.objects.filter(pk=purchase.pk).update(status="converted")
         except Exception:
             pass
     return {

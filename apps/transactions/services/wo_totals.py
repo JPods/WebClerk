@@ -4,7 +4,7 @@ from decimal import Decimal
 
 def compute_work_order_cost_totals(wo) -> Dict[str, Any]:
     """Aggregate per-line cost fields into WorkOrder header totals.
-    Mirrors PurchaseOrder aggregation.
+    Mirrors Purchase aggregation.
     """
     sums = {
         "line_sum_goods": Decimal(0),

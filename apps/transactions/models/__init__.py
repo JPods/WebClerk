@@ -15,8 +15,8 @@ _MAPPING = {
     'Invoice': ('invoice', 'Invoice'),
     'InvoiceLine': ('invoice_line', 'InvoiceLine'),
 
-    'PurchaseOrder': ('purchase_order', 'PurchaseOrder'),
-    'PurchaseOrderLine': ('purchase_order_line', 'PurchaseOrderLine'),
+    'Purchase': ('purchase', 'Purchase'),
+    'PurchaseLine': ('purchase_line', 'PurchaseLine'),
 
     'WorkOrder': ('work_order', 'WorkOrder'),
     'WorkOrderLine': ('work_order_line', 'WorkOrderLine'),

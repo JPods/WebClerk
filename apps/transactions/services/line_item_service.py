@@ -51,7 +51,7 @@ if TYPE_CHECKING:
         OrderLine,
         ProposalLine,
         InvoiceLine,
-        PurchaseOrderLine,
+        PurchaseLine,
         WorkOrderLine,
     )
 
@@ -65,8 +65,8 @@ LINE_MODEL_MAP = {
     'order': 'apps.transactions.models.OrderLine',
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
-    'purchase_order': 'apps.transactions.models.PurchaseOrderLine',
-    'purchaseorder': 'apps.transactions.models.PurchaseOrderLine',
+    'purchase_order': 'apps.transactions.models.PurchaseLine',
+    'purchaseorder': 'apps.transactions.models.PurchaseLine',
     'work_order': 'apps.transactions.models.WorkOrderLine',
     'workorder': 'apps.transactions.models.WorkOrderLine',
 }
@@ -76,7 +76,7 @@ LINE_FK_FIELD_MAP = {
     'orderline': 'order_id',
     'proposalline': 'proposal_id',
     'invoiceline': 'invoice_id',
-    'purchaseorderline': 'purchaseorder_id',
+    'purchaseline': 'purchase_id',
     'workorderline': 'workorder_id',
 }
 
@@ -202,7 +202,7 @@ class LineItemService:
         Add an item to a transaction as a new line.
         
         Args:
-            transaction: The parent transaction (Order, Proposal, Invoice, PurchaseOrder, WorkOrder)
+            transaction: The parent transaction (Order, Proposal, Invoice, Purchase, WorkOrder)
             item_id: ID of the item to add
             quantity: Quantity to order (default: 1)
             unit_price: Override unit price (if None, uses item's default price)

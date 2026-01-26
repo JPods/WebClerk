@@ -22,11 +22,11 @@ except Exception:
 
 # Add these imports
 try:
-    from apps.transactions.models.purchase_order import PurchaseOrder
-    from apps.transactions.models.purchase_order_line import PurchaseOrderLine
+    from apps.transactions.models.purchase import Purchase
+    from apps.transactions.models.purchase_line import PurchaseLine
 except Exception:
-    PurchaseOrder = None
-    PurchaseOrderLine = None
+    Purchase = None
+    PurchaseLine = None
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -254,7 +254,7 @@ class OrderToInvoiceView(BaseJSONAPIView):
 
 
 # New: Order -> PO conversion view
-class OrderToPurchaseOrderView(BaseJSONAPIView):
+class OrderToPurchaseView(BaseJSONAPIView):
     """
     POST /tx/orders/<pk>/convert-to-purchase-order/
     """
@@ -266,20 +266,20 @@ class OrderToPurchaseOrderView(BaseJSONAPIView):
         order = Order.objects.filter(pk=pk).first()
         if not order:
             return api_response(success=False, status_code=404, message="Order not found.")
-        if PurchaseOrder is None:
-            return api_response(success=False, status_code=501, message="PurchaseOrder model unavailable.")
+        if Purchase is None:
+            return api_response(success=False, status_code=501, message="Purchase model unavailable.")
 
-        po = PurchaseOrder.objects.create()
+        po = Purchase.objects.create()
         # Optional transient po number
         try:
             po.po_no = f"PO-{po.pk}"
         except Exception:
             pass
 
-        # Create purchase order lines with only supported fields on PurchaseOrderLine
-        if PurchaseOrderLine is not None:
-            concrete_fields = {f.name for f in PurchaseOrderLine._meta.concrete_fields}
-            parent_key = "parent" if "parent" in concrete_fields else ("purchase_order" if "purchase_order" in concrete_fields else None)
+        # Create purchase order lines with only supported fields on PurchaseLine
+        if PurchaseLine is not None:
+            concrete_fields = {f.name for f in PurchaseLine._meta.concrete_fields}
+            parent_key = "purchase" if "purchase" in concrete_fields else ("parent" if "parent" in concrete_fields else None)
 
             for ol in getattr(order, "lines", []).all():
                 # Linkage propagation
@@ -308,7 +308,7 @@ class OrderToPurchaseOrderView(BaseJSONAPIView):
                         kwargs[name] = getattr(ol, name, None)
 
                 try:
-                    PurchaseOrderLine.objects.create(**kwargs)
+                    PurchaseLine.objects.create(**kwargs)
                 except Exception:
                     # Fallback minimal create
                     fallback = {parent_key: po}
@@ -317,7 +317,7 @@ class OrderToPurchaseOrderView(BaseJSONAPIView):
                     if "refs" in concrete_fields:
                         fallback["refs"] = refs
                     try:
-                        PurchaseOrderLine.objects.create(**fallback)
+                        PurchaseLine.objects.create(**fallback)
                     except Exception:
                         pass
 

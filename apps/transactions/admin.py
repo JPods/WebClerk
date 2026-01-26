@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.db import models as dj_models
 from .models import (
     Invoice, InvoiceLine,
-    WorkOrderLine, Order, OrderLine, PurchaseOrder, PurchaseOrderLine,
+    WorkOrderLine, Order, OrderLine, Purchase, PurchaseLine,
     Proposal, ProposalLine, Requisition, RequisitionLine, WorkOrder,
     Project,
 )
@@ -156,8 +156,8 @@ class OrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_filter = ("status",)
 
 
-@admin.register(PurchaseOrder)
-class PurchaseOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+@admin.register(Purchase)
+class PurchaseAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     list_display = ("id", "dt_created", "status")
     list_filter = ("status",)
     search_fields = ("id",)
@@ -170,9 +170,9 @@ class ProjectAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
     search_fields = ("id", "name", "intent", "slug")
     details_fieldset_title = "Project Details"
 
-@admin.register(PurchaseOrderLine)
-class PurchaseOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "purchaseorder_id", "status")
+@admin.register(PurchaseLine)
+class PurchaseLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
+    list_display = ("id", "purchase", "status")
     list_filter = ("status",)
 
 

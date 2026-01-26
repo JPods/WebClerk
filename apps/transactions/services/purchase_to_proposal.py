@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 from django.db import transaction
 
-from apps.transactions.models import PurchaseOrder, PurchaseOrderLine, Proposal, ProposalLine
+from apps.transactions.models import Purchase, PurchaseLine, Proposal, ProposalLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class PurchaseToProposalTransferError(Exception):
@@ -12,13 +12,13 @@ class PurchaseToProposalTransferError(Exception):
 @transaction.atomic
 def transfer_purchase_to_proposal(
     *,
-    purchase: PurchaseOrder,
+    purchase: Purchase,
     line_ids: Optional[List[int]] = None,
     transfer_all: bool = False,
     proposal_status: str = "draft",
     preserve_purchase: bool = True,
 ) -> Dict:
-    qs = PurchaseOrderLine.objects.select_for_update().filter(parent=purchase)
+    qs = PurchaseLine.objects.select_for_update().filter(purchase=purchase)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:
@@ -43,7 +43,7 @@ def transfer_purchase_to_proposal(
             },
         )
         line_mapping[pl.pk] = tl.id
-        # No status field on PurchaseOrderLine; transfer is tracked via refs and mapping.
+        # No status field on PurchaseLine; transfer is tracked via refs and mapping.
         # If a status is needed, add a model field and update here accordingly.
         
     if not preserve_purchase:

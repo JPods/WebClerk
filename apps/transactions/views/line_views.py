@@ -12,7 +12,7 @@ from apps.transactions.models import (
     Proposal, ProposalLine,
     Order, OrderLine,
     Invoice, InvoiceLine,
-    PurchaseOrder, PurchaseOrderLine,
+    Purchase, PurchaseLine,
     WorkOrder, WorkOrderLine,
     Requisition, RequisitionLine,
 )
@@ -20,7 +20,7 @@ from apps.transactions.serializers.line_serializers import (
     ProposalSerializer, ProposalLineSerializer,
     OrderSerializer, OrderLineSerializer,
     InvoiceSerializer, InvoiceLineSerializer,
-    PurchaseOrderSerializer, PurchaseOrderLineSerializer,
+    PurchaseSerializer, PurchaseLineSerializer,
     WorkOrderSerializer, WorkOrderLineSerializer,
     RequisitionSerializer, RequisitionLineSerializer,
     ProjectSerializer,
@@ -128,32 +128,32 @@ class InvoiceLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDe
     serializer_class = InvoiceLineSerializer
     permission_classes = [BasePermission]
 
-# PurchaseOrder
-class PurchaseOrderListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
-    queryset = PurchaseOrder.objects.all().order_by('-id')
-    serializer_class = PurchaseOrderSerializer
+# Purchase
+class PurchaseListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
+    queryset = Purchase.objects.all().order_by('-id')
+    serializer_class = PurchaseSerializer
     permission_classes = [BasePermission]
     pagination_class = DefaultPagination
 
-class PurchaseOrderRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    queryset = PurchaseOrder.objects.all()
-    serializer_class = PurchaseOrderSerializer
+class PurchaseRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = Purchase.objects.all()
+    serializer_class = PurchaseSerializer
     permission_classes = [BasePermission]
 
 @extend_schema(summary="List/Create purchase order lines")
-class PurchaseOrderLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
-    queryset = PurchaseOrderLine.objects.all().order_by('-id')
-    serializer_class = PurchaseOrderLineSerializer
+class PurchaseLineListCreate(EnvelopeResponseMixin, ListResponseEnvelopeMixin, generics.ListCreateAPIView):
+    queryset = PurchaseLine.objects.all().order_by('-id')
+    serializer_class = PurchaseLineSerializer
     permission_classes = [BasePermission]
     throttle_scope = 'tx_line'
-    filterset_fields = ['parent_id', 'status']
+    filterset_fields = ['purchase_id', 'status']
     search_fields = ['item__description', 'item__uuid_item']
-    ordering_fields = ['id', 'parent_id', 'status']
+    ordering_fields = ['id', 'purchase_id', 'status']
     pagination_class = DefaultPagination
 
-class PurchaseOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
-    queryset = PurchaseOrderLine.objects.all()
-    serializer_class = PurchaseOrderLineSerializer
+class PurchaseLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = PurchaseLine.objects.all()
+    serializer_class = PurchaseLineSerializer
     permission_classes = [BasePermission]
 
 # WorkOrder
@@ -268,13 +268,13 @@ class FieldAuthMatrixView(APIView):
         'proposal-line': ProposalLine,
         'order-line': OrderLine,
         'invoice-line': InvoiceLine,
-        'purchase-order-line': PurchaseOrderLine,
+        'purchase-line': PurchaseLine,
         'workorder-line': WorkOrderLine,
         'requisition-line': RequisitionLine,
         'proposal': Proposal,
         'order': Order,
         'invoice': Invoice,
-        'purchase-order': PurchaseOrder,
+        'purchase': Purchase,
         'workorder': WorkOrder,
         'requisition': Requisition,
     }
