@@ -3,7 +3,7 @@ from .base_line_model import BaseSellLineModel
 
 
 class OrderLine(BaseSellLineModel):
-    order_id = models.ForeignKey(
+    order = models.ForeignKey(
         "transactions.Order",
         related_name="lines",
         on_delete=models.CASCADE,
@@ -15,11 +15,11 @@ class OrderLine(BaseSellLineModel):
     @property
     def order_ref_id(self):
         # Mirror FK id for test helpers
-        return getattr(self, "order_id_id", None)
+        return self.order_id
 
     @order_ref_id.setter
     def order_ref_id(self, value):
-        self.order_id_id = value
+        self.order_id = value
 
 
 __all__ = ["OrderLine"]

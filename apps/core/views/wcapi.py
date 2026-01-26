@@ -457,7 +457,7 @@ class WCAPIGetView(APIView):
                 return api_response(data={"record": None}, status_code=status.HTTP_200_OK)
 
             # DEBUG: Check lines before serialization
-            if model_key in ('salesorder', 'sales_order'):
+            if model_key in ('salesorder', 'sales_order', 'order'):
                 print(f"[WCAPI DEBUG] Fetched {model_key} id={record_id}")
                 print(f"[WCAPI DEBUG] obj.lines.all() count: {obj.lines.count()}")
                 print(f"[WCAPI DEBUG] obj.lines.all() IDs: {list(obj.lines.values_list('id', flat=True))}")
