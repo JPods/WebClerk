@@ -1,4 +1,4 @@
-# Ensure LINE_JSON_FIELDS_TO_COPY includes JSON fields present on SalesOrderLine
+# Ensure LINE_JSON_FIELDS_TO_COPY includes JSON fields present on OrderLine
 from django.apps import apps as django_apps
 
 # Default initialization to avoid unbound errors during import

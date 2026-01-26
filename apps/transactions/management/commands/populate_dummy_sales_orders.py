@@ -1,19 +1,19 @@
 from django.core.management.base import BaseCommand
-from apps.transactions.models import SalesOrder
+from apps.transactions.models import Order
 from apps.core.models import Contact
 from apps.communications.models import Address, Phone, Email, Domain
 from apps.products.models import Item
 
 class Command(BaseCommand):
-    help = 'Ensure all refs data in SalesOrder ID 22 are valid and linked to real database records'
+    help = 'Ensure all refs data in Order ID 22 are valid and linked to real database records'
 
     def handle(self, *args, **options):
-        self.stdout.write('Ensuring refs data validity for SalesOrder ID 22...')
+        self.stdout.write('Ensuring refs data validity for Order ID 22...')
 
         try:
-            sales_order = SalesOrder.objects.get(id=22)
-        except SalesOrder.DoesNotExist:
-            self.stdout.write(self.style.ERROR('SalesOrder ID 22 does not exist'))
+            order = Order.objects.get(id=22)
+        except Order.DoesNotExist:
+            self.stdout.write(self.style.ERROR('Order ID 22 does not exist'))
             return
 
         # Load sample refs if not present
@@ -94,7 +94,7 @@ class Command(BaseCommand):
                 'item': [],
                 'location': [],
                 'phone': [],
-                'sales_order_line': [
+                'order_line': [
                     {'id': 11},
                     {'id': 12},
                     {'id': 13}
@@ -104,20 +104,20 @@ class Command(BaseCommand):
             'tags': []
         }
 
-        refs = sales_order.refs or {}
+        refs = order.refs or {}
         links = refs.setdefault('links', {})
 
         # Ensure contact links are present
         if not links.get('contact'):
             links['contact'] = sample_refs['links']['contact']
-            sales_order.refs = refs
-            sales_order.save()
+            order.refs = refs
+            order.save()
 
-        # Ensure sales_order_line links are present
-        if not links.get('sales_order_line'):
-            links['sales_order_line'] = sample_refs['links']['sales_order_line']
-            sales_order.refs = refs
-            sales_order.save()
+        # Ensure order_line links are present
+        if not links.get('order_line'):
+            links['order_line'] = sample_refs['links']['order_line']
+            order.refs = refs
+            order.save()
 
         # Ensure contact records exist
         for contact_ref in links.get('contact', []):
@@ -166,8 +166,8 @@ class Command(BaseCommand):
                 status = 'CREATED' if created else 'EXISTED'
                 self.stdout.write(f'Domain ID {domain_id}: path={domain.path}, type={domain.type} - {status}')
 
-        # Ensure sales_order_line records exist
-        for line_ref in links.get('sales_order_line', []):
+        # Ensure order_line records exist
+        for line_ref in links.get('order_line', []):
             line_id = line_ref.get('id')
             if line_id:
                 # Create dummy item if needed

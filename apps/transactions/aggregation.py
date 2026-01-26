@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any, List
 from django.conf import settings
 from apps.transactions.models import (
-    ProposalLine, SalesOrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
+    ProposalLine, OrderLine, InvoiceLine, PurchaseOrderLine, WorkOrderLine, RequisitionLine
 )
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -12,7 +12,8 @@ from apps.core.services.cache_service import cache_service
 
 LINE_MODEL_MAP = {
     'proposal-line': ProposalLine,
-    'sales-order-line': SalesOrderLine,
+    'order-line': OrderLine,
+    'sales-order-line': OrderLine,  # backwards compatibility alias
     'invoice-line': InvoiceLine,
     'purchase-order-line': PurchaseOrderLine,
     'workorder-line': WorkOrderLine,
@@ -125,7 +126,7 @@ def compute_line_aggregate(parent_id: int,
 
 
 @receiver([post_save, post_delete], sender=ProposalLine)
-@receiver([post_save, post_delete], sender=SalesOrderLine)
+@receiver([post_save, post_delete], sender=OrderLine)
 @receiver([post_save, post_delete], sender=InvoiceLine)
 @receiver([post_save, post_delete], sender=PurchaseOrderLine)
 @receiver([post_save, post_delete], sender=WorkOrderLine)

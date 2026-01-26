@@ -5,10 +5,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from common.base_views import BaseOptimisticDetailView
 from apps.transactions.models import (
-    Proposal, SalesOrder, PurchaseOrder, Invoice, Payment
+    Proposal, Order, PurchaseOrder, Invoice, Payment
 )
 from apps.transactions.serializers import (
-    ProposalSerializer, SalesOrderSerializer, PurchaseOrderSerializer,
+    ProposalSerializer, OrderSerializer, PurchaseOrderSerializer,
     InvoiceSerializer, PaymentSerializer
 )
 
@@ -23,17 +23,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def convert_to_order(self, request, pk=None):
-        """Convert proposal to sales order."""
+        """Convert proposal to order."""
         proposal = self.get_object()
         # Implementation would call transfer service
         return Response({'message': 'Conversion endpoint - implementation needed'})
 
 
-class SalesOrderViewSet(viewsets.ModelViewSet):
-    """ViewSet for Sales Order transactions."""
+class OrderViewSet(viewsets.ModelViewSet):
+    """ViewSet for Order transactions."""
 
-    queryset = SalesOrder.objects.prefetch_related('lines').all()
-    serializer_class = SalesOrderSerializer
+    queryset = Order.objects.prefetch_related('lines').all()
+    serializer_class = OrderSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'customer_id', 'vendor_id', 'ida']
 
@@ -45,7 +45,7 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def create_purchase_order(self, request, pk=None):
-        """Create purchase order from sales order."""
+        """Create purchase order from order."""
         from apps.transactions.services.order_to_purchase import transfer_order_to_purchase
 
         order = self.get_object()
@@ -161,7 +161,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
 __all__ = [
     'ProposalViewSet',
-    'SalesOrderViewSet',
+    'OrderViewSet',
     'PurchaseOrderViewSet',
     'InvoiceViewSet',
     'PaymentViewSet',

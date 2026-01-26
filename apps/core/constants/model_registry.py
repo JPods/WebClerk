@@ -8,9 +8,9 @@ Each entry describes:
  - aliases: optional list of legacy keys or equivalents (plural keys, legacy table names)
 
 Resolvers accept:
- - canonical key (singular snake, e.g., 'sales_order_line')
- - legacy alias (e.g., 'sales_order_lines', 'projects')
- - endpoint slug (e.g., 'sales-order-lines')
+ - canonical key (singular snake, e.g., 'order_line')
+ - legacy alias (e.g., 'order_lines', 'projects')
+ - endpoint slug (e.g., 'order-lines')
  - simple plural/singular variants (append/remove a single trailing 's')
  - hyphen/underscore variants are normalized where applicable
 """
@@ -130,8 +130,8 @@ MODEL_REGISTRY: Dict[str, ModelMeta] = {
         kind='line',
         aliases=['requisition_lines', 'requisition-line', 'requisition-lines']  # minimal; rest auto-derived
     ),
-    'sales_order': ModelMeta('sales_order', 'apps.transactions.models.SalesOrder', 'Sales Order', 'Sales Orders', 'sales-orders', kind='header', aliases=['sales_orders']),
-    'sales_order_line': ModelMeta('sales_order_line', 'apps.transactions.models.SalesOrderLine', 'Sales Order Line', 'Sales Order Lines', 'sales-order-lines', kind='line', aliases=['sales_order_lines']),
+    'order': ModelMeta('order', 'apps.transactions.models.Order', 'Order', 'Orders', 'orders', kind='header', aliases=['orders', 'sales_order', 'sales_orders', 'salesorder']),
+    'order_line': ModelMeta('order_line', 'apps.transactions.models.OrderLine', 'Order Line', 'Order Lines', 'order-lines', kind='line', aliases=['order_lines', 'sales_order_line', 'sales_order_lines', 'salesorderline']),
     'work_order': ModelMeta('work_order', 'apps.transactions.models.WorkOrder', 'Work Order', 'Work Orders', 'work-orders', kind='header', aliases=['work_orders']),
     'work_order_line': ModelMeta('work_order_line', 'apps.transactions.models.WorkOrderLine', 'Work Order Line', 'Work Order Lines', 'workorder-lines', kind='line', aliases=['work_order_lines']),
 }

@@ -9,8 +9,8 @@ _MAPPING = {
     'Proposal': ('proposal', 'Proposal'),
     'ProposalLine': ('proposal_line', 'ProposalLine'),
 
-    'SalesOrder': ('sales_order', 'SalesOrder'),
-    'SalesOrderLine': ('sales_order_line', 'SalesOrderLine'),
+    'Order': ('order', 'Order'),
+    'OrderLine': ('order_line', 'OrderLine'),
 
     'Invoice': ('invoice', 'Invoice'),
     'InvoiceLine': ('invoice_line', 'InvoiceLine'),

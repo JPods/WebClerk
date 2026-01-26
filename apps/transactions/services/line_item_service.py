@@ -48,7 +48,7 @@ from apps.transactions.services.trace_debug import (
 
 if TYPE_CHECKING:
     from apps.transactions.models import (
-        SalesOrderLine,
+        OrderLine,
         ProposalLine,
         InvoiceLine,
         PurchaseOrderLine,
@@ -60,9 +60,9 @@ logger = logging.getLogger(__name__)
 
 # Model mapping for dynamic line creation
 LINE_MODEL_MAP = {
-    'sales_order': 'apps.transactions.models.SalesOrderLine',
-    'salesorder': 'apps.transactions.models.SalesOrderLine',
-    'order': 'apps.transactions.models.SalesOrderLine',
+    'sales_order': 'apps.transactions.models.OrderLine',
+    'salesorder': 'apps.transactions.models.OrderLine',
+    'order': 'apps.transactions.models.OrderLine',
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
     'purchase_order': 'apps.transactions.models.PurchaseOrderLine',
@@ -73,7 +73,7 @@ LINE_MODEL_MAP = {
 
 # FK field names for each line model (the field pointing to the parent transaction)
 LINE_FK_FIELD_MAP = {
-    'salesorderline': 'salesorder_id',
+    'orderline': 'order_id',
     'proposalline': 'proposal_id',
     'invoiceline': 'invoice_id',
     'purchaseorderline': 'purchaseorder_id',
@@ -202,7 +202,7 @@ class LineItemService:
         Add an item to a transaction as a new line.
         
         Args:
-            transaction: The parent transaction (SalesOrder, Proposal, Invoice, PurchaseOrder, WorkOrder)
+            transaction: The parent transaction (Order, Proposal, Invoice, PurchaseOrder, WorkOrder)
             item_id: ID of the item to add
             quantity: Quantity to order (default: 1)
             unit_price: Override unit price (if None, uses item's default price)

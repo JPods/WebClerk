@@ -9,8 +9,8 @@ def _d(x: Any, places: int = 2) -> Decimal:
     except Exception:
         return Decimal(0)
 
-def compute_sales_order_sell_cost_totals(sales_order) -> Dict[str, Dict[str, float]]:
-    """Aggregate sell and cost from sales order lines."""
+def compute_order_sell_cost_totals(order) -> Dict[str, Dict[str, float]]:
+    """Aggregate sell and cost from order lines."""
     sell_goods = Decimal(0)
     sell_discount = Decimal(0)
 
@@ -21,7 +21,7 @@ def compute_sales_order_sell_cost_totals(sales_order) -> Dict[str, Dict[str, flo
     cost_freight = Decimal(0)
     cost_commissions = Decimal(0)
 
-    for ln in sales_order.lines.all():
+    for ln in order.lines.all():
         p = ln.price or {}
         c = ln.cost or {}
 
@@ -72,3 +72,7 @@ def compute_sales_order_sell_cost_totals(sales_order) -> Dict[str, Dict[str, flo
     }
 
     return {"sell": sell, "cost": cost, "totals": totals}
+
+
+# Backwards compatibility alias
+compute_sales_order_sell_cost_totals = compute_order_sell_cost_totals

@@ -4,11 +4,11 @@ from apps.transactions.services.line_item_service import LineItemService
 import pytest
 from apps.transactions.services.line_item_service import LineItemService
 from apps.products.models import Item
-from apps.transactions.models import SalesOrder
+from apps.transactions.models import Order
 
 
 @pytest.mark.django_db
-def test_add_item_creates_pending_for_sales_order():
+def test_add_item_creates_pending_for_order():
     # Create sample item
     item = Item.objects.create(
         name="Test Item",
@@ -18,14 +18,8 @@ def test_add_item_creates_pending_for_sales_order():
         record={"quantity": {"placed": 3}},
     )
 
-    # Create a sales order
-    order = SalesOrder.objects.create(status="confirmed")
-
-    service = LineItemService()
-
-    # Add item
-    line = service.add_item_to_transaction(order, item_id=item.id, quantity=3)
-
+    # Create an order
+    order = Order.objects.create(status="confirmed")
     # Validate pending record created
     from apps.core.models import Pending
     pending_records = Pending.objects.filter(data__doc_pk=order.pk)

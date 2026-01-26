@@ -4,7 +4,7 @@ from decimal import Decimal
 from common.base_serializers import RoleAwareModelSerializer
 
 from apps.transactions.models import (
-    Proposal, ProposalLine, SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine, Invoice, Payment, PaymentApplication
+    Proposal, ProposalLine, Order, OrderLine, PurchaseOrder, PurchaseOrderLine, Invoice, Payment, PaymentApplication
 )
 from apps.core.models import Contact
 
@@ -119,11 +119,11 @@ class ProposalSerializer(RoleAwareModelSerializer):
         return data
 
 
-class SalesOrderLineSerializer(RoleAwareModelSerializer):
-    """Serializer aligned with SalesOrderLine schema."""
+class OrderLineSerializer(RoleAwareModelSerializer):
+    """Serializer aligned with OrderLine schema."""
 
     class Meta:
-        model = SalesOrderLine
+        model = OrderLine
         fields = '__all__'
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
@@ -137,8 +137,8 @@ class PurchaseOrderLineSerializer(RoleAwareModelSerializer):
         read_only_fields = ['id', 'dt_created', 'dt_modified', 'version']
 
 
-class SalesOrderSerializer(RoleAwareModelSerializer):
-    """Serializer for Sales Order transactions."""
+class OrderSerializer(RoleAwareModelSerializer):
+    """Serializer for Order transactions."""
 
     total_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     line_count = serializers.IntegerField(read_only=True)
@@ -146,10 +146,10 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
     vendor_name = serializers.SerializerMethodField(read_only=True)
     margin_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     margin_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
-    lines = SalesOrderLineSerializer(many=True, read_only=True)
+    lines = OrderLineSerializer(many=True, read_only=True)
 
     class Meta:
-        model = SalesOrder
+        model = Order
         fields = [
             'id', 'uuid', 'ida', 'status', 'priority', 'price_level',
             'customer_id', 'manufacturer_id', 'vendor_id',
@@ -237,6 +237,8 @@ class SalesOrderSerializer(RoleAwareModelSerializer):
             raise serializers.ValidationError("Customer and vendor cannot be the same entity.")
 
         return data
+
+
 class PurchaseOrderSerializer(RoleAwareModelSerializer):
     """Serializer for Purchase Order transactions."""
 
@@ -337,8 +339,8 @@ class PaymentApplicationSerializer(serializers.ModelSerializer):
 __all__ = [
     'ProposalSerializer',
     'ProposalLineSerializer',
-    'SalesOrderSerializer',
-    'SalesOrderLineSerializer',
+    'OrderSerializer',
+    'OrderLineSerializer',
     'PurchaseOrderSerializer',
     'PurchaseOrderLineSerializer',
     'InvoiceSerializer',

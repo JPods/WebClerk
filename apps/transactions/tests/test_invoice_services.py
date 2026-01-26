@@ -1,7 +1,7 @@
 import pytest
 from decimal import Decimal
 from django.test import TestCase
-from apps.transactions.models import Invoice, InvoiceLine, SalesOrder, SalesOrderLine
+from apps.transactions.models import Invoice, InvoiceLine, Order, OrderLine
 from apps.transactions.services.invoice_totals import compute_invoice_sell_cost_totals, _d
 from apps.transactions.services.order_to_invoice import transfer_order_to_invoice
 from apps.core.models import Contact
@@ -97,7 +97,7 @@ class OrderToInvoiceServiceTest(TestCase):
             name_last="Doe",
             email="john.doe@example.com"
         )
-        self.order = SalesOrder.objects.create(
+        self.order = Order.objects.create(
             status="fulfilled",
             customer_id=self.customer.id
         )
@@ -105,7 +105,7 @@ class OrderToInvoiceServiceTest(TestCase):
     def test_transfer_order_to_invoice_basic(self):
         """Test basic order to invoice transfer."""
         # Create order lines
-        SalesOrderLine.objects.create(
+        OrderLine.objects.create(
             parent=self.order,
             description="Test Item",
             quantity={"placed": 2, "remaining": 2},
@@ -121,7 +121,7 @@ class OrderToInvoiceServiceTest(TestCase):
         # Check invoice was created
         invoice = Invoice.objects.get(id=result['invoice_id'])
         self.assertEqual(invoice.status, "pending")
-        self.assertEqual(invoice.refs['source']['sales_order_id'], self.order.id)
+        self.assertEqual(invoice.refs['source']['order_id'], self.order.id)
 
         # Check lines were transferred
         lines = InvoiceLine.objects.filter(invoice_id=invoice)
@@ -132,14 +132,14 @@ class OrderToInvoiceServiceTest(TestCase):
     def test_transfer_order_to_invoice_partial(self):
         """Test partial order to invoice transfer."""
         # Create order lines
-        SalesOrderLine.objects.create(
+        OrderLine.objects.create(
             parent=self.order,
             description="Item 1",
             quantity={"placed": 5, "remaining": 3},
             price={"unit": 10.00, "extended": 30.00},
             cost={"extended": 24.00}
         )
-        SalesOrderLine.objects.create(
+        OrderLine.objects.create(
             parent=self.order,
             description="Item 2",
             quantity={"placed": 2, "remaining": 0},  # Already invoiced

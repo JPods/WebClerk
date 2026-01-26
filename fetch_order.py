@@ -13,10 +13,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 # Setup Django
 django.setup()
 
-from apps.transactions.models import SalesOrder
+from apps.transactions.models import Order
 
-def serialize_sales_order(order):
-    """Serialize a SalesOrder instance to a dict matching the model structure."""
+def serialize_order(order):
+    """Serialize an Order instance to a dict matching the model structure."""
     data = {
         # From TransactionBaseModel
         'id': order.id,
@@ -53,7 +53,7 @@ def serialize_sales_order(order):
     for line in order.lines.all():
         line_data = {
             'id': line.id,
-            'salesorder_id': line.salesorder_id_id,
+            'order_id': line.order_id_id,
             'price_level': line.price_level,
             'status': line.status,
             'item': line.item or {},
@@ -79,11 +79,11 @@ def serialize_sales_order(order):
 
 def main():
     try:
-        order = SalesOrder.objects.get(pk=22)
-        serialized = serialize_sales_order(order)
+        order = Order.objects.get(pk=22)
+        serialized = serialize_order(order)
         print(json.dumps(serialized, indent=2))
-    except SalesOrder.DoesNotExist:
-        print(json.dumps({"error": "SalesOrder with id 22 does not exist"}, indent=2))
+    except Order.DoesNotExist:
+        print(json.dumps({"error": "Order with id 22 does not exist"}, indent=2))
     except Exception as e:
         print(json.dumps({"error": str(e)}, indent=2))
 

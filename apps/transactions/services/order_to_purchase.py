@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 from django.db import transaction
 from collections import defaultdict
 
-from apps.transactions.models import SalesOrder, SalesOrderLine, PurchaseOrder, PurchaseOrderLine
+from apps.transactions.models import Order, OrderLine, PurchaseOrder, PurchaseOrderLine
 from .transfer_utils import convert_quantity_from_source, select_lines, build_line_payload
 
 class OrderToPurchaseTransferError(Exception):
@@ -13,7 +13,7 @@ class OrderToPurchaseTransferError(Exception):
 @transaction.atomic
 def transfer_order_to_purchase(
     *,
-    order: SalesOrder,
+    order: Order,
     line_ids: Optional[List[int]] = None,
     transfer_all: bool = False,
     purchase_status: str = "planned",
@@ -21,10 +21,10 @@ def transfer_order_to_purchase(
     group_by_vendor: bool = True,
 ) -> Dict:
     """
-    Transfer sales order lines to purchase orders, optionally grouping by vendor.
+    Transfer order lines to purchase orders, optionally grouping by vendor.
     Creates separate POs for each vendor if group_by_vendor=True.
     """
-    qs = SalesOrderLine.objects.select_for_update().filter(parent=order)
+    qs = OrderLine.objects.select_for_update().filter(parent=order)
     try:
         selected = select_lines(qs, line_ids, transfer_all)
     except ValueError as e:

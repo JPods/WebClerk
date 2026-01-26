@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from apps.transactions.models import (
     Proposal, ProposalLine,
-    SalesOrder, SalesOrderLine,
+    Order, OrderLine,
     Invoice, InvoiceLine,
     WorkOrder, WorkOrderLine,
     PurchaseOrder, PurchaseOrderLine,
@@ -39,7 +39,7 @@ class Command(BaseCommand):
         # Create transactions
         transaction_types = [
             (Proposal, ProposalLine),
-            (SalesOrder, SalesOrderLine),
+            (Order, OrderLine),
             (Invoice, InvoiceLine),
             (WorkOrder, WorkOrderLine),
             (PurchaseOrder, PurchaseOrderLine),
@@ -54,7 +54,7 @@ class Command(BaseCommand):
         """Drop all existing records from specified models."""
         models_to_drop = [
             Proposal, ProposalLine,
-            SalesOrder, SalesOrderLine,
+            Order, OrderLine,
             Invoice, InvoiceLine,
             WorkOrder, WorkOrderLine,
             PurchaseOrder, PurchaseOrderLine,
@@ -70,7 +70,7 @@ class Command(BaseCommand):
         # Map line model to parent field name
         parent_fields = {
             'ProposalLine': 'proposal_id',
-            'SalesOrderLine': 'salesorder_id',
+            'OrderLine': 'order_id',
             'InvoiceLine': 'invoice_id',
             'WorkOrderLine': 'workorder_id',
             'PurchaseOrderLine': 'purchaseorder_id',

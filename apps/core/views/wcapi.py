@@ -38,10 +38,11 @@ class WCAPIGetView(APIView):
 
     http_method_names = ["get", "options", "head"]
 
-    LINE_MODEL_KEYS = {"proposal", "salesorder", "invoice", "purchaseorder", "workorder"}
+    LINE_MODEL_KEYS = {"proposal", "order", "salesorder", "invoice", "purchaseorder", "workorder"}
     LINE_MODEL_MAP = {
         "proposal": "proposal_line",
-        "salesorder": "sales_order_line",
+        "order": "order_line",
+        "salesorder": "order_line",  # backwards compatibility alias
         "invoice": "invoice_line",
         "purchaseorder": "purchase_order_line",
         "workorder": "work_order_line",

@@ -30,9 +30,9 @@ from django.apps import apps
 # Keys are normalized (lowercase, no separators), values are the wcapi model_name
 MODEL_NAME_MAP: Dict[str, str] = {
     # Transactions
-    'salesorder': 'salesorder',
-    'order': 'salesorder',
-    'sales': 'salesorder',
+    'order': 'order',
+    'salesorder': 'order',  # legacy alias
+    'sales': 'order',  # legacy alias
     'invoice': 'invoice',
     'purchaseorder': 'purchaseorder',
     'purchase': 'purchaseorder',
@@ -46,8 +46,8 @@ MODEL_NAME_MAP: Dict[str, str] = {
     'req': 'requisition',
     
     # Transaction Lines
-    'salesorderline': 'sales_order_line',
-    'orderline': 'sales_order_line',
+    'orderline': 'order_line',
+    'salesorderline': 'order_line',  # legacy alias
     'invoiceline': 'invoice_line',
     'purchaseorderline': 'purchase_order_line',
     'poline': 'purchase_order_line',
@@ -112,9 +112,10 @@ MODEL_NAME_MAP: Dict[str, str] = {
 # RESTful path patterns to model name
 # Handles paths like /api/transactions/salesorder/22
 PATH_PATTERN_MAP: Dict[str, str] = {
-    'transactions/sales-order': 'salesorder',
-    'transactions/salesorder': 'salesorder',
-    'transactions/order': 'salesorder',
+    'transactions/order': 'order',
+    'transactions/orders': 'order',
+    'transactions/sales-order': 'order',  # legacy
+    'transactions/salesorder': 'order',  # legacy
     'transactions/invoice': 'invoice',
     'transactions/purchase-order': 'purchaseorder',
     'transactions/purchaseorder': 'purchaseorder',
@@ -147,10 +148,12 @@ PATH_PATTERN_MAP: Dict[str, str] = {
 
 # URL-friendly format mappings (model_name -> url_segment)
 URL_MAP: Dict[str, str] = {
-    'salesorder': 'sales-order',
+    'order': 'order',
+    'salesorder': 'order',  # legacy
     'purchaseorder': 'purchase-order',
     'workorder': 'work-order',
-    'sales_order_line': 'sales-order-line',
+    'order_line': 'order-line',
+    'sales_order_line': 'order-line',  # legacy
     'purchase_order_line': 'purchase-order-line',
     'work_order_line': 'work-order-line',
     'invoice_line': 'invoice-line',
@@ -163,7 +166,8 @@ URL_MAP: Dict[str, str] = {
 
 # Transaction type mappings for routing
 TRANSACTION_TYPE_MAP: Dict[str, str] = {
-    'salesorder': 'sales_order',
+    'order': 'order',
+    'salesorder': 'order',  # legacy
     'invoice': 'invoice',
     'purchaseorder': 'purchase_order',
     'proposal': 'proposal',
@@ -203,9 +207,9 @@ def resolve_model_name(input_str: str, strict: bool = False) -> str:
         ValueError: If input is empty or (if strict=True) model name cannot be resolved
         
     Examples:
-        resolve_model_name('sales-order')    -> 'salesorder'
-        resolve_model_name('sales_order')    -> 'salesorder'
-        resolve_model_name('SalesOrder')     -> 'salesorder'
+        resolve_model_name('order')          -> 'order'
+        resolve_model_name('sales_order')    -> 'order'  # legacy
+        resolve_model_name('SalesOrder')     -> 'order'  # legacy
         resolve_model_name('purchase-order') -> 'purchaseorder'
         resolve_model_name('invoice')        -> 'invoice'
     """
