@@ -65,6 +65,7 @@ LINE_MODEL_MAP = {
     'order': 'apps.transactions.models.OrderLine',
     'proposal': 'apps.transactions.models.ProposalLine',
     'invoice': 'apps.transactions.models.InvoiceLine',
+    'purchase': 'apps.transactions.models.PurchaseLine',
     'purchase_order': 'apps.transactions.models.PurchaseLine',
     'purchaseorder': 'apps.transactions.models.PurchaseLine',
     'work_order': 'apps.transactions.models.WorkOrderLine',
@@ -73,10 +74,10 @@ LINE_MODEL_MAP = {
 
 # FK field names for each line model (the field pointing to the parent transaction)
 LINE_FK_FIELD_MAP = {
-    'orderline': 'order_id',
+    'orderline': 'order',
     'proposalline': 'proposal_id',
     'invoiceline': 'invoice_id',
-    'purchaseline': 'purchase_id',
+    'purchaseline': 'purchase',
     'workorderline': 'workorder_id',
 }
 
@@ -118,6 +119,7 @@ PENDING_TYPE_MAP = {
     'order': 'SO',
     'proposal': 'PP',  # Proposals don't affect inventory until converted
     'invoice': 'IV',
+    'purchase': 'PO',
     'purchase_order': 'PO',
     'purchaseorder': 'PO',
     'work_order': 'WO',

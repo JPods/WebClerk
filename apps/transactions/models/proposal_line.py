@@ -12,6 +12,11 @@ class ProposalLine(BaseSellLineModel):
         db_table = "proposal_lines"
 
     @property
+    def parent(self):
+        """Alias for the FK to parent transaction."""
+        return self.proposal_id
+
+    @property
     def proposal_ref_id(self):
         # Mirror FK id for test helpers
         return getattr(self, "proposal_id_id", None)
