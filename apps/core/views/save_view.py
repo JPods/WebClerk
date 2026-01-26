@@ -179,22 +179,6 @@ class SaveWcapiView(APIView):
             parsed_data.update(parsed_data['data'])
             del parsed_data['data']
             console_logger.debug(f"[SAVE_VIEW] Merged 'data' fields into payload")
-        # If client provided a project_slug but not a numeric project_id, try to resolve it here.
-        try:
-            if 'project_slug' in parsed_data and 'project_id' not in parsed_data:
-                slug_val = parsed_data.get('project_slug')
-                if isinstance(slug_val, str) and slug_val:
-                    proj_model = get_model('project') or get_model('projects')
-                    if proj_model is not None:
-                        try:
-                            proj = proj_model.objects.filter(slug=slug_val).first()
-                            if proj:
-                                parsed_data['project_id'] = proj.id
-                        except Exception:
-                            # Defensive: don't fail save just because slug lookup failed
-                            pass
-        except Exception:
-            pass
         # Required: model_name (singular)
         raw_model_name = parsed_data.get('model_name')
         if not raw_model_name:
@@ -1231,22 +1215,6 @@ class SaveWcapiView(APIView):
             del data['data']
             console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
-        # If client provided a project_slug but not a numeric project_id, try to resolve it here.
-        try:
-            if 'project_slug' in data and 'project_id' not in data:
-                slug_val = data.get('project_slug')
-                if isinstance(slug_val, str) and slug_val:
-                    proj_model = get_model('project') or get_model('projects')
-                    if proj_model is not None:
-                        try:
-                            proj = proj_model.objects.filter(slug=slug_val).first()
-                            if proj:
-                                data['project_id'] = proj.id
-                        except Exception:
-                            pass
-        except Exception:
-            pass
-
         # Required: model_name (singular)
         raw_model_name = data.get('model_name')
         if not raw_model_name:
@@ -1526,10 +1494,8 @@ class SaveWcapiView(APIView):
                 return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
 
         if field_value_errors:
-            # Ensure errors are serializable and log request preview for debugging
-            err_details = [str(e) for e in field_value_errors]
-            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {err_details}")
-            return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': err_details})
+            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {field_value_errors}")
+            return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': field_value_errors})
 
         ### QQQ what is this?
         # Optional model-level payload validation
@@ -1592,11 +1558,7 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
         except ValueError as e:
-            try:
-                obj_id_val = getattr(obj, 'id', None)
-            except Exception:
-                obj_id_val = 'unreadable'
-            console_logger.error(f"[SAVE_VIEW] Value error during save: {e} | obj.id={obj_id_val}")
+            console_logger.error(f"[SAVE_VIEW] Value error during save: {e}")
             return api_response(success=False, status_code=400, message='Invalid field values', error={'code':'invalid_field','details': str(e)})
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
