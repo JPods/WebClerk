@@ -371,50 +371,13 @@ export default function salesOrderList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Sales Order List" />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <ComponentCard>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {totalOrders}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Total Orders
-            </div>
+      <div className="mb-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold text-slate-700">Sales Order List</div>
+          <div className="text-sm text-slate-500">
+            Total Orders: {totalOrders} • Total Value: ${totalValue.toFixed(2)} • Avg Margin: {avgMargin.toFixed(1)}% • Delivered: {statusCounts.delivered || 0}
           </div>
-        </ComponentCard>
-        <ComponentCard>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ${totalValue.toFixed(2)}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Total Value
-            </div>
-          </div>
-        </ComponentCard>
-        <ComponentCard>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {avgMargin.toFixed(1)}%
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Avg Margin
-            </div>
-          </div>
-        </ComponentCard>
-        <ComponentCard>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-              {statusCounts.delivered || 0}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Delivered
-            </div>
-          </div>
-        </ComponentCard>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
