@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { showToast } from "../../../../../store/slices/toastSlice";
-import { searchItems } from "../services/salesOrderApi";
+import { searchItems } from "../services/orderApi";
 import type { ItemSearchResult } from "../types/itemSearchType";
 import {
   resolveDefaultQuantity,
@@ -14,13 +14,13 @@ import {
   resolveUnitPrice,
 } from "../utils/itemSearchHelpers";
 
-interface SalesOrderItemSearchProps {
+interface OrderItemSearchProps {
   onAddItem: (item: ItemSearchResult, quantity: number) => void;
 }
 
 const quantityInputMin = 0.0001;
 
-export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
+export function OrderItemSearch({ onAddItem }: OrderItemSearchProps) {
   const dispatch = useDispatch();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -250,4 +250,4 @@ export function SalesOrderItemSearch({ onAddItem }: SalesOrderItemSearchProps) {
   );
 }
 
-export default SalesOrderItemSearch;
+export default OrderItemSearch;

@@ -10,7 +10,7 @@ export interface Pending {
   is_deleted?: boolean;
   is_archived?: boolean;
   model_name?: string;
-  id_record?: string;
+  record_id?: string;
   purpose?: string;
   name?: string;
   data?: Record<string, any>;

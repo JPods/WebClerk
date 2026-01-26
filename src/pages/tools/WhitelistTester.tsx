@@ -105,14 +105,14 @@ const PRESETS: Preset[] = [
   {
     label: 'Order Detail + Lines (GET)',
     method: 'GET',
-    url: '/wcapi/get/?model_name=sales_order&id=22',
+    url: '/wcapi/get/?model_name=order&id=22',
     body: {},
     info: {
       description: 'Order detail response embeds line items under data.related.*_lines.',
       requires: { query: ['model_name', 'id'], headers: ['Authorization (Bearer …) when auth enforced'] },
       notes: [
         'No separate call needed for order lines.',
-        'Canonical key: related.sales_order_lines. Legacy fallbacks may include related.order_lines or related.orderlines depending on environment.',
+        'Canonical key: related.order_lines. Legacy fallbacks may include related.sales_order_lines depending on environment.',
       ],
     },
   },

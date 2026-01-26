@@ -10,32 +10,32 @@ import {
   FaCheckCircle,
 } from "react-icons/fa";
 import {
-  useSalesOrderStatus,
+  useOrderStatus,
   STATUS_CONFIG,
-} from "../hooks/useSalesOrderStatus";
-import type { SalesOrderStatus } from "../hooks/useSalesOrderStatus";
+} from "../hooks/useOrderStatus";
+import type { OrderStatus as OrderStatusType } from "../hooks/useOrderStatus";
 
-interface SalesOrderStatusProps {
-  currentStatus: SalesOrderStatus;
-  onStatusChange?: (newStatus: SalesOrderStatus) => void;
+interface OrderStatusProps {
+  currentStatus: OrderStatusType;
+  onStatusChange?: (newStatus: OrderStatusType) => void;
   readonly?: boolean;
   showHistory?: boolean;
 }
 
-export default function SalesOrderStatus({
+export default function OrderStatus({
   currentStatus,
   onStatusChange,
   readonly = false,
   showHistory = false,
-}: SalesOrderStatusProps) {
+}: OrderStatusProps) {
   const { getStatusConfig, getAvailableTransitions, getStatusHistory } =
-    useSalesOrderStatus(currentStatus);
+    useOrderStatus(currentStatus);
 
   const config = getStatusConfig(currentStatus);
   const transitions = getAvailableTransitions(currentStatus);
   const history = getStatusHistory();
 
-  const getStatusIcon = (status: SalesOrderStatus) => {
+  const getStatusIcon = (status: OrderStatusType) => {
     switch (status) {
       // Backend statuses
       case "planned":
@@ -99,7 +99,7 @@ export default function SalesOrderStatus({
       {/* Status Workflow Visualization */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {Object.keys(STATUS_CONFIG).map((status, index) => {
-          const statusConfig = STATUS_CONFIG[status as SalesOrderStatus];
+          const statusConfig = STATUS_CONFIG[status as OrderStatusType];
           const isActive = status === currentStatus;
           const isPast =
             Object.keys(STATUS_CONFIG).indexOf(status) <
@@ -116,7 +116,7 @@ export default function SalesOrderStatus({
                     : "bg-gray-100 dark:bg-gray-700 text-gray-500"
                 }`}
               >
-                {getStatusIcon(status as SalesOrderStatus)}
+                {getStatusIcon(status as OrderStatusType)}
                 <span className="text-xs font-medium">
                   {statusConfig.label}
                 </span>

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
 // Backend uses these statuses
-export type SalesOrderStatus =
+export type OrderStatus =
   | "planned"
   | "released"
   | "in_progress"
@@ -15,8 +15,8 @@ export type SalesOrderStatus =
   | "cancelled";
 
 export interface StatusTransition {
-  from: SalesOrderStatus;
-  to: SalesOrderStatus;
+  from: OrderStatus;
+  to: OrderStatus;
   label: string;
   description: string;
   requiresConfirmation?: boolean;
@@ -38,7 +38,7 @@ export const STATUS_CONFIG: Record<string, StatusConfig> = {
     label: "Planned",
     color: "text-gray-600 dark:text-gray-400",
     bgColor: "bg-gray-100 dark:bg-gray-700",
-    description: "Sales order is being planned",
+    description: "Order is being planned",
     transitions: [
       {
         from: "planned",
@@ -245,26 +245,26 @@ const DEFAULT_STATUS_CONFIG: StatusConfig = {
   isFinal: false,
 };
 
-export function useSalesOrderStatus(
-  initialStatus: SalesOrderStatus = "planned",
+export function useOrderStatus(
+  initialStatus: OrderStatus = "planned",
 ) {
   const [currentStatus, setCurrentStatus] =
-    useState<SalesOrderStatus>(initialStatus);
+    useState<OrderStatus>(initialStatus);
 
   const getStatusConfig = useCallback(
-    (status: SalesOrderStatus): StatusConfig => {
+    (status: OrderStatus): StatusConfig => {
       return STATUS_CONFIG[status] ?? DEFAULT_STATUS_CONFIG;
     },
     [],
   );
 
-  const getAvailableTransitions = useCallback((status: SalesOrderStatus) => {
+  const getAvailableTransitions = useCallback((status: OrderStatus) => {
     const config = STATUS_CONFIG[status];
     return config?.transitions ?? [];
   }, []);
 
   const canTransitionTo = useCallback(
-    (fromStatus: SalesOrderStatus, toStatus: SalesOrderStatus) => {
+    (fromStatus: OrderStatus, toStatus: OrderStatus) => {
       const transitions = getAvailableTransitions(fromStatus);
       return transitions.some((t) => t.to === toStatus);
     },
@@ -272,7 +272,7 @@ export function useSalesOrderStatus(
   );
 
   const transitionTo = useCallback(
-    (newStatus: SalesOrderStatus) => {
+    (newStatus: OrderStatus) => {
       if (canTransitionTo(currentStatus, newStatus)) {
         setCurrentStatus(newStatus);
         return true;

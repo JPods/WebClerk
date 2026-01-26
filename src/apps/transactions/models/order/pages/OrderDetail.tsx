@@ -1,6 +1,6 @@
 /**
- * SalesOrderDetail - Refactored to use TransactionDetailBase
- * Extends base with sales order-specific fields and functionality
+ * OrderDetail - Refactored to use TransactionDetailBase
+ * Extends base with order-specific fields and functionality
  * Keeps item search and lines management capabilities
  */
 import React, { useCallback, useState } from "react";
@@ -31,8 +31,8 @@ import FieldLabel from "../../../components/FieldLabel";
 import { TransactionPartySelector } from "../../../components/PartySelector";
 
 // Import existing components
-import SalesOrderItemSearch from "../components/SalesOrderItemSearch";
-import SalesOrderStatus from "../components/SalesOrderStatus";
+import OrderItemSearch from "../components/OrderItemSearch";
+import OrderStatus from "../components/OrderStatus";
 import LineDetailsModal from "../../../components/LineDetailsModal";
 import ActionsModal from "../../../components/ActionsModal";
 import type { ItemSearchResult } from "../types/itemSearchType";
@@ -46,10 +46,11 @@ import type {
 import { DropDown, Input } from "@/components/wrapper";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
-// Sales Order specific fields that extend base Transaction
-interface SalesOrder extends Transaction {
+// Order specific fields that extend base Transaction
+interface Order extends Transaction {
   ida?: string;
-  sales_order_no?: string;
+  order_no?: string;
+  sales_order_no?: string; // Backwards compatibility
   po_number?: string;
   reference?: string;
   dt?: string;
@@ -68,14 +69,14 @@ interface SalesOrder extends Transaction {
   balance?: number;
 }
 
-// Sales Order specific tabs
+// Order specific tabs
 const SALES_ORDER_TABS_BEFORE: TransactionTab[] = [];
 
 // Dynamic tabs generator with badges based on data
-const getSalesOrderTabsAfter = (data: Transaction): TransactionTab[] => {
-  const salesOrderData = data as SalesOrder;
+const getOrderTabsAfter = (data: Transaction): TransactionTab[] => {
+  const orderData = data as Order;
   const pendingActions =
-    salesOrderData.actions?.items?.filter((a) => a.status === "pending")
+    orderData.actions?.items?.filter((a) => a.status === "pending")
       .length ?? 0;
 
   return [
@@ -130,11 +131,11 @@ const formatNumber = (value?: number | null): string => {
   return value.toLocaleString();
 };
 
-// Custom Sales Order Header Component
-const SalesOrderHeader: React.FC<{
-  data: SalesOrder;
+// Custom Order Header Component
+const OrderHeader: React.FC<{
+  data: Order;
   isEditing: boolean;
-  onChange?: (field: keyof SalesOrder, value: unknown) => void;
+  onChange?: (field: keyof Order, value: unknown) => void;
   onStatusChange?: (status: string) => void;
 }> = ({ data, isEditing, onChange, onStatusChange }) => {
   // Extract customer info from refs.links
@@ -337,7 +338,7 @@ const SalesOrderHeader: React.FC<{
           {/* Status Flow */}
           {onStatusChange && (
             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <SalesOrderStatus
+              <OrderStatus
                 currentStatus={
                   (data.status ?? "planned") as
                     | "planned"
@@ -564,8 +565,8 @@ const SalesOrderHeader: React.FC<{
   );
 };
 
-// Sales Order Lines Component
-const SalesOrderLines: React.FC<{
+// Order Lines Component
+const OrderLines: React.FC<{
   lines: TransactionLine[];
   isEditing: boolean;
   isLocked?: boolean;
@@ -779,7 +780,7 @@ const SalesOrderLines: React.FC<{
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
             Search the catalog and add items to this order.
           </p> */}
-          <SalesOrderItemSearch
+          <OrderItemSearch
             onAddItem={(item, quantity) => {
               // Extract item ID - check multiple possible field names
               const itemId = item.id ?? item.item_id ?? item.itemId ?? null;
@@ -1547,7 +1548,7 @@ const ActionsTable: React.FC<{
 
 // Shipping Tab Content
 const ShippingTab: React.FC<{
-  data: SalesOrder;
+  data: Order;
   isEditing: boolean;
 }> = ({ data }) => {
   const shippingContact = data.refs?.links?.contact?.find(
@@ -1648,8 +1649,8 @@ const ShippingTab: React.FC<{
   );
 };
 
-// Main SalesOrderDetail Component
-interface SalesOrderDetailProps {
+// Main OrderDetail Component
+interface OrderDetailProps {
   isAdmin?: boolean;
   /** When true, render inline without full page layout (for use in split-view list) */
   inline?: boolean;
@@ -1663,7 +1664,10 @@ interface SalesOrderDetailProps {
   onCancelInline?: () => void;
 }
 
-const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
+// Backwards compatibility alias
+type SalesOrderDetailProps = OrderDetailProps;
+
+const OrderDetail: React.FC<OrderDetailProps> = ({
   isAdmin = false,
   inline = false,
   modeProp,
@@ -1694,15 +1698,15 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
       isEditing: boolean,
       onFieldChange?: (field: string, value: unknown) => void,
     ) => {
-      const salesOrderData = data as SalesOrder;
-      const currentActions = salesOrderData.actions?.items ?? [];
+      const orderData = data as Order;
+      const currentActions = orderData.actions?.items ?? [];
 
       // Action handlers that use onFieldChange to update the data
       const handleAddAction = (action: ActionItem) => {
         if (onFieldChange) {
           const newActions = [...currentActions, { ...action, id: Date.now() }];
           onFieldChange("actions", {
-            ...salesOrderData.actions,
+            ...orderData.actions,
             items: newActions,
           });
         }
@@ -1713,7 +1717,7 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
           const newActions = [...currentActions];
           newActions[index] = action;
           onFieldChange("actions", {
-            ...salesOrderData.actions,
+            ...orderData.actions,
             items: newActions,
           });
         }
@@ -1723,7 +1727,7 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
         if (onFieldChange) {
           const newActions = currentActions.filter((_, i) => i !== index);
           onFieldChange("actions", {
-            ...salesOrderData.actions,
+            ...orderData.actions,
             items: newActions,
           });
         }
@@ -1735,14 +1739,14 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
             <ActionsTable
               actions={currentActions}
               isEditing={isEditing}
-              isLocked={salesOrderData.is_locked}
+              isLocked={orderData.is_locked}
               onAddAction={handleAddAction}
               onUpdateAction={handleUpdateAction}
               onDeleteAction={handleDeleteAction}
             />
           );
         case "shipping":
-          return <ShippingTab data={salesOrderData} isEditing={isEditing} />;
+          return <ShippingTab data={orderData} isEditing={isEditing} />;
         default:
           return null;
       }
@@ -1757,12 +1761,12 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
       isEditing: boolean,
       onChange?: (field: string, value: unknown) => void,
     ) => (
-      <SalesOrderHeader
-        data={data as SalesOrder}
+      <OrderHeader
+        data={data as Order}
         isEditing={isEditing}
         onChange={
           onChange as
-            | ((field: keyof SalesOrder, value: unknown) => void)
+            | ((field: keyof Order, value: unknown) => void)
             | undefined
         }
         onStatusChange={handleStatusChange}
@@ -1779,7 +1783,7 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
       data?: Transaction,
       onLinesChange?: (lines: TransactionLine[]) => void,
     ) => (
-      <SalesOrderLines
+      <OrderLines
         lines={lines}
         isEditing={isEditing}
         isLocked={data?.is_locked}
@@ -1860,11 +1864,11 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
 
   return (
     <TransactionDetailBase
-      transactionType="sales_order"
-      typeLabel="Sales Order"
-      modelName="salesorder"
+      transactionType="order"
+      typeLabel="Order"
+      modelName="order"
       customTabsBefore={SALES_ORDER_TABS_BEFORE}
-      getCustomTabsAfter={getSalesOrderTabsAfter}
+      getCustomTabsAfter={getOrderTabsAfter}
       renderCustomTab={renderCustomTab}
       renderHeader={renderHeader}
       renderLines={renderLines}
@@ -1879,4 +1883,7 @@ const SalesOrderDetail: React.FC<SalesOrderDetailProps> = ({
   );
 };
 
-export default SalesOrderDetail;
+// Backwards compatibility alias
+export const SalesOrderDetail = OrderDetail;
+
+export default OrderDetail;

@@ -1,7 +1,7 @@
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
-import SalesOrderLineForm from "./SalesOrderLineForm";
+import OrderLineForm from "./OrderLineForm";
 
-interface SalesOrderLine {
+interface OrderLine {
   id?: number;
   item_id?: number;
   item_name?: string;
@@ -16,19 +16,19 @@ interface SalesOrderLine {
   line_margin?: number;
 }
 
-interface SalesOrderLineEditorProps {
-  lines: SalesOrderLine[];
+interface OrderLineEditorProps {
+  lines: OrderLine[];
   editingId: number | null;
-  newLine: SalesOrderLine;
+  newLine: OrderLine;
   onAdd: () => void;
-  onEdit: (line: SalesOrderLine) => void;
+  onEdit: (line: OrderLine) => void;
   onDelete: (id: number) => void;
-  onSave: (line: SalesOrderLine) => void;
+  onSave: (line: OrderLine) => void;
   onCancel: () => void;
-  onNewLineChange: (line: SalesOrderLine) => void;
+  onNewLineChange: (line: OrderLine) => void;
 }
 
-export default function SalesOrderLineEditor({
+export default function OrderLineEditor({
   lines,
   editingId,
   newLine,
@@ -38,12 +38,12 @@ export default function SalesOrderLineEditor({
   onSave,
   onCancel,
   onNewLineChange
-}: SalesOrderLineEditorProps) {
-  const handleNewLineSave = (line: SalesOrderLine) => {
+}: OrderLineEditorProps) {
+  const handleNewLineSave = (line: OrderLine) => {
     onSave(line);
   };
 
-  const handleEditSave = (line: SalesOrderLine) => {
+  const handleEditSave = (line: OrderLine) => {
     onSave(line);
   };
 
@@ -104,7 +104,7 @@ export default function SalesOrderLineEditor({
                 </tr>
               ))}
               {editingId === -1 && (
-                <SalesOrderLineForm
+                <OrderLineForm
                   line={newLine}
                   onSave={handleNewLineSave}
                   onCancel={onCancel}
@@ -112,7 +112,7 @@ export default function SalesOrderLineEditor({
                 />
               )}
               {editingId && editingId > 0 && (
-                <SalesOrderLineForm
+                <OrderLineForm
                   line={newLine}
                   onSave={handleEditSave}
                   onCancel={onCancel}

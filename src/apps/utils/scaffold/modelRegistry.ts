@@ -80,8 +80,8 @@ export const modelRegistry: ModelRegistration[] = [
   { app: "transactions", model: "purchase_receipt", label: kebabCaseToTitle("purchase_receipt") },
   { app: "transactions", model: "requisition", label: kebabCaseToTitle("requisition") },
   { app: "transactions", model: "requisition_line", label: kebabCaseToTitle("requisition_line") },
-  { app: "transactions", model: "sales_order", label: kebabCaseToTitle("sales_order") },
-  { app: "transactions", model: "sales_order_line", label: kebabCaseToTitle("sales_order_line") },
+  { app: "transactions", model: "order", label: kebabCaseToTitle("order") },
+  { app: "transactions", model: "order_line", label: kebabCaseToTitle("order_line") },
   { app: "transactions", model: "work_order", label: kebabCaseToTitle("work_order") },
   { app: "transactions", model: "work_order_line", label: kebabCaseToTitle("work_order_line") },
 

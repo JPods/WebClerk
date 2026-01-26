@@ -26,7 +26,7 @@ import {
 // Transaction types for transfer dropdown
 const TRANSACTION_TYPES = [
   { value: "invoice", label: "Invoice" },
-  { value: "sales_order", label: "Sales Order" },
+  { value: "order", label: "Order" },
   { value: "proposal", label: "Proposal" },
   { value: "purchase_order", label: "Purchase Order" },
   { value: "workorder", label: "Work Order" },
