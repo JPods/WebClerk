@@ -922,8 +922,6 @@ class SaveWcapiView(APIView):
                         setattr(contact, '_refs_pending_save', True)
                     except Exception as e:
                         console_logger.error(f"[SAVE_VIEW] Error marking contact.refs for deferred save: {e}")
-                        import traceback
-                        console_logger.error(f"[SAVE_VIEW] Marking error traceback: {traceback.format_exc()}")
         except Exception:
             pass  # Defensive
         # Append contact link for action saves
@@ -1244,9 +1242,8 @@ class SaveWcapiView(APIView):
                             proj = proj_model.objects.filter(slug=slug_val).first()
                             if proj:
                                 data['project_id'] = proj.id
-                                console_logger.debug(f"[SAVE_VIEW] Resolved project_slug={slug_val} -> project_id={proj.id}")
                         except Exception:
-                            console_logger.debug(f"[SAVE_VIEW] project_slug lookup failed for slug={slug_val}")
+                            pass
         except Exception:
             pass
 
@@ -1530,12 +1527,8 @@ class SaveWcapiView(APIView):
 
         if field_value_errors:
             # Ensure errors are serializable and log request preview for debugging
-            try:
-                preview = json.dumps(data)[:2000]
-            except Exception:
-                preview = str(data)[:2000]
             err_details = [str(e) for e in field_value_errors]
-            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {err_details} -- payload_preview={preview}")
+            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {err_details}")
             return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': err_details})
 
         ### QQQ what is this?
@@ -1599,18 +1592,11 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
         except ValueError as e:
-            # Log detailed debug info: payload preview and object state
-            try:
-                payload_preview = json.dumps(data)[:3000]
-            except Exception:
-                payload_preview = str(data)[:3000]
             try:
                 obj_id_val = getattr(obj, 'id', None)
             except Exception:
                 obj_id_val = 'unreadable'
-            import traceback as _tb
-            tb = _tb.format_exc()
-            console_logger.error(f"[SAVE_VIEW] Value error during save: {e} | obj.id={obj_id_val} | payload_preview={payload_preview} | traceback={tb}")
+            console_logger.error(f"[SAVE_VIEW] Value error during save: {e} | obj.id={obj_id_val}")
             return api_response(success=False, status_code=400, message='Invalid field values', error={'code':'invalid_field','details': str(e)})
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
