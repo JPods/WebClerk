@@ -172,8 +172,7 @@ class SaveWcapiView(APIView):
     #return super().dispatch(*args, **kwargs)
 
     def _perform_save(self, request, parsed_data):
-        print(f"[SAVE_VIEW DEBUG] *** ENTERING _perform_save ***")
-        print(f"[SAVE_VIEW DEBUG] parsed_data keys: {list(parsed_data.keys())}")
+        # debugging prints removed
         console_logger = logging.getLogger('console')
         # Handle nested 'data' key for compatibility with some clients
         if 'data' in parsed_data and isinstance(parsed_data['data'], dict):
@@ -191,10 +190,9 @@ class SaveWcapiView(APIView):
                             proj = proj_model.objects.filter(slug=slug_val).first()
                             if proj:
                                 parsed_data['project_id'] = proj.id
-                                console_logger.debug(f"[SAVE_VIEW] Resolved project_slug={slug_val} -> project_id={proj.id}")
                         except Exception:
                             # Defensive: don't fail save just because slug lookup failed
-                            console_logger.debug(f"[SAVE_VIEW] project_slug lookup failed for slug={slug_val}")
+                            pass
         except Exception:
             pass
         # Required: model_name (singular)
@@ -599,9 +597,7 @@ class SaveWcapiView(APIView):
         lines_errors = []
         lines_to_save = []  # Store prepared line objects to save after parent
         lines_payload = parsed_data.get('lines')
-        print(f"[SAVE_VIEW DEBUG] INIT: lines_payload exists={lines_payload is not None}, count={len(lines_payload) if lines_payload else 0}")
-        if lines_payload:
-            print(f"[SAVE_VIEW DEBUG] INIT: First line sample: {list(lines_payload[0].keys()) if lines_payload and len(lines_payload) > 0 else 'N/A'}")
+        # debug prints removed for lines payload
         line_model = None
         fk_field_name = None
         
@@ -621,7 +617,7 @@ class SaveWcapiView(APIView):
                 line_model = get_model(line_model_name)
                 fk_field_name = f"{model_key.lower()}_id"
                 
-                print(f"[SAVE_VIEW DEBUG] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
+                # debug print removed
                 console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
                 
                 if line_model:
@@ -671,7 +667,7 @@ class SaveWcapiView(APIView):
                                 'data': line_save_data,
                                 'is_new': not bool(line_id),
                             })
-                            print(f"[SAVE_VIEW DEBUG] PRE-SAVE: Added line to save: id={line_id}, is_new={not bool(line_id)}")
+                            # debug print removed
                             console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Added line to save: id={line_id}, is_new={not bool(line_id)}, data_keys={list(line_save_data.keys())}")
                             
                         except Exception as e:
@@ -782,7 +778,7 @@ class SaveWcapiView(APIView):
         # POST-SAVE: Save lines now that we have parent ID
         # ============================================================
         obj_id = getattr(obj, 'id', None)
-        print(f"[SAVE_VIEW DEBUG] POST-SAVE: lines_to_save count={len(lines_to_save)}, line_model={line_model}, obj_id={obj_id}, fk_field_name={fk_field_name}")
+        # debug print removed
         console_logger.info(f"[SAVE_VIEW] POST-SAVE: lines_to_save={len(lines_to_save)}, line_model={line_model}, obj_id={obj_id}, fk_field_name={fk_field_name}")
         if lines_to_save and line_model and obj_id:
             console_logger.debug(f"[SAVE_VIEW] Saving {len(lines_to_save)} lines for {model_key} ID: {obj_id}")
@@ -813,7 +809,7 @@ class SaveWcapiView(APIView):
                             lines_errors.append(f"Line ID {line_id} not found")
                     else:
                         # Create new line
-                        print(f"[SAVE_VIEW DEBUG] Creating new line at index {idx}")
+                        # debug print removed
                         console_logger.debug(f"[SAVE_VIEW] Creating new line at index {idx}")
                         line_obj = line_model()
                         for field, value in line_save_data.items():
@@ -821,17 +817,17 @@ class SaveWcapiView(APIView):
                                 continue
                             if hasattr(line_obj, field):
                                 setattr(line_obj, field, value)
-                                print(f"[SAVE_VIEW DEBUG] Set field {field}={value}")
+                                # debug print removed
                         # Set the FK using the attname (e.g., salesorder_id_id)
                         fk_field = line_model._meta.get_field(fk_field_name)
-                        print(f"[SAVE_VIEW DEBUG] Setting FK {fk_field.attname}={obj_id}")
+                        # debug print removed
                         setattr(line_obj, fk_field.attname, obj_id)
                         line_obj.save()
-                        print(f"[SAVE_VIEW DEBUG] Created new line with ID: {line_obj.id}")
+                        # debug print removed
                         lines_results.append({'id': line_obj.id, 'status': 'created', 'index': idx})
                         console_logger.debug(f"[SAVE_VIEW] Created new line ID: {line_obj.id}")
                 except Exception as e:
-                    print(f"[SAVE_VIEW DEBUG] ERROR saving line at index {idx}: {e}")
+                    # debug print removed
                     console_logger.error(f"[SAVE_VIEW] Error saving line at index {idx}: {e}")
                     lines_errors.append(f"Line {idx}: {str(e)}")
             
