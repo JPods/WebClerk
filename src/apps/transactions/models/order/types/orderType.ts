@@ -1,4 +1,4 @@
-export interface SalesOrderAddProps {
+export interface OrderAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any;
   hideBreadcrumb?: boolean;
@@ -9,17 +9,17 @@ export interface SalesOrderAddProps {
   isAdmin?: boolean;
 }
 
-export interface CreateSalesOrderRequest {
-  sales_order_no: string;
+export interface CreateOrderRequest {
+  order_no: string;
 }
 
-export interface UpdateSalesOrderRequest {
+export interface UpdateOrderRequest {
   id: number;
-  sales_order_no?: string;
+  order_no?: string;
 }
 
-export interface SalesOrderApiTask {
+export interface OrderApiTask {
   id: number;
-  sales_order_no: string;
+  order_no: string;
   dt_created: number;
 }

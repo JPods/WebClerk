@@ -1,4 +1,4 @@
-export interface SalesOrderLineAddProps {
+export interface OrderLineAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any; // TODO: Type this properly
   hideBreadcrumb?: boolean;
@@ -7,17 +7,17 @@ export interface SalesOrderLineAddProps {
   onCancelInline?: () => void;
 }
 
-export interface CreateSalesOrderLineRequest {
-  salesorder_id: number;  // FK matches Django model field name
+export interface CreateOrderLineRequest {
+  order_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
   line_total: number;
 }
 
-export interface SalesOrderLineApiTask {
+export interface OrderLineApiTask {
   id: number;
-  salesorder_id: number;  // FK matches Django model field name
+  order_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;
@@ -28,9 +28,9 @@ export interface SalesOrderLineApiTask {
   is_active?: boolean;
 }
 
-export interface UpdateSalesOrderLineRequest {
+export interface UpdateOrderLineRequest {
   id: number;
-  salesorder_id: number;  // FK matches Django model field name
+  order_id: number;  // FK matches Django model field name
   item_id: number;
   quantity: number;
   unit_price: number;

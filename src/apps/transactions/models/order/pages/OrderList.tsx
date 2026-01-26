@@ -6,19 +6,19 @@ import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "@/api/userProfile";
 import {
-  fetchSalesOrders,
-  fetchSalesOrderDetail,
-} from "../services/salesOrderApi";
+  fetchOrders,
+  fetchOrderDetail,
+} from "../services/orderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import SalesOrderDetail from "./SalesOrderDetail";
+import OrderDetail from "./OrderDetail";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 
-export default function salesOrderList() {
+export default function OrderList() {
   const [data, setData] = useState<any[]>([]);
-  const [selectedSalesOrders, setSelectedSalesOrders] = useState<any[]>([]);
-  const [selectedSalesOrder, setSelectedSalesOrder] = useState<any | null>(
+  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(
     null,
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
@@ -29,21 +29,21 @@ export default function salesOrderList() {
 
   const dispatch = useDispatch();
 
-  const getSalesOrderData = useCallback(async () => {
+  const getOrderData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchSalesOrders();
+      const res = await fetchOrders();
       if (res.status === 200) {
         setData(res.data.items);
       } else {
         dispatch(
-          showToast({ message: "Failed to fetch sales orders", type: "error" }),
+          showToast({ message: "Failed to fetch orders", type: "error" }),
         );
       }
     } catch (error) {
-      console.error("Failed to fetch sales orders", error);
+      console.error("Failed to fetch orders", error);
       dispatch(
-        showToast({ message: "Failed to fetch sales orders", type: "error" }),
+        showToast({ message: "Failed to fetch orders", type: "error" }),
       );
     } finally {
       setLoading(false);
@@ -51,53 +51,53 @@ export default function salesOrderList() {
   }, [dispatch]);
 
   useEffect(() => {
-    getSalesOrderData();
-  }, [getSalesOrderData]);
+    getOrderData();
+  }, [getOrderData]);
 
-  const openSalesOrder = useCallback(
+  const openOrder = useCallback(
     async (row: any, modeToSet: "view" | "edit") => {
-      const salesOrderId = row?.id;
-      console.log("[openSalesOrder] row:", row);
-      console.log("[openSalesOrder] salesOrderId:", salesOrderId);
-      console.log("[openSalesOrder] modeToSet:", modeToSet);
-      if (!salesOrderId) {
+      const orderId = row?.id;
+      console.log("[openOrder] row:", row);
+      console.log("[openOrder] orderId:", orderId);
+      console.log("[openOrder] modeToSet:", modeToSet);
+      if (!orderId) {
         dispatch(
-          showToast({ message: "Sales order id missing", type: "error" }),
+          showToast({ message: "Order id missing", type: "error" }),
         );
         return;
       }
 
       setFormMode(modeToSet);
-      console.log("[openSalesOrder] formMode set to:", modeToSet);
+      console.log("[openOrder] formMode set to:", modeToSet);
       setDetailLoading(true);
-      setSelectedSalesOrder(null);
+      setSelectedOrder(null);
 
       try {
-        const detail = await fetchSalesOrderDetail(salesOrderId);
-        console.log("[openSalesOrder] detail from API:", detail);
-        console.log("[openSalesOrder] detail.lines:", detail?.lines);
+        const detail = await fetchOrderDetail(orderId);
+        console.log("[openOrder] detail from API:", detail);
+        console.log("[openOrder] detail.lines:", detail?.lines);
         console.log(
-          "[openSalesOrder] detail.lines count:",
+          "[openOrder] detail.lines count:",
           detail?.lines?.length,
         );
         const hasDetail = detail && Object.keys(detail).length > 0;
         if (!hasDetail) {
-          throw new Error("Sales order not found");
+          throw new Error("Order not found");
         }
         const merged = { ...row, ...detail };
-        console.log("[openSalesOrder] merged:", merged);
-        console.log("[openSalesOrder] merged.lines:", merged?.lines);
+        console.log("[openOrder] merged:", merged);
+        console.log("[openOrder] merged.lines:", merged?.lines);
         console.log(
-          "[openSalesOrder] merged.lines count:",
+          "[openOrder] merged.lines count:",
           merged?.lines?.length,
         );
-        setSelectedSalesOrder(merged);
+        setSelectedOrder(merged);
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Failed to load sales order";
+          error instanceof Error ? error.message : "Failed to load order";
         dispatch(showToast({ message, type: "error" }));
         setFormMode(null);
-        setSelectedSalesOrder(null);
+        setSelectedOrder(null);
       } finally {
         setDetailLoading(false);
       }
@@ -107,59 +107,59 @@ export default function salesOrderList() {
 
   const handleView = useCallback(
     (row: any) => {
-      console.log("[SalesOrderList] handleView called");
-      openSalesOrder(row, "view");
+      console.log("[OrderList] handleView called");
+      openOrder(row, "view");
     },
-    [openSalesOrder],
+    [openOrder],
   );
 
   const handleEdit = useCallback(
     (row: any) => {
-      openSalesOrder(row, "edit");
+      openOrder(row, "edit");
     },
-    [openSalesOrder],
+    [openOrder],
   );
 
   const handleAdd = () => {
-    setSelectedSalesOrder(null);
+    setSelectedOrder(null);
     setFormMode("add");
     setDetailLoading(false);
   };
 
   const handleFormSaved = () => {
-    getSalesOrderData();
+    getOrderData();
     setFormMode(null);
-    setSelectedSalesOrder(null);
+    setSelectedOrder(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedSalesOrder(null);
+    setSelectedOrder(null);
   };
 
   const handle_delete = useCallback(
     async (row: any) => {
-      if (window.confirm(`Delete sales order ${row.sales_order_no}?`)) {
+      if (window.confirm(`Delete order ${row.order_no || row.sales_order_no}?`)) {
         try {
           await deleteAction(row.id);
           dispatch(
             showToast({
-              message: "Sales order deleted successfully",
+              message: "Order deleted successfully",
               type: "success",
             }),
           );
-          getSalesOrderData(); // Refresh data
+          getOrderData(); // Refresh data
         } catch (error) {
           dispatch(
             showToast({
-              message: "Failed to delete sales order",
+              message: "Failed to delete order",
               type: "error",
             }),
           );
         }
       }
     },
-    [dispatch, getSalesOrderData],
+    [dispatch, getOrderData],
   );
 
   const userColumns: TableColumn<any>[] = useMemo(
@@ -182,8 +182,8 @@ export default function salesOrderList() {
         ),
       },
       {
-        name: "Sales Order No",
-        selector: (row) => row.sales_order_no || "--",
+        name: "Order No",
+        selector: (row) => row.order_no || row.sales_order_no || "--",
         sortable: true,
         width: "14%",
       },
@@ -371,7 +371,7 @@ export default function salesOrderList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Sales Order List" />
+      <PageBreadcrumb pageTitle="Order List" />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -423,22 +423,22 @@ export default function salesOrderList() {
             <AdvancedDataTable
               data={data}
               columns={userColumns}
-              title="Sales Orders"
+              title="Orders"
               loading={loading}
               filters={filters}
               enableExport={true}
               enableSelection={true}
-              onSelectionChange={setSelectedSalesOrders}
-              exportFileName="sales_orders"
+              onSelectionChange={setSelectedOrders}
+              exportFileName="orders"
               searchPlaceholder="Search orders, customers, vendors..."
-              noDataMessage="No sales orders found"
+              noDataMessage="No orders found"
               customActions={
                 <button
                   onClick={handleAdd}
                   className="flex items-center gap-2 px-3 py-2 text-xs font-medium disabled:opacity-50 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <FaPlus className="w-4 h-4" />
-                  Add Sales Order
+                  Add Order
                 </button>
               }
               onRowClicked={handleView}
@@ -447,18 +447,18 @@ export default function salesOrderList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            {formMode !== "add" && (detailLoading || !selectedSalesOrder) ? (
+            {formMode !== "add" && (detailLoading || !selectedOrder) ? (
               <ComponentCard>
                 <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Loading sales order...
+                  Loading order...
                 </div>
               </ComponentCard>
             ) : (
-              <SalesOrderDetail
-                key={`${selectedSalesOrder?.id ?? "new"}-${formMode}`}
+              <OrderDetail
+                key={`${selectedOrder?.id ?? "new"}-${formMode}`}
                 inline
                 modeProp={formMode}
-                dataProp={formMode === "add" ? null : selectedSalesOrder}
+                dataProp={formMode === "add" ? null : selectedOrder}
                 onSaved={handleFormSaved}
                 onCancelInline={handleFormCancel}
               />

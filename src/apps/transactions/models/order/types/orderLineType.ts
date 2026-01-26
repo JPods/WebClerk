@@ -1,6 +1,6 @@
-export interface SalesOrderLine {
+export interface OrderLine {
   id?: number;
-  parent?: number; // sales_order id
+  parent?: number; // order id
   item_id?: number;
   item_name?: string;
   description: string;
@@ -17,7 +17,7 @@ export interface SalesOrderLine {
   dt_modified?: string | number;
 }
 
-export interface CreateSalesOrderLineRequest {
+export interface CreateOrderLineRequest {
   parent: number;
   item_id?: number;
   item_name?: string;
@@ -30,7 +30,7 @@ export interface CreateSalesOrderLineRequest {
   discount_amount?: number;
 }
 
-export interface UpdateSalesOrderLineRequest {
+export interface UpdateOrderLineRequest {
   id: number;
   parent: number;
   item_id?: number;

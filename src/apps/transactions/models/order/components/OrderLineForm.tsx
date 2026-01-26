@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FaSave, FaTimes } from "react-icons/fa";
 
-interface SalesOrderLine {
+interface OrderLine {
   id?: number;
   item_id?: number;
   item_name?: string;
@@ -14,15 +14,15 @@ interface SalesOrderLine {
   discount_amount: number;
 }
 
-interface SalesOrderLineFormProps {
-  line?: SalesOrderLine;
-  onSave: (line: SalesOrderLine) => void;
+interface OrderLineFormProps {
+  line?: OrderLine;
+  onSave: (line: OrderLine) => void;
   onCancel: () => void;
-  onChange?: (line: SalesOrderLine) => void;
+  onChange?: (line: OrderLine) => void;
 }
 
-export default function SalesOrderLineForm({ line, onSave, onCancel, onChange }: SalesOrderLineFormProps) {
-  const [formData, setFormData] = useState<SalesOrderLine>({
+export default function OrderLineForm({ line, onSave, onCancel, onChange }: OrderLineFormProps) {
+  const [formData, setFormData] = useState<OrderLine>({
     description: '',
     quantity: 1,
     price: { sell: 0, cost: 0 },
@@ -30,7 +30,7 @@ export default function SalesOrderLineForm({ line, onSave, onCancel, onChange }:
     ...line
   });
 
-  const updateFormData = (updates: Partial<SalesOrderLine>) => {
+  const updateFormData = (updates: Partial<OrderLine>) => {
     const newData = { ...formData, ...updates };
     setFormData(newData);
     if (onChange) {

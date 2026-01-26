@@ -902,7 +902,7 @@ function InvoiceLinesPanel({
   );
 }
 
-export default function SalesOrderDetail({
+export default function InvoiceDetailLegacy({
   modeProp,
   dataProp,
   hideBreadcrumb,

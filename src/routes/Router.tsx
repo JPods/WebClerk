@@ -82,14 +82,14 @@ import SpecificationList from "../apps/products/models/specification/pages/Speci
 import UsageList from "../apps/products/models/usage/pages/UsageList";
 import VariantList from "../apps/products/models/variant/pages/VariantList";
 import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList";
-import SalesOrderDetail from "../apps/transactions/models/sales_order/pages/SalesOrderDetail";
+import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
 import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
 import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
-import SalesOrderList from "../apps/transactions/models/sales_order/pages/SalesOrderList";
+import OrderList from "../apps/transactions/models/order/pages/OrderList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -309,12 +309,12 @@ const Router: React.FC = () => {
           />
           {/* Transactions */}
           <Route
-            path={PageRoutes.transactionsSalesOrderList}
-            element={<SalesOrderList />}
+            path={PageRoutes.transactionsOrderList}
+            element={<OrderList />}
           />
           <Route
-            path={PageRoutes.transactionsSalesOrderDetail}
-            element={<SalesOrderDetail />}
+            path={PageRoutes.transactionsOrderDetail}
+            element={<OrderDetail />}
           />
           <Route
             path={PageRoutes.transactionsInvoiceList}

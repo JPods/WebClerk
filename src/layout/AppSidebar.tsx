@@ -145,7 +145,7 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Transactions",
     subItems: [
-      { name: "Sales Orders", path: PageRoutes.transactionsSalesOrderList },
+      { name: "Orders", path: PageRoutes.transactionsOrderList },
       { name: "Invoices", path: PageRoutes.transactionsInvoiceList },
       { name: "Proposals", path: PageRoutes.transactionsProposalList },
       {
