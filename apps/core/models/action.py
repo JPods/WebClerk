@@ -270,8 +270,23 @@ class Action(BaseModel):
             if contact_id and not contact_email:
                 try:
                     from apps.core.models import Contact
-                    contact = Contact.objects.get(id=contact_id)
-                    contact_email = contact.email
+                    # Defensive: coerce contact_id to int when possible (e.g., '129-assignee-0' -> 129)
+                    try:
+                        if isinstance(contact_id, str):
+                            import re
+                            m = re.search(r"(\d+)", contact_id)
+                            if m:
+                                contact_id_int = int(m.group(1))
+                            else:
+                                contact_id_int = None
+                        else:
+                            contact_id_int = int(contact_id) if contact_id is not None else None
+                    except Exception:
+                        contact_id_int = None
+                    if contact_id_int is not None:
+                        contact = Contact.objects.filter(id=contact_id_int).first()
+                        if contact:
+                            contact_email = contact.email
                 except Contact.DoesNotExist:
                     pass
         if not contact_id:
