@@ -11,3 +11,4 @@ include/
 .celery_started
 /Scripts
 venv/
+logs/
