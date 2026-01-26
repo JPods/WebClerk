@@ -1538,13 +1538,21 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends 
           highlightOnHover
           pointerOnHover
           onRowClicked={(row: RowWithKey, e: React.MouseEvent) => {
+            const target = e.target as HTMLElement | null;
             if (enableSelection && selectionMode === "rowClick") {
               handleRowClickSelect(row, e);
+            }
+
+            // Avoid activating when clicking interactive controls inside the row
+            if (
+              target?.closest(
+                "button,a,input,select,textarea,label,[role='button'],[data-ignore-row-select='true']",
+              )
+            ) {
               return;
             }
-            if (rowClickMode === "anywhere") {
-              onActivate?.(row);
-            }
+
+            onRowClicked?.(row);
           }}
           onRowDoubleClicked={(row: RowWithKey) => {
             onRowDoubleClicked?.(row);
