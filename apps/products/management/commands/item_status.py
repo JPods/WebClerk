@@ -91,7 +91,7 @@ class Command(BaseCommand):
                     # Show pending records for this item
                     pending_qs = Pending.objects.filter(
                         model_name='item',
-                        id_record=str(item_id),
+                        record_id=str(item_id),
                     ).order_by('-dt_created')[:10]
                     
                     if pending_qs.exists():

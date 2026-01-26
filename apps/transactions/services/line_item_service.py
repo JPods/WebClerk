@@ -958,7 +958,7 @@ class LineItemService:
         
         pending = Pending.objects.create(
             model_name='item',
-            id_record=str(item.pk),
+            record_id=str(item.pk),
             purpose=PURPOSE_LINE_ADD,
             name=f'{pending_type} Line Add: {item.ida or item.pk}',
             data=pending_data,
@@ -1064,7 +1064,7 @@ class LineItemService:
         
         pending = Pending.objects.create(
             model_name='item',
-            id_record=str(item_id) if item_id else '',
+            record_id=str(item_id) if item_id else '',
             purpose=PURPOSE_LINE_QTY_CHANGE,
             name=f'{pending_type} Qty Change: {item_ida or item_id} ({quantity_delta:+.2f})',
             data=pending_data,
@@ -1163,7 +1163,7 @@ class LineItemService:
         
         pending = Pending.objects.create(
             model_name='item',
-            id_record=str(item_id) if item_id else '',
+            record_id=str(item_id) if item_id else '',
             purpose=PURPOSE_LINE_DELETE,
             name=f'{pending_type} Line Delete: {item_ida or item_id} (-{quantity_released:.2f})',
             data=pending_data,

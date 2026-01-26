@@ -226,9 +226,9 @@ class TemplateAdmin(admin.ModelAdmin):
 @admin.register(Pending)
 class PendingAdmin(admin.ModelAdmin):
     """Admin interface for Pending model."""
-    list_display = ('id', 'model_name', 'id_record', 'purpose', 'dt_processed')
+    list_display = ('id', 'model_name', 'record_id', 'purpose', 'dt_processed')
     list_filter = ('model_name', 'purpose')
-    search_fields = ('model_name', 'id_record', 'name')
+    search_fields = ('model_name', 'record_id', 'name')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 

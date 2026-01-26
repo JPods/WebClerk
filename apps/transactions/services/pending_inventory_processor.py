@@ -100,7 +100,7 @@ def process_line_item_pending(
     )
     
     if item_id:
-        query &= Q(id_record=str(item_id))
+        query &= Q(record_id=str(item_id))
     
     # Get pending records ordered by creation (FIFO)
     pending_records = Pending.objects.filter(query).order_by('dt_created')[:limit]
