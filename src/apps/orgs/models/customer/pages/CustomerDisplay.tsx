@@ -150,6 +150,7 @@ export default function CustomerDetail({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [commOpen, setCommOpen] = useState(false);
 
   const {
     register,
@@ -347,11 +348,64 @@ export default function CustomerDetail({
               {[
                 { id: "overview", label: "Overview" },
                 { id: "snapshot", label: "Snapshot" },
-                { id: "contacts", label: "Contacts" },
-                { id: "locations", label: "Locations" },
-                { id: "domains", label: "Domains" },
-                { id: "phones", label: "Phones" },
-                { id: "emails", label: "Emails" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative pb-2 text-sm font-semibold transition ${
+                    activeTab === tab.id
+                      ? "text-indigo-600"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <span className="absolute -bottom-2.5 left-0 right-0 h-0.5 rounded-full bg-indigo-600" />
+                  )}
+                </button>
+              ))}
+
+              {/* Communications grouped menu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCommOpen((v) => !v)}
+                  className={`relative pb-2 text-sm font-semibold transition ${
+                    ["contacts", "phones", "emails", "locations", "domains"].includes(activeTab)
+                      ? "text-indigo-600"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Communications
+                  <span className="ml-2 text-xs">▾</span>
+                  {commOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-40 rounded-md bg-white border border-gray-200 shadow-lg z-20 py-1">
+                      {[
+                        { id: "contacts", label: "Contacts" },
+                        { id: "phones", label: "Phones" },
+                        { id: "emails", label: "Emails" },
+                        { id: "locations", label: "Addresses" },
+                        { id: "domains", label: "Domains" },
+                      ].map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setActiveTab(sub.id);
+                            setCommOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm ${activeTab === sub.id ? "bg-gray-100 text-indigo-600" : "text-gray-700 hover:bg-gray-50"}`}
+                        >
+                          {sub.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              </div>
+
+              {/* Remaining tabs (collapsed to conserve space) */}
+              {[
                 { id: "relations", label: "Relations" },
                 { id: "financial", label: "Financial" },
                 { id: "documents", label: "Documents" },

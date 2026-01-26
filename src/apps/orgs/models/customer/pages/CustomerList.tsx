@@ -10,12 +10,14 @@ import { useDispatch } from "react-redux";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { dynamicData } from "../../../../../model/dynamicData";
+import CustomerDisplay from "./CustomerDisplay";
 
 export default function CustomerList() {
   const dispatch = useDispatch();
   const { ensureWindow, activateWindow } = useWindowManager();
   const [data, setData] = useState<dynamicData[]>([]);
   const [selectedCustomers, setSelectedCustomers] = useState<dynamicData[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<dynamicData | null>(null);
   const [loading, setLoading] = useState(false);
 
   const getCustomerData = useCallback(async () => {
@@ -114,10 +116,11 @@ export default function CustomerList() {
     <>
       <PageBreadcrumb pageTitle="Customer" />
       <div className="grid grid-cols-1 gap-6">
-        <div className="lg:col-span-3">
-          <ComponentCard>
-            <AdvancedDataTable
-              data={data}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <ComponentCard>
+              <AdvancedDataTable
+                data={data}
               columns={columns}
               title="Customers"
               loading={loading}
@@ -126,7 +129,7 @@ export default function CustomerList() {
               enableExport={true}
               enableSelection={true}
               onSelectionChange={setSelectedCustomers}
-              onVisibleRowsChange={(rows) => {
+                onVisibleRowsChange={(rows) => {
                 const ids = rows
                   .map((row: dynamicData) => row.id)
                   .filter((id: number) => Number.isFinite(id));
@@ -134,8 +137,9 @@ export default function CustomerList() {
               }}
               onEditSelected={handleEdit}
               exportFileName="customers_export"
-              onRowActivate={handleEdit}
-              onRowDoubleClicked={handleRowDoubleClick}
+                  onRowActivate={handleEdit}
+                  onRowDoubleClicked={handleRowDoubleClick}
+                  onRowClicked={(row) => setSelectedCustomer(row)}
               onAdd={handleAdd}
               onDeleteSelected={handleBulkDelete}
               onImportFile={handleImportFile}
@@ -143,8 +147,21 @@ export default function CustomerList() {
               noDataMessage="No customers found"
             />
           </ComponentCard>
+            </div>
+
+            <div>
+              <ComponentCard>
+                {selectedCustomer ? (
+                  // Show inline customer detail for single-click selection
+                  // CustomerDisplay expects props matching CustomerAddProps
+                  <CustomerDisplay inline={true} dataProp={selectedCustomer} />
+                ) : (
+                  <div className="p-6 text-sm text-gray-500">Click a customer on the left to see details here.</div>
+                )}
+              </ComponentCard>
+            </div>
+          </div>
         </div>
-      </div>
     </>
   );
 }
