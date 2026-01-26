@@ -6,13 +6,13 @@ import {
 } from "../../../../../api/wcapi";
 import { patchAction } from "../../../../../api/userProfile";
 import {
-  SalesOrderLine,
-  CreateSalesOrderLineRequest,
-  UpdateSalesOrderLineRequest,
-} from "../types/salesOrderLineType";
+  OrderLine,
+  CreateOrderLineRequest,
+  UpdateOrderLineRequest,
+} from "../types/orderLineType";
 
-export const fetchSalesOrders = async (params?: any) => {
-  const res = await getRecords("salesorder", params);
+export const fetchOrders = async (params?: any) => {
+  const res = await getRecords("order", params);
   return { status: 200, data: { items: res.results || [] } };
 };
 
@@ -28,7 +28,7 @@ function dedupeContacts(contacts: any[] = []) {
 }
 
 // Utility to strip parent_id from object and lines
-function sanitizeSalesOrderPayload(data: any) {
+function sanitizeOrderPayload(data: any) {
   const clean = { ...data };
   delete clean.parent_id;
   if (clean.lines && Array.isArray(clean.lines)) {
@@ -45,68 +45,68 @@ function sanitizeSalesOrderPayload(data: any) {
   return clean;
 }
 
-export const createSalesOrder = async (data: any) => {
-  const clean = sanitizeSalesOrderPayload(data);
-  return saveRecord("salesorder", clean);
+export const createOrder = async (data: any) => {
+  const clean = sanitizeOrderPayload(data);
+  return saveRecord("order", clean);
 };
 
-export const updateSalesOrder = async (id: number, data: any) => {
-  const clean = sanitizeSalesOrderPayload({ ...data, id });
-  return saveRecord("salesorder", clean);
+export const updateOrder = async (id: number, data: any) => {
+  const clean = sanitizeOrderPayload({ ...data, id });
+  return saveRecord("order", clean);
 };
 
-export const deleteSalesOrder = async (id: number) => {
-  return deleteRecord("salesorder", id);
+export const deleteOrder = async (id: number) => {
+  return deleteRecord("order", id);
 };
 
-// Sales Order Lines API
-export const fetchSalesOrderLines = async (
-  salesOrderId: number,
+// Order Lines API
+export const fetchOrderLines = async (
+  orderId: number,
 ): Promise<{
   status: number;
-  data: { results: SalesOrderLine[]; total: number };
+  data: { results: OrderLine[]; total: number };
 }> => {
-  const res = await getRecords("sales_order_line", { parent: salesOrderId });
+  const res = await getRecords("order_line", { parent: orderId });
   return {
     status: 200,
     data: { results: res.results || [], total: res.total || 0 },
   };
 };
 
-export const createSalesOrderLine = async (
-  salesOrderId: number,
-  data: CreateSalesOrderLineRequest,
-): Promise<{ status: number; data: SalesOrderLine }> => {
+export const createOrderLine = async (
+  orderId: number,
+  data: CreateOrderLineRequest,
+): Promise<{ status: number; data: OrderLine }> => {
   const payload = {
-    model_name: "sales_order_line",
+    model_name: "order_line",
     ...data,
-    parent: salesOrderId,
+    parent: orderId,
   };
   const res = await patchAction(payload);
   return { status: res?.status || 200, data: res?.data || res };
 };
 
-export const updateSalesOrderLine = async (
-  salesOrderId: number,
+export const updateOrderLine = async (
+  orderId: number,
   lineId: number,
-  data: UpdateSalesOrderLineRequest,
-): Promise<{ status: number; data: SalesOrderLine }> => {
+  data: UpdateOrderLineRequest,
+): Promise<{ status: number; data: OrderLine }> => {
   const payload = {
-    model_name: "sales_order_line",
+    model_name: "order_line",
     ...data,
-    parent: salesOrderId,
+    parent: orderId,
     id: lineId,
   };
   const res = await patchAction(payload);
   return { status: res?.status || 200, data: res?.data || res };
 };
 
-export const deleteSalesOrderLine = async (
-  _salesOrderId: number,
+export const deleteOrderLine = async (
+  _orderId: number,
   lineId: number,
 ): Promise<{ status: number; data: any }> => {
   const payload = {
-    model_name: "sales_order_line",
+    model_name: "order_line",
     id: lineId,
     method: "delete",
   };
@@ -114,23 +114,23 @@ export const deleteSalesOrderLine = async (
   return { status: res?.status || 200, data: res?.data || res };
 };
 
-export const fetchSalesOrderDetail = async (id: number): Promise<any> => {
-  const res = await getRecord("salesorder", id);
-  console.log("[fetchSalesOrderDetail] id:", id);
-  console.log("[fetchSalesOrderDetail] res:", res);
-  console.log("[fetchSalesOrderDetail] res?.record:", res?.record);
+export const fetchOrderDetail = async (id: number): Promise<any> => {
+  const res = await getRecord("order", id);
+  console.log("[fetchOrderDetail] id:", id);
+  console.log("[fetchOrderDetail] res:", res);
+  console.log("[fetchOrderDetail] res?.record:", res?.record);
   console.log(
-    "[fetchSalesOrderDetail] res?.record?.lines:",
+    "[fetchOrderDetail] res?.record?.lines:",
     res?.record?.lines,
   );
   console.log(
-    "[fetchSalesOrderDetail] lines count:",
+    "[fetchOrderDetail] lines count:",
     res?.record?.lines?.length,
   );
   const result = res?.record ?? res;
-  console.log("[fetchSalesOrderDetail] returning:", result);
+  console.log("[fetchOrderDetail] returning:", result);
   console.log(
-    "[fetchSalesOrderDetail] returning lines count:",
+    "[fetchOrderDetail] returning lines count:",
     result?.lines?.length,
   );
   return result;

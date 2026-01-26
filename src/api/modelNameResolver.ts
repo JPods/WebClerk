@@ -9,10 +9,10 @@
  * This provides a single point of control for authentication, authorization, and auditing.
  * 
  * Usage:
- *   resolveModelName('sales-order')     -> 'salesorder'
- *   resolveModelName('sales_order')     -> 'salesorder'
- *   resolveModelName('SalesOrder')      -> 'salesorder'
- *   resolveModelName('purchase-order')  -> 'purchaseorder'
+ *   resolveModelName('order')           -> 'order'
+ *   resolveModelName('sales_order')     -> 'order'
+ *   resolveModelName('SalesOrder')      -> 'order'
+ *   resolveModelName('purchase-order')  -> 'purchase_order'
  *   resolveModelName('invoice')         -> 'invoice'
  */
 
@@ -20,9 +20,9 @@
 // Keys are normalized (lowercase, no separators), values are the wcapi model_name
 const MODEL_NAME_MAP: Record<string, string> = {
   // Transactions - canonical names use snake_case per WC3 model_registry
-  salesorder: 'sales_order',
-  order: 'sales_order',
-  sales: 'sales_order',
+  salesorder: 'order',
+  order: 'order',
+  sales: 'order',
   invoice: 'invoice',
   purchaseorder: 'purchase_order',
   purchase: 'purchase_order',
@@ -36,8 +36,8 @@ const MODEL_NAME_MAP: Record<string, string> = {
   req: 'requisition',
   
   // Transaction Lines
-  salesorderline: 'sales_order_line',
-  orderline: 'sales_order_line',
+  salesorderline: 'order_line',
+  orderline: 'order_line',
   invoiceline: 'invoice_line',
   purchaseorderline: 'purchase_order_line',
   poline: 'purchase_order_line',

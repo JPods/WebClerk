@@ -8,21 +8,21 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createSalesOrderLine, updateSalesOrderLine } from "../services/salesOrderLineApi";
+import { createOrderLine, updateOrderLine } from "../services/orderLineApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { salesOrderLineSchema } from "../utils/salesOrderLineSchema";
-import { SalesOrderLineAddProps } from "../types/salesOrderLineType";
+import { orderLineSchema } from "../utils/orderLineSchema";
+import { OrderLineAddProps } from "../types/orderLineType";
 
-export default function SalesOrderLineDetail({
+export default function OrderLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-}: SalesOrderLineAddProps) {
+}: OrderLineAddProps) {
   const dispatch = useDispatch();
 
   const {
@@ -31,8 +31,8 @@ export default function SalesOrderLineDetail({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof salesOrderLineSchema>>({
-    resolver: zodResolver(salesOrderLineSchema),
+  } = useForm<z.infer<typeof orderLineSchema>>({
+    resolver: zodResolver(orderLineSchema),
   });
 
   const location = useLocation();
@@ -53,7 +53,7 @@ export default function SalesOrderLineDetail({
     }
   }, [data, reset, setValue, mode]);
 
-  const preparePayload = (formValues: z.infer<typeof salesOrderLineSchema>): Record<string, unknown> => {
+  const preparePayload = (formValues: z.infer<typeof orderLineSchema>): Record<string, unknown> => {
     const numericPrice =
       typeof formValues.unit_price === "number" && Number.isFinite(formValues.unit_price) ? formValues.unit_price : 0;
     const existingPriceRaw = (data as Record<string, unknown> | null)?.price as unknown;
@@ -69,17 +69,17 @@ export default function SalesOrderLineDetail({
     };
   };
 
-  const onSubmit = async (formData: z.infer<typeof salesOrderLineSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof orderLineSchema>) => {
     try {
       const payload = preparePayload(formData);
       const res =
         mode === "add"
-          ? await createSalesOrderLine(payload)
-          : await updateSalesOrderLine(data && data.id, payload);
+          ? await createOrderLine(payload)
+          : await updateOrderLine(data && data.id, payload);
       if (res) {
         dispatch(
           showToast({
-            message: `Sales order line ${
+            message: `Order line ${
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
@@ -100,10 +100,10 @@ export default function SalesOrderLineDetail({
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Sales Order Line"
+              ? "Edit Order Line"
               : mode === "view"
-              ? "View Sales Order Line"
-              : "Sales Order Line Detail"
+              ? "View Order Line"
+              : "Order Line Detail"
           }
         />
       )}
@@ -112,10 +112,10 @@ export default function SalesOrderLineDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Sales Order Line"
+                ? "Edit Order Line"
                 : mode === "view"
-                ? "View Sales Order Line"
-                : "Add New Sales Order Line"}
+                ? "View Order Line"
+                : "Add New Order Line"}
             </h3>
             {onCancelInline && (
               <button
@@ -130,14 +130,14 @@ export default function SalesOrderLineDetail({
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="salesorder_id">salesorder_id</Label>
+            <Label htmlFor="order_id">order_id</Label>
             <Input
               type="number"
-              id="salesorder_id"
-              placeholder="Sales Order ID"
-              {...register("salesorder_id", { valueAsNumber: true })}
-              error={errors.salesorder_id && errors.salesorder_id.message ? true : false}
-              hint={errors.salesorder_id && errors.salesorder_id.message}
+              id="order_id"
+              placeholder="Order ID"
+              {...register("order_id", { valueAsNumber: true })}
+              error={errors.order_id && errors.order_id.message ? true : false}
+              hint={errors.order_id && errors.order_id.message}
               disabled={mode === "view"}
             />
           </div>

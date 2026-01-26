@@ -2,7 +2,7 @@
  * Line Item Service - Single Point of Authority for transaction line management
  * 
  * Handles adding, updating, and managing transaction line items across all
- * transaction types (sales_order, proposal, invoice, purchase_order, work_order).
+ * transaction types (order, proposal, invoice, purchase_order, work_order).
  * 
  * Key behaviors:
  * - Sales transactions: price.unit is the primary value
@@ -23,7 +23,7 @@ import {
 // Types
 // ============================================================================
 
-export type TransactionType = 'sales_order' | 'proposal' | 'invoice' | 'purchase_order' | 'work_order';
+export type TransactionType = 'order' | 'sales_order' | 'proposal' | 'invoice' | 'purchase_order' | 'work_order';
 
 export interface LineItemServiceConfig {
   transactionType: TransactionType;
@@ -209,9 +209,9 @@ export class LineItemService {
 
   constructor(config: Partial<LineItemServiceConfig> = {}) {
     this.config = {
-      transactionType: config.transactionType ?? 'sales_order',
-      useCost: config.useCost ?? !isSalesTransaction(config.transactionType ?? 'sales_order'),
-      priceField: config.priceField ?? (isSalesTransaction(config.transactionType ?? 'sales_order') ? 'price' : 'cost'),
+      transactionType: config.transactionType ?? 'order',
+      useCost: config.useCost ?? !isSalesTransaction(config.transactionType ?? 'order'),
+      priceField: config.priceField ?? (isSalesTransaction(config.transactionType ?? 'order') ? 'price' : 'cost'),
     };
   }
 
@@ -493,7 +493,7 @@ export class LineItemService {
 /**
  * Create a LineItemService configured for sales transactions
  */
-export function createSalesLineItemService(transactionType: 'sales_order' | 'proposal' | 'invoice' = 'sales_order'): LineItemService {
+export function createSalesLineItemService(transactionType: 'order' | 'sales_order' | 'proposal' | 'invoice' = 'order'): LineItemService {
   return new LineItemService({
     transactionType,
     useCost: false,

@@ -55,10 +55,10 @@
   static readonly productsVariantList: string = "/products/variant/list";
   static readonly productsWarehouseList: string = "/products/warehouse/list";
 
-  static readonly transactionsSalesOrderList: string =
-    "/transactions/sales-order/list";
-  static readonly transactionsSalesOrderDetail: string =
-    "/transactions/sales-order/detail/:id?";
+  static readonly transactionsOrderList: string =
+    "/transactions/order/list";
+  static readonly transactionsOrderDetail: string =
+    "/transactions/order/detail/:id?";
 
   static readonly transactionsInvoiceList: string =
     "/transactions/invoice/list";

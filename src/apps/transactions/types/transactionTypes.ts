@@ -19,7 +19,7 @@ export type TransactionStatus =
   | 'rejected';
 
 export type TransactionParentType = 
-  | 'sales_order' 
+  | 'order'
   | 'invoice' 
   | 'proposal' 
   | 'purchase_order' 
