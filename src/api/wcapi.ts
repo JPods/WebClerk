@@ -101,7 +101,7 @@ export async function getRecord(model_name: string, id: number) {
     } as any);
     console.log(`[wcapi.getRecord] model=${resolved} id=${id} response:`, res.data);
     const record = res.data.data?.record;
-    if (record && resolved === 'salesorder') {
+    if (record && ['order', 'salesorder'].includes(resolved)) {
       console.log(`[wcapi.getRecord] lines in response:`, record.lines);
       console.log(`[wcapi.getRecord] lines count:`, record.lines?.length);
       console.log(`[wcapi.getRecord] line IDs:`, record.lines?.map((l: any) => l.id));
