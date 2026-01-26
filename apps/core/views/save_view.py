@@ -34,6 +34,7 @@ from apps.core.services.wcapi_registry import get_model, normalize_table_key, to
 from apps.core.utils import policy
 from apps.core.constants.model_registry import get_model_meta
 import json
+import re
 from django.db import IntegrityError
 from django.forms.models import model_to_dict
 import logging
@@ -171,14 +172,29 @@ class SaveWcapiView(APIView):
     #return super().dispatch(*args, **kwargs)
 
     def _perform_save(self, request, parsed_data):
-        print(f"[SAVE_VIEW DEBUG] *** ENTERING _perform_save ***")
-        print(f"[SAVE_VIEW DEBUG] parsed_data keys: {list(parsed_data.keys())}")
+        # debugging prints removed
         console_logger = logging.getLogger('console')
         # Handle nested 'data' key for compatibility with some clients
         if 'data' in parsed_data and isinstance(parsed_data['data'], dict):
             parsed_data.update(parsed_data['data'])
             del parsed_data['data']
             console_logger.debug(f"[SAVE_VIEW] Merged 'data' fields into payload")
+        # If client provided a project_slug but not a numeric project_id, try to resolve it here.
+        try:
+            if 'project_slug' in parsed_data and 'project_id' not in parsed_data:
+                slug_val = parsed_data.get('project_slug')
+                if isinstance(slug_val, str) and slug_val:
+                    proj_model = get_model('project') or get_model('projects')
+                    if proj_model is not None:
+                        try:
+                            proj = proj_model.objects.filter(slug=slug_val).first()
+                            if proj:
+                                parsed_data['project_id'] = proj.id
+                        except Exception:
+                            # Defensive: don't fail save just because slug lookup failed
+                            pass
+        except Exception:
+            pass
         # Required: model_name (singular)
         raw_model_name = parsed_data.get('model_name')
         if not raw_model_name:
@@ -331,6 +347,128 @@ class SaveWcapiView(APIView):
             else:
                 mode = 'update'
             value = field_data.get('value')
+            # Sanitize assigned_to entries to ensure numeric ids where possible
+            try:
+                if field in ('assigned_to', 'assignedTo') and isinstance(value, list):
+                    for idx, entry in enumerate(list(value)):
+                        if isinstance(entry, dict):
+                            eid = entry.get('id')
+                            if isinstance(eid, str):
+                                m = re.match(r"\s*(\d+)", eid)
+                                if m:
+                                    try:
+                                        entry['id'] = int(m.group(1))
+                                    except Exception:
+                                        entry.pop('id', None)
+                                else:
+                                    # remove non-numeric id so downstream lookup won't fail
+                                    entry.pop('id', None)
+                        elif isinstance(entry, str):
+                            s = entry.strip()
+                            if s.isdigit():
+                                value[idx] = int(s)
+                            else:
+                                value[idx] = None
+                    # filter out empty entries
+                    value = [v for v in value if not (v is None or (isinstance(v, dict) and 'id' not in v and not v.get('name')))]
+            except Exception:
+                pass
+            # Normalize contact_id strings into integers where possible
+            try:
+                if field in ('contact_id', 'contactId', 'contact') and isinstance(value, str):
+                    s = value.strip()
+                    m = re.match(r"\s*(\d+)", s)
+                    if m:
+                        try:
+                            value = int(m.group(1))
+                        except Exception:
+                            value = None
+                    else:
+                        value = None
+            except Exception:
+                pass
+            # Normalize contact_id strings into integers where possible
+            try:
+                if field in ('contact_id', 'contactId', 'contact') and isinstance(value, str):
+                    s = value.strip()
+                    m = re.match(r"\s*(\d+)", s)
+                    if m:
+                        try:
+                            value = int(m.group(1))
+                        except Exception:
+                            value = None
+                    else:
+                        value = None
+            except Exception:
+                pass
+            # Sanitize assigned_to entries to ensure numeric ids where possible
+            try:
+                if field in ('assigned_to', 'assignedTo') and isinstance(value, list):
+                    for idx, entry in enumerate(list(value)):
+                        if isinstance(entry, dict):
+                            eid = entry.get('id')
+                            if isinstance(eid, str):
+                                m = re.match(r"\s*(\d+)", eid)
+                                if m:
+                                    try:
+                                        entry['id'] = int(m.group(1))
+                                    except Exception:
+                                        entry.pop('id', None)
+                                else:
+                                    # remove non-numeric id so downstream lookup won't fail
+                                    entry.pop('id', None)
+                        elif isinstance(entry, str):
+                            s = entry.strip()
+                            if s.isdigit():
+                                value[idx] = int(s)
+                            else:
+                                value[idx] = None
+                    # filter out empty entries
+                    value = [v for v in value if not (v is None or (isinstance(v, dict) and 'id' not in v and not v.get('name')))]
+            except Exception:
+                pass
+            # Defensive: if client provided a project identifier as a slug/string, try to coerce to numeric id
+            try:
+                if field in ('project_id', 'projectId') and isinstance(value, str):
+                    s = value.strip()
+                    if s.isdigit():
+                        try:
+                            value = int(s)
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            proj_model = get_model('project') or get_model('projects')
+                            if proj_model is not None:
+                                proj = proj_model.objects.filter(slug=s).first()
+                                if proj:
+                                    value = proj.id
+                                    console_logger.debug(f"[SAVE_VIEW] Coerced project_id from slug {s} -> {proj.id}")
+                        except Exception:
+                            console_logger.debug(f"[SAVE_VIEW] Failed to resolve project slug {s}")
+            except Exception:
+                pass
+            # Defensive: if client provided a project identifier as a slug/string, try to coerce to numeric id
+            try:
+                if field in ('project_id', 'projectId') and isinstance(value, str):
+                    s = value.strip()
+                    if s.isdigit():
+                        try:
+                            value = int(s)
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            proj_model = get_model('project') or get_model('projects')
+                            if proj_model is not None:
+                                proj = proj_model.objects.filter(slug=s).first()
+                                if proj:
+                                    value = proj.id
+                                    console_logger.debug(f"[SAVE_VIEW] Coerced project_id from slug {s} -> {proj.id}")
+                        except Exception:
+                            console_logger.debug(f"[SAVE_VIEW] Failed to resolve project slug {s}")
+            except Exception:
+                pass
             if mode not in ('update', 'insert', 'delete'):
                 continue  # Invalid mode, skip
             if mode == 'delete':
@@ -390,6 +528,38 @@ class SaveWcapiView(APIView):
                         merged = deep_merge_dict(current, value)
                         setattr(obj, field, merged)
                     else:
+                        # If model field is an integer type, coerce/clean the value
+                        try:
+                            model_field = None
+                            try:
+                                model_field = obj._meta.get_field(field)
+                            except Exception:
+                                model_field = None
+                            if model_field is not None:
+                                int_field_types = (
+                                    models.AutoField,
+                                    models.IntegerField,
+                                    models.BigIntegerField,
+                                    models.SmallIntegerField,
+                                    models.PositiveIntegerField,
+                                    models.PositiveSmallIntegerField,
+                                )
+                                if isinstance(model_field, int_field_types):
+                                    # attempt to coerce string values like '129-assignee-0' -> 129
+                                    if isinstance(value, str):
+                                        import re as _re
+                                        m = _re.search(r"(\d+)", value)
+                                        if m:
+                                            try:
+                                                value = int(m.group(1))
+                                            except Exception:
+                                                value = 0
+                                        else:
+                                            value = 0
+                                    elif value is None:
+                                        value = 0
+                        except Exception:
+                            pass
                         setattr(obj, field, value)
                 else:
                     # Unknown field, move to prefs.userdefined
@@ -427,9 +597,7 @@ class SaveWcapiView(APIView):
         lines_errors = []
         lines_to_save = []  # Store prepared line objects to save after parent
         lines_payload = parsed_data.get('lines')
-        print(f"[SAVE_VIEW DEBUG] INIT: lines_payload exists={lines_payload is not None}, count={len(lines_payload) if lines_payload else 0}")
-        if lines_payload:
-            print(f"[SAVE_VIEW DEBUG] INIT: First line sample: {list(lines_payload[0].keys()) if lines_payload and len(lines_payload) > 0 else 'N/A'}")
+        # debug prints removed for lines payload
         line_model = None
         fk_field_name = None
         
@@ -450,7 +618,7 @@ class SaveWcapiView(APIView):
                 line_model = get_model(line_model_name)
                 fk_field_name = f"{model_key.lower()}_id"
                 
-                print(f"[SAVE_VIEW DEBUG] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
+                # debug print removed
                 console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
                 
                 if line_model:
@@ -500,7 +668,7 @@ class SaveWcapiView(APIView):
                                 'data': line_save_data,
                                 'is_new': not bool(line_id),
                             })
-                            print(f"[SAVE_VIEW DEBUG] PRE-SAVE: Added line to save: id={line_id}, is_new={not bool(line_id)}")
+                            # debug print removed
                             console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Added line to save: id={line_id}, is_new={not bool(line_id)}, data_keys={list(line_save_data.keys())}")
                             
                         except Exception as e:
@@ -565,6 +733,38 @@ class SaveWcapiView(APIView):
         console_logger.debug(f"[SAVE_VIEW] Starting database save...")
         # Save
         try:
+            # Normalize contact_id: ensure numeric or clear so model can auto-resolve
+            try:
+                if hasattr(obj, 'contact_id'):
+                    cid = getattr(obj, 'contact_id')
+                    # If string, try to coerce
+                    if isinstance(cid, str):
+                        s = cid.strip()
+                        if s.isdigit():
+                            setattr(obj, 'contact_id', int(s))
+                        else:
+                            # Try to resolve from parsed_data.assigned_to if available
+                            resolved = None
+                            try:
+                                assigned = parsed_data.get('assigned_to') or parsed_data.get('assignedTo')
+                                if isinstance(assigned, list) and assigned:
+                                    first = assigned[0]
+                                    if isinstance(first, dict):
+                                        aid = first.get('id')
+                                        name = first.get('name')
+                                        if isinstance(aid, str) and aid.isdigit():
+                                            resolved = int(aid)
+                                        elif isinstance(name, str) and name.strip().isdigit():
+                                            resolved = int(name.strip())
+                            except Exception:
+                                resolved = None
+                            if resolved:
+                                setattr(obj, 'contact_id', resolved)
+                            else:
+                                # Clear invalid contact_id so model's save() can auto-resolve
+                                setattr(obj, 'contact_id', 0)
+            except Exception:
+                pass
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
@@ -579,7 +779,7 @@ class SaveWcapiView(APIView):
         # POST-SAVE: Save lines now that we have parent ID
         # ============================================================
         obj_id = getattr(obj, 'id', None)
-        print(f"[SAVE_VIEW DEBUG] POST-SAVE: lines_to_save count={len(lines_to_save)}, line_model={line_model}, obj_id={obj_id}, fk_field_name={fk_field_name}")
+        # debug print removed
         console_logger.info(f"[SAVE_VIEW] POST-SAVE: lines_to_save={len(lines_to_save)}, line_model={line_model}, obj_id={obj_id}, fk_field_name={fk_field_name}")
         if lines_to_save and line_model and obj_id:
             console_logger.debug(f"[SAVE_VIEW] Saving {len(lines_to_save)} lines for {model_key} ID: {obj_id}")
@@ -610,7 +810,7 @@ class SaveWcapiView(APIView):
                             lines_errors.append(f"Line ID {line_id} not found")
                     else:
                         # Create new line
-                        print(f"[SAVE_VIEW DEBUG] Creating new line at index {idx}")
+                        # debug print removed
                         console_logger.debug(f"[SAVE_VIEW] Creating new line at index {idx}")
                         line_obj = line_model()
                         for field, value in line_save_data.items():
@@ -618,17 +818,17 @@ class SaveWcapiView(APIView):
                                 continue
                             if hasattr(line_obj, field):
                                 setattr(line_obj, field, value)
-                                print(f"[SAVE_VIEW DEBUG] Set field {field}={value}")
+                                # debug print removed
                         # Set the FK using the attname (e.g., salesorder_id_id)
                         fk_field = line_model._meta.get_field(fk_field_name)
-                        print(f"[SAVE_VIEW DEBUG] Setting FK {fk_field.attname}={obj_id}")
+                        # debug print removed
                         setattr(line_obj, fk_field.attname, obj_id)
                         line_obj.save()
-                        print(f"[SAVE_VIEW DEBUG] Created new line with ID: {line_obj.id}")
+                        # debug print removed
                         lines_results.append({'id': line_obj.id, 'status': 'created', 'index': idx})
                         console_logger.debug(f"[SAVE_VIEW] Created new line ID: {line_obj.id}")
                 except Exception as e:
-                    print(f"[SAVE_VIEW DEBUG] ERROR saving line at index {idx}: {e}")
+                    # debug print removed
                     console_logger.error(f"[SAVE_VIEW] Error saving line at index {idx}: {e}")
                     lines_errors.append(f"Line {idx}: {str(e)}")
             
@@ -722,8 +922,6 @@ class SaveWcapiView(APIView):
                         setattr(contact, '_refs_pending_save', True)
                     except Exception as e:
                         console_logger.error(f"[SAVE_VIEW] Error marking contact.refs for deferred save: {e}")
-                        import traceback
-                        console_logger.error(f"[SAVE_VIEW] Marking error traceback: {traceback.format_exc()}")
         except Exception:
             pass  # Defensive
         # Append contact link for action saves
@@ -1033,6 +1231,22 @@ class SaveWcapiView(APIView):
             del data['data']
             console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
+        # If client provided a project_slug but not a numeric project_id, try to resolve it here.
+        try:
+            if 'project_slug' in data and 'project_id' not in data:
+                slug_val = data.get('project_slug')
+                if isinstance(slug_val, str) and slug_val:
+                    proj_model = get_model('project') or get_model('projects')
+                    if proj_model is not None:
+                        try:
+                            proj = proj_model.objects.filter(slug=slug_val).first()
+                            if proj:
+                                data['project_id'] = proj.id
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
         # Required: model_name (singular)
         raw_model_name = data.get('model_name')
         if not raw_model_name:
@@ -1247,6 +1461,37 @@ class SaveWcapiView(APIView):
                             merged = deep_merge_dict(current, value)
                             setattr(obj, field, merged)
                         else:
+                            # If model field is an integer type, coerce/clean the value
+                            try:
+                                model_field = None
+                                try:
+                                    model_field = obj._meta.get_field(field)
+                                except Exception:
+                                    model_field = None
+                                if model_field is not None:
+                                    int_field_types = (
+                                        models.AutoField,
+                                        models.IntegerField,
+                                        models.BigIntegerField,
+                                        models.SmallIntegerField,
+                                        models.PositiveIntegerField,
+                                        models.PositiveSmallIntegerField,
+                                    )
+                                    if isinstance(model_field, int_field_types):
+                                        if isinstance(value, str):
+                                            import re as _re
+                                            m = _re.search(r"(\d+)", value)
+                                            if m:
+                                                try:
+                                                    value = int(m.group(1))
+                                                except Exception:
+                                                    value = 0
+                                            else:
+                                                value = 0
+                                        elif value is None:
+                                            value = 0
+                            except Exception:
+                                pass
                             setattr(obj, field, value)
                     else:
                         # Unknown field, move to prefs.userdefined
@@ -1281,8 +1526,10 @@ class SaveWcapiView(APIView):
                 return api_response(success=False, status_code=400, message='Failed to hash password', error={'code':'hash_password','details':str(e)})
 
         if field_value_errors:
-            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {field_value_errors}")
-            return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': field_value_errors})
+            # Ensure errors are serializable and log request preview for debugging
+            err_details = [str(e) for e in field_value_errors]
+            console_logger.error(f"[SAVE_VIEW] Field coercion errors for {model_key} ID {record_id}: {err_details}")
+            return api_response(success=False, status_code=400, message='Invalid field values', error={'code': 'invalid_field', 'details': err_details})
 
         ### QQQ what is this?
         # Optional model-level payload validation
@@ -1309,6 +1556,35 @@ class SaveWcapiView(APIView):
 
         # Save
         try:
+            # Normalize contact_id: ensure numeric or clear so model can auto-resolve
+            try:
+                if hasattr(obj, 'contact_id'):
+                    cid = getattr(obj, 'contact_id')
+                    if isinstance(cid, str):
+                        s = cid.strip()
+                        if s.isdigit():
+                            setattr(obj, 'contact_id', int(s))
+                        else:
+                            resolved = None
+                            try:
+                                assigned = data.get('assigned_to') or data.get('assignedTo')
+                                if isinstance(assigned, list) and assigned:
+                                    first = assigned[0]
+                                    if isinstance(first, dict):
+                                        aid = first.get('id')
+                                        name = first.get('name')
+                                        if isinstance(aid, str) and aid.isdigit():
+                                            resolved = int(aid)
+                                        elif isinstance(name, str) and name.strip().isdigit():
+                                            resolved = int(name.strip())
+                            except Exception:
+                                resolved = None
+                            if resolved:
+                                setattr(obj, 'contact_id', resolved)
+                            else:
+                                setattr(obj, 'contact_id', 0)
+            except Exception:
+                pass
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
@@ -1316,7 +1592,11 @@ class SaveWcapiView(APIView):
             console_logger.error(f"[SAVE_VIEW] Integrity error during save: {e}")
             return api_response(success=False, status_code=400, message='Integrity error', error={'code':'integrity_error','details': str(e)})
         except ValueError as e:
-            console_logger.error(f"[SAVE_VIEW] Value error during save: {e}")
+            try:
+                obj_id_val = getattr(obj, 'id', None)
+            except Exception:
+                obj_id_val = 'unreadable'
+            console_logger.error(f"[SAVE_VIEW] Value error during save: {e} | obj.id={obj_id_val}")
             return api_response(success=False, status_code=400, message='Invalid field values', error={'code':'invalid_field','details': str(e)})
         except Exception as e:
             console_logger.error(f"[SAVE_VIEW] Exception during save: {e}")
