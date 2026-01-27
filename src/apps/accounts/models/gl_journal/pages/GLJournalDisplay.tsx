@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
+import RippleLoader from "@/components/common/RippleLoader";
 
 interface GLJournalDisplayProps {
   inline?: boolean;
@@ -78,7 +79,7 @@ export default function GLJournalDisplay({
   };
 
   if (loading && modeProp === "edit") {
-    return <div className="p-4">Loading...</div>;
+    return <RippleLoader />;
   }
 
   return (
