@@ -1,3 +1,5 @@
+import QATab from "./QATab";
+import DocumentsTab from "./DocumentsTab";
 /**
  * TransactionDetail - Base component for all transaction detail pages
  * Provides common tabbed layout with standard sections
@@ -38,7 +40,6 @@ import RefsLinksContactPanel from "./RefsLinksContactPanel";
 import RefsLinksTable from "./RefsLinksTable";
 import ContactLinksTable from "./ContactLinksTable";
 import CommentsPanel from "./CommentsPanel";
-import ActionsCard from "./ActionsCard";
 import MetadataPanel from "./MetadataPanel";
 import FinancialsCard from "./FinancialsCard";
 import FlowDiagram from "./FlowDiagram";
@@ -351,7 +352,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         label: "Financials",
         icon: <FaDollarSign size={14} />,
       },
-      { id: "flow", label: "Flow", icon: <FaLink size={14} /> },
+      { id: "documents", label: "Documents", icon: <FaLink size={14} /> },
+      { id: "qa", label: "QA", icon: <FaComments size={14} /> },
+      // { id: "flow", label: "Flow", icon: <FaLink size={14} /> },
     ];
 
     if (isAdmin) {
@@ -715,6 +718,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           />
         );
 
+      case "documents":
+        return <DocumentsTab />;
+
+      case "qa":
+        return <QATab />;
+
       case "flow":
         return (
           <FlowDiagram
@@ -851,17 +860,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         </div>
       )}
 
-      {/* Status/Action Banner */}
-      {currentData.action && (
-        <div className="mb-6">
-          <ActionsCard
-            actions={currentData.action}
-            isEditing={isEditing}
-            onChange={(val) => handleFieldChange("action", val)}
-          />
-        </div>
-      )}
-
       {/* Tabs */}
       <div className="border-b border-slate-200 dark:border-slate-700 mb-2">
         <nav className="flex gap-1 overflow-x-auto">
@@ -872,7 +870,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
+                  flex items-center gap-2 px-2 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
                   ${
                     activeTab === tab.id
                       ? "border-blue-500 text-blue-600 dark:text-blue-400"

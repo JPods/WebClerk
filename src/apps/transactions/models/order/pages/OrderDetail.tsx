@@ -4,6 +4,7 @@
  * Keeps item search and lines management capabilities
  */
 import React, { useCallback, useState } from "react";
+import ActionsCard from "../../../components/ActionsCard";
 import {
   FaShoppingCart,
   FaTruck,
@@ -11,7 +12,6 @@ import {
   FaEnvelope,
   FaTrash,
   FaLock,
-  FaPlus,
   FaCheck,
   FaTimes,
   FaTasks,
@@ -44,7 +44,7 @@ import type {
   ActionItem,
 } from "../../../types/transactionTypes";
 import { DropDown, Input } from "@/components/wrapper";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
+// import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
 interface Order extends Transaction {
@@ -76,8 +76,7 @@ const SALES_ORDER_TABS_BEFORE: TransactionTab[] = [];
 const getOrderTabsAfter = (data: Transaction): TransactionTab[] => {
   const orderData = data as Order;
   const pendingActions =
-    orderData.actions?.items?.filter((a) => a.status === "pending")
-      .length ?? 0;
+    orderData.actions?.items?.filter((a) => a.status === "pending").length ?? 0;
 
   return [
     {
@@ -300,7 +299,7 @@ const OrderHeader: React.FC<{
                   options={priceLable}
                   placeholder="Select Price Level"
                   value={data.price_level ?? ""}
-                  onChange={(e) => onChange("price_level", e.target.value)}
+                  onChange={(value: string) => onChange("price_level", value)}
                   className="dark:bg-dark-900"
                   disabled={!isEditing}
                 />
@@ -1665,7 +1664,7 @@ interface OrderDetailProps {
 }
 
 // Backwards compatibility alias
-type SalesOrderDetailProps = OrderDetailProps;
+// type SalesOrderDetailProps = OrderDetailProps;
 
 const OrderDetail: React.FC<OrderDetailProps> = ({
   isAdmin = false,
@@ -1691,6 +1690,27 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   }, []);
 
   // Custom tab content renderer - receives onFieldChange from TransactionDetailBase
+  // Needs to be declared after renderHeader, so move renderHeader above this
+
+  // Custom header renderer (moved above for ActionsCard summary tab logic)
+  const renderHeaderFn = useCallback(
+    (
+      data: Transaction,
+      isEditing: boolean,
+      onChange?: (field: string, value: unknown) => void,
+    ) => (
+      <OrderHeader
+        data={data as Order}
+        isEditing={isEditing}
+        onChange={
+          onChange as ((field: keyof Order, value: unknown) => void) | undefined
+        }
+        onStatusChange={handleStatusChange}
+      />
+    ),
+    [handleStatusChange],
+  );
+
   const renderCustomTab = useCallback(
     (
       tabId: string,
@@ -1747,33 +1767,35 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           );
         case "shipping":
           return <ShippingTab data={orderData} isEditing={isEditing} />;
+        case "summary":
+          // Insert ActionsCard at the top of the summary tab
+          return (
+            <>
+              {/* ActionsCard for summary tab */}
+              <div className="mb-6">
+                {/* Use the single action object, not the actions array */}
+                <ActionsCard
+                  actions={orderData.action}
+                  isEditing={isEditing}
+                  onChange={(val: unknown) =>
+                    onFieldChange && onFieldChange("action", val)
+                  }
+                />
+              </div>
+              {/* Render the rest of the summary info using the header renderer if available */}
+              {renderHeaderFn
+                ? renderHeaderFn(orderData, isEditing, onFieldChange)
+                : null}
+            </>
+          );
         default:
           return null;
       }
     },
-    [],
-  ); // No dependencies - handlers are created inline with closure over data
+    [renderHeaderFn],
+  );
 
   // Custom header renderer
-  const renderHeader = useCallback(
-    (
-      data: Transaction,
-      isEditing: boolean,
-      onChange?: (field: string, value: unknown) => void,
-    ) => (
-      <OrderHeader
-        data={data as Order}
-        isEditing={isEditing}
-        onChange={
-          onChange as
-            | ((field: keyof Order, value: unknown) => void)
-            | undefined
-        }
-        onStatusChange={handleStatusChange}
-      />
-    ),
-    [handleStatusChange],
-  );
 
   // Custom lines renderer - includes item search when editing
   const renderLines = useCallback(
@@ -1870,7 +1892,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       customTabsBefore={SALES_ORDER_TABS_BEFORE}
       getCustomTabsAfter={getOrderTabsAfter}
       renderCustomTab={renderCustomTab}
-      renderHeader={renderHeader}
+      renderHeader={renderHeaderFn}
       renderLines={renderLines}
       isAdmin={isAdmin}
       canEdit={canEdit}

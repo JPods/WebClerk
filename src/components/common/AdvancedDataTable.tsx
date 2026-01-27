@@ -18,6 +18,8 @@ import {
   FaDownload,
   FaPrint,
   FaCheckSquare,
+  FaSearch,
+  FaTrash,
 } from "react-icons/fa";
 
 export type ColumnFilter = {
@@ -142,46 +144,48 @@ type AdvancedDataTableHandle<T> = {
   openColumnManager: (anchor?: HTMLElement | DOMRect | null) => void;
 };
 
-const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends Record<string, any>>(
-      {
-        data,
-        columns: initialColumns,
-        title = "Data Table",
-        loading = false,
-        filters = [],
-        hideHeader = false,
-        externalSearchTerm,
-        onExternalSearchTermChange,
-        filtersOpen,
-        onFiltersOpenChange,
-        showGlobalMenu = true,
-        onAdd,
-        onEditSelected,
-        onDeleteSelected,
-        onImportFile,
-        importAccept = ".json,.csv",
-        onPrint,
-        storageKey,
-        enableExport = true,
-        enableSelection = false,
-        onSelectionChange,
-        onVisibleRowsChange,
-        customActions,
-        exportFileName = "export",
-        onRowClicked,
-        onRowActivate,
-        onRowDoubleClicked,
-        rowKeyField = "id",
-        selectionMode = "rowClick",
-        enableSelectedOnlyFilter = true,
-        rowClickMode = "onlyIdAndActions",
-        rowClickAllowedColumnNames,
-        rowClickAllowedColumnIds,
-        searchPlaceholder = "Search...",
-        noDataMessage = "No data available",
-      }: AdvancedDataTableProps<T>,
-      ref: React.Ref<AdvancedDataTableHandle<T>>,
-    ) {
+const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
+  T extends Record<string, any>,
+>(
+  {
+    data,
+    columns: initialColumns,
+    title = "Data Table",
+    loading = false,
+    filters = [],
+    hideHeader = false,
+    externalSearchTerm,
+    onExternalSearchTermChange,
+    filtersOpen,
+    onFiltersOpenChange,
+    showGlobalMenu = true,
+    onAdd,
+    onEditSelected,
+    onDeleteSelected,
+    onImportFile,
+    importAccept = ".json,.csv",
+    onPrint,
+    storageKey,
+    enableExport = true,
+    enableSelection = false,
+    onSelectionChange,
+    onVisibleRowsChange,
+    customActions,
+    exportFileName = "export",
+    onRowClicked,
+    onRowActivate,
+    onRowDoubleClicked,
+    rowKeyField = "id",
+    selectionMode = "rowClick",
+    enableSelectedOnlyFilter = true,
+    rowClickMode = "onlyIdAndActions",
+    rowClickAllowedColumnNames,
+    rowClickAllowedColumnIds,
+    searchPlaceholder = "Search...",
+    noDataMessage = "No data available",
+  }: AdvancedDataTableProps<T>,
+  ref: React.Ref<AdvancedDataTableHandle<T>>,
+) {
   type RowWithKey = T & { __wcRowKey: string };
   const internalRowKeyField = "__wcRowKey" as const;
 
@@ -203,7 +207,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends 
     initialColumns.map(() => true),
   );
   const [showColumnManager, setShowColumnManager] = useState(false);
-  const [columnManagerAnchorRect, setColumnManagerAnchorRect] = useState<DOMRect | null>(null);
+  const [columnManagerAnchorRect, setColumnManagerAnchorRect] =
+    useState<DOMRect | null>(null);
   const columnManagerRef = useRef<HTMLDivElement>(null);
 
   const didHydrateLayoutRef = useRef(false);
@@ -889,29 +894,48 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends 
     setFilterValues({});
   }, [setEffectiveSearchTerm]);
 
-  const openColumnManagerImpl = useCallback((anchor?: HTMLElement | DOMRect | null) => {
-    if (!anchor) {
-      setColumnManagerAnchorRect(null);
-    } else if (anchor instanceof HTMLElement) {
-      setColumnManagerAnchorRect(anchor.getBoundingClientRect());
-    } else {
-      setColumnManagerAnchorRect(anchor as DOMRect);
-    }
-    setShowColumnManager(true);
-  }, []);
-
-  React.useImperativeHandle(ref, () => ({
-    exportToExcel: (selectedOnly = false) => exportToExcel(selectedOnly),
-    exportToPDF: (selectedOnly = false) => exportToPDF(selectedOnly),
-    exportToJSON: (selectedOnly = false) => exportToJSON(selectedOnly),
-    getSelectedRows: () => selectedRows,
-    clearSelection: () => clearSelection(),
-    selectAll: () => {
-      const keys = tableRows.map((r) => String((r as any)[internalRowKeyField]));
-      setSelectionKeys(keys);
+  const openColumnManagerImpl = useCallback(
+    (anchor?: HTMLElement | DOMRect | null) => {
+      if (!anchor) {
+        setColumnManagerAnchorRect(null);
+      } else if (anchor instanceof HTMLElement) {
+        setColumnManagerAnchorRect(anchor.getBoundingClientRect());
+      } else {
+        setColumnManagerAnchorRect(anchor as DOMRect);
+      }
+      setShowColumnManager(true);
     },
-    openColumnManager: (anchor?: HTMLElement | DOMRect | null) => openColumnManagerImpl(anchor),
-  }), [exportToExcel, exportToPDF, exportToJSON, selectedRows, clearSelection, tableRows, setSelectionKeys, openColumnManagerImpl]);
+    [],
+  );
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      exportToExcel: (selectedOnly = false) => exportToExcel(selectedOnly),
+      exportToPDF: (selectedOnly = false) => exportToPDF(selectedOnly),
+      exportToJSON: (selectedOnly = false) => exportToJSON(selectedOnly),
+      getSelectedRows: () => selectedRows,
+      clearSelection: () => clearSelection(),
+      selectAll: () => {
+        const keys = tableRows.map((r) =>
+          String((r as any)[internalRowKeyField]),
+        );
+        setSelectionKeys(keys);
+      },
+      openColumnManager: (anchor?: HTMLElement | DOMRect | null) =>
+        openColumnManagerImpl(anchor),
+    }),
+    [
+      exportToExcel,
+      exportToPDF,
+      exportToJSON,
+      selectedRows,
+      clearSelection,
+      tableRows,
+      setSelectionKeys,
+      openColumnManagerImpl,
+    ],
+  );
 
   // Custom styles for react-data-table-component
   const customStyles = {
@@ -1395,11 +1419,24 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends 
               ? (() => {
                   const rect = columnManagerAnchorRect;
                   const panelWidth = 384; // w-96
-                  const top = Math.min(window.innerHeight - 48, rect.bottom + 8);
+                  const top = Math.min(
+                    window.innerHeight - 48,
+                    rect.bottom + 8,
+                  );
                   // center under button, but keep within viewport with 8px padding
-                  let left = Math.round(rect.left + rect.width / 2 - panelWidth / 2);
-                  left = Math.max(8, Math.min(window.innerWidth - panelWidth - 8, left));
-                  return { position: "fixed", top, left, zIndex: 50 } as React.CSSProperties;
+                  let left = Math.round(
+                    rect.left + rect.width / 2 - panelWidth / 2,
+                  );
+                  left = Math.max(
+                    8,
+                    Math.min(window.innerWidth - panelWidth - 8, left),
+                  );
+                  return {
+                    position: "fixed",
+                    top,
+                    left,
+                    zIndex: 50,
+                  } as React.CSSProperties;
                 })()
               : { position: "fixed", right: 24, top: 96, zIndex: 50 }
           }
@@ -1453,7 +1490,9 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends 
                         onChange={() => toggleVisibility(i)}
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                       />
-                      <span className="text-xs">{String(c.name || c.selector || `col-${i}`)}</span>
+                      <span className="text-xs">
+                        {String(c.name || c.selector || `col-${i}`)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -1565,4 +1604,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends 
   );
 });
 
-export default AdvancedDataTable as <T extends Record<string, any>>(props: AdvancedDataTableProps<T> & { ref?: React.Ref<AdvancedDataTableHandle<T>> }) => React.ReactElement;
+export default AdvancedDataTable as <T extends Record<string, any>>(
+  props: AdvancedDataTableProps<T> & {
+    ref?: React.Ref<AdvancedDataTableHandle<T>>;
+  },
+) => React.ReactElement;
