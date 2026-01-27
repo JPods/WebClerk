@@ -2064,6 +2064,19 @@ const KanbanBoardPage: React.FC = () => {
       payloadItem.project_id = Number.isNaN(numericId) ? resolvedProjectId : numericId;
     }
 
+    // Provide project_slug when available to help backend resolve non-numeric identifiers
+    try {
+      const selectedOpt = projectOptions.find((o) => String(o.id) === String(resolvedProjectId));
+      if (selectedOpt && selectedOpt.slug) {
+        payloadItem.project_slug = selectedOpt.slug;
+      } else if (resolvedProjectId && isNaN(Number(resolvedProjectId))) {
+        // If the provided project id looks non-numeric, include it as a slug too
+        payloadItem.project_slug = resolvedProjectId;
+      }
+    } catch (e) {
+      // defensive - ignore
+    }
+
     payloadItem.is_active = state.is_active !== "false";
 
     // Backend doesn't process 'bulk' arrays - always send action directly
@@ -2148,6 +2161,13 @@ const KanbanBoardPage: React.FC = () => {
 
     setIsSavingEdit(true);
 
+    // Debug: log the outgoing edit payload to help diagnose 400 responses
+    try {
+      console.debug("[Kanban] Edit payload:", result.payload);
+    } catch (e) {
+      // ignore
+    }
+
     void patchAction(result.payload)
       .then((response) => {
         const body: any = (response as any)?.data ?? response;
@@ -2162,6 +2182,12 @@ const KanbanBoardPage: React.FC = () => {
       })
       .catch((error) => {
         console.error("Failed to update kanban task", error);
+        try {
+          // If the backend returned a structured error response, log it for diagnostics
+          console.error("Update error response body:", (error as any)?.response?.data ?? (error as any)?.response ?? null);
+        } catch (e) {
+          // ignore
+        }
       })
       .finally(() => {
         setIsSavingEdit(false);

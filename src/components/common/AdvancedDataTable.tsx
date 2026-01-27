@@ -6,91 +6,59 @@ import React, {
   useEffect,
 } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
+import { useDrag, useDrop } from "react-dnd";
+import { useTheme } from "@/context/ThemeContext";
 import {
-  FaFileExcel,
-  FaFilePdf,
-  FaFileCode,
-  FaSearch,
+  FaGripVertical,
+  FaPlus,
+  FaEdit,
+  FaFileImport,
   FaTimes,
   FaFilter,
   FaDownload,
-  FaGripVertical,
-  FaPlus,
-  FaTrash,
-  FaEdit,
-  FaFileImport,
   FaPrint,
+  FaCheckSquare,
 } from "react-icons/fa";
-import { useTheme } from "../../context/ThemeContext";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 
-export interface ColumnFilter {
-  key: string;
-  label: string;
-  options?: Array<{ value: string; label: string }>;
-  type?: "select" | "text" | "date";
-}
+export type ColumnFilter = {
+  name: string;
+  field: string;
+  options?: any[];
+};
 
-type RowClickMode = "anywhere" | "onlyIdAndActions";
-type SelectionMode = "checkbox" | "rowClick";
-
-interface AdvancedDataTableProps<T> {
+export interface AdvancedDataTableProps<T> {
   data: T[];
   columns: TableColumn<T>[];
   title?: string;
   loading?: boolean;
   filters?: ColumnFilter[];
-  /** Show the global action menu (Add/Delete/Import/Export/Print/Filter/Search). */
+  hideHeader?: boolean;
+  externalSearchTerm?: string;
+  onExternalSearchTermChange?: (s: string) => void;
+  filtersOpen?: boolean;
+  onFiltersOpenChange?: (open: boolean) => void;
   showGlobalMenu?: boolean;
   onAdd?: () => void;
   onEditSelected?: (row: T) => void;
   onDeleteSelected?: (rows: T[]) => void;
-  onImportFile?: (file: File) => void;
+  onImportFile?: (f: File) => void;
   importAccept?: string;
   onPrint?: () => void;
-  /** Hide built-in header (search/filter/export). Use when providing customActions as a full menu. */
-  hideHeader?: boolean;
-  /** External search value for a custom search box. */
-  externalSearchTerm?: string;
-  /** External search change handler. */
-  onExternalSearchTermChange?: (value: string) => void;
-  /** Control filters panel visibility externally. */
-  filtersOpen?: boolean;
-  /** External filters panel toggle handler. */
-  onFiltersOpenChange?: (open: boolean) => void;
-  /** Unique key used to persist column order/visibility in localStorage. Use a different key per module/table. */
   storageKey?: string;
   enableExport?: boolean;
   enableSelection?: boolean;
-  onSelectionChange?: (selectedRows: T[]) => void;
-  /** Emits the currently visible (filtered/sorted) rows. */
+  onSelectionChange?: (rows: T[]) => void;
   onVisibleRowsChange?: (rows: T[]) => void;
   customActions?: React.ReactNode;
   exportFileName?: string;
   onRowClicked?: (row: T) => void;
-  /** Preferred over `onRowClicked`: called when user activates a row via ID cell / action icons. */
   onRowActivate?: (row: T) => void;
-  /** Called when user double-clicks a row. */
   onRowDoubleClicked?: (row: T) => void;
-  /** Stable row id field used for selection + DataTable keying. Defaults to "id". */
   rowKeyField?: string;
-  /** How selection should work when `enableSelection` is true. */
-  selectionMode?: SelectionMode;
-  /** When true, allows toggling table to show only selected rows. */
+  selectionMode?: "rowClick" | "checkbox";
   enableSelectedOnlyFilter?: boolean;
-  /**
-   * Controls when `onRowClicked` fires.
-   * - `anywhere`: clicking any cell triggers `onRowClicked` (current behavior)
-   * - `onlyIdAndActions`: only clicks on ID / Actions columns trigger `onRowClicked`
-   */
-  rowClickMode?: RowClickMode;
-  /** Column names (case-insensitive) that are allowed to trigger `onRowClicked` when `rowClickMode` is `onlyIdAndActions`. */
+  rowClickMode?: "onlyIdAndActions" | "anywhere";
   rowClickAllowedColumnNames?: string[];
-  /** Column ids that are allowed to trigger `onRowClicked` when `rowClickMode` is `onlyIdAndActions`. */
   rowClickAllowedColumnIds?: Array<string | number>;
   searchPlaceholder?: string;
   noDataMessage?: string;
@@ -164,43 +132,56 @@ const DraggableColumnHeader: React.FC<DraggableColumnHeaderProps> = ({
   );
 };
 
-export default function AdvancedDataTable<T extends Record<string, any>>({
-  data,
-  columns: initialColumns,
-  title = "Data Table",
-  loading = false,
-  filters = [],
-  hideHeader = false,
-  externalSearchTerm,
-  onExternalSearchTermChange,
-  filtersOpen,
-  onFiltersOpenChange,
-  showGlobalMenu = true,
-  onAdd,
-  onEditSelected,
-  onDeleteSelected,
-  onImportFile,
-  importAccept = ".json,.csv",
-  onPrint,
-  storageKey,
-  enableExport = true,
-  enableSelection = false,
-  onSelectionChange,
-  onVisibleRowsChange,
-  customActions,
-  exportFileName = "export",
-  onRowClicked,
-  onRowActivate,
-  onRowDoubleClicked,
-  rowKeyField = "id",
-  selectionMode = "rowClick",
-  enableSelectedOnlyFilter = true,
-  rowClickMode = "onlyIdAndActions",
-  rowClickAllowedColumnNames,
-  rowClickAllowedColumnIds,
-  searchPlaceholder = "Search...",
-  noDataMessage = "No data available",
-}: AdvancedDataTableProps<T>) {
+type AdvancedDataTableHandle<T> = {
+  exportToExcel: (selectedOnly?: boolean) => void;
+  exportToPDF: (selectedOnly?: boolean) => void;
+  exportToJSON: (selectedOnly?: boolean) => void;
+  getSelectedRows: () => T[];
+  clearSelection: () => void;
+  selectAll: () => void;
+  openColumnManager: (anchor?: HTMLElement | DOMRect | null) => void;
+};
+
+const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<T extends Record<string, any>>(
+      {
+        data,
+        columns: initialColumns,
+        title = "Data Table",
+        loading = false,
+        filters = [],
+        hideHeader = false,
+        externalSearchTerm,
+        onExternalSearchTermChange,
+        filtersOpen,
+        onFiltersOpenChange,
+        showGlobalMenu = true,
+        onAdd,
+        onEditSelected,
+        onDeleteSelected,
+        onImportFile,
+        importAccept = ".json,.csv",
+        onPrint,
+        storageKey,
+        enableExport = true,
+        enableSelection = false,
+        onSelectionChange,
+        onVisibleRowsChange,
+        customActions,
+        exportFileName = "export",
+        onRowClicked,
+        onRowActivate,
+        onRowDoubleClicked,
+        rowKeyField = "id",
+        selectionMode = "rowClick",
+        enableSelectedOnlyFilter = true,
+        rowClickMode = "onlyIdAndActions",
+        rowClickAllowedColumnNames,
+        rowClickAllowedColumnIds,
+        searchPlaceholder = "Search...",
+        noDataMessage = "No data available",
+      }: AdvancedDataTableProps<T>,
+      ref: React.Ref<AdvancedDataTableHandle<T>>,
+    ) {
   type RowWithKey = T & { __wcRowKey: string };
   const internalRowKeyField = "__wcRowKey" as const;
 
@@ -222,6 +203,7 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     initialColumns.map(() => true),
   );
   const [showColumnManager, setShowColumnManager] = useState(false);
+  const [columnManagerAnchorRect, setColumnManagerAnchorRect] = useState<DOMRect | null>(null);
   const columnManagerRef = useRef<HTMLDivElement>(null);
 
   const didHydrateLayoutRef = useRef(false);
@@ -907,6 +889,30 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
     setFilterValues({});
   }, [setEffectiveSearchTerm]);
 
+  const openColumnManagerImpl = useCallback((anchor?: HTMLElement | DOMRect | null) => {
+    if (!anchor) {
+      setColumnManagerAnchorRect(null);
+    } else if (anchor instanceof HTMLElement) {
+      setColumnManagerAnchorRect(anchor.getBoundingClientRect());
+    } else {
+      setColumnManagerAnchorRect(anchor as DOMRect);
+    }
+    setShowColumnManager(true);
+  }, []);
+
+  React.useImperativeHandle(ref, () => ({
+    exportToExcel: (selectedOnly = false) => exportToExcel(selectedOnly),
+    exportToPDF: (selectedOnly = false) => exportToPDF(selectedOnly),
+    exportToJSON: (selectedOnly = false) => exportToJSON(selectedOnly),
+    getSelectedRows: () => selectedRows,
+    clearSelection: () => clearSelection(),
+    selectAll: () => {
+      const keys = tableRows.map((r) => String((r as any)[internalRowKeyField]));
+      setSelectionKeys(keys);
+    },
+    openColumnManager: (anchor?: HTMLElement | DOMRect | null) => openColumnManagerImpl(anchor),
+  }), [exportToExcel, exportToPDF, exportToJSON, selectedRows, clearSelection, tableRows, setSelectionKeys, openColumnManagerImpl]);
+
   // Custom styles for react-data-table-component
   const customStyles = {
     rows: {
@@ -1381,6 +1387,107 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
         </div>
       </div>
 
+      {/* Column Manager (rendered when header is hidden) */}
+      {showColumnManager && (
+        <div
+          style={
+            columnManagerAnchorRect
+              ? (() => {
+                  const rect = columnManagerAnchorRect;
+                  const panelWidth = 384; // w-96
+                  const top = Math.min(window.innerHeight - 48, rect.bottom + 8);
+                  // center under button, but keep within viewport with 8px padding
+                  let left = Math.round(rect.left + rect.width / 2 - panelWidth / 2);
+                  left = Math.max(8, Math.min(window.innerWidth - panelWidth - 8, left));
+                  return { position: "fixed", top, left, zIndex: 50 } as React.CSSProperties;
+                })()
+              : { position: "fixed", right: 24, top: 96, zIndex: 50 }
+          }
+          ref={columnManagerRef}
+        >
+          <div className="w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                  Manage Columns
+                </h3>
+                <button
+                  onClick={resetColumnOrder}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                >
+                  Reset All
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => toggleAllColumns(true)}
+                  className="flex-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
+                >
+                  Show All
+                </button>
+                <button
+                  onClick={() => toggleAllColumns(false)}
+                  className="flex-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                >
+                  Hide All
+                </button>
+              </div>
+
+              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  <strong>✓</strong> Check/uncheck to show/hide columns
+                </p>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto">
+                {columns.map((c, i) => (
+                  <div
+                    key={String(c.name || i)}
+                    className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900"
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!!columnVisibility[i]}
+                        onChange={() => toggleVisibility(i)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                      />
+                      <span className="text-xs">{String(c.name || c.selector || `col-${i}`)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => moveColumnUp(i)}
+                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                        title="Move up"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveColumnDown(i)}
+                        className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                        title="Move down"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 text-right">
+                <button
+                  onClick={() => setShowColumnManager(false)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Data Table */}
       <div className="overflow-hidden bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
         <DataTable
@@ -1431,13 +1538,21 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
           highlightOnHover
           pointerOnHover
           onRowClicked={(row: RowWithKey, e: React.MouseEvent) => {
+            const target = e.target as HTMLElement | null;
             if (enableSelection && selectionMode === "rowClick") {
               handleRowClickSelect(row, e);
+            }
+
+            // Avoid activating when clicking interactive controls inside the row
+            if (
+              target?.closest(
+                "button,a,input,select,textarea,label,[role='button'],[data-ignore-row-select='true']",
+              )
+            ) {
               return;
             }
-            if (rowClickMode === "anywhere") {
-              onActivate?.(row);
-            }
+
+            onRowClicked?.(row);
           }}
           onRowDoubleClicked={(row: RowWithKey) => {
             onRowDoubleClicked?.(row);
@@ -1448,4 +1563,6 @@ export default function AdvancedDataTable<T extends Record<string, any>>({
       </div>
     </div>
   );
-}
+});
+
+export default AdvancedDataTable as <T extends Record<string, any>>(props: AdvancedDataTableProps<T> & { ref?: React.Ref<AdvancedDataTableHandle<T>> }) => React.ReactElement;

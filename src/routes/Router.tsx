@@ -85,10 +85,10 @@ import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList
 import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
-import PurchaseOrderDetail from "../apps/transactions/models/purchase_order/pages/PurchaseOrderDetail";
+import PurchaseOrderDetail from "../apps/transactions/models/purchase/pages/PurchaseOrderDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
-import PurchaseOrderList from "../apps/transactions/models/purchase_order/pages/PurchaseOrderList";
+import PurchaseOrderList from "../apps/transactions/models/purchase/pages/PurchaseOrderList";
 import OrderList from "../apps/transactions/models/order/pages/OrderList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
