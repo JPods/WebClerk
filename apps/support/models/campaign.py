@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   id BIGSERIAL PRIMARY KEY,
   publication JSONB,
   issue VARCHAR(255),
-  market_effort VARCHAR(255),
+  name VARCHAR(255),
   metrics JSONB,
   effort INTEGER,
   count_customers_actual INTEGER,

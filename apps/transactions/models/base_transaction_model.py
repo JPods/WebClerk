@@ -96,7 +96,8 @@ def default_transaction_flow() -> Dict[str, Any]:
 def default_source() -> Dict[str, Any]:
     return {
         "campaign_id": 0,
-        "catalog_id": None,
+        "campaign_name": "",
+        "catalog_id": 0,
         "vendor_id": 0,
         "manufacturer_id": 0
     }
