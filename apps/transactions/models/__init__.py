@@ -18,8 +18,8 @@ _MAPPING = {
     'Purchase': ('purchase', 'Purchase'),
     'PurchaseLine': ('purchase_line', 'PurchaseLine'),
 
-    'WorkOrder': ('work_order', 'WorkOrder'),
-    'WorkOrderLine': ('work_order_line', 'WorkOrderLine'),
+    'WorkOrder': ('workorder', 'WorkOrder'),
+    'WorkOrderLine': ('workorder_line', 'WorkOrderLine'),
 
     'Requisition': ('requisition', 'Requisition'),
     #'RequisitionStd': ('requisition', 'Requisition'),  # back-compat
