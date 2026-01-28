@@ -1,32 +1,108 @@
+import styled from 'styled-components';
 
-export default function RippleLoader() {
+const RippleLoader = () => {
   return (
-    <div className="relative h-62.5 w-62.5">
-      <style>{`
-        @keyframes ripple-spin-cw {
-          0% { transform: scale(1) rotate(0deg); opacity: 0.9 }
-          25% { transform: scale(1.2) rotate(90deg); opacity: 0.3 }
-          50% { transform: scale(1.35) rotate(180deg); opacity: 0.6 }
-          75% { transform: scale(1.2) rotate(270deg); opacity: 0.8 }
-          100% { transform: scale(1) rotate(360deg); opacity: 0.9 }
-        }
-        @keyframes ripple-spin-ccw {
-          0% { transform: scale(1) rotate(0deg); opacity: 0.9 }
-          25% { transform: scale(1.2) rotate(-90deg); opacity: 0.3 }
-          50% { transform: scale(1.35) rotate(-180deg); opacity: 0.6 }
-          75% { transform: scale(1.2) rotate(-270deg); opacity: 0.8 }
-          100% { transform: scale(1) rotate(-360deg); opacity: 0.9 }
-        }
-      `}</style>
-
-      <div className="absolute inset-0 flex items-center justify-center z-100 text-white font-extrabold select-none">
-        WC3
+    <StyledWrapper>
+      <div className="loader">
+        <div className="text">
+          <div className="ball" />
+        </div>
+        <span><i /></span>
       </div>
-
-      <div style={{ animationDelay: "0s" }} className={`absolute inset-[42%] z-99 rounded-[40%] border-t border-gray-500 backdrop-blur-sm bg-linear-to-b from-gray-500/25 to-gray-700/25 animate-[ripple-spin-cw_2.5s_ease-in-out_infinite]`} />
-      <div style={{ animationDelay: "0.2s" }} className={`absolute inset-[32%] z-98 rounded-[40%] border-t border-gray-400 backdrop-blur-sm bg-linear-to-b from-gray-400/22 to-gray-600/22 animate-[ripple-spin-ccw_3s_ease-in-out_infinite]`} />
-      <div style={{ animationDelay: "0.4s" }} className={`absolute inset-[22%] z-97 rounded-[40%] border-t border-gray-300 backdrop-blur-sm bg-linear-to-b from-gray-300/20 to-gray-500/20 animate-[ripple-spin-cw_3.5s_ease-in-out_infinite]`} />
-      <div style={{ animationDelay: "0.6s" }} className={`absolute inset-[12%] z-96 rounded-[40%] border-t border-gray-200 backdrop-blur-sm bg-linear-to-b from-gray-200/18 to-gray-400/18 animate-[ripple-spin-ccw_4s_ease-in-out_infinite] shadow-2xl`} />
-    </div>
-  )
+    </StyledWrapper>
+  );
 }
+
+const StyledWrapper = styled.div`
+  .loader {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader span {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background-color: #eaeef0;
+    border: 6px solid #eaeef0;
+    box-shadow:
+      -8px -8px 15px rgba(255, 255, 255, 1),
+      8px 8px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    overflow: hidden;
+  }
+
+  .loader span:before {
+    content: "WC3";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #bbb9b9;
+    letter-spacing: 3px;
+    font-size: 23px;
+    position: absolute;
+    inset: 40px;
+    background-color: #eaeef0;
+    box-shadow:
+      -8px -8px 25px rgba(255, 255, 255, 1),
+      8px 8px 25px rgba(0, 0, 0, 0.15),
+      inset 3px 3px 10px rgba(0, 0, 0, 0.1),
+      inset -1px -1px 15px rgba(255, 255, 255, 1);
+    border: 2px solid #eaeef0;
+    border-radius: 50%;
+    z-index: 1;
+  }
+
+  .loader span i {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(#42abff, #ff4f8b, #ffeb4b);
+    border-radius: 50%;
+    filter: blur(5px);
+    animation: animate 1s linear infinite;
+  }
+
+  @keyframes animate {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .text {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    animation: animateText 6s linear infinite;
+  }
+
+  @keyframes animateText {
+    0% {
+      transform: rotate(360deg);
+    }
+
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  .ball {
+    width: 35px;
+    height: 35px;
+    background: linear-gradient(#42abff, #ff4f8b, #ffeb4b);
+    border: 3px solid #dfdfdf;
+    border-radius: 50%;
+    box-shadow:
+      -8px -8px 15px rgba(255, 255, 255, 1),
+      8px 8px 25px rgba(0, 0, 0, 0.15);
+    animation: rotate 3s infinite linear;
+  }`;
+
+export default RippleLoader;
