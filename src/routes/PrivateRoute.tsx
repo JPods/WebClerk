@@ -10,6 +10,7 @@ import { useWindowManager } from "../context/WindowManagerContext";
 import { PageRoutes } from "./Routes";
 import { resolveWindowElement } from "./protectedRoutesConfig";
 import NotFoundPage from "../pages/NotFoundPage";
+import RippleLoader from "@/components/common/RippleLoader";
 
 const titleMap: Array<{ prefix: string; title: string }> = [
   { prefix: PageRoutes.dashboard, title: 'Dashboard' },
@@ -48,7 +49,7 @@ const AppLayout: React.FC = () => {
 
   // Show loading while auth state is being determined
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center text-slate-700">Loading...</div>;
+    return <div className="flex justify-center items-center h-screen"><RippleLoader /></div>;
   }
 
   // Redirect if not authenticated (rely on Redux state, not localStorage directly)
@@ -67,7 +68,7 @@ const AppLayout: React.FC = () => {
 
         {!isVisible && (
           <button
-            className="fixed left-3 top-16 z-[180] rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+            className="fixed left-3 top-16 z-180 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
             onClick={toggleVisibility}
           >
             Show Nav
@@ -107,7 +108,7 @@ const PrivateRoute: React.FC = () => {
   
   // Show loading while auth state is being initialized
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center text-slate-700">Loading...</div>;
+    return <div className="flex justify-center items-center h-screen"><RippleLoader /></div>;
   }
   
   // Once loading is done, check authentication

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getRecord, saveRecord } from "@/api/wcapi";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
+import RippleLoader from "@/components/common/RippleLoader";
 
 interface AuditDisplayProps {
   inline?: boolean;
@@ -80,7 +81,7 @@ export default function AuditDisplay({
     setData({ ...data, [field]: value });
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <RippleLoader />;
 
   return (
     <div className="p-4 space-y-4">

@@ -5,6 +5,7 @@ import CustomerDetail from "./CustomerDisplay";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
+import RippleLoader from "@/components/common/RippleLoader";
 
 export default function CustomerEditPage() {
   const { id } = useParams();
@@ -66,7 +67,7 @@ export default function CustomerEditPage() {
 
   return (
     <>
-      {loading && <div>Loading...</div>}
+      {loading && <RippleLoader />}
       {error && <div className="text-red-600">{error}</div>}
       {!loading && !error && (
         <CustomerDetail

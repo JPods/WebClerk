@@ -1559,13 +1559,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
           }
           progressPending={loading}
           progressComponent={
-            <div className="flex items-center justify-center p-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Loading data...
-                </p>
-              </div>
+            <div className="flex items-center justify-center p-20">
+              <RippleLoader />
             </div>
           }
           noDataComponent={

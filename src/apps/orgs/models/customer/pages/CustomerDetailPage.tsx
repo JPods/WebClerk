@@ -7,6 +7,7 @@ import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
 import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
+import RippleLoader from "@/components/common/RippleLoader";
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
@@ -92,7 +93,7 @@ export default function CustomerDetailPage() {
 
   return (
     <>
-      {loading && <div>Loading...</div>}
+      {loading && <RippleLoader />}
       {error && <div className="text-red-600">{error}</div>}
       {!loading && !error && (
         <CustomerDetail

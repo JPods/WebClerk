@@ -16,6 +16,7 @@ import { getRecords } from "../../../api/wcapi";
 import { createBoardDataFromApi, createEmptyBoardData, extractKanbanItems } from "./kanbanDataMapper";
 import { Link } from "react-router";
 import { PageRoutes } from "../../../routes/Routes";
+import RippleLoader from "@/components/common/RippleLoader";
 
 const priorityPalette: Record<TaskPriority, string> = {
   low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
@@ -2399,8 +2400,8 @@ const KanbanBoardPage: React.FC = () => {
         <KanbanDragLayer tasks={board.tasks} />
         <TrashDropZone isDeleting={isTrashDeleting} />
         {isLoading ? (
-          <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
-            Loading kanban board...
+          <div className="flex justify-center items-center h-[50vh] rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
+            <RippleLoader />
           </div>
         ) : columns.length === 0 ? (
           <div className="flex h-56 items-center justify-center rounded-3xl border border-dashed border-gray-300 text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500">
