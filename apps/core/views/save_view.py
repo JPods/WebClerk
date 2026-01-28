@@ -1621,11 +1621,11 @@ class SaveWcapiView(APIView):
                     if is_new:
                         # Create new line using direct ORM
                         line_obj = OrderLine()
-                        line_obj.order_id_id = obj.id
+                        line_obj.order_id = obj.id  # FK field is 'order', so use 'order_id'
                         
                         # Copy fields from line_data
                         for field_name, field_value in line_data.items():
-                            if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
+                            if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
                                 continue
                             if hasattr(line_obj, field_name):
                                 setattr(line_obj, field_name, field_value)
@@ -1638,7 +1638,7 @@ class SaveWcapiView(APIView):
                         try:
                             line_obj = OrderLine.objects.get(id=line_id)
                             for field_name, field_value in line_data.items():
-                                if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
+                                if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
                                     continue
                                 if hasattr(line_obj, field_name):
                                     setattr(line_obj, field_name, field_value)
