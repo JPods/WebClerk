@@ -4,7 +4,6 @@
  * Keeps item search and lines management capabilities
  */
 import React, { useCallback, useState } from "react";
-import ActionsCard from "../../../components/ActionsCard";
 import {
   FaShoppingCart,
   FaTruck,
@@ -28,11 +27,9 @@ import TransactionDetailBase, {
   TransactionTab,
 } from "../../../components/TransactionDetailBase";
 import FieldLabel from "../../../components/FieldLabel";
-import { TransactionPartySelector } from "../../../components/PartySelector";
 
 // Import existing components
 import OrderItemSearch from "../components/OrderItemSearch";
-import OrderStatus from "../components/OrderStatus";
 import LineDetailsModal from "../../../components/LineDetailsModal";
 import ActionsModal from "../../../components/ActionsModal";
 import type { ItemSearchResult } from "../types/itemSearchType";
@@ -43,7 +40,8 @@ import type {
   TransactionLine,
   ActionItem,
 } from "../../../types/transactionTypes";
-import { DropDown, Input } from "@/components/wrapper";
+import SummaryCard from "@/apps/transactions/components/SummaryCard";
+import LinesCard from "@/apps/transactions/components/LinesCard";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -158,409 +156,15 @@ const OrderHeader: React.FC<{
   //   setValue("purpose", value);
   // };
   return (
-    <div className="space-y-6">
-      {/* Sales Order Header Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Order Details */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaShoppingCart className="text-blue-500" />
-            Sales Order Details
-          </h3>
-          <dl className="space-y-3 text-xs">
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Order No"
-                mandatory
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono font-medium text-slate-900 dark:text-white">
-                {data.ida ?? "--"}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="ID"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-600 dark:text-slate-300">
-                {data.id ?? "--"}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Date"
-                mandatory
-                className="text-slate-500 dark:text-slate-400"
-              />
-              {isEditing && onChange ? (
-                <Input
-                  type="date"
-                  value={
-                    data.dt ? new Date(data.dt).toISOString().split("T")[0] : ""
-                  }
-                  onChange={(e) => onChange("dt", e.target.value)}
-                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.dt ? new Date(data.dt).toLocaleDateString() : "--"}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Due Date"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              {isEditing && onChange ? (
-                <Input
-                  type="date"
-                  value={
-                    data.due_date
-                      ? new Date(data.due_date).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) => onChange("due_date", e.target.value)}
-                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.due_date
-                    ? new Date(data.due_date).toLocaleDateString()
-                    : "--"}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Terms"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              {isEditing && onChange ? (
-                <Input
-                  type="text"
-                  value={data.terms ?? ""}
-                  onChange={(e) => onChange("terms", e.target.value)}
-                  className="px-2 py-1  rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.terms ?? "--"}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="PO Number"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              {isEditing && onChange ? (
-                <Input
-                  type="text"
-                  value={data.po_number ?? data.reference ?? ""}
-                  onChange={(e) => onChange("po_number", e.target.value)}
-                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.po_number ?? data.reference ?? "--"}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Priority"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              {isEditing && onChange ? (
-                <Input
-                  type="text"
-                  value={data.priority ?? ""}
-                  onChange={(e) => onChange("priority", e.target.value)}
-                  className="px-2 py-1 rounded text-xs bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.priority ?? "--"}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Price Level"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              {isEditing && onChange ? (
-                <DropDown
-                  id="purpose"
-                  options={priceLable}
-                  placeholder="Select Price Level"
-                  value={data.price_level ?? ""}
-                  onChange={(value: string) => onChange("price_level", value)}
-                  className="dark:bg-dark-900"
-                  disabled={!isEditing}
-                />
-              ) : (
-                <dd className="text-slate-900 dark:text-white">
-                  {data.price_level ?? "--"}
-                </dd>
-              )}
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Status"
-                mandatory
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd>
-                <StatusBadge status={data.status} />
-              </dd>
-            </div>
-            {data.is_locked && (
-              <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-200 dark:border-slate-700">
-                <FieldLabel
-                  label="Locked"
-                  locked
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-                  <FaLock size={12} />
-                  <span>Yes</span>
-                </dd>
-              </div>
-            )}
-          </dl>
-
-          {/* Status Flow */}
-          {onStatusChange && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <OrderStatus
-                currentStatus={
-                  (data.status ?? "planned") as
-                    | "planned"
-                    | "released"
-                    | "in_progress"
-                    | "hold"
-                    | "complete"
-                    | "canceled"
-                }
-                onStatusChange={onStatusChange}
-                readonly={!isEditing}
-                showHistory={false}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Center: Customer Info */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Customer
-          </h3>
-          {/* Customer selection or display */}
-          {isEditing && !customerInfo ? (
-            <div>
-              <FieldLabel label="Customer" mandatory />
-              <TransactionPartySelector
-                transactionType="sales"
-                value={data.customer_id ?? null}
-                onChange={(party) =>
-                  onChange && onChange("customer_id", party?.id ?? null)
-                }
-                className="text-sm"
-              />
-            </div>
-          ) : customerInfo ? (
-            <dl className="space-y-3 text-xs">
-              <div className="flex justify-between items-center">
-                <FieldLabel
-                  label="Customer ID"
-                  locked
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="font-mono text-slate-600 dark:text-slate-300">
-                  {data.customer_id ?? "--"}
-                </dd>
-              </div>
-              <div className="flex justify-between items-center">
-                <FieldLabel
-                  label="Name"
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="text-slate-900 dark:text-white">
-                  {customerInfo.display_name ?? "--"}
-                </dd>
-              </div>
-              <div className="flex justify-between items-center">
-                <FieldLabel
-                  label="IDA"
-                  className="text-slate-500 dark:text-slate-400"
-                />
-                <dd className="font-mono text-slate-600 dark:text-slate-300">
-                  {customerInfo.ida ?? "--"}
-                </dd>
-              </div>
-            </dl>
-          ) : (
-            <p className="text-slate-400 text-xs">No customer linked</p>
-          )}
-
-          {billingContact && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                Bill To
-              </h4>
-              <p className="text-xs text-slate-900 dark:text-white">
-                {billingContact.display_name}
-              </p>
-              {billingContact.email && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {billingContact.email}
-                </p>
-              )}
-              {billingContact.phone && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {billingContact.phone}
-                </p>
-              )}
-            </div>
-          )}
-
-          {shippingContact && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                Ship To
-              </h4>
-              <p className="text-xs text-slate-900 dark:text-white">
-                {shippingContact.display_name}
-              </p>
-              {shippingContact.email && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {shippingContact.email}
-                </p>
-              )}
-              {shippingContact.phone && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {shippingContact.phone}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Totals */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Order Totals
-          </h3>
-          <dl className="space-y-3 text-xs">
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Subtotal"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.subtotal ?? data.subtotal)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Discount"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-red-600 dark:text-red-400">
-                {data.totals?.discount
-                  ? `-${formatCurrency(data.totals.discount)}`
-                  : "--"}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Tax"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.tax ?? data.tax)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Shipping"
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.shipping)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
-              <FieldLabel
-                label="Total"
-                mandatory
-                locked
-                className="text-slate-700 dark:text-slate-200 text-base"
-              />
-              <dd className="text-lg font-bold text-slate-900 dark:text-white">
-                {formatCurrency(data.totals?.total ?? data.total)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Cost"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd className="font-mono text-slate-600 dark:text-slate-400">
-                {formatCurrency(data.totals?.cost)}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <FieldLabel
-                label="Margin"
-                locked
-                className="text-slate-500 dark:text-slate-400"
-              />
-              <dd
-                className={`font-mono ${
-                  (data.totals?.margin ?? 0) >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {formatCurrency(data.totals?.margin)}
-                {data.totals?.margin_pc != null && (
-                  <span className="ml-1 text-xs">
-                    ({data.totals.margin_pc.toFixed(1)}%)
-                  </span>
-                )}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <FaPrint size={14} />
-          Print
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <FaEnvelope size={14} />
-          Email
-        </button>
-      </div>
-    </div>
+    <SummaryCard
+      data={data}
+      isEditing={isEditing}
+      onChange={onChange}
+      priceLable={priceLable}
+      customerInfo={customerInfo}
+      billingContact={billingContact}
+      shippingContact={shippingContact}
+    />
   );
 };
 
@@ -747,7 +351,6 @@ const OrderLines: React.FC<{
         onSave={handleLineModalSave}
         onOpenItem={handleOpenItem}
       />
-
       {/* Bulk Actions Bar */}
       {canEdit && selectedLineIds.size > 0 && (
         <div className="flex items-center gap-4 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -769,7 +372,6 @@ const OrderLines: React.FC<{
           </button>
         </div>
       )}
-
       {/* Item Search Panel - only in edit mode and when not locked */}
       {isEditing && !isLocked && onLinesChange && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2">
@@ -873,7 +475,6 @@ const OrderLines: React.FC<{
           />
         </div>
       )}
-
       {/* Lines Table */}
       {!lines.length ? (
         <div className="text-center py-12 text-slate-400">
@@ -887,6 +488,7 @@ const OrderLines: React.FC<{
         </div>
       ) : (
         <div className="overflow-x-auto cus-bg-purple-light">
+          <h1>QQQ L2C</h1>
           <table className="w-full my-0">
             <thead className="bg-success-600 text-white text-sm">
               <tr>
@@ -1270,7 +872,6 @@ const OrderLines: React.FC<{
           </table>
         </div>
       )}
-
       {/* Line Details Modal */}
       {selectedLine && (
         <LineDetailsModal
@@ -1660,7 +1261,7 @@ interface OrderDetailProps {
   /** Callback after successful save */
   onSaved?: (data: Transaction) => void;
   /** Callback for cancel action in inline mode */
-  onCancelInline?: () => void;
+  // onCancelInline?: () => void;
 }
 
 // Backwards compatibility alias
@@ -1672,7 +1273,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   modeProp,
   dataProp,
   onSaved,
-  onCancelInline,
 }) => {
   // Handle adding item from search (with quantity)
   const handleAddItem = useCallback(
@@ -1767,27 +1367,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           );
         case "shipping":
           return <ShippingTab data={orderData} isEditing={isEditing} />;
-        case "summary":
-          // Insert ActionsCard at the top of the summary tab
-          return (
-            <>
-              {/* ActionsCard for summary tab */}
-              <div className="mb-6">
-                {/* Use the single action object, not the actions array */}
-                <ActionsCard
-                  actions={orderData.action}
-                  isEditing={isEditing}
-                  onChange={(val: unknown) =>
-                    onFieldChange && onFieldChange("action", val)
-                  }
-                />
-              </div>
-              {/* Render the rest of the summary info using the header renderer if available */}
-              {renderHeaderFn
-                ? renderHeaderFn(orderData, isEditing, onFieldChange)
-                : null}
-            </>
-          );
         default:
           return null;
       }
@@ -1805,7 +1384,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       data?: Transaction,
       onLinesChange?: (lines: TransactionLine[]) => void,
     ) => (
-      <OrderLines
+      <LinesCard
         lines={lines}
         isEditing={isEditing}
         isLocked={data?.is_locked}
@@ -1900,7 +1479,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       modeProp={modeProp}
       dataProp={dataProp}
       onSaved={onSaved}
-      onCancelInline={onCancelInline}
     />
   );
 };

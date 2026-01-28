@@ -187,51 +187,64 @@ const ContactEditModal: React.FC<{
 
         <div className="flex-1 overflow-y-auto px-5 pb-6 pt-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Purpose
-            </label>
-            <select
-              value={formData.purpose}
-              onChange={(e) => handleChange("purpose", e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            >
-              <option value="">-- Select Purpose --</option>
-              {STANDARD_PURPOSES.map((p) => (
-                <option key={p} value={p}>
-                  {formatPurpose(p)}
-                </option>
-              ))}
-            </select>
+            <div className="flex-1 items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Purpose
+              </label>
+              <select
+                value={formData.purpose}
+                onChange={(e) => handleChange("purpose", e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              >
+                <option value="">-- Select Purpose --</option>
+                {STANDARD_PURPOSES.map((p) => (
+                  <option key={p} value={p}>
+                    {formatPurpose(p)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Attention / Name
-            </label>
-            <input
-              type="text"
-              value={formData.attention || ""}
-              onChange={(e) => handleChange("attention", e.target.value)}
-              placeholder="Contact name"
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-            />
+            <div className="flex-1 items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Attention
+              </label>
+              <input
+                type="text"
+                value={formData.attention || ""}
+                onChange={(e) => handleChange("attention", e.target.value)}
+                placeholder="Contact name"
+                className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
+            </div>
           </div>
 
           {/* Multi Email */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Email
-            </label>
+            <div className="flex items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Email
+              </label>
+              <button
+                type="button"
+                onClick={() => handleAddField("email")}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                + Add Email
+              </button>
+            </div>
             {formData.email?.map((email, idx) => (
-              <div key={idx} className="flex gap-2 mb-1">
+              <div key={idx} className="flex gap-1 mb-1">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => handleChange("email", e.target.value, idx)}
                   placeholder="email@example.com"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
-                {formData.email.length > 1 && (
+                {(formData.email?.length ?? 0) > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveField("email", idx)}
@@ -242,30 +255,32 @@ const ContactEditModal: React.FC<{
                 )}
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() => handleAddField("email")}
-              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
-            >
-              + Add Email
-            </button>
           </div>
 
           {/* Multi Phone */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Phone
-            </label>
+            <div className="flex items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Phone
+              </label>
+              <button
+                type="button"
+                onClick={() => handleAddField("phone")}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                + Add Phone
+              </button>
+            </div>
             {formData.phone?.map((phone, idx) => (
-              <div key={idx} className="flex gap-2 mb-1">
+              <div key={idx} className="flex gap-1 mb-1">
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => handleChange("phone", e.target.value, idx)}
                   placeholder="123-456-7890"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
-                {formData.phone.length > 1 && (
+                {(formData.phone?.length ?? 0) > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveField("phone", idx)}
@@ -276,30 +291,32 @@ const ContactEditModal: React.FC<{
                 )}
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() => handleAddField("phone")}
-              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
-            >
-              + Add Phone
-            </button>
           </div>
 
           {/* Multi Domain */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Domain
-            </label>
+            <div className="flex items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Domain
+              </label>
+              <button
+                type="button"
+                onClick={() => handleAddField("domain")}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                + Add Domain
+              </button>
+            </div>
             {formData.domain?.map((domain, idx) => (
-              <div key={idx} className="flex gap-2 mb-1">
+              <div key={idx} className="flex gap-1 mb-1">
                 <input
                   type="url"
                   value={domain}
                   onChange={(e) => handleChange("domain", e.target.value, idx)}
                   placeholder="www.example.com"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
-                {formData.domain.length > 1 && (
+                {(formData.domain?.length ?? 0) > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveField("domain", idx)}
@@ -310,30 +327,32 @@ const ContactEditModal: React.FC<{
                 )}
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() => handleAddField("domain")}
-              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
-            >
-              + Add Domain
-            </button>
           </div>
 
           {/* Multi Address */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Address
-            </label>
+            <div className="flex items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Address
+              </label>
+              <button
+                type="button"
+                onClick={() => handleAddField("full")}
+                className="text-xs text-blue-500 hover:text-blue-600"
+              >
+                + Add Address
+              </button>
+            </div>
             {formData.full?.map((full, idx) => (
-              <div key={idx} className="flex gap-2 mb-1">
+              <div key={idx} className="flex gap-1 mb-1">
                 <textarea
                   value={full}
                   onChange={(e) => handleChange("full", e.target.value, idx)}
                   placeholder="Street address, city, state, zip"
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
-                {formData.full.length > 1 && (
+                {(formData.full?.length ?? 0) > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveField("full", idx)}
@@ -344,13 +363,6 @@ const ContactEditModal: React.FC<{
                 )}
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() => handleAddField("full")}
-              className="text-xs text-blue-500 hover:text-blue-600 mt-1"
-            >
-              + Add Address
-            </button>
           </div>
         </div>
 
