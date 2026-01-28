@@ -11,8 +11,6 @@ import { useDispatch } from "react-redux";
 import {
   FaArrowLeft,
   FaEdit,
-  FaFileInvoice,
-  FaBoxes,
   FaAddressCard,
   FaComments,
   FaDollarSign,

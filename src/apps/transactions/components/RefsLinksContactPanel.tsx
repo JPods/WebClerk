@@ -3,15 +3,7 @@
  * Syncs with refs.links.contact structure from API
  */
 import React, { useState } from "react";
-import {
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaBuilding,
-  FaPlus,
-  FaTimes,
-  FaEdit,
-} from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaTimes, FaEdit } from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
 
 // API contact structure from refs.links.contact
@@ -97,6 +89,8 @@ const ContactEditModal: React.FC<{
   };
   const toMulti = (c: RefContact | null): MultiContact => ({
     ...c,
+    contact_id: c?.contact_id ?? 0,
+    purpose: c?.purpose ?? "",
     email: c?.email ? [c.email] : [""],
     phone: c?.phone ? [c.phone] : [""],
     domain: c?.domain ? [c.domain] : [""],

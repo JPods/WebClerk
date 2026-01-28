@@ -111,13 +111,16 @@ interface TransactionItemSearchProps {
   /** Default quantity for new items (defaults to 1) */
   defaultQuantity?: number;
   /** Custom search function if not using default */
-  searchFn?: (query: string, options?: { limit?: number }) => Promise<{ data: { results: ItemSearchResult[] } }>;
+  searchFn?: (
+    query: string,
+    options?: { limit?: number },
+  ) => Promise<{ data: { results: ItemSearchResult[] } }>;
 }
 
 const quantityInputMin = 0.0001;
 
-export function TransactionItemSearch({ 
-  onAddItem, 
+export function TransactionItemSearch({
+  onAddItem,
   useCost = false,
   valueLabel,
   defaultQuantity = 1,
@@ -131,7 +134,7 @@ export function TransactionItemSearch({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const hasResults = useMemo(() => results.length > 0, [results]);
-  
+
   // Determine column header
   const priceHeader = valueLabel ?? (useCost ? "Unit Cost" : "Unit Price");
 
@@ -176,7 +179,7 @@ export function TransactionItemSearch({
         setLoading(false);
       }
     },
-    [dispatch, query, searchFn, defaultQuantity]
+    [dispatch, query, searchFn, defaultQuantity],
   );
 
   const handleQuantityChange = useCallback((key: string, value: string) => {
@@ -195,7 +198,7 @@ export function TransactionItemSearch({
           showToast({
             message: "Cannot add item without a stable identifier",
             type: "error",
-          })
+          }),
         );
         return;
       }
@@ -204,8 +207,8 @@ export function TransactionItemSearch({
         dispatch(
           showToast({
             message: "Enter a quantity greater than zero",
-            type: "warning",
-          })
+            type: "info",
+          }),
         );
         return;
       }
@@ -216,12 +219,12 @@ export function TransactionItemSearch({
             resolveItemCode(item) || "item"
           }`,
           type: "success",
-        })
+        }),
       );
       // Reset quantity to default after adding
       setQuantities((prev) => ({ ...prev, [key]: defaultQuantity }));
     },
-    [dispatch, onAddItem, quantities, defaultQuantity]
+    [dispatch, onAddItem, quantities, defaultQuantity],
   );
 
   // Get unit value based on useCost flag
