@@ -93,10 +93,10 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
   const notesObj = (lineRecord.notes as Record<string, string>) ?? {};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="pointer-events-none fixed inset-0 z-[200000] flex items-stretch justify-end">
+      <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-800 shadow-2xl no-scrollbar sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-blue-200 dark:border-blue-800 bg-slate-50 dark:bg-slate-900">
           <div className="flex items-center gap-3">
             <FaBox className="text-blue-500" size={20} />
             <div>
@@ -131,7 +131,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
         </div>
 
         {/* Section Tabs */}
-        <div className="flex border-b border-slate-200 dark:border-slate-700">
+        <div className="flex border-b border-blue-200 dark:border-blue-800">
           {[
             { id: "details", label: "Details", icon: <FaBox size={12} /> },
             {
@@ -159,7 +159,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-5 pb-6 pt-4 space-y-4">
           {activeSection === "details" && (
             <div className="space-y-6">
               {/* Item Info */}
@@ -175,7 +175,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       handleFieldChange("ida_item", e.target.value)
                     }
                     disabled={!isEditing}
-                    className="w-full px-3 py-2 text-sm font-mono border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs font-mono border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -189,7 +189,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       handleFieldChange("line_no", Number(e.target.value))
                     }
                     disabled={!isEditing}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -206,7 +206,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   }
                   disabled={!isEditing}
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
                 />
               </div>
 
@@ -224,7 +224,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     }
                     disabled={!isEditing}
                     step="0.01"
-                    className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -238,7 +238,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       handleFieldChange("unit_measure", e.target.value)
                     }
                     disabled={!isEditing}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -253,7 +253,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                     }
                     disabled={!isEditing}
                     step="0.01"
-                    className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -271,7 +271,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       handleFieldChange("warehouse", e.target.value)
                     }
                     disabled={!isEditing}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -285,7 +285,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       handleFieldChange("location", e.target.value)
                     }
                     disabled={!isEditing}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -316,7 +316,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       }
                       disabled={!isEditing}
                       step="0.01"
-                      className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2 text-xs text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -335,14 +335,14 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       }
                       disabled={!isEditing}
                       step="0.1"
-                      className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2 text-xs text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                       Extended
                     </label>
-                    <div className="px-3 py-2 text-sm text-right font-semibold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <div className="px-3 py-2 text-xs text-right font-semibold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-700 rounded-lg">
                       {formatCurrency(priceObj.extended)}
                     </div>
                   </div>
@@ -371,7 +371,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       }
                       disabled={!isEditing}
                       step="0.01"
-                      className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2 text-xs text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -390,14 +390,14 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       }
                       disabled={!isEditing}
                       step="0.01"
-                      className="w-full px-3 py-2 text-sm text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2 text-xs text-right border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                       Extended Cost
                     </label>
-                    <div className="px-3 py-2 text-sm text-right font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <div className="px-3 py-2 text-xs text-right font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 rounded-lg">
                       {formatCurrency(costObj.extended)}
                     </div>
                   </div>
@@ -415,7 +415,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       Margin Amount
                     </label>
                     <div
-                      className={`px-3 py-2 text-sm text-right font-semibold rounded-lg ${
+                      className={`px-3 py-2 text-xs text-right font-semibold rounded-lg ${
                         Number(priceObj.margin ?? 0) >= 0
                           ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
                           : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"
@@ -429,7 +429,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                       Margin %
                     </label>
                     <div
-                      className={`px-3 py-2 text-sm text-right font-semibold rounded-lg ${
+                      className={`px-3 py-2 text-xs text-right font-semibold rounded-lg ${
                         Number(priceObj.margin_pc ?? 0) >= 0
                           ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
                           : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"
@@ -459,7 +459,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   disabled={!isEditing}
                   rows={3}
                   placeholder="Notes that appear on invoices, packing slips, etc."
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
                 />
               </div>
 
@@ -475,7 +475,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   disabled={!isEditing}
                   rows={3}
                   placeholder="Internal processing notes"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
                 />
               </div>
 
@@ -495,7 +495,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
                   disabled={!isEditing}
                   rows={2}
                   placeholder="Special handling, packing instructions, etc."
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed resize-none"
                 />
               </div>
             </div>
@@ -503,7 +503,7 @@ const LineDetailsModal: React.FC<LineDetailsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-blue-200 dark:border-blue-800 bg-slate-50 dark:bg-slate-900">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"

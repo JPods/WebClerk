@@ -82,7 +82,7 @@ const ActionsCard: React.FC<ActionsCardProps> = ({
     <div className="space-y-4">
       {/* Status Badge */}
       <div className="flex items-center gap-3">
-        <FieldLabel label="Status" />
+        <FieldLabel label="Status" /> <h1>Action</h1>
         {isEditing ? (
           <select
             value={status}

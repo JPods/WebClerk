@@ -133,7 +133,7 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
   required = false,
   disabled = false,
   error,
-  size = "md",
+  size = "sm",
   className = "",
   showRecent = true,
   maxRecent = 5,
@@ -362,10 +362,10 @@ export const PartySelector: React.FC<PartySelectorProps> = ({
         `}
       >
         <div className="flex items-center flex-1 min-w-0">
-          <Icon className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-2 flex-shrink-0" />
+          <Icon className="w-2 h-2 text-slate-400 dark:text-slate-500 mr-2 flex-shrink-0" />
           {selectedParty ? (
             <div className="flex items-center min-w-0">
-              <span className="truncate font-medium text-slate-900 dark:text-white">
+              <span className="truncate  text-slate-900 dark:text-white text-xs">
                 {selectedParty.name}
               </span>
               {selectedParty.ida && (

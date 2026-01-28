@@ -81,7 +81,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
             <select
               value={actions.kind || "task"}
               onChange={(e) => handleChange("kind", e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
               required
             >
               <option value="task">Task</option>
@@ -103,7 +103,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   e.target.value,
                 )
               }
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
               required
             >
               <option value="low">Low</option>
@@ -118,7 +118,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
               value={actions.what || ""}
               onChange={(e) => handleChange("what", e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
               placeholder="What needs to be done..."
               required
             />
@@ -130,7 +130,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                 type="text"
                 value={actions.action_next?.who || ""}
                 onChange={(e) => handleActionNextChange("who", e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
                 placeholder="Name or ID"
               />
             </div>
@@ -146,7 +146,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     : ""
                 }
                 onChange={(e) => handleActionNextChange("when", e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
               />
             </div>
             <div>
@@ -155,7 +155,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                 type="text"
                 value={actions.action_next?.what || ""}
                 onChange={(e) => handleActionNextChange("what", e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
                 placeholder="Task description"
               />
             </div>

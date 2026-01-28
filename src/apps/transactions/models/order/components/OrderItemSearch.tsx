@@ -92,7 +92,7 @@ export function OrderItemSearch({ onAddItem }: OrderItemSearchProps) {
         dispatch(
           showToast({
             message: "Enter a quantity greater than zero",
-            type: "warning",
+            type: "info",
           }),
         );
         return;
