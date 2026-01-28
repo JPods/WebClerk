@@ -406,12 +406,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         // Use transaction-specific save if data has lines, otherwise standard save
         const hasLines =
           Array.isArray(editData.lines) && editData.lines.length > 0;
-        console.log(
-          "[TransactionDetailBase.handleSave] hasLines:",
-          hasLines,
-          "lineCount:",
-          editData.lines?.length,
-        );
+        // console.log(
+        //   "[TransactionDetailBase.handleSave] hasLines:",
+        //   hasLines,
+        //   "lineCount:",
+        //   editData.lines?.length,
+        // );
         const apiResult = hasLines
           ? await saveTransactionWithLines(modelName, editData)
           : await saveRecord(modelName, editData);
@@ -453,9 +453,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         // Use transaction-specific save if data has lines, otherwise standard save
         const hasLines =
           Array.isArray(editData.lines) && editData.lines.length > 0;
+
         const apiResult = hasLines
-          ? await saveTransactionWithLines(modelName, editData)
-          : await saveRecord(modelName, editData);
+          ? await saveTransactionWithLines(modelName, {
+              ...editData,
+              id: data?.id,
+            })
+          : await saveRecord(modelName, {
+              ...editData,
+              id: data?.id,
+            });
+
         result = apiResult.record ?? apiResult;
       }
 

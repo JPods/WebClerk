@@ -1,8 +1,14 @@
-import apiClient from './axios';
-import { resolveModelName } from './modelNameResolver';
+import apiClient from "./axios";
+import { resolveModelName } from "./modelNameResolver";
 
 // Re-export model name utilities for convenience
-export { resolveModelName, urlToModelName, modelNameToUrl, parseRestfulPath, getTransactionType } from './modelNameResolver';
+export {
+  resolveModelName,
+  urlToModelName,
+  modelNameToUrl,
+  parseRestfulPath,
+  getTransactionType,
+} from "./modelNameResolver";
 
 // Basic API envelope type
 export interface ApiEnvelope<T = any> {
@@ -42,13 +48,17 @@ export interface GetDetailPayload {
 
 export async function getModelNames() {
   try {
-    const res = await apiClient.get<ApiEnvelope<ModelNamesPayload>>('/wcapi/model_name/list/');
+    const res = await apiClient.get<ApiEnvelope<ModelNamesPayload>>(
+      "/wcapi/model_name/list/",
+    );
     return res.data.data;
   } catch (err: any) {
     const status = err?.response?.status;
     if (status === 404) {
       // Fallback: some deployments mount API under /api
-      const res2 = await apiClient.get<ApiEnvelope<ModelNamesPayload>>('/api/wcapi/model_name/list/');
+      const res2 = await apiClient.get<ApiEnvelope<ModelNamesPayload>>(
+        "/api/wcapi/model_name/list/",
+      );
       return res2.data.data;
     }
     // Bubble other errors (like 401) so caller can show a helpful message
@@ -59,11 +69,17 @@ export async function getModelNames() {
 export async function getModelDetail(model_name: string) {
   const resolved = resolveModelName(model_name);
   try {
-    const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/wcapi/model_name/detail/', { params: { model_name: resolved } });
+    const res = await apiClient.get<ApiEnvelope<ModelDetailPayload>>(
+      "/wcapi/model_name/detail/",
+      { params: { model_name: resolved } },
+    );
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<ModelDetailPayload>>('/api/wcapi/model_name/detail/', { params: { model_name: resolved } });
+      const res2 = await apiClient.get<ApiEnvelope<ModelDetailPayload>>(
+        "/api/wcapi/model_name/detail/",
+        { params: { model_name: resolved } },
+      );
       return res2.data.data;
     }
     throw err;
@@ -74,17 +90,23 @@ export async function getRecords(model_name: string, params?: any) {
   const resolved = resolveModelName(model_name);
   try {
     // Never cache wcapi/get calls - always fetch fresh database records
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(`/wcapi/get/`, { 
-      params: { model_name: resolved, ...params },
-      cache: false,
-    } as any);
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+      `/wcapi/get/`,
+      {
+        params: { model_name: resolved, ...params },
+        cache: false,
+      } as any,
+    );
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(`/api/wcapi/get/`, { 
-        params: { model_name: resolved, ...params },
-        cache: false,
-      } as any);
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        `/api/wcapi/get/`,
+        {
+          params: { model_name: resolved, ...params },
+          cache: false,
+        } as any,
+      );
       return res2.data.data;
     }
     throw err;
@@ -95,24 +117,36 @@ export async function getRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   try {
     // Disable cache for detail requests to always get fresh data (lines may have changed)
-    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/wcapi/get/`, { 
-      params: { model_name: resolved, id },
-      cache: false,
-    } as any);
-    console.log(`[wcapi.getRecord] model=${resolved} id=${id} response:`, res.data);
+    const res = await apiClient.get<ApiEnvelope<GetDetailPayload>>(
+      `/wcapi/get/`,
+      {
+        params: { model_name: resolved, id },
+        cache: false,
+      } as any,
+    );
+    console.log(
+      `[wcapi.getRecord] model=${resolved} id=${id} response:`,
+      res.data,
+    );
     const record = res.data.data?.record;
-    if (record && ['order', 'salesorder'].includes(resolved)) {
+    if (record && ["order", "salesorder"].includes(resolved)) {
       console.log(`[wcapi.getRecord] lines in response:`, record.lines);
       console.log(`[wcapi.getRecord] lines count:`, record.lines?.length);
-      console.log(`[wcapi.getRecord] line IDs:`, record.lines?.map((l: any) => l.id));
+      console.log(
+        `[wcapi.getRecord] line IDs:`,
+        record.lines?.map((l: any) => l.id),
+      );
     }
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(`/api/wcapi/get/`, { 
-        params: { model_name: resolved, id },
-        cache: false,
-      } as any);
+      const res2 = await apiClient.get<ApiEnvelope<GetDetailPayload>>(
+        `/api/wcapi/get/`,
+        {
+          params: { model_name: resolved, id },
+          cache: false,
+        } as any,
+      );
       return res2.data.data;
     }
     throw err;
@@ -128,11 +162,14 @@ export async function saveRecord(model_name: string, payload: any) {
     body.id = id;
   }
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', body);
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', body);
+      const res2 = await apiClient.post<ApiEnvelope<any>>(
+        "/api/wcapi/save/",
+        body,
+      );
       return res2.data.data;
     }
     throw err;
@@ -143,30 +180,53 @@ export async function saveRecord(model_name: string, payload: any) {
  * Save a transaction with lines using the transaction-specific save endpoint.
  * This endpoint handles creating/updating/deleting lines along with the header.
  */
-export async function saveTransactionWithLines(model_name: string, payload: any, options?: { verifyCalculations?: boolean; saveOnlyDirty?: boolean }) {
+export async function saveTransactionWithLines(
+  model_name: string,
+  payload: any,
+  options?: { verifyCalculations?: boolean; saveOnlyDirty?: boolean },
+) {
   const resolved = resolveModelName(model_name);
   // Build the request body in the format expected by WCAPITransactionSaveView
   const body = {
     model_name: resolved,
-    record: payload, // record should include lines array
+    record: payload,
+    id: payload.id, // record should include lines array
     options: {
       verify_calculations: options?.verifyCalculations ?? false, // Disable verification for now
       save_only_dirty: options?.saveOnlyDirty ?? false, // Save all lines, not just dirty ones
-    }
+    },
   };
-  
-  console.log('[wcapi.saveTransactionWithLines] Saving:', { model_name: resolved, hasLines: !!payload.lines, lineCount: payload.lines?.length });
-  console.log('[wcapi.saveTransactionWithLines] Full payload:', JSON.stringify(body, null, 2));
-  
+
+  console.log("[wcapi.saveTransactionWithLines] Saving:", {
+    model_name: resolved,
+    hasLines: !!payload.lines,
+    lineCount: payload.lines?.length,
+  });
+  console.log(
+    "[wcapi.saveTransactionWithLines] Full payload:",
+    JSON.stringify(body, null, 2),
+  );
+  //return false;
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/transaction/save/', body);
-    console.log('[wcapi.saveTransactionWithLines] Response:', res.data);
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
+      ...body,
+    });
+    console.log("[wcapi.saveTransactionWithLines] Response:", res.data);
     return res.data.data ?? res.data;
   } catch (err: any) {
-    console.error('[wcapi.saveTransactionWithLines] Error:', err.response?.data || err);
-    console.error('[wcapi.saveTransactionWithLines] Error details:', err.response?.data?.error?.details || 'No details');
+    console.error(
+      "[wcapi.saveTransactionWithLines] Error:",
+      err.response?.data || err,
+    );
+    console.error(
+      "[wcapi.saveTransactionWithLines] Error details:",
+      err.response?.data?.error?.details || "No details",
+    );
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/transaction/save/', body);
+      const res2 = await apiClient.post<ApiEnvelope<any>>(
+        "/api/wcapi/save/",
+        body,
+      );
       return res2.data.data ?? res2.data;
     }
     throw err;
@@ -176,11 +236,19 @@ export async function saveTransactionWithLines(model_name: string, payload: any,
 export async function deleteRecord(model_name: string, id: number) {
   const resolved = resolveModelName(model_name);
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { model_name: resolved, id, method: 'delete' });
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
+      model_name: resolved,
+      id,
+      method: "delete",
+    });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { model_name: resolved, id, method: 'delete' });
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/save/", {
+        model_name: resolved,
+        id,
+        method: "delete",
+      });
       return res2.data.data;
     }
     throw err;
@@ -190,20 +258,29 @@ export async function deleteRecord(model_name: string, id: number) {
 /**
  * Search for items by query string (sku, name, description, etc.)
  */
-export async function searchItems(query: string, options?: { limit?: number }): Promise<GetListPayload> {
-  const params: any = { 
-    model_name: 'item',
+export async function searchItems(
+  query: string,
+  options?: { limit?: number },
+): Promise<GetListPayload> {
+  const params: any = {
+    model_name: "item",
     search: query,
   };
   if (options?.limit) {
     params.limit = options.limit;
   }
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+      "/wcapi/get/",
+      { params },
+    );
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', { params });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        "/api/wcapi/get/",
+        { params },
+      );
       return res2.data.data;
     }
     throw err;
@@ -211,7 +288,7 @@ export async function searchItems(query: string, options?: { limit?: number }): 
 }
 
 // Local persistence for field selections per model
-const LS_KEY = 'adminWorkbench.fieldSelections';
+const LS_KEY = "adminWorkbench.fieldSelections";
 type FieldSelections = Record<string, { list: string[]; detail: string[] }>;
 
 export function loadFieldSelections(): FieldSelections {
@@ -238,18 +315,34 @@ export interface SettingRecord {
   };
 }
 
-export async function getWorkbenchFieldsSetting(model_name: string): Promise<SettingRecord | null> {
+export async function getWorkbenchFieldsSetting(
+  model_name: string,
+): Promise<SettingRecord | null> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
-      params: { model_name: 'setting', model_name_filter: model_name, purpose: 'workbench_fields' }
-    });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+      "/wcapi/get/",
+      {
+        params: {
+          model_name: "setting",
+          model_name_filter: model_name,
+          purpose: "workbench_fields",
+        },
+      },
+    );
     const results = res.data.data.results || [];
     return results.length > 0 ? results[0] : null;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', {
-        params: { model_name: 'setting', model_name_filter: model_name, purpose: 'workbench_fields' }
-      });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        "/api/wcapi/get/",
+        {
+          params: {
+            model_name: "setting",
+            model_name_filter: model_name,
+            purpose: "workbench_fields",
+          },
+        },
+      );
       const results = res2.data.data.results || [];
       return results.length > 0 ? results[0] : null;
     }
@@ -267,49 +360,83 @@ export interface DetailFieldSettingRecord {
   };
 }
 
-export async function getDetailFieldSetting(model_name: string): Promise<DetailFieldSettingRecord | null> {
+export async function getDetailFieldSetting(
+  model_name: string,
+): Promise<DetailFieldSettingRecord | null> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
-      params: { model_name: 'setting', model_name_filter: model_name, purpose: 'detail_field_access' }
-    });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+      "/wcapi/get/",
+      {
+        params: {
+          model_name: "setting",
+          model_name_filter: model_name,
+          purpose: "detail_field_access",
+        },
+      },
+    );
     const results = res.data.data.results || [];
     return results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', {
-        params: { model_name: 'setting', model_name_filter: model_name, purpose: 'detail_field_access' }
-      });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        "/api/wcapi/get/",
+        {
+          params: {
+            model_name: "setting",
+            model_name_filter: model_name,
+            purpose: "detail_field_access",
+          },
+        },
+      );
       const results = res2.data.data.results || [];
-      return results.length > 0 ? (results[0] as DetailFieldSettingRecord) : null;
+      return results.length > 0
+        ? (results[0] as DetailFieldSettingRecord)
+        : null;
     }
     throw err;
   }
 }
 
-export async function saveDetailFieldSetting(setting: DetailFieldSettingRecord) {
+export async function saveDetailFieldSetting(
+  setting: DetailFieldSettingRecord,
+) {
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { ...setting, model_name: 'setting' });
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
+      ...setting,
+      model_name: "setting",
+    });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { ...setting, model_name: 'setting' });
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/save/", {
+        ...setting,
+        model_name: "setting",
+      });
       return res2.data.data;
     }
     throw err;
   }
 }
 
-export async function getAllWorkbenchFieldsSettings(): Promise<SettingRecord[]> {
+export async function getAllWorkbenchFieldsSettings(): Promise<
+  SettingRecord[]
+> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
-      params: { model_name: 'setting', purpose: 'workbench_fields' }
-    });
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>(
+      "/wcapi/get/",
+      {
+        params: { model_name: "setting", purpose: "workbench_fields" },
+      },
+    );
     return res.data.data.results || [];
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>('/api/wcapi/get/', {
-        params: { model_name: 'setting', purpose: 'workbench_fields' }
-      });
+      const res2 = await apiClient.get<ApiEnvelope<GetListPayload>>(
+        "/api/wcapi/get/",
+        {
+          params: { model_name: "setting", purpose: "workbench_fields" },
+        },
+      );
       return res2.data.data.results || [];
     }
     throw err;
@@ -318,11 +445,17 @@ export async function getAllWorkbenchFieldsSettings(): Promise<SettingRecord[]> 
 
 export async function saveWorkbenchFieldsSetting(setting: SettingRecord) {
   try {
-    const res = await apiClient.post<ApiEnvelope<any>>('/wcapi/save/', { ...setting, model_name: 'setting' });
+    const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", {
+      ...setting,
+      model_name: "setting",
+    });
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {
-      const res2 = await apiClient.post<ApiEnvelope<any>>('/api/wcapi/save/', { ...setting, model_name: 'setting' });
+      const res2 = await apiClient.post<ApiEnvelope<any>>("/api/wcapi/save/", {
+        ...setting,
+        model_name: "setting",
+      });
       return res2.data.data;
     }
     throw err;
