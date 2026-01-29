@@ -241,7 +241,7 @@ def payment_history(request):
         for payment in payments_page:
             data.append({
                 'id': payment.id,
-                'invoice_id': payment.invoice_id_id,
+                'invoice_id': payment.invoice_id.pk if payment.invoice_id else None,
                 'amount': payment.amount,
                 'status': payment.status,
                 'gateway': payment.gateway,

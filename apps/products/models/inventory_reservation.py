@@ -48,7 +48,7 @@ class InventoryReservation(models.Model):
 
     @property
     def description_value(self):
-        return self.description or f"Reservation for item {self.item_id_id}"
+        return self.description or f"Reservation for item {self.item_id.pk if self.item_id else 'unknown'}"
     warehouse_id = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='reservations')
     inventorylayer_id = models.ForeignKey(InventoryLayer, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     qty = models.DecimalField(max_digits=14, decimal_places=4)

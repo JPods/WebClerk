@@ -38,7 +38,8 @@ class ItemLinkedBase(BaseModel):
 
 	def __str__(self):  # pragma: no cover - simple representation
 		base = getattr(self, 'id', None)
-		return f"{self.__class__.__name__}#{base or 'unsaved'} for Item {getattr(self, 'item_id_id', '?')}"
+		item_pk = self.item_id.pk if self.item_id else '?'
+		return f"{self.__class__.__name__}#{base or 'unsaved'} for Item {item_pk}"
 
 # NOTE:
 # Existing concrete models (e.g. Service) can optionally inherit from this
