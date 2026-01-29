@@ -95,14 +95,17 @@ class DeliveryVisit(BaseModel):
 
     def clean(self):  # pragma: no cover simple validation
         from django.core.exceptions import ValidationError
-        catalog_id = getattr(self, "catalog_id_id", None)
-        if catalog_id:
-            catalog = getattr(self, "catalog_id")
-            vendor_org_id = getattr(catalog, "vendor_org_id_id", None)
-            customer_org_id = getattr(catalog, "customer_org_id_id", None)
-            if vendor_org_id and vendor_org_id != getattr(self, "orgbase_id_id", None):  # type: ignore[attr-defined]
+        # Check if catalog is set (access FK object, not raw id)
+        catalog = getattr(self, "catalog_id", None)
+        if catalog:
+            # Access FK PKs via the related object's pk property for clarity
+            vendor_org_id = catalog.vendor_org_id.pk if hasattr(catalog, 'vendor_org_id') and catalog.vendor_org_id else None
+            customer_org_id = catalog.customer_org_id.pk if hasattr(catalog, 'customer_org_id') and catalog.customer_org_id else None
+            self_vendor_id = self.orgbase_id.pk if self.orgbase_id else None  # type: ignore[attr-defined]
+            self_customer_id = self.customer_orgbase_id.pk if self.customer_orgbase_id else None  # type: ignore[attr-defined]
+            if vendor_org_id and vendor_org_id != self_vendor_id:
                 raise ValidationError("catalog.vendor_org mismatch with visit.vendor_org")
-            if customer_org_id and customer_org_id != getattr(self, "customer_orgbase_id_id", None):  # type: ignore[attr-defined]
+            if customer_org_id and customer_org_id != self_customer_id:
                 raise ValidationError("catalog.customer_org mismatch with visit.customer_org")
         return super().clean()
 

@@ -819,7 +819,7 @@ class SaveWcapiView(APIView):
                             if hasattr(line_obj, field):
                                 setattr(line_obj, field, value)
                                 # debug print removed
-                        # Set the FK using the attname (e.g., salesorder_id_id)
+                        # Set the FK using the attname (e.g., order_id for FK field 'order')
                         fk_field = line_model._meta.get_field(fk_field_name)
                         # debug print removed
                         setattr(line_obj, fk_field.attname, obj_id)
@@ -1231,6 +1231,23 @@ class SaveWcapiView(APIView):
             del data['data']
             console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
+        # Handle nested 'record' key (used by R25 saveTransactionWithLines)
+        if 'record' in data and isinstance(data['record'], dict):
+            record_data = data['record']
+            # Preserve model_name, id, and options at top level
+            model_name = data.get('model_name')
+            record_id = data.get('id')
+            options = data.get('options')
+            data.update(record_data)
+            # Restore top-level fields that may have been overwritten
+            if model_name:
+                data['model_name'] = model_name
+            if record_id:
+                data['id'] = record_id
+            if options:
+                data['options'] = options
+            console_logger.info(f"[SAVE_VIEW] Merged 'record' fields into payload, lines count: {len(data.get('lines', []))}")
+
         # If client provided a project_slug but not a numeric project_id, try to resolve it here.
         try:
             if 'project_slug' in data and 'project_id' not in data:
@@ -1621,11 +1638,11 @@ class SaveWcapiView(APIView):
                     if is_new:
                         # Create new line using direct ORM
                         line_obj = OrderLine()
-                        line_obj.order_id_id = obj.id
+                        line_obj.order_id = obj.id  # FK field is 'order', so use 'order_id'
                         
                         # Copy fields from line_data
                         for field_name, field_value in line_data.items():
-                            if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
+                            if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
                                 continue
                             if hasattr(line_obj, field_name):
                                 setattr(line_obj, field_name, field_value)
@@ -1638,7 +1655,7 @@ class SaveWcapiView(APIView):
                         try:
                             line_obj = OrderLine.objects.get(id=line_id)
                             for field_name, field_value in line_data.items():
-                                if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
+                                if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
                                     continue
                                 if hasattr(line_obj, field_name):
                                     setattr(line_obj, field_name, field_value)

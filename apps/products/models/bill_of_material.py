@@ -81,8 +81,8 @@ class BillOfMaterial(BaseModel):
             raise ValidationError({"quantity": "Quantity must be > 0"})
         if self.scrap_factor is None or self.scrap_factor < 0 or self.scrap_factor >= 1:
             raise ValidationError({"scrap_factor": "Scrap factor must be between 0 (inclusive) and 1 (exclusive)"})
-        parent_pk = getattr(self, 'item_id_id', None)  # type: ignore[attr-defined]
-        component_pk = getattr(self, 'component_id_id', None)  # type: ignore[attr-defined]
+        parent_pk = self.item_id.pk if self.item_id else None
+        component_pk = self.component_id.pk if self.component_id else None
         if parent_pk and component_pk and parent_pk == component_pk:
             raise ValidationError("Parent and component cannot be the same item")
         # Recursive cycle detection: ensure adding parent->component line will not introduce a cycle
@@ -102,7 +102,7 @@ class BillOfMaterial(BaseModel):
             except Exception:
                 pass
         # Capture cost snapshot on create
-        component_pk = getattr(self, 'component_id_id', None)  # type: ignore[attr-defined]
+        component_pk = self.component_id.pk if self.component_id else None
         if creating and self.cost_snapshot is None and component_pk:
             val = getattr(self.component_id, 'cost', None)
             if isinstance(val, dict):
@@ -149,7 +149,7 @@ class BillOfMaterial(BaseModel):
         except Exception:
             return
         from decimal import Decimal as _D
-        lines = BillOfMaterial.objects.filter(item_id_id=parent_item_id)
+        lines = BillOfMaterial.objects.filter(item_id=parent_item_id)
         total = _D("0")
         for line in lines:
             try:
@@ -206,7 +206,7 @@ class BillOfMaterial(BaseModel):
             current_parent_id, depth = queue.popleft()
             if depth >= max_depth:
                 continue
-            child_lines = BillOfMaterial.objects.filter(item_id_id=current_parent_id).values_list('component_id_id', flat=True)
+            child_lines = BillOfMaterial.objects.filter(item_id=current_parent_id).values_list('component_id', flat=True)
             for comp_id in child_lines:
                 if comp_id in visited:
                     continue
