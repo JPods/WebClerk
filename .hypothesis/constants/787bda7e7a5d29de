@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/models/domain.py
+# hypothesis_version: 6.138.7
+
+[255, 'Access counter', 'Facebook', 'General notes', 'GitHub', 'LinkedIn', 'Other', 'Twitter', 'Website', 'active', 'count_accessed', 'domains', 'facebook', 'github', 'linkedin', 'modified_dt', 'other', 'path', 'security_level', 'status', 'twitter', 'type', 'version', 'website']

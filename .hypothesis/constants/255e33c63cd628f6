@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/views/document_views.py
+# hypothesis_version: 6.138.7
+
+[100, 200, '-modified_dt', '-rank', ':*', '</mark>', '<mark>', 'body', 'count', 'created_dt', 'english', 'level', 'modified_dt', 'name', 'page_size', 'q', 'raw', 'results', 'search_vector', 'security_level', 'status', 'terms', 'ts_headline']

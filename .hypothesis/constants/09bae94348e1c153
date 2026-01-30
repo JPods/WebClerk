@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/views/api_auth.py
+# hypothesis_version: 6.138.7
+
+['access', 'email', 'id', 'name_first', 'name_last', 'refresh', 'request', 'role', 'user']

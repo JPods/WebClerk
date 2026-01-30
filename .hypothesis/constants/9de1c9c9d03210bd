@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/aggregation.py
+# hypothesis_version: 6.138.7
+
+[4096, '0', 'breakdown', 'cache_window', 'cost', 'cost_extended', 'extended', 'invalid-model', 'invoice-line', 'lines', 'model', 'order-line', 'parent_ref_id', 'price', 'price_extended', 'proposal-line', 'purchase-line', 'requisition-line', 'total_cost_extended', 'total_lines', 'total_price_extended', 'ttl_seconds', 'workorder-line']

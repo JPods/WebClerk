@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/views/line_views.py
+# hypothesis_version: 6.138.7
+
+[200, 400, 500, ',', '-id', '1', 'Model code', 'Parent reference id', 'True', 'application/json', 'array', 'detail', 'error', 'id', 'include_breakdown', 'invalid-model', 'invoice', 'invoice-line', 'item__description', 'item__uuid_item', 'items', 'model', 'models', 'object', 'order', 'order-line', 'page_size', 'parent_ref_id', 'properties', 'proposal', 'proposal-line', 'purchase', 'purchase-line', 'required', 'requisition', 'requisition-line', 'role', 'rules', 'status', 'string', 'true', 'ttl', 'ttl invalid', 'tx_aggregate', 'tx_line', 'tx_parent', 'type', 'workorder', 'workorder-line', 'yes']

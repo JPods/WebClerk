@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/orgs/pydantic_schemas.py
+# hypothesis_version: 6.138.7
+
+[100, 255, 320, 'ISO country code', 'customer', 'employee', 'manufacturer', 'org_type', 'other', 'rep', 'vendor', "{'lat':..,'lng':..}"]
