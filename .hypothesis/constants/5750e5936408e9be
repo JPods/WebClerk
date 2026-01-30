@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/migrations/0004_remove_action_comment_remove_setting_comment_and_more.py
+# hypothesis_version: 6.138.7
+
+['action', 'comment', 'comments', 'contact', 'core', 'created_dt', 'ida', 'metadata', 'modified_dt', 'prefs', 'refs', 'setting', 'template', 'version']

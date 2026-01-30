@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/base_views.py
+# hypothesis_version: 6.138.7
+
+[403, 412, '-modified_dt', 'Forbidden', 'append', 'code', 'detail', 'is_superuser', 'ordering', 'role', 'set', 'version', 'version_conflict']

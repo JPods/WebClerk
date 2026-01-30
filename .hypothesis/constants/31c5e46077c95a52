@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/common/management/commands/profile_api_validation.py
+# hypothesis_version: 6.138.7
+
+[0.0, 0.95, 1000.0, '-', '--app', '--iterations', '--json', '--model', 'BaseModel.', 'Filter by app label', 'JSON output', 'No models profiled.', '__qualname__', 'api_validate_payload', 'app', 'avg_ms', 'custom', 'iterations', 'json', 'max_ms', 'min_ms', 'model', 'p95_ms', 'store_true']

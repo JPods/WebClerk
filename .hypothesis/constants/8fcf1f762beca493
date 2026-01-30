@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/serializers/linkage_serializers.py
+# hypothesis_version: 6.138.7
+
+['comment', 'comments', 'created_dt', 'health_rating', 'id', 'link_counts', 'metadata', 'modified_dt', 'name', 'prefs', 'purpose', 'refs', 'uuid', 'version']
