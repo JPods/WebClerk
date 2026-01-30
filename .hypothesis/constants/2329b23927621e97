@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/views/email.py
+# hypothesis_version: 6.138.7
+
+[200, 201, 204, 400, 401, 403, 404, 500, 'Create Email', 'Delete Email', 'Forbidden', 'Get Email', 'Invalid data', 'List Emails', 'Not found', 'Successfully deleted', 'Unauthorized', 'Update Email', 'contacts', 'detail', 'edit', 'emails', 'links', 'page_size', 'refs__emails', 'view']

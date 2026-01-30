@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/models/phone.py
+# hypothesis_version: 6.138.7
+
+[100, '+', 'Phone Number', 'Phone Numbers', 'Phone number', 'country_code', 'number', 'number: too short', 'phone saved', 'phones']

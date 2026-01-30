@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/models/project_links.py
+# hypothesis_version: 6.138.7
+
+['Invoice', 'Order', 'Proposal', 'Purchase', 'Requisition', 'Workorder', 'associations', 'invoice', 'model_code', 'object_id', 'order', 'projassoc_target_idx', 'project', 'project_associations', 'proposal', 'purchase', 'requisition', 'workorder']

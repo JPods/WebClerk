@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/admin.py
+# hypothesis_version: 6.138.7
+
+['created_dt', 'id', 'invoice_no', 'name', 'order_no', 'parent_ref_id', 'po_no', 'probability', 'req_no', 'status', 'work_no']
