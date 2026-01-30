@@ -5,22 +5,42 @@ import AdvancedDataTable, {
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { deleteAction } from "@/api/userProfile";
-import {
-  fetchOrders,
-  fetchOrderDetail,
-} from "../services/orderApi";
+import { fetchOrders, fetchOrderDetail } from "../services/orderApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import OrderDetail from "./OrderDetail";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+
+// Define the possible order statuses for type safety
+type OrderStatus =
+  | "draft"
+  | "confirmed"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+type OrderRow = {
+  id: number | string;
+  order_no?: string;
+  sales_order_no?: string;
+  status?: string;
+  customer_name?: string;
+  id_customer?: string | number;
+  vendor_name?: string;
+  id_vendor?: string | number;
+  total?: number;
+  total_amount?: number;
+  margin_percentage?: number;
+  margin_amount?: number;
+  line_count?: number;
+  lines?: any[];
+  dt_created?: string | number;
+  [key: string]: any;
+};
 
 export default function OrderList() {
-  const [data, setData] = useState<any[]>([]);
-  const [selectedOrders, setSelectedOrders] = useState<any[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(
-    null,
-  );
+  const [data, setData] = useState<OrderRow[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
     null,
   );
@@ -42,9 +62,7 @@ export default function OrderList() {
       }
     } catch (error) {
       console.error("Failed to fetch orders", error);
-      dispatch(
-        showToast({ message: "Failed to fetch orders", type: "error" }),
-      );
+      dispatch(showToast({ message: "Failed to fetch orders", type: "error" }));
     } finally {
       setLoading(false);
     }
@@ -61,9 +79,7 @@ export default function OrderList() {
       console.log("[openOrder] orderId:", orderId);
       console.log("[openOrder] modeToSet:", modeToSet);
       if (!orderId) {
-        dispatch(
-          showToast({ message: "Order id missing", type: "error" }),
-        );
+        dispatch(showToast({ message: "Order id missing", type: "error" }));
         return;
       }
 
@@ -76,10 +92,7 @@ export default function OrderList() {
         const detail = await fetchOrderDetail(orderId);
         console.log("[openOrder] detail from API:", detail);
         console.log("[openOrder] detail.lines:", detail?.lines);
-        console.log(
-          "[openOrder] detail.lines count:",
-          detail?.lines?.length,
-        );
+        console.log("[openOrder] detail.lines count:", detail?.lines?.length);
         const hasDetail = detail && Object.keys(detail).length > 0;
         if (!hasDetail) {
           throw new Error("Order not found");
@@ -87,10 +100,7 @@ export default function OrderList() {
         const merged = { ...row, ...detail };
         console.log("[openOrder] merged:", merged);
         console.log("[openOrder] merged.lines:", merged?.lines);
-        console.log(
-          "[openOrder] merged.lines count:",
-          merged?.lines?.length,
-        );
+        console.log("[openOrder] merged.lines count:", merged?.lines?.length);
         setSelectedOrder(merged);
       } catch (error) {
         const message =
@@ -139,7 +149,9 @@ export default function OrderList() {
 
   const handle_delete = useCallback(
     async (row: any) => {
-      if (window.confirm(`Delete order ${row.order_no || row.sales_order_no}?`)) {
+      if (
+        window.confirm(`Delete order ${row.order_no || row.sales_order_no}?`)
+      ) {
         try {
           await deleteAction(row.id);
           dispatch(
@@ -162,14 +174,14 @@ export default function OrderList() {
     [dispatch, getOrderData],
   );
 
-  const userColumns: TableColumn<any>[] = useMemo(
+  const userColumns: TableColumn<OrderRow>[] = useMemo(
     () => [
       {
         name: "ID",
-        selector: (row) => row.id,
+        selector: (row: OrderRow) => row.id,
         sortable: true,
         width: "80px",
-        cell: (row) => (
+        cell: (row: OrderRow) => (
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -183,16 +195,16 @@ export default function OrderList() {
       },
       {
         name: "Order No",
-        selector: (row) => row.order_no || row.sales_order_no || "--",
+        selector: (row: OrderRow) => row.order_no || row.sales_order_no || "--",
         sortable: true,
         width: "14%",
       },
       {
         name: "Status",
-        selector: (row) => row.status || "--",
+        selector: (row: OrderRow) => row.status || "--",
         sortable: true,
         width: "12%",
-        cell: (row) => (
+        cell: (row: OrderRow) => (
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium ${
               row.status === "delivered"
@@ -212,22 +224,23 @@ export default function OrderList() {
       },
       {
         name: "Customer",
-        selector: (row) => row.customer_name || row.id_customer || "--",
+        selector: (row: OrderRow) =>
+          row.customer_name || row.id_customer || "--",
         sortable: true,
         width: "12%",
       },
       {
         name: "Vendor",
-        selector: (row) => row.vendor_name || row.id_vendor || "--",
+        selector: (row: OrderRow) => row.vendor_name || row.id_vendor || "--",
         sortable: true,
         width: "12%",
       },
       {
         name: "Total Amount",
-        selector: (row) => row.total || row.total_amount || 0,
+        selector: (row: OrderRow) => row.total || row.total_amount || 0,
         sortable: true,
         width: "10%",
-        cell: (row) => (
+        cell: (row: OrderRow) => (
           <span className="font-medium text-green-600 dark:text-green-400">
             $
             {row.total
@@ -240,10 +253,10 @@ export default function OrderList() {
       },
       {
         name: "Margin",
-        selector: (row) => row.margin_percentage || 0,
+        selector: (row: OrderRow) => row.margin_percentage || 0,
         sortable: true,
         width: "8%",
-        cell: (row) => (
+        cell: (row: OrderRow) => (
           <span
             className={`text-center px-2 py-1 rounded text-xs font-medium ${
               (row.margin_percentage || 0) >= 20
@@ -262,10 +275,11 @@ export default function OrderList() {
       },
       {
         name: "Lines",
-        selector: (row) => row.line_count || (row.lines ? row.lines.length : 0),
+        selector: (row: OrderRow) =>
+          row.line_count || (row.lines ? row.lines.length : 0),
         sortable: true,
         width: "6%",
-        cell: (row) => (
+        cell: (row: OrderRow) => (
           <span className="text-center bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
             {row.line_count || (row.lines ? row.lines.length : 0)}
           </span>
@@ -273,7 +287,7 @@ export default function OrderList() {
       },
       {
         name: "Created",
-        selector: (row) =>
+        selector: (row: OrderRow) =>
           row.dt_created
             ? typeof row.dt_created === "string"
               ? new Date(row.dt_created).toLocaleDateString()
@@ -285,7 +299,7 @@ export default function OrderList() {
       {
         name: "Actions",
         width: "140px",
-        cell: (row) => (
+        cell: (row: OrderRow) => (
           <div className="flex gap-2">
             <button
               onClick={(e) => {
@@ -329,6 +343,8 @@ export default function OrderList() {
     () => [
       {
         key: "status",
+        name: "status",
+        field: "status",
         label: "Status",
         type: "select",
         options: [
@@ -341,11 +357,15 @@ export default function OrderList() {
       },
       {
         key: "customer_name",
+        name: "customer_name",
+        field: "customer_name",
         label: "Customer",
         type: "text",
       },
       {
         key: "vendor_name",
+        name: "vendor_name",
+        field: "vendor_name",
         label: "Vendor",
         type: "text",
       },
@@ -373,9 +393,13 @@ export default function OrderList() {
     <>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-700">Sales Order List</div>
+          <div className="text-sm font-semibold text-slate-700">
+            Sales Order List
+          </div>
           <div className="text-sm text-slate-500">
-            Total Orders: {totalOrders} • Total Value: ${totalValue.toFixed(2)} • Avg Margin: {avgMargin.toFixed(1)}% • Delivered: {statusCounts.delivered || 0}
+            Total Orders: {totalOrders} • Total Value: ${totalValue.toFixed(2)}{" "}
+            • Avg Margin: {avgMargin.toFixed(1)}% • Delivered:{" "}
+            {statusCounts.delivered || 0}
           </div>
         </div>
       </div>
@@ -391,7 +415,6 @@ export default function OrderList() {
               filters={filters}
               enableExport={true}
               enableSelection={true}
-              onSelectionChange={setSelectedOrders}
               exportFileName="orders"
               searchPlaceholder="Search orders, customers, vendors..."
               noDataMessage="No orders found"
@@ -421,9 +444,30 @@ export default function OrderList() {
                 key={`${selectedOrder?.id ?? "new"}-${formMode}`}
                 inline
                 modeProp={formMode}
-                dataProp={formMode === "add" ? null : selectedOrder}
+                dataProp={
+                  formMode === "add"
+                    ? null
+                    : selectedOrder
+                    ? {
+                        ...selectedOrder,
+                        id:
+                          typeof selectedOrder.id === "string"
+                            ? Number(selectedOrder.id)
+                            : selectedOrder.id,
+                        customer_id:
+                          selectedOrder.customer_id ??
+                          selectedOrder.id_customer ??
+                          "",
+                        vendor_id:
+                          selectedOrder.vendor_id ??
+                          selectedOrder.id_vendor ??
+                          "",
+                        manufacturer_id: selectedOrder.manufacturer_id ?? "",
+                        status: (selectedOrder.status ?? "draft") as any, // Cast to 'any' to satisfy TransactionStatus
+                      }
+                    : null
+                }
                 onSaved={handleFormSaved}
-                onCancelInline={handleFormCancel}
               />
             )}
           </div>

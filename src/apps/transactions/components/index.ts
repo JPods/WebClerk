@@ -4,53 +4,51 @@
  */
 
 // Labels and Field Components
-export { default as FieldLabel } from './FieldLabel';
+export { default as FieldLabel } from "./FieldLabel";
 
 // Refs/Links Components
-export { default as RefsLinksContactPanel } from './RefsLinksContactPanel';
-export { default as RefsLinksTable } from './RefsLinksTable';
-export { default as ContactLinksTable } from './ContactLinksTable';
-export type { 
-  ContactLinkDisplayRow, 
-  ContactColumnKey, 
-  ContactLinkColumnDef, 
-  ContactLinksTableProps 
-} from './ContactLinksTable';
+export { default as RefsLinksContactPanel } from "./RefsLinksContactPanel";
+export { default as RefsLinksTable } from "./RefsLinksTable";
+export { default as ContactLinksTable } from "./ContactLinksTable";
+export type {
+  ContactLinkDisplayRow,
+  ContactColumnKey,
+  ContactLinkColumnDef,
+  ContactLinksTableProps,
+} from "./ContactLinksTable";
 
 // Comments and Actions
-export { default as CommentsPanel } from './CommentsPanel';
-export { default as ActionsCard } from './ActionsCard';
+export { default as CommentsPanel } from "./CommentsPanel";
 
 // Metadata and Admin
-export { default as MetadataPanel } from './MetadataPanel';
-export { default as JsonFieldEditor } from './JsonFieldEditor';
+export { default as MetadataPanel } from "./MetadataPanel";
+export { default as JsonFieldEditor } from "./JsonFieldEditor";
 
 // Financials
-export { default as FinancialsCard } from './FinancialsCard';
+export { default as FinancialsCard } from "./FinancialsCard";
 
 // Flow and Lineage
-export { default as FlowDiagram } from './FlowDiagram';
 
 // Base Detail Component
-export { default as TransactionDetailBase } from './TransactionDetailBase';
-export type { TransactionTab } from './TransactionDetailBase';
+export { default as TransactionDetailBase } from "./TransactionDetailBase";
+export type { TransactionTab } from "./TransactionDetailBase";
 
 // Line Item Modals
-export { default as LineDetailsModal } from './LineDetailsModal';
-export { default as SplitLineModal } from './SplitLineModal';
+export { default as LineDetailsModal } from "./LineDetailsModal";
+export { default as SplitLineModal } from "./SplitLineModal";
 
 // Activity and Audit
-export { default as ActivityLogTab } from './ActivityLogTab';
+export { default as ActivityLogTab } from "./ActivityLogTab";
 
 // Print Preview
-export { default as PrintPreviewModal } from './PrintPreviewModal';
+export { default as PrintPreviewModal } from "./PrintPreviewModal";
 
 // Attachments
-export { default as AttachmentsTab } from './AttachmentsTab';
+export { default as AttachmentsTab } from "./AttachmentsTab";
 
 // Item Search (shared across all transaction types)
-export { default as TransactionItemSearch } from './TransactionItemSearch';
-export type { ItemSearchResult } from './TransactionItemSearch';
+export { default as TransactionItemSearch } from "./TransactionItemSearch";
+export type { ItemSearchResult } from "./TransactionItemSearch";
 export {
   resolveItemCode,
   resolveItemDescription,
@@ -58,26 +56,26 @@ export {
   resolveUnitPrice,
   resolveUnitCost,
   resolveQtyOnHand,
-} from './TransactionItemSearch';
+} from "./TransactionItemSearch";
 
 // Quick Add Recent Items
-export { default as QuickAddRecent } from './QuickAddRecent';
+export { default as QuickAddRecent } from "./QuickAddRecent";
 
 // Party Selector (Customer/Vendor/Manufacturer)
-export { 
+export {
   default as PartySelector,
   CustomerSelector,
   VendorSelector,
   ManufacturerSelector,
   TransactionPartySelector,
-} from './PartySelector';
-export type { 
-  PartyType, 
-  SelectedParty, 
+} from "./PartySelector";
+export type {
+  PartyType,
+  SelectedParty,
   PartySelectorProps,
   CustomerSelectorProps,
   VendorSelectorProps,
   ManufacturerSelectorProps,
   TransactionPartyType,
   TransactionPartySelectorProps,
-} from './PartySelector';
+} from "./PartySelector";

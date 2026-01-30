@@ -6,7 +6,8 @@ import React, {
   useEffect,
 } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { useDrag, useDrop } from "react-dnd";
+import { useDrag, useDrop, DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { useTheme } from "@/context/ThemeContext";
 import {
   FaGripVertical,
@@ -20,13 +21,22 @@ import {
   FaCheckSquare,
   FaSearch,
   FaTrash,
+  FaFileExcel,
+  FaFilePdf,
+  FaFileCode,
 } from "react-icons/fa";
-import RippleLoader from "./RippleLoader";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export type ColumnFilter = {
-  name: string;
-  field: string;
-  options?: any[];
+  key: string; // unique key for the filter (used as object key)
+  label: string; // label to display in the UI
+  type?: string; // e.g. "text", "select", etc.
+  options?: Array<{ value: string; label: string }>; // for select filters
+  // Optionally keep name/field for backward compatibility
+  name?: string;
+  field?: string;
 };
 
 export interface AdvancedDataTableProps<T> {
@@ -1062,126 +1072,6 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                 Print
               </button>
             )}
-
-            {/* Export Dropdown */}
-            {enableExport && (
-              <div className="relative" ref={exportDropdownRef}>
-                <button
-                  onClick={() => setShowExportDropdown(!showExportDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 text-white bg-green-600 rounded-lg hover:bg-green-700 "
-                >
-                  <FaDownload className="w-4 h-4" />
-                  Export
-                  {selectedRows.length > 0 && (
-                    <span className="px-2  text-xs rounded-full bg-white text-green-600">
-                      {selectedRows.length}
-                    </span>
-                  )}
-                </button>
-
-                {/* Dropdown Menu */}
-                {showExportDropdown && (
-                  <div className="absolute right-0 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <div className="py-1">
-                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        Export All Data
-                      </div>
-                      <button
-                        onClick={() => exportToExcel(false)}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <FaFileExcel className="w-4 h-4 text-green-600" />
-                        Excel ({filteredData.length} rows)
-                      </button>
-                      <button
-                        onClick={() => exportToPDF(false)}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <FaFilePdf className="w-4 h-4 text-red-600" />
-                        PDF ({tableData.length} rows)
-                      </button>
-                      <button
-                        onClick={() => exportToJSON(false)}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <FaFileCode className="w-4 h-4 text-blue-600" />
-                        JSON ({filteredData.length} rows)
-                      </button>
-
-                      {enableSelection && selectedRows.length > 0 && (
-                        <>
-                          <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
-                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                            Export Selected
-                          </div>
-                          <button
-                            onClick={() => exportToExcel(true)}
-                            className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                          >
-                            <FaFileExcel className="w-4 h-4 text-green-600" />
-                            Excel ({selectedRows.length} selected)
-                          </button>
-                          <button
-                            onClick={() => exportToPDF(true)}
-                            className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                          >
-                            <FaFilePdf className="w-4 h-4 text-red-600" />
-                            PDF ({selectedRows.length} selected)
-                          </button>
-                          <button
-                            onClick={() => exportToJSON(true)}
-                            className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                          >
-                            <FaFileCode className="w-4 h-4 text-blue-600" />
-                            JSON ({selectedRows.length} selected)
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Selected-only filter */}
-            {enableSelection &&
-              enableSelectedOnlyFilter &&
-              selectionMode === "rowClick" &&
-              selectedRowKeys.length > 0 && (
-                <button
-                  onClick={() => setShowSelectedOnly((v) => !v)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg transition-colors ${
-                    showSelectedOnly
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
-                  }`}
-                >
-                  {showSelectedOnly ? "Show All" : "Show Selected"}
-                  <span
-                    className={`px-2 py-0.5 text-xs rounded-full ${
-                      showSelectedOnly
-                        ? "bg-white text-blue-600"
-                        : "bg-blue-600 text-white"
-                    }`}
-                  >
-                    {selectedRowKeys.length}
-                  </span>
-                </button>
-              )}
-
-            {/* Clear selection */}
-            {enableSelection &&
-              selectionMode === "rowClick" &&
-              selectedRowKeys.length > 0 && (
-                <button
-                  onClick={clearSelection}
-                  className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                >
-                  <FaTimes className="w-4 h-4" />
-                  Clear Selection
-                </button>
-              )}
-
             {/* Column Manager */}
             <div className="relative" ref={columnManagerRef}>
               <button
@@ -1197,7 +1087,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
 
               {/* Column Manager Dropdown */}
               {showColumnManager && (
-                <div className="absolute right-0 z-10 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="absolute right-0 left-30 z-10 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                   <div className="p-4">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-3">
@@ -1276,6 +1166,124 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                 </div>
               )}
             </div>
+
+            {/* Selected-only filter */}
+            {enableSelection &&
+              enableSelectedOnlyFilter &&
+              selectionMode === "rowClick" &&
+              selectedRowKeys.length > 0 && (
+                <button
+                  onClick={() => setShowSelectedOnly((v) => !v)}
+                  className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-colors ${
+                    showSelectedOnly
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                  }`}
+                >
+                  {showSelectedOnly ? "Show All" : "Show Selected"}
+                  <span
+                    className={`px-2 py-0.5 text-xs rounded-full ${
+                      showSelectedOnly
+                        ? "bg-white text-blue-600"
+                        : "bg-blue-600 text-white"
+                    }`}
+                  >
+                    {selectedRowKeys.length}
+                  </span>
+                </button>
+              )}
+
+            {/* Clear selection */}
+            {enableSelection &&
+              selectionMode === "rowClick" &&
+              selectedRowKeys.length > 0 && (
+                <button
+                  onClick={clearSelection}
+                  className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  <FaTimes className="w-4 h-4" />
+                  Clear Selection
+                </button>
+              )}
+            {/* Export Dropdown */}
+            {enableExport && (
+              <div className="relative" ref={exportDropdownRef}>
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 text-white bg-green-600 rounded-lg hover:bg-green-700 "
+                >
+                  <FaDownload className="w-4 h-4" />
+                  Export
+                  {selectedRows.length > 0 && (
+                    <span className="px-2  text-xs rounded-full bg-white text-green-600">
+                      {selectedRows.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown Menu */}
+                {showExportDropdown && (
+                  <div className="absolute right-0 left-10 z-10 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="py-1">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                        Export All Data
+                      </div>
+                      <button
+                        onClick={() => exportToExcel(false)}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        <FaFileExcel className="w-4 h-4 text-green-600" />
+                        Excel ({filteredData.length} rows)
+                      </button>
+                      <button
+                        onClick={() => exportToPDF(false)}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        <FaFilePdf className="w-4 h-4 text-red-600" />
+                        PDF ({tableData.length} rows)
+                      </button>
+                      <button
+                        onClick={() => exportToJSON(false)}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        <FaFileCode className="w-4 h-4 text-blue-600" />
+                        JSON ({filteredData.length} rows)
+                      </button>
+
+                      {enableSelection && selectedRows.length > 0 && (
+                        <>
+                          <div className="my-1 border-t border-gray-200 dark:border-gray-700"></div>
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                            Export Selected
+                          </div>
+                          <button
+                            onClick={() => exportToExcel(true)}
+                            className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <FaFileExcel className="w-4 h-4 text-green-600" />
+                            Excel ({selectedRows.length} selected)
+                          </button>
+                          <button
+                            onClick={() => exportToPDF(true)}
+                            className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <FaFilePdf className="w-4 h-4 text-red-600" />
+                            PDF ({selectedRows.length} selected)
+                          </button>
+                          <button
+                            onClick={() => exportToJSON(true)}
+                            className="flex items-center gap-3 w-full px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <FaFileCode className="w-4 h-4 text-blue-600" />
+                            JSON ({selectedRows.length} selected)
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Custom Actions */}
             {customActions}
@@ -1413,7 +1421,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
       </div>
 
       {/* Column Manager (rendered when header is hidden) */}
-      {showColumnManager && (
+      {/* {showColumnManager && (
         <div
           style={
             columnManagerAnchorRect
@@ -1488,7 +1496,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                       <input
                         type="checkbox"
                         checked={!!columnVisibility[i]}
-                        onChange={() => toggleVisibility(i)}
+                        onChange={() => toggleColumnVisibility(i)}
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                       />
                       <span className="text-xs">
@@ -1497,16 +1505,18 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => moveColumnUp(i)}
+                        onClick={() => moveColumn(i, i - 1)}
                         className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
                         title="Move up"
+                        disabled={i === 0}
                       >
                         ▲
                       </button>
                       <button
-                        onClick={() => moveColumnDown(i)}
+                        onClick={() => moveColumn(i, i + 1)}
                         className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
                         title="Move down"
+                        disabled={i === columns.length - 1}
                       >
                         ▼
                       </button>
@@ -1526,7 +1536,7 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Data Table */}
       <div className="overflow-hidden bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -1549,7 +1559,8 @@ const AdvancedDataTable = React.forwardRef(function AdvancedDataTable<
           progressPending={loading}
           progressComponent={
             <div className="flex items-center justify-center p-20">
-              <RippleLoader />
+              {/* Replace with your actual loader or a simple spinner */}
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           }
           noDataComponent={

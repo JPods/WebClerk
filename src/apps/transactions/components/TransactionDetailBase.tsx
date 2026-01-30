@@ -11,8 +11,6 @@ import { useDispatch } from "react-redux";
 import {
   FaArrowLeft,
   FaEdit,
-  FaFileInvoice,
-  FaBoxes,
   FaAddressCard,
   FaComments,
   FaDollarSign,
@@ -21,7 +19,6 @@ import {
   FaHistory,
   FaEllipsisH,
 } from "react-icons/fa";
-import { PageHeader } from "../../../components/ui/PageHeader";
 import { showToast } from "../../../store/slices/toastSlice";
 
 // Import API functions
@@ -37,36 +34,27 @@ import TransactionToolbar, { type TransactionType } from "./TransactionToolbar";
 
 // Import shared components
 import RefsLinksContactPanel from "./RefsLinksContactPanel";
-import RefsLinksTable from "./RefsLinksTable";
 import ContactLinksTable from "./ContactLinksTable";
 import CommentsPanel from "./CommentsPanel";
 import MetadataPanel from "./MetadataPanel";
 import FinancialsCard from "./FinancialsCard";
-import FlowDiagram from "./FlowDiagram";
+
 import JsonFieldEditor from "./JsonFieldEditor";
-import JsonEnvelopesPanel from "./JsonEnvelopesPanel";
-import {
-  CustomerSelector,
-  VendorSelector,
-  ManufacturerSelector,
-} from "./PartySelector";
 
 // Import types
 import type {
-  Transaction,
+  Transaction as TransactionBase,
   TransactionLine,
-  TransactionRefs,
-  TransactionMetadata,
-  TransactionComments,
-  TransactionActions,
-  TransactionTotals,
-  TransactionCost,
-  TransactionSell,
-  TransactionFlow,
-  TransactionSource,
-  TransactionFinance,
-  TransactionPrefs,
 } from "../types/transactionTypes";
+import SummaryCard from "./SummaryCard";
+import LinesCard from "./LinesCard";
+
+// Extend Transaction type locally to ensure 'lines' exists
+type Transaction = TransactionBase & {
+  lines?: TransactionLine[];
+  currency?: string; // Add currency property
+  number?: string | number; // Add number property to fix compile error
+};
 
 // Tab definition
 export interface TransactionTab {
@@ -160,7 +148,6 @@ interface TransactionDetailBaseProps {
   dataProp?: Transaction | null;
 
   /** Callback for cancel action in inline mode */
-  onCancelInline?: () => void;
 }
 
 const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
@@ -172,7 +159,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   getCustomTabsAfter,
   renderCustomTab,
   renderHeader,
-  renderLines,
   isAdmin = false,
   canEdit = () => true,
   canClone = true,
@@ -186,8 +172,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   inline = false,
   modeProp,
   dataProp,
-  onCancelInline,
 }) => {
+  // Default no-op for handleAddItem to avoid reference error
+  const handleAddItem = () => {};
   const { id: urlId } = useParams<{ id: string }>();
   // Use dataProp ID if provided, otherwise fall back to URL param
   const id = dataProp?.id?.toString() ?? urlId;
@@ -218,6 +205,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   useEffect(() => {
     if (modeProp === "add") {
       const emptyRecord: Transaction = {
+        id: 0, // id should be a number
+        customer_id: 0,
+        vendor_id: 0,
+        manufacturer_id: 0,
         status: "planned",
         lines: [],
         refs: { links: {} },
@@ -328,13 +319,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   const tabs = useMemo(() => {
     const defaultTabs: TransactionTab[] = [
-      { id: "summary", label: "Summary", icon: <FaFileInvoice size={14} /> },
-      {
-        id: "lines",
-        label: "Lines",
-        icon: <FaBoxes size={14} />,
-        badge: lineCount || undefined,
-      },
       {
         id: "contacts",
         label: "Contacts",
@@ -422,12 +406,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         // Use transaction-specific save if data has lines, otherwise standard save
         const hasLines =
           Array.isArray(editData.lines) && editData.lines.length > 0;
-        console.log(
-          "[TransactionDetailBase.handleSave] hasLines:",
-          hasLines,
-          "lineCount:",
-          editData.lines?.length,
-        );
+        // console.log(
+        //   "[TransactionDetailBase.handleSave] hasLines:",
+        //   hasLines,
+        //   "lineCount:",
+        //   editData.lines?.length,
+        // );
         const apiResult = hasLines
           ? await saveTransactionWithLines(modelName, editData)
           : await saveRecord(modelName, editData);
@@ -469,9 +453,17 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         // Use transaction-specific save if data has lines, otherwise standard save
         const hasLines =
           Array.isArray(editData.lines) && editData.lines.length > 0;
+
         const apiResult = hasLines
-          ? await saveTransactionWithLines(modelName, editData)
-          : await saveRecord(modelName, editData);
+          ? await saveTransactionWithLines(modelName, {
+              ...editData,
+              id: data?.id,
+            })
+          : await saveRecord(modelName, {
+              ...editData,
+              id: data?.id,
+            });
+
         result = apiResult.record ?? apiResult;
       }
 
@@ -640,6 +632,14 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     usingEditData: isEditing && editData,
   });
 
+  // Handler for updating lines array in editData
+  const onLinesChange = (newLines: TransactionLine[]) => {
+    if (isEditing && editData) {
+      setEditData({ ...editData, lines: newLines });
+      setHasUnsavedChanges(true);
+    }
+  };
+
   // Render tab content
   const renderTabContent = () => {
     // Check for custom tab first
@@ -654,43 +654,24 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     }
 
     switch (activeTab) {
-      case "summary":
-        return (
-          <>
-            {renderHeader ? (
-              renderHeader(currentData, isEditing, handleFieldChange)
-            ) : (
-              <DefaultSummary
-                data={currentData}
-                isEditing={isEditing}
-                onChange={handleFieldChange}
-              />
-            )}
-            {/* Admin/Developer JSON Envelopes Panel - shows on summary tab */}
-            <JsonEnvelopesPanel
-              data={currentData as unknown as Record<string, unknown>}
-              isVisible={isAdmin}
-              isEditing={isEditing}
-            />
-          </>
-        );
-
-      case "lines":
-        return renderLines ? (
-          renderLines(
-            currentData.lines ?? [],
-            isEditing,
-            currentData,
-            (newLines) => handleFieldChange("lines", newLines),
-          )
-        ) : (
-          <DefaultLines lines={currentData.lines ?? []} isEditing={isEditing} />
-        );
-
       case "contacts":
         return (
           <RefsLinksContactPanel
-            contacts={currentData.refs?.links?.contact ?? []}
+            contacts={(currentData.refs?.links?.contact ?? []).map(
+              (c: any) => ({
+                contact_id: c.contact_id ?? c.id,
+                purpose: c.purpose,
+                attention: c.attention,
+                email: c.email,
+                phone: c.phone,
+                full: c.full,
+                domain: c.domain,
+                address_id: c.address_id,
+                email_id: c.email_id,
+                phone_id: c.phone_id,
+                domain_id: c.domain_id,
+              }),
+            )}
             isEditing={isEditing}
           />
         );
@@ -723,17 +704,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
       case "qa":
         return <QATab />;
-
-      case "flow":
-        return (
-          <FlowDiagram
-            flow={currentData.flow}
-            source={currentData.source}
-            currentId={currentData.id}
-            currentType={transactionType}
-            currentNumber={currentData.number}
-          />
-        );
 
       case "metadata":
         return isAdmin ? (
@@ -784,48 +754,35 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         );
     }
   };
-
+  const priceLable = [
+    { value: "A", label: "A - Retail" },
+    { value: "B", label: "B - Wholesale" },
+    { value: "C", label: "C - Distributor" },
+    { value: "D", label: "D - Volume" },
+    { value: "E", label: "E - Special" },
+  ];
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-          >
-            <FaArrowLeft />
-          </button>
-          <PageHeader
-            title={`${typeLabel} ${
-              (currentData as unknown as Record<string, unknown>).number ??
-              `#${currentData.id}`
-            }`}
-            breadcrumbs={[
-              { label: "Transactions", href: "/transactions" },
-              {
-                label: typeLabel + "s",
-                href: `/transactions/${transactionType}s`,
-              },
-              {
-                label: String(
-                  (currentData as unknown as Record<string, unknown>).number ??
-                    `#${currentData.id}`,
-                ),
-              },
-            ]}
-          />
-        </div>
-
+      <div className="flex items-center justify-between mb-0">
         {/* Edit Button (when not editing) */}
         {!isEditing && canEdit(data) && (
-          <button
-            onClick={handleEdit}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
-          >
-            <FaEdit size={14} />
-            Edit
-          </button>
+          <>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <FaArrowLeft />
+              </button>
+            </div>
+            <button
+              onClick={handleEdit}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <FaEdit size={14} />
+              Edit
+            </button>
+          </>
         )}
 
         {/* Unsaved Changes Indicator */}
@@ -835,10 +792,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           </span>
         )}
       </div>
-
       {/* Transaction Toolbar (when editing) - Sticky */}
       {isEditing && (
-        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6">
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 mb-6">
           <TransactionToolbar
             transactionType={transactionType as TransactionType}
             transactionId={data?.id}
@@ -850,7 +806,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             onClone={canClone ? handleClone : undefined}
             onTransfer={canTransfer ? handleTransfer : undefined}
             onPrint={handlePrint}
-            onEmail={onEmail ? handleEmail : undefined}
+            onEmail={handleEmail}
             onDelete={canDelete ? handleDelete : undefined}
             onCancel={handleCancel}
             canDelete={canDelete}
@@ -859,8 +815,92 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           />
         </div>
       )}
+      {/* QQQ Summary and Lines item  */}
+      <div className="flex items-center justify-between mb-0">
+        {renderHeader ? (
+          renderHeader(currentData, isEditing, handleFieldChange)
+        ) : (
+          <SummaryCard
+            data={currentData}
+            isEditing={isEditing}
+            onChange={handleFieldChange}
+            priceLable={priceLable}
+            customerInfo={currentData.refs?.links?.customer?.[0]}
+            billingContact={currentData.refs?.links?.contact?.find(
+              (c) => c.purpose === "billto",
+            )}
+            shippingContact={currentData.refs?.links?.contact?.find(
+              (c) => c.purpose === "shipto",
+            )}
+          />
+        )}
+      </div>
 
-      {/* Tabs */}
+      <LinesCard
+        lines={currentData.lines ?? []}
+        isEditing={isEditing}
+        isLocked={data?.is_locked}
+        onDeleteLine={(lineId) => {
+          if (typeof onLinesChange === "function") {
+            onLinesChange(
+              (currentData.lines ?? []).filter((l) => l.id !== lineId),
+            );
+          }
+        }}
+        onUpdateLine={(lineId, field, value) => {
+          if (typeof onLinesChange === "function") {
+            onLinesChange(
+              (currentData.lines ?? []).map((l) => {
+                if (l.id !== lineId) return l;
+                const baseUpdate = { ...l, _dirty: true };
+                switch (field) {
+                  case "qty":
+                    return {
+                      ...baseUpdate,
+                      quantity: { ...l.quantity, ordered: Number(value) },
+                    };
+                  case "description":
+                    return {
+                      ...baseUpdate,
+                      item: { ...l.item, description: String(value) },
+                    };
+                  case "unit_price":
+                    const newPrice = Number(value);
+                    const qty = l.quantity?.ordered ?? 0;
+                    return {
+                      ...baseUpdate,
+                      price: {
+                        ...l.price,
+                        unit: newPrice,
+                        extended: newPrice * qty,
+                      },
+                    };
+                  default:
+                    return { ...baseUpdate, [field]: value };
+                }
+              }),
+            );
+          }
+        }}
+        onDuplicateLine={(lineId) => {
+          if (typeof onLinesChange === "function") {
+            const lineToDup = (currentData.lines ?? []).find(
+              (l) => l.id === lineId,
+            );
+            if (lineToDup) {
+              const { id, ...rest } = lineToDup;
+              const newLine: TransactionLine = {
+                ...rest,
+                id: Date.now(),
+              };
+              onLinesChange([...(currentData.lines ?? []), newLine]);
+            }
+          }
+        }}
+        onLinesChange={onLinesChange}
+        onAddItem={handleAddItem}
+      />
+      {/* Tabs Navbar */}
       <div className="border-b border-slate-200 dark:border-slate-700 mb-2">
         <nav className="flex gap-1 overflow-x-auto">
           {tabs
@@ -880,7 +920,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               >
                 {tab.icon}
                 {tab.label}
-                {tab.badge !== undefined && tab.badge > 0 && (
+                {typeof tab.badge === "number" && tab.badge > 0 && (
                   <span className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">
                     {tab.badge}
                   </span>
@@ -894,184 +934,6 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
       <div className="pb-8 overflow-y-scroll max-h-[400px]">
         {renderTabContent()}
       </div>
-    </div>
-  );
-};
-
-// Default Summary Component
-const DefaultSummary: React.FC<{
-  data: Transaction;
-  isEditing: boolean;
-  onChange: (field: keyof Transaction, value: unknown) => void;
-}> = ({ data, isEditing, onChange }) => {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-          Basic Info
-        </h3>
-        <dl className="space-y-3">
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Number</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.number ?? "--"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Date</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.dt ? new Date(data.dt).toLocaleDateString() : "--"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Status</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.status ?? "--"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-slate-500 dark:text-slate-400">Reference</dt>
-            <dd className="font-medium text-slate-900 dark:text-white">
-              {data.reference ?? "--"}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-        <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-          Parties
-        </h3>
-        {isEditing ? (
-          <div className="space-y-4">
-            <CustomerSelector
-              value={data.customer_id}
-              onChange={(party) =>
-                onChange("customer_id" as keyof Transaction, party?.id ?? null)
-              }
-              label="Customer"
-              size="md"
-            />
-            <VendorSelector
-              value={data.vendor_id}
-              onChange={(party) =>
-                onChange("vendor_id" as keyof Transaction, party?.id ?? null)
-              }
-              label="Vendor"
-              size="md"
-            />
-            <ManufacturerSelector
-              value={data.manufacturer_id}
-              onChange={(party) =>
-                onChange(
-                  "manufacturer_id" as keyof Transaction,
-                  party?.id ?? null,
-                )
-              }
-              label="Manufacturer"
-              size="md"
-            />
-          </div>
-        ) : (
-          <dl className="space-y-3">
-            <div className="flex justify-between">
-              <dt className="text-slate-500 dark:text-slate-400">Customer</dt>
-              <dd className="font-medium text-slate-900 dark:text-white">
-                {data.refs?.links?.customer?.[0]?.name ??
-                  data.customer_id ??
-                  "--"}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500 dark:text-slate-400">Vendor</dt>
-              <dd className="font-medium text-slate-900 dark:text-white">
-                {data.refs?.links?.vendor?.[0]?.name ?? data.vendor_id ?? "--"}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500 dark:text-slate-400">
-                Manufacturer
-              </dt>
-              <dd className="font-medium text-slate-900 dark:text-white">
-                {data.refs?.links?.manufacturer?.[0]?.name ??
-                  data.manufacturer_id ??
-                  "--"}
-              </dd>
-            </div>
-          </dl>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Default Lines Component
-const DefaultLines: React.FC<{
-  lines: TransactionLine[];
-  isEditing: boolean;
-}> = ({ lines, isEditing }) => {
-  if (!lines.length) {
-    return (
-      <div className="text-center py-12 text-slate-400">
-        <FaBoxes size={32} className="mx-auto mb-3 opacity-50" />
-        <p>No line items</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-slate-50 dark:bg-slate-900/50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              #
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Item
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Description
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Qty
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Price
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Total
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-          {lines.map((line, idx) => (
-            <tr
-              key={line.id ?? idx}
-              className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-            >
-              <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
-                {line.line_no ?? idx + 1}
-              </td>
-              <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
-                {line.item_code ?? "--"}
-              </td>
-              <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                {line.description ?? "--"}
-              </td>
-              <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">
-                {line.qty ?? "--"}
-              </td>
-              <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-white">
-                {line.price != null ? `$${line.price.toFixed(2)}` : "--"}
-              </td>
-              <td className="px-4 py-3 text-sm text-right font-medium text-slate-900 dark:text-white">
-                {line.total != null ? `$${line.total.toFixed(2)}` : "--"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 };
