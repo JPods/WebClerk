@@ -1697,8 +1697,8 @@ class SaveWcapiView(APIView):
             comm_models = {"email", "phone", "address", "location", "domain"}
             if model_key.lower() in comm_models:
                 bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
-                if user and getattr(user, "is_authenticated", False):
-                    contact = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
+                if request.user and getattr(request.user, "is_authenticated", False):
+                    contact = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
                 if contact:
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
                     denorm = {f: getattr(obj, f, None) for f in fields}
