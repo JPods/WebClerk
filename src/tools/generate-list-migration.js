@@ -50,7 +50,7 @@ const MODEL_CONFIGS = {
   'requisition': { title: 'Requisition', fields: ['id', 'req_no', 'status', 'date', 'total'] },
   'workorder': { title: 'Work Order', fields: ['id', 'wo_no', 'status', 'date', 'total'] },
   'project': { title: 'Project', fields: ['id', 'name', 'status', 'start_date', 'end_date'] },
-  'purchase_receipt': { title: 'Purchase Receipt', fields: ['id', 'receipt_no', 'po', 'date', 'status'] },
+  'purchase_receipt': { title: 'Purchase Receipt', fields: ['id', 'ida', 'po', 'date', 'status'] },
   
   // Accounts
   'ledger': { title: 'Ledger', fields: ['id', 'name', 'code', 'type', 'balance'] },

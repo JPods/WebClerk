@@ -90,6 +90,11 @@ import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalD
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
 import PurchaseOrderList from "../apps/transactions/models/purchase/pages/PurchaseOrderList";
 import OrderList from "../apps/transactions/models/order/pages/OrderList";
+import WorkorderList from "../apps/transactions/models/workorder/pages/WorkorderList";
+import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
+import PurchaseReceiptList from "../apps/transactions/models/receipt/pages/PurchaseReceiptList";
+import PurchaseReceiptDetail from "../apps/transactions/models/receipt/pages/PurchaseReceiptDetail";
+import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -339,6 +344,26 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.transactionsProposalDetail}
             element={<ProposalDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsWorkOrderList}
+            element={<WorkorderList />}
+          />
+          <Route
+            path={PageRoutes.transactionsWorkOrderDetail}
+            element={<WorkorderDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsReceiptList}
+            element={<PurchaseReceiptList />}
+          />
+          <Route
+            path={PageRoutes.transactionsReceiptDetail}
+            element={<PurchaseReceiptDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsAdjustmentList}
+            element={<InventoryAdjustmentList />}
           />
           {/* Accounts */}
           <Route path={PageRoutes.auditList} element={<AuditList />} />

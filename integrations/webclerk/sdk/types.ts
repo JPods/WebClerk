@@ -3935,7 +3935,7 @@ export interface components {
             serial_batch?: string;
         };
         ReceivePurchaseOrder: {
-            receipt_no: string;
+            receipt_id: string;
             lines: components["schemas"]["ReceiveLine"][];
         };
         Requisition: {

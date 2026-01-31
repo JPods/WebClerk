@@ -152,6 +152,9 @@ const navItems: NavItem[] = [
         name: "Purchase Orders",
         path: PageRoutes.transactionsPurchaseOrderList,
       },
+      { name: "Work Orders", path: PageRoutes.transactionsWorkOrderList },
+      { name: "Receipts", path: PageRoutes.transactionsReceiptList },
+      { name: "Adjustments", path: PageRoutes.transactionsAdjustmentList },
     ],
   },
 
