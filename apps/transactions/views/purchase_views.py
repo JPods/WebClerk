@@ -33,7 +33,6 @@ class ReceivePurchaseView(BaseJSONAPIView):
             "purchase_id": purchase_id,
             "purchase": {"id": purchase_id},
             "receipt_id": receipt_id,
-            "receipt_no": f"RCV-{receipt_id}",
             "state": "received",
             "stacks_created": stacks_created,
         }

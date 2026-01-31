@@ -118,7 +118,8 @@ PENDING_TYPE_MAP = {
     'salesorder': 'SO',
     'order': 'SO',
     'proposal': 'PP',  # Proposals don't affect inventory until converted
-    'invoice': 'IV',
+    'invoice': 'IN',
+    'receipt': 'RC',
     'purchase': 'PO',
     'purchase_order': 'PO',
     'purchaseorder': 'PO',
@@ -941,7 +942,8 @@ class LineItemService:
             'on_so': quantity if pending_type == 'SO' else 0,
             'on_po': quantity if pending_type == 'PO' else 0,
             'on_wo': quantity if pending_type == 'WO' else 0,
-            'invoiced': quantity if pending_type == 'IV' else 0,  # Invoices track shipped qty
+            'on_in': quantity if pending_type == 'IN' else 0,  # Invoices: informational, decreases on_hand
+            'on_r': quantity if pending_type == 'RC' else 0,   # Receipts: informational, increases on_hand
             'on_p': quantity * probability if pending_type == 'PP' else 0,  # Proposals track forecast
             
             # Pricing snapshot
@@ -1148,7 +1150,8 @@ class LineItemService:
             'on_so': quantity_delta if pending_type == 'SO' else 0,
             'on_po': quantity_delta if pending_type == 'PO' else 0,
             'on_wo': quantity_delta if pending_type == 'WO' else 0,
-            'invoiced': quantity_delta if pending_type == 'IV' else 0,
+            'on_in': quantity_delta if pending_type == 'IN' else 0,
+            'on_r': quantity_delta if pending_type == 'RC' else 0,
             'on_p': quantity_delta * probability if pending_type == 'PP' else 0,  # Proposals track forecast
             
             # Pricing snapshot
@@ -1247,7 +1250,8 @@ class LineItemService:
             'on_so': release_qty if pending_type == 'SO' else 0,
             'on_po': release_qty if pending_type == 'PO' else 0,
             'on_wo': release_qty if pending_type == 'WO' else 0,
-            'invoiced': release_qty if pending_type == 'IV' else 0,  # Negative = reverse
+            'on_in': release_qty if pending_type == 'IN' else 0,  # Negative = reverse
+            'on_r': release_qty if pending_type == 'RC' else 0,   # Negative = reverse
             'on_p': release_qty * probability if pending_type == 'PP' else 0,  # Proposals track forecast
             
             # Pricing snapshot

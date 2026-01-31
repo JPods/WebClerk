@@ -66,6 +66,45 @@ Core transfer utilities in `apps/transactions/services/`:
 - `order_to_invoice.py`: Converts orders to invoices
 - `flow.py`: Core transfer utilities and inventory receiving
 
+### Inventory Receiving Functions
+
+The `flow.py` module provides specialized functions for inventory receiving:
+
+| Function | Source Type | Use Case |
+|----------|-------------|----------|
+| `receive_purchase_order()` | Purchase Order | Receiving goods from vendors |
+| `complete_workorder()` | Work Order | Completing manufacturing |
+| `adjust_inventory()` | Manual | Adjustments, cycle counts, write-offs |
+| `receive_inventory_changes()` | Dispatcher | High-level routing to above functions |
+
+Example usage:
+
+```python
+from apps.transactions.services.flow import (
+    receive_purchase_order, ReceiveLine,
+    complete_workorder, CompleteWorkOrderLine,
+    adjust_inventory, AdjustmentLine,
+    receive_inventory_changes
+)
+
+# Receive against a PO
+lines = [ReceiveLine(po_line_id=123, qty=10, warehouse_code='MAIN')]
+receive_purchase_order(po, 'RCV-001', lines)
+
+# Complete a workorder
+lines = [CompleteWorkOrderLine(wo_line_id=456, qty_completed=50, warehouse_code='FG')]
+complete_workorder(wo, 'WO-COMP-001', lines)
+
+# Manual adjustment
+lines = [AdjustmentLine(item_id=100, qty_delta=-5, warehouse_code='MAIN', reason='damage')]
+adjust_inventory('ADJ-001', lines, notes='Damaged in shipping')
+
+# Or use the dispatcher
+receive_inventory_changes('purchase', po, 'RCV-002', receive_lines)
+```
+
+See [Inventory Deltas](../inventory/inventory_deltas.md#inventory-receiving-functions) for detailed documentation.
+
 ### Totals Calculation
 
 Automatic computation of sell/cost/totals from lines using patterns from WebClerk2:

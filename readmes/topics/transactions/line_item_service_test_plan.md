@@ -3,11 +3,21 @@
 ### Scope
 Tests LineItemService across proposals, sales orders, invoices, purchase orders, and work orders using items 246, 247, 248 with quantity.placed = 3.
 
-### Matrix
-Transactions tested:
-- Proposal
-- Sales Order
-- Invoice
+### Pending Type Mapping
+
+| Transaction Type | Type Code | Quantity Bucket |
+|------------------|-----------|-----------------|
+| Order | SO | on_so |
+| Proposal | PP | on_p |
+| Invoice | IN | on_in |
+| Receipt | RC | on_r |
+| Purchase | PO | on_po |
+| WorkOrder | WO | on_wo |
+
+**Note:** Invoice (IN) and Receipt (RC) also affect `on_hand`:
+- Invoice: decreases on_hand (goods shipped)
+- Receipt: increases on_hand (goods received)
+
 - Purchase Order
 - Work Order
 
