@@ -9,8 +9,8 @@ Tracks item.quantity fields:
   - on_so:      On Sales Order (pending orders)
   - on_po:      On Purchase Order (incoming)
   - on_p:       On Proposal (quotes)
-  - on_reciept: On Receipt (pending receipts)
-  - on_in:      On Invoice (pending invoices)
+  - on_r:       On Receipt (informational - tracks qty received)
+  - on_in:      On Invoice (informational - tracks qty invoiced)
   - on_wo:      On Work Order (manufacturing)
 
 INVENTORY FLOW:
@@ -24,6 +24,9 @@ Usage:
     python tools/inventory_tester.py create order 5      # Create order with qty 5
     python tools/inventory_tester.py create purchase 10  # Create purchase with qty 10
     python tools/inventory_tester.py create proposal 3   # Create proposal with qty 3
+    python tools/inventory_tester.py create invoice 3    # Create invoice with qty 3
+    python tools/inventory_tester.py create workorder 3  # Create workorder with qty 3
+    python tools/inventory_tester.py create receipt 3    # Create receipt with qty 3 (receives goods)
     python tools/inventory_tester.py process_pending     # Process pending → update item quantities
     python tools/inventory_tester.py log "Test note"     # Add log entry with snapshot
     python tools/inventory_tester.py history             # Show all logged events
@@ -58,7 +61,7 @@ ITEM_ID = 240
 LOG_DIR = PROJECT_ROOT / 'logs' / 'inventory_tests'
 
 # All quantity keys we track from item.quantity JSON field
-QUANTITY_KEYS = ['on_hand', 'allocated', 'available', 'on_so', 'on_po', 'on_p', 'on_reciept', 'on_in', 'on_wo']
+QUANTITY_KEYS = ['on_hand', 'allocated', 'available', 'on_so', 'on_po', 'on_p', 'on_r', 'on_in', 'on_wo']
 
 
 def get_daily_log_paths():
@@ -401,8 +404,8 @@ def print_status():
     print(f"  {'on_so':<15} {snapshot.get('qty_on_so', 0):>12.2f}  On Sales Orders")
     print(f"  {'on_po':<15} {snapshot.get('qty_on_po', 0):>12.2f}  On Purchase Orders")
     print(f"  {'on_p':<15} {snapshot.get('qty_on_p', 0):>12.2f}  On Proposals")
-    print(f"  {'on_reciept':<15} {snapshot.get('qty_on_reciept', 0):>12.2f}  On Receipts")
-    print(f"  {'on_in':<15} {snapshot.get('qty_on_in', 0):>12.2f}  On Invoices")
+    print(f"  {'on_r':<15} {snapshot.get('qty_on_r', 0):>12.2f}  On Receipts (informational)")
+    print(f"  {'on_in':<15} {snapshot.get('qty_on_in', 0):>12.2f}  On Invoices (informational)")
     print(f"  {'on_wo':<15} {snapshot.get('qty_on_wo', 0):>12.2f}  On Work Orders")
     
     print(f"\n  Transaction Counts:")
@@ -657,6 +660,138 @@ def create_proposal(quantity: float):
     return proposal, line
 
 
+def create_invoice(quantity: float):
+    """Create an Invoice with item 240 using LineItemService."""
+    from apps.transactions.models import Invoice
+    from apps.transactions.services.line_item_service import LineItemService
+    
+    with transaction.atomic():
+        invoice = Invoice.objects.create(status='draft')
+        
+        # Use LineItemService to properly create pending records for inventory tracking
+        service = LineItemService(create_pending=True)
+        line = service.add_item_to_transaction(
+            transaction=invoice,
+            item_id=ITEM_ID,
+            quantity=quantity,
+        )
+    
+    # Get the pending record that was just created
+    pending_info = get_latest_pending_for_item()
+    
+    entry = add_log_entry(
+        event_type="INVOICE_CREATED",
+        description=f"Created Invoice #{invoice.pk} with {quantity} units of item {ITEM_ID}",
+        transaction_info={"type": "invoice", "id": invoice.pk, "line_id": line.pk, "quantity": quantity},
+        pending_info=pending_info,
+    )
+    
+    print(f"\n✓ Created Invoice #{invoice.pk} with Line #{line.pk}")
+    print(f"  Quantity: {quantity}")
+    if pending_info:
+        print(f"  Pending Record Created: #{pending_info['id']} purpose={pending_info['purpose']}")
+    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_in")
+    print_status()
+    
+    return invoice, line
+
+
+def create_workorder(quantity: float):
+    """Create a WorkOrder with item 240 using LineItemService."""
+    from apps.transactions.models import WorkOrder
+    from apps.transactions.services.line_item_service import LineItemService
+    
+    with transaction.atomic():
+        workorder = WorkOrder.objects.create(status='draft')
+        
+        # Use LineItemService to properly create pending records for inventory tracking
+        service = LineItemService(create_pending=True)
+        line = service.add_item_to_transaction(
+            transaction=workorder,
+            item_id=ITEM_ID,
+            quantity=quantity,
+        )
+    
+    # Get the pending record that was just created
+    pending_info = get_latest_pending_for_item()
+    
+    entry = add_log_entry(
+        event_type="WORKORDER_CREATED",
+        description=f"Created WorkOrder #{workorder.pk} with {quantity} units of item {ITEM_ID}",
+        transaction_info={"type": "workorder", "id": workorder.pk, "line_id": line.pk, "quantity": quantity},
+        pending_info=pending_info,
+    )
+    
+    print(f"\n✓ Created WorkOrder #{workorder.pk} with Line #{line.pk}")
+    print(f"  Quantity: {quantity}")
+    if pending_info:
+        print(f"  Pending Record Created: #{pending_info['id']} purpose={pending_info['purpose']}")
+    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_wo")
+    print_status()
+    
+    return workorder, line
+
+
+def create_receipt(quantity: float):
+    """Create a Receipt with item 240 using LineItemService.
+    
+    Note: Receipts increase on_hand and track the informational on_r field.
+    Unlike the receive_purchase_order flow (which receives against a PO),
+    this creates a standalone receipt for testing the on_r pending flow.
+    """
+    from apps.transactions.models.receipt import Receipt
+    from apps.transactions.services.line_item_service import LineItemService
+    
+    with transaction.atomic():
+        receipt = Receipt.objects.create()
+        
+        # Use LineItemService to properly create pending records for inventory tracking
+        service = LineItemService(create_pending=True)
+        # Receipt doesn't have a standard line model, so we'll create a pending record directly
+        # This simulates a receipt that would increase on_hand via the pending processor
+        from apps.core.models.pending import Pending
+        from django.utils import timezone
+        
+        pending = Pending.objects.create(
+            model_name='item',
+            record_id=str(ITEM_ID),
+            purpose='receipt_line_add',
+            name=f"Receipt line add for item {ITEM_ID}",
+            data={
+                'item_id': ITEM_ID,
+                'quantity': float(quantity),
+                'on_r': float(quantity),  # Informational - tracks received qty
+                # Note: Receipts INCREASE on_hand (opposite of invoices)
+                'source_type': 'receipt',
+                'source_id': receipt.pk,
+            }
+        )
+    
+    # Get the pending record that was just created
+    pending_info = {
+        "id": pending.pk,
+        "purpose": pending.purpose,
+        "data": pending.data,
+        "dt_processed": None,
+    }
+    
+    entry = add_log_entry(
+        event_type="RECEIPT_CREATED",
+        description=f"Created Receipt #{receipt.pk} with {quantity} units of item {ITEM_ID}",
+        transaction_info={"type": "receipt", "id": receipt.pk, "quantity": quantity},
+        pending_info=pending_info,
+    )
+    
+    print(f"\n✓ Created Receipt #{receipt.pk}")
+    print(f"  Quantity: {quantity}")
+    if pending_info:
+        print(f"  Pending Record Created: #{pending_info['id']} purpose={pending_info['purpose']}")
+    print(f"  NOTE: Run 'process_pending' to update item.quantity.on_r and on_hand")
+    print_status()
+    
+    return receipt, pending
+
+
 def process_pending():
     """Process pending inventory records for item 240."""
     from apps.transactions.services.pending_inventory_processor import process_pending_for_item
@@ -753,7 +888,7 @@ def main():
     
     elif command == 'create':
         if len(sys.argv) < 4:
-            print("Usage: create <order|purchase|proposal> <quantity>")
+            print("Usage: create <order|purchase|proposal|invoice|workorder> <quantity>")
             return
         
         tx_type = sys.argv[2].lower()
@@ -765,6 +900,12 @@ def main():
             create_purchase(quantity)
         elif tx_type == 'proposal':
             create_proposal(quantity)
+        elif tx_type == 'invoice':
+            create_invoice(quantity)
+        elif tx_type in ('workorder', 'wo'):
+            create_workorder(quantity)
+        elif tx_type == 'receipt':
+            create_receipt(quantity)
         else:
             print(f"Unknown transaction type: {tx_type}")
     

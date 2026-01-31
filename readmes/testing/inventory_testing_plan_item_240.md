@@ -23,12 +23,24 @@ Track and verify inventory behavior across the transaction lifecycle for **item_
 ## Inventory Fields to Monitor
 
 ### Item Record (apps.products.models.item.Item)
-| Field | Description |
-|-------|-------------|
-| `quantity_on_hand` | Physical inventory available |
-| `quantity_reserved` | Reserved for orders |
-| `quantity_on_order` | Ordered from vendors (PO) |
-| `quantity_available` | on_hand - reserved |
+
+The `Item.quantity` JSON field tracks multiple buckets:
+
+| Field | Type Code | Description |
+|-------|-----------|-------------|
+| `on_hand` | - | Physical inventory available |
+| `allocated` | - | Reserved/committed for orders |
+| `available` | - | Computed: on_hand - allocated |
+| `on_so` | SO | On Sales Orders |
+| `on_po` | PO | On Purchase Orders |
+| `on_p` | PP | On Proposals |
+| `on_wo` | WO | On Work Orders |
+| `on_in` | IN | Invoiced (informational) |
+| `on_r` | RC | Received (informational) |
+
+**Note:** `on_in` and `on_r` are informational - the real inventory change flows through `on_hand`:
+- Invoices: decrease on_hand (goods shipped)
+- Receipts: increase on_hand (goods received)
 
 ### Pending Records (apps.core.models.pending.Pending)
 | Field | Description |
@@ -107,7 +119,7 @@ print(f'Created Purchase {po.pk} with Line {line.pk}')
 ```
 
 ### Scenario 3: Purchase Receipt
-**Expected:** Increases quantity_on_hand, decreases quantity_on_order, creates inventory layer
+**Expected:** Increases on_hand, decreases on_po, creates inventory layer
 
 ```bash
 # Receive purchase (requires existing PO)
@@ -120,6 +132,40 @@ lines = [
     ReceiveLine(po_line_id=<LINE_ID>, qty=10, warehouse_code='MAIN')
 ]
 result = receive_purchase_order(po, 'RCV-TEST-001', lines)
+print(result)
+"
+```
+
+### Scenario 3b: WorkOrder Completion
+**Expected:** Increases on_hand, decreases on_wo, creates inventory layer for finished goods
+
+```bash
+# Complete workorder (requires existing WO)
+python manage.py shell -c "
+from apps.transactions.services.flow import complete_workorder, CompleteWorkOrderLine
+from apps.transactions.models import WorkOrder
+
+wo = WorkOrder.objects.get(pk=<WO_ID>)  # Replace with actual WO ID
+lines = [
+    CompleteWorkOrderLine(wo_line_id=<LINE_ID>, qty_completed=10, warehouse_code='FG')
+]
+result = complete_workorder(wo, 'WO-COMP-001', lines)
+print(result)
+"
+```
+
+### Scenario 3c: Inventory Adjustment
+**Expected:** Adjusts on_hand directly (positive adds, negative removes)
+
+```bash
+# Manual inventory adjustment
+python manage.py shell -c "
+from apps.transactions.services.flow import adjust_inventory, AdjustmentLine
+
+lines = [
+    AdjustmentLine(item_id=240, qty_delta=5, warehouse_code='MAIN', reason='cycle_count'),
+]
+result = adjust_inventory('ADJ-001', lines, notes='Monthly cycle count')
 print(result)
 "
 ```

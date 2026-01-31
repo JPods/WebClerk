@@ -259,7 +259,7 @@ def order_to_purchase_order(so: Order, po_no: Optional[str] = None) -> Purchase:
     return po
 
 
-def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine) -> Optional[int]:
+def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine | WorkOrderLine) -> Optional[int]:
     item = getattr(line, 'item', {}) or {}
     # Prefer id_num, fallback: try 'id' or 'item_id' if present
     return item.get('id_num') or item.get('id') or item.get('item_id')
@@ -267,7 +267,7 @@ def _resolve_item_id_from_line(line: PurchaseLine | OrderLine | ProposalLine) ->
 
 @transaction.atomic
 def receive_purchase_order(po: Purchase,
-                           receipt_no: str,
+                           receipt_id: str,
                            lines: Sequence[ReceiveLine]) -> dict:
     """Post a receipt for a PO, create inventory stacks, and inventory deltas.
 
@@ -276,17 +276,27 @@ def receive_purchase_order(po: Purchase,
     - Decreases quantity_on_po
     - Creates inventory layer stacks for warehouse tracking
 
+    Args:
+        po: The Purchase order being received against
+        receipt_id: Client-provided receipt identifier (stored in ida field)
+        lines: Sequence of ReceiveLine objects with qty, warehouse, etc.
+
     Returns a summary dict with created receipt id, stack ids, and deltas created.
+
+    See also:
+        - complete_workorder: For workorder completion (manufacturing)
+        - adjust_inventory: For manual inventory adjustments
+        - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
     from apps.transactions.models.receipt import Receipt
     from apps.core.models.pending import Pending
     from django.utils import timezone
     import uuid
 
-    if not receipt_no:
-        raise ValidationError({'receipt_no': 'Required'})
+    if not receipt_id:
+        raise ValidationError({'receipt_id': 'Required'})
 
-    receipt = Receipt.objects.create(receipt_no=receipt_no)
+    receipt = Receipt.objects.create(ida=receipt_id)
     created_stack_ids: list[int] = []
     deltas_created = 0
 
@@ -341,7 +351,7 @@ def receive_purchase_order(po: Purchase,
                 'source_id': receipt.id,
                 'source_line_id': pol.id,
                 'unit_cost': unit_cost,
-                'notes': f"Purchase receipt {receipt.receipt_no} - received {qty_received} units",
+                'notes': f"Purchase receipt {receipt.ida} - received {qty_received} units",
                 'created_at': timezone.now().isoformat()
             }
         )
@@ -363,10 +373,316 @@ def receive_purchase_order(po: Purchase,
     }
 
 
+# ---------------------------------------------------------------------------
+# WorkOrder Completion - produces finished goods into inventory
+# ---------------------------------------------------------------------------
+@dataclass
+class CompleteWorkOrderLine:
+    """Data for completing a workorder line (producing finished goods)."""
+    wo_line_id: int
+    qty_completed: Decimal | float | int
+    warehouse_code: str
+    unit_cost: float | int | Decimal | None = None
+    lot: str | None = None
+    serial_batch: str | None = None
+
+
+@transaction.atomic
+def complete_workorder(wo: WorkOrder,
+                       receipt_id: str,
+                       lines: Sequence[CompleteWorkOrderLine]) -> dict:
+    """Complete a WorkOrder, producing finished goods into inventory.
+
+    When a workorder is completed:
+    - Increases quantity_on_hand (finished goods produced)
+    - Decreases quantity_on_wo (no longer in WIP)
+    - Creates inventory layer stacks for warehouse tracking
+
+    Args:
+        wo: The WorkOrder being completed
+        receipt_id: Client-provided receipt identifier (stored in ida field)
+        lines: Sequence of CompleteWorkOrderLine objects with qty, warehouse, etc.
+
+    Returns a summary dict with created receipt id, stack ids, and deltas created.
+
+    See also:
+        - receive_purchase_order: For receiving goods from vendors (PO)
+        - adjust_inventory: For manual inventory adjustments
+        - receive_inventory_changes: High-level dispatcher for all receiving actions
+    """
+    from apps.transactions.models.receipt import Receipt
+    from apps.core.models.pending import Pending
+    from django.utils import timezone
+    import uuid
+
+    if not receipt_id:
+        raise ValidationError({'receipt_id': 'Required'})
+
+    receipt = Receipt.objects.create(ida=receipt_id)
+    created_stack_ids: list[int] = []
+    deltas_created = 0
+
+    for cl in lines:
+        try:
+            wol = WorkOrderLine.objects.select_related('workorder_id').get(pk=cl.wo_line_id, workorder_id=wo)
+        except WorkOrderLine.DoesNotExist:
+            raise ValidationError({'lines': f'wo_line_id {cl.wo_line_id} not found for this WorkOrder'})
+        
+        item_id = _resolve_item_id_from_line(wol)
+        if not item_id:
+            raise ValidationError({'lines': f'wo_line_id {cl.wo_line_id} missing item.id_num in line.item JSON'})
+        try:
+            item = Item.objects.get(pk=item_id)
+        except Item.DoesNotExist:
+            raise ValidationError({'lines': f'Item {item_id} not found'})
+        try:
+            wh = Warehouse.objects.get(code=cl.warehouse_code)
+        except Warehouse.DoesNotExist:
+            raise ValidationError({'lines': f'Warehouse code {cl.warehouse_code} not found'})
+
+        # Create inventory layer stack for warehouse tracking
+        stack = InventoryLayer.objects.create(
+            item=item,
+            warehouse=wh,
+            quantity={'received': float(cl.qty_completed), 'issued': 0, 'scrapped': 0},
+            lot=cl.lot or '',
+            serial_batch=cl.serial_batch or '',
+            source_doc_type='workorder_completion',
+            source_doc_id=receipt.id,  # type: ignore[attr-defined]
+        )
+        # Use provided unit_cost or estimate from workorder line cost
+        unit_cost = float(cl.unit_cost) if cl.unit_cost is not None else float((wol.cost or {}).get('unit') or 0)
+        stack.update_cost_after_receipt(unit_cost)
+        stack.save()
+        created_stack_ids.append(stack.id)
+
+        # Create inventory delta for item-level quantity tracking
+        qty_completed = Decimal(str(cl.qty_completed))
+        record_id = f"{item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
+
+        Pending.objects.create(
+            model_name='inventory_delta',
+            record_id=record_id,
+            purpose='inventory_delta',
+            name=f"Inventory delta for item {item_id}",
+            data={
+                'item_id': item_id,
+                'warehouse_id': wh.id,
+                'quantity_on_hand_delta': float(qty_completed),  # Increase on-hand (produced)
+                'quantity_on_wo_delta': -float(qty_completed),   # Decrease on-WO (no longer WIP)
+                'source_type': 'workorder_completion',
+                'source_id': receipt.id,
+                'source_line_id': wol.id,
+                'unit_cost': unit_cost,
+                'notes': f"WorkOrder completion {receipt.ida} - produced {qty_completed} units",
+                'created_at': timezone.now().isoformat()
+            }
+        )
+        deltas_created += 1
+
+        # Optional: update WO line completed quantity hint
+        if isinstance(wol.quantity, dict):
+            prev = wol.quantity.get('completed') or 0
+            try:
+                wol.quantity['completed'] = float(prev) + float(cl.qty_completed)
+            except Exception:
+                wol.quantity['completed'] = float(cl.qty_completed)
+            wol.save(update_fields=['quantity', 'dt_modified', 'version'])
+
+    return {
+        'receipt_id': receipt.id,  # type: ignore[attr-defined]
+        'stacks_created': created_stack_ids,
+        'deltas_created': deltas_created
+    }
+
+
+# ---------------------------------------------------------------------------
+# Inventory Adjustment - manual corrections, cycle counts, write-offs
+# ---------------------------------------------------------------------------
+@dataclass
+class AdjustmentLine:
+    """Data for an inventory adjustment line."""
+    item_id: int
+    qty_delta: Decimal | float | int  # Positive = add, Negative = remove
+    warehouse_code: str
+    reason: str  # e.g., 'cycle_count', 'damage', 'shrinkage', 'found'
+    unit_cost: float | int | Decimal | None = None
+    lot: str | None = None
+    serial_batch: str | None = None
+
+
+@transaction.atomic
+def adjust_inventory(adjustment_id: str,
+                     lines: Sequence[AdjustmentLine],
+                     notes: str = '') -> dict:
+    """Perform manual inventory adjustments.
+
+    Used for:
+    - Cycle count corrections
+    - Damage/shrinkage write-offs
+    - Found inventory additions
+    - Opening balance entries
+
+    Args:
+        adjustment_id: Client-provided adjustment identifier (stored in receipt.ida)
+        lines: Sequence of AdjustmentLine objects with item, qty_delta, warehouse
+        notes: Optional overall notes for the adjustment
+
+    Returns a summary dict with created receipt id, stack ids, and deltas created.
+
+    See also:
+        - receive_purchase_order: For receiving goods from vendors (PO)
+        - complete_workorder: For workorder completion (manufacturing)
+        - receive_inventory_changes: High-level dispatcher for all receiving actions
+    """
+    from apps.transactions.models.receipt import Receipt
+    from apps.core.models.pending import Pending
+    from django.utils import timezone
+    import uuid
+
+    if not adjustment_id:
+        raise ValidationError({'adjustment_id': 'Required'})
+
+    receipt = Receipt.objects.create(ida=adjustment_id)
+    created_stack_ids: list[int] = []
+    deltas_created = 0
+
+    for al in lines:
+        try:
+            item = Item.objects.get(pk=al.item_id)
+        except Item.DoesNotExist:
+            raise ValidationError({'lines': f'Item {al.item_id} not found'})
+        try:
+            wh = Warehouse.objects.get(code=al.warehouse_code)
+        except Warehouse.DoesNotExist:
+            raise ValidationError({'lines': f'Warehouse code {al.warehouse_code} not found'})
+
+        qty_delta = Decimal(str(al.qty_delta))
+        
+        # Create inventory layer stack for positive adjustments only
+        if qty_delta > 0:
+            stack = InventoryLayer.objects.create(
+                item=item,
+                warehouse=wh,
+                quantity={'received': float(qty_delta), 'issued': 0, 'scrapped': 0},
+                lot=al.lot or '',
+                serial_batch=al.serial_batch or '',
+                source_doc_type='inventory_adjustment',
+                source_doc_id=receipt.id,  # type: ignore[attr-defined]
+            )
+            unit_cost = float(al.unit_cost) if al.unit_cost is not None else 0.0
+            if unit_cost > 0:
+                stack.update_cost_after_receipt(unit_cost)
+            stack.save()
+            created_stack_ids.append(stack.id)
+
+        # Create inventory delta for item-level quantity tracking
+        record_id = f"{al.item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
+
+        Pending.objects.create(
+            model_name='inventory_delta',
+            record_id=record_id,
+            purpose='inventory_delta',
+            name=f"Inventory adjustment for item {al.item_id}",
+            data={
+                'item_id': al.item_id,
+                'warehouse_id': wh.id,
+                'quantity_on_hand_delta': float(qty_delta),  # Direct on-hand change
+                'source_type': 'inventory_adjustment',
+                'source_id': receipt.id,
+                'adjustment_reason': al.reason,
+                'unit_cost': float(al.unit_cost) if al.unit_cost else None,
+                'notes': f"Inventory adjustment {receipt.ida} - {al.reason}: {qty_delta:+} units" + (f" - {notes}" if notes else ""),
+                'created_at': timezone.now().isoformat()
+            }
+        )
+        deltas_created += 1
+
+    return {
+        'receipt_id': receipt.id,  # type: ignore[attr-defined]
+        'stacks_created': created_stack_ids,
+        'deltas_created': deltas_created
+    }
+
+
+# ---------------------------------------------------------------------------
+# High-Level Dispatcher - routes to appropriate handler by source type
+# ---------------------------------------------------------------------------
+def receive_inventory_changes(source_type: str,
+                              source: Purchase | WorkOrder | None,
+                              receipt_id: str,
+                              lines: Sequence[ReceiveLine | CompleteWorkOrderLine | AdjustmentLine]) -> dict:
+    """High-level dispatcher for inventory receiving operations.
+
+    Routes to the appropriate handler based on source_type:
+    - 'purchase' -> receive_purchase_order()
+    - 'workorder' -> complete_workorder()
+    - 'adjustment' -> adjust_inventory()
+
+    Args:
+        source_type: One of 'purchase', 'workorder', 'adjustment'
+        source: The source transaction (Purchase or WorkOrder), None for adjustments
+        receipt_id: Client-provided receipt identifier
+        lines: Sequence of line objects (type must match source_type)
+
+    Returns a summary dict from the appropriate handler.
+
+    Raises:
+        ValidationError: If source_type is invalid or lines don't match expected type
+
+    Example:
+        # Receive against a PO
+        receive_inventory_changes('purchase', po, 'RCV-001', receive_lines)
+        
+        # Complete a workorder
+        receive_inventory_changes('workorder', wo, 'WO-COMP-001', complete_lines)
+        
+        # Manual adjustment
+        receive_inventory_changes('adjustment', None, 'ADJ-001', adjustment_lines)
+
+    See also:
+        - receive_purchase_order: Direct call for PO receiving
+        - complete_workorder: Direct call for workorder completion
+        - adjust_inventory: Direct call for manual adjustments
+    """
+    if source_type == 'purchase':
+        if not isinstance(source, Purchase):
+            raise ValidationError({'source': 'Expected Purchase instance for source_type=purchase'})
+        return receive_purchase_order(source, receipt_id, lines)  # type: ignore[arg-type]
+    
+    elif source_type == 'workorder':
+        if not isinstance(source, WorkOrder):
+            raise ValidationError({'source': 'Expected WorkOrder instance for source_type=workorder'})
+        return complete_workorder(source, receipt_id, lines)  # type: ignore[arg-type]
+    
+    elif source_type == 'adjustment':
+        return adjust_inventory(receipt_id, lines)  # type: ignore[arg-type]
+    
+    else:
+        raise ValidationError({'source_type': f"Invalid source_type '{source_type}'. Expected: purchase, workorder, adjustment"})
+
+
 __all__ = [
+    # Data classes for line input
     'ReceiveLine',
+    'CompleteWorkOrderLine',
+    'AdjustmentLine',
+    # Transaction flow conversions
+    'proposal_to_order',
+    'order_to_invoice',
+    'order_to_purchase_order',
+    # Inventory receiving functions
+    'receive_purchase_order',
+    'complete_workorder',
+    'adjust_inventory',
+    'receive_inventory_changes',
+    # Legacy aliases (deprecated)
     'proposal_to_sales_order',
     'sales_order_to_invoice',
     'sales_order_to_purchase_order',
-    'receive_purchase_order',
 ]
+
+# Legacy aliases for backwards compatibility
+proposal_to_sales_order = proposal_to_order
+sales_order_to_invoice = order_to_invoice
+sales_order_to_purchase_order = order_to_purchase_order

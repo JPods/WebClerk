@@ -2,7 +2,7 @@
 Pending Inventory Processor for Line Item Changes.
 
 Processes Pending records created by LineItemService to update Item
-inventory quantities (on_so, on_po, on_wo, invoiced, etc.).
+inventory quantities (on_so, on_po, on_wo, on_in, on_r, etc.).
 
 This decouples transaction line changes from Item record updates,
 reducing lock contention and improving throughput.
@@ -49,6 +49,7 @@ HANDLED_PURPOSES = (
     'inventory_qty_change',
     'inventory_line_delete',
     'inventory_cost_change',
+    'receipt_line_add',  # Direct receipt creation (not through LineItemService)
 )
 
 
@@ -219,7 +220,8 @@ def _process_pending_for_item(
         on_po_delta = Decimal('0')
         on_wo_delta = Decimal('0')
         on_p_delta = Decimal('0')
-        invoiced_delta = Decimal('0')
+        on_in_delta = Decimal('0')
+        on_r_delta = Decimal('0')
         
         for pending in pending_records:
             data = pending.data or {}
@@ -227,11 +229,12 @@ def _process_pending_for_item(
             on_po_delta += Decimal(str(data.get('on_po', 0) or 0))
             on_wo_delta += Decimal(str(data.get('on_wo', 0) or 0))
             on_p_delta += Decimal(str(data.get('on_p', 0) or 0))
-            invoiced_delta += Decimal(str(data.get('invoiced', 0) or 0))
+            on_in_delta += Decimal(str(data.get('on_in', 0) or data.get('invoiced', 0) or 0))  # Support both keys for backwards compat
+            on_r_delta += Decimal(str(data.get('on_r', 0) or 0))
         
         logger.debug(
             f"Item {item_pk}: SO={on_so_delta:+}, PO={on_po_delta:+}, "
-            f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IV={invoiced_delta:+}"
+            f"WO={on_wo_delta:+}, PP={on_p_delta:+}, IN={on_in_delta:+}, RC={on_r_delta:+}"
         )
         
         if dry_run:
@@ -247,18 +250,22 @@ def _process_pending_for_item(
         current_po = Decimal(str(quantity.get('on_po', 0) or 0))
         current_wo = Decimal(str(quantity.get('on_wo', 0) or 0))
         current_p = Decimal(str(quantity.get('on_p', 0) or 0))
-        current_invoiced = Decimal(str(quantity.get('invoiced', 0) or 0))
+        current_on_in = Decimal(str(quantity.get('on_in', 0) or 0))
+        current_on_r = Decimal(str(quantity.get('on_r', 0) or 0))
         current_on_hand = Decimal(str(quantity.get('on_hand', 0) or 0))
         
         quantity['on_so'] = float(current_so + on_so_delta)
         quantity['on_po'] = float(current_po + on_po_delta)
         quantity['on_wo'] = float(current_wo + on_wo_delta)
         quantity['on_p'] = float(current_p + on_p_delta)
-        quantity['invoiced'] = float(current_invoiced + invoiced_delta)
+        quantity['on_in'] = float(current_on_in + on_in_delta)
+        quantity['on_r'] = float(current_on_r + on_r_delta)
         
-        # Invoicing reduces on_hand (negative invoiced delta = return adds back)
-        if invoiced_delta != 0:
-            quantity['on_hand'] = float(current_on_hand - invoiced_delta)
+        # Invoicing decreases on_hand, Receipts increase on_hand
+        # Both on_in and on_r are informational - the actual change flows through on_hand
+        on_hand_change = on_r_delta - on_in_delta  # Receipts add, invoices subtract
+        if on_hand_change != 0:
+            quantity['on_hand'] = float(current_on_hand + on_hand_change)
             # Recompute available
             alloc = Decimal(str(quantity.get('allocated', 0) or 0))
             quantity['available'] = float(Decimal(str(quantity['on_hand'])) - alloc)
@@ -281,7 +288,8 @@ def _process_pending_for_item(
     if on_po_delta: deltas['on_po'] = f'{on_po_delta:+}'
     if on_wo_delta: deltas['on_wo'] = f'{on_wo_delta:+}'
     if on_p_delta: deltas['on_p'] = f'{on_p_delta:+}'
-    if invoiced_delta: deltas['invoiced'] = f'{invoiced_delta:+}'
+    if on_in_delta: deltas['on_in'] = f'{on_in_delta:+}'
+    if on_r_delta: deltas['on_r'] = f'{on_r_delta:+}'
     trace_pending_processing_complete(
         item_id=item_pk,
         item_ida=item.ida or item.sku or item.name,

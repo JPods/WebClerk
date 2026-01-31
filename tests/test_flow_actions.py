@@ -82,7 +82,7 @@ def test_receive_purchase_order_action(django_user_model):
     )
 
     payload = {
-        "receipt_no": "R-1001",
+        "receipt_id": "R-1001",
         "lines": [{"po_line_id": pol.id, "qty": "2.0", "warehouse_code": wh.code, "unit_cost": "11.11"}]
     }
     resp = client.post(f'/tx/purchase-orders/{po.pk}/receive/', payload, format='json')

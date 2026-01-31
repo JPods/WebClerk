@@ -212,6 +212,44 @@ Phase 3 (ops niceties):
 - Add convenience endpoints: release, start, hold, complete; bulk issue/return materials; QuestionAnswer gate checks.
 - Dashboards: WIP by station, bottlenecks, lead-time stats.
 
+## Inventory Integration
+
+When a WorkOrder is completed, use the `complete_workorder()` function to produce finished goods into inventory:
+
+```python
+from apps.transactions.services.flow import complete_workorder, CompleteWorkOrderLine
+
+# Define completed lines
+lines = [
+    CompleteWorkOrderLine(
+        wo_line_id=123,
+        qty_completed=50,
+        warehouse_code='FG',  # Finished goods warehouse
+        unit_cost=25.00,
+        lot='LOT-2025-001',
+    ),
+]
+
+# Complete the workorder and receive finished goods
+result = complete_workorder(wo, 'WO-COMP-2025-001', lines)
+# Result: {'receipt_id': 456, 'stacks_created': [789], 'deltas_created': 1}
+```
+
+**Effects:**
+- Creates `Receipt` record for traceability
+- Creates `InventoryLayer` for finished goods tracking
+- Creates inventory delta: `+quantity_on_hand`, `-quantity_on_wo`
+
+For the high-level dispatcher, you can also use:
+
+```python
+from apps.transactions.services.flow import receive_inventory_changes
+
+result = receive_inventory_changes('workorder', wo, 'WO-COMP-001', lines)
+```
+
+See [Inventory Deltas](../inventory/inventory_deltas.md#inventory-receiving-functions) for full documentation.
+
 ## Minimal DB model sketch (later)
 
 WorkOrder:
