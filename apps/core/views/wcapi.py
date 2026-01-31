@@ -878,3 +878,40 @@ class ModelDetailView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class WCAPIGetViewWithModel(APIView):
+    """
+    WCAPI get view that accepts model_name in the URL path.
+    Supports URLs like /wcapi/<model_name>/get or /wcapi/get/<model_name>
+    """
+    http_method_names = ["get", "options", "head"]
+
+    def get(self, request, model_name=None, *args, **kwargs):
+        # Get model_name from URL path, fallback to query param if not provided
+        if not model_name:
+            model_name = request.query_params.get("model_name")
+
+        if not model_name:
+            return Response(
+                {"detail": "model_name parameter is required (in URL or query params)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        record_id = request.query_params.get("id")
+
+        # Create a mock request with the model_name in query params
+        from django.http import HttpRequest
+        modified_request = HttpRequest()
+        modified_request.method = request.method
+        modified_request.META = request.META.copy()
+        modified_request.GET = request.GET.copy()
+        modified_request.GET['model_name'] = model_name
+        modified_request.POST = request.POST.copy()
+        modified_request.COOKIES = request.COOKIES.copy()
+        modified_request.session = request.session
+        modified_request.user = request.user
+
+        # Delegate to the main WCAPIGetView
+        view_instance = WCAPIGetView()
+        return view_instance.get(modified_request, *args, **kwargs)

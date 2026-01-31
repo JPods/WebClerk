@@ -3,9 +3,9 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.core.token_views import RoleTokenObtainPairView
 
-from apps.core.views.save_view import SaveWcapiView
+from apps.core.views.save_view import SaveWcapiView, SaveWcapiViewWithModel
 from apps.core.views.auth_views import AuthLoginView, AuthLogoutView, AuthMeView, AuthRegisterView
-from apps.core.views.wcapi import WCAPIGetView, ModelNameListView, ModelDetailView
+from apps.core.views.wcapi import WCAPIGetView, WCAPIGetViewWithModel, ModelNameListView, ModelDetailView
 from apps.core.views.choices import ChoiceCatalogView
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
 
@@ -21,7 +21,11 @@ urlpatterns = [
     path("wcapi/token_refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     # Core WCAPI endpoints
     path("wcapi/get/", WCAPIGetView.as_view(), name="wcapi-get"),
+    path("wcapi/get/<str:model_name>/", WCAPIGetViewWithModel.as_view(), name="wcapi-get-with-model"),
+    path("wcapi/<str:model_name>/get/", WCAPIGetViewWithModel.as_view(), name="wcapi-model-get"),
     path("wcapi/save/", SaveWcapiView.as_view(), name="wcapi-save"),
+    path("wcapi/save/<str:model_name>/", SaveWcapiViewWithModel.as_view(), name="wcapi-save-with-model"),
+    path("wcapi/<str:model_name>/save/", SaveWcapiViewWithModel.as_view(), name="wcapi-model-save"),
     path("wcapi/transaction/save/", WCAPITransactionSaveView.as_view(), name="wcapi-transaction-save"),
     path("wcapi/model_name/list/", ModelNameListView.as_view(), name="model-name-list"),
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),

@@ -1998,3 +1998,44 @@ class SaveWcapiView(APIView):
         
         console_logger.info(f"[SAVE_VIEW] Returning successful response for {model_key} ID: {obj_id}")
         return api_response(data=payload)
+
+
+class SaveWcapiViewWithModel(APIView):
+    """
+    WCAPI save view that accepts model_name in the URL path.
+    Supports URLs like /wcapi/<model_name>/save or /wcapi/save/<model_name>
+    """
+    http_method_names = ["post", "options", "head"]
+
+    def post(self, request, model_name=None, *args, **kwargs):
+        # Get model_name from URL path, fallback to body if not provided
+        if not model_name:
+            # This shouldn't happen with proper URL routing, but defensive
+            body = request.data or {}
+            model_name = body.get('model_name') or body.get('model') or body.get('modelName')
+
+        if not model_name:
+            return api_response(
+                data={"detail": "Missing required field: model_name (in URL or body)"},
+                status=400
+            )
+
+        # Create a copy of request data and inject model_name
+        data = dict(request.data or {})
+        data['model_name'] = model_name
+
+        # Create a mock request with the modified data
+        from django.http import HttpRequest
+        modified_request = HttpRequest()
+        modified_request.method = request.method
+        modified_request.META = request.META.copy()
+        modified_request.GET = request.GET.copy()
+        modified_request.POST = request.POST.copy()
+        modified_request.COOKIES = request.COOKIES.copy()
+        modified_request.session = request.session
+        modified_request.user = request.user
+        modified_request.data = data
+
+        # Delegate to the main SaveWcapiView
+        view_instance = SaveWcapiView()
+        return view_instance.post(modified_request, *args, **kwargs)
