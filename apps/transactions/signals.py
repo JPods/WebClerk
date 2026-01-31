@@ -240,6 +240,13 @@ def create_invoice_line_inventory_pending(sender, instance: InvoiceLine, created
         _create_inventory_pending_for_line(instance, 'invoice')
 
 
+@receiver(post_save, sender=ProposalLine)
+def create_proposal_line_inventory_pending(sender, instance: ProposalLine, created, **kwargs):
+    """Create inventory pending when ProposalLine is created (safety net for forecast tracking)."""
+    if created:
+        _create_inventory_pending_for_line(instance, 'proposal')
+
+
 # Import additional line models for signals
 try:
     from apps.transactions.models import PurchaseLine, WorkOrderLine
