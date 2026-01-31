@@ -516,6 +516,51 @@ export default function Home() {
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Developer Tools
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              API documentation and testing tools
+            </p>
+            <div className="mt-4 grid gap-3">
+              <a
+                href={`${NetworkInfo.API_URL}/wcapi/swagger/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">
+                    📚 API Documentation (Swagger)
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Interactive API documentation and testing
+                  </p>
+                </div>
+                <svg className="h-5 w-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <Link
+                to="/whitelist"
+                className="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:bg-gray-800/60 dark:hover:border-blue-500/50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 dark:text-white">
+                    🧪 Whitelist API Tester
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Test whitelisted API endpoints
+                  </p>
+                </div>
+                <svg className="h-5 w-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900 dark:ring-white/5">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
