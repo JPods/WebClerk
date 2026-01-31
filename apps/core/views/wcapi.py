@@ -776,7 +776,19 @@ Retrieve records from any configured model with comprehensive query support.
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Extract record_id from query params or request body
         record_id = request.query_params.get("id")
+        if record_id is None:
+            # Check request body for id field
+            try:
+                if request.content_type and 'application/json' in request.content_type:
+                    import json
+                    body_data = json.loads(request.body.decode('utf-8'))
+                    record_id = body_data.get('id')
+                    if record_id is None and 'data' in body_data:
+                        record_id = body_data['data'].get('id')
+            except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+                pass
         
         return self._handle(model_key, record_id, None, request)
 
@@ -898,7 +910,19 @@ class WCAPIGetViewWithModel(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Extract record_id from query params or request body
         record_id = request.query_params.get("id")
+        if record_id is None:
+            # Check request body for id field
+            try:
+                if request.content_type and 'application/json' in request.content_type:
+                    import json
+                    body_data = json.loads(request.body.decode('utf-8'))
+                    record_id = body_data.get('id')
+                    if record_id is None and 'data' in body_data:
+                        record_id = body_data['data'].get('id')
+            except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+                pass
 
         # Create a mock request with the model_name in query params
         from django.http import HttpRequest
@@ -911,6 +935,8 @@ class WCAPIGetViewWithModel(APIView):
         modified_request.COOKIES = request.COOKIES.copy()
         modified_request.session = request.session
         modified_request.user = request.user
+        # Preserve the body for id extraction
+        modified_request._body = request._body
 
         # Delegate to the main WCAPIGetView
         view_instance = WCAPIGetView()

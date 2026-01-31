@@ -231,6 +231,14 @@ class SaveWcapiView(APIView):
             expected_version = legacy_expected
             deprecation_flag = True
         record_id = parsed_data.get('id')
+        # If id not found at root level, check inside data object
+        if record_id is None:
+            data_obj = parsed_data.get('data')
+            if isinstance(data_obj, dict):
+                record_id = data_obj.get('id')
+                # If found in data, move it to root level for consistency
+                if record_id is not None:
+                    parsed_data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
         # Actor context
         actor = getattr(request, 'user', None)
@@ -1366,6 +1374,11 @@ class SaveWcapiView(APIView):
             deprecation_flag = True
 
         record_id = data.get('id')
+        # If id not found in data, check query params
+        if record_id is None:
+            record_id = request.query_params.get('id')
+            if record_id is not None:
+                data['id'] = record_id
         record_id = coerce_int(record_id)
         data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
