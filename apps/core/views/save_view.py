@@ -776,6 +776,49 @@ class SaveWcapiView(APIView):
             raise ValueError('Failed to save')
         
         # ============================================================
+        # POST-SAVE: Create pending inventory for direct line creation
+        # When model_name is 'order_line', 'invoice_line', etc.
+        # ============================================================
+        if not is_update:
+            # Map line model keys to parent model keys for inventory tracking
+            line_to_parent_map = {
+                'orderline': 'order',
+                'order_line': 'order',
+                'invoiceline': 'invoice',
+                'invoice_line': 'invoice',
+                'purchaseline': 'purchase',
+                'purchase_line': 'purchase',
+                'purchaseorderline': 'purchase',
+                'workorderline': 'workorder',
+                'work_order_line': 'workorder',
+                'proposalline': 'proposal',
+                'proposal_line': 'proposal',
+            }
+            parent_model_key = line_to_parent_map.get(model_key.lower())
+            if parent_model_key:
+                try:
+                    # Get the parent transaction for this line
+                    parent = None
+                    for fk_attr in ['order', 'invoice', 'purchase', 'workorder', 'proposal', 'parent']:
+                        if hasattr(obj, fk_attr):
+                            parent = getattr(obj, fk_attr, None)
+                            if parent is not None:
+                                break
+                    
+                    if parent:
+                        from apps.transactions.services.line_item_service import LineItemService
+                        service = LineItemService(create_pending=True)
+                        service._create_pending_for_new_line(
+                            parent=parent,
+                            parent_model_key=parent_model_key,
+                            line=obj,
+                            line_data=parsed_data,
+                        )
+                        console_logger.debug(f"[SAVE_VIEW] Created pending inventory record for direct line ID: {obj.id}")
+                except Exception as pending_err:
+                    console_logger.warning(f"[SAVE_VIEW] Failed to create pending for direct line {getattr(obj, 'id', 'unknown')}: {pending_err}")
+        
+        # ============================================================
         # POST-SAVE: Save lines now that we have parent ID
         # ============================================================
         obj_id = getattr(obj, 'id', None)
@@ -810,7 +853,6 @@ class SaveWcapiView(APIView):
                             lines_errors.append(f"Line ID {line_id} not found")
                     else:
                         # Create new line
-                        # debug print removed
                         console_logger.debug(f"[SAVE_VIEW] Creating new line at index {idx}")
                         line_obj = line_model()
                         for field, value in line_save_data.items():
@@ -827,6 +869,20 @@ class SaveWcapiView(APIView):
                         # debug print removed
                         lines_results.append({'id': line_obj.id, 'status': 'created', 'index': idx})
                         console_logger.debug(f"[SAVE_VIEW] Created new line ID: {line_obj.id}")
+                        
+                        # Create pending inventory record for new lines (Order, Purchase, Invoice, WorkOrder)
+                        try:
+                            from apps.transactions.services.line_item_service import LineItemService
+                            service = LineItemService(create_pending=True)
+                            service._create_pending_for_new_line(
+                                parent=obj,
+                                parent_model_key=model_key,
+                                line=line_obj,
+                                line_data=line_save_data,
+                            )
+                            console_logger.debug(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
+                        except Exception as pending_err:
+                            console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
                 except Exception as e:
                     # debug print removed
                     console_logger.error(f"[SAVE_VIEW] Error saving line at index {idx}: {e}")
@@ -1647,9 +1703,25 @@ class SaveWcapiView(APIView):
                             if hasattr(line_obj, field_name):
                                 setattr(line_obj, field_name, field_value)
                         
+                        # Mark that we're handling pending creation (prevents signal duplicate)
+                        line_obj._pending_created = True
                         line_obj.save()
                         new_line_ids.append(line_obj.id)
                         console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
+                        
+                        # Create pending inventory record for new lines
+                        try:
+                            from apps.transactions.services.line_item_service import LineItemService
+                            service = LineItemService(create_pending=True)
+                            service._create_pending_for_new_line(
+                                parent=obj,
+                                parent_model_key=model_key,
+                                line=line_obj,
+                                line_data=line_data,
+                            )
+                            console_logger.info(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
+                        except Exception as pending_err:
+                            console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
                     else:
                         # Update existing line
                         try:
