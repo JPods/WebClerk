@@ -55,7 +55,10 @@ export const fetchItems = async (id: any = "") => {
   }
 };
 
-export const fetchItem = async (): Promise<ItemApiTask[]> => {
-  const res = await apiClient.get(PostLoginURL.allTypes + "model_name=item");
-  return unwrap<ItemApiTask[]>(res);
+export const fetchItem = async (id?: number): Promise<{ data: ItemApiTask | ItemApiTask[] }> => {
+  const url = id 
+    ? `${PostLoginURL.allTypes}model_name=item&id=${id}`
+    : `${PostLoginURL.allTypes}model_name=item`;
+  const res = await apiClient.get(url);
+  return { data: unwrap<ItemApiTask | ItemApiTask[]>(res) };
 };
