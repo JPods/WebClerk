@@ -227,61 +227,57 @@ export default function OrgEntityList<T = any>({
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div>
-            <ComponentCard>
-              <ErrorBoundary>
-                <AdvancedDataTable
-                data={data}
-                columns={columns}
-                title={title || modelKey}
-                loading={loading}
-                filters={filters}
-                storageKey={storageKey}
-                ref={tableRef}
-                hideHeader={true}
-                externalSearchTerm={searchTerm}
-                onExternalSearchTermChange={setSearchTerm}
-                filtersOpen={filtersOpen}
-                onFiltersOpenChange={setFiltersOpen}
-                onImportFile={onImportFile}
-                onPrint={onPrint}
-                enableExport={!!exportFileName}
-                enableSelection={!!deleteFn}
-                onSelectionChange={setSelectedRows}
-                exportFileName={exportFileName}
-                onRowActivate={handleEdit}
-                onRowDoubleClicked={handleRowDoubleClick}
-                onRowClicked={(row: any) => setSelectedRow(row)}
-                onAdd={handleAdd}
-                onDeleteSelected={() => handleBulkDelete()}
-                noDataMessage={`No ${title || modelKey} found`}
-                />
-              </ErrorBoundary>
-            </ComponentCard>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={selectedRow ? "lg:col-span-1" : "lg:col-span-3"}>
+          <ComponentCard>
+            <ErrorBoundary>
+              <AdvancedDataTable
+              data={data}
+              columns={columns}
+              title={title || modelKey}
+              loading={loading}
+              filters={filters}
+              storageKey={storageKey}
+              ref={tableRef}
+              hideHeader={true}
+              externalSearchTerm={searchTerm}
+              onExternalSearchTermChange={setSearchTerm}
+              filtersOpen={filtersOpen}
+              onFiltersOpenChange={setFiltersOpen}
+              onImportFile={onImportFile}
+              onPrint={onPrint}
+              enableExport={!!exportFileName}
+              enableSelection={!!deleteFn}
+              onSelectionChange={setSelectedRows}
+              exportFileName={exportFileName}
+              onRowActivate={handleEdit}
+              onRowDoubleClicked={handleRowDoubleClick}
+              onRowClicked={(row: any) => setSelectedRow(row)}
+              onAdd={handleAdd}
+              onDeleteSelected={() => handleBulkDelete()}
+              noDataMessage={`No ${title || modelKey} found`}
+              />
+            </ErrorBoundary>
+          </ComponentCard>
+        </div>
 
-          <div>
+        {selectedRow && (
+          <div className="lg:col-span-2">
             <ComponentCard>
-              {selectedRow ? (
-                DisplayComponent ? (
-                  <DisplayComponent
-                    inline={true}
-                    dataProp={selectedRow}
-                    onSaved={getData}
-                    onCancelInline={() => setSelectedRow(null)}
-                    onClose={() => setSelectedRow(null)}
-                  />
-                ) : (
-                  <pre className="p-4">{JSON.stringify(selectedRow, null, 2)}</pre>
-                )
+              {DisplayComponent ? (
+                <DisplayComponent
+                  inline={true}
+                  dataProp={selectedRow}
+                  onSaved={getData}
+                  onCancelInline={() => setSelectedRow(null)}
+                  onClose={() => setSelectedRow(null)}
+                />
               ) : (
-                <div className="p-6 text-sm text-gray-500">Click a row on the left to see details here.</div>
+                <pre className="p-4">{JSON.stringify(selectedRow, null, 2)}</pre>
               )}
             </ComponentCard>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
