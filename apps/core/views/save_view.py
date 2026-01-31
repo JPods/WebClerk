@@ -865,6 +865,8 @@ class SaveWcapiView(APIView):
                         fk_field = line_model._meta.get_field(fk_field_name)
                         # debug print removed
                         setattr(line_obj, fk_field.attname, obj_id)
+                        # Mark that we're handling pending creation (prevents signal duplicate)
+                        line_obj._pending_created = True
                         line_obj.save()
                         # debug print removed
                         lines_results.append({'id': line_obj.id, 'status': 'created', 'index': idx})
