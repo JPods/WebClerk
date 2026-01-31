@@ -21,7 +21,7 @@ class ReceiveLineSerializer(serializers.Serializer):
 
 
 class ReceivePurchaseSerializer(serializers.Serializer):
-    receipt_no = serializers.CharField(max_length=40)
+    receipt_id = serializers.CharField(max_length=40)
     lines = ReceiveLineSerializer(many=True)
 
 

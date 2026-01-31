@@ -1,8 +1,8 @@
 # Save Path Consolidation: Security & Inventory Tracking
 
 **Created**: 2026-01-30  
-**Updated**: 2026-01-30  
-**Status**: Implemented (Signal Safety Net Active)  
+**Updated**: 2026-01-31  
+**Status**: ✅ Implemented (Signal Safety Net Active)  
 **Priority**: High (Security)
 
 ## Problem Statement
@@ -22,26 +22,49 @@ Transaction line records (OrderLine, InvoiceLine, PurchaseLine, etc.) can be cre
 - **Business logic bypass**: Inventory tracking, validation, and hooks may be skipped
 - **Data integrity**: Calculated fields may not be updated consistently
 
-### Current State (2026-01-30)
+---
 
-**IMPLEMENTED:**
-1. Patched inventory pending creation in 3 locations:
-   - `apps/core/views/save_view.py` (2 places) - sets `_pending_created=True` flag
-   - `apps/transactions/services/transaction_save.py`
-   - `apps/transactions/services/line_item_service.py` (new `_create_pending_for_new_line` method)
+## Current Implementation (2026-01-31)
 
-2. **Signal Safety Net** added in `apps/transactions/signals.py`:
-   - Catches ANY line creation that bypassed explicit pending creation
-   - Checks for existing pending (prevents duplicates via DB query)
-   - Respects `_pending_created` flag set by explicit callers
+### ✅ Explicit Pending Creation
+
+Patched inventory pending creation in 3 locations with `_pending_created=True` flag:
+
+| Location | Line | Description |
+|----------|------|-------------|
+| `apps/core/views/save_view.py` | ~868 | Generic line handling block |
+| `apps/core/views/save_view.py` | ~1707 | Order-specific line handling block |
+| `apps/transactions/services/transaction_save.py` | ~373 | Transaction-specific save |
+
+### ✅ Signal Safety Net
+
+Added in `apps/transactions/signals.py` - catches ANY line creation that bypassed explicit paths:
+
+| Line Model | Signal Handler | Pending Type | Field Updated |
+|------------|----------------|--------------|---------------|
+| OrderLine | `create_order_line_inventory_pending` | SO | `on_so` |
+| InvoiceLine | `create_invoice_line_inventory_pending` | IV | `invoiced` |
+| ProposalLine | `create_proposal_line_inventory_pending` | PP | `on_p` (forecast) |
+| PurchaseLine | `create_purchase_line_inventory_pending` | PO | `on_po` |
+| WorkOrderLine | `create_workorder_line_inventory_pending` | WO | `on_wo` |
+
+**Duplicate Prevention:**
+1. Checks `_pending_created` flag (set before `.save()` by explicit paths)
+2. Queries DB for existing pending with same `line_id`
+
+### ✅ LineItemService Methods
+
+| Method | Purpose |
+|--------|---------|
+| `_create_pending_for_new_line()` | Called by save_view.py for any line type |
+| `_create_pending_for_line_add()` | Internal method for pending creation |
+| `_create_pending_for_qty_change()` | Creates delta pending for quantity updates |
 
 ---
 
 ## Pending Inventory Processing
 
 ### Two-Phase Design
-
-Line changes create `Pending` records which are then processed to update `Item` quantities:
 
 ```
 Line Creation → Pending Record → [Processor] → Item.on_so/on_po/on_wo updated
@@ -55,13 +78,13 @@ Line Creation → Pending Record → [Processor] → Item.on_so/on_po/on_wo upda
 
 ### Configuration
 
-Add to `webclerk3_api/settings.py`:
+In `webclerk3_api/settings.py`:
 
 ```python
 # --- Inventory Pending Processing ---
-INVENTORY_PENDING_PROCESS_DELAY = 5  # seconds between checks
+INVENTORY_PENDING_PROCESS_DELAY = 5  # seconds between daemon checks
 INVENTORY_PENDING_BATCH_SIZE = 100   # records per batch
-INVENTORY_PENDING_AUTO_PROCESS = True  # enable background processing
+INVENTORY_PENDING_AUTO_PROCESS = False  # enable in production
 ```
 
 ### Processing Methods
@@ -139,33 +162,17 @@ print(f"Pending inventory records: {count}")
 
 ---
 
-## Recommended Architecture
+## Future Architecture Options
 
-### Option A: Django Signals (Quick Fix)
+### Option A: Django Signals ✅ IMPLEMENTED
 
-Use Django's `post_save` signal on line models to centralize inventory tracking:
-
-```python
-# apps/transactions/signals.py
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from apps.transactions.models import OrderLine, InvoiceLine, PurchaseLine
-
-@receiver(post_save, sender=OrderLine)
-@receiver(post_save, sender=InvoiceLine) 
-@receiver(post_save, sender=PurchaseLine)
-def handle_line_save(sender, instance, created, **kwargs):
-    if created:
-        from apps.transactions.services.line_item_service import LineItemService
-        service = LineItemService(create_pending=True)
-        # Create pending from instance data
-        service._create_pending_from_line_instance(instance)
-```
+Use Django's `post_save` signal on line models to centralize inventory tracking.
+This is now active as a **safety net** for all line models.
 
 **Pros**: Works regardless of save path  
 **Cons**: Signal doesn't have request context (no user info), harder to debug
 
-### Option B: Service Layer Pattern (Recommended)
+### Option B: Service Layer Pattern (Recommended for Future)
 
 Route ALL line creation through `LineItemService`:
 
@@ -207,41 +214,61 @@ class OrderLine(BaseSellLineModel):
 **Pros**: Guaranteed to run on every save  
 **Cons**: Circular import risks, harder to test
 
-## Current Save Paths Inventory
+---
 
-| Endpoint | File | Line Creation Method | Inventory Pending? |
-|----------|------|---------------------|-------------------|
-| `/wcapi/save/` | `save_view.py:868` | Direct ORM | ✅ Patched |
-| `/wcapi/save/` | `save_view.py:1706` | Direct ORM | ✅ Patched |
-| `/wcapi/transaction/save/` | `transaction_save.py:373` | Direct ORM | ✅ Patched |
-| `/api/transactions/orders/` | `order_views.py` | wcapi.save_item | ❓ Check |
-| `/api/tx/order/<id>/lines/` | `unified.py:159` | serializer.save() | ❌ Not patched |
-| Proposal→Order | `proposal_to_order.py:190` | Direct ORM | ❌ Not patched |
-| Purchase→Order | `purchase_to_order.py:35` | Direct ORM | ❌ Not patched |
-| Flow service | `flow.py:199` | Direct ORM | ❌ Not patched |
+## Save Paths Status
+
+| Endpoint | File | Line Creation | Pending Status |
+|----------|------|---------------|----------------|
+| `/wcapi/save/` | `save_view.py:868` | Direct ORM + flag | ✅ Explicit + Signal |
+| `/wcapi/save/` | `save_view.py:1707` | Direct ORM + flag | ✅ Explicit + Signal |
+| `/wcapi/transaction/save/` | `transaction_save.py:373` | Direct ORM | ✅ Explicit |
+| `/api/transactions/orders/` | `order_views.py` | wcapi.save_item | ✅ Signal catches |
+| `/api/tx/order/<id>/lines/` | `unified.py:159` | serializer.save() | ✅ Signal catches |
+| Proposal→Order | `proposal_to_order.py:190` | Direct ORM | ✅ Signal catches |
+| Purchase→Order | `purchase_to_order.py:35` | Direct ORM | ✅ Signal catches |
+| Flow service | `flow.py:199` | Direct ORM | ✅ Signal catches |
+
+---
 
 ## Action Items
 
-1. [ ] **Immediate**: Audit all paths in table above
-2. [ ] **Short-term**: Implement Option A (signals) as safety net
-3. [ ] **Medium-term**: Migrate to Option B (service layer)
-4. [ ] **Long-term**: Add ESLint/Pylint rule to prevent direct ORM for lines
+- [x] **Immediate**: Signal safety net for all line types
+- [x] **Short-term**: Explicit pending creation in save_view.py
+- [x] **Short-term**: ProposalLine signal handler added
+- [ ] **Medium-term**: Migrate all paths to use LineItemService
+- [ ] **Long-term**: Add Pylint rule to prevent direct ORM for lines
+
+---
 
 ## Related Files
 
 - `apps/core/views/save_view.py` - Main universal save endpoint
 - `apps/transactions/services/transaction_save.py` - Transaction-specific save
 - `apps/transactions/services/line_item_service.py` - Line item service (target)
-- `apps/transactions/signals.py` - Existing signals
-- `apps/transactions/views/unified.py` - Unified transaction views
+- `apps/transactions/signals.py` - Signal safety net handlers
+- `apps/transactions/services/pending_inventory_processor.py` - Processes pending to Item
+- `apps/products/management/commands/process_pending_inventory.py` - Management command
+
+---
 
 ## Testing Checklist
 
 When consolidating save paths, verify:
 
-- [ ] Adding line creates `Pending` record with correct `on_so`/`on_po`/`on_wo`
+- [x] Adding line creates `Pending` record with correct `on_so`/`on_po`/`on_wo`
 - [ ] Updating line quantity creates `Pending` with delta
 - [ ] Deleting line creates `Pending` with negative quantity
-- [ ] Inventory processor applies pending to `Item.quantity` JSON
+- [x] Inventory processor applies pending to `Item.quantity` JSON
 - [ ] All paths enforce same permission checks
 - [ ] Audit logs capture user who made changes
+
+### Verified Test Results (2026-01-31)
+
+| Line ID | Item | Qty | Pending ID | on_so Before | on_so After |
+|---------|------|-----|------------|--------------|-------------|
+| 112 | 240 | 8 | 44 | 5.0 | 15.0 |
+| 115 | 240 | 2 | 49 | 15.0 | 15.0* |
+| 116 | 240 | 6 | 50 | 15.0 | 21.0 |
+
+*Line 115 was part of batch with Line 112
