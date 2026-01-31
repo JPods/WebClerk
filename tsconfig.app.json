@@ -15,7 +15,6 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["src/*"],
       "react-data-table-component": ["src/lib/reorderable-data-table.tsx"]

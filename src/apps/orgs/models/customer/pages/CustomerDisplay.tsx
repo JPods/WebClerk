@@ -1,23 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import { Input, TextArea } from "../../../../../components/wrapper";
+import { Input, Select } from "../../../../../components/wrapper";
 
 import { createCustomer, updateCustomer } from "../services/customerApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation, useNavigate } from "react-router";
-import { FaChevronLeft, FaChevronRight, FaSave, FaTimes, FaEdit, FaTrash, FaBuilding, FaMapMarkerAlt, FaPhone, FaEnvelope, FaLink, FaDollarSign, FaFileAlt } from "react-icons/fa";
+import { useLocation } from "react-router";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaBuilding, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
+import CustomerDataPanel from "./CustomerDataPanel";
 
 
-// Dashboard-style containers for modular customer view
+// Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
 interface Customer {
@@ -27,297 +27,70 @@ interface Customer {
   org_type?: string;
   version?: number;
   is_active?: boolean;
-  contacts?: string;
-  locations?: string;
-  domains?: string;
-  phones?: string;
-  emails?: string;
-  docs?: string;
-  connections?: string;
-  relations?: string;
-  financial?: string;
-  data?: string;
-  metrics?: string;
-  gl_accounts?: string;
+  contacts?: any;
+  locations?: any;
+  domains?: any;
+  phones?: any;
+  emails?: any;
+  docs?: any;
+  connections?: any;
+  relations?: any;
+  financial?: any;
+  data?: any;
+  metrics?: any;
+  gl_accounts?: any;
 }
 
-const JSON_DEFAULTS: Record<string, string> = {
-  contacts: "[]",
-  locations: "[]",
-  domains: "[]",
-  phones: "[]",
-  emails: "[]",
-  docs: "[]",
-  connections: "{}",
-  relations: "{}",
-  financial: "{}",
-  data: "{}",
-  metrics: "{}",
-  gl_accounts: "{}",
+const JSON_DEFAULTS: Record<string, any> = {
+  contacts: [],
+  locations: [],
+  domains: [],
+  phones: [],
+  emails: [],
+  docs: [],
+  connections: {},
+  relations: { parents: [], children: [], linked_ids: [] },
+  financial: { credit: { limit: 0, used: 0 }, balances: { open: 0, current: 0 }, metrics: { ytd: { sales: 0 } } },
+  data: {},
+  metrics: { counts: {}, periods: {} },
+  gl_accounts: {},
 };
 
-const JSON_FIELDS: Array<{ key: keyof CustomerFormValues; label: string; placeholder: string }> = [
-  { key: "contacts", label: "Contacts", placeholder: "[]" },
-  { key: "locations", label: "Locations", placeholder: "[]" },
-  { key: "domains", label: "Domains", placeholder: "[]" },
-  { key: "phones", label: "Phones", placeholder: "[]" },
-  { key: "emails", label: "Emails", placeholder: "[]" },
-  { key: "relations", label: "Relations", placeholder: "{}" },
-  { key: "financial", label: "Financial", placeholder: "{}" },
-  { key: "docs", label: "Documents", placeholder: "[]" },
-  { key: "connections", label: "Connections", placeholder: "{}" },
-  { key: "data", label: "Data", placeholder: "{}" },
-  { key: "metrics", label: "Metrics", placeholder: "{}" },
-  { key: "gl_accounts", label: "GL Accounts", placeholder: "{}" },
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "pending", label: "Pending" },
+  { value: "suspended", label: "Suspended" },
+  { value: "archived", label: "Archived" },
 ];
 
-// Status Badge Component
-const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
-  const statusStyles: Record<string, string> = {
-    active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    inactive:
-      "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
-    pending:
-      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    suspended:
-      "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    archived: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  };
+const ORG_TYPE_OPTIONS = [
+  { value: "customer", label: "Customer" },
+  { value: "vendor", label: "Vendor" },
+  { value: "partner", label: "Partner" },
+  { value: "internal", label: "Internal" },
+];
 
-  return (
-    <span
-      className={`px-2 py-1 text-xs font-medium rounded-full ${
-        statusStyles[status?.toLowerCase() ?? "pending"] ?? statusStyles.pending
-      }`}
-    >
-      {status?.replace("_", " ") ?? "pending"}
-    </span>
-  );
-};
 
-const formatLabel = (value: string) =>
-  value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-const isObjectValue = (value: unknown) =>
-  typeof value === "object" && value !== null;
-
-const renderScalarValue = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return <span className="text-slate-400">—</span>;
-  }
-  return <span className="text-slate-800 dark:text-slate-200">{String(value)}</span>;
-};
-
-// Customer Header Component
-const CustomerHeader: React.FC<{
-  data: Customer;
-}> = ({ data }) => {
-  const contactsData = typeof data.contacts === "string" ? JSON.parse(data.contacts || "[]") : data.contacts || [];
-  const locationsData = typeof data.locations === "string" ? JSON.parse(data.locations || "[]") : data.locations || [];
-  const docsData = typeof data.docs === "string" ? JSON.parse(data.docs || "[]") : data.docs || [];
-
-  return (
-    <div className="space-y-6">
-      {/* Customer Header Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Customer Details */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <FaBuilding className="text-blue-500" />
-            Company Details
-          </h3>
-          <dl className="space-y-3 text-xs">
-            <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400">Display Name</dt>
-              <dd className="font-medium text-slate-900 dark:text-white">
-                {data.display_name || "—"}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400">Org Type</dt>
-              <dd className="font-medium text-slate-900 dark:text-white">
-                {data.org_type?.toUpperCase() || "—"}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400">Version</dt>
-              <dd className="font-medium text-slate-900 dark:text-white">
-                {data.version || 1}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        {/* Center: Status & Quick Info */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Status
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                Current Status
-              </div>
-              <StatusBadge status={data.status} />
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                Active
-              </div>
-              <span
-                className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                  data.is_active
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                }`}
-              >
-                {data.is_active ? "Active" : "Inactive"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Summary Stats */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-            Summary
-          </h3>
-          <dl className="space-y-3 text-xs">
-            <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <FaPhone size={12} /> Contacts
-              </dt>
-              <dd className="font-semibold text-slate-900 dark:text-white">
-                {Array.isArray(contactsData) ? contactsData.length : 0}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <FaMapMarkerAlt size={12} /> Locations
-              </dt>
-              <dd className="font-semibold text-slate-900 dark:text-white">
-                {Array.isArray(locationsData) ? locationsData.length : 0}
-              </dd>
-            </div>
-            <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <FaFileAlt size={12} /> Documents
-              </dt>
-              <dd className="font-semibold text-slate-900 dark:text-white">
-                {Array.isArray(docsData) ? docsData.length : 0}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <FaEnvelope size={14} />
-          Email
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export function CustomerDataPanel({ data }: { data: any }) {
-  const entries = useMemo(() => Object.entries(data || {}), [data]);
-  const [scalarEntries, objectEntries] = useMemo(() => {
-    const scalars: Array<[string, unknown]> = [];
-    const objects: Array<[string, unknown]> = [];
-    entries.forEach(([key, value]) => {
-      if (Array.isArray(value) || isObjectValue(value)) {
-        objects.push([key, value]);
-      } else {
-        scalars.push([key, value]);
-      }
-    });
-    return [scalars, objects];
-  }, [entries]);
-
-  if (!entries.length) {
-    return (
-      <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
-        No customer data available.
-      </section>
-    );
-  }
-
-  return (
-    <section className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Scalar Fields</h3>
-          <span className="text-xs text-slate-400">{scalarEntries.length}</span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {scalarEntries.map(([key, value]) => (
-            <div
-              key={key}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                {formatLabel(key)}
-              </div>
-              <div className="mt-1 text-sm">{renderScalarValue(value)}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Object & List Fields</h3>
-          <span className="text-xs text-slate-400">{objectEntries.length}</span>
-        </div>
-        <div className="space-y-3">
-          {objectEntries.map(([key, value]) => (
-            <details
-              key={key}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-            >
-              <summary className="cursor-pointer text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {formatLabel(key)}
-              </summary>
-              <pre className="mt-2 max-h-60 overflow-auto rounded-lg bg-white p-3 text-xs text-slate-600 shadow-inner dark:bg-slate-900 dark:text-slate-300">
-                {JSON.stringify(value, null, 2)}
-              </pre>
-            </details>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function CustomerDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
   onSaved,
-  inline = false,
-  onCancelInline,
   onPrev,
   onNext,
-  onCancel,
   onEdit,
   onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("summary");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const {
     register,
     setValue,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     reset,
     control,
     watch,
@@ -327,13 +100,13 @@ export default function CustomerDetail({
       is_active: false,
       version: 1,
       org_type: "customer",
-      ...JSON_DEFAULTS,
+      ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
     },
   });
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const mode: "add" | "edit" | "view" = (modeProp || (routeState.mode as "add" | "edit" | "view") || "add");
   const data = dataProp || routeState.data || null;
 
   useEffect(() => {
@@ -342,7 +115,7 @@ export default function CustomerDetail({
         is_active: false,
         version: 1,
         org_type: "customer",
-        ...JSON_DEFAULTS,
+        ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
       });
       return;
     }
@@ -358,7 +131,7 @@ export default function CustomerDetail({
       });
       Object.keys(JSON_DEFAULTS).forEach((key) => {
         if (data[key] === undefined) {
-          setValue(key as keyof CustomerFormValues, JSON_DEFAULTS[key]);
+          setValue(key as keyof CustomerFormValues, JSON.stringify(JSON_DEFAULTS[key]));
         }
       });
     } else {
@@ -366,7 +139,7 @@ export default function CustomerDetail({
         is_active: false,
         version: 1,
         org_type: "customer",
-        ...JSON_DEFAULTS,
+        ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
       });
     }
   }, [data, reset, setValue, mode]);
@@ -384,8 +157,8 @@ export default function CustomerDetail({
   const onSubmit = async (formData: CustomerFormValues) => {
     try {
       const jsonPayload: Record<string, any> = {};
-      JSON_FIELDS.forEach(({ key, label }) => {
-        const parsed = parseJsonField(label, formData[key] as string | undefined);
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        const parsed = parseJsonField(key, formData[key as keyof CustomerFormValues] as string | undefined);
         if (parsed !== undefined) {
           jsonPayload[key] = parsed;
         }
@@ -420,32 +193,88 @@ export default function CustomerDetail({
     }
   };
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-      return;
+  // Action buttons configuration based on mode
+  const getActionButtons = () => {
+    const buttons = [];
+
+    if (mode === "view") {
+      if (onEdit) {
+        buttons.push(
+          <button
+            key="edit"
+            type="button"
+            onClick={onEdit}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+            title="Edit Customer"
+          >
+            <FaEdit size={14} />
+            Edit
+          </button>
+        );
+      }
+      if (onDelete) {
+        buttons.push(
+          <button
+            key="delete"
+            type="button"
+            onClick={onDelete}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            title="Delete Customer"
+          >
+            <FaTrash size={14} />
+            Delete
+          </button>
+        );
+      }
+    } else {
+      // Add/Edit mode - no action buttons
     }
-    if (inline && onCancelInline) {
-      onCancelInline();
-      return;
+
+    // Navigation buttons (always available if callbacks provided)
+    if (onPrev) {
+      buttons.push(
+        <button
+          key="prev"
+          type="button"
+          onClick={onPrev}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Previous"
+        >
+          <FaChevronLeft size={14} />
+          Prev
+        </button>
+      );
     }
-    navigate(-1);
+
+    if (onNext) {
+      buttons.push(
+        <button
+          key="next"
+          type="button"
+          onClick={onNext}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Next"
+        >
+          Next
+          <FaChevronRight size={14} />
+        </button>
+      );
+    }
+
+    return buttons;
   };
 
-  // Tab definitions similar to OrderDetail
+  // Tab definitions - merged summary and overview
   const tabs = [
-    { id: "summary", label: "Summary" },
-    { id: "overview", label: "Overview" },
-    { id: "contacts", label: "Contacts", icon: <FaPhone size={14} /> },
-    { id: "locations", label: "Locations", icon: <FaMapMarkerAlt size={14} /> },
-    { id: "domains", label: "Domains", icon: <FaLink size={14} /> },
+    { id: "overview", label: "Overview", icon: <FaBuilding size={14} /> },
+    { id: "communication", label: "Communication", icon: <FaPhone size={14} /> },
     { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
-    { id: "relations", label: "Relations" },
+    { id: "relations", label: "Relations", icon: <FaUsers size={14} /> },
     { id: "documents", label: "Documents", icon: <FaFileAlt size={14} /> },
-    { id: "connections", label: "Connections" },
-    { id: "data", label: "Data" },
-    { id: "metrics", label: "Metrics" },
-    { id: "gl_accounts", label: "GL Accounts" },
+    { id: "connections", label: "Connections", icon: <FaLink size={14} /> },
+    { id: "data", label: "Data", icon: <FaCog size={14} /> },
+    { id: "metrics", label: "Metrics", icon: <FaChartBar size={14} /> },
+    { id: "gl_accounts", label: "GL Accounts", icon: <FaCreditCard size={14} /> },
   ];
 
   const formData = watch();
@@ -459,235 +288,233 @@ export default function CustomerDetail({
     is_active: formData.is_active,
   };
 
-  return (
-    <ComponentCard>
-      {/* Header Section - Similar to OrderDetail */}
-      {!inline && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-              Customer
-            </div>
-            <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              {watch("display_name") || data?.display_name || "New Customer"}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-full bg-white shadow border border-slate-200 px-2 py-1 dark:bg-slate-800 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Cancel"
-            >
-              <FaTimes className="text-slate-600 dark:text-slate-400" />
-            </button>
-            {mode === "view" ? (
-              <>
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  title="Edit"
-                  disabled={!onEdit}
-                >
-                  <FaEdit className="text-slate-600 dark:text-slate-400" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  title="Delete"
-                  disabled={!onDelete}
-                >
-                  <FaTrash className="text-rose-600 dark:text-rose-400" />
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title="Save"
-                disabled={isSubmitting}
-              >
-                <FaSave className="text-slate-600 dark:text-slate-400" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onPrev}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-              title="Previous"
-              disabled={!onPrev}
-            >
-              <FaChevronLeft className="text-slate-600 dark:text-slate-400" />
-            </button>
-            <button
-              type="button"
-              onClick={onNext}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-              title="Next"
-              disabled={!onNext}
-            >
-              <FaChevronRight className="text-slate-600 dark:text-slate-400" />
-            </button>
-          </div>
-        </div>
-      )}
+  // Function to get data for specific tab
+  const getTabData = (tabId: string) => {
+    const baseData = { ...customerData };
+    const jsonData = Object.fromEntries(
+      Object.entries(JSON_DEFAULTS).map(([key, defaultValue]) => {
+        try {
+          const parsed = JSON.parse(formData[key as keyof CustomerFormValues] as string || JSON.stringify(defaultValue));
+          return [key, parsed];
+        } catch {
+          return [key, defaultValue];
+        }
+      })
+    );
 
-      {/* Tab Navigation - Similar to OrderDetail */}
-      <div className="flex items-center gap-2 py-2 border-b border-slate-200 dark:border-slate-700 mb-6 overflow-x-auto">
-        <div className="flex min-w-max items-center gap-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative pb-2 text-sm font-semibold transition flex items-center gap-1 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-            >
-              {tab.icon && tab.icon}
-              {tab.label}
-              {activeTab === tab.id && (
-                <span className="absolute -bottom-2 left-0 right-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-              )}
-            </button>
-          ))}
+    // Define which fields belong to each tab
+    const tabFieldMapping: Record<string, string[]> = {
+      communication: ['contacts', 'locations', 'domains', 'phones', 'emails'],
+      financial: ['financial'],
+      relations: ['relations'],
+      documents: ['docs'],
+      connections: ['connections'],
+      data: ['data'],
+      metrics: ['metrics'],
+      gl_accounts: ['gl_accounts'],
+    };
+
+    const fieldsForTab = tabFieldMapping[tabId] || [];
+    const filteredData: Record<string, any> = {};
+
+    fieldsForTab.forEach(field => {
+      if (jsonData[field] !== undefined) {
+        filteredData[field] = jsonData[field];
+      }
+    });
+
+    return { ...baseData, ...filteredData };
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+      {/* Compact Header */}
+      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+              {watch("display_name") || data?.display_name || "New Customer"}
+            </h2>
+            <div className="flex items-center gap-3 mt-1">
+              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                customerData.is_active
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+              }`}>
+                {customerData.is_active ? 'Active' : 'Inactive'}
+              </span>
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            {getActionButtons()}
+          </div>
         </div>
+      </div>
+      {/* Tab Navigation */}
+      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700">
+        <nav className="px-4">
+          <div className="flex gap-1 py-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </nav>
       </div>
 
       {/* Tab Content */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Summary Tab - Shows header like OrderDetail */}
-        {activeTab === "summary" && (
-          <div className="space-y-6">
-            <CustomerHeader data={customerData} />
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+          <div className="p-4">
+            {/* Overview Tab - Basic Information */}
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                {mode === "view" ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <FaBuilding size={16} />
+                        Basic Information
+                      </h3>
+                      <dl className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Company Name</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.display_name || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Status</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.status || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Organization Type</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.org_type || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Version</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.version ?? 1}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Active</dt>
+                          <dd className="font-medium">
+                            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                              customerData.is_active
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+                            }`}>
+                              {customerData.is_active ? 'Yes' : 'No'}
+                            </span>
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="display_name">Company Name *</Label>
+                      <Input
+                        type="text"
+                        id="display_name"
+                        placeholder="Enter company name"
+                        {...register("display_name")}
+                        error={errors.display_name && errors.display_name.message ? true : false}
+                        hint={errors.display_name && errors.display_name.message}
+                        className="mt-1"
+                      />
+                    </div>
 
-        {/* Overview Tab - General information */}
-        {activeTab === "overview" && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h3 className="mb-6 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              General Information
-            </h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="display_name">Company Name</Label>
-                <Input
-                  type="text"
-                  id="display_name"
-                  placeholder="Company Name"
-                  {...register("display_name")}
-                  error={
-                    errors.display_name && errors.display_name.message
-                      ? true
-                      : false
-                  }
-                  hint={errors.display_name && errors.display_name.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Input
-                  type="text"
-                  id="status"
-                  placeholder="e.g., active, pending"
-                  {...register("status")}
-                  error={errors.status && errors.status.message ? true : false}
-                  hint={errors.status && errors.status.message}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="org_type">Organization Type</Label>
-                <Input
-                  type="text"
-                  id="org_type"
-                  placeholder="customer"
-                  {...register("org_type")}
-                  disabled={mode === "view"}
-                />
-              </div>
-              <div>
-                <Label htmlFor="version">Version</Label>
-                <Input
-                  type="number"
-                  id="version"
-                  placeholder="1"
-                  {...register("version", { valueAsNumber: true })}
-                  disabled={mode === "view"}
-                />
-              </div>
-            </div>
-            <div className="mt-6">
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_active"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="Active"
-                  />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="status">Status *</Label>
+                        <Controller
+                          name="status"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              options={STATUS_OPTIONS}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select status"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="org_type">Organization Type</Label>
+                        <Controller
+                          name="org_type"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              options={ORG_TYPE_OPTIONS}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select type"
+                            />
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="version">Version</Label>
+                        <Input
+                          type="number"
+                          id="version"
+                          placeholder="1"
+                          {...register("version", { valueAsNumber: true })}
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div className="flex items-center">
+                        <Controller
+                          name="is_active"
+                          control={control}
+                          render={({ field }) => (
+                            <Checkbox
+                              id="is_active"
+                              checked={field.value ?? false}
+                              onChange={field.onChange}
+                              label="Active"
+                            />
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* JSON Data Tabs */}
-        {activeTab !== "summary" && activeTab !== "overview" && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            {JSON_FIELDS.filter((field) => {
-              if (activeTab === "documents") return field.key === "docs";
-              return field.key === activeTab;
-            }).map((field) => (
-              <div key={field.key} className="space-y-2">
-                <Label htmlFor={String(field.key)}>{field.label}</Label>
-                <TextArea
-                  register={register(field.key)}
-                  rows={12}
-                  placeholder={field.placeholder}
-                  disabled={mode === "view"}
-                />
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  JSON format expected. {field.placeholder === "[]" ? "Array" : "Object"}.
-                </p>
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Action Buttons */}
-        {mode !== "view" && (
-          <div className="flex items-center gap-2 justify-start pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors font-medium text-sm"
-              disabled={isSubmitting}
-            >
-              <FaSave size={14} />
-              {mode === "edit" ? "Update Customer" : "Create Customer"}
-            </button>
-            {(inline || onCancel) && (
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="flex items-center px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
-              >
-                <FaTimes size={14} className="mr-2" />
-                Cancel
-              </button>
+            {/* Other tabs with structured data display */}
+            {activeTab !== "overview" && (
+              <CustomerDataPanel
+                data={getTabData(activeTab)}
+                showScalars={false}
+                grouped={false}
+                onSelectCategory={() => {}}
+              />
             )}
           </div>
-        )}
-      </form>
-    </ComponentCard>
+        </form>
+      </div>
+    </div>
   );
 }
