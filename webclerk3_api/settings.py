@@ -558,3 +558,9 @@ PAYMENT_CURRENCY = config('PAYMENT_CURRENCY', default='USD')
 PAYMENT_SUCCESS_URL = config('PAYMENT_SUCCESS_URL', default='http://localhost:5173/payment/success')
 PAYMENT_CANCEL_URL = config('PAYMENT_CANCEL_URL', default='http://localhost:5173/payment/cancel')
 PAYMENT_WEBHOOK_URL = config('PAYMENT_WEBHOOK_URL', default='http://localhost:8000/api/payments/webhook/')
+
+# --- Inventory Pending Processing ---
+# Controls how often the background processor checks for unprocessed inventory pending records
+INVENTORY_PENDING_PROCESS_DELAY = int(config('INVENTORY_PENDING_PROCESS_DELAY', default=5))  # seconds
+INVENTORY_PENDING_BATCH_SIZE = int(config('INVENTORY_PENDING_BATCH_SIZE', default=100))  # records per batch
+INVENTORY_PENDING_AUTO_PROCESS = config('INVENTORY_PENDING_AUTO_PROCESS', default=False, cast=bool)  # enable in prod

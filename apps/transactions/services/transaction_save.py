@@ -378,6 +378,20 @@ def save_transaction_with_lines(
                     'id': new_line.pk,
                     'action': 'created'
                 })
+                
+                # Create pending inventory record for new lines
+                try:
+                    from apps.transactions.services.line_item_service import LineItemService
+                    service = LineItemService(create_pending=True)
+                    service._create_pending_for_new_line(
+                        parent=header_obj,
+                        parent_model_key=model_key,
+                        line=new_line,
+                        line_data=line_data,
+                    )
+                    logger.debug(f"Created pending inventory record for new line {new_line.pk}")
+                except Exception as pending_err:
+                    logger.warning(f"Failed to create pending for line {new_line.pk}: {pending_err}")
     
     logger.info(
         "Transaction saved: model=%s header_id=%s lines_saved=%s lines_skipped=%s",

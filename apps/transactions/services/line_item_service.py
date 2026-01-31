@@ -983,6 +983,108 @@ class LineItemService:
         
         return pending
 
+    def _create_pending_for_new_line(
+        self,
+        parent,
+        parent_model_key: str,
+        line,
+        line_data: dict,
+    ) -> 'Pending':
+        """
+        Create a Pending record for a newly created line from save_view.py.
+        
+        This method bridges the save_view.py direct line creation with the
+        inventory pending system. It extracts the item_id and quantity from
+        the line_data and creates the appropriate pending record.
+        
+        Args:
+            parent: The parent transaction object (Order, Proposal, etc.)
+            parent_model_key: The model key ('order', 'proposal', etc.)
+            line: The created line object
+            line_data: The raw dict data used to create the line
+            
+        Returns:
+            The created Pending record, or None if not applicable
+        """
+        # Normalize transaction type
+        tx_type_map = {
+            'order': 'sales_order',
+            'salesorder': 'sales_order',
+            'proposal': 'proposal',
+            'quote': 'proposal',
+            'invoice': 'invoice',
+            'purchase': 'purchase_order',
+            'purchaseorder': 'purchase_order',
+            'workorder': 'work_order',
+        }
+        transaction_type = tx_type_map.get(parent_model_key.lower())
+        
+        if not transaction_type:
+            logger.debug(f"_create_pending_for_new_line: No inventory tracking for {parent_model_key}")
+            return None
+        
+        if not _should_track_inventory(transaction_type):
+            return None
+        
+        # Extract item_id from line_data or line object
+        item_id = None
+        item_data = line_data.get('item', {}) or {}
+        if isinstance(item_data, dict):
+            item_id = item_data.get('id') or item_data.get('item_id')
+        if not item_id and hasattr(line, 'item') and isinstance(line.item, dict):
+            item_id = line.item.get('id') or line.item.get('item_id')
+        if not item_id and hasattr(line, 'item_id'):
+            item_id = line.item_id
+        
+        if not item_id:
+            logger.debug(f"_create_pending_for_new_line: No item_id found for line {line.pk}")
+            return None
+        
+        # Get the Item
+        try:
+            item = Item.objects.get(pk=item_id)
+        except Item.DoesNotExist:
+            logger.warning(f"_create_pending_for_new_line: Item {item_id} not found")
+            return None
+        
+        # Extract quantity from line_data or line object
+        quantity = 0
+        qty_data = line_data.get('quantity', {}) or {}
+        if isinstance(qty_data, dict):
+            quantity = float(qty_data.get('placed', 0) or qty_data.get('ordered', 0) or 0)
+        elif isinstance(qty_data, (int, float)):
+            quantity = float(qty_data)
+        if not quantity and hasattr(line, 'quantity') and isinstance(line.quantity, dict):
+            quantity = float(line.quantity.get('placed', 0) or line.quantity.get('ordered', 0) or 0)
+        
+        if not quantity:
+            logger.debug(f"_create_pending_for_new_line: Zero quantity for line {line.pk}")
+            return None
+        
+        # Extract cost/price
+        unit_cost = 0
+        unit_price = 0
+        cost_data = line_data.get('cost', {}) or {}
+        if isinstance(cost_data, dict):
+            unit_cost = float(cost_data.get('unit', 0) or 0)
+        price_data = line_data.get('price', {}) or {}
+        if isinstance(price_data, dict):
+            unit_price = float(price_data.get('unit', 0) or 0)
+        
+        # Mark line as having pending created (prevents signal from duplicating)
+        line._pending_created = True
+        
+        # Create the pending record using existing method
+        return self._create_pending_for_line_add(
+            transaction=parent,
+            transaction_type=transaction_type,
+            line=line,
+            item=item,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            unit_price=unit_price,
+        )
+
     def _create_pending_for_qty_change(
         self,
         transaction,
