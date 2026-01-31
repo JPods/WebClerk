@@ -102,6 +102,12 @@ export default function ItemList() {
     setFormMode("view");
   }, []);
 
+  // Double-click opens the detail view
+  const handleDoubleClick = useCallback((row: any) => {
+    setSelectedItem(row);
+    setFormMode("view");
+  }, []);
+
   const handleDashboard = useCallback((row: any) => {
     const id = getItemId(row);
     console.log('Dashboard button clicked, id:', id);
@@ -252,7 +258,7 @@ export default function ItemList() {
               enableSelection={true}
               onSelectionChange={setSelectedItems}
               exportFileName="items_export"
-              // onRowActivate={handleEdit}
+              onRowDoubleClicked={handleDoubleClick}
               searchPlaceholder="Search items..."
               noDataMessage="No items found"
               customActions={

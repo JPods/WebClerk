@@ -4,11 +4,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
-import { Input } from "../../../../../components/wrapper";
+import ComponentCard from "../../../../../../components/common/ComponentCard";
+import Label from "../../../../../../components/form/Label";
+import { Input } from "../../../../../../components/wrapper";
 
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
+import PageBreadcrumb from "../../../../../../components/common/PageBreadCrumb";
 import {
   createSalesOrder,
   updateSalesOrder,
@@ -17,15 +17,15 @@ import {
   updateSalesOrderLine,
   deleteSalesOrderLine,
 } from "../services/salesOrderApi";
-import { showToast } from "../../../../../store/slices/toastSlice";
+import { showToast } from "../../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { salesOrderSchema } from "../utils/salesOrderSchema";
 import { SalesOrderAddProps } from "../types/salesOrderType";
-import { AuditTrail } from "../../../../../components/transactions/common/AuditTrail";
+import { AuditTrail } from "../../../../../../components/transactions/common/AuditTrail";
 import SalesOrderStatus from "../components/SalesOrderStatus";
 import SalesOrderLineEditor from "../components/SalesOrderLineEditor";
-import { getRecords } from "../../../../../api/wcapi";
+import { getRecords } from "../../../../../../api/wcapi";
 
 export default function SalesOrderDetailTest({
   modeProp,

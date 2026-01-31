@@ -1,162 +1,96 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
-import { Input, TextArea } from "../../../../../components/wrapper";
+import { Input, Select } from "../../../../../components/wrapper";
 
 import { createCustomer, updateCustomer } from "../services/customerApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation, useNavigate } from "react-router";
-import { FaChevronLeft, FaChevronRight, FaSave, FaTimes, FaEdit, FaTrash } from "react-icons/fa";
+import { useLocation } from "react-router";
+import { FaChevronLeft, FaChevronRight, FaEdit, FaTrash, FaDollarSign, FaFileAlt, FaPhone, FaBuilding, FaLink, FaChartBar, FaCreditCard, FaUsers, FaCog } from "react-icons/fa";
 import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
+import CustomerDataPanel from "./CustomerDataPanel";
 
 
-// Dashboard-style containers for modular customer view
+// Professional customer display component for right-side column
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
-const JSON_DEFAULTS: Record<string, string> = {
-  contacts: "[]",
-  locations: "[]",
-  domains: "[]",
-  phones: "[]",
-  emails: "[]",
-  docs: "[]",
-  connections: "{}",
-  relations: "{}",
-  financial: "{}",
-  data: "{}",
-  metrics: "{}",
-  gl_accounts: "{}",
+interface Customer {
+  id?: number;
+  display_name?: string;
+  status?: string;
+  org_type?: string;
+  version?: number;
+  is_active?: boolean;
+  contacts?: any;
+  locations?: any;
+  domains?: any;
+  phones?: any;
+  emails?: any;
+  docs?: any;
+  connections?: any;
+  relations?: any;
+  financial?: any;
+  data?: any;
+  metrics?: any;
+  gl_accounts?: any;
+}
+
+const JSON_DEFAULTS: Record<string, any> = {
+  contacts: [],
+  locations: [],
+  domains: [],
+  phones: [],
+  emails: [],
+  docs: [],
+  connections: {},
+  relations: { parents: [], children: [], linked_ids: [] },
+  financial: { credit: { limit: 0, used: 0 }, balances: { open: 0, current: 0 }, metrics: { ytd: { sales: 0 } } },
+  data: {},
+  metrics: { counts: {}, periods: {} },
+  gl_accounts: {},
 };
 
-const JSON_FIELDS: Array<{ key: keyof CustomerFormValues; label: string; placeholder: string }> = [
-  { key: "contacts", label: "Contacts", placeholder: "[]" },
-  { key: "locations", label: "Locations", placeholder: "[]" },
-  { key: "domains", label: "Domains", placeholder: "[]" },
-  { key: "phones", label: "Phones", placeholder: "[]" },
-  { key: "emails", label: "Emails", placeholder: "[]" },
-  { key: "relations", label: "Relations", placeholder: "{}" },
-  { key: "financial", label: "Financial", placeholder: "{}" },
-  { key: "docs", label: "Documents", placeholder: "[]" },
-  { key: "connections", label: "Connections", placeholder: "{}" },
-  { key: "data", label: "Data", placeholder: "{}" },
-  { key: "metrics", label: "Metrics", placeholder: "{}" },
-  { key: "gl_accounts", label: "GL Accounts", placeholder: "{}" },
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "pending", label: "Pending" },
+  { value: "suspended", label: "Suspended" },
+  { value: "archived", label: "Archived" },
 ];
 
-const formatLabel = (value: string) =>
-  value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+const ORG_TYPE_OPTIONS = [
+  { value: "customer", label: "Customer" },
+  { value: "vendor", label: "Vendor" },
+  { value: "partner", label: "Partner" },
+  { value: "internal", label: "Internal" },
+];
 
-const isObjectValue = (value: unknown) =>
-  typeof value === "object" && value !== null;
 
-const renderScalarValue = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return <span className="text-slate-400">—</span>;
-  }
-  return <span className="text-slate-800 dark:text-slate-200">{String(value)}</span>;
-};
-
-function CustomerDataPanel({ data }: { data: any }) {
-  const entries = useMemo(() => Object.entries(data || {}), [data]);
-  const [scalarEntries, objectEntries] = useMemo(() => {
-    const scalars: Array<[string, unknown]> = [];
-    const objects: Array<[string, unknown]> = [];
-    entries.forEach(([key, value]) => {
-      if (Array.isArray(value) || isObjectValue(value)) {
-        objects.push([key, value]);
-      } else {
-        scalars.push([key, value]);
-      }
-    });
-    return [scalars, objects];
-  }, [entries]);
-
-  if (!entries.length) {
-    return (
-      <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
-        No customer data available.
-      </section>
-    );
-  }
-
-  return (
-    <section className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Scalar Fields</h3>
-          <span className="text-xs text-slate-400">{scalarEntries.length}</span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {scalarEntries.map(([key, value]) => (
-            <div
-              key={key}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                {formatLabel(key)}
-              </div>
-              <div className="mt-1 text-sm">{renderScalarValue(value)}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Object & List Fields</h3>
-          <span className="text-xs text-slate-400">{objectEntries.length}</span>
-        </div>
-        <div className="space-y-3">
-          {objectEntries.map(([key, value]) => (
-            <details
-              key={key}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-            >
-              <summary className="cursor-pointer text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {formatLabel(key)}
-              </summary>
-              <pre className="mt-2 max-h-60 overflow-auto rounded-lg bg-white p-3 text-xs text-slate-600 shadow-inner dark:bg-slate-900 dark:text-slate-300">
-                {JSON.stringify(value, null, 2)}
-              </pre>
-            </details>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function CustomerDetail({
   modeProp,
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
   onSaved,
-  inline = false,
-  onCancelInline,
   onPrev,
   onNext,
-  onCancel,
   onEdit,
   onDelete,
 }: CustomerAddProps) {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const [commOpen, setCommOpen] = useState(false);
 
   const {
     register,
     setValue,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     reset,
     control,
     watch,
@@ -166,21 +100,22 @@ export default function CustomerDetail({
       is_active: false,
       version: 1,
       org_type: "customer",
-      ...JSON_DEFAULTS,
+      ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
     },
   });
 
   const location = useLocation();
   const routeState = (location.state as any) || {};
-  const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
+  const mode: "add" | "edit" | "view" = (modeProp || (routeState.mode as "add" | "edit" | "view") || "add");
   const data = dataProp || routeState.data || null;
+
   useEffect(() => {
     if (mode === "add") {
       reset({
         is_active: false,
         version: 1,
         org_type: "customer",
-        ...JSON_DEFAULTS,
+        ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
       });
       return;
     }
@@ -196,7 +131,7 @@ export default function CustomerDetail({
       });
       Object.keys(JSON_DEFAULTS).forEach((key) => {
         if (data[key] === undefined) {
-          setValue(key as keyof CustomerFormValues, JSON_DEFAULTS[key]);
+          setValue(key as keyof CustomerFormValues, JSON.stringify(JSON_DEFAULTS[key]));
         }
       });
     } else {
@@ -204,7 +139,7 @@ export default function CustomerDetail({
         is_active: false,
         version: 1,
         org_type: "customer",
-        ...JSON_DEFAULTS,
+        ...Object.fromEntries(Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)])),
       });
     }
   }, [data, reset, setValue, mode]);
@@ -218,11 +153,12 @@ export default function CustomerDetail({
       throw new Error(`${label} JSON invalid`);
     }
   };
+
   const onSubmit = async (formData: CustomerFormValues) => {
     try {
       const jsonPayload: Record<string, any> = {};
-      JSON_FIELDS.forEach(({ key, label }) => {
-        const parsed = parseJsonField(label, formData[key] as string | undefined);
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        const parsed = parseJsonField(key, formData[key as keyof CustomerFormValues] as string | undefined);
         if (parsed !== undefined) {
           jsonPayload[key] = parsed;
         }
@@ -257,338 +193,328 @@ export default function CustomerDetail({
     }
   };
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-      return;
+  // Action buttons configuration based on mode
+  const getActionButtons = () => {
+    const buttons = [];
+
+    if (mode === "view") {
+      if (onEdit) {
+        buttons.push(
+          <button
+            key="edit"
+            type="button"
+            onClick={onEdit}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+            title="Edit Customer"
+          >
+            <FaEdit size={14} />
+            Edit
+          </button>
+        );
+      }
+      if (onDelete) {
+        buttons.push(
+          <button
+            key="delete"
+            type="button"
+            onClick={onDelete}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            title="Delete Customer"
+          >
+            <FaTrash size={14} />
+            Delete
+          </button>
+        );
+      }
+    } else {
+      // Add/Edit mode - no action buttons
     }
-    if (inline && onCancelInline) {
-      onCancelInline();
-      return;
+
+    // Navigation buttons (always available if callbacks provided)
+    if (onPrev) {
+      buttons.push(
+        <button
+          key="prev"
+          type="button"
+          onClick={onPrev}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Previous"
+        >
+          <FaChevronLeft size={14} />
+          Prev
+        </button>
+      );
     }
-    navigate(-1);
+
+    if (onNext) {
+      buttons.push(
+        <button
+          key="next"
+          type="button"
+          onClick={onNext}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          title="Next"
+        >
+          Next
+          <FaChevronRight size={14} />
+        </button>
+      );
+    }
+
+    return buttons;
+  };
+
+  // Tab definitions - merged summary and overview
+  const tabs = [
+    { id: "overview", label: "Overview", icon: <FaBuilding size={14} /> },
+    { id: "communication", label: "Communication", icon: <FaPhone size={14} /> },
+    { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
+    { id: "relations", label: "Relations", icon: <FaUsers size={14} /> },
+    { id: "documents", label: "Documents", icon: <FaFileAlt size={14} /> },
+    { id: "connections", label: "Connections", icon: <FaLink size={14} /> },
+    { id: "data", label: "Data", icon: <FaCog size={14} /> },
+    { id: "metrics", label: "Metrics", icon: <FaChartBar size={14} /> },
+    { id: "gl_accounts", label: "GL Accounts", icon: <FaCreditCard size={14} /> },
+  ];
+
+  const formData = watch();
+  const customerData: Customer = {
+    ...formData,
+    id: data?.id,
+    display_name: formData.display_name,
+    status: formData.status,
+    org_type: formData.org_type,
+    version: formData.version,
+    is_active: formData.is_active,
+  };
+
+  // Function to get data for specific tab
+  const getTabData = (tabId: string) => {
+    const baseData = { ...customerData };
+    const jsonData = Object.fromEntries(
+      Object.entries(JSON_DEFAULTS).map(([key, defaultValue]) => {
+        try {
+          const parsed = JSON.parse(formData[key as keyof CustomerFormValues] as string || JSON.stringify(defaultValue));
+          return [key, parsed];
+        } catch {
+          return [key, defaultValue];
+        }
+      })
+    );
+
+    // Define which fields belong to each tab
+    const tabFieldMapping: Record<string, string[]> = {
+      communication: ['contacts', 'locations', 'domains', 'phones', 'emails'],
+      financial: ['financial'],
+      relations: ['relations'],
+      documents: ['docs'],
+      connections: ['connections'],
+      data: ['data'],
+      metrics: ['metrics'],
+      gl_accounts: ['gl_accounts'],
+    };
+
+    const fieldsForTab = tabFieldMapping[tabId] || [];
+    const filteredData: Record<string, any> = {};
+
+    fieldsForTab.forEach(field => {
+      if (jsonData[field] !== undefined) {
+        filteredData[field] = jsonData[field];
+      }
+    });
+
+    return { ...baseData, ...filteredData };
   };
 
   return (
-    <>
-      <ComponentCard>
-        {!inline && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-slate-400">Customer</div>
-              <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                {watch("display_name") || data?.display_name || "New Customer"}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-white shadow border border-slate-200 px-2 py-1">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="p-2 rounded-full hover:bg-slate-100"
-                title="Cancel"
-              >
-                <FaTimes className="text-slate-600" />
-              </button>
-              {mode === "view" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={onEdit}
-                    className="p-2 rounded-full hover:bg-slate-100"
-                    title="Edit"
-                    disabled={!onEdit}
-                  >
-                    <FaEdit className="text-slate-600" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onDelete}
-                    className="p-2 rounded-full hover:bg-slate-100"
-                    title="Delete"
-                    disabled={!onDelete}
-                  >
-                    <FaTrash className="text-rose-600" />
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit(onSubmit)}
-                  className="p-2 rounded-full hover:bg-slate-100"
-                  title="Save"
-                  disabled={isSubmitting}
-                >
-                  <FaSave className="text-slate-600" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={onPrev}
-                className="p-2 rounded-full hover:bg-slate-100"
-                title="Previous"
-                disabled={!onPrev}
-              >
-                <FaChevronLeft className="text-slate-600" />
-              </button>
-              <button
-                type="button"
-                onClick={onNext}
-                className="p-2 rounded-full hover:bg-slate-100"
-                title="Next"
-                disabled={!onNext}
-              >
-                <FaChevronRight className="text-slate-600" />
-              </button>
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+      {/* Compact Header */}
+      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+              {watch("display_name") || data?.display_name || "New Customer"}
+            </h2>
+            <div className="flex items-center gap-3 mt-1">
+              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                customerData.is_active
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+              }`}>
+                {customerData.is_active ? 'Active' : 'Inactive'}
+              </span>
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
+              </span>
             </div>
           </div>
-        )}
-        <div className="flex items-center gap-2 py-2">
-          <div className="flex-1 overflow-x-auto h-14">
-            <div className="flex min-w-max items-center gap-6">
-              {[
-                { id: "overview", label: "Overview" },
-                { id: "snapshot", label: "Snapshot" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative pb-2 text-sm font-semibold transition ${
-                    activeTab === tab.id
-                      ? "text-indigo-600"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute -bottom-2.5 left-0 right-0 h-0.5 rounded-full bg-indigo-600" />
-                  )}
-                </button>
-              ))}
+          <div className="flex items-center gap-2 ml-4">
+            {getActionButtons()}
+          </div>
+        </div>
+      </div>
+      {/* Tab Navigation */}
+      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700">
+        <nav className="px-4">
+          <div className="flex gap-1 py-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-600'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      </div>
 
-              {/* Communications grouped menu */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setCommOpen((v) => !v)}
-                  className={`relative pb-2 text-sm font-semibold transition ${
-                    ["contacts", "phones", "emails", "locations", "domains"].includes(activeTab)
-                      ? "text-indigo-600"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  Communications
-                  <span className="ml-2 text-xs">▾</span>
-                  {commOpen && (
-                    <div className="absolute left-0 top-full mt-2 w-40 rounded-md bg-white border border-gray-200 shadow-lg z-20 py-1">
-                      {[
-                        { id: "contacts", label: "Contacts" },
-                        { id: "phones", label: "Phones" },
-                        { id: "emails", label: "Emails" },
-                        { id: "locations", label: "Addresses" },
-                        { id: "domains", label: "Domains" },
-                      ].map((sub) => (
-                        <button
-                          key={sub.id}
-                          onClick={() => {
-                            setActiveTab(sub.id);
-                            setCommOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm ${activeTab === sub.id ? "bg-gray-100 text-indigo-600" : "text-gray-700 hover:bg-gray-50"}`}
-                        >
-                          {sub.label}
-                        </button>
-                      ))}
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto">
+        <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+          <div className="p-4">
+            {/* Overview Tab - Basic Information */}
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                {mode === "view" ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <FaBuilding size={16} />
+                        Basic Information
+                      </h3>
+                      <dl className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Company Name</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.display_name || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Status</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.status || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Organization Type</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100 capitalize">{customerData.org_type || "—"}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Version</dt>
+                          <dd className="font-medium text-slate-900 dark:text-slate-100">{customerData.version ?? 1}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-slate-500 dark:text-slate-400">Active</dt>
+                          <dd className="font-medium">
+                            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                              customerData.is_active
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+                            }`}>
+                              {customerData.is_active ? 'Yes' : 'No'}
+                            </span>
+                          </dd>
+                        </div>
+                      </dl>
                     </div>
-                  )}
-                </button>
-              </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="display_name">Company Name *</Label>
+                      <Input
+                        type="text"
+                        id="display_name"
+                        placeholder="Enter company name"
+                        {...register("display_name")}
+                        error={errors.display_name && errors.display_name.message ? true : false}
+                        hint={errors.display_name && errors.display_name.message}
+                        className="mt-1"
+                      />
+                    </div>
 
-              {/* Remaining tabs (collapsed to conserve space) */}
-              {[
-                { id: "relations", label: "Relations" },
-                { id: "financial", label: "Financial" },
-                { id: "documents", label: "Documents" },
-                { id: "connections", label: "Connections" },
-                { id: "data", label: "Data" },
-                { id: "metrics", label: "Metrics" },
-                { id: "gl_accounts", label: "GL Accounts" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative pb-2 text-sm font-semibold transition ${
-                    activeTab === tab.id
-                      ? "text-indigo-600"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute -bottom-2.5 left-0 right-0 h-0.5 rounded-full bg-indigo-600" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">Snapshot</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">ID: {data?.id ?? "—"}</div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                {watch("status") || data?.status || "Unknown"}
-              </span>
-              <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 dark:border-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
-                {watch("org_type") || data?.org_type || "customer"}
-              </span>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${watch("is_active") ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}
-              >
-                {watch("is_active") ? "Active" : "Inactive"}
-              </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                v{watch("version") ?? data?.version ?? 1}
-              </span>
-            </div>
-          </div>
-        </div>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Customer"
-                : mode === "view"
-                ? "View Customer"
-                : "Add New Customer"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="status">Status *</Label>
+                        <Controller
+                          name="status"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              options={STATUS_OPTIONS}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select status"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="org_type">Organization Type</Label>
+                        <Controller
+                          name="org_type"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              options={ORG_TYPE_OPTIONS}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Select type"
+                            />
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="version">Version</Label>
+                        <Input
+                          type="number"
+                          id="version"
+                          placeholder="1"
+                          {...register("version", { valueAsNumber: true })}
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div className="flex items-center">
+                        <Controller
+                          name="is_active"
+                          control={control}
+                          render={({ field }) => (
+                            <Checkbox
+                              id="is_active"
+                              checked={field.value ?? false}
+                              onChange={field.onChange}
+                              label="Active"
+                            />
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Other tabs with structured data display */}
+            {activeTab !== "overview" && (
+              <CustomerDataPanel
+                data={getTabData(activeTab)}
+                showScalars={false}
+                grouped={false}
+                onSelectCategory={() => {}}
+              />
             )}
           </div>
-        )}
-        {/* ...existing customer form and logic... */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {activeTab === "overview" && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-              <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">General Information</h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="display_name">Company</Label>
-                  <Input
-                    type="text"
-                    id="display_name"
-                    placeholder="Company"
-                    {...register("display_name")}
-                    error={
-                      errors.display_name && errors.display_name.message
-                        ? true
-                        : false
-                    }
-                    hint={errors.display_name && errors.display_name.message}
-                    disabled={mode === "view"}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Input
-                    type="text"
-                    id="status"
-                    placeholder="Status"
-                    {...register("status")}
-                    error={errors.status && errors.status.message ? true : false}
-                    hint={errors.status && errors.status.message}
-                    disabled={mode === "view"}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="org_type">Org Type</Label>
-                  <Input
-                    type="text"
-                    id="org_type"
-                    placeholder="customer"
-                    {...register("org_type")}
-                    disabled={mode === "view"}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="version">Version</Label>
-                  <Input
-                    type="number"
-                    id="version"
-                    placeholder="1"
-                    {...register("version", { valueAsNumber: true })}
-                    disabled={mode === "view"}
-                  />
-                </div>
-              </div>
-              <div className="mt-4">
-                <Controller
-                  name="is_active"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="is_active"
-                      checked={field.value ?? false}
-                      onChange={field.onChange}
-                      label="Active"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-          )}
-          {activeTab === "snapshot" && <CustomerDataPanel data={data} />}
-          {activeTab !== "overview" && activeTab !== "snapshot" && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-              {JSON_FIELDS.filter((field) => {
-                if (activeTab === "documents") return field.key === "docs";
-                return field.key === activeTab;
-              }).map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <Label htmlFor={String(field.key)}>{field.label}</Label>
-                  <TextArea
-                    register={register(field.key)}
-                    rows={12}
-                    placeholder={field.placeholder}
-                    disabled={mode === "view"}
-                  />
-                  <p className="text-xs text-slate-400">JSON format expected.</p>
-                </div>
-              ))}
-            </div>
-          )}
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </form>
-      </ComponentCard>
-    </>
+      </div>
+    </div>
   );
 }
