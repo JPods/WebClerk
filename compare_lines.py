@@ -1,46 +1,124 @@
 #!/usr/bin/env python
-"""Compare FK relation vs refs.links for getting sales order lines."""
+"""
+Compare lineitem quantity structure consistency across:
+- Proposal / ProposalLine
+- Order / OrderLine  
+- Invoice / InvoiceLine
+- Purchase / PurchaseLine
+
+Checks:
+1. default_quantity() structure per transaction type
+2. LineItemService._build_quantity_envelope consistency
+3. Line model save() ensures JSON defaults
+"""
 import django
 import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webclerk3_api.settings')
 django.setup()
 
-from apps.transactions.models.sales_order import SalesOrder
-from apps.transactions.models.sales_order_line import SalesOrderLine
+from apps.transactions.models.base_line_model import default_quantity, _normalize_line_kind
+from apps.transactions.services.line_item_service import LineItemService
 
-print('=== COMPARISON: FK Relation vs refs.links ===')
+print('=' * 70)
+print('COMPARISON: Lineitem Quantity Structures')
+print('=' * 70)
 print()
 
-for so_id in [22, 28, 30]:
-    so = SalesOrder.objects.get(pk=so_id)
+# 1. Check default_quantity() structure per transaction type
+print('1. default_quantity() Structures')
+print('-' * 50)
+
+tx_types = ['proposal', 'order', 'invoice', 'purchase', 'work_order']
+for tx_type in tx_types:
+    qty = default_quantity(tx_type)
+    print(f'\n  {tx_type.upper()}:')
+    for key, val in qty.items():
+        print(f'    {key}: {val}')
+
+# 2. Compare structures for consistency
+print('\n')
+print('2. Structure Consistency Check')
+print('-' * 50)
+
+# Get all structures
+structures = {tx: default_quantity(tx) for tx in tx_types}
+
+# Find common keys and unique keys
+all_keys = set()
+for s in structures.values():
+    all_keys.update(s.keys())
+
+common_keys = all_keys.copy()
+for s in structures.values():
+    common_keys &= set(s.keys())
+
+print(f'\n  Common keys (all types): {sorted(common_keys)}')
+
+for tx_type, struct in structures.items():
+    unique = set(struct.keys()) - common_keys
+    if unique:
+        print(f'  {tx_type} unique keys: {sorted(unique)}')
+
+# 3. Check transaction-specific tracking field patterns
+print('\n')
+print('3. Transaction-Specific Tracking Fields')
+print('-' * 50)
+
+tracking_fields = {
+    'proposal': ('placed', 'ordered', 'remaining'),
+    'order': ('placed', 'invoiced', 'remaining'),
+    'invoice': ('placed', 'packed', 'remaining'),
+    'purchase': ('placed', 'received', 'remaining'),
+    'work_order': ('placed', 'received', 'remaining'),
+}
+
+for tx_type, expected_fields in tracking_fields.items():
+    struct = structures[tx_type]
+    actual_fields = [k for k in struct.keys() if k in ('placed', 'ordered', 'invoiced', 'packed', 'received', 'remaining')]
     
-    # Method 1: Standard FK relation (salesorder.lines via related_name)
-    fk_lines = list(so.lines.values_list('id', flat=True))
+    missing = set(expected_fields) - set(struct.keys())
+    extra = set(actual_fields) - set(expected_fields)
     
-    # Method 2: refs.links shortcut
-    refs = so.refs or {}
-    links = refs.get('links', {})
-    ref_entries = links.get('sales_order_line', [])
-    ref_ids = [e.get('id') if isinstance(e, dict) else e for e in ref_entries]
-    
-    # Method 3: Direct query by FK column
-    direct_lines = list(SalesOrderLine.objects.filter(salesorder_id_id=so_id).values_list('id', flat=True))
-    
-    print(f'Sales Order {so_id}:')
-    print(f'  FK relation (so.lines):     {len(fk_lines)} lines: {sorted(fk_lines)}')
-    print(f'  refs.links:                 {len(ref_ids)} lines: {sorted(ref_ids)}')
-    print(f'  Direct FK query:            {len(direct_lines)} lines: {sorted(direct_lines)}')
-    
-    # Check for mismatches
-    fk_set = set(fk_lines)
-    ref_set = set(ref_ids)
-    direct_set = set(direct_lines)
-    
-    if fk_set != ref_set or fk_set != direct_set:
-        print(f'  ⚠️  MISMATCH DETECTED!')
-        print(f'      In FK but not refs: {fk_set - ref_set}')
-        print(f'      In refs but not FK: {ref_set - fk_set}')
-        print(f'      In direct but not FK: {direct_set - fk_set}')
-    else:
-        print(f'  ✓ All methods match')
-    print()
+    status = '✓' if not missing and not extra else '⚠️'
+    print(f'\n  {tx_type.upper()}: {status}')
+    print(f'    Expected: {expected_fields}')
+    print(f'    Actual:   {tuple(actual_fields)}')
+    if missing:
+        print(f'    MISSING:  {missing}')
+    if extra:
+        print(f'    EXTRA:    {extra}')
+
+# 4. LineItemService behavior check
+print('\n')
+print('4. LineItemService Configuration')
+print('-' * 50)
+
+service = LineItemService(create_pending=False)
+print(f'\n  LINE_MODEL_MAP keys: {sorted(service.__class__.__dict__.get("LINE_MODEL_MAP", {}).keys()) if hasattr(service, "LINE_MODEL_MAP") else "N/A"}')
+
+from apps.transactions.services.line_item_service import LINE_MODEL_MAP, LINE_FK_FIELD_MAP
+print(f'  LINE_MODEL_MAP: {LINE_MODEL_MAP}')
+print(f'  LINE_FK_FIELD_MAP: {LINE_FK_FIELD_MAP}')
+
+# 5. Verify _normalize_line_kind mappings
+print('\n')
+print('5. Line Kind Normalization')
+print('-' * 50)
+
+test_inputs = [
+    'proposal', 'proposal_line', 'proposalline', 'Proposal',
+    'order', 'order_line', 'sales_order_line', 'salesorderline',
+    'invoice', 'invoice_line', 'invoiceline',
+    'purchase', 'purchase_order', 'purchase_order_line', 'purchaseorderline',
+    'work_order', 'work_order_line', 'workorderline',
+]
+
+print('\n  Input -> Normalized:')
+for inp in test_inputs:
+    normalized = _normalize_line_kind(inp)
+    print(f'    {inp:25} -> {normalized}')
+
+print('\n')
+print('=' * 70)
+print('SUMMARY: Check above for any ⚠️ warnings')
+print('=' * 70)

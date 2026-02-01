@@ -83,7 +83,7 @@ class ProposalSerializer(serializers.ModelSerializer):
 
 
 class ProposalLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Proposal.objects.all())
+    parent = serializers.PrimaryKeyRelatedField(queryset=Proposal.objects.all(), source='proposal')
 
     class Meta(BaseLineSerializer.Meta):
         model = ProposalLine
@@ -98,7 +98,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    parent = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all(), source='order')
 
     class Meta(BaseLineSerializer.Meta):
         model = OrderLine
@@ -113,7 +113,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
 
 class InvoiceLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Invoice.objects.all())
+    parent = serializers.PrimaryKeyRelatedField(queryset=Invoice.objects.all(), source='invoice')
 
     class Meta(BaseLineSerializer.Meta):
         model = InvoiceLine
@@ -128,7 +128,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
 
 class PurchaseLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=Purchase.objects.all())
+    parent = serializers.PrimaryKeyRelatedField(queryset=Purchase.objects.all(), source='purchase')
 
     class Meta(BaseLineSerializer.Meta):
         model = PurchaseLine
@@ -143,7 +143,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
 
 
 class WorkOrderLineSerializer(BaseLineSerializer):
-    parent = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all())
+    parent = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all(), source='workorder')
 
     class Meta(BaseLineSerializer.Meta):
         model = WorkOrderLine

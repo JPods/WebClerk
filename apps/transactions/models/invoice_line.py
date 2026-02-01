@@ -7,7 +7,7 @@ class InvoiceLine(BaseSellLineModel):
         "transactions.Invoice",
         related_name="lines",
         on_delete=models.CASCADE,
-        db_column="invoice_id",  # Keep existing column name
+        db_column="invoice_id",
     )
 
     class Meta:

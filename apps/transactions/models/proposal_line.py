@@ -7,7 +7,7 @@ class ProposalLine(BaseSellLineModel):
         "transactions.Proposal",
         related_name="lines",
         on_delete=models.CASCADE,
-        db_column="proposal_id",  # Keep existing column name
+        db_column="proposal_id",
     )
 
     class Meta:
