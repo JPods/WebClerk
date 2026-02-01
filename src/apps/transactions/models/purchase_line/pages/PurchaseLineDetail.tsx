@@ -16,7 +16,7 @@ import { purchaseOrderLineSchema } from "../utils/purchaseOrderLineSchema";
 import { PurchaseOrderLineAddProps } from "../types/purchaseOrderLineType";
 import { coerceFormValue, coerceNumber } from "../../common/valueNormalization";
 
-export default function PurchaseOrderLineDetail({
+export default function PurchaseLineDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,

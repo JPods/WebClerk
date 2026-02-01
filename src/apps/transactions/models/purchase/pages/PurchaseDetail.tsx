@@ -1,6 +1,6 @@
 /**
- * PurchaseOrderDetail - Refactored to use TransactionDetailBase
- * Extends base with purchase order-specific fields and functionality
+ * PurchaseDetail - Refactored to use TransactionDetailBase
+ * Extends base with purchase-specific fields and functionality
  */
 import React, { useCallback } from 'react';
 import { 
@@ -389,16 +389,23 @@ interface PurchaseOrderDetailProps {
   inline?: boolean;
   onCancelInline?: () => void;
   isAdmin?: boolean;
+  /** Direct ID prop for /wcapi/get/?id=X style routes */
+  idProp?: number | string;
+  id?: number | string; // Alias for idProp
+  recordId?: number | string; // Alias for idProp
 }
 
 // Main Component
-const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
+const PurchaseDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
   // Dynamic tabs generator
   const getTabsAfter = (): TransactionTab[] => {
     return [
       { id: 'receiving', label: 'Receiving', icon: <FaTruck size={14} /> },
     ];
   };
+
+  // Resolve ID from various prop names
+  const resolvedId = props.idProp ?? props.id ?? props.recordId;
 
   return (
     <TransactionDetailBase
@@ -415,6 +422,7 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
       inline={props.inline}
       modeProp={props.modeProp}
       dataProp={props.dataProp}
+      idProp={resolvedId}
       onSaved={props.onSaved}
       onCancelInline={props.onCancelInline}
       isAdmin={props.isAdmin}
@@ -422,4 +430,4 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
   );
 };
 
-export default PurchaseOrderDetail;
+export default PurchaseDetail;

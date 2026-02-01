@@ -8,12 +8,12 @@ import { fetchPurchaseOrders, fetchPurchaseOrderDetail } from "../services/purch
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import PurchaseOrderDetail from "./PurchaseOrderDetail";
+import PurchaseDetail from "./PurchaseDetail";
 import { sanitizeRecord, formatDateTimeValue } from "../../common/valueNormalization";
 
 const numericPurchaseOrderKeys = ["dt_created", "id_vendor"]; 
 
-export default function PurchaseOrderList() {
+export default function PurchaseList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedPurchaseOrders, setSelectedPurchaseOrders] = useState<any[]>([]);
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState<any | null>(null);
@@ -243,7 +243,7 @@ export default function PurchaseOrderList() {
                 </div>
               </ComponentCard>
             ) : (
-              <PurchaseOrderDetail
+              <PurchaseDetail
                 inline
                 modeProp={formMode}
                 dataProp={formMode === "add" ? null : selectedPurchaseOrder}

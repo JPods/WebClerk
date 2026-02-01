@@ -147,6 +147,9 @@ interface TransactionDetailBaseProps {
   /** Pre-loaded data when used inline (skips fetch) */
   dataProp?: Transaction | null;
 
+  /** Direct ID prop (for use with /wcapi/get/?id=X routes) */
+  idProp?: number | string;
+
   /** Callback for cancel action in inline mode */
 }
 
@@ -172,12 +175,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   inline = false,
   modeProp,
   dataProp,
+  idProp,
 }) => {
   // Default no-op for handleAddItem to avoid reference error
   const handleAddItem = () => {};
   const { id: urlId } = useParams<{ id: string }>();
-  // Use dataProp ID if provided, otherwise fall back to URL param
-  const id = dataProp?.id?.toString() ?? urlId;
+  // Use idProp first, then dataProp ID, then URL param
+  const id = idProp?.toString() ?? dataProp?.id?.toString() ?? urlId;
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
