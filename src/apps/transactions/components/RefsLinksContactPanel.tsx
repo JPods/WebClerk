@@ -852,10 +852,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
 
       <div className="grid grid-cols-2 gap-4 p-2 bg-gray-100 ">
         {Array.from(allPurposes)
-          .filter(
-            (purpose) =>
-              (grouped[purpose] && grouped[purpose].length > 0) || isEditing,
-          )
+          .filter((purpose) => grouped[purpose] && grouped[purpose].length > 0)
           .map((purpose) => (
             <PurposeSection
               key={purpose}
