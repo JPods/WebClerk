@@ -14,13 +14,14 @@ class PurchaseLine(BaseExecLineModel):
         db_table = "purchase_lines"
 
     @property
-    def purchase_ref_id(self):
-        # Mirror FK id for test helpers
-        return self.purchase_id
+    def parent(self):
+        """Alias for the FK to parent transaction (uniform across all line types)."""
+        return self.purchase
 
-    @purchase_ref_id.setter
-    def purchase_ref_id(self, value):
-        self.purchase_id = value
+    @property
+    def parent_id_value(self):
+        """Raw FK id value for serialization."""
+        return self.purchase_id
 
 
 __all__ = ["PurchaseLine"]

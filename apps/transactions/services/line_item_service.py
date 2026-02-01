@@ -73,12 +73,13 @@ LINE_MODEL_MAP = {
 }
 
 # FK field names for each line model (the field pointing to the parent transaction)
+# All line models now use consistent naming: order, proposal, invoice, purchase, workorder
 LINE_FK_FIELD_MAP = {
     'orderline': 'order',
-    'proposalline': 'proposal_id',
-    'invoiceline': 'invoice_id',
+    'proposalline': 'proposal',
+    'invoiceline': 'invoice',
     'purchaseline': 'purchase',
-    'workorderline': 'workorder_id',
+    'workorderline': 'workorder',
 }
 
 

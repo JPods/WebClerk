@@ -1,11 +1,13 @@
 from django.db import models
 from .base_line_model import BaseSellLineModel
 
+
 class ProposalLine(BaseSellLineModel):
-    proposal_id = models.ForeignKey(
+    proposal = models.ForeignKey(
         "transactions.Proposal",
         related_name="lines",
         on_delete=models.CASCADE,
+        db_column="proposal_id",
     )
 
     class Meta:
@@ -13,15 +15,13 @@ class ProposalLine(BaseSellLineModel):
 
     @property
     def parent(self):
-        """Alias for the FK to parent transaction."""
-        return self.proposal_id
+        """Alias for the FK to parent transaction (uniform across all line types)."""
+        return self.proposal
 
     @property
-    def proposal_ref_id(self):
-        # Mirror FK id for test helpers - use Django's FK attname directly
-        return self.proposal_id.pk if self.proposal_id else None
+    def parent_id_value(self):
+        """Raw FK id value for serialization."""
+        return self.proposal_id
 
-    @proposal_ref_id.setter
-    def proposal_ref_id(self, value):
-        # Set the FK by id using Django's standard pattern
-        self.proposal_id_id = value  # This is correct Django syntax when FK is named 'proposal_id'
+
+__all__ = ["ProposalLine"]

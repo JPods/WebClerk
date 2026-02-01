@@ -25,6 +25,9 @@ _MAPPING = {
     #'RequisitionStd': ('requisition', 'Requisition'),  # back-compat
     'RequisitionLine': ('requisition_line', 'RequisitionLine'),
 
+    'Receipt': ('receipt', 'Receipt'),
+    'ReceiptLine': ('receipt', 'ReceiptLine'),
+
     'Payment': ('payment', 'Payment'),
     'PaymentMethod': ('payment', 'PaymentMethod'),
     'PaymentTerm': ('payment', 'PaymentTerm'),
