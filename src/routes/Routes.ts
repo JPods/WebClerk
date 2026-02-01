@@ -75,6 +75,21 @@
   static readonly transactionsProposalDetail: string =
     "/transactions/proposal/detail/:id?";
 
+  static readonly transactionsWorkOrderList: string =
+    "/transactions/work-order/list";
+  static readonly transactionsWorkOrderDetail: string =
+    "/transactions/work-order/detail/:id?";
+
+  static readonly transactionsReceiptList: string =
+    "/transactions/receipt/list";
+  static readonly transactionsReceiptDetail: string =
+    "/transactions/receipt/detail/:id?";
+
+  static readonly transactionsAdjustmentList: string =
+    "/transactions/adjustment/list";
+  static readonly transactionsAdjustmentDetail: string =
+    "/transactions/adjustment/detail/:id?";
+
   // Accounts
   static readonly auditList: string = "/accounts/audit/list";
   static readonly auditDetail: string = "/accounts/audit/detail/:id?";

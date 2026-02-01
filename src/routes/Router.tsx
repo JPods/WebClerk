@@ -1,3 +1,4 @@
+import WcapiRouteHandler from "./WcapiRouteHandler";
 // import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import ItemDashboard from "../apps/products/models/item/pages/ItemDashboard";
 import React from "react";
@@ -85,11 +86,16 @@ import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList
 import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
-import PurchaseOrderDetail from "../apps/transactions/models/purchase/pages/PurchaseOrderDetail";
+import PurchaseDetail from "../apps/transactions/models/purchase/pages/PurchaseDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
-import PurchaseOrderList from "../apps/transactions/models/purchase/pages/PurchaseOrderList";
+import PurchaseList from "../apps/transactions/models/purchase/pages/PurchaseList";
 import OrderList from "../apps/transactions/models/order/pages/OrderList";
+import WorkorderList from "../apps/transactions/models/workorder/pages/WorkorderList";
+import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
+import PurchaseReceiptList from "../apps/transactions/models/receipt/pages/PurchaseReceiptList";
+import PurchaseReceiptDetail from "../apps/transactions/models/receipt/pages/PurchaseReceiptDetail";
+import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
 import NotFoundPage from "../pages/NotFoundPage";
@@ -111,6 +117,8 @@ const Router: React.FC = () => {
         <Route path="/test" element={<Test />} />
         {/* Protected routes */}
         <Route element={<PrivateRoute />}>
+          {/* Universal WCAPI route handler */}
+          <Route path="/wcapi/get/" element={<WcapiRouteHandler />} />
           <Route path={PageRoutes.dashboard} element={<Home />} />
           <Route path={PageRoutes.profile} element={<UserProfiles />} />
           <Route
@@ -326,11 +334,11 @@ const Router: React.FC = () => {
           />
           <Route
             path={PageRoutes.transactionsPurchaseOrderList}
-            element={<PurchaseOrderList />}
+            element={<PurchaseList />}
           />
           <Route
             path={PageRoutes.transactionsPurchaseOrderDetail}
-            element={<PurchaseOrderDetail />}
+            element={<PurchaseDetail />}
           />
           <Route
             path={PageRoutes.transactionsProposalList}
@@ -339,6 +347,26 @@ const Router: React.FC = () => {
           <Route
             path={PageRoutes.transactionsProposalDetail}
             element={<ProposalDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsWorkOrderList}
+            element={<WorkorderList />}
+          />
+          <Route
+            path={PageRoutes.transactionsWorkOrderDetail}
+            element={<WorkorderDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsReceiptList}
+            element={<PurchaseReceiptList />}
+          />
+          <Route
+            path={PageRoutes.transactionsReceiptDetail}
+            element={<PurchaseReceiptDetail />}
+          />
+          <Route
+            path={PageRoutes.transactionsAdjustmentList}
+            element={<InventoryAdjustmentList />}
           />
           {/* Accounts */}
           <Route path={PageRoutes.auditList} element={<AuditList />} />
