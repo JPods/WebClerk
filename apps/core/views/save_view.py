@@ -283,6 +283,7 @@ class SaveWcapiView(APIView):
         except Exception as e:
             console_logger.warning(f"[SAVE_VIEW] Error getting JSON field names: {e}")
             json_field_names = set()
+
         console_logger.info(f"[SAVE_VIEW] Starting pre-save hooks...")
         # Pre-save hook or task (run synchronously for validation)
         pre_hook = getattr(obj, 'pre_save_hook', None)
@@ -566,6 +567,16 @@ class SaveWcapiView(APIView):
                                             value = 0
                                     elif value is None:
                                         value = 0
+                                # Handle DecimalField - empty strings should be None
+                                elif isinstance(model_field, models.DecimalField):
+                                    if value == '' or value == '':
+                                        value = None
+                                    elif isinstance(value, str):
+                                        try:
+                                            from decimal import Decimal
+                                            value = Decimal(value.strip())
+                                        except Exception:
+                                            value = None
                         except Exception:
                             pass
                         setattr(obj, field, value)
@@ -773,6 +784,11 @@ class SaveWcapiView(APIView):
                                 setattr(obj, 'contact_id', 0)
             except Exception:
                 pass
+            # Debug: log all field values before save to find empty string decimal issue
+            for field in obj._meta.fields:
+                val = getattr(obj, field.name, None)
+                if val == '' or val == "":
+                    console_logger.warning(f"[SAVE_VIEW] Empty string field found: {field.name}={repr(val)} type={type(field).__name__}")
             console_logger.debug(f"[SAVE_VIEW] Executing obj.save() for {model_key} ID: {getattr(obj, 'id', 'new')}")
             obj.save()
             console_logger.debug(f"[SAVE_VIEW] Save completed successfully for {model_key} ID: {getattr(obj, 'id', 'new')}")
@@ -1415,7 +1431,7 @@ class SaveWcapiView(APIView):
         except Exception as e:
             console_logger.warning(f"[SAVE_VIEW] Error getting JSON field names: {e}")
             json_field_names = set()
-
+        
         console_logger.info(f"[SAVE_VIEW] Starting pre-save hooks...")
 
         # Pre-save hook or task (run synchronously for validation)
@@ -1487,6 +1503,18 @@ class SaveWcapiView(APIView):
             else:
                 mode = 'update'
             value = field_data.get('value')
+
+            # Sanitize empty strings for numeric fields - convert to None
+            if value == '' or value == "":
+                # Check if this field is a numeric type on the model
+                try:
+                    model_field = model_cls._meta.get_field(field)
+                    field_type = type(model_field).__name__
+                    if field_type in ('DecimalField', 'FloatField', 'IntegerField', 'BigIntegerField', 'PositiveIntegerField', 'SmallIntegerField'):
+                        value = None
+                        field_data['value'] = None
+                except Exception:
+                    pass  # Field not found on model, will be handled later
 
             if mode not in ('update', 'insert', 'delete'):
                 continue  # Invalid mode, skip
