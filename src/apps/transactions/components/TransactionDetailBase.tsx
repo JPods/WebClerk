@@ -1,5 +1,6 @@
 import QATab from "./QATab";
 import DocumentsTab from "./DocumentsTab";
+import { normalizeRefsLinksContact } from "./RefsLinksContactPanel";
 /**
  * TransactionDetail - Base component for all transaction detail pages
  * Provides common tabbed layout with standard sections
@@ -412,8 +413,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     };
 
     // Use transaction-specific save if data has lines, otherwise standard save
-    const hasLines =
-      Array.isArray(editData.lines) && editData.lines.length > 0;
+    const hasLines = Array.isArray(editData.lines) && editData.lines.length > 0;
 
     const apiResult = hasLines
       ? await saveTransactionWithLines(modelName, payloadWithId)
@@ -649,22 +649,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
     switch (activeTab) {
       case "contacts":
+        console.log("currentData", currentData);
+        // Use normalization helper to parse contacts from API
         return (
           <RefsLinksContactPanel
-            contacts={(currentData.refs?.links?.contact ?? []).map(
-              (c: any) => ({
-                contact_id: c.contact_id ?? c.id,
-                purpose: c.purpose,
-                attention: c.attention,
-                email: c.email,
-                phone: c.phone,
-                full: c.full,
-                domain: c.domain,
-                address_id: c.address_id,
-                email_id: c.email_id,
-                phone_id: c.phone_id,
-                domain_id: c.domain_id,
-              }),
+            contacts={normalizeRefsLinksContact(
+              currentData.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
           />
