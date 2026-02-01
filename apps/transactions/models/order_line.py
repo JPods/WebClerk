@@ -13,13 +13,14 @@ class OrderLine(BaseSellLineModel):
         db_table = "order_lines"
 
     @property
-    def order_ref_id(self):
-        # Mirror FK id for test helpers
-        return self.order_id
+    def parent(self):
+        """Alias for the FK to parent transaction (uniform across all line types)."""
+        return self.order
 
-    @order_ref_id.setter
-    def order_ref_id(self, value):
-        self.order_id = value
+    @property
+    def parent_id_value(self):
+        """Raw FK id value for serialization."""
+        return self.order_id
 
 
 __all__ = ["OrderLine"]
