@@ -392,31 +392,40 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     setIsEditing(false);
   }, [data]);
 
+  // Single save path for all save operations
+  const performSave = useCallback(async (): Promise<Transaction | null> => {
+    if (!editData) return null;
+
+    if (saveData) {
+      // Use custom save function if provided
+      return await saveData(editData);
+    }
+
+    // Ensure id is included in payload for updates
+    const payloadWithId = {
+      ...editData,
+      id: data?.id,
+    };
+
+    // Use transaction-specific save if data has lines, otherwise standard save
+    const hasLines =
+      Array.isArray(editData.lines) && editData.lines.length > 0;
+
+    const apiResult = hasLines
+      ? await saveTransactionWithLines(modelName, payloadWithId)
+      : await saveRecord(modelName, payloadWithId);
+
+    return apiResult.record ?? apiResult;
+  }, [editData, saveData, modelName, data?.id]);
+
   const handleSave = useCallback(async () => {
     if (!editData) return;
 
     setSaving(true);
     dispatch(showToast({ message: "Saving...", type: "info" }));
     try {
-      let result: Transaction;
-
-      if (saveData) {
-        result = await saveData(editData);
-      } else {
-        // Use transaction-specific save if data has lines, otherwise standard save
-        const hasLines =
-          Array.isArray(editData.lines) && editData.lines.length > 0;
-        // console.log(
-        //   "[TransactionDetailBase.handleSave] hasLines:",
-        //   hasLines,
-        //   "lineCount:",
-        //   editData.lines?.length,
-        // );
-        const apiResult = hasLines
-          ? await saveTransactionWithLines(modelName, editData)
-          : await saveRecord(modelName, editData);
-        result = apiResult.record ?? apiResult;
-      }
+      const result = await performSave();
+      if (!result) return;
 
       setData(result); // Update view state
       setEditData(result); // Update edit state
@@ -436,7 +445,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [editData, saveData, modelName, onSaved, dispatch, typeLabel]);
+  }, [editData, performSave, onSaved, dispatch, typeLabel]);
 
   // Toolbar handlers
   const handleSaveAndClose = useCallback(async () => {
@@ -445,27 +454,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     setSaving(true);
     dispatch(showToast({ message: "Saving...", type: "info" }));
     try {
-      let result: Transaction;
-
-      if (saveData) {
-        result = await saveData(editData);
-      } else {
-        // Use transaction-specific save if data has lines, otherwise standard save
-        const hasLines =
-          Array.isArray(editData.lines) && editData.lines.length > 0;
-
-        const apiResult = hasLines
-          ? await saveTransactionWithLines(modelName, {
-              ...editData,
-              id: data?.id,
-            })
-          : await saveRecord(modelName, {
-              ...editData,
-              id: data?.id,
-            });
-
-        result = apiResult.record ?? apiResult;
-      }
+      const result = await performSave();
+      if (!result) return;
 
       dispatch(
         showToast({
@@ -482,7 +472,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [editData, saveData, modelName, navigate, onSaved, dispatch, typeLabel]);
+  }, [editData, performSave, navigate, onSaved, dispatch, typeLabel]);
 
   const handleClone = useCallback(async () => {
     if (!data) return;
