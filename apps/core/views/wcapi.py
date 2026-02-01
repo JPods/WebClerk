@@ -776,7 +776,19 @@ Retrieve records from any configured model with comprehensive query support.
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Extract record_id from query params or request body
         record_id = request.query_params.get("id")
+        if record_id is None:
+            # Check request body for id field
+            try:
+                if request.content_type and 'application/json' in request.content_type:
+                    import json
+                    body_data = json.loads(request.body.decode('utf-8'))
+                    record_id = body_data.get('id')
+                    if record_id is None and 'data' in body_data:
+                        record_id = body_data['data'].get('id')
+            except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+                pass
         
         return self._handle(model_key, record_id, None, request)
 
@@ -878,3 +890,54 @@ class ModelDetailView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class WCAPIGetViewWithModel(APIView):
+    """
+    WCAPI get view that accepts model_name in the URL path.
+    Supports URLs like /wcapi/<model_name>/get or /wcapi/get/<model_name>
+    """
+    http_method_names = ["get", "options", "head"]
+
+    def get(self, request, model_name=None, *args, **kwargs):
+        # Get model_name from URL path, fallback to query param if not provided
+        if not model_name:
+            model_name = request.query_params.get("model_name")
+
+        if not model_name:
+            return Response(
+                {"detail": "model_name parameter is required (in URL or query params)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Extract record_id from query params or request body
+        record_id = request.query_params.get("id")
+        if record_id is None:
+            # Check request body for id field
+            try:
+                if request.content_type and 'application/json' in request.content_type:
+                    import json
+                    body_data = json.loads(request.body.decode('utf-8'))
+                    record_id = body_data.get('id')
+                    if record_id is None and 'data' in body_data:
+                        record_id = body_data['data'].get('id')
+            except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+                pass
+
+        # Create a mock request with the model_name in query params
+        from django.http import HttpRequest
+        modified_request = HttpRequest()
+        modified_request.method = request.method
+        modified_request.META = request.META.copy()
+        modified_request.GET = request.GET.copy()
+        modified_request.GET['model_name'] = model_name
+        modified_request.POST = request.POST.copy()
+        modified_request.COOKIES = request.COOKIES.copy()
+        modified_request.session = request.session
+        modified_request.user = request.user
+        # Preserve the body for id extraction
+        modified_request._body = request._body
+
+        # Delegate to the main WCAPIGetView
+        view_instance = WCAPIGetView()
+        return view_instance.get(modified_request, *args, **kwargs)

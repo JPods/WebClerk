@@ -15,11 +15,35 @@ Instead of immediately updating item quantities when transactions occur, the sys
 
 ## Inventory Quantity Types
 
-Items track three types of quantities:
+Items track multiple quantity buckets in the `Item.quantity` JSON field:
 
-- **`quantity.on_hand`**: Physical inventory available for sale/shipment
-- **`quantity.on_order`**: Committed to customers (sales orders)
-- **`quantity.on_po`**: Committed from vendors (purchase orders)
+### Core Quantities
+
+| Field | Description | Changed By |
+|-------|-------------|------------|
+| `on_hand` | Physical inventory available | Receipts (+), Invoices (-), Adjustments (±) |
+| `allocated` | Reserved/committed for orders | Allocation process |
+| `available` | Computed: on_hand - allocated | Derived |
+
+### Transaction Tracking Quantities
+
+| Field | Type Code | Description | Transaction |
+|-------|-----------|-------------|-------------|
+| `on_so` | SO | On Sales Orders | Order line add/change/delete |
+| `on_po` | PO | On Purchase Orders | Purchase line add/change/delete |
+| `on_p` | PP | On Proposals | Proposal line add/change/delete |
+| `on_wo` | WO | On Work Orders | WorkOrder line add/change/delete |
+
+### Informational Quantities (Track Totals)
+
+| Field | Type Code | Description | Notes |
+|-------|-----------|-------------|-------|
+| `on_in` | IN | Invoiced quantity | Informational only; actual change flows through on_hand (-) |
+| `on_r` | RC | Received quantity | Informational only; actual change flows through on_hand (+) |
+
+**Note:** `on_in` and `on_r` track historical totals. The real inventory impact is:
+- **Invoices**: Decrease `on_hand` (goods shipped out)
+- **Receipts**: Increase `on_hand` (goods received)
 
 ## When Deltas Are Created
 
@@ -61,7 +85,7 @@ _create_inventory_delta(
     source_id=receipt.id,
     quantity_on_hand_delta=+qty_received,  # Increases available inventory
     quantity_on_po_delta=-qty_received,   # Decreases committed purchases
-    notes=f"Purchase receipt {receipt.receipt_no} - received {qty_received} units"
+    notes=f"Purchase receipt {receipt.ida} - received {qty_received} units"
 )
 
 ```
@@ -116,6 +140,18 @@ Deltas are processed periodically via management command:
 python manage.py process_inventory_deltas --batch-size=1000
 
 ```
+
+### Pending Purposes Handled
+
+The `pending_inventory_processor` handles the following `purpose` values:
+
+| Purpose | Source | Description |
+|---------|--------|-------------|
+| `inventory_line_add` | LineItemService | New transaction line added |
+| `inventory_qty_change` | LineItemService | Line quantity changed |
+| `inventory_line_delete` | LineItemService | Line deleted |
+| `inventory_cost_change` | LineItemService | Line cost changed |
+| `receipt_line_add` | Receipt creation | Direct receipt (not through LineItemService) |
 
 ### Processing Logic
 
@@ -316,3 +352,94 @@ The system supports negative quantities to handle returns and cancellations:
 - **Warehouse-specific Deltas**: Track deltas by warehouse location
 - **Delta Validation**: Pre-processing validation of delta data
 - **Performance Metrics**: Track processing times and success rates
+
+## Inventory Receiving Functions
+
+The system provides specialized functions for different inventory receiving scenarios in `apps/transactions/services/flow.py`:
+
+### Function Overview
+
+| Function | Source Type | On-Hand | Other Effects |
+|----------|-------------|---------|---------------|
+| `receive_purchase_order()` | Purchase Order | +qty | -on_po |
+| `complete_workorder()` | Work Order | +qty | -on_wo |
+| `adjust_inventory()` | Manual Adjustment | ±qty | None |
+| `receive_inventory_changes()` | Dispatcher | Routes to above | - |
+
+### receive_purchase_order(po, receipt_id, lines)
+
+Receives goods against a Purchase Order:
+
+```python
+from apps.transactions.services.flow import receive_purchase_order, ReceiveLine
+
+lines = [
+    ReceiveLine(po_line_id=123, qty=10, warehouse_code='MAIN', unit_cost=15.00),
+]
+result = receive_purchase_order(po, 'RCV-2025-001', lines)
+# Result: {'receipt_id': 456, 'stacks_created': [789], 'deltas_created': 1}
+```
+
+**Effects:**
+- Creates `Receipt` record with `ida=receipt_id`
+- Creates `InventoryLayer` per line for warehouse tracking
+- Creates `Pending` delta: `+quantity_on_hand_delta`, `-quantity_on_po_delta`
+
+### complete_workorder(wo, receipt_id, lines)
+
+Completes a WorkOrder, producing finished goods:
+
+```python
+from apps.transactions.services.flow import complete_workorder, CompleteWorkOrderLine
+
+lines = [
+    CompleteWorkOrderLine(wo_line_id=123, qty_completed=50, warehouse_code='FG'),
+]
+result = complete_workorder(wo, 'WO-COMP-2025-001', lines)
+```
+
+**Effects:**
+- Creates `Receipt` record with `ida=receipt_id`
+- Creates `InventoryLayer` for finished goods
+- Creates `Pending` delta: `+quantity_on_hand_delta`, `-quantity_on_wo_delta`
+
+### adjust_inventory(adjustment_id, lines, notes)
+
+Performs manual inventory adjustments:
+
+```python
+from apps.transactions.services.flow import adjust_inventory, AdjustmentLine
+
+lines = [
+    AdjustmentLine(item_id=100, qty_delta=5, warehouse_code='MAIN', reason='cycle_count'),
+    AdjustmentLine(item_id=101, qty_delta=-2, warehouse_code='MAIN', reason='damage'),
+]
+result = adjust_inventory('ADJ-2025-001', lines, notes='Monthly cycle count')
+```
+
+**Effects:**
+- Creates `Receipt` record with `ida=adjustment_id`
+- Creates `InventoryLayer` for positive adjustments only
+- Creates `Pending` delta: `±quantity_on_hand_delta`
+
+### receive_inventory_changes(source_type, source, receipt_id, lines)
+
+High-level dispatcher that routes to the appropriate handler:
+
+```python
+from apps.transactions.services.flow import receive_inventory_changes
+
+# Receive against a PO
+result = receive_inventory_changes('purchase', po, 'RCV-001', receive_lines)
+
+# Complete a workorder
+result = receive_inventory_changes('workorder', wo, 'WO-COMP-001', complete_lines)
+
+# Manual adjustment
+result = receive_inventory_changes('adjustment', None, 'ADJ-001', adjustment_lines)
+```
+
+**Valid source_type values:**
+- `'purchase'` - requires `Purchase` instance, uses `ReceiveLine`
+- `'workorder'` - requires `WorkOrder` instance, uses `CompleteWorkOrderLine`
+- `'adjustment'` - source is `None`, uses `AdjustmentLine`

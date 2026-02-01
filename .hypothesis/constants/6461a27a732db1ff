@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/models/qa.py
+# hypothesis_version: 6.138.7
+
+[100, 255, 500, 1000, 'accessed', 'answer', 'contact_id', 'core.Contact', 'core.Setting', 'count_accessed', 'dt', 'history', 'qa_answers', 'qa_question_idx', 'qa_questions', 'qa_search_gin', 'qa_sec_level_idx', 'qa_status_idx', 'qas', 'question', 'search_vector', 'security_level', 'status']

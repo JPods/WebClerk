@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/transactions/serializers/line_serializers.py
+# hypothesis_version: 6.138.7
+
+[100, 'GET', 'HEAD', 'OPTIONS', 'Priority must be 1-5', 'action', 'admin', 'attention', 'burndown', 'category', 'contact_id', 'cost', 'created_dt', 'data', 'detail', 'edit', 'flow', 'id', 'intent', 'invoice_no', 'item', 'logistics', 'manager', 'model', 'modified_dt', 'name', 'objective', 'order_no', 'parent', 'parent_ref_id', 'physical', 'po_no', 'price', 'priority', 'probability', 'profit', 'profit_velocity', 'quantity', 'req_no', 'request', 'role', 'security_level', 'situation', 'source', 'status', 'tasks', 'tax', 'type_sale', 'user', 'uuid', 'version', 'view', 'work_no']

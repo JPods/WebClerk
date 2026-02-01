@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/views/phone.py
+# hypothesis_version: 6.138.7
+
+[200, 201, 204, 400, 401, 403, 404, 500, 'Create Phone', 'Delete Phone', 'Forbidden', 'Get Phone', 'Invalid data', 'List Phones', 'Not found', 'Successfully deleted', 'Unauthorized', 'Update Phone', 'contacts', 'detail', 'edit', 'links', 'page_size', 'phones', 'view']

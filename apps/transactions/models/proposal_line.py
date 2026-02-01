@@ -18,9 +18,10 @@ class ProposalLine(BaseSellLineModel):
 
     @property
     def proposal_ref_id(self):
-        # Mirror FK id for test helpers
-        return getattr(self, "proposal_id_id", None)
+        # Mirror FK id for test helpers - use Django's FK attname directly
+        return self.proposal_id.pk if self.proposal_id else None
 
     @proposal_ref_id.setter
     def proposal_ref_id(self, value):
-        self.proposal_id_id = value
+        # Set the FK by id using Django's standard pattern
+        self.proposal_id_id = value  # This is correct Django syntax when FK is named 'proposal_id'

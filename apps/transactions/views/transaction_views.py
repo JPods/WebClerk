@@ -84,9 +84,9 @@ class PurchaseViewSet(viewsets.ModelViewSet):
         from apps.transactions.services.flow import receive_purchase, ReceiveLine
 
         purchase = self.get_object()
-        receipt_no = request.data.get('receipt_no')
-        if not receipt_no:
-            return Response({'error': 'receipt_no is required'}, status=status.HTTP_400_BAD_REQUEST)
+        receipt_id = request.data.get('receipt_id')
+        if not receipt_id:
+            return Response({'error': 'receipt_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         lines_data = request.data.get('lines', [])
         if not lines_data:
@@ -104,7 +104,7 @@ class PurchaseViewSet(viewsets.ModelViewSet):
             ))
 
         try:
-            result = receive_purchase(purchase, receipt_no, lines)
+            result = receive_purchase(purchase, receipt_id, lines)
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

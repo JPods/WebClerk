@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/communications/urls.py
+# hypothesis_version: 6.138.7
+
+['communications', 'domain-detail', 'domain-list', 'domain-search', 'domains/', 'domains/<int:pk>/', 'domains/search/']

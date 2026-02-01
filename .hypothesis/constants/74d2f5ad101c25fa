@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/sync/migrations/0001_initial.py
+# hypothesis_version: 6.138.7
+
+[255, 'Connection', 'action', 'changes', 'comment', 'comments', 'config', 'conflicts', 'connections', 'created_dt', 'db_table', 'encryption', 'health_rating', 'id', 'ida', 'is_active', 'is_archived', 'is_deleted', 'maps', 'metadata', 'modified_dt', 'name', 'prefs', 'purpose', 'refs', 'relationships', 'rules', 'scripts', 'status', 'type', 'uuid', 'version']

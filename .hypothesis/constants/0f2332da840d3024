@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/serializers/action_serializer.py
+# hypothesis_version: 6.138.7
+
+['PATCH', 'POST', 'PUT', 'Preferences', 'References and links', 'action', 'action_by', 'actions', 'comment', 'description', 'difficulty', 'dt_action', 'dt_completed', 'dt_due', 'dt_updated', 'edit', 'hours', 'id', 'metadata', 'percent', 'prefs', 'priority', 'quality', 'refs', 'request', 'status', 'user', 'uuid', 'view']

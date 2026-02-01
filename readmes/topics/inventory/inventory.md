@@ -333,6 +333,20 @@ inventory_processor_global_duration_bucket{le="0.25"} 1
 
 Add enhancements to this document; keep README root concise by linking here.
 
+## Inventory Receiving Functions
+
+The system provides three specialized functions for receiving inventory in `apps/transactions/services/flow.py`:
+
+| Function | Use Case | On-Hand Effect |
+|----------|----------|----------------|
+| `receive_purchase_order(po, receipt_id, lines)` | Receiving goods from vendors | +qty, -on_po |
+| `complete_workorder(wo, receipt_id, lines)` | Completing manufacturing | +qty, -on_wo |
+| `adjust_inventory(adjustment_id, lines, notes)` | Manual adjustments | ±qty |
+
+A high-level dispatcher `receive_inventory_changes(source_type, source, receipt_id, lines)` routes to the appropriate handler based on `source_type` ('purchase', 'workorder', 'adjustment').
+
+See [Inventory Deltas - Receiving Functions](inventory_deltas.md#inventory-receiving-functions) for detailed documentation and code examples.
+
 ## Purchase Order Receiving
 
 Endpoint (writes inventory):
@@ -343,7 +357,7 @@ Request body:
 
 ```json
 {
-  "receipt_no": "RCPT-2025-0001",
+  "receipt_id": "RCPT-2025-0001",
   "lines": [
     {
       "po_line_id": 123,
@@ -377,7 +391,7 @@ Behavior
 
 Error modes (400)
 
-- Missing `receipt_no`.
+- Missing `receipt_id`.
 - `po_line_id` not found for this purchase order.
 - PO line lacks `item.id_num` and no fallback ID present.
 - Item or Warehouse not found.
@@ -395,7 +409,7 @@ curl -X POST \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-        "receipt_no":"RCPT-1001",
+        "receipt_id":"RCPT-1001",
         "lines":[{"po_line_id":1,"qty":3.5,"warehouse_code":"MAIN","unit_cost":9.99}] 
       }' \
   http://localhost:8000/transactions/purchase-orders/42/receive/

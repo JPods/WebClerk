@@ -54,7 +54,8 @@ def maintain_order_links(sender, instance: OrderLine, created, **kwargs):
 def maintain_invoice_links(sender, instance: InvoiceLine, created, **kwargs):
     if not created:
         return
-    header = instance.parent
+    # InvoiceLine uses invoice_id FK, not parent
+    header = getattr(instance, 'invoice_id', None) or getattr(instance, 'parent', None)
     if not header:
         return
     refs = header.refs or {}
@@ -145,3 +146,15 @@ def send_payment_received_notification(sender, instance: Payment, created, **kwa
     # Check if this is a status change to completed
     if getattr(instance, '_original_status', None) != 'completed':
         TransactionEmailService.send_payment_received_notification(instance)
+
+
+# =============================================================================
+# INVENTORY PENDING - NOTE
+# =============================================================================
+# Inventory pending records are ONLY created during the save process via
+# LineItemService. Signal-based creation was removed to prevent duplicates.
+# 
+# Pending record processing/clearing is handled by Celery tasks:
+#   - apps.transactions.tasks.process_pending_inventory
+#   - apps.products.tasks.expire_inventory_reservations
+# =============================================================================

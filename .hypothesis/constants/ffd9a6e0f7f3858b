@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/core/views/contact_view.py
+# hypothesis_version: 6.138.7
+
+['actions', 'addresses', 'contact', 'contact_id', 'core/contact.html', 'core/user.html', 'domains', 'emails', 'is_own_profile', 'phones', 'user']

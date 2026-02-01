@@ -1,0 +1,4 @@
+# file: /Users/williamjames/Documents/CommerceExpert/webClerk3/apps/docs/serializers/tag_serializers.py
+# hypothesis_version: 6.138.7
+
+['children', 'count_accessed', 'created_dt', 'data', 'id', 'is_active', 'modified_dt', 'name', 'parent_id_value', 'purpose', 'record_id', 'security_level', 'sequence', 'status', 'table_name', 'uuid', 'version']

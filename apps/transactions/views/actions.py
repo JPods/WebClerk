@@ -191,10 +191,10 @@ class ReceivePurchaseView(APIView):
         ser = ReceivePurchaseSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         vd: Dict[str, Any] = cast(Dict[str, Any], ser.validated_data)  # dict-like with required keys
-        receipt_no = str(vd['receipt_no'])
+        receipt_id = str(vd['receipt_id'])
         line_payloads = list(vd['lines'])
         lines = [ReceiveLine(**ln) for ln in line_payloads]
-        summary = receive_purchase_order(po, receipt_no, lines)
+        summary = receive_purchase_order(po, receipt_id, lines)
         return response.Response(summary, status=status.HTTP_201_CREATED)
 
 

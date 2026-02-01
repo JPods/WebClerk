@@ -231,6 +231,14 @@ class SaveWcapiView(APIView):
             expected_version = legacy_expected
             deprecation_flag = True
         record_id = parsed_data.get('id')
+        # If id not found at root level, check inside data object
+        if record_id is None:
+            data_obj = parsed_data.get('data')
+            if isinstance(data_obj, dict):
+                record_id = data_obj.get('id')
+                # If found in data, move it to root level for consistency
+                if record_id is not None:
+                    parsed_data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
         # Actor context
         actor = getattr(request, 'user', None)
@@ -776,6 +784,49 @@ class SaveWcapiView(APIView):
             raise ValueError('Failed to save')
         
         # ============================================================
+        # POST-SAVE: Create pending inventory for direct line creation
+        # When model_name is 'order_line', 'invoice_line', etc.
+        # ============================================================
+        if not is_update:
+            # Map line model keys to parent model keys for inventory tracking
+            line_to_parent_map = {
+                'orderline': 'order',
+                'order_line': 'order',
+                'invoiceline': 'invoice',
+                'invoice_line': 'invoice',
+                'purchaseline': 'purchase',
+                'purchase_line': 'purchase',
+                'purchaseorderline': 'purchase',
+                'workorderline': 'workorder',
+                'work_order_line': 'workorder',
+                'proposalline': 'proposal',
+                'proposal_line': 'proposal',
+            }
+            parent_model_key = line_to_parent_map.get(model_key.lower())
+            if parent_model_key:
+                try:
+                    # Get the parent transaction for this line
+                    parent = None
+                    for fk_attr in ['order', 'invoice', 'purchase', 'workorder', 'proposal', 'parent']:
+                        if hasattr(obj, fk_attr):
+                            parent = getattr(obj, fk_attr, None)
+                            if parent is not None:
+                                break
+                    
+                    if parent:
+                        from apps.transactions.services.line_item_service import LineItemService
+                        service = LineItemService(create_pending=True)
+                        service._create_pending_for_new_line(
+                            parent=parent,
+                            parent_model_key=parent_model_key,
+                            line=obj,
+                            line_data=parsed_data,
+                        )
+                        console_logger.debug(f"[SAVE_VIEW] Created pending inventory record for direct line ID: {obj.id}")
+                except Exception as pending_err:
+                    console_logger.warning(f"[SAVE_VIEW] Failed to create pending for direct line {getattr(obj, 'id', 'unknown')}: {pending_err}")
+        
+        # ============================================================
         # POST-SAVE: Save lines now that we have parent ID
         # ============================================================
         obj_id = getattr(obj, 'id', None)
@@ -810,7 +861,6 @@ class SaveWcapiView(APIView):
                             lines_errors.append(f"Line ID {line_id} not found")
                     else:
                         # Create new line
-                        # debug print removed
                         console_logger.debug(f"[SAVE_VIEW] Creating new line at index {idx}")
                         line_obj = line_model()
                         for field, value in line_save_data.items():
@@ -819,14 +869,30 @@ class SaveWcapiView(APIView):
                             if hasattr(line_obj, field):
                                 setattr(line_obj, field, value)
                                 # debug print removed
-                        # Set the FK using the attname (e.g., salesorder_id_id)
+                        # Set the FK using the attname (e.g., order_id for FK field 'order')
                         fk_field = line_model._meta.get_field(fk_field_name)
                         # debug print removed
                         setattr(line_obj, fk_field.attname, obj_id)
+                        # Mark that we're handling pending creation (prevents signal duplicate)
+                        line_obj._pending_created = True
                         line_obj.save()
                         # debug print removed
                         lines_results.append({'id': line_obj.id, 'status': 'created', 'index': idx})
                         console_logger.debug(f"[SAVE_VIEW] Created new line ID: {line_obj.id}")
+                        
+                        # Create pending inventory record for new lines (Order, Purchase, Invoice, WorkOrder)
+                        try:
+                            from apps.transactions.services.line_item_service import LineItemService
+                            service = LineItemService(create_pending=True)
+                            service._create_pending_for_new_line(
+                                parent=obj,
+                                parent_model_key=model_key,
+                                line=line_obj,
+                                line_data=line_save_data,
+                            )
+                            console_logger.debug(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
+                        except Exception as pending_err:
+                            console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
                 except Exception as e:
                     # debug print removed
                     console_logger.error(f"[SAVE_VIEW] Error saving line at index {idx}: {e}")
@@ -1231,6 +1297,23 @@ class SaveWcapiView(APIView):
             del data['data']
             console_logger.info(f"[SAVE_VIEW] Merged 'data' fields into payload")
 
+        # Handle nested 'record' key (used by R25 saveTransactionWithLines)
+        if 'record' in data and isinstance(data['record'], dict):
+            record_data = data['record']
+            # Preserve model_name, id, and options at top level
+            model_name = data.get('model_name')
+            record_id = data.get('id')
+            options = data.get('options')
+            data.update(record_data)
+            # Restore top-level fields that may have been overwritten
+            if model_name:
+                data['model_name'] = model_name
+            if record_id:
+                data['id'] = record_id
+            if options:
+                data['options'] = options
+            console_logger.info(f"[SAVE_VIEW] Merged 'record' fields into payload, lines count: {len(data.get('lines', []))}")
+
         # If client provided a project_slug but not a numeric project_id, try to resolve it here.
         try:
             if 'project_slug' in data and 'project_id' not in data:
@@ -1291,6 +1374,11 @@ class SaveWcapiView(APIView):
             deprecation_flag = True
 
         record_id = data.get('id')
+        # If id not found in data, check query params
+        if record_id is None:
+            record_id = request.query_params.get('id')
+            if record_id is not None:
+                data['id'] = record_id
         record_id = coerce_int(record_id)
         data['id'] = record_id
         console_logger.debug(f"[SAVE_VIEW] Record ID: {record_id}, Expected version: {expected_version}")
@@ -1621,24 +1709,40 @@ class SaveWcapiView(APIView):
                     if is_new:
                         # Create new line using direct ORM
                         line_obj = OrderLine()
-                        line_obj.order_id_id = obj.id
+                        line_obj.order_id = obj.id  # FK field is 'order', so use 'order_id'
                         
                         # Copy fields from line_data
                         for field_name, field_value in line_data.items():
-                            if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
+                            if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
                                 continue
                             if hasattr(line_obj, field_name):
                                 setattr(line_obj, field_name, field_value)
                         
+                        # Mark that we're handling pending creation (prevents signal duplicate)
+                        line_obj._pending_created = True
                         line_obj.save()
                         new_line_ids.append(line_obj.id)
                         console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
+                        
+                        # Create pending inventory record for new lines
+                        try:
+                            from apps.transactions.services.line_item_service import LineItemService
+                            service = LineItemService(create_pending=True)
+                            service._create_pending_for_new_line(
+                                parent=obj,
+                                parent_model_key=model_key,
+                                line=line_obj,
+                                line_data=line_data,
+                            )
+                            console_logger.info(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
+                        except Exception as pending_err:
+                            console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
                     else:
                         # Update existing line
                         try:
                             line_obj = OrderLine.objects.get(id=line_id)
                             for field_name, field_value in line_data.items():
-                                if field_name in ('id', 'model_name', 'order_id', 'order_id_id', 'salesorder_id', 'salesorder_id_id'):
+                                if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
                                     continue
                                 if hasattr(line_obj, field_name):
                                     setattr(line_obj, field_name, field_value)
@@ -1680,8 +1784,8 @@ class SaveWcapiView(APIView):
             comm_models = {"email", "phone", "address", "location", "domain"}
             if model_key.lower() in comm_models:
                 bucket = "location" if model_key.lower() in ("address", "location") else model_key.lower()
-                if user and getattr(user, "is_authenticated", False):
-                    contact = Contact.objects.filter(pk=getattr(user, "pk", None)).first()
+                if request.user and getattr(request.user, "is_authenticated", False):
+                    contact = Contact.objects.filter(pk=getattr(request.user, "pk", None)).first()
                 if contact:
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
                     denorm = {f: getattr(obj, f, None) for f in fields}
@@ -1907,3 +2011,44 @@ class SaveWcapiView(APIView):
         
         console_logger.info(f"[SAVE_VIEW] Returning successful response for {model_key} ID: {obj_id}")
         return api_response(data=payload)
+
+
+class SaveWcapiViewWithModel(APIView):
+    """
+    WCAPI save view that accepts model_name in the URL path.
+    Supports URLs like /wcapi/<model_name>/save or /wcapi/save/<model_name>
+    """
+    http_method_names = ["post", "options", "head"]
+
+    def post(self, request, model_name=None, *args, **kwargs):
+        # Get model_name from URL path, fallback to body if not provided
+        if not model_name:
+            # This shouldn't happen with proper URL routing, but defensive
+            body = request.data or {}
+            model_name = body.get('model_name') or body.get('model') or body.get('modelName')
+
+        if not model_name:
+            return api_response(
+                data={"detail": "Missing required field: model_name (in URL or body)"},
+                status=400
+            )
+
+        # Create a copy of request data and inject model_name
+        data = dict(request.data or {})
+        data['model_name'] = model_name
+
+        # Create a mock request with the modified data
+        from django.http import HttpRequest
+        modified_request = HttpRequest()
+        modified_request.method = request.method
+        modified_request.META = request.META.copy()
+        modified_request.GET = request.GET.copy()
+        modified_request.POST = request.POST.copy()
+        modified_request.COOKIES = request.COOKIES.copy()
+        modified_request.session = request.session
+        modified_request.user = request.user
+        modified_request.data = data
+
+        # Delegate to the main SaveWcapiView
+        view_instance = SaveWcapiView()
+        return view_instance.post(modified_request, *args, **kwargs)
