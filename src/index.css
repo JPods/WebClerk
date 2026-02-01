@@ -1032,11 +1032,20 @@ span.flatpickr-weekday,
 }
 
 /* Loading Overlay */
-.rdt_Table .rdt_Progress {
+/* .rdt_Table .rdt_Progress {
   background-color: rgba(255, 255, 255, 0.8) !important;
 }
 .dark .rdt_Table .rdt_Progress {
   background-color: rgba(15, 23, 42, 0.8) !important;
+} */
+
+.rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
+  background-color: #039855 !important;
+  color: #fff !important;
+}
+.rdt_TableCol_Sortable:hover {
+  color: #fff !important;
+  transition: color 0.15s;
 }
 
 /* No Data Message */
@@ -1127,7 +1136,8 @@ span.flatpickr-weekday,
 
 /* Price/Currency Cell Styling */
 .model-list-currency {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   color: #16a34a;
   font-weight: 500;
 }
@@ -1137,7 +1147,8 @@ span.flatpickr-weekday,
 
 /* ID/Code Cell Styling */
 .model-list-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   color: #475569;
   font-size: 0.75rem;
 }
