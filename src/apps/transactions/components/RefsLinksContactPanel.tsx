@@ -3,7 +3,14 @@
  * Syncs with refs.links.contact structure from API
  */
 import React, { useState } from "react";
-import { FaUser, FaEnvelope, FaPhone, FaTimes, FaEdit } from "react-icons/fa";
+import {
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaTimes,
+  FaEdit,
+  FaGlobe,
+} from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
 
 // API contact structure from refs.links.contact
@@ -15,10 +22,111 @@ export interface RefContact {
   phone?: string;
   full?: string;
   domain?: string;
+  address?: any; // Added to fix compile error
   address_id?: number;
   email_id?: number;
   phone_id?: number;
   domain_id?: number;
+}
+
+// Helper to normalize refs.links.contact API data to RefContact[]
+export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
+  if (!Array.isArray(apiContacts)) return [];
+  return apiContacts.map((c, idx) => {
+    // Accept both {contact, purpose} and {purpose, ...fields} shapes
+    let base = c;
+    let purpose = c.purpose || "";
+    // If nested contact, flatten
+    if (c.contact && typeof c.contact === "object") {
+      base = c.contact;
+      purpose = c.purpose || base.purpose || "";
+    }
+    // Helper to extract and join all values from possible array/object
+    const extractAll = (field: any, key = "value") => {
+      if (Array.isArray(field)) {
+        return field
+          .map((item) => {
+            if (typeof item === "object" && item !== null) {
+              return item[key] ?? "";
+            }
+            return item ?? "";
+          })
+          .filter(Boolean)
+          .join(", ");
+      }
+      if (typeof field === "object" && field !== null) {
+        return field[key] ?? "";
+      }
+      return field ?? "";
+    };
+    // Helper to extract and join all address full fields (newline separated)
+    const extractAddressFull = (field: any) => {
+      if (Array.isArray(field)) {
+        return field
+          .map((item) => {
+            if (
+              typeof item === "object" &&
+              item !== null &&
+              typeof item.full === "string"
+            ) {
+              return item.full;
+            }
+            return "";
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+      if (
+        typeof field === "object" &&
+        field !== null &&
+        typeof field.full === "string"
+      ) {
+        return field.full;
+      }
+      return typeof field === "string" ? field : "";
+    };
+    const extractId = (field: any) => {
+      if (Array.isArray(field)) {
+        const first = field[0];
+        if (
+          typeof first === "object" &&
+          first !== null &&
+          first.id !== undefined
+        ) {
+          return first.id;
+        }
+      }
+      if (
+        typeof field === "object" &&
+        field !== null &&
+        field.id !== undefined
+      ) {
+        return field.id;
+      }
+      return undefined;
+    };
+    const attention = base.attention || undefined;
+    const addressFull = extractAddressFull(base.address);
+    const addressId = extractId(base.address);
+    let contact_id = base.id;
+    if (contact_id === undefined || contact_id === null || contact_id === "") {
+      contact_id = idx + 1;
+    }
+    return {
+      contact_id,
+      purpose,
+      attention,
+      email: extractAll(base.email, "value"),
+      phone: extractAll(base.phone, "value"),
+      domain: extractAll(base.domain, "value"),
+      full: addressFull,
+      address: base.address, // <--- preserve original address array/object for modal editing
+      address_id: addressId,
+      email_id: extractId(base.email),
+      phone_id: extractId(base.phone),
+      domain_id: extractId(base.domain),
+    };
+  });
 }
 
 interface RefsLinksContactPanelProps {
@@ -87,21 +195,59 @@ const ContactEditModal: React.FC<{
     domain?: string[];
     full?: string[];
   };
-  const toMulti = (c: RefContact | null): MultiContact => ({
-    ...c,
-    contact_id: c?.contact_id ?? 0,
-    purpose: c?.purpose ?? "",
-    email: c?.email ? [c.email] : [""],
-    phone: c?.phone ? [c.phone] : [""],
-    domain: c?.domain ? [c.domain] : [""],
-    full: c?.full ? [c.full] : [""],
-  });
+  // Helper to split comma-separated values into arrays for editing
+  const splitMulti = (val: string | undefined, sep: string) => {
+    if (!val) return [""];
+    return val
+      .split(sep)
+      .map((v) => v.trim())
+      .filter(Boolean);
+  };
+  // Helper to extract address.full as a single value (no splitting)
+  // Helper to extract all address.full values from address array or object
+  const extractAddressFullArray = (address: any): string[] => {
+    if (Array.isArray(address)) {
+      return address
+        .map((item) =>
+          item && typeof item === "object" && typeof item.full === "string"
+            ? item.full
+            : "",
+        )
+        .filter(Boolean);
+    }
+    if (
+      typeof address === "object" &&
+      address !== null &&
+      typeof address.full === "string"
+    ) {
+      return [address.full];
+    }
+    if (typeof address === "string") {
+      return [address];
+    }
+    return [""];
+  };
+  const toMulti = (c: RefContact | null): MultiContact => {
+    let addressArr: string[] = [""];
+    if (c?.address) {
+      addressArr = extractAddressFullArray(c.address);
+    }
+    return {
+      ...c,
+      contact_id: c?.contact_id ?? 0,
+      purpose: c?.purpose ?? "",
+      email: c?.email ? splitMulti(c.email, ",") : [""],
+      phone: c?.phone ? splitMulti(c.phone, ",") : [""],
+      domain: c?.domain ? splitMulti(c.domain, ",") : [""],
+      full: addressArr,
+    };
+  };
   const fromMulti = (m: MultiContact): RefContact => ({
     ...m,
     email: m.email?.filter(Boolean).join(", "),
     phone: m.phone?.filter(Boolean).join(", "),
     domain: m.domain?.filter(Boolean).join(", "),
-    full: m.full?.filter(Boolean).join("\n"),
+    full: m.full?.filter(Boolean).join(""), // treat as single value, no newline join
   });
   const [formData, setFormData] = useState<MultiContact>(toMulti(contact));
   React.useEffect(() => {
@@ -115,13 +261,13 @@ const ContactEditModal: React.FC<{
     value: string | string[],
     idx?: number,
   ) => {
-    if (["email", "phone", "domain", "full"].includes(field)) {
+    if (["email", "phone", "domain", "address"].includes(field)) {
       setFormData((prev) => {
         const arr = Array.isArray(prev[field])
           ? [...(prev[field] as string[])]
           : [""];
         if (typeof idx === "number") {
-          arr[idx] = value as string;
+          arr[idx] = value ? (value as string) : "";
         }
         return { ...prev, [field]: arr };
       });
@@ -337,10 +483,10 @@ const ContactEditModal: React.FC<{
                 + Add Address
               </button>
             </div>
-            {formData.full?.map((full, idx) => (
+            {formData.full?.map((addr, idx) => (
               <div key={idx} className="flex gap-1 mb-1">
                 <textarea
-                  value={full}
+                  value={addr}
                   onChange={(e) => handleChange("full", e.target.value, idx)}
                   placeholder="Street address, city, state, zip"
                   rows={3}
@@ -388,7 +534,19 @@ const ContactBlock: React.FC<{
   onRemove?: () => void;
   onEdit?: () => void;
 }> = ({ contact, isEditing, onRemove, onEdit }) => {
-  const displayName = contact.attention || `Contact #${contact.contact_id}`;
+  console.log("contact", contact);
+  const displayName =
+    contact.attention ||
+    (typeof contact.contact_id === "number" && contact.contact_id > 0
+      ? `Contact #${contact.contact_id}`
+      : "Contact");
+
+  // Check if all fields are empty
+  const hasEmail = !!(contact.email && contact.email.trim());
+  const hasPhone = !!(contact.phone && contact.phone.trim());
+  const hasDomain = !!(contact.domain && contact.domain.trim());
+  const hasAddress = !!(contact.full && contact.full.trim());
+  const noDetails = !hasEmail && !hasPhone && !hasDomain && !hasAddress;
 
   return (
     <div className="relative group">
@@ -426,46 +584,91 @@ const ContactBlock: React.FC<{
           )}
         </div>
 
-        <div className="flex flex-wrap gap-4 ml-5 mt-2 text-slate-500 dark:text-slate-400">
-          {contact.email && (
-            <span className="flex items-center gap-1 text-xs">
-              <FaEnvelope size={10} />
-              <a
-                href={`mailto:${contact.email}`}
-                className="hover:text-blue-500"
-              >
-                {contact.email}
-              </a>
-            </span>
-          )}
-          {contact.phone && (
-            <span className="flex items-center gap-1 text-xs">
-              <FaPhone size={10} />
-              <a href={`tel:${contact.phone}`} className="hover:text-blue-500">
-                {contact.phone}
-              </a>
+        {/* Always render the card body for consistent layout */}
+        <div className="flex flex-col gap-1 ml-5 mt-2 text-slate-500 dark:text-slate-400 min-h-[24px]">
+          {/* Render all emails if comma-separated, or show placeholder */}
+          {contact.email
+            ? contact.email.split(",").map(
+                (email, idx) =>
+                  email.trim() && (
+                    <span
+                      key={"email-" + idx}
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      <FaEnvelope size={10} />
+                      <a
+                        href={`mailto:${email.trim()}`}
+                        className="hover:text-blue-500"
+                      >
+                        {email.trim()}
+                      </a>
+                    </span>
+                  ),
+              )
+            : null}
+          {/* Render all phones if comma-separated */}
+          {contact.phone
+            ? contact.phone.split(",").map(
+                (phone, idx) =>
+                  phone.trim() && (
+                    <span
+                      key={"phone-" + idx}
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      <FaPhone size={10} />
+                      <a
+                        href={`tel:${phone.trim()}`}
+                        className="hover:text-blue-500"
+                      >
+                        {phone.trim()}
+                      </a>
+                    </span>
+                  ),
+              )
+            : null}
+          {/* Render all domains if comma-separated */}
+          {contact.domain
+            ? contact.domain.split(",").map(
+                (domain, idx) =>
+                  domain.trim() && (
+                    <span
+                      key={"domain-" + idx}
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      <FaGlobe size={10} />
+                      <a
+                        href={`https://${domain.trim()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-blue-500"
+                      >
+                        {domain.trim()}
+                      </a>
+                    </span>
+                  ),
+              )
+            : null}
+          {/* Render all addresses if newline-separated */}
+          {contact.full
+            ? contact.full.split("\n").map(
+                (addr, idx) =>
+                  addr.trim() && (
+                    <div
+                      key={"addr-" + idx}
+                      className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line"
+                    >
+                      {addr.trim()}
+                    </div>
+                  ),
+              )
+            : null}
+          {/* If no details at all, show placeholder */}
+          {noDetails && (
+            <span className="text-xs italic text-slate-400">
+              No contact details available
             </span>
           )}
         </div>
-
-        {contact.full && (
-          <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 ml-5 whitespace-pre-line">
-            {contact.full}
-          </div>
-        )}
-
-        {contact.domain && (
-          <div className="mt-1 text-xs text-slate-600 dark:text-slate-400 ml-5">
-            <a
-              href={`https://${contact.domain}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-500"
-            >
-              {contact.domain}
-            </a>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -475,20 +678,19 @@ const PurposeSection: React.FC<{
   purpose: string;
   contacts: RefContact[];
   isEditing?: boolean;
-  // Removed onAdd from props
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
 }> = ({ purpose, contacts, isEditing, onRemove, onEdit }) => {
+  console.log("purpose,contacts", purpose, contacts);
   return (
     <div className="border-b border-slate-200 dark:border-slate-700 pb-0 last:border-0 last:pb-0 bg-success-50 cus-bg-purple-light">
       <div className="flex items-center justify-between bg-success-200">
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide p-2">
           {formatPurpose(purpose)}
         </h4>
-        {/* Removed individual Add button */}
       </div>
       <div className="bg-success-50 hover:bg-success-100 dark:hover:bg-success-100 transition-colors  min-h-[140px]">
-        {contacts.length > 0 ? (
+        {contacts && contacts.length > 0 ? (
           contacts.map((contact) => (
             <ContactBlock
               key={`${contact.contact_id}-${contact.purpose}`}
@@ -502,7 +704,9 @@ const PurposeSection: React.FC<{
           ))
         ) : (
           <p className="text-sm text-center text-slate-400 dark:text-slate-500 italic py-4">
-            No contact assigned
+            {isEditing
+              ? "No contact assigned (add new contact for this purpose)"
+              : "No contact assigned"}
           </p>
         )}
       </div>
@@ -592,7 +796,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       </div>
     );
   }
-
+  console.log("contacts", contacts);
   return (
     <>
       {/* Edit Contact Modal */}
@@ -647,18 +851,18 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       )}
 
       <div className="grid grid-cols-2 gap-4 p-2 bg-gray-100 ">
-        {Array.from(allPurposes).map((purpose) =>
-          grouped[purpose] && grouped[purpose].length > 0 ? (
+        {Array.from(allPurposes)
+          .filter((purpose) => grouped[purpose] && grouped[purpose].length > 0)
+          .map((purpose) => (
             <PurposeSection
               key={purpose}
               purpose={purpose}
-              contacts={grouped[purpose]}
+              contacts={grouped[purpose] || []}
               isEditing={isEditing}
               onRemove={isEditing ? handleRemoveContact : undefined}
               onEdit={isEditing ? handleEditContact : undefined}
             />
-          ) : null,
-        )}
+          ))}
       </div>
     </>
   );

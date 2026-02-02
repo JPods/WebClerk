@@ -75,11 +75,16 @@ import WarehouseList from "../apps/products/models/warehouse/pages/WarehouseList
 import OrderDetail from "../apps/transactions/models/order/pages/OrderDetail";
 import InvoiceList from "../apps/transactions/models/invoice/pages/InvoiceList";
 import InvoiceDetail from "../apps/transactions/models/invoice/pages/InvoiceDetail";
-import PurchaseOrderDetail from "../apps/transactions/models/purchase/pages/PurchaseOrderDetail";
+import PurchaseDetail from "../apps/transactions/models/purchase/pages/PurchaseDetail";
 import ProposalDetail from "../apps/transactions/models/proposal/pages/ProposalDetail";
 import ProposalList from "../apps/transactions/models/proposal/pages/ProposalList";
-import PurchaseOrderList from "../apps/transactions/models/purchase/pages/PurchaseOrderList";
+import PurchaseList from "../apps/transactions/models/purchase/pages/PurchaseList";
 import OrderList from "../apps/transactions/models/order/pages/OrderList";
+import WorkorderList from "../apps/transactions/models/workorder/pages/WorkorderList";
+import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
+import PurchaseReceiptList from "../apps/transactions/models/receipt/pages/PurchaseReceiptList";
+import PurchaseReceiptDetail from "../apps/transactions/models/receipt/pages/PurchaseReceiptDetail";
+import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
 import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 import ActionListPage from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
@@ -152,10 +157,15 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.transactionsOrderDetail, element: <OrderDetail /> },
   { path: PageRoutes.transactionsInvoiceList, element: <InvoiceList /> },
   { path: PageRoutes.transactionsInvoiceDetail, element: <InvoiceDetail /> },
-  { path: PageRoutes.transactionsPurchaseOrderList, element: <PurchaseOrderList /> },
-  { path: PageRoutes.transactionsPurchaseOrderDetail, element: <PurchaseOrderDetail /> },
+  { path: PageRoutes.transactionsPurchaseOrderList, element: <PurchaseList /> },
+  { path: PageRoutes.transactionsPurchaseOrderDetail, element: <PurchaseDetail /> },
   { path: PageRoutes.transactionsProposalList, element: <ProposalList /> },
   { path: PageRoutes.transactionsProposalDetail, element: <ProposalDetail /> },
+  { path: PageRoutes.transactionsWorkOrderList, element: <WorkorderList /> },
+  { path: PageRoutes.transactionsWorkOrderDetail, element: <WorkorderDetail /> },
+  { path: PageRoutes.transactionsReceiptList, element: <PurchaseReceiptList /> },
+  { path: PageRoutes.transactionsReceiptDetail, element: <PurchaseReceiptDetail /> },
+  { path: PageRoutes.transactionsAdjustmentList, element: <InventoryAdjustmentList /> },
   { path: PageRoutes.auditList, element: <AuditList /> },
   { path: PageRoutes.auditDetail, element: <AuditDetail /> },
   { path: PageRoutes.currencyList, element: <CurrencyList /> },

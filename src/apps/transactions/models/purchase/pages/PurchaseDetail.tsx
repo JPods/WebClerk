@@ -1,6 +1,6 @@
 /**
- * PurchaseOrderDetail - Refactored to use TransactionDetailBase
- * Extends base with purchase order-specific fields and functionality
+ * PurchaseDetail - Refactored to use TransactionDetailBase
+ * Extends base with purchase-specific fields and functionality
  */
 import React, { useCallback } from 'react';
 import { 
@@ -277,11 +277,10 @@ const PurchaseOrderHeader: React.FC<{
 // Purchase Order Lines Tab Content
 const PurchaseOrderLinesContent: React.FC<{
   data: PurchaseOrder;
+  lines: TransactionLine[];  // Use lines prop directly from renderLines
   isEditing: boolean;
   onLinesChange?: (lines: TransactionLine[]) => void;
-}> = ({ data, isEditing, onLinesChange }) => {
-  const lines = data.lines ?? [];
-
+}> = ({ data, lines, isEditing, onLinesChange }) => {
   // Handler for adding items from search - uses COST for purchase orders
   const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
     if (!onLinesChange) return;
@@ -389,10 +388,14 @@ interface PurchaseOrderDetailProps {
   inline?: boolean;
   onCancelInline?: () => void;
   isAdmin?: boolean;
+  /** Direct ID prop for /wcapi/get/?id=X style routes */
+  idProp?: number | string;
+  id?: number | string; // Alias for idProp
+  recordId?: number | string; // Alias for idProp
 }
 
 // Main Component
-const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
+const PurchaseDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
   // Dynamic tabs generator
   const getTabsAfter = (): TransactionTab[] => {
     return [
@@ -400,21 +403,25 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
     ];
   };
 
+  // Resolve ID from various prop names
+  const resolvedId = props.idProp ?? props.id ?? props.recordId;
+
   return (
     <TransactionDetailBase
       transactionType="purchaseorder"
       typeLabel="Purchase Order"
-      modelName="purchase_order"
+      modelName="purchase"
       renderHeader={(data, isEditing, onChange) => (
         <PurchaseOrderHeader data={data as PurchaseOrder} isEditing={isEditing} onChange={onChange as any} />
       )}
       renderLines={(lines, isEditing, data, onLinesChange) => (
-        <PurchaseOrderLinesContent data={data as PurchaseOrder} isEditing={isEditing} onLinesChange={onLinesChange} />
+        <PurchaseOrderLinesContent data={data as PurchaseOrder} lines={lines} isEditing={isEditing} onLinesChange={onLinesChange} />
       )}
       customTabsAfter={getTabsAfter()}
       inline={props.inline}
       modeProp={props.modeProp}
       dataProp={props.dataProp}
+      idProp={resolvedId}
       onSaved={props.onSaved}
       onCancelInline={props.onCancelInline}
       isAdmin={props.isAdmin}
@@ -422,4 +429,4 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
   );
 };
 
-export default PurchaseOrderDetail;
+export default PurchaseDetail;

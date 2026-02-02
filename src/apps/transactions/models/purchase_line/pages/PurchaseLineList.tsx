@@ -8,9 +8,9 @@ import { fetchPurchaseOrderLines } from "../services/purchaseOrderLineApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import PurchaseOrderLineDetail from "./PurchaseOrderLineDetail";
+import PurchaseLineDetail from "./PurchaseLineDetail";
 
-export default function PurchaseOrderLineList() {
+export default function PurchaseLineList() {
   const [data, setData] = useState<any[]>([]);
   const [selectedPurchaseOrderLine, setSelectedPurchaseOrderLine] = useState<any | null>(null);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
@@ -163,7 +163,7 @@ export default function PurchaseOrderLineList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <PurchaseOrderLineDetail
+            <PurchaseLineDetail
               inline
               modeProp={formMode}
               dataProp={selectedPurchaseOrderLine}

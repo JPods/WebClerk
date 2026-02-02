@@ -41,7 +41,7 @@ const DraggableHeader: React.FC<{
       className="flex items-center gap-2 select-none"
       style={{ cursor: "move", opacity: isDragging ? 0.6 : 1 }}
     >
-      <FaGripVertical size={12} className="text-gray-400" />
+      <FaGripVertical size={12} className="text-white" />
       <span className="truncate">{children}</span>
     </div>
   );
@@ -56,11 +56,11 @@ const addIds = <T,>(cols: TableColumn<T>[]): TableColumn<T>[] => {
 };
 
 function ReorderableDataTable<T extends Record<string, unknown>>(
-  props: TableProps<T>
+  props: TableProps<T>,
 ) {
   const { columns: incomingColumns, ...rest } = props;
-  const [columns, setColumns] = useState<TableColumn<T>[]>(
-    () => addIds(incomingColumns)
+  const [columns, setColumns] = useState<TableColumn<T>[]>(() =>
+    addIds(incomingColumns),
   );
 
   React.useEffect(() => {
