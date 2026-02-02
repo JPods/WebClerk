@@ -33,6 +33,40 @@ WcapiResponseSerializer = inline_serializer(
 )
 
 
+class WCAPIDeleteView(APIView):
+    """Delete WCAPI endpoint supporting record removal by model_name and id."""
+
+    http_method_names = ["post", "options", "head"]
+
+    def post(self, request, *args, **kwargs):
+        body: Dict[str, Any] = request.data or {}
+        model_key = body.get("model_name") or body.get("model") or body.get("modelName")
+        record_id = body.get("id")
+
+        if not model_key or record_id is None:
+            return api_response(
+                success=False,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="invalid payload",
+                error={"code": "invalid_payload", "details": body},
+            )
+
+        try:
+            deleted = services.delete_item(model_key, request=request, id=record_id)
+        except Exception:
+            return api_response(
+                success=False,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="delete failed",
+                error={"code": "delete_failed", "details": {"model_name": model_key, "id": record_id}},
+            )
+
+        return api_response(
+            data={"deleted": bool(deleted), "id": record_id, "model_name": model_key},
+            status_code=status.HTTP_200_OK,
+        )
+
+
 class WCAPIGetView(APIView):
     """Read-only WCAPI endpoint supporting query-parameter access with filtering, pagination, and search."""
 

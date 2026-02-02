@@ -137,14 +137,24 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
             'proposal', 'order', 'invoice', 'purchase', 'workorder',
             'proposalline', 'orderline', 'invoiceline', 'purchaseline', 'workorderline',
         }
+        org_models = {
+            'org',
+            'orgbase',
+            'customer',
+            'vendor',
+            'manufacturer',
+            'rep',
+            'employee',
+        }
         is_transaction_model = model_name.lower() in transaction_models
+        is_org_model = model_name.lower() in org_models
 
         if ownership_clauses:
             scope = ownership_clauses[0]
             for clause in ownership_clauses[1:]:
                 scope |= clause
             constraints &= scope
-        elif is_transaction_model:
+        elif is_transaction_model or is_org_model:
             # Transaction models: authenticated users can access all records
             # (org-level scoping already applied above if enabled)
             pass
