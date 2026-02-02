@@ -3,11 +3,25 @@ from .base_line_model import BaseExecLineModel
 
 
 class WorkOrderLine(BaseExecLineModel):
-    workorder_id = models.ForeignKey(
+    workorder = models.ForeignKey(
         "transactions.WorkOrder",
         related_name="lines",
         on_delete=models.CASCADE,
+        db_column="workorder_id",  # Keep existing column name
     )
 
     class Meta:
         db_table = "work_order_lines"
+
+    @property
+    def parent(self):
+        """Alias for the FK to parent transaction (uniform across all line types)."""
+        return self.workorder
+
+    @property
+    def parent_id_value(self):
+        """Raw FK id value for serialization."""
+        return self.workorder_id
+
+
+__all__ = ["WorkOrderLine"]

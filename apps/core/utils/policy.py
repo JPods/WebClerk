@@ -120,19 +120,36 @@ def inject_constraints(qs: QuerySet, *, request, model_key: str) -> QuerySet:
             ownership_clauses.append(Q(assignee_id=getattr(user, 'id', None)) | Q(assignee=user))
         if 'shared_with' in fields:
             ownership_clauses.append(Q(shared_with__id=getattr(user, 'id', None)))
+        
+        # Transaction models: allow access via customer_id relationship
+        # (Proposal, Order, Invoice, Purchase, WorkOrder, etc.)
+        if 'customer_id' in fields:
+            ownership_clauses.append(Q(customer_id=getattr(user, 'id', None)))
 
         # Special-case: Contact model (no ownership fields) -> allow self only
         model_name = getattr(qs.model._meta, 'model_name', '')
         if model_name.lower() == 'contact':
             constraints &= Q(pk=getattr(user, 'id', None))
+        
+        # Transaction models without ownership fields: allow all for authenticated users
+        # These are business documents that employees need to access
+        transaction_models = {
+            'proposal', 'order', 'invoice', 'purchase', 'workorder',
+            'proposalline', 'orderline', 'invoiceline', 'purchaseline', 'workorderline',
+        }
+        is_transaction_model = model_name.lower() in transaction_models
 
         if ownership_clauses:
             scope = ownership_clauses[0]
             for clause in ownership_clauses[1:]:
                 scope |= clause
             constraints &= scope
+        elif is_transaction_model:
+            # Transaction models: authenticated users can access all records
+            # (org-level scoping already applied above if enabled)
+            pass
         elif model_name.lower() != 'contact':
-            # No ownership-related fields and not contact; safest default is no access
+            # No ownership-related fields and not contact/transaction; safest default is no access
             constraints &= Q(pk__in=[])
 
         if constraints:
