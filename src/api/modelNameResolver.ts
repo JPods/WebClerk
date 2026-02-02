@@ -19,7 +19,7 @@
 // Canonical model name mappings
 // Keys are normalized (lowercase, no separators), values are the wcapi model_name
 const MODEL_NAME_MAP: Record<string, string> = {
-  // Transactions - canonical names use snake_case per WC3 model_registry
+  // Transactions - canonical names match Django model._meta.model_name
   salesorder: 'order',
   order: 'order',
   sales: 'order',
@@ -29,9 +29,9 @@ const MODEL_NAME_MAP: Record<string, string> = {
   po: 'purchase',
   proposal: 'proposal',
   quote: 'proposal',
-  workorder: 'work_order',
-  work: 'work_order',
-  wo: 'work_order',
+  workorder: 'workorder',  // Django model_name is 'workorder' (no underscore)
+  work: 'workorder',
+  wo: 'workorder',
   requisition: 'requisition',
   req: 'requisition',
   
@@ -44,8 +44,8 @@ const MODEL_NAME_MAP: Record<string, string> = {
   poline: 'purchase_line',
   proposalline: 'proposal_line',
   quoteline: 'proposal_line',
-  workorderline: 'work_order_line',
-  woline: 'work_order_line',
+  workorderline: 'workorderline',  // Django model_name is 'workorderline' (no underscore)
+  woline: 'workorderline',
   requisitionline: 'requisition_line',
   reqline: 'requisition_line',
   

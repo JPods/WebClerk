@@ -541,11 +541,10 @@ const ProposalHeader: React.FC<{
 // Proposal Lines Tab Content
 const ProposalLinesContent: React.FC<{
   data: Proposal;
+  lines: TransactionLine[];  // Use lines prop directly from renderLines
   isEditing: boolean;
   onLinesChange?: (lines: TransactionLine[]) => void;
-}> = ({ data, isEditing, onLinesChange }) => {
-  const lines = data.lines ?? [];
-
+}> = ({ data, lines, isEditing, onLinesChange }) => {
   // Handler for adding items from search
   const handleAddItem = useCallback(
     (item: ItemSearchResult, quantity: number) => {
@@ -775,6 +774,7 @@ const ProposalDetail: React.FC<ProposalDetailProps> = (props) => {
       renderLines={(lines, isEditing, data, onLinesChange) => (
         <ProposalLinesContent
           data={data as Proposal}
+          lines={lines}
           isEditing={isEditing}
           onLinesChange={onLinesChange}
         />
