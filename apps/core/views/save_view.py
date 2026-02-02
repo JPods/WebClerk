@@ -357,6 +357,13 @@ class SaveWcapiView(APIView):
             else:
                 mode = 'update'
             value = field_data.get('value')
+            # Normalize refs.contact structure when provided
+            if field == 'refs' and isinstance(value, dict):
+                try:
+                    from common.refs.contact_refs import normalize_refs_for_save
+                    value = normalize_refs_for_save(value)
+                except Exception:
+                    pass
             # Sanitize assigned_to entries to ensure numeric ids where possible
             try:
                 if field in ('assigned_to', 'assignedTo') and isinstance(value, list):
