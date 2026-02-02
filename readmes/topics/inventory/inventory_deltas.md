@@ -4,6 +4,11 @@
 
 This document describes the inventory delta system that tracks inventory quantity changes through the transaction flow. It follows the WebClerk2 dInventory approach using the `Pending` model for deferred processing.
 
+## Related Documentation
+
+- [Transaction Line Save Architecture](../transactions/transaction_line_save.md) - How lines are saved and pending records created
+- [LineItemService Test Plan](../transactions/line_item_service_test_plan.md) - Testing strategy for pending creation
+
 ## Core Concept
 
 Instead of immediately updating item quantities when transactions occur, the system creates "delta" records that represent quantity changes. These deltas are processed periodically to update the actual item inventory levels. This approach provides:
