@@ -277,11 +277,10 @@ const PurchaseOrderHeader: React.FC<{
 // Purchase Order Lines Tab Content
 const PurchaseOrderLinesContent: React.FC<{
   data: PurchaseOrder;
+  lines: TransactionLine[];  // Use lines prop directly from renderLines
   isEditing: boolean;
   onLinesChange?: (lines: TransactionLine[]) => void;
-}> = ({ data, isEditing, onLinesChange }) => {
-  const lines = data.lines ?? [];
-
+}> = ({ data, lines, isEditing, onLinesChange }) => {
   // Handler for adding items from search - uses COST for purchase orders
   const handleAddItem = useCallback((item: ItemSearchResult, quantity: number) => {
     if (!onLinesChange) return;
@@ -411,12 +410,12 @@ const PurchaseDetail: React.FC<PurchaseOrderDetailProps> = (props) => {
     <TransactionDetailBase
       transactionType="purchaseorder"
       typeLabel="Purchase Order"
-      modelName="purchase_order"
+      modelName="purchase"
       renderHeader={(data, isEditing, onChange) => (
         <PurchaseOrderHeader data={data as PurchaseOrder} isEditing={isEditing} onChange={onChange as any} />
       )}
       renderLines={(lines, isEditing, data, onLinesChange) => (
-        <PurchaseOrderLinesContent data={data as PurchaseOrder} isEditing={isEditing} onLinesChange={onLinesChange} />
+        <PurchaseOrderLinesContent data={data as PurchaseOrder} lines={lines} isEditing={isEditing} onLinesChange={onLinesChange} />
       )}
       customTabsAfter={getTabsAfter()}
       inline={props.inline}
