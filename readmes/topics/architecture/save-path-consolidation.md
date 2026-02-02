@@ -1,9 +1,72 @@
 # Save Path Consolidation: Security & Inventory Tracking
 
 **Created**: 2026-01-30  
-**Updated**: 2026-01-31  
+**Updated**: 2026-02-01  
 **Status**: ✅ Implemented (Signal Safety Net Active)  
 **Priority**: High (Security)
+
+## Flow Architecture
+
+All transaction lines (OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine) flow through `LineItemService` for inventory tracking:
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   DRF Views     │     │   save_view.py  │     │  Direct .save() │
+│ (perform_*)     │     │                 │     │  (shell/tests)  │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         │ Sets _pending_created │ Sets _pending_created │
+         ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      LineItemService                            │
+│  - _create_pending_for_new_line()     (on create)              │
+│  - _create_pending_for_qty_change()   (on update)              │
+│  - _create_pending_for_line_delete()  (on delete)              │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  Signals (fallback only)                        │
+│  Checks _pending_created flag - skips if already handled        │
+│  Handles: PurchaseLine, WorkOrderLine                           │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Pending Records                             │
+│  model_name='inventory_delta'                                   │
+│  purpose='inventory_line_add' | 'inventory_qty_change' |        │
+│          'inventory_line_delete'                                │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Background Processor / Celery Task                 │
+│  Updates Item.quantity.on_so / on_po / on_wo / on_hand          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Receipt Flow (PO Receiving)
+
+```
+┌─────────────────┐
+│  flow.py        │
+│  receive_       │
+│  purchase_order │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Creates Directly:                            │
+│  - Receipt record (inventory_receipt table)                     │
+│  - InventoryLayer (stack) per line                             │
+│  - Pending record with:                                         │
+│      quantity_on_hand_delta: +qty_received                      │
+│      quantity_on_po_delta: -qty_received                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Problem Statement
 
@@ -40,13 +103,13 @@ Patched inventory pending creation in 3 locations with `_pending_created=True` f
 
 Added in `apps/transactions/signals.py` - catches ANY line creation that bypassed explicit paths:
 
-| Line Model | Signal Handler | Pending Type | Field Updated |
-|------------|----------------|--------------|---------------|
-| OrderLine | `create_order_line_inventory_pending` | SO | `on_so` |
-| InvoiceLine | `create_invoice_line_inventory_pending` | IV | `invoiced` |
-| ProposalLine | `create_proposal_line_inventory_pending` | PP | `on_p` (forecast) |
-| PurchaseLine | `create_purchase_line_inventory_pending` | PO | `on_po` |
-| WorkOrderLine | `create_workorder_line_inventory_pending` | WO | `on_wo` |
+| Line Model | Signal Handler | Pending Type | Field Updated | DRF View Support |
+|------------|----------------|--------------|---------------|------------------|
+| OrderLine | `create_order_line_inventory_pending` | SO | `on_so` | ❌ (via save_view) |
+| InvoiceLine | `create_invoice_line_inventory_pending` | IV | `invoiced` | ❌ (via save_view) |
+| ProposalLine | `create_proposal_line_inventory_pending` | PP | `on_p` (forecast) | ❌ (via save_view) |
+| PurchaseLine | `update_inventory_on_purchase_line_save` | PO | `on_po` | ✅ perform_create/update/destroy |
+| WorkOrderLine | `update_inventory_on_workorder_line_save` | WO | `on_wo` | ✅ perform_create/update/destroy |
 
 **Duplicate Prevention:**
 1. Checks `_pending_created` flag (set before `.save()` by explicit paths)
@@ -225,9 +288,12 @@ class OrderLine(BaseSellLineModel):
 | `/wcapi/transaction/save/` | `transaction_save.py:373` | Direct ORM | ✅ Explicit |
 | `/api/transactions/orders/` | `order_views.py` | wcapi.save_item | ✅ Signal catches |
 | `/api/tx/order/<id>/lines/` | `unified.py:159` | serializer.save() | ✅ Signal catches |
+| `/api/tx/purchase-lines/` | `line_views.py` | perform_create() | ✅ LineItemService |
+| `/api/tx/workorder-lines/` | `line_views.py` | perform_create() | ✅ LineItemService |
 | Proposal→Order | `proposal_to_order.py:190` | Direct ORM | ✅ Signal catches |
 | Purchase→Order | `purchase_to_order.py:35` | Direct ORM | ✅ Signal catches |
 | Flow service | `flow.py:199` | Direct ORM | ✅ Signal catches |
+| PO Receiving | `flow.py:receive_purchase_order` | Direct Pending | ✅ Explicit |
 
 ---
 

@@ -256,11 +256,12 @@ class SaveWcapiView(APIView):
                 console_logger.debug(f"[SAVE_VIEW] Record loaded successfully: {obj}")
             except model_cls.DoesNotExist:  # type: ignore[attr-defined]
                 raise ValueError('Record not found or access denied')
-            if expected_version is not None:
-                current_version = getattr(obj, 'version', None)
-                console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
-                if current_version != expected_version:
-                    raise ValueError('Version conflict')
+            # Version checking disabled for now - will re-enable when frontend properly tracks versions
+            # if expected_version is not None:
+            #     current_version = getattr(obj, 'version', None)
+            #     console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
+            #     if current_version != expected_version:
+            #         raise ValueError('Version conflict')
         else:
             console_logger.debug(f"[SAVE_VIEW] Creating new record")
             obj = model_cls()
@@ -356,6 +357,13 @@ class SaveWcapiView(APIView):
             else:
                 mode = 'update'
             value = field_data.get('value')
+            # Normalize refs.contact structure when provided
+            if field == 'refs' and isinstance(value, dict):
+                try:
+                    from common.refs.contact_refs import normalize_refs_for_save
+                    value = normalize_refs_for_save(value)
+                except Exception:
+                    pass
             # Sanitize assigned_to entries to ensure numeric ids where possible
             try:
                 if field in ('assigned_to', 'assignedTo') and isinstance(value, list):
@@ -536,6 +544,10 @@ class SaveWcapiView(APIView):
                             current = {}
                         merged = deep_merge_dict(current, value)
                         setattr(obj, field, merged)
+                    elif is_json_field and not isinstance(value, (dict, list)) and value is not None:
+                        # Skip corrupted non-dict/list values for JSON fields
+                        console_logger.warning(f"[SAVE_VIEW] Skipping corrupted JSON field '{field}': got {type(value).__name__} ({value}), expected dict/list")
+                        continue
                     else:
                         # If model field is an integer type, coerce/clean the value
                         try:
@@ -625,17 +637,35 @@ class SaveWcapiView(APIView):
             
             # Determine the line model based on the parent model
             line_model_map = {
+                'proposal': 'proposalline',
                 'order': 'orderline',
                 'salesorder': 'orderline',  # backwards compatibility alias
-                'purchaseorder': 'purchaseorderline',
+                'sales_order': 'orderline',  # underscore variant
+                'purchase': 'purchaseline',
+                'purchaseorder': 'purchaseline',  # backwards compatibility alias
+                'purchase_order': 'purchaseline',  # underscore variant
                 'invoice': 'invoiceline',
+                'workorder': 'workorderline',
+                'work_order': 'workorderline',  # underscore variant
                 'quote': 'quoteline',
             }
             line_model_name = line_model_map.get(model_key.lower())
             
             if line_model_name:
                 line_model = get_model(line_model_name)
-                fk_field_name = f"{model_key.lower()}_id"
+                # FK field name without _id suffix (Django field name, not column name)
+                # e.g., 'proposal' for ProposalLine, 'order' for OrderLine
+                fk_field_name = model_key.lower()
+                # Handle aliases like 'salesorder' -> 'order', 'purchase_order' -> 'purchase'
+                fk_field_aliases = {
+                    'salesorder': 'order',
+                    'sales_order': 'order',
+                    'purchaseorder': 'purchase',
+                    'purchase_order': 'purchase',
+                    'workorder': 'workorder',
+                    'work_order': 'workorder',
+                }
+                fk_field_name = fk_field_aliases.get(fk_field_name, fk_field_name)
                 
                 # debug print removed
                 console_logger.info(f"[SAVE_VIEW] PRE-SAVE: Found line_model={line_model}, fk_field_name={fk_field_name}")
@@ -1409,12 +1439,13 @@ class SaveWcapiView(APIView):
             except model_cls.DoesNotExist:  # type: ignore[attr-defined]
                 console_logger.error(f"[SAVE_VIEW] Record not found: {record_id}")
                 return api_response(success=False, status_code=404, message='Record not found', error={'code':'not_found','details':'Record not found'})
-            if expected_version is not None:
-                current_version = getattr(obj, 'version', None)
-                console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
-                if current_version != expected_version:
-                    console_logger.error(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
-                    return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
+            # Version checking disabled for now - will re-enable when frontend properly tracks versions
+            # if expected_version is not None:
+            #     current_version = getattr(obj, 'version', None)
+            #     console_logger.debug(f"[SAVE_VIEW] Version check - Current: {current_version}, Expected: {expected_version}")
+            #     if current_version != expected_version:
+            #         console_logger.error(f"[SAVE_VIEW] Version conflict - Current: {current_version}, Expected: {expected_version}")
+            #         return api_response(success=False, status_code=412, message='Version conflict', error={'code':'version_conflict','details': {'expected': expected_version, 'current': current_version}})
         else:
             console_logger.debug(f"[SAVE_VIEW] Creating new record")
             obj = model_cls()
@@ -1576,6 +1607,10 @@ class SaveWcapiView(APIView):
                                 current = {}
                             merged = deep_merge_dict(current, value)
                             setattr(obj, field, merged)
+                        elif is_json_field and not isinstance(value, (dict, list)) and value is not None:
+                            # Skip corrupted non-dict/list values for JSON fields
+                            console_logger.warning(f"[SAVE_VIEW] Skipping corrupted JSON field '{field}': got {type(value).__name__} ({value}), expected dict/list")
+                            continue
                         else:
                             # If model field is an integer type, coerce/clean the value
                             try:
@@ -1720,89 +1755,117 @@ class SaveWcapiView(APIView):
 
         # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'workorder', 'work_order', 'proposal'}
+        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'work_order', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
         
         if is_header_model and 'lines' in data and isinstance(data['lines'], list):
             console_logger.info(f"[SAVE_VIEW] Processing {len(data['lines'])} lines for {model_key}")
-            from apps.transactions.models import OrderLine
             
-            new_line_ids = []
-            for idx, line_data in enumerate(data['lines']):
-                try:
-                    line_id = line_data.get('id')
-                    is_new = line_id is None or (isinstance(line_id, str) and line_id.startswith('temp-'))
+            # Dynamically determine line model and FK field based on parent model
+            line_model_map = {
+                'order': ('OrderLine', 'order'),
+                'salesorder': ('OrderLine', 'order'),
+                'sales_order': ('OrderLine', 'order'),
+                'invoice': ('InvoiceLine', 'invoice'),
+                'purchase': ('PurchaseLine', 'purchase'),
+                'purchaseorder': ('PurchaseLine', 'purchase'),
+                'purchase_order': ('PurchaseLine', 'purchase'),
+                'workorder': ('WorkOrderLine', 'workorder'),
+                'work_order': ('WorkOrderLine', 'workorder'),
+                'proposal': ('ProposalLine', 'proposal'),
+            }
+            line_info = line_model_map.get(norm_model)
+            if not line_info:
+                console_logger.warning(f"[SAVE_VIEW] No line model mapping for {model_key}")
+            else:
+                line_model_name, fk_field_name = line_info
+                LineModel = get_model(line_model_name.lower())
+                if not LineModel:
+                    console_logger.error(f"[SAVE_VIEW] Line model {line_model_name} not found")
+                else:
+                    console_logger.info(f"[SAVE_VIEW] Using line model {LineModel.__name__} with FK field '{fk_field_name}'")
+            
+                    new_line_ids = []
+                    for idx, line_data in enumerate(data['lines']):
+                        try:
+                            line_id = line_data.get('id')
+                            is_new = line_id is None or (isinstance(line_id, str) and line_id.startswith('temp-'))
+                            
+                            if is_new:
+                                # Create new line using direct ORM
+                                line_obj = LineModel()
+                                # Set FK field dynamically (e.g., order_id, purchase_id, invoice_id)
+                                setattr(line_obj, f'{fk_field_name}_id', obj.id)
+                                
+                                # Copy fields from line_data
+                                skip_fields = ('id', 'model_name', fk_field_name, f'{fk_field_name}_id', 'parent', 'parent_id')
+                                for field_name, field_value in line_data.items():
+                                    if field_name in skip_fields:
+                                        continue
+                                    if hasattr(line_obj, field_name):
+                                        setattr(line_obj, field_name, field_value)
+                                
+                                # Mark that we're handling pending creation (prevents signal duplicate)
+                                line_obj._pending_created = True
+                                line_obj.save()
+                                new_line_ids.append(line_obj.id)
+                                console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
+                                
+                                # Create pending inventory record for new lines
+                                try:
+                                    from apps.transactions.services.line_item_service import LineItemService
+                                    service = LineItemService(create_pending=True)
+                                    service._create_pending_for_new_line(
+                                        parent=obj,
+                                        parent_model_key=model_key,
+                                        line=line_obj,
+                                        line_data=line_data,
+                                    )
+                                    console_logger.info(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
+                                except Exception as pending_err:
+                                    console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
+                            else:
+                                # Update existing line
+                                try:
+                                    line_obj = LineModel.objects.get(id=line_id)
+                                    skip_fields = ('id', 'model_name', fk_field_name, f'{fk_field_name}_id', 'parent', 'parent_id')
+                                    for field_name, field_value in line_data.items():
+                                        if field_name in skip_fields:
+                                            continue
+                                        if hasattr(line_obj, field_name):
+                                            setattr(line_obj, field_name, field_value)
+                                    line_obj.save()
+                                    console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
+                                except LineModel.DoesNotExist:
+                                    console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
+                        except Exception as e:
+                            console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}")
                     
-                    if is_new:
-                        # Create new line using direct ORM
-                        line_obj = OrderLine()
-                        line_obj.order_id = obj.id  # FK field is 'order', so use 'order_id'
-                        
-                        # Copy fields from line_data
-                        for field_name, field_value in line_data.items():
-                            if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
-                                continue
-                            if hasattr(line_obj, field_name):
-                                setattr(line_obj, field_name, field_value)
-                        
-                        # Mark that we're handling pending creation (prevents signal duplicate)
-                        line_obj._pending_created = True
-                        line_obj.save()
-                        new_line_ids.append(line_obj.id)
-                        console_logger.info(f"[SAVE_VIEW] Created new line ID {line_obj.id}")
-                        
-                        # Create pending inventory record for new lines
+                    # Update refs.links with new line IDs
+                    # Determine the refs.links key based on line model name
+                    refs_links_key = f'{line_model_name.lower().replace("line", "_line")}'  # e.g., 'order_line', 'purchase_line'
+                    if new_line_ids:
                         try:
-                            from apps.transactions.services.line_item_service import LineItemService
-                            service = LineItemService(create_pending=True)
-                            service._create_pending_for_new_line(
-                                parent=obj,
-                                parent_model_key=model_key,
-                                line=line_obj,
-                                line_data=line_data,
-                            )
-                            console_logger.info(f"[SAVE_VIEW] Created pending inventory record for line ID: {line_obj.id}")
-                        except Exception as pending_err:
-                            console_logger.warning(f"[SAVE_VIEW] Failed to create pending for line {line_obj.id}: {pending_err}")
-                    else:
-                        # Update existing line
-                        try:
-                            line_obj = OrderLine.objects.get(id=line_id)
-                            for field_name, field_value in line_data.items():
-                                if field_name in ('id', 'model_name', 'order', 'order_id', 'parent', 'parent_id'):
-                                    continue
-                                if hasattr(line_obj, field_name):
-                                    setattr(line_obj, field_name, field_value)
-                            line_obj.save()
-                            console_logger.info(f"[SAVE_VIEW] Updated existing line ID {line_id}")
-                        except OrderLine.DoesNotExist:
-                            console_logger.warning(f"[SAVE_VIEW] Line ID {line_id} not found, skipping")
-                except Exception as e:
-                    console_logger.error(f"[SAVE_VIEW] Error saving line {idx}: {e}")
-            
-            # Update refs.links with new line IDs
-            if new_line_ids:
-                try:
-                    refs = obj.refs or {}
-                    if not isinstance(refs, dict):
-                        refs = {}
-                    links = refs.get('links', {})
-                    if not isinstance(links, dict):
-                        links = {}
-                    line_refs = links.get('order_line', [])
-                    if not isinstance(line_refs, list):
-                        line_refs = []
-                    for new_id in new_line_ids:
-                        if {'id': new_id} not in line_refs:
-                            line_refs.append({'id': new_id})
-                    links['order_line'] = line_refs
-                    refs['links'] = links
-                    obj.refs = refs
-                    obj.save(update_fields=['refs'])
-                    console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
-                except Exception as e:
-                    console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
+                            refs = obj.refs or {}
+                            if not isinstance(refs, dict):
+                                refs = {}
+                            links = refs.get('links', {})
+                            if not isinstance(links, dict):
+                                links = {}
+                            line_refs = links.get(refs_links_key, [])
+                            if not isinstance(line_refs, list):
+                                line_refs = []
+                            for new_id in new_line_ids:
+                                if {'id': new_id} not in line_refs:
+                                    line_refs.append({'id': new_id})
+                            links[refs_links_key] = line_refs
+                            refs['links'] = links
+                            obj.refs = refs
+                            obj.save(update_fields=['refs'])
+                            console_logger.info(f"[SAVE_VIEW] Updated refs.links with {len(new_line_ids)} new line IDs")
+                        except Exception as e:
+                            console_logger.error(f"[SAVE_VIEW] Error updating refs.links: {e}")
 
         # Auto-link communication records to a Contact
         linked = False

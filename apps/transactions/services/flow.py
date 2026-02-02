@@ -288,7 +288,7 @@ def receive_purchase_order(po: Purchase,
         - adjust_inventory: For manual inventory adjustments
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
-    from apps.transactions.models.receipt import Receipt
+    from apps.transactions.models.receipt import Receipt, ReceiptLine
     from apps.core.models.pending import Pending
     from django.utils import timezone
     import uuid
@@ -296,8 +296,13 @@ def receive_purchase_order(po: Purchase,
     if not receipt_id:
         raise ValidationError({'receipt_id': 'Required'})
 
-    receipt = Receipt.objects.create(ida=receipt_id)
+    receipt = Receipt.objects.create(
+        ida=receipt_id,
+        source_type=Receipt.SOURCE_PURCHASE,
+        purchase=po,
+    )
     created_stack_ids: list[int] = []
+    created_receipt_line_ids: list[int] = []
     deltas_created = 0
 
     for rl in lines:
@@ -332,6 +337,20 @@ def receive_purchase_order(po: Purchase,
         stack.save()
         created_stack_ids.append(stack.id)
 
+        # Create ReceiptLine record to track what was received
+        receipt_line = ReceiptLine.objects.create(
+            receipt=receipt,
+            purchase_line=pol,
+            warehouse=wh,
+            inventory_layer=stack,
+            lot=rl.lot or '',
+            serial_batch=rl.serial_batch or '',
+            item=pol.item or {'item_id': item_id},  # Copy item JSON from PO line
+            quantity={'placed': float(rl.qty), 'received': float(rl.qty)},
+            cost={'unit': unit_cost, 'extended': float(rl.qty) * unit_cost},
+        )
+        created_receipt_line_ids.append(receipt_line.id)
+
         # Create inventory delta for item-level quantity tracking
         qty_received = Decimal(str(rl.qty))
         record_id = f"{item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
@@ -349,7 +368,7 @@ def receive_purchase_order(po: Purchase,
                 'quantity_on_po_delta': -float(qty_received),  # Decrease on-PO
                 'source_type': 'purchase_receipt',
                 'source_id': receipt.id,
-                'source_line_id': pol.id,
+                'source_line_id': receipt_line.id,  # Reference ReceiptLine instead of PurchaseLine
                 'unit_cost': unit_cost,
                 'notes': f"Purchase receipt {receipt.ida} - received {qty_received} units",
                 'created_at': timezone.now().isoformat()
@@ -368,6 +387,7 @@ def receive_purchase_order(po: Purchase,
 
     return {
         'receipt_id': receipt.id,  # type: ignore[attr-defined]
+        'receipt_lines_created': created_receipt_line_ids,
         'stacks_created': created_stack_ids,
         'deltas_created': deltas_created
     }
@@ -410,7 +430,7 @@ def complete_workorder(wo: WorkOrder,
         - adjust_inventory: For manual inventory adjustments
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
-    from apps.transactions.models.receipt import Receipt
+    from apps.transactions.models.receipt import Receipt, ReceiptLine
     from apps.core.models.pending import Pending
     from django.utils import timezone
     import uuid
@@ -418,8 +438,13 @@ def complete_workorder(wo: WorkOrder,
     if not receipt_id:
         raise ValidationError({'receipt_id': 'Required'})
 
-    receipt = Receipt.objects.create(ida=receipt_id)
+    receipt = Receipt.objects.create(
+        ida=receipt_id,
+        source_type=Receipt.SOURCE_WORKORDER,
+        workorder=wo,
+    )
     created_stack_ids: list[int] = []
+    created_receipt_line_ids: list[int] = []
     deltas_created = 0
 
     for cl in lines:
@@ -456,6 +481,20 @@ def complete_workorder(wo: WorkOrder,
         stack.save()
         created_stack_ids.append(stack.id)
 
+        # Create ReceiptLine record to track what was completed
+        receipt_line = ReceiptLine.objects.create(
+            receipt=receipt,
+            workorder_line=wol,
+            warehouse=wh,
+            inventory_layer=stack,
+            lot=cl.lot or '',
+            serial_batch=cl.serial_batch or '',
+            item=wol.item or {'item_id': item_id},  # Copy item JSON from WO line
+            quantity={'placed': float(cl.qty_completed), 'received': float(cl.qty_completed)},
+            cost={'unit': unit_cost, 'extended': float(cl.qty_completed) * unit_cost},
+        )
+        created_receipt_line_ids.append(receipt_line.id)
+
         # Create inventory delta for item-level quantity tracking
         qty_completed = Decimal(str(cl.qty_completed))
         record_id = f"{item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
@@ -472,7 +511,7 @@ def complete_workorder(wo: WorkOrder,
                 'quantity_on_wo_delta': -float(qty_completed),   # Decrease on-WO (no longer WIP)
                 'source_type': 'workorder_completion',
                 'source_id': receipt.id,
-                'source_line_id': wol.id,
+                'source_line_id': receipt_line.id,  # Reference ReceiptLine
                 'unit_cost': unit_cost,
                 'notes': f"WorkOrder completion {receipt.ida} - produced {qty_completed} units",
                 'created_at': timezone.now().isoformat()
@@ -491,6 +530,7 @@ def complete_workorder(wo: WorkOrder,
 
     return {
         'receipt_id': receipt.id,  # type: ignore[attr-defined]
+        'receipt_lines_created': created_receipt_line_ids,
         'stacks_created': created_stack_ids,
         'deltas_created': deltas_created
     }
@@ -535,7 +575,7 @@ def adjust_inventory(adjustment_id: str,
         - complete_workorder: For workorder completion (manufacturing)
         - receive_inventory_changes: High-level dispatcher for all receiving actions
     """
-    from apps.transactions.models.receipt import Receipt
+    from apps.transactions.models.receipt import Receipt, ReceiptLine
     from apps.core.models.pending import Pending
     from django.utils import timezone
     import uuid
@@ -543,8 +583,12 @@ def adjust_inventory(adjustment_id: str,
     if not adjustment_id:
         raise ValidationError({'adjustment_id': 'Required'})
 
-    receipt = Receipt.objects.create(ida=adjustment_id)
+    receipt = Receipt.objects.create(
+        ida=adjustment_id,
+        source_type=Receipt.SOURCE_ADJUSTMENT,
+    )
     created_stack_ids: list[int] = []
+    created_receipt_line_ids: list[int] = []
     deltas_created = 0
 
     for al in lines:
@@ -558,6 +602,8 @@ def adjust_inventory(adjustment_id: str,
             raise ValidationError({'lines': f'Warehouse code {al.warehouse_code} not found'})
 
         qty_delta = Decimal(str(al.qty_delta))
+        unit_cost = float(al.unit_cost) if al.unit_cost is not None else 0.0
+        stack = None
         
         # Create inventory layer stack for positive adjustments only
         if qty_delta > 0:
@@ -570,11 +616,24 @@ def adjust_inventory(adjustment_id: str,
                 source_doc_type='inventory_adjustment',
                 source_doc_id=receipt.id,  # type: ignore[attr-defined]
             )
-            unit_cost = float(al.unit_cost) if al.unit_cost is not None else 0.0
             if unit_cost > 0:
                 stack.update_cost_after_receipt(unit_cost)
             stack.save()
             created_stack_ids.append(stack.id)
+
+        # Create ReceiptLine record to track the adjustment
+        receipt_line = ReceiptLine.objects.create(
+            receipt=receipt,
+            warehouse=wh,
+            inventory_layer=stack,  # None for negative adjustments
+            lot=al.lot or '',
+            serial_batch=al.serial_batch or '',
+            adjustment_reason=al.reason,
+            item={'item_id': al.item_id, 'item_number': item.item_number, 'name': item.name},
+            quantity={'adjustment': float(qty_delta)},  # Can be negative
+            cost={'unit': unit_cost, 'extended': float(qty_delta) * unit_cost} if unit_cost else {},
+        )
+        created_receipt_line_ids.append(receipt_line.id)
 
         # Create inventory delta for item-level quantity tracking
         record_id = f"{al.item_id}_{int(timezone.now().timestamp() * 1000000)}_{uuid.uuid4().hex[:8]}"
@@ -590,8 +649,9 @@ def adjust_inventory(adjustment_id: str,
                 'quantity_on_hand_delta': float(qty_delta),  # Direct on-hand change
                 'source_type': 'inventory_adjustment',
                 'source_id': receipt.id,
+                'source_line_id': receipt_line.id,  # Reference ReceiptLine
                 'adjustment_reason': al.reason,
-                'unit_cost': float(al.unit_cost) if al.unit_cost else None,
+                'unit_cost': unit_cost if unit_cost else None,
                 'notes': f"Inventory adjustment {receipt.ida} - {al.reason}: {qty_delta:+} units" + (f" - {notes}" if notes else ""),
                 'created_at': timezone.now().isoformat()
             }
@@ -600,6 +660,7 @@ def adjust_inventory(adjustment_id: str,
 
     return {
         'receipt_id': receipt.id,  # type: ignore[attr-defined]
+        'receipt_lines_created': created_receipt_line_ids,
         'stacks_created': created_stack_ids,
         'deltas_created': deltas_created
     }

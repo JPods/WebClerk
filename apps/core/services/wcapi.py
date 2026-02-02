@@ -76,6 +76,12 @@ def list_items(model_key: str, *, request, filters: Optional[Dict[str, Any]] = N
 def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) -> Tuple[Any, str, bool]:
     ModelCls, qs = get_queryset(model_key, request=request)
     clean = filter_input_fields(ModelCls, data)
+    if isinstance(clean.get("refs"), dict):
+        try:
+            from common.refs.contact_refs import normalize_refs_for_save
+            clean["refs"] = normalize_refs_for_save(clean["refs"])
+        except Exception:
+            pass
 
     # Prevent non-privileged users from elevating roles/privileges on Contact records
     try:
