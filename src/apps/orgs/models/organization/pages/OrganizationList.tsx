@@ -5,14 +5,24 @@ import { TableColumn } from "react-data-table-component";
 import { ColumnFilter } from "@/components/common/AdvancedDataTable";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 
-const columns: TableColumn<any>[] = [
+const columns = (actions: {
+  onView: (row: any) => void;
+  onEdit: (row: any) => void;
+  onDelete: (row: any) => void;
+}): TableColumn<any>[] => [
   {
     name: "ID",
     selector: (row: any) => row.id,
     sortable: true,
     width: "80px",
     cell: (row: any) => (
-      <div className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          actions.onEdit(row);
+        }}
+        className="text-xs font-mono text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+      >
         {row.id}
       </div>
     ),
@@ -84,7 +94,10 @@ const columns: TableColumn<any>[] = [
     cell: (row: any) => (
       <div className="flex gap-2">
         <button
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            actions.onView(row);
+          }}
           title="View"
           className="p-2 text-blue-600 text-xs hover:bg-blue-50 rounded dark:hover:bg-blue-900/20 transition-colors"
         >
@@ -93,7 +106,7 @@ const columns: TableColumn<any>[] = [
         <button
           onClick={(e) => {
             e.stopPropagation();
-            window.location.href = `/orgs/organizations/edit/${row.id}`;
+            actions.onEdit(row);
           }}
           title="Edit"
           className="p-2 text-green-600 text-xs hover:bg-green-50 rounded dark:hover:bg-green-900/20 transition-colors"
@@ -101,16 +114,9 @@ const columns: TableColumn<any>[] = [
           <FaEdit className="w-4 h-4" />
         </button>
         <button
-          onClick={async (e) => {
+          onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm(`Delete organization ${row.display_name}?`)) {
-              try {
-                await deleteOrganization(row.id);
-                window.location.reload();
-              } catch (error) {
-                console.error("Delete failed", error);
-              }
-            }
+            actions.onDelete(row);
           }}
           title="Delete"
           className="p-2 text-red-600 text-xs hover:bg-red-50 rounded dark:hover:bg-red-900/20 transition-colors"

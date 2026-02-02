@@ -9,6 +9,12 @@ import { showToast } from "@/store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useWindowManager } from "@/context/WindowManagerContext";
 
+type OrgEntityRowActions<T = any> = {
+  onView: (row: T) => void;
+  onEdit: (row: T) => void;
+  onDelete: (row: T) => void;
+};
+
 interface OrgEntityListProps<T = any> {
   modelKey: string;
   title?: string;
@@ -16,7 +22,7 @@ interface OrgEntityListProps<T = any> {
   deleteFn?: (id: number) => Promise<any>;
   onImportFile?: (file: File) => void;
   onPrint?: () => void;
-  columns: TableColumn<T>[];
+  columns: TableColumn<T>[] | ((actions: OrgEntityRowActions<T>) => TableColumn<T>[]);
   filters?: ColumnFilter[];
   storageKey?: string;
   exportFileName?: string;
@@ -47,6 +53,7 @@ export default function OrgEntityList<T = any>({
   const [data, setData] = useState<T[]>([]);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [detailMode, setDetailMode] = useState<"view" | "edit">("view");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const tableRef = useRef<any>(null);
@@ -93,6 +100,38 @@ export default function OrgEntityList<T = any>({
     ensureWindow(path, display, { maximized: false });
     activateWindow(path);
   }, [ensureWindow, activateWindow, routes, modelKey, title]);
+
+  const handleViewInline = useCallback((row: any) => {
+    setSelectedRow(row);
+    setDetailMode("view");
+  }, []);
+
+  const handleEditInline = useCallback((row: any) => {
+    setSelectedRow(row);
+    setDetailMode("edit");
+  }, []);
+
+  const handleDeleteInline = useCallback(async (row: any) => {
+    if (!deleteFn) return;
+    const display = row.display_name || row.name || `${title || modelKey} ${row.id}`;
+    if (!window.confirm(`Delete ${display}?`)) return;
+    try {
+      await deleteFn(row.id);
+      dispatch(showToast({ message: `${title || modelKey} deleted`, type: "success" }));
+      getData();
+      setSelectedRow(null);
+    } catch (e) {
+      dispatch(showToast({ message: "Failed to delete record", type: "error" }));
+    }
+  }, [deleteFn, dispatch, getData, modelKey, title]);
+
+  const resolvedColumns = typeof columns === "function"
+    ? columns({
+        onView: handleViewInline,
+        onEdit: routes?.edit ? handleEdit : handleEditInline,
+        onDelete: handleDeleteInline,
+      })
+    : columns;
 
   const handleAdd = useCallback(() => {
     if (!routes?.add) return;
@@ -233,7 +272,7 @@ export default function OrgEntityList<T = any>({
             <ErrorBoundary>
               <AdvancedDataTable
               data={data}
-              columns={columns}
+              columns={resolvedColumns}
               title={title || modelKey}
               loading={loading}
               filters={filters}
@@ -252,7 +291,10 @@ export default function OrgEntityList<T = any>({
               exportFileName={exportFileName}
               onRowActivate={handleEdit}
               onRowDoubleClicked={handleRowDoubleClick}
-              onRowClicked={(row: any) => setSelectedRow(row)}
+              onRowClicked={(row: any) => {
+                setSelectedRow(row);
+                setDetailMode("view");
+              }}
               onAdd={handleAdd}
               onDeleteSelected={() => handleBulkDelete()}
               noDataMessage={`No ${title || modelKey} found`}
@@ -268,6 +310,7 @@ export default function OrgEntityList<T = any>({
                 <DisplayComponent
                   inline={true}
                   dataProp={selectedRow}
+                  modeProp={detailMode}
                   onSaved={getData}
                   onCancelInline={() => setSelectedRow(null)}
                   onClose={() => setSelectedRow(null)}
