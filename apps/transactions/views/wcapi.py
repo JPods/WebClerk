@@ -252,6 +252,11 @@ class WCAPIGetView(APIView):
             except Exception:
                 pass
             data = to_dict(obj)
+            try:
+                from common.refs.contact_refs import normalize_refs_for_response
+                data["refs"] = normalize_refs_for_response(data.get("refs"))
+            except Exception:
+                pass
             if fields:
                 data = {k: data.get(k) for k in fields}
             model_name = getattr(getattr(ModelCls, "_meta", None), "model_name", "").lower()
@@ -282,6 +287,11 @@ class WCAPIGetView(APIView):
             except Exception:
                 pass
             data = to_dict(obj)
+            try:
+                from common.refs.contact_refs import normalize_refs_for_response
+                data["refs"] = normalize_refs_for_response(data.get("refs"))
+            except Exception:
+                pass
             if fields:
                 data = {k: data.get(k) for k in fields}
             items.append(data)
