@@ -404,6 +404,14 @@ WCAPI_BLESSED_MODELS = {
     "bundle": "sync.Bundle",
     "connection": "sync.Connection",
 
+    # Orgs models
+    "org": "orgs.OrgBase",
+    "customer": "orgs.Customer",
+    "vendor": "orgs.Vendor",
+    "rep": "orgs.Rep",
+    "employee": "orgs.Employee",
+    "manufacturer": "orgs.Manufacturer",
+
     # Transaction models
     "payment": "transactions.Payment",
     "payment_method": "transactions.PaymentMethod",
