@@ -1,9 +1,23 @@
 from __future__ import annotations
+import json
 from decimal import Decimal
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from apps.transactions.models import ProposalLine, OrderLine, InvoiceLine, PurchaseLine, WorkOrderLine, Proposal, Order, Invoice, Payment
 from apps.transactions.services.email_notifications import TransactionEmailService
+
+
+def _ensure_refs_dict(refs):
+    """Ensure refs is a dict, handling JSON string case."""
+    if refs is None:
+        return {}
+    if isinstance(refs, str):
+        try:
+            return json.loads(refs)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return refs
+
 
 @receiver(post_save, sender=ProposalLine)
 def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
@@ -12,7 +26,7 @@ def maintain_proposal_links(sender, instance: ProposalLine, created, **kwargs):
     header = instance.parent
     if not header:
         return
-    refs = header.refs or {}
+    refs = _ensure_refs_dict(header.refs)
     links = refs.setdefault("links", {})
     lst = links.setdefault("proposal_line", [])
     if instance.id not in lst:
@@ -43,7 +57,7 @@ def maintain_order_links(sender, instance: OrderLine, created, **kwargs):
     header = instance.order
     if not header:
         return
-    refs = header.refs or {}
+    refs = _ensure_refs_dict(header.refs)
     links = refs.setdefault("links", {})
     lst = links.setdefault("order_line", [])
     if instance.id not in lst:
@@ -58,7 +72,7 @@ def maintain_invoice_links(sender, instance: InvoiceLine, created, **kwargs):
     header = instance.invoice
     if not header:
         return
-    refs = header.refs or {}
+    refs = _ensure_refs_dict(header.refs)
     links = refs.setdefault("links", {})
     lst = links.setdefault("invoice_line", [])
     if instance.id not in lst:
@@ -575,7 +589,7 @@ def maintain_purchase_links(sender, instance: PurchaseLine, created, **kwargs):
     header = instance.purchase
     if not header:
         return
-    refs = header.refs or {}
+    refs = _ensure_refs_dict(header.refs)
     links = refs.setdefault("links", {})
     lst = links.setdefault("purchase_line", [])
     if instance.id not in lst:
@@ -720,7 +734,7 @@ def maintain_workorder_links(sender, instance: WorkOrderLine, created, **kwargs)
     header = instance.workorder
     if not header:
         return
-    refs = header.refs or {}
+    refs = _ensure_refs_dict(header.refs)
     links = refs.setdefault("links", {})
     lst = links.setdefault("workorder_line", [])
     if instance.id not in lst:
