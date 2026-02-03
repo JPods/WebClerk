@@ -23,10 +23,6 @@ export interface RefContact {
   full?: string;
   domain?: string;
   address?: any; // Added to fix compile error
-  address_id?: number;
-  email_id?: number;
-  phone_id?: number;
-  domain_id?: number;
 }
 
 // Helper to normalize refs.links.contact API data to RefContact[]
@@ -41,24 +37,6 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       base = c.contact;
       purpose = c.purpose || base.purpose || "";
     }
-    // Helper to extract and join all values from possible array/object
-    // const extractAll = (field: any, key = "value") => {
-    //   if (Array.isArray(field)) {
-    //     return field
-    //       .map((item) => {
-    //         if (typeof item === "object" && item !== null) {
-    //           return item[key] ?? "";
-    //         }
-    //         return item ?? "";
-    //       })
-    //       .filter(Boolean)
-    //       .join(", ");
-    //   }
-    //   if (typeof field === "object" && field !== null) {
-    //     return field[key] ?? "";
-    //   }
-    //   return field ?? "";
-    // };
     // Helper to extract and join all address full fields (newline separated)
     const extractAddressFull = (field: any) => {
       if (Array.isArray(field)) {
@@ -85,35 +63,14 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       }
       return typeof field === "string" ? field : "";
     };
-    const extractId = (field: any) => {
-      if (Array.isArray(field)) {
-        const first = field[0];
-        if (
-          typeof first === "object" &&
-          first !== null &&
-          first.id !== undefined
-        ) {
-          return first.id;
-        }
-      }
-      if (
-        typeof field === "object" &&
-        field !== null &&
-        field.id !== undefined
-      ) {
-        return field.id;
-      }
-      return undefined;
-    };
     const attention = base.attention || undefined;
     const addressFull = extractAddressFull(base.address);
-    const addressId = extractId(base.address);
     let contact_id = base.id;
     if (contact_id === undefined || contact_id === null || contact_id === "") {
       contact_id = idx + 1;
     }
     // Helper to normalize contact fields to array of {id, name, value}
-    const normalizeContactField = (field: any, fieldName: string) => {
+    const normalizeContactField = (field: any) => {
       if (Array.isArray(field)) {
         return field.map((item: any, idx: number) => {
           if (typeof item === "object" && item !== null) {
@@ -154,15 +111,11 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       contact_id,
       purpose,
       attention,
-      email: normalizeContactField(base.email, "email"),
-      phone: normalizeContactField(base.phone, "phone"),
-      domain: normalizeContactField(base.domain, "domain"),
+      email: normalizeContactField(base.email),
+      phone: normalizeContactField(base.phone),
+      domain: normalizeContactField(base.domain),
       full: addressFull,
-      address: base.address, // <--- preserve original address array/object for modal editing
-      address_id: addressId,
-      email_id: extractId(base.email),
-      phone_id: extractId(base.phone),
-      domain_id: extractId(base.domain),
+      address: base.address, // preserve original address array/object for modal editing
     };
   });
 }
@@ -236,6 +189,12 @@ const ContactEditModal: React.FC<{
   // Helper to split comma-separated values into arrays for editing
   const splitMulti = (val: string | undefined, sep: string) => {
     if (!val) return [""];
+    if (Array.isArray(val)) {
+      // If array of objects, extract value property
+      return val
+        .map((v: any) => (typeof v === "object" && v.value ? v.value : v))
+        .filter(Boolean);
+    }
     return val
       .split(sep)
       .map((v) => v.trim())
@@ -265,42 +224,18 @@ const ContactEditModal: React.FC<{
     }
     return [""];
   };
-  // Helper to convert array of objects or string to array of strings for modal editing
-  const fieldToStringArray = (field: any, valueKey = "value") => {
-    if (Array.isArray(field)) {
-      // If array of objects with value/name/full
-      return field
-        .map((item) => {
-          if (typeof item === "object" && item !== null) {
-            return item[valueKey] ?? item.full ?? item.name ?? "";
-          }
-          return item ?? "";
-        })
-        .filter(Boolean);
-    }
-    if (typeof field === "object" && field !== null) {
-      return [field[valueKey] ?? field.full ?? field.name ?? ""];
-    }
-    if (typeof field === "string") {
-      return splitMulti(field, ",");
-    }
-    return [""];
-  };
-
   const toMulti = (c: RefContact | null): MultiContact => {
     let addressArr: string[] = [""];
     if (c?.address) {
       addressArr = extractAddressFullArray(c.address);
-    } else if (c?.full) {
-      addressArr = fieldToStringArray(c.full, "full");
     }
     return {
       ...c,
       contact_id: c?.contact_id ?? 0,
       purpose: c?.purpose ?? "",
-      email: c?.email ? fieldToStringArray(c.email, "value") : [""],
-      phone: c?.phone ? fieldToStringArray(c.phone, "value") : [""],
-      domain: c?.domain ? fieldToStringArray(c.domain, "value") : [""],
+      email: c?.email ? splitMulti(c.email, ",") : [""],
+      phone: c?.phone ? splitMulti(c.phone, ",") : [""],
+      domain: c?.domain ? splitMulti(c.domain, ",") : [""],
       full: addressArr,
     };
   };
@@ -632,6 +567,8 @@ const ContactBlock: React.FC<{
   );
   const noDetails = !hasEmail && !hasPhone && !hasDomain && !hasAddress;
 
+  console.log("contact.email", contact.email);
+
   return (
     <div className="relative group">
       {isEditing && onRemove && (
@@ -689,36 +626,22 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {emailObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {emailObj.name}
                       </td>
-                      <td className="align-middle text-left">
-                        <div className="flex items-center gap-1">
-                          <FaEnvelope size={10} />
-                          <a
-                            href={`mailto:${emailObj.value}`}
-                            className="hover:text-blue-500"
-                          >
-                            {emailObj.value}
-                          </a>
-                        </div>
+                      <td className="w-8 text-left align-middle">
+                        <FaEnvelope size={10} />
+                      </td>
+                      <td className="text-left align-middle">
+                        <a
+                          href={`mailto:${emailObj.value}`}
+                          className="hover:text-blue-500"
+                        >
+                          {emailObj.value}
+                        </a>
                       </td>
                     </tr>
                   </tbody>
@@ -745,36 +668,22 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {phoneObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {phoneObj.name}
                       </td>
-                      <td className="align-middle text-left">
-                        <div className="flex items-center gap-1">
-                          <FaPhone size={10} />
-                          <a
-                            href={`tel:${phoneObj.value}`}
-                            className="hover:text-blue-500"
-                          >
-                            {phoneObj.value}
-                          </a>
-                        </div>
+                      <td className="w-8 text-left align-middle">
+                        <FaPhone size={10} />
+                      </td>
+                      <td className="text-left align-middle">
+                        <a
+                          href={`tel:${phoneObj.value}`}
+                          className="hover:text-blue-500"
+                        >
+                          {phoneObj.value}
+                        </a>
                       </td>
                     </tr>
                   </tbody>
@@ -801,38 +710,24 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {domainObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {domainObj.name}
                       </td>
-                      <td className="align-middle text-left">
-                        <div className="flex items-center gap-1">
-                          <FaGlobe size={10} />
-                          <a
-                            href={`https://${domainObj.value}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-blue-500"
-                          >
-                            {domainObj.value}
-                          </a>
-                        </div>
+                      <td className="w-8 text-left align-middle">
+                        <FaGlobe size={10} />
+                      </td>
+                      <td className="text-left align-middle">
+                        <a
+                          href={`https://${domainObj.value}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-500"
+                        >
+                          {domainObj.value}
+                        </a>
                       </td>
                     </tr>
                   </tbody>
@@ -859,27 +754,16 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {addrObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {addrObj.name}
                       </td>
-                      <td className="align-middle whitespace-pre-line text-left">
+                      <td className="w-8 text-left align-middle">
+                        {/* You can use an icon here if desired */}
+                      </td>
+                      <td className="text-left align-middle whitespace-pre-line">
                         {addrObj.full}
                       </td>
                     </tr>
