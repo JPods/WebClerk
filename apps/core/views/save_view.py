@@ -646,7 +646,7 @@ class SaveWcapiView(APIView):
                 'purchase_order': 'purchaseline',  # underscore variant
                 'invoice': 'invoiceline',
                 'workorder': 'workorderline',
-                'work_order': 'workorderline',  # underscore variant
+                'receipt': 'receiptline',
                 'quote': 'quoteline',
             }
             line_model_name = line_model_map.get(model_key.lower())
@@ -663,7 +663,6 @@ class SaveWcapiView(APIView):
                     'purchaseorder': 'purchase',
                     'purchase_order': 'purchase',
                     'workorder': 'workorder',
-                    'work_order': 'workorder',
                 }
                 fk_field_name = fk_field_aliases.get(fk_field_name, fk_field_name)
                 
@@ -844,7 +843,8 @@ class SaveWcapiView(APIView):
                 'purchase_line': 'purchase',
                 'purchaseorderline': 'purchase',
                 'workorderline': 'workorder',
-                'work_order_line': 'workorder',
+                'receiptline': 'receipt',
+                'receipt_line': 'receipt',
                 'proposalline': 'proposal',
                 'proposal_line': 'proposal',
             }
@@ -853,7 +853,7 @@ class SaveWcapiView(APIView):
                 try:
                     # Get the parent transaction for this line
                     parent = None
-                    for fk_attr in ['order', 'invoice', 'purchase', 'workorder', 'proposal', 'parent']:
+                    for fk_attr in ['order', 'invoice', 'purchase', 'workorder', 'receipt', 'proposal', 'parent']:
                         if hasattr(obj, fk_attr):
                             parent = getattr(obj, fk_attr, None)
                             if parent is not None:
@@ -1755,7 +1755,7 @@ class SaveWcapiView(APIView):
 
         # Handle associated lines for header models (order, invoice, etc.)
         # Check for lines in data - support models even without meta.kind == 'header'
-        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'work_order', 'proposal'}
+        header_models = {'order', 'salesorder', 'sales_order', 'invoice', 'purchaseorder', 'purchase_order', 'purchase', 'workorder', 'proposal'}
         norm_model = model_key.replace('_', '').lower()
         is_header_model = norm_model in {m.replace('_', '').lower() for m in header_models}
         
@@ -1772,7 +1772,6 @@ class SaveWcapiView(APIView):
                 'purchaseorder': ('PurchaseLine', 'purchase'),
                 'purchase_order': ('PurchaseLine', 'purchase'),
                 'workorder': ('WorkOrderLine', 'workorder'),
-                'work_order': ('WorkOrderLine', 'workorder'),
                 'proposal': ('ProposalLine', 'proposal'),
             }
             line_info = line_model_map.get(norm_model)

@@ -80,7 +80,7 @@ class WCAPIGetView(APIView):
         "invoice": "invoice_line",
         "purchase": "purchase_line",
         "purchaseorder": "purchase_line",  # backwards compatibility alias
-        "workorder": "work_order_line",
+        "workorder": "workorderline",
     }
 
     @staticmethod

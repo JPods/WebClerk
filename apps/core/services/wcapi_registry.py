@@ -48,6 +48,15 @@ def _resolve_dotpath(key: str):
             return m
     return None
 
+# Alias map for common underscore/no-underscore variants
+# Note: workorder is the canonical form (no underscore)
+_ALIAS_MAP = {
+    'sales_order': 'order',
+    'sales_order_line': 'orderline',
+    'purchase_order': 'purchase',
+    'purchase_order_line': 'purchaseline',
+}
+
 def get_model(model_key: str):
     """
     Resolve a model class from a slug:
@@ -55,12 +64,17 @@ def get_model(model_key: str):
       - "contact" -> core.Contact (swapped auth user)
       - "app_label.ModelName" or "app_label.modelname"
       - Plural slugs like "domains" -> "domain"
+      - Underscore variants like "work_order" -> "workorder"
     """
     key = _normalize(model_key)
     if not key:
         return None
     if key in _MODEL_CACHE:
         return _MODEL_CACHE[key]
+
+    # 0) Check alias map for underscore variants
+    if key in _ALIAS_MAP:
+        key = _ALIAS_MAP[key]
 
     # 1) Dotpath "app_label.ModelName"
     cls = _resolve_dotpath(key)

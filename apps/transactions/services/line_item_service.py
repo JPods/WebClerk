@@ -68,8 +68,8 @@ LINE_MODEL_MAP = {
     'purchase': 'apps.transactions.models.PurchaseLine',
     'purchase_order': 'apps.transactions.models.PurchaseLine',
     'purchaseorder': 'apps.transactions.models.PurchaseLine',
-    'work_order': 'apps.transactions.models.WorkOrderLine',
     'workorder': 'apps.transactions.models.WorkOrderLine',
+    'receipt': 'apps.transactions.models.ReceiptLine',
 }
 
 # FK field names for each line model (the field pointing to the parent transaction)
@@ -80,6 +80,7 @@ LINE_FK_FIELD_MAP = {
     'invoiceline': 'invoice',
     'purchaseline': 'purchase',
     'workorderline': 'workorder',
+    'receiptline': 'receipt',
 }
 
 
@@ -108,7 +109,7 @@ def _is_sales_transaction(transaction_type: str) -> bool:
 def _is_exec_transaction(transaction_type: str) -> bool:
     """Determine if a transaction type is execution-side (uses cost)."""
     kind = _normalize_line_kind(transaction_type)
-    return kind in ('purchase_order', 'work_order')
+    return kind in ('purchase', 'workorder')
 
 
 # -----------------------------------------------------------------------------
@@ -124,7 +125,6 @@ PENDING_TYPE_MAP = {
     'purchase': 'PO',
     'purchase_order': 'PO',
     'purchaseorder': 'PO',
-    'work_order': 'WO',
     'workorder': 'WO',
 }
 
@@ -282,6 +282,11 @@ class LineItemService:
         line_kwargs.update(kwargs)
         
         line = LineModel(**line_kwargs)
+        
+        # Mark line to prevent signal from creating duplicate pending
+        if self.create_pending and _should_track_inventory(transaction_type):
+            line._pending_created = True
+        
         line.save()
         
         # TRACE: Line added
@@ -939,13 +944,14 @@ class LineItemService:
             'line_id': line.pk,
             'line_num': line.item.get('line_number', 0) if isinstance(line.item, dict) else 0,
             
-            # Quantity buckets (matching Item.quantity keys)
-            'on_so': quantity if pending_type == 'SO' else 0,
-            'on_po': quantity if pending_type == 'PO' else 0,
-            'on_wo': quantity if pending_type == 'WO' else 0,
-            'on_in': quantity if pending_type == 'IN' else 0,  # Invoices: informational, decreases on_hand
-            'on_r': quantity if pending_type == 'RC' else 0,   # Receipts: informational, increases on_hand
-            'on_p': quantity * probability if pending_type == 'PP' else 0,  # Proposals track forecast
+            # Quantity buckets - initialized to 0, set based on type below
+            'on_so': 0,
+            'on_po': 0,
+            'on_wo': 0,
+            'on_in': 0,
+            'on_r': 0,
+            'on_p': 0,
+            'on_hand': 0,
             
             # Pricing snapshot
             'unit_cost': unit_cost,
@@ -959,7 +965,48 @@ class LineItemService:
             # Transaction reference
             'transaction_type': transaction_type,
             'transaction_model': transaction._meta.model_name,
+            
+            # Parent links (populated for child transactions)
+            'links': {},
         }
+        
+        # Set quantity buckets based on pending type
+        if pending_type == 'PP':
+            pending_data['on_p'] = quantity * probability
+        elif pending_type == 'SO':
+            pending_data['on_so'] = quantity
+        elif pending_type == 'PO':
+            pending_data['on_po'] = quantity
+        elif pending_type == 'WO':
+            pending_data['on_wo'] = quantity
+        elif pending_type == 'IN':
+            # Invoice: track on_in, release on_so, deduct on_hand
+            pending_data['on_in'] = quantity
+            parent_id = getattr(transaction, 'parent_id', None)
+            if parent_id:
+                # Invoice from Order: release order commitment and deduct inventory
+                pending_data['on_so'] = -quantity
+                pending_data['on_hand'] = -quantity
+                pending_data['links']['order'] = {'parent_id': parent_id}
+                pending_data['reason'] = 'in line add (releases so, deducts on_hand)'
+        elif pending_type == 'RC':
+            # Receipt: track on_r, release source commitment, add on_hand
+            pending_data['on_r'] = quantity
+            # Check for purchase parent
+            purchase_id = getattr(transaction, 'purchase_id', None)
+            if purchase_id:
+                pending_data['on_po'] = -quantity
+                pending_data['on_hand'] = quantity
+                pending_data['links']['purchase'] = {'parent_id': purchase_id}
+                pending_data['reason'] = 'rc line add (releases po, adds on_hand)'
+            else:
+                # Check for workorder parent
+                workorder_id = getattr(transaction, 'workorder_id', None)
+                if workorder_id:
+                    pending_data['on_wo'] = -quantity
+                    pending_data['on_hand'] = quantity
+                    pending_data['links']['workorder'] = {'parent_id': workorder_id}
+                    pending_data['reason'] = 'rc line add (releases wo, adds on_hand)'
         
         pending = Pending.objects.create(
             model_name='item',
@@ -1011,14 +1058,14 @@ class LineItemService:
         """
         # Normalize transaction type
         tx_type_map = {
-            'order': 'sales_order',
-            'salesorder': 'sales_order',
+            'order': 'order',
+            'salesorder': 'order',
             'proposal': 'proposal',
             'quote': 'proposal',
             'invoice': 'invoice',
-            'purchase': 'purchase_order',
-            'purchaseorder': 'purchase_order',
-            'workorder': 'work_order',
+            'purchase': 'purchase',
+            'purchaseorder': 'purchase',
+            'workorder': 'workorder',
         }
         transaction_type = tx_type_map.get(parent_model_key.lower())
         
