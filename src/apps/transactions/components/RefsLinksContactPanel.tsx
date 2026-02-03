@@ -174,8 +174,6 @@ const ContactEditModal: React.FC<{
   onClose: () => void;
   onSave: (contact: RefContact) => void;
 }> = ({ contact, isOpen, onClose, onSave }) => {
-  // Always reset formData when a new contact is being edited (including same id with new data)
-
   // Support multiple emails, phones, domains, addresses
   type MultiContact = Omit<
     RefContact,
@@ -186,11 +184,18 @@ const ContactEditModal: React.FC<{
     domain?: string[];
     full?: string[];
   };
+
+  // Store original objects for id/name preservation (at top level of component)
+  const originalObjectsRef = React.useRef<{
+    email?: any[];
+    phone?: any[];
+    domain?: any[];
+  }>({});
+
   // Helper to split comma-separated values into arrays for editing
   const splitMulti = (val: string | undefined, sep: string) => {
     if (!val) return [""];
     if (Array.isArray(val)) {
-      // If array of objects, extract value property
       return val
         .map((v: any) => (typeof v === "object" && v.value ? v.value : v))
         .filter(Boolean);
@@ -200,52 +205,108 @@ const ContactEditModal: React.FC<{
       .map((v) => v.trim())
       .filter(Boolean);
   };
-  // Helper to extract address.full as a single value (no splitting)
-  // Helper to extract all address.full values from address array or object
-  const extractAddressFullArray = (address: any): string[] => {
-    if (Array.isArray(address)) {
-      return address
-        .map((item) =>
-          item && typeof item === "object" && typeof item.full === "string"
-            ? item.full
-            : "",
-        )
-        .filter(Boolean);
-    }
-    if (
-      typeof address === "object" &&
-      address !== null &&
-      typeof address.full === "string"
-    ) {
-      return [address.full];
-    }
-    if (typeof address === "string") {
-      return [address];
-    }
-    return [""];
-  };
+
+  // Convert RefContact to MultiContact for editing (no hooks inside)
   const toMulti = (c: RefContact | null): MultiContact => {
+    // Save original objects for id/name preservation
+    originalObjectsRef.current.email = Array.isArray(c?.email)
+      ? c.email
+      : undefined;
+    originalObjectsRef.current.phone = Array.isArray(c?.phone)
+      ? c.phone
+      : undefined;
+    originalObjectsRef.current.domain = Array.isArray(c?.domain)
+      ? c.domain
+      : undefined;
+
     let addressArr: string[] = [""];
     if (c?.address) {
-      addressArr = extractAddressFullArray(c.address);
+      if (Array.isArray(c.address)) {
+        addressArr = c.address
+          .map((item: any) =>
+            item && typeof item === "object" && typeof item.full === "string"
+              ? item.full
+              : "",
+          )
+          .filter(Boolean);
+      } else if (
+        typeof c.address === "object" &&
+        c.address !== null &&
+        typeof c.address.full === "string"
+      ) {
+        addressArr = [c.address.full];
+      } else if (typeof c.address === "string") {
+        addressArr = [c.address];
+      }
     }
+    if (addressArr.length === 0) addressArr = [""];
+
     return {
       ...c,
       contact_id: c?.contact_id ?? 0,
       purpose: c?.purpose ?? "",
-      email: c?.email ? splitMulti(c.email, ",") : [""],
-      phone: c?.phone ? splitMulti(c.phone, ",") : [""],
-      domain: c?.domain ? splitMulti(c.domain, ",") : [""],
+      email: Array.isArray(c?.email)
+        ? c.email.map((e: any) =>
+            typeof e === "object" && e.value ? e.value : e,
+          )
+        : c?.email
+        ? splitMulti(c.email, ",")
+        : [""],
+      phone: Array.isArray(c?.phone)
+        ? c.phone.map((p: any) =>
+            typeof p === "object" && p.value ? p.value : p,
+          )
+        : c?.phone
+        ? splitMulti(c.phone, ",")
+        : [""],
+      domain: Array.isArray(c?.domain)
+        ? c.domain.map((d: any) =>
+            typeof d === "object" && d.value ? d.value : d,
+          )
+        : c?.domain
+        ? splitMulti(c.domain, ",")
+        : [""],
       full: addressArr,
     };
   };
+
+  // Convert MultiContact back to RefContact for saving
   const fromMulti = (m: MultiContact): RefContact => ({
     ...m,
-    email: m.email?.filter(Boolean).join(", "),
-    phone: m.phone?.filter(Boolean).join(", "),
-    domain: m.domain?.filter(Boolean).join(", "),
-    full: m.full?.filter(Boolean).join(""), // treat as single value, no newline join
+    email:
+      m.email?.map((val, idx) => {
+        const orig = originalObjectsRef.current.email?.[idx];
+        return {
+          id: orig?.id ?? idx,
+          name: orig?.name ?? "",
+          value: val ?? "",
+        };
+      }) ?? [],
+    phone:
+      m.phone?.map((val, idx) => {
+        const orig = originalObjectsRef.current.phone?.[idx];
+        return {
+          id: orig?.id ?? idx,
+          name: orig?.name ?? "",
+          value: val ?? "",
+        };
+      }) ?? [],
+    domain:
+      m.domain?.map((val, idx) => {
+        const orig = originalObjectsRef.current.domain?.[idx];
+        return {
+          id: orig?.id ?? idx,
+          name: orig?.name ?? "",
+          value: val ?? "",
+        };
+      }) ?? [],
+    full:
+      Array.isArray(m.full) && m.full.length > 0
+        ? m.full.filter(Boolean).join("")
+        : m.full,
+    address: m.address,
   });
+
   const [formData, setFormData] = useState<MultiContact>(toMulti(contact));
   React.useEffect(() => {
     setFormData(toMulti(contact));
@@ -258,10 +319,12 @@ const ContactEditModal: React.FC<{
     value: string | string[],
     idx?: number,
   ) => {
-    if (["email", "phone", "domain", "address"].includes(field)) {
+    if (["email", "phone", "domain", "address", "full"].includes(field)) {
       setFormData((prev) => {
-        const arr = Array.isArray(prev[field])
+        let arr: string[] = Array.isArray(prev[field])
           ? [...(prev[field] as string[])]
+          : typeof prev[field] === "string"
+          ? [prev[field] as string]
           : [""];
         if (typeof idx === "number") {
           arr[idx] = value ? (value as string) : "";
@@ -512,6 +575,7 @@ const ContactEditModal: React.FC<{
           </button>
           <button
             onClick={() => {
+              alert(2);
               onSave(fromMulti(formData));
               onClose();
             }}
@@ -531,7 +595,7 @@ const ContactBlock: React.FC<{
   onRemove?: () => void;
   onEdit?: () => void;
 }> = ({ contact, isEditing, onRemove, onEdit }) => {
-  console.log("contact", contact);
+  console.log("[DEBUG] ContactBlock render contact", contact);
   const displayName =
     contact.attention ||
     (typeof contact.contact_id === "number" && contact.contact_id > 0
@@ -567,7 +631,7 @@ const ContactBlock: React.FC<{
   );
   const noDetails = !hasEmail && !hasPhone && !hasDomain && !hasAddress;
 
-  console.log("contact.email", contact.email);
+  //console.log("contact.email", contact.email);
 
   return (
     <div className="relative group">
@@ -608,7 +672,7 @@ const ContactBlock: React.FC<{
         {/* Always render the card body for consistent layout */}
         <div className="flex flex-col gap-1 ml-5 mt-2 text-slate-500 dark:text-slate-400 min-h-[24px]">
           {/* Render all emails with id, name, value if array of objects, else fallback to string */}
-          {Array.isArray(contact.email) &&
+          {Array.isArray(contact.email) ? (
             contact.email.map((emailObj: any, idx: number) =>
               emailObj && typeof emailObj === "object" && emailObj.value ? (
                 <table className="w-full text-xs" key={emailObj.id ?? idx}>
@@ -647,10 +711,14 @@ const ContactBlock: React.FC<{
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.email === "string" &&
+            contact.email.trim() !== "" ? (
+            <span>{contact.email}</span>
+          ) : null}
 
           {/* Render all phones with id, name, value if array of objects, else fallback to string */}
-          {Array.isArray(contact.phone) &&
+          {Array.isArray(contact.phone) ? (
             contact.phone.map((phoneObj: any, idx: number) =>
               phoneObj && typeof phoneObj === "object" && phoneObj.value ? (
                 <table className="w-full text-xs" key={phoneObj.id ?? idx}>
@@ -689,10 +757,14 @@ const ContactBlock: React.FC<{
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.phone === "string" &&
+            contact.phone.trim() !== "" ? (
+            <span>{contact.phone}</span>
+          ) : null}
 
           {/* Render all domains with id, name, value if array of objects, else fallback to string */}
-          {Array.isArray(contact.domain) &&
+          {Array.isArray(contact.domain) ? (
             contact.domain.map((domainObj: any, idx: number) =>
               domainObj && typeof domainObj === "object" && domainObj.value ? (
                 <table className="w-full text-xs" key={domainObj.id ?? idx}>
@@ -733,10 +805,14 @@ const ContactBlock: React.FC<{
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.domain === "string" &&
+            contact.domain.trim() !== "" ? (
+            <span>{contact.domain}</span>
+          ) : null}
 
           {/* Render all addresses as array of objects (id, name, full), else fallback to string */}
-          {Array.isArray(contact.address) &&
+          {Array.isArray(contact.address) ? (
             contact.address.map((addrObj: any, idx: number) =>
               addrObj && typeof addrObj === "object" && addrObj.full ? (
                 <table className="w-full text-xs" key={addrObj.id ?? idx}>
@@ -770,7 +846,11 @@ const ContactBlock: React.FC<{
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.address === "string" &&
+            contact.address.trim() !== "" ? (
+            <span>{contact.address}</span>
+          ) : null}
           {/* If no details at all, show placeholder */}
           {noDetails && (
             <span className="text-xs italic text-slate-400">
@@ -790,7 +870,7 @@ const PurposeSection: React.FC<{
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
 }> = ({ purpose, contacts, isEditing, onRemove, onEdit }) => {
-  console.log("purpose,contacts", purpose, contacts);
+  console.log("[DEBUG] PurposeSection", purpose, contacts);
   return (
     <div className="border-b border-slate-200 dark:border-slate-700 pb-0 last:border-0 last:pb-0 bg-success-50 cus-bg-purple-light">
       <div className="flex items-center justify-between bg-success-200">
@@ -859,11 +939,48 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   };
 
   const handleSaveContact = (updatedContact: RefContact) => {
+    console.log("onChange", onChange);
     if (onChange) {
-      const newContacts = contacts.map((c) =>
-        c.contact_id === updatedContact.contact_id ? updatedContact : c,
+      // Debug: log contacts before update
+      console.log("[DEBUG] contacts before update", contacts);
+      // Update by both contact_id and purpose
+      const updatedId = Number(updatedContact.contact_id);
+      const updatedPurpose = updatedContact.purpose;
+      let replaced = false;
+      const newContacts = contacts.map((c) => {
+        if (
+          Number(c.contact_id) === updatedId &&
+          c.purpose === updatedPurpose
+        ) {
+          replaced = true;
+          // Always use updatedContact values for multi-value fields
+          return {
+            ...c,
+            ...updatedContact,
+            email: updatedContact.email,
+            phone: updatedContact.phone,
+            domain: updatedContact.domain,
+            address: updatedContact.address,
+          };
+        }
+        return c;
+      });
+      // If not found, add as new
+      if (!replaced) {
+        newContacts.push(updatedContact);
+      }
+      // Remove any accidental duplicates (same contact_id and purpose)
+      const dedupedContacts = newContacts.filter(
+        (c, idx, arr) =>
+          arr.findIndex(
+            (x) =>
+              Number(x.contact_id) === Number(c.contact_id) &&
+              x.purpose === c.purpose,
+          ) === idx,
       );
-      onChange(newContacts);
+      // Debug: log contacts after update
+      console.log("[DEBUG] contacts after update", dedupedContacts);
+      onChange([...dedupedContacts]);
     }
     if (onEdit) {
       onEdit(updatedContact);
@@ -905,7 +1022,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       </div>
     );
   }
-  console.log("contacts", contacts);
+
   return (
     <>
       {/* Edit Contact Modal */}

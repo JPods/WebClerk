@@ -305,12 +305,36 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
               </p>
               {billingContact.email && (
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {billingContact.email}
+                  {Array.isArray(billingContact.email)
+                    ? billingContact.email
+                        .map((e: any) =>
+                          typeof e === "string" ? e : e?.full || e?.value || "",
+                        )
+                        .filter(Boolean)
+                        .join(", ")
+                    : typeof billingContact.email === "object" &&
+                      billingContact.email !== null
+                    ? billingContact.email.full ||
+                      billingContact.email.value ||
+                      ""
+                    : billingContact.email}
                 </p>
               )}
               {billingContact.phone && (
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {billingContact.phone}
+                  {Array.isArray(billingContact.phone)
+                    ? billingContact.phone
+                        .map((p: any) =>
+                          typeof p === "string" ? p : p?.full || p?.value || "",
+                        )
+                        .filter(Boolean)
+                        .join(", ")
+                    : typeof billingContact.phone === "object" &&
+                      billingContact.phone !== null
+                    ? billingContact.phone.full ||
+                      billingContact.phone.value ||
+                      ""
+                    : billingContact.phone}
                 </p>
               )}
             </div>
@@ -326,12 +350,36 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
               </p>
               {shippingContact.email && (
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {shippingContact.email}
+                  {Array.isArray(shippingContact.email)
+                    ? shippingContact.email
+                        .map((e: any) =>
+                          typeof e === "string" ? e : e?.full || e?.value || "",
+                        )
+                        .filter(Boolean)
+                        .join(", ")
+                    : typeof shippingContact.email === "object" &&
+                      shippingContact.email !== null
+                    ? shippingContact.email.full ||
+                      shippingContact.email.value ||
+                      ""
+                    : shippingContact.email}
                 </p>
               )}
               {shippingContact.phone && (
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {shippingContact.phone}
+                  {Array.isArray(shippingContact.phone)
+                    ? shippingContact.phone
+                        .map((p: any) =>
+                          typeof p === "string" ? p : p?.full || p?.value || "",
+                        )
+                        .filter(Boolean)
+                        .join(", ")
+                    : typeof shippingContact.phone === "object" &&
+                      shippingContact.phone !== null
+                    ? shippingContact.phone.full ||
+                      shippingContact.phone.value ||
+                      ""
+                    : shippingContact.phone}
                 </p>
               )}
             </div>
