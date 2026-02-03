@@ -2,7 +2,8 @@
  * RefsLinksContactPanel - Display contacts grouped by purpose with editing support
  * Syncs with refs.links.contact structure from API
  */
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaUser,
   FaEnvelope,
@@ -10,8 +11,273 @@ import {
   FaTimes,
   FaEdit,
   FaGlobe,
+  FaMapMarkerAlt,
+  FaPlus,
+  FaSave,
+  FaTrash,
+  FaChevronDown,
+  FaChevronRight,
+  FaSpinner,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
+import { fetchContacts } from "@/apps/core/models/contact/services/contactApi";
+import {
+  createEmail,
+  updateEmail,
+  deleteEmail,
+} from "@/apps/communications/models/email/services/emailApi";
+import {
+  createPhone,
+  updatePhone,
+  deletePhone,
+} from "@/apps/communications/models/phone/services/phoneApi";
+import {
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} from "@/apps/communications/models/address/services/addressApi";
+import {
+  createDomain,
+  updateDomain,
+  deleteDomain,
+} from "@/apps/communications/models/domain/services/domainApi";
+
+// ------------------------------------
+// Communication Record Types
+// ------------------------------------
+interface EmailRecord {
+  id: number;
+  address: string;
+  name?: string;
+  type?: string;
+  is_primary?: boolean;
+  is_verified?: boolean;
+}
+
+interface PhoneRecord {
+  id: number;
+  number: string;
+  name?: string;
+  type?: string;
+  is_primary?: boolean;
+}
+
+interface AddressRecord {
+  id: number;
+  name?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  type?: string;
+  full?: string;
+}
+
+interface DomainRecord {
+  id: number;
+  domain: string;
+  name?: string;
+  is_primary?: boolean;
+}
+
+// ------------------------------------
+// Communication Table Component
+// ------------------------------------
+interface CommunicationTableProps<T> {
+  title: string;
+  icon: React.ReactNode;
+  data: T[];
+  columns: {
+    key: keyof T | string;
+    label: string;
+    render?: (item: T) => React.ReactNode;
+  }[];
+  onAdd: () => void;
+  onEdit: (item: T) => void;
+  onDelete: (item: T) => void;
+  onSave: (item: T) => void;
+  editingItem: T | null;
+  onEditChange: (field: keyof T, value: any) => void;
+  onCancelEdit: () => void;
+  disabled?: boolean;
+}
+
+function CommunicationTable<T extends { id: number }>({
+  title,
+  icon,
+  data,
+  columns,
+  onAdd,
+  onEdit,
+  onDelete,
+  onSave,
+  editingItem,
+  onEditChange,
+  onCancelEdit,
+  disabled = false,
+}: CommunicationTableProps<T>) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <div className="border rounded-lg dark:border-slate-700 overflow-hidden mb-4">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? (
+            <FaChevronDown className="text-slate-400 w-3 h-3" />
+          ) : (
+            <FaChevronRight className="text-slate-400 w-3 h-3" />
+          )}
+          {icon}
+          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
+            {title}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            ({data.length})
+          </span>
+        </div>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600"
+          >
+            <FaPlus className="w-2 h-2" /> Add
+          </button>
+        )}
+      </div>
+
+      {/* Table Content */}
+      {isExpanded && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-100 dark:bg-slate-700">
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={String(col.key)}
+                    className="px-2 py-1 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase"
+                  >
+                    {col.label}
+                  </th>
+                ))}
+                {!disabled && (
+                  <th className="px-2 py-1 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase w-20">
+                    Actions
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              {data.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length + 1}
+                    className="px-2 py-4 text-center text-slate-400 dark:text-slate-500"
+                  >
+                    No records found
+                  </td>
+                </tr>
+              ) : (
+                data.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  >
+                    {editingItem && editingItem.id === item.id ? (
+                      // Editing row
+                      <>
+                        {columns.map((col) => (
+                          <td key={String(col.key)} className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={String(
+                                (editingItem as any)[col.key] ?? "",
+                              )}
+                              onChange={(e) =>
+                                onEditChange(col.key as keyof T, e.target.value)
+                              }
+                              className="w-full px-2 py-1 text-xs border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            />
+                          </td>
+                        ))}
+                        <td className="px-2 py-1 text-right">
+                          <div className="flex justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => onSave(editingItem)}
+                              className="p-1 text-green-600 hover:text-green-700"
+                              title="Save"
+                            >
+                              <FaSave className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={onCancelEdit}
+                              className="p-1 text-slate-500 hover:text-slate-700"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      // View row
+                      <>
+                        {columns.map((col) => (
+                          <td
+                            key={String(col.key)}
+                            className="px-2 py-1 text-slate-700 dark:text-slate-300"
+                          >
+                            {col.render
+                              ? col.render(item)
+                              : String((item as any)[col.key] ?? "--")}
+                          </td>
+                        ))}
+                        {!disabled && (
+                          <td className="px-2 py-1 text-right">
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onEdit(item)}
+                                className="p-1 text-blue-600 hover:text-blue-700"
+                                title="Edit"
+                              >
+                                <FaEdit className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onDelete(item)}
+                                className="p-1 text-red-600 hover:text-red-700"
+                                title="Delete"
+                              >
+                                <FaTrash className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // API contact structure from refs.links.contact
 export interface RefContact {
@@ -308,9 +574,420 @@ const ContactEditModal: React.FC<{
   });
 
   const [formData, setFormData] = useState<MultiContact>(toMulti(contact));
+
+  // Communications state - fetched from contact model using contact_id
+  const [loading, setLoading] = useState(false);
+  const [emails, setEmails] = useState<EmailRecord[]>([]);
+  const [phones, setPhones] = useState<PhoneRecord[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
+  const [domains, setDomains] = useState<DomainRecord[]>([]);
+
+  // Editing state for each communication type
+  const [editingEmail, setEditingEmail] = useState<EmailRecord | null>(null);
+  const [editingPhone, setEditingPhone] = useState<PhoneRecord | null>(null);
+  const [editingAddress, setEditingAddress] = useState<AddressRecord | null>(
+    null,
+  );
+  const [editingDomain, setEditingDomain] = useState<DomainRecord | null>(null);
+
   React.useEffect(() => {
     setFormData(toMulti(contact));
   }, [contact]);
+
+  // Fetch full contact data when modal opens with a valid contact_id
+  useEffect(() => {
+    const fetchContactData = async () => {
+      if (!isOpen || !contact?.contact_id || contact.contact_id <= 0) {
+        // Reset communications if no valid contact_id
+        setEmails([]);
+        setPhones([]);
+        setAddresses([]);
+        setDomains([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await fetchContacts(contact.contact_id);
+        const data = response?.data;
+
+        if (data && data.refs?.links) {
+          // Load communication records from refs.links
+          setEmails(
+            (data.refs.links.email ?? []).map((e: any) => ({
+              id: e.id ?? 0,
+              address: e.address ?? e.email ?? "",
+              name: e.name ?? "",
+              type: e.type ?? "",
+              is_primary: e.is_primary ?? false,
+              is_verified: e.is_verified ?? false,
+            })),
+          );
+
+          setPhones(
+            (data.refs.links.phone ?? []).map((p: any) => ({
+              id: p.id ?? 0,
+              number: p.number ?? "",
+              name: p.name ?? "",
+              type: p.type ?? "",
+              is_primary: p.is_primary ?? false,
+            })),
+          );
+
+          setAddresses(
+            (data.refs.links.address ?? []).map((l: any) => ({
+              id: l.id ?? 0,
+              name: l.name ?? "",
+              address_line1: l.address_line1 ?? l.address ?? "",
+              address_line2: l.address_line2 ?? "",
+              city: l.city ?? "",
+              state: l.state ?? "",
+              postal_code: l.postal_code ?? "",
+              country: l.country ?? "",
+              type: l.type ?? "",
+              full: l.full ?? "",
+            })),
+          );
+
+          setDomains(
+            (data.refs.links.domain ?? []).map((d: any) => ({
+              id: d.id ?? 0,
+              domain: d.domain ?? d.path ?? d.name ?? "",
+              name: d.name ?? "",
+              is_primary: d.is_primary ?? false,
+            })),
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching contact data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContactData();
+  }, [isOpen, contact?.contact_id]);
+
+  // Communication Handlers
+  // EMAIL HANDLERS
+  const handleAddEmail = useCallback(() => {
+    const newEmail: EmailRecord = {
+      id: 0,
+      address: "",
+      name: "",
+      type: "",
+      is_primary: false,
+      is_verified: false,
+    };
+    setEditingEmail(newEmail);
+    setEmails((prev) => [...prev, newEmail]);
+  }, []);
+
+  const handleEditEmail = useCallback((email: EmailRecord) => {
+    setEditingEmail({ ...email });
+  }, []);
+
+  const handleDeleteEmail = useCallback(async (email: EmailRecord) => {
+    if (!window.confirm("Delete this email?")) return;
+    try {
+      if (email.id > 0) {
+        await deleteEmail("email", email.id);
+      }
+      setEmails((prev) =>
+        prev.filter(
+          (e) =>
+            e.id !== email.id || (e.id === 0 && e.address !== email.address),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+    }
+  }, []);
+
+  const handleSaveEmail = useCallback(
+    async (email: EmailRecord) => {
+      try {
+        if (!email.address) {
+          alert("Email address is required");
+          return;
+        }
+        const payload = {
+          id: email.id || 0,
+          email: email.address,
+          name: email.name || "",
+          type: email.type,
+          is_primary: email.is_primary ?? false,
+          is_verified: email.is_verified ?? false,
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          email.id > 0
+            ? await updateEmail(payload as any)
+            : await createEmail(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || email.id;
+          setEmails((prev) =>
+            prev.map((e) =>
+              e.id === email.id || (e.id === 0 && e.address === email.address)
+                ? { ...email, id: savedId }
+                : e,
+            ),
+          );
+          setEditingEmail(null);
+        }
+      } catch (error) {
+        console.error("Failed to save email:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handleEmailChange = useCallback(
+    (field: keyof EmailRecord, value: any) => {
+      setEditingEmail((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
+
+  // PHONE HANDLERS
+  const handleAddPhone = useCallback(() => {
+    const newPhone: PhoneRecord = {
+      id: 0,
+      number: "",
+      name: "",
+      type: "",
+      is_primary: false,
+    };
+    setEditingPhone(newPhone);
+    setPhones((prev) => [...prev, newPhone]);
+  }, []);
+
+  const handleEditPhone = useCallback((phone: PhoneRecord) => {
+    setEditingPhone({ ...phone });
+  }, []);
+
+  const handleDeletePhone = useCallback(async (phone: PhoneRecord) => {
+    if (!window.confirm("Delete this phone?")) return;
+    try {
+      if (phone.id > 0) {
+        await deletePhone(phone.id);
+      }
+      setPhones((prev) =>
+        prev.filter(
+          (p) => p.id !== phone.id || (p.id === 0 && p.number !== phone.number),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete phone:", error);
+    }
+  }, []);
+
+  const handleSavePhone = useCallback(
+    async (phone: PhoneRecord) => {
+      try {
+        if (!phone.number) {
+          alert("Phone number is required");
+          return;
+        }
+        const payload = {
+          number: phone.number,
+          name: phone.name || "",
+          country_code: "",
+          opt_out: false,
+          attention: "",
+          format: "",
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          phone.id > 0
+            ? await updatePhone({ ...payload, id: String(phone.id) } as any)
+            : await createPhone(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || phone.id;
+          setPhones((prev) =>
+            prev.map((p) =>
+              p.id === phone.id || (p.id === 0 && p.number === phone.number)
+                ? { ...phone, id: savedId }
+                : p,
+            ),
+          );
+          setEditingPhone(null);
+        }
+      } catch (error) {
+        console.error("Failed to save phone:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handlePhoneChange = useCallback(
+    (field: keyof PhoneRecord, value: any) => {
+      setEditingPhone((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
+
+  // ADDRESS HANDLERS
+  const handleAddAddress = useCallback(() => {
+    const newAddress: AddressRecord = {
+      id: 0,
+      name: "",
+      address_line1: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "",
+      type: "",
+    };
+    setEditingAddress(newAddress);
+    setAddresses((prev) => [...prev, newAddress]);
+  }, []);
+
+  const handleEditAddress = useCallback((addr: AddressRecord) => {
+    setEditingAddress({ ...addr });
+  }, []);
+
+  const handleDeleteAddress = useCallback(async (addr: AddressRecord) => {
+    if (!window.confirm("Delete this address?")) return;
+    try {
+      if (addr.id > 0) {
+        await deleteAddress(addr.id);
+      }
+      setAddresses((prev) =>
+        prev.filter(
+          (l) =>
+            l.id !== addr.id ||
+            (l.id === 0 && l.address_line1 !== addr.address_line1),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete address:", error);
+    }
+  }, []);
+
+  const handleSaveAddress = useCallback(
+    async (addr: AddressRecord) => {
+      try {
+        const payload = {
+          address1: addr.address_line1 || "",
+          address2: addr.address_line2 || "",
+          address_type: addr.type || "",
+          full: addr.full || "",
+          city: addr.city || "",
+          state: addr.state || "",
+          zip: addr.postal_code || "",
+          country: addr.country || "",
+          latitude: 0,
+          longitude: 0,
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          addr.id > 0
+            ? await updateAddress({ ...payload, id: String(addr.id) } as any)
+            : await createAddress(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || addr.id;
+          setAddresses((prev) =>
+            prev.map((l) =>
+              l.id === addr.id ||
+              (l.id === 0 && l.address_line1 === addr.address_line1)
+                ? { ...addr, id: savedId }
+                : l,
+            ),
+          );
+          setEditingAddress(null);
+        }
+      } catch (error) {
+        console.error("Failed to save address:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handleAddressChange = useCallback(
+    (field: keyof AddressRecord, value: any) => {
+      setEditingAddress((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
+
+  // DOMAIN HANDLERS
+  const handleAddDomain = useCallback(() => {
+    const newDomain: DomainRecord = {
+      id: 0,
+      domain: "",
+      name: "",
+      is_primary: false,
+    };
+    setEditingDomain(newDomain);
+    setDomains((prev) => [...prev, newDomain]);
+  }, []);
+
+  const handleEditDomain = useCallback((domain: DomainRecord) => {
+    setEditingDomain({ ...domain });
+  }, []);
+
+  const handleDeleteDomain = useCallback(async (domain: DomainRecord) => {
+    if (!window.confirm("Delete this domain?")) return;
+    try {
+      if (domain.id > 0) {
+        await deleteDomain(domain.id);
+      }
+      setDomains((prev) =>
+        prev.filter(
+          (d) =>
+            d.id !== domain.id || (d.id === 0 && d.domain !== domain.domain),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete domain:", error);
+    }
+  }, []);
+
+  const handleSaveDomain = useCallback(
+    async (domain: DomainRecord) => {
+      try {
+        if (!domain.domain) {
+          alert("Domain is required");
+          return;
+        }
+        const payload = {
+          path: domain.domain,
+          type: "",
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          domain.id > 0
+            ? await updateDomain({ ...payload, id: String(domain.id) } as any)
+            : await createDomain(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || domain.id;
+          setDomains((prev) =>
+            prev.map((d) =>
+              d.id === domain.id || (d.id === 0 && d.domain === domain.domain)
+                ? { ...domain, id: savedId }
+                : d,
+            ),
+          );
+          setEditingDomain(null);
+        }
+      } catch (error) {
+        console.error("Failed to save domain:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handleDomainChange = useCallback(
+    (field: keyof DomainRecord, value: any) => {
+      setEditingDomain((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
 
   if (!isOpen || !contact) return null;
 
@@ -564,6 +1241,147 @@ const ContactEditModal: React.FC<{
               </div>
             ))}
           </div>
+
+          {/* ----------------------------------
+              COMMUNICATIONS SECTION
+              Fetched from contact model using contact_id
+          ---------------------------------- */}
+          {contact?.contact_id && contact.contact_id > 0 && (
+            <>
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                  <FaUser className="text-blue-500" />
+                  Communications
+                  {loading && (
+                    <FaSpinner className="animate-spin w-3 h-3 text-blue-500" />
+                  )}
+                </h5>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  Contact ID: {contact.contact_id}
+                </p>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <FaSpinner className="animate-spin w-6 h-6 text-blue-500" />
+                  <span className="ml-2 text-sm text-slate-500">
+                    Loading contact data...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {/* Emails Table */}
+                  <CommunicationTable<EmailRecord>
+                    title="Emails"
+                    icon={<FaEnvelope className="text-blue-500 w-3 h-3" />}
+                    data={emails}
+                    columns={[
+                      { key: "address", label: "Email" },
+                      { key: "name", label: "Name" },
+                      {
+                        key: "is_primary",
+                        label: "Primary",
+                        render: (e) => (e.is_primary ? "✓" : ""),
+                      },
+                    ]}
+                    onAdd={handleAddEmail}
+                    onEdit={handleEditEmail}
+                    onDelete={handleDeleteEmail}
+                    onSave={handleSaveEmail}
+                    editingItem={editingEmail}
+                    onEditChange={handleEmailChange}
+                    onCancelEdit={() => {
+                      if (editingEmail?.id === 0) {
+                        setEmails((prev) => prev.filter((e) => e.id !== 0));
+                      }
+                      setEditingEmail(null);
+                    }}
+                  />
+
+                  {/* Phones Table */}
+                  <CommunicationTable<PhoneRecord>
+                    title="Phones"
+                    icon={<FaPhone className="text-green-500 w-3 h-3" />}
+                    data={phones}
+                    columns={[
+                      { key: "number", label: "Phone" },
+                      { key: "name", label: "Name" },
+                      {
+                        key: "is_primary",
+                        label: "Primary",
+                        render: (p) => (p.is_primary ? "✓" : ""),
+                      },
+                    ]}
+                    onAdd={handleAddPhone}
+                    onEdit={handleEditPhone}
+                    onDelete={handleDeletePhone}
+                    onSave={handleSavePhone}
+                    editingItem={editingPhone}
+                    onEditChange={handlePhoneChange}
+                    onCancelEdit={() => {
+                      if (editingPhone?.id === 0) {
+                        setPhones((prev) => prev.filter((p) => p.id !== 0));
+                      }
+                      setEditingPhone(null);
+                    }}
+                  />
+
+                  {/* Addresses Table */}
+                  <CommunicationTable<AddressRecord>
+                    title="Addresses"
+                    icon={<FaMapMarkerAlt className="text-red-500 w-3 h-3" />}
+                    data={addresses}
+                    columns={[
+                      { key: "address_line1", label: "Address" },
+                      { key: "city", label: "City" },
+                      { key: "state", label: "State" },
+                      { key: "postal_code", label: "Zip" },
+                    ]}
+                    onAdd={handleAddAddress}
+                    onEdit={handleEditAddress}
+                    onDelete={handleDeleteAddress}
+                    onSave={handleSaveAddress}
+                    editingItem={editingAddress}
+                    onEditChange={handleAddressChange}
+                    onCancelEdit={() => {
+                      if (editingAddress?.id === 0) {
+                        setAddresses((prev) => prev.filter((l) => l.id !== 0));
+                      }
+                      setEditingAddress(null);
+                    }}
+                  />
+
+                  {/* Domains Table */}
+                  <CommunicationTable<DomainRecord>
+                    title="Domains"
+                    icon={<FaGlobe className="text-purple-500 w-3 h-3" />}
+                    data={domains}
+                    columns={[
+                      { key: "domain", label: "Domain" },
+                      { key: "name", label: "Name" },
+                      {
+                        key: "is_primary",
+                        label: "Primary",
+                        render: (d) => (d.is_primary ? "✓" : ""),
+                      },
+                    ]}
+                    onAdd={handleAddDomain}
+                    onEdit={handleEditDomain}
+                    onDelete={handleDeleteDomain}
+                    onSave={handleSaveDomain}
+                    editingItem={editingDomain}
+                    onEditChange={handleDomainChange}
+                    onCancelEdit={() => {
+                      if (editingDomain?.id === 0) {
+                        setDomains((prev) => prev.filter((d) => d.id !== 0));
+                      }
+                      setEditingDomain(null);
+                    }}
+                  />
+                </>
+              )}
+            </>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
@@ -575,13 +1393,12 @@ const ContactEditModal: React.FC<{
           </button>
           <button
             onClick={() => {
-              alert(2);
               onSave(fromMulti(formData));
               onClose();
             }}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
           >
-            Save QQQ send to server update local
+            Save Contact
           </button>
         </div>
       </div>
@@ -911,12 +1728,14 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   onEdit,
   onChange,
 }) => {
+  const { ensureWindow, activateWindow, activePath } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addContactPurpose, setAddContactPurpose] = useState<string>("");
 
   const grouped = groupContactsByPurpose(contacts);
+  //const grouped = groupContactsByPurpose(contacts);
 
   // Get all unique purposes, with standard ones first
   const allPurposes = new Set([
@@ -932,7 +1751,10 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         : 0) + 1
     );
   };
-
+  const openWindow = (path: string, title: string) => {
+    ensureWindow(path, title);
+    activateWindow(path);
+  };
   const handleEditContact = (contact: RefContact) => {
     setEditingContact(contact);
     setIsModalOpen(true);
@@ -1063,15 +1885,17 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         }}
       />
 
-      {/* Add Contact Section */}
+      {/* Add Contact Section - Navigate to Contact List/Add page */}
       {isEditing && (
         <div className="flex justify-end mb-1 px-2">
           <button
             type="button"
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
-            onClick={() => handleAddContact()}
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            onClick={() => openWindow("/core/contact/list", "Contact")}
           >
-            + Add New Contact
+            <FaPlus className="w-3 h-3" />
+            Add New Contact
+            <FaExternalLinkAlt className="w-3 h-3" />
           </button>
         </div>
       )}
