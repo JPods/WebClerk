@@ -3,103 +3,103 @@ import ComponentCard from "../../../../../components/common/ComponentCard";
 import AdvancedDataTable from "../../../../../components/common/AdvancedDataTable";
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { deleteAction } from "../../../../../api/userProfile";
-import { fetchPurchaseReceipts } from "../services/purchaseReceiptApi";
+import { fetchReceipts, deleteReceipt } from "../services/purchaseReceiptApi";
 import { FaEye, FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import PurchaseReceiptDetail from "./PurchaseReceiptDetail";
+import ReceiptDetail from "./ReceiptDetail";
 
-export default function PurchaseReceiptList() {
+export default function ReceiptList() {
   const dispatch = useDispatch();
   const [data, setData] = useState<any[]>([]);
-  const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState<any | null>(null);
-  const [selectedPurchaseReceipts, setSelectedPurchaseReceipts] = useState<any[]>([]);
+  const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
+  const [selectedReceipts, setSelectedReceipts] = useState<any[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const getPurchaseReceiptData = useCallback(async () => {
+  const getReceiptData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchPurchaseReceipts();
+      const res = await fetchReceipts();
       if (res.status === 200) {
         setData(res.data.items || []);
       } else {
-        dispatch(showToast({ message: "Failed to fetch purchase receipts", type: "error" }));
+        dispatch(showToast({ message: "Failed to fetch receipts", type: "error" }));
       }
     } catch (error) {
-      console.error("Failed to fetch purchase receipts", error);
-      dispatch(showToast({ message: "Failed to fetch purchase receipts", type: "error" }));
+      console.error("Failed to fetch receipts", error);
+      dispatch(showToast({ message: "Failed to fetch receipts", type: "error" }));
     } finally {
       setLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
-    getPurchaseReceiptData();
-  }, [getPurchaseReceiptData]);
+    getReceiptData();
+  }, [getReceiptData]);
 
   const handleView = useCallback((row: any) => {
-    setSelectedPurchaseReceipt(row);
+    setSelectedReceipt(row);
     setFormMode("view");
   }, []);
 
   const handleEdit = useCallback((row: any) => {
-    setSelectedPurchaseReceipt(row);
+    setSelectedReceipt(row);
     setFormMode("edit");
   }, []);
 
   const handleAdd = () => {
-    setSelectedPurchaseReceipt(null);
+    setSelectedReceipt(null);
     setFormMode("add");
   };
 
   const handleFormSaved = () => {
-    getPurchaseReceiptData();
+    getReceiptData();
     setFormMode(null);
-    setSelectedPurchaseReceipt(null);
+    setSelectedReceipt(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedPurchaseReceipt(null);
+    setSelectedReceipt(null);
   };
 
   const handleDelete = useCallback(async (row: any) => {
-    if (!window.confirm(`Delete purchase receipt ${row.id}?`)) return;
+    if (!window.confirm(`Delete receipt ${row.id}?`)) return;
     
     try {
-      await deleteAction(row.id);
-      dispatch(showToast({ message: "Purchase receipt deleted successfully", type: "success" }));
-      getPurchaseReceiptData();
-      if (selectedPurchaseReceipt && selectedPurchaseReceipt.id === row.id) {
+      await deleteReceipt(row.id);
+      dispatch(showToast({ message: "Receipt deleted successfully", type: "success" }));
+      getReceiptData();
+      if (selectedReceipt && selectedReceipt.id === row.id) {
         setFormMode(null);
-        setSelectedPurchaseReceipt(null);
+        setSelectedReceipt(null);
       }
     } catch (error) {
-      dispatch(showToast({ message: "Failed to delete purchase receipt", type: "error" }));
+      dispatch(showToast({ message: "Failed to delete receipt", type: "error" }));
     }
-  }, [dispatch, getPurchaseReceiptData, selectedPurchaseReceipt]);
+  }, [dispatch, getReceiptData, selectedReceipt]);
 
   const handleBulkDelete = useCallback(async () => {
-    if (!selectedPurchaseReceipts.length) return;
-    if (!window.confirm(`Delete ${selectedPurchaseReceipts.length} purchase receipt(s)?`)) return;
+    if (!selectedReceipts.length) return;
+    if (!window.confirm(`Delete ${selectedReceipts.length} receipt(s)?`)) return;
 
     try {
-      await Promise.all(selectedPurchaseReceipts.map((r) => deleteAction(r.id)));
-      dispatch(showToast({ message: `${selectedPurchaseReceipts.length} purchase receipt(s) deleted`, type: "success" }));
-      getPurchaseReceiptData();
-      setSelectedPurchaseReceipts([]);
+      await Promise.all(selectedReceipts.map((r) => deleteReceipt(r.id)));
+      dispatch(showToast({ message: `${selectedReceipts.length} receipt(s) deleted`, type: "success" }));
+      getReceiptData();
+      setSelectedReceipts([]);
     } catch (error) {
-      dispatch(showToast({ message: "Failed to delete some purchase receipts", type: "error" }));
+      dispatch(showToast({ message: "Failed to delete some receipts", type: "error" }));
     }
-  }, [selectedPurchaseReceipts, dispatch, getPurchaseReceiptData]);
+  }, [selectedReceipts, dispatch, getReceiptData]);
 
   const columns: TableColumn<any>[] = useMemo(() => [
     { id: "id", name: "ID", selector: (row) => row.id, sortable: true, width: "80px" },
-    { id: "purchaseorder_id", name: "Purchase Order ID", selector: (row) => row.purchaseorder_id || "--", sortable: true, width: "15%" },
-    { id: "receipt_date", name: "Receipt Date", selector: (row) => row.receipt_date || "--", sortable: true, width: "18%" },
-    { id: "received_by", name: "Received By", selector: (row) => row.received_by || "--", sortable: true, width: "18%" },
+    { id: "ida", name: "Receipt No", selector: (row) => row.ida || "--", sortable: true, width: "15%" },
+    { id: "source_type", name: "Source", selector: (row) => row.source_type?.replace('_', ' ') || "--", sortable: true, width: "15%" },
+    { id: "dt_received", name: "Date Received", selector: (row) => row.dt_received ? new Date(row.dt_received).toLocaleString() : "--", sortable: true, width: "18%" },
+    { id: "status", name: "Status", selector: (row) => row.status || "--", sortable: true, width: "12%" },
     { id: "notes", name: "Notes", selector: (row) => row.notes || "--", sortable: true, width: "20%" },
     {
       id: "actions",
@@ -126,32 +126,32 @@ export default function PurchaseReceiptList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Purchase Receipt List" />
+      <PageBreadcrumb pageTitle="Receipt List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <AdvancedDataTable
               data={data}
               columns={columns}
-              title="Purchase Receipts"
+              title="Receipts"
               loading={loading}
-              storageKey="purchase-receipt-list"
+              storageKey="receipt-list"
               enableExport={true}
               enableSelection={true}
-              onSelectionChange={setSelectedPurchaseReceipts}
-              exportFileName="purchase_receipts_export"
+              onSelectionChange={setSelectedReceipts}
+              exportFileName="receipts_export"
               onRowActivate={handleEdit}
-              searchPlaceholder="Search purchase receipts..."
-              noDataMessage="No purchase receipts found"
+              searchPlaceholder="Search receipts..."
+              noDataMessage="No receipts found"
               customActions={
                 <div className="flex gap-2">
-                  {selectedPurchaseReceipts.length > 0 && (
+                  {selectedReceipts.length > 0 && (
                     <button
                       onClick={handleBulkDelete}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                     >
                       <FaTrash className="w-4 h-4" />
-                      Delete ({selectedPurchaseReceipts.length})
+                      Delete ({selectedReceipts.length})
                     </button>
                   )}
                   <button
@@ -159,7 +159,7 @@ export default function PurchaseReceiptList() {
                     className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <FaPlus className="w-4 h-4" />
-                    Add Purchase Receipt
+                    Add Receipt
                   </button>
                 </div>
               }
@@ -168,10 +168,10 @@ export default function PurchaseReceiptList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <PurchaseReceiptDetail
+            <ReceiptDetail
               inline
               modeProp={formMode}
-              dataProp={selectedPurchaseReceipt}
+              dataProp={selectedReceipt}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

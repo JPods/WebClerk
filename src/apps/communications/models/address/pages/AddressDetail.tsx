@@ -8,21 +8,21 @@ import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
-import { createLocation, updateLocation } from "../services/locationApi";
+import { createAddress, updateAddress } from "../services/addressApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
-import { locationSchema } from "../utils/locationSchema";
-import { LocationAddProps } from "../types/locationType";
+import { addressSchema } from "../utils/addressSchema";
+import { AddressAddProps } from "../types/addressType";
 
-export default function LocationDetail({
+export default function AddressDetail({
   modeProp,
   dataProp,
   hideBreadcrumb,
   onSaved,
   inline = false,
   onCancelInline,
-}: LocationAddProps) {
+}: AddressAddProps) {
   const dispatch = useDispatch();
 
   const {
@@ -31,8 +31,8 @@ export default function LocationDetail({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<z.infer<typeof locationSchema>>({
-    resolver: zodResolver(locationSchema),
+  } = useForm<z.infer<typeof addressSchema>>({
+    resolver: zodResolver(addressSchema),
   });
 
   const location = useLocation();
@@ -53,17 +53,17 @@ export default function LocationDetail({
     }
   }, [data, reset, setValue, mode]);
   console.log("errors", errors);
-  const onSubmit = async (formData: z.infer<typeof locationSchema>) => {
+  const onSubmit = async (formData: z.infer<typeof addressSchema>) => {
     console.log("formData", formData);
     try {
       const res =
         mode === "add"
-          ? await createLocation(formData)
-          : await updateLocation({ ...formData, id: data && data.id });
+          ? await createAddress(formData)
+          : await updateAddress({ ...formData, id: data && data.id });
       if (res) {
         dispatch(
           showToast({
-            message: `Location ${
+            message: `Address ${
               mode === "add" ? "created" : "updated"
             } successfully`,
             type: "success",
@@ -84,10 +84,10 @@ export default function LocationDetail({
         <PageBreadcrumb
           pageTitle={
             mode === "edit"
-              ? "Edit Location"
+              ? "Edit Address"
               : mode === "view"
-              ? "View Location"
-              : "Location Detail"
+              ? "View Address"
+              : "Address Detail"
           }
         />
       )}
@@ -96,10 +96,10 @@ export default function LocationDetail({
           <div className="flex justify-between items-center mb-4">
             <h3 className="dark:text-white text-lg font-semibold">
               {mode === "edit"
-                ? "Edit Location"
+                ? "Edit Address"
                 : mode === "view"
-                ? "View Location"
-                : "Add New Location"}
+                ? "View Address"
+                : "Add New Address"}
             </h3>
             {onCancelInline && (
               <button
@@ -115,11 +115,11 @@ export default function LocationDetail({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="address1">address1</Label>
+              <Label htmlFor="address1">Address Line 1</Label>
               <Input
                 type="text"
                 id="address1"
-                placeholder="Location address1"
+                placeholder="Address Line 1"
                 {...register("address1")}
                 error={
                   errors.address1 && errors.address1.message ? true : false
@@ -129,11 +129,11 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="address2">address22</Label>
+              <Label htmlFor="address2">Address Line 2</Label>
               <Input
                 type="text"
                 id="address2"
-                placeholder="Address2"
+                placeholder="Address Line 2"
                 {...register("address2")}
                 error={
                   errors.address2 && errors.address2.message ? true : false
@@ -143,7 +143,7 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="address_type">address_type</Label>
+              <Label htmlFor="address_type">Address Type</Label>
               <Input
                 type="text"
                 id="address_type"
@@ -160,11 +160,11 @@ export default function LocationDetail({
             </div>
 
             <div>
-              <Label htmlFor="full">full</Label>
+              <Label htmlFor="full">Full Address</Label>
               <Input
                 type="text"
                 id="full"
-                placeholder="Full"
+                placeholder="Full Address"
                 {...register("full")}
                 error={errors.full && errors.full.message ? true : false}
                 hint={errors.full && errors.full.message}
@@ -174,7 +174,7 @@ export default function LocationDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="city">city</Label>
+              <Label htmlFor="city">City</Label>
               <Input
                 type="text"
                 id="city"
@@ -187,7 +187,7 @@ export default function LocationDetail({
             </div>
 
             <div>
-              <Label htmlFor="country">country</Label>
+              <Label htmlFor="country">Country</Label>
               <Input
                 type="text"
                 id="country"
@@ -200,7 +200,7 @@ export default function LocationDetail({
             </div>
 
             <div>
-              <Label htmlFor="state">state</Label>
+              <Label htmlFor="state">State</Label>
               <Input
                 type="text"
                 id="state"
@@ -212,7 +212,7 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="zip">zip</Label>
+              <Label htmlFor="zip">ZIP Code</Label>
               <Input
                 type="text"
                 id="zip"
@@ -226,7 +226,7 @@ export default function LocationDetail({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="latitude">latitude</Label>
+              <Label htmlFor="latitude">Latitude</Label>
               <Input
                 type="text"
                 id="latitude"
@@ -240,7 +240,7 @@ export default function LocationDetail({
               />
             </div>
             <div>
-              <Label htmlFor="longitude">longitude</Label>
+              <Label htmlFor="longitude">Longitude</Label>
               <Input
                 type="text"
                 id="longitude"

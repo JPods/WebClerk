@@ -1,18 +1,18 @@
 import { getRecords, saveRecord, deleteRecord } from '../../../../../api/wcapi';
 
 export const fetchWorkOrderLines = async (params?: any) => {
-  const res = await getRecords('tx_work_order_lines', params);
+  const res = await getRecords('workorderline', params);
   return { status: 200, data: { items: res.results || [] } };
 };
 
 export const createWorkOrderLine = async (data: any) => {
-  return saveRecord('tx_work_order_lines', data);
+  return saveRecord('workorderline', data);
 };
 
 export const updateWorkOrderLine = async (id: number, data: any) => {
-  return saveRecord('tx_work_order_lines', { ...data, id });
+  return saveRecord('workorderline', { ...data, id });
 };
 
 export const deleteWorkOrderLine = async (id: number) => {
-  return deleteRecord('tx_work_order_lines', id);
+  return deleteRecord('workorderline', id);
 };

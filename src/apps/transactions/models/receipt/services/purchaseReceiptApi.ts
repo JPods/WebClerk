@@ -1,18 +1,23 @@
-import { getRecords, saveRecord, deleteRecord } from '../../../../../api/wcapi';
+import { getRecords, saveRecord, deleteRecord, getRecord } from '../../../../../api/wcapi';
 
-export const fetchPurchaseReceipts = async (params?: any) => {
-  const res = await getRecords('tx_purchase_receipts', params);
+export const fetchReceipts = async (params?: any) => {
+  const res = await getRecords('receipt', params);
   return { status: 200, data: { items: res.results || [] } };
 };
 
-export const createPurchaseReceipt = async (data: any) => {
-  return saveRecord('tx_purchase_receipts', data);
+export const fetchReceiptDetail = async (id: number) => {
+  const res = await getRecord('receipt', id);
+  return res?.record ?? res;
 };
 
-export const updatePurchaseReceipt = async (id: number, data: any) => {
-  return saveRecord('tx_purchase_receipts', { ...data, id });
+export const createReceipt = async (data: any) => {
+  return saveRecord('receipt', data);
 };
 
-export const deletePurchaseReceipt = async (id: number) => {
-  return deleteRecord('tx_purchase_receipts', id);
+export const updateReceipt = async (id: number, data: any) => {
+  return saveRecord('receipt', { ...data, id });
+};
+
+export const deleteReceipt = async (id: number) => {
+  return deleteRecord('receipt', id);
 };

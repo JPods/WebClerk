@@ -386,7 +386,7 @@ const WorkorderDetail: React.FC<WorkOrderDetailProps> = (props) => {
     <TransactionDetailBase
       transactionType="workorder"
       typeLabel="Work Order"
-      modelName="work_order"
+      modelName="workorder"
       renderHeader={(data, isEditing, onChange) => (
         <WorkOrderHeader data={data as WorkOrder} isEditing={isEditing} onChange={onChange as any} />
       )}

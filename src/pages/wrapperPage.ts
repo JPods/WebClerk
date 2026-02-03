@@ -26,8 +26,8 @@ import DomainList from "../apps/communications/models/domain/pages/DomainList";
 import DomainDetail from "../apps/communications/models/domain/pages/DomainDetail";
 import EmailList from "../apps/communications/models/email/pages/EmailList";
 import EmailDetail from "../apps/communications/models/email/pages/EmailDetail";
-import AppLocationList from "../apps/communications/models/location/pages/LocationList";
-import AppLocationDetail from "../apps/communications/models/location/pages/LocationDetail";
+import AppAddressList from "../apps/communications/models/address/pages/AddressList";
+import AppAddressDetail from "../apps/communications/models/address/pages/AddressDetail";
 import AppPhoneList from "../apps/communications/models/phone/pages/PhoneList";
 import AppPhoneDetail from "../apps/communications/models/phone/pages/PhoneDetail";
 
@@ -107,8 +107,8 @@ export {
   DomainDetail,
   EmailList,
   EmailDetail,
-  AppLocationList,
-  AppLocationDetail,
+  AppAddressList,
+  AppAddressDetail,
   AppPhoneList,
   AppPhoneDetail,
   CoreContactList,

@@ -23,7 +23,7 @@ export type TransactionParentType =
   | 'invoice' 
   | 'proposal' 
   | 'purchase_order' 
-  | 'work_order' 
+  | 'workorder' 
   | 'requisition'
   | 'project';
 

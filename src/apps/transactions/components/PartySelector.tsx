@@ -6,7 +6,7 @@
  *
  * Usage:
  *   - Sales transactions (proposal, order, invoice): select customer
- *   - Purchase transactions (purchase_order, work_order): select vendor
+ *   - Purchase transactions (purchase, workorder): select vendor
  *   - Any transaction: optionally select manufacturer
  */
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -561,7 +561,7 @@ export interface TransactionPartySelectorProps
  * TransactionPartySelector - Automatically selects the correct party type based on transaction
  *
  * - Sales transactions (proposal, order, invoice): selects customer
- * - Purchase transactions (purchase_order, work_order): selects vendor
+ * - Purchase transactions (purchase, workorder): selects vendor
  */
 export const TransactionPartySelector: React.FC<
   TransactionPartySelectorProps
