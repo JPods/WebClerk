@@ -3,11 +3,11 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
+import DetailShell from "@/components/common/DetailShell";
+import ComponentCard from "@/components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import Input from "../../../../../components/form/input/InputField";
 import DropDown from "../../../../../components/form/input/DropDown";
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -819,40 +819,15 @@ export default function ContactDetail({
   ];
 
   return (
-    <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={
-            mode === "edit"
-              ? "Edit Contact"
-              : mode === "view"
-              ? "View Contact"
-              : "Contact Detail"
-          }
-        />
-      )}
-
+    <DetailShell
+      title="Contact"
+      mode={mode}
+      inline={inline}
+      hideBreadcrumb={hideBreadcrumb}
+      onCancelInline={onCancelInline}
+      card={false}
+    >
       <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className=" dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Contact"
-                : mode === "view"
-                ? "View Contact"
-                : "Add New Contact"}
-            </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             {shouldRenderField("email") && (
@@ -1481,6 +1456,6 @@ export default function ContactDetail({
           </div>
         )}
       </ComponentCard>
-    </>
+    </DetailShell>
   );
 }
