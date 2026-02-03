@@ -42,23 +42,23 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       purpose = c.purpose || base.purpose || "";
     }
     // Helper to extract and join all values from possible array/object
-    const extractAll = (field: any, key = "value") => {
-      if (Array.isArray(field)) {
-        return field
-          .map((item) => {
-            if (typeof item === "object" && item !== null) {
-              return item[key] ?? "";
-            }
-            return item ?? "";
-          })
-          .filter(Boolean)
-          .join(", ");
-      }
-      if (typeof field === "object" && field !== null) {
-        return field[key] ?? "";
-      }
-      return field ?? "";
-    };
+    // const extractAll = (field: any, key = "value") => {
+    //   if (Array.isArray(field)) {
+    //     return field
+    //       .map((item) => {
+    //         if (typeof item === "object" && item !== null) {
+    //           return item[key] ?? "";
+    //         }
+    //         return item ?? "";
+    //       })
+    //       .filter(Boolean)
+    //       .join(", ");
+    //   }
+    //   if (typeof field === "object" && field !== null) {
+    //     return field[key] ?? "";
+    //   }
+    //   return field ?? "";
+    // };
     // Helper to extract and join all address full fields (newline separated)
     const extractAddressFull = (field: any) => {
       if (Array.isArray(field)) {
@@ -112,13 +112,51 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
     if (contact_id === undefined || contact_id === null || contact_id === "") {
       contact_id = idx + 1;
     }
+    // Helper to normalize contact fields to array of {id, name, value}
+    const normalizeContactField = (field: any, fieldName: string) => {
+      if (Array.isArray(field)) {
+        return field.map((item: any, idx: number) => {
+          if (typeof item === "object" && item !== null) {
+            return {
+              id: item.id ?? idx,
+              name: item.name ?? "",
+              value: item.value ?? "",
+            };
+          }
+          return {
+            id: idx,
+            name: "",
+            value: item ?? "",
+          };
+        });
+      }
+      if (typeof field === "object" && field !== null) {
+        return [
+          {
+            id: field.id ?? 0,
+            name: field.name ?? "",
+            value: field.value ?? "",
+          },
+        ];
+      }
+      if (typeof field === "string") {
+        // Split by comma for email/phone/domain
+        return field.split(",").map((val, idx) => ({
+          id: idx,
+          name: "",
+          value: val.trim(),
+        }));
+      }
+      return [];
+    };
+
     return {
       contact_id,
       purpose,
       attention,
-      email: extractAll(base.email, "value"),
-      phone: extractAll(base.phone, "value"),
-      domain: extractAll(base.domain, "value"),
+      email: normalizeContactField(base.email, "email"),
+      phone: normalizeContactField(base.phone, "phone"),
+      domain: normalizeContactField(base.domain, "domain"),
       full: addressFull,
       address: base.address, // <--- preserve original address array/object for modal editing
       address_id: addressId,
@@ -227,18 +265,42 @@ const ContactEditModal: React.FC<{
     }
     return [""];
   };
+  // Helper to convert array of objects or string to array of strings for modal editing
+  const fieldToStringArray = (field: any, valueKey = "value") => {
+    if (Array.isArray(field)) {
+      // If array of objects with value/name/full
+      return field
+        .map((item) => {
+          if (typeof item === "object" && item !== null) {
+            return item[valueKey] ?? item.full ?? item.name ?? "";
+          }
+          return item ?? "";
+        })
+        .filter(Boolean);
+    }
+    if (typeof field === "object" && field !== null) {
+      return [field[valueKey] ?? field.full ?? field.name ?? ""];
+    }
+    if (typeof field === "string") {
+      return splitMulti(field, ",");
+    }
+    return [""];
+  };
+
   const toMulti = (c: RefContact | null): MultiContact => {
     let addressArr: string[] = [""];
     if (c?.address) {
       addressArr = extractAddressFullArray(c.address);
+    } else if (c?.full) {
+      addressArr = fieldToStringArray(c.full, "full");
     }
     return {
       ...c,
       contact_id: c?.contact_id ?? 0,
       purpose: c?.purpose ?? "",
-      email: c?.email ? splitMulti(c.email, ",") : [""],
-      phone: c?.phone ? splitMulti(c.phone, ",") : [""],
-      domain: c?.domain ? splitMulti(c.domain, ",") : [""],
+      email: c?.email ? fieldToStringArray(c.email, "value") : [""],
+      phone: c?.phone ? fieldToStringArray(c.phone, "value") : [""],
+      domain: c?.domain ? fieldToStringArray(c.domain, "value") : [""],
       full: addressArr,
     };
   };
@@ -541,11 +603,33 @@ const ContactBlock: React.FC<{
       ? `Contact #${contact.contact_id}`
       : "Contact");
 
-  // Check if all fields are empty
-  const hasEmail = !!(contact.email && contact.email.trim());
-  const hasPhone = !!(contact.phone && contact.phone.trim());
-  const hasDomain = !!(contact.domain && contact.domain.trim());
-  const hasAddress = !!(contact.full && contact.full.trim());
+  // Check if all fields are empty (support array or string for legacy)
+  const hasEmail = Array.isArray(contact.email)
+    ? contact.email.some((e) => e && e.value && e.value.trim())
+    : !!(
+        contact.email &&
+        typeof contact.email === "string" &&
+        contact.email.trim()
+      );
+  const hasPhone = Array.isArray(contact.phone)
+    ? contact.phone.some((p) => p && p.value && p.value.trim())
+    : !!(
+        contact.phone &&
+        typeof contact.phone === "string" &&
+        contact.phone.trim()
+      );
+  const hasDomain = Array.isArray(contact.domain)
+    ? contact.domain.some((d) => d && d.value && d.value.trim())
+    : !!(
+        contact.domain &&
+        typeof contact.domain === "string" &&
+        contact.domain.trim()
+      );
+  const hasAddress = !!(
+    contact.full &&
+    typeof contact.full === "string" &&
+    contact.full.trim()
+  );
   const noDetails = !hasEmail && !hasPhone && !hasDomain && !hasAddress;
 
   return (
@@ -586,82 +670,223 @@ const ContactBlock: React.FC<{
 
         {/* Always render the card body for consistent layout */}
         <div className="flex flex-col gap-1 ml-5 mt-2 text-slate-500 dark:text-slate-400 min-h-[24px]">
-          {/* Render all emails if comma-separated, or show placeholder */}
-          {contact.email
-            ? contact.email.split(",").map(
-                (email, idx) =>
-                  email.trim() && (
-                    <span
-                      key={"email-" + idx}
-                      className="flex items-center gap-1 text-xs"
-                    >
-                      <FaEnvelope size={10} />
-                      <a
-                        href={`mailto:${email.trim()}`}
-                        className="hover:text-blue-500"
+          {/* Render all emails with id, name, value if array of objects, else fallback to string */}
+          {Array.isArray(contact.email) &&
+            contact.email.map((emailObj: any, idx: number) =>
+              emailObj && typeof emailObj === "object" && emailObj.value ? (
+                <table className="w-full text-xs" key={emailObj.id ?? idx}>
+                  {idx === 0 && (
+                    <thead>
+                      <tr>
+                        <th
+                          colSpan={4}
+                          className="text-left pb-1 text-slate-600 dark:text-slate-300"
+                        >
+                          Emails
+                        </th>
+                      </tr>
+                    </thead>
+                  )}
+                  <tbody>
+                    <tr>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "40px",
+                          minWidth: "40px",
+                          maxWidth: "40px",
+                        }}
                       >
-                        {email.trim()}
-                      </a>
-                    </span>
-                  ),
-              )
-            : null}
-          {/* Render all phones if comma-separated */}
-          {contact.phone
-            ? contact.phone.split(",").map(
-                (phone, idx) =>
-                  phone.trim() && (
-                    <span
-                      key={"phone-" + idx}
-                      className="flex items-center gap-1 text-xs"
-                    >
-                      <FaPhone size={10} />
-                      <a
-                        href={`tel:${phone.trim()}`}
-                        className="hover:text-blue-500"
+                        {emailObj.id}
+                      </td>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "80px",
+                          minWidth: "80px",
+                          maxWidth: "80px",
+                        }}
                       >
-                        {phone.trim()}
-                      </a>
-                    </span>
-                  ),
-              )
-            : null}
-          {/* Render all domains if comma-separated */}
-          {contact.domain
-            ? contact.domain.split(",").map(
-                (domain, idx) =>
-                  domain.trim() && (
-                    <span
-                      key={"domain-" + idx}
-                      className="flex items-center gap-1 text-xs"
-                    >
-                      <FaGlobe size={10} />
-                      <a
-                        href={`https://${domain.trim()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-blue-500"
+                        {emailObj.name}
+                      </td>
+                      <td className="align-middle text-left">
+                        <div className="flex items-center gap-1">
+                          <FaEnvelope size={10} />
+                          <a
+                            href={`mailto:${emailObj.value}`}
+                            className="hover:text-blue-500"
+                          >
+                            {emailObj.value}
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : null,
+            )}
+
+          {/* Render all phones with id, name, value if array of objects, else fallback to string */}
+          {Array.isArray(contact.phone) &&
+            contact.phone.map((phoneObj: any, idx: number) =>
+              phoneObj && typeof phoneObj === "object" && phoneObj.value ? (
+                <table className="w-full text-xs" key={phoneObj.id ?? idx}>
+                  {idx === 0 && (
+                    <thead>
+                      <tr>
+                        <th
+                          colSpan={4}
+                          className="text-left pb-1 text-slate-600 dark:text-slate-300"
+                        >
+                          Phones
+                        </th>
+                      </tr>
+                    </thead>
+                  )}
+                  <tbody>
+                    <tr>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "40px",
+                          minWidth: "40px",
+                          maxWidth: "40px",
+                        }}
                       >
-                        {domain.trim()}
-                      </a>
-                    </span>
-                  ),
-              )
-            : null}
-          {/* Render all addresses if newline-separated */}
-          {contact.full
-            ? contact.full.split("\n").map(
-                (addr, idx) =>
-                  addr.trim() && (
-                    <div
-                      key={"addr-" + idx}
-                      className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line"
-                    >
-                      {addr.trim()}
-                    </div>
-                  ),
-              )
-            : null}
+                        {phoneObj.id}
+                      </td>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "80px",
+                          minWidth: "80px",
+                          maxWidth: "80px",
+                        }}
+                      >
+                        {phoneObj.name}
+                      </td>
+                      <td className="align-middle text-left">
+                        <div className="flex items-center gap-1">
+                          <FaPhone size={10} />
+                          <a
+                            href={`tel:${phoneObj.value}`}
+                            className="hover:text-blue-500"
+                          >
+                            {phoneObj.value}
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : null,
+            )}
+
+          {/* Render all domains with id, name, value if array of objects, else fallback to string */}
+          {Array.isArray(contact.domain) &&
+            contact.domain.map((domainObj: any, idx: number) =>
+              domainObj && typeof domainObj === "object" && domainObj.value ? (
+                <table className="w-full text-xs" key={domainObj.id ?? idx}>
+                  {idx === 0 && (
+                    <thead>
+                      <tr>
+                        <th
+                          colSpan={4}
+                          className="text-left pb-1 text-slate-600 dark:text-slate-300"
+                        >
+                          Domains
+                        </th>
+                      </tr>
+                    </thead>
+                  )}
+                  <tbody>
+                    <tr>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "40px",
+                          minWidth: "40px",
+                          maxWidth: "40px",
+                        }}
+                      >
+                        {domainObj.id}
+                      </td>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "80px",
+                          minWidth: "80px",
+                          maxWidth: "80px",
+                        }}
+                      >
+                        {domainObj.name}
+                      </td>
+                      <td className="align-middle text-left">
+                        <div className="flex items-center gap-1">
+                          <FaGlobe size={10} />
+                          <a
+                            href={`https://${domainObj.value}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-500"
+                          >
+                            {domainObj.value}
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : null,
+            )}
+
+          {/* Render all addresses as array of objects (id, name, full), else fallback to string */}
+          {Array.isArray(contact.address) &&
+            contact.address.map((addrObj: any, idx: number) =>
+              addrObj && typeof addrObj === "object" && addrObj.full ? (
+                <table className="w-full text-xs" key={addrObj.id ?? idx}>
+                  {idx === 0 && (
+                    <thead>
+                      <tr>
+                        <th
+                          colSpan={4}
+                          className="text-left pb-1 text-slate-600 dark:text-slate-300"
+                        >
+                          Addresses
+                        </th>
+                      </tr>
+                    </thead>
+                  )}
+                  <tbody>
+                    <tr>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "40px",
+                          minWidth: "40px",
+                          maxWidth: "40px",
+                        }}
+                      >
+                        {addrObj.id}
+                      </td>
+                      <td
+                        className="pr-2 align-middle text-slate-400 text-left"
+                        style={{
+                          width: "80px",
+                          minWidth: "80px",
+                          maxWidth: "80px",
+                        }}
+                      >
+                        {addrObj.name}
+                      </td>
+                      <td className="align-middle whitespace-pre-line text-left">
+                        {addrObj.full}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : null,
+            )}
           {/* If no details at all, show placeholder */}
           {noDetails && (
             <span className="text-xs italic text-slate-400">
