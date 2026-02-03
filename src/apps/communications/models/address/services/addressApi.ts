@@ -1,11 +1,11 @@
 import apiClient from "../../../../../api/axios";
 import { PostLoginURL } from "../../../../../routes/network";
 import type {
-  CreateLocationRequest,
-  UpdateLocationRequest,
-  LocationApiTask,
-} from "../types/locationType";
-import { getRecords, saveRecord, deleteRecord } from "../../../../../api/wcapi";
+  CreateAddressRequest,
+  UpdateAddressRequest,
+  AddressApiTask,
+} from "../types/addressType";
+import { deleteRecord } from "../../../../../api/wcapi";
 const unwrap = <T>(response: any): T => {
   if (!response) return [] as unknown as T;
   if (response.data?.data) return response.data.data as T;
@@ -13,33 +13,33 @@ const unwrap = <T>(response: any): T => {
   return response as T;
 };
 
-export const createLocation = async (
-  payload: CreateLocationRequest
-): Promise<LocationApiTask> => {
+export const createAddress = async (
+  payload: CreateAddressRequest
+): Promise<AddressApiTask> => {
   const model_name: string = "address";
   const res = await apiClient.post(PostLoginURL.allSave, {
     ...payload,
     model_name,
   });
-  return unwrap<LocationApiTask>(res);
+  return unwrap<AddressApiTask>(res);
 };
 
-export const updateLocation = async (
-  payload: UpdateLocationRequest
-): Promise<LocationApiTask> => {
+export const updateAddress = async (
+  payload: UpdateAddressRequest
+): Promise<AddressApiTask> => {
   const model_name: string = "address";
   const res = await apiClient.post(`${PostLoginURL.allSave}`, {
     ...payload,
     model_name,
   });
-  return unwrap<LocationApiTask>(res);
+  return unwrap<AddressApiTask>(res);
 };
 
-export const deleteLocation = async (id: number) => {
+export const deleteAddress = async (id: number) => {
   return deleteRecord("address", id);
 };
 
-export const fetchLocations = async (id: any = "") => {
+export const fetchAddresses = async (id: any = "") => {
   try {
     const res = await apiClient.get(
       PostLoginURL.allTypes + "model_name=address" + (id ? `&id=${id}` : "")

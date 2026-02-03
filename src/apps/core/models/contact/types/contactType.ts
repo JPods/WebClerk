@@ -28,7 +28,7 @@ export interface PhoneRefForm {
   number: string;
 }
 
-export interface LocationRefForm {
+export interface AddressRefForm {
   id: number;
   name: string;
   address: string;
@@ -50,7 +50,7 @@ export interface RefsForm {
     contact: string[];
     customer: string[];
     document: string[];
-    location: LocationRefForm[];
+    address: AddressRefForm[];
     manufacturer: string[];
     project: string[];
     vendor: string[];
@@ -77,7 +77,7 @@ export interface RefsApi {
     contact: string[];
     customer: string[];
     document: string[];
-    location: LocationRefForm[];
+    address: AddressRefForm[];
     manufacturer: string[];
     project: string[];
     vendor: string[];

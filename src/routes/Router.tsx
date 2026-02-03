@@ -47,8 +47,8 @@ import {
   DomainDetail,
   EmailList,
   EmailDetail,
-  AppLocationList,
-  AppLocationDetail,
+  AppAddressList,
+  AppAddressDetail,
   AppPhoneList,
   AppPhoneDetail,
   // Core
@@ -196,12 +196,12 @@ const Router: React.FC = () => {
             element={<EmailDetail />}
           />
           <Route
-            path={PageRoutes.commLocationList}
-            element={<AppLocationList />}
+            path={PageRoutes.commAddressList}
+            element={<AppAddressList />}
           />
           <Route
-            path={PageRoutes.commLocationDetail}
-            element={<AppLocationDetail />}
+            path={PageRoutes.commAddressDetail}
+            element={<AppAddressDetail />}
           />
           <Route
             path={PageRoutes.commPhoneList}

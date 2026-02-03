@@ -42,13 +42,13 @@ import {
   CreatePhoneRequest,
 } from "@/apps/communications/models/phone/types/phoneType";
 import {
-  createLocation,
-  updateLocation,
-  deleteLocation,
-} from "@/apps/communications/models/location/services/locationApi";
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} from "@/apps/communications/models/address/services/addressApi";
 import {
-  CreateLocationRequest,
-} from "@/apps/communications/models/location/types/locationType";
+  CreateAddressRequest,
+} from "@/apps/communications/models/address/types/addressType";
 import {
   createDomain,
   updateDomain,
@@ -79,7 +79,7 @@ interface PhoneRecord {
   is_primary?: boolean;
 }
 
-interface LocationRecord {
+interface AddressRecord {
   id: number;
   name?: string;
   address_line1?: string;
@@ -302,13 +302,13 @@ export default function ContactDetail({
   // Communication records state
   const [emails, setEmails] = useState<EmailRecord[]>([]);
   const [phones, setPhones] = useState<PhoneRecord[]>([]);
-  const [locations, setLocations] = useState<LocationRecord[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [domains, setDomains] = useState<DomainRecord[]>([]);
   
   // Editing state for each type
   const [editingEmail, setEditingEmail] = useState<EmailRecord | null>(null);
   const [editingPhone, setEditingPhone] = useState<PhoneRecord | null>(null);
-  const [editingLocation, setEditingLocation] = useState<LocationRecord | null>(null);
+  const [editingAddress, setEditingAddress] = useState<AddressRecord | null>(null);
   const [editingDomain, setEditingDomain] = useState<DomainRecord | null>(null);
 
   const dispatch = useDispatch();
@@ -376,7 +376,7 @@ export default function ContactDetail({
           contact: [],
           customer: [],
           document: [],
-          location: [],
+          address: [],
           manufacturer: [],
           project: [],
           vendor: [],
@@ -424,8 +424,8 @@ export default function ContactDetail({
             number: p.number ?? "",
           })),
 
-          // LOCATION — REQUIRED FIX
-          location: (data.refs?.links?.location ?? []).map((l: any) => ({
+          // ADDRESS — REQUIRED FIX
+          address: (data.refs?.links?.address ?? []).map((l: any) => ({
             id: l.id ?? 0,
             name: l.name ?? "",
             address: l.address ?? "",
@@ -467,7 +467,7 @@ export default function ContactDetail({
         is_primary: p.is_primary ?? false,
       })));
       
-      setLocations((data.refs.links.location ?? []).map((l: any) => ({
+      setAddresses((data.refs.links.address ?? []).map((l: any) => ({
         id: l.id ?? 0,
         name: l.name ?? '',
         address_line1: l.address_line1 ?? l.address ?? '',
@@ -616,57 +616,57 @@ export default function ContactDetail({
     setEditingPhone(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
 
-  // LOCATION HANDLERS
-  const handleAddLocation = useCallback(() => {
-    const newLocation: LocationRecord = { id: 0, name: '', address_line1: '', city: '', state: '', postal_code: '', country: '', type: '' };
-    setEditingLocation(newLocation);
-    setLocations(prev => [...prev, newLocation]);
+  // ADDRESS HANDLERS
+  const handleAddAddress = useCallback(() => {
+    const newAddress: AddressRecord = { id: 0, name: '', address_line1: '', city: '', state: '', postal_code: '', country: '', type: '' };
+    setEditingAddress(newAddress);
+    setAddresses(prev => [...prev, newAddress]);
   }, []);
 
-  const handleEditLocation = useCallback((loc: LocationRecord) => {
-    setEditingLocation({ ...loc });
+  const handleEditAddress = useCallback((addr: AddressRecord) => {
+    setEditingAddress({ ...addr });
   }, []);
 
-  const handleDeleteLocation = useCallback(async (loc: LocationRecord) => {
+  const handleDeleteAddress = useCallback(async (addr: AddressRecord) => {
     if (!window.confirm('Delete this address?')) return;
     try {
-      if (loc.id > 0) {
-        await deleteLocation(loc.id);
+      if (addr.id > 0) {
+        await deleteAddress(addr.id);
       }
-      setLocations(prev => prev.filter(l => l.id !== loc.id || (l.id === 0 && l.address_line1 !== loc.address_line1)));
+      setAddresses(prev => prev.filter(l => l.id !== addr.id || (l.id === 0 && l.address_line1 !== addr.address_line1)));
       dispatch(showToast({ message: 'Address deleted', type: 'success' }));
     } catch (error) {
       dispatch(showToast({ message: 'Failed to delete address', type: 'error' }));
     }
   }, [dispatch]);
 
-  const handleSaveLocation = useCallback(async (loc: LocationRecord) => {
+  const handleSaveAddress = useCallback(async (addr: AddressRecord) => {
     try {
       const payload = {
-        address1: loc.address_line1 || '',
-        address2: loc.address_line2 || '',
-        address_type: loc.type || '',
+        address1: addr.address_line1 || '',
+        address2: addr.address_line2 || '',
+        address_type: addr.type || '',
         full: '',
-        city: loc.city || '',
-        state: loc.state || '',
-        zip: loc.postal_code || '',
-        country: loc.country || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        zip: addr.postal_code || '',
+        country: addr.country || '',
         latitude: 0,
         longitude: 0,
         contact_id: data?.id,
       };
-      const res = loc.id > 0
-        ? await updateLocation({ ...payload, id: String(loc.id) })
-        : await createLocation(payload as CreateLocationRequest);
+      const res = addr.id > 0
+        ? await updateAddress({ ...payload, id: String(addr.id) })
+        : await createAddress(payload as CreateAddressRequest);
       
       if (res) {
-        const savedId = (res as any).id || loc.id;
-        setLocations(prev => prev.map(l => 
-          (l.id === loc.id || (l.id === 0 && l.address_line1 === loc.address_line1))
-            ? { ...loc, id: savedId }
+        const savedId = (res as any).id || addr.id;
+        setAddresses(prev => prev.map(l => 
+          (l.id === addr.id || (l.id === 0 && l.address_line1 === addr.address_line1))
+            ? { ...addr, id: savedId }
             : l
         ));
-        setEditingLocation(null);
+        setEditingAddress(null);
         dispatch(showToast({ message: 'Address saved', type: 'success' }));
       }
     } catch (error) {
@@ -674,8 +674,8 @@ export default function ContactDetail({
     }
   }, [data?.id, dispatch]);
 
-  const handleLocationChange = useCallback((field: keyof LocationRecord, value: any) => {
-    setEditingLocation(prev => prev ? { ...prev, [field]: value } : null);
+  const handleAddressChange = useCallback((field: keyof AddressRecord, value: any) => {
+    setEditingAddress(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
 
   // DOMAIN HANDLERS
@@ -1318,11 +1318,11 @@ export default function ContactDetail({
             disabled={mode === 'view'}
           />
 
-          {/* Locations/Addresses Table */}
-          <CommunicationTable<LocationRecord>
+          {/* Addresses Table */}
+          <CommunicationTable<AddressRecord>
             title="Addresses"
             icon={<FaMapMarkerAlt className="text-red-500" />}
-            data={locations}
+            data={addresses}
             columns={[
               { key: 'id', label: 'ID' },
               { key: 'name', label: 'Name' },
@@ -1331,17 +1331,17 @@ export default function ContactDetail({
               { key: 'state', label: 'State' },
               { key: 'postal_code', label: 'Postal Code' },
             ]}
-            onAdd={handleAddLocation}
-            onEdit={handleEditLocation}
-            onDelete={handleDeleteLocation}
-            onSave={handleSaveLocation}
-            editingItem={editingLocation}
-            onEditChange={handleLocationChange}
+            onAdd={handleAddAddress}
+            onEdit={handleEditAddress}
+            onDelete={handleDeleteAddress}
+            onSave={handleSaveAddress}
+            editingItem={editingAddress}
+            onEditChange={handleAddressChange}
             onCancelEdit={() => {
-              if (editingLocation?.id === 0) {
-                setLocations(prev => prev.filter(l => l.id !== 0));
+              if (editingAddress?.id === 0) {
+                setAddresses(prev => prev.filter(l => l.id !== 0));
               }
-              setEditingLocation(null);
+              setEditingAddress(null);
             }}
             disabled={mode === 'view'}
           />

@@ -1,4 +1,4 @@
-export interface LocationAddProps {
+export interface AddressAddProps {
   modeProp?: "add" | "edit" | "view";
   dataProp?: any; // TODO: Type this properly
   hideBreadcrumb?: boolean;
@@ -7,7 +7,7 @@ export interface LocationAddProps {
   onCancelInline?: () => void;
 }
 
-export interface CreateLocationRequest {
+export interface CreateAddressRequest {
   address1: string;
   address2: string;
   address_type: string;
@@ -20,7 +20,7 @@ export interface CreateLocationRequest {
   longitude: number;
 }
 
-export interface LocationApiTask {
+export interface AddressApiTask {
   address1: string;
   address2: string;
   address_type: string;
@@ -33,7 +33,7 @@ export interface LocationApiTask {
   longitude: number;
 }
 
-export interface UpdateLocationRequest {
+export interface UpdateAddressRequest {
   id: string;
   address1: string;
   address2: string;
