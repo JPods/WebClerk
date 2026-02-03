@@ -657,6 +657,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               currentData.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
+            onChange={(newContacts) => {
+              // Update editData.refs.links.contact in edit mode
+              if (isEditing && editData) {
+                setEditData({
+                  ...editData,
+                  refs: {
+                    ...editData.refs,
+                    links: {
+                      ...((editData.refs && editData.refs.links) || {}),
+                      contact: newContacts,
+                    },
+                  },
+                });
+                setHasUnsavedChanges(true);
+              }
+            }}
           />
         );
 
