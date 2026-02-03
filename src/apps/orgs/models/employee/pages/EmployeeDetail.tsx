@@ -4,28 +4,28 @@
  */
 import React from 'react';
 import OrgDetail from '../../../components/OrgDetail';
-import type { Organization } from '../../../types/orgTypes';
 import { AdminGuard } from '@/components/auth/AdminGuard';
-
-// Props interface for inline usage in OrgList
-interface EmployeeDetailProps {
-  org: Organization;
-  mode: 'view' | 'edit' | 'add';
-  onClose: () => void;
-  onSaved: () => void;
-}
+import { PageRoutes } from '@/routes/Routes';
+import type { EmployeeAddProps } from '../types/employeeType';
 
 // Inline detail component (used by OrgList)
-const EmployeeDetail: React.FC<EmployeeDetailProps> = ({ org, mode, onClose, onSaved }) => {
+const EmployeeDetail: React.FC<EmployeeAddProps & { onClose?: () => void }> = ({
+  modeProp,
+  dataProp,
+  onSaved,
+  onCancelInline,
+  onClose,
+}) => {
   return (
     <OrgDetail
       orgType="employee"
       title="Employee"
-      listPath="/org/employees"
-      org={org}
-      mode={mode}
-      onClose={onClose}
+      listPath={PageRoutes.employeeList}
+      org={dataProp}
+      mode={modeProp}
+      onClose={onCancelInline ?? onClose}
       onSaved={onSaved}
+      additionalTabs={[]}
     />
   );
 };
@@ -37,7 +37,7 @@ export function EmployeeDetailPage() {
       <OrgDetail
         orgType="employee"
         title="Employee"
-        listPath="/org/employees"
+        listPath={PageRoutes.employeeList}
       />
     </AdminGuard>
   );
