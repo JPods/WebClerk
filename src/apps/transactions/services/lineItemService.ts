@@ -2,7 +2,7 @@
  * Line Item Service - Single Point of Authority for transaction line management
  * 
  * Handles adding, updating, and managing transaction line items across all
- * transaction types (order, proposal, invoice, purchase_order, work_order).
+ * transaction types (order, proposal, invoice, purchase, workorder).
  * 
  * Key behaviors:
  * - Sales transactions: price.unit is the primary value
@@ -23,7 +23,7 @@ import {
 // Types
 // ============================================================================
 
-export type TransactionType = 'order' | 'sales_order' | 'proposal' | 'invoice' | 'purchase_order' | 'work_order';
+export type TransactionType = 'order' | 'sales_order' | 'proposal' | 'invoice' | 'purchase' | 'workorder';
 
 export interface LineItemServiceConfig {
   transactionType: TransactionType;
@@ -67,7 +67,7 @@ export function isSalesTransaction(transactionType: string): boolean {
  */
 export function isExecTransaction(transactionType: string): boolean {
   const kind = transactionType.toLowerCase().replace(/-/g, '_');
-  return ['purchase_order', 'purchaseorder', 'work_order', 'workorder'].includes(kind);
+  return ['purchase', 'purchaseorder', 'workorder'].includes(kind);
 }
 
 /**
@@ -119,7 +119,7 @@ function getDefaultQuantity(transactionType: string, quantity: number = 0): Reco
     };
   }
   
-  if (['purchase_order', 'purchaseorder', 'work_order', 'workorder'].includes(kind)) {
+  if (['purchase', 'purchaseorder', 'workorder'].includes(kind)) {
     return {
       placed: quantity,
       received: 0,
@@ -504,7 +504,7 @@ export function createSalesLineItemService(transactionType: 'order' | 'sales_ord
 /**
  * Create a LineItemService configured for purchase transactions
  */
-export function createPurchaseLineItemService(transactionType: 'purchase_order' | 'work_order' = 'purchase_order'): LineItemService {
+export function createPurchaseLineItemService(transactionType: 'purchase' | 'workorder' = 'purchase'): LineItemService {
   return new LineItemService({
     transactionType,
     useCost: true,

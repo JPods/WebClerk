@@ -93,8 +93,8 @@ import PurchaseList from "../apps/transactions/models/purchase/pages/PurchaseLis
 import OrderList from "../apps/transactions/models/order/pages/OrderList";
 import WorkorderList from "../apps/transactions/models/workorder/pages/WorkorderList";
 import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
-import PurchaseReceiptList from "../apps/transactions/models/receipt/pages/PurchaseReceiptList";
-import PurchaseReceiptDetail from "../apps/transactions/models/receipt/pages/PurchaseReceiptDetail";
+import ReceiptList from "../apps/transactions/models/receipt/pages/ReceiptList";
+import ReceiptDetail from "../apps/transactions/models/receipt/pages/ReceiptDetail";
 import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
@@ -358,11 +358,11 @@ const Router: React.FC = () => {
           />
           <Route
             path={PageRoutes.transactionsReceiptList}
-            element={<PurchaseReceiptList />}
+            element={<ReceiptList />}
           />
           <Route
             path={PageRoutes.transactionsReceiptDetail}
-            element={<PurchaseReceiptDetail />}
+            element={<ReceiptDetail />}
           />
           <Route
             path={PageRoutes.transactionsAdjustmentList}

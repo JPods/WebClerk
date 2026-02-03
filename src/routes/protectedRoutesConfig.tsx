@@ -82,8 +82,8 @@ import PurchaseList from "../apps/transactions/models/purchase/pages/PurchaseLis
 import OrderList from "../apps/transactions/models/order/pages/OrderList";
 import WorkorderList from "../apps/transactions/models/workorder/pages/WorkorderList";
 import WorkorderDetail from "../apps/transactions/models/workorder/pages/WorkorderDetail";
-import PurchaseReceiptList from "../apps/transactions/models/receipt/pages/PurchaseReceiptList";
-import PurchaseReceiptDetail from "../apps/transactions/models/receipt/pages/PurchaseReceiptDetail";
+import ReceiptList from "../apps/transactions/models/receipt/pages/ReceiptList";
+import ReceiptDetail from "../apps/transactions/models/receipt/pages/ReceiptDetail";
 import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
 import DocumentIndex from "../apps/docs/models/document/pages/DocumentIndex";
 import ActionListPage from "../apps/core/models/action/pages/ActionList";
@@ -163,8 +163,8 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.transactionsProposalDetail, element: <ProposalDetail /> },
   { path: PageRoutes.transactionsWorkOrderList, element: <WorkorderList /> },
   { path: PageRoutes.transactionsWorkOrderDetail, element: <WorkorderDetail /> },
-  { path: PageRoutes.transactionsReceiptList, element: <PurchaseReceiptList /> },
-  { path: PageRoutes.transactionsReceiptDetail, element: <PurchaseReceiptDetail /> },
+  { path: PageRoutes.transactionsReceiptList, element: <ReceiptList /> },
+  { path: PageRoutes.transactionsReceiptDetail, element: <ReceiptDetail /> },
   { path: PageRoutes.transactionsAdjustmentList, element: <InventoryAdjustmentList /> },
   { path: PageRoutes.auditList, element: <AuditList /> },
   { path: PageRoutes.auditDetail, element: <AuditDetail /> },
