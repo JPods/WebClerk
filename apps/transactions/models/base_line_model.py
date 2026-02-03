@@ -52,8 +52,8 @@ def _normalize_line_kind(name: str | None) -> str:
         "proposal": "proposal", "proposal_line": "proposal", "proposalline": "proposal",
         "order": "order", "order_line": "order", "sales_order_line": "order", "salesorderline": "order",
         "invoice": "invoice", "invoice_line": "invoice", "invoiceline": "invoice",
-        "work_order": "work_order", "work_order_line": "work_order", "workorderline": "work_order",
-        "purchase_order": "purchase_order", "purchase_order_line": "purchase_order", "purchaseorderline": "purchase_order",
+        "workorder": "workorder", "workorderline": "workorder",
+        "purchase": "purchase", "purchase_order": "purchase", "purchaseline": "purchase", "purchaseorderline": "purchase",
     }
     return aliases.get(n, n)
 
@@ -92,7 +92,7 @@ def default_quantity(transaction_type: str | None = None) -> Dict[str, Any]:
             "increment": 0
             }
     
-    elif kind == "purchase" or kind == "work_order":
+    elif kind == "purchase" or kind == "workorder":
         # Invoices track packing/ship confirmation at line-level
         return {
             "placed": 0,

@@ -26,7 +26,7 @@ _MAPPING = {
     'RequisitionLine': ('requisition_line', 'RequisitionLine'),
 
     'Receipt': ('receipt', 'Receipt'),
-    'ReceiptLine': ('receipt', 'ReceiptLine'),
+    'ReceiptLine': ('receipt_line', 'ReceiptLine'),
 
     'Payment': ('payment', 'Payment'),
     'PaymentMethod': ('payment', 'PaymentMethod'),

@@ -7,7 +7,7 @@ class WorkOrderLine(BaseExecLineModel):
         "transactions.WorkOrder",
         related_name="lines",
         on_delete=models.CASCADE,
-        db_column="workorder_id",  # Keep existing column name
+        db_column="workorder_id",
     )
 
     class Meta:

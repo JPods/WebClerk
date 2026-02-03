@@ -20,7 +20,7 @@ TRANSACTION_PARENT_TYPE_CHOICES: Final[ChoiceList] = (
     ("sales_order", "Sales Order"),
     ("invoice", "Invoice"),
     ("purchase_order", "Purchase Order"),
-    ("work_order", "Work Order"),
+    ("workorder", "Work Order"),
     ("requisition", "Requisition"),
 )
 
