@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-export const locationSchema = z.object({
+export const addressSchema = z.object({
   address1: z.string().min(1, "Address1 is required"),
   address2: z.string().min(1, "Address2 is required"),
   address_type: z.string().min(1, "Address Type is required"),

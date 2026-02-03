@@ -118,9 +118,9 @@
     "/communications/domain/detail/:id?";
   static readonly commEmailList: string = "/communications/email/list";
   static readonly commEmailDetail: string = "/communications/email/detail/:id?";
-  static readonly commLocationList: string = "/communications/location/list";
-  static readonly commLocationDetail: string =
-    "/communications/location/detail/:id?";
+  static readonly commAddressList: string = "/communications/address/list";
+  static readonly commAddressDetail: string =
+    "/communications/address/detail/:id?";
   static readonly commPhoneList: string = "/communications/phone/list";
   static readonly commPhoneDetail: string = "/communications/phone/detail/:id?";
 

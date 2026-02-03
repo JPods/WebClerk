@@ -6,18 +6,18 @@ import AdvancedDataTable, {
 import { TableColumn } from "react-data-table-component";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { getRecord } from "../../../../../api/wcapi";
-import { fetchLocations, deleteLocation } from "../services/locationApi";
+import { fetchAddresses, deleteAddress } from "../services/addressApi";
 import { FaEye, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import LocationDetail from "./LocationDetail";
+import AddressDetail from "./AddressDetail";
 import { dynamicData } from "../../../../../model/dynamicData";
-import LocationListMob from "./LocationListMob";
+import AddressListMob from "./AddressListMob";
 
-export default function LocationList() {
+export default function AddressList() {
   const [data, setData] = useState<dynamicData[]>([]);
-  const [selectedLocations, setSelectedLocations] = useState<dynamicData[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<dynamicData | null>(
+  const [selectedAddresses, setSelectedAddresses] = useState<dynamicData[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<dynamicData | null>(
     null
   );
   const [formMode, setFormMode] = useState<"add" | "edit" | "view" | null>(
@@ -26,14 +26,14 @@ export default function LocationList() {
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
-  const getLocationData = useCallback(async (locationId?: number) => {
+  const getAddressData = useCallback(async (addressId?: number) => {
     setLoading(true);
     try {
-      const res = await fetchLocations();
+      const res = await fetchAddresses();
       setData(res.data.data.results);
-      if (locationId) {
-        const contactRes = await getRecord("contact", locationId);
-        setSelectedLocation(contactRes.record);
+      if (addressId) {
+        const contactRes = await getRecord("address", addressId);
+        setSelectedAddress(contactRes.record);
       }
     } finally {
       setLoading(false);
@@ -41,45 +41,45 @@ export default function LocationList() {
   }, []);
 
   useEffect(() => {
-    getLocationData();
-  }, [getLocationData]);
+    getAddressData();
+  }, [getAddressData]);
 
   const handleView = (row: dynamicData) => {
-    setSelectedLocation(row);
+    setSelectedAddress(row);
     setFormMode("view");
   };
 
   const handleEdit = async (row: dynamicData) => {
-    const res = await fetchLocations(row.id);
-    if (res.status === 200) setSelectedLocation(res.data.data.record);
-    else setSelectedLocation(row);
+    const res = await fetchAddresses(row.id);
+    if (res.status === 200) setSelectedAddress(res.data.data.record);
+    else setSelectedAddress(row);
     setFormMode("edit");
   };
 
   const handleAdd = () => {
-    setSelectedLocation(null);
+    setSelectedAddress(null);
     setFormMode("add");
   };
 
   const handleDelete = async (row: dynamicData) => {
-    if (window.confirm(`Delete location ${row.name}?`)) {
+    if (window.confirm(`Delete address ${row.address1}?`)) {
       try {
-        await deleteLocation(row.id);
+        await deleteAddress(row.id);
         dispatch(
           showToast({
-            message: "Location deleted successfully",
+            message: "Address deleted successfully",
             type: "success",
           })
         );
-        getLocationData();
-        if (selectedLocation && selectedLocation.id === row.id) {
+        getAddressData();
+        if (selectedAddress && selectedAddress.id === row.id) {
           setFormMode(null);
-          setSelectedLocation(null);
+          setSelectedAddress(null);
         }
       } catch (error) {
         dispatch(
           showToast({
-            message: "Failed to delete location",
+            message: "Failed to delete address",
             type: "error",
           })
         );
@@ -88,14 +88,14 @@ export default function LocationList() {
   };
 
   const handleFormSaved = () => {
-    getLocationData();
+    getAddressData();
     setFormMode(null);
-    setSelectedLocation(null);
+    setSelectedAddress(null);
   };
 
   const handleFormCancel = () => {
     setFormMode(null);
-    setSelectedLocation(null);
+    setSelectedAddress(null);
   };
 
   const filters: ColumnFilter[] = useMemo(() => {
@@ -121,23 +121,23 @@ export default function LocationList() {
   }, [data]);
 
   const handleBulkDelete = async () => {
-    if (!selectedLocations.length) return;
-    if (!window.confirm(`Delete ${selectedLocations.length} locations?`)) return;
+    if (!selectedAddresses.length) return;
+    if (!window.confirm(`Delete ${selectedAddresses.length} addresses?`)) return;
 
     try {
-      await Promise.all(selectedLocations.map((row) => deleteLocation(row.id)));
+      await Promise.all(selectedAddresses.map((row) => deleteAddress(row.id)));
       dispatch(
         showToast({
-          message: "Locations deleted successfully",
+          message: "Addresses deleted successfully",
           type: "success",
         })
       );
-      setSelectedLocations([]);
-      getLocationData();
+      setSelectedAddresses([]);
+      getAddressData();
     } catch (error) {
       dispatch(
         showToast({
-          message: "Failed to delete locations",
+          message: "Failed to delete addresses",
           type: "error",
         })
       );
@@ -146,39 +146,39 @@ export default function LocationList() {
 
   const userColumns: TableColumn<dynamicData>[] = useMemo(
     () => [
-      { name: "id", selector: (row) => row.id, sortable: true, width: "5%" },
+      { name: "id", selector: (row: dynamicData) => row.id, sortable: true, width: "5%" },
       {
         name: "address1",
-        selector: (row) => row.address1 || "--",
-        cell: (row) => (row.address1 ? row.address1.toString() : "--"),
+        selector: (row: dynamicData) => row.address1 || "--",
+        cell: (row: dynamicData) => (row.address1 ? row.address1.toString() : "--"),
         sortable: true,
         width: "30%",
       },
       {
         name: "city",
-        selector: (row) => row.city || "--",
-        cell: (row) => (row.city ? row.city.toString() : "--"),
+        selector: (row: dynamicData) => row.city || "--",
+        cell: (row: dynamicData) => (row.city ? row.city.toString() : "--"),
         sortable: true,
         width: "10%",
       },
       {
         name: "country",
-        selector: (row) => row.country || "--",
-        cell: (row) => (row.country ? row.country.toString() : "--"),
+        selector: (row: dynamicData) => row.country || "--",
+        cell: (row: dynamicData) => (row.country ? row.country.toString() : "--"),
         sortable: true,
         width: "15%",
       },
       {
         name: "address_type",
-        selector: (row) => row.address_type || "--",
-        cell: (row) =>
+        selector: (row: dynamicData) => row.address_type || "--",
+        cell: (row: dynamicData) =>
           row.address_type ? row.address_type.toString() : "--",
         sortable: true,
         width: "30%",
       },
       {
         name: "action",
-        cell: (row) => (
+        cell: (row: dynamicData) => (
           <div className="flex gap-3">
             <button onClick={() => handleView(row)} title="View">
               <FaEye className="text-blue-600 hover:scale-110 transition" />
@@ -201,14 +201,14 @@ export default function LocationList() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Location List" />
+      <PageBreadcrumb pageTitle="Address List" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className={formMode ? "lg:col-span-1" : "lg:col-span-3"}>
           <ComponentCard>
             <div className="w-full overflow-x-auto rounded-md cus-bg-purple-light h-[calc(100vh-265px)]">
               {formMode ? (
                 <div className="flex flex-col">
-                  <LocationListMob
+                  <AddressListMob
                     dataProp={data}
                     handleView={handleView}
                     handleEdit={handleEdit}
@@ -218,25 +218,25 @@ export default function LocationList() {
                 <AdvancedDataTable
                   data={data}
                   columns={userColumns}
-                  title="Locations"
-                  storageKey="communications.location.list"
+                  title="Addresses"
+                  storageKey="communications.address.list"
                   loading={loading}
                   filters={filters}
                   enableExport={true}
                   enableSelection={true}
-                  onSelectionChange={setSelectedLocations}
-                  exportFileName="locations_export"
-                  searchPlaceholder="Search locations..."
-                  noDataMessage="No locations found"
+                  onSelectionChange={setSelectedAddresses}
+                  exportFileName="addresses_export"
+                  searchPlaceholder="Search addresses..."
+                  noDataMessage="No addresses found"
                   customActions={
                     <div className="flex gap-2">
-                      {selectedLocations.length > 0 && (
+                      {selectedAddresses.length > 0 && (
                         <button
                           onClick={handleBulkDelete}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                         >
                           <FaTrash className="w-4 h-4" />
-                          Delete ({selectedLocations.length})
+                          Delete ({selectedAddresses.length})
                         </button>
                       )}
                       <button
@@ -244,7 +244,7 @@ export default function LocationList() {
                         className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         <FaPlus className="w-4 h-4" />
-                        New Location
+                        New Address
                       </button>
                     </div>
                   }
@@ -259,10 +259,10 @@ export default function LocationList() {
         </div>
         {formMode && (
           <div className="lg:col-span-2">
-            <LocationDetail
+            <AddressDetail
               inline
               modeProp={formMode}
-              dataProp={selectedLocation}
+              dataProp={selectedAddress}
               onSaved={handleFormSaved}
               onCancelInline={handleFormCancel}
             />

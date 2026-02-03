@@ -16,7 +16,7 @@ export const phoneRefSchema = z.object({
   number: z.string(),
 });
 
-export const locationRefSchema = z.object({
+export const addressRefSchema = z.object({
   id: z.number(),
   name: z.string().default(""),
   address: z.string().default(""),
@@ -43,7 +43,7 @@ export const refsSchema = z.object({
       contact: z.array(z.string()).default([]),
       customer: z.array(z.string()).default([]),
       document: z.array(z.string()).default([]),
-      location: z.array(locationRefSchema).default([]),
+      address: z.array(addressRefSchema).default([]),
       manufacturer: z.array(z.string()).default([]),
       project: z.array(z.string()).default([]),
       vendor: z.array(z.string()).default([]),
@@ -130,7 +130,7 @@ export const mapRefsFormToApi = (refs: RefsForm): RefsApi => ({
     contact: refs.links.contact,
     customer: refs.links.customer,
     document: refs.links.document,
-    location: refs.links.location.map((l) => {
+    address: refs.links.address.map((l) => {
       return { id: l.id, name: l.name, address: l.address };
     }),
     manufacturer: refs.links.manufacturer,
