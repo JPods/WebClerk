@@ -675,7 +675,7 @@ def update_inventory_on_workorder_line_save(sender, instance: WorkOrderLine, cre
             if original_qty > 0:
                 service._create_pending_for_line_delete(
                     transaction=instance.workorder,
-                    transaction_type='work_order',
+                    transaction_type='workorder',
                     line=instance,
                     quantity_released=float(original_qty),
                 )
@@ -693,7 +693,7 @@ def update_inventory_on_workorder_line_save(sender, instance: WorkOrderLine, cre
             if delta != 0:
                 service._create_pending_for_qty_change(
                     transaction=instance.workorder,
-                    transaction_type='work_order',
+                    transaction_type='workorder',
                     line=instance,
                     quantity_delta=delta,
                 )

@@ -551,7 +551,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
             if old_qty > 0 and old_item_id:
                 service._create_pending_for_line_delete(
                     transaction=instance.workorder,
-                    transaction_type='work_order',
+                    transaction_type='workorder',
                     line=instance,
                     quantity_released=old_qty,
                 )
@@ -570,7 +570,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
             if qty_delta != 0:
                 service._create_pending_for_qty_change(
                     transaction=instance.workorder,
-                    transaction_type='work_order',
+                    transaction_type='workorder',
                     line=instance,
                     quantity_delta=qty_delta,
                 )
@@ -589,7 +589,7 @@ class WorkOrderLineRetrieveUpdate(EnvelopeResponseMixin, generics.RetrieveUpdate
             service = LineItemService(create_pending=True)
             service._create_pending_for_line_delete(
                 transaction=instance.workorder,
-                transaction_type='work_order',
+                transaction_type='workorder',
                 line=instance,
                 quantity_released=qty_to_release,
             )
