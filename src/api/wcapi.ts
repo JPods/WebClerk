@@ -161,8 +161,10 @@ export async function saveRecord(model_name: string, payload: any) {
   if (id !== undefined) {
     body.id = id;
   }
+  console.log('[wcapi.saveRecord] Sending:', { model_name, resolved, payload, body });
   try {
     const res = await apiClient.post<ApiEnvelope<any>>("/wcapi/save/", body);
+    console.log('[wcapi.saveRecord] Response:', res.data);
     return res.data.data;
   } catch (err: any) {
     if (err?.response?.status === 404) {

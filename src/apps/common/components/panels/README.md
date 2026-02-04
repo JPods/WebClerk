@@ -505,6 +505,187 @@ import { LinkagesPanel } from '@/apps/common/components/panels';
 | `onViewLinkage`     | `(linkageId) => void`                          | Callback to view linkage details         |
 | `flowTables`        | `string[]`                                     | Tables to highlight in business flow     |
 | `tableDisplayNames` | `Record<string, string>`                       | Custom display names for tables          |
+
+---
+
+## CommunicationsPanel - Direct API Integration
+
+The `CommunicationsPanel` manages emails, phones, addresses, and domains with **direct persistence to WC3**. Unlike other panels that rely on parent `onChange` handlers, this panel makes its own API calls via `wcapi`.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  CommunicationsPanel                                            │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  User adds/edits/deletes email, phone, address, or domain   ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                              ↓                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  wcapi.saveRecord('email', { contact_id, email, name... })  ││
+│  │  wcapi.deleteRecord('email', id)                            ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                              ↓                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  On 200 Success: Update local state with refs.links format  ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Required Props
+
+| Prop         | Type                            | Description                         |
+| ------------ | ------------------------------- | ----------------------------------- |
+| `contactId`  | `number`                        | **Required** - Contact ID for linking records |
+| `emails`     | `EmailLink[]`                   | Email records from `refs.links.email` |
+| `phones`     | `PhoneLink[]`                   | Phone records from `refs.links.phone` |
+| `addresses`  | `AddressLink[]`                 | Address records from `refs.links.location` |
+| `domains`    | `DomainLink[]`                  | Domain records from `refs.links.domain` |
+| `onChange`   | `(field, value) => void`        | Callback to sync local state after API success |
+
+### API Integration
+
+All CRUD operations use the `wcapi` module:
+
+```typescript
+import { saveRecord, deleteRecord } from '@/api/wcapi';
+
+// Save always includes contact_id
+const handleSave = async (type: string, data: Record<string, unknown>) => {
+  const payload = { ...data, contact_id: contactId };
+  const response = await saveRecord(type, payload);
+  
+  if (response.status === 'success') {
+    // Format for refs.links and update local state
+    onChange(`refs.links.${type}`, formattedData);
+  }
+};
+
+// Delete by record ID
+const handleDelete = async (type: string, id: number) => {
+  const response = await deleteRecord(type, id);
+  if (response.status === 'success') {
+    // Remove from local state
+  }
+};
+```
+
+### Data Formats (refs.links)
+
+On successful API response (200), data is formatted for the `refs.links` structure:
+
+#### Email
+
+```typescript
+refs.links.email: [
+  {
+    id: 123,
+    value: "john@example.com",   // Display value
+    name: "work",                // Type label
+    email: "john@example.com",   // Raw email
+    is_primary: true
+  }
+]
+```
+
+#### Phone
+
+```typescript
+refs.links.phone: [
+  {
+    id: 456,
+    value: "(555) 123-4567",     // Formatted display
+    name: "mobile",              // Type label
+    number: "5551234567"         // Raw number
+  }
+]
+```
+
+#### Domain
+
+```typescript
+refs.links.domain: [
+  {
+    id: 789,
+    value: "example.com",        // Display value
+    name: "primary",             // Type label
+    domain: "example.com",       // Raw domain
+    is_primary: true
+  }
+]
+```
+
+#### Address
+
+```typescript
+refs.links.location: [
+  {
+    id: 101,
+    name: "shipping",            // Type label
+    full: "123 Main St, City, ST 12345",  // Formatted address
+    address1: "123 Main St",
+    address2: "",
+    city: "City",
+    state: "ST",
+    zip: "12345",
+    country: "US"
+  }
+]
+```
+
+### Usage Example
+
+```tsx
+import { CommunicationsPanel } from '@/apps/common/components/panels';
+
+<CommunicationsPanel
+  entityType="contact"
+  entityId={contact.id}
+  contactId={contact.id}  // Required for API calls
+  emails={contact.refs?.links?.email || []}
+  phones={contact.refs?.links?.phone || []}
+  addresses={contact.refs?.links?.location || []}
+  domains={contact.refs?.links?.domain || []}
+  onChange={(field, value) => {
+    // Update local state after successful API call
+    setContact(prev => ({
+      ...prev,
+      refs: {
+        ...prev.refs,
+        links: {
+          ...prev.refs?.links,
+          [field.split('.').pop()!]: value
+        }
+      }
+    }));
+  }}
+/>
+```
+
+### Loading States
+
+The panel manages its own `isSaving` state to provide loading feedback:
+
+- Save button shows spinner and disables during API call
+- Delete confirmation shows loading state
+- Modal stays open until API response received
+
+### Backend Integration
+
+The Django `Email` model auto-links account emails on Contact save:
+
+```python
+# Contact model save() method
+def _ensure_account_email_linked(self):
+    """Auto-create Email record from account email if not exists."""
+    if self.account and self.account.email:
+        Email.objects.get_or_create(
+            email=self.account.email,
+            contact_id=self.pk,
+            defaults={'name': 'account'}
+        )
+```
+
 ---
 
 ## Implementation Plan: Org & Transaction UI Integration

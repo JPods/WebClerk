@@ -31,7 +31,8 @@ import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
-import { useLocation } from "react-router";
+import { useLocation, useParams, useSearchParams } from "react-router";
+import { getRecord } from "@/api/wcapi";
 import {
   contactSchema,
   updateContactSchema,
@@ -222,13 +223,80 @@ export default function ContactDetail({
   onSaved,
   inline = false,
   onCancelInline,
+  id: idProp,
+  recordId,
 }: ContactAddProps) {
   const dispatch = useDispatch();
   const location = useLocation();
+  const params = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
   const routeState = (location.state as any) || {};
 
+  // Get ID from multiple sources (in priority order):
+  // 1. Direct id/recordId prop (from WcapiRouteHandler)
+  // 2. Path params (e.g., /contact/22)
+  // 3. Search params (e.g., /wcapi/get/?model_name=contact&id=22)
+  // 4. Route state (e.g., navigate with state)
+  // 5. dataProp?.id (passed directly)
+  const urlId = idProp || recordId || params.id || searchParams.get("id") || routeState.data?.id || dataProp?.id;
+  const contactIdFromUrl = urlId ? (typeof urlId === 'number' ? urlId : parseInt(String(urlId), 10)) : null;
+  
+  console.log('[ContactDetail] ID resolution:', { 
+    idProp,
+    recordId,
+    'params.id': params.id, 
+    'searchParams.id': searchParams.get("id"), 
+    'routeState.data?.id': routeState.data?.id,
+    'dataProp?.id': dataProp?.id,
+    contactIdFromUrl 
+  });
+  
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
-  const data = dataProp || routeState.data || null;
+  const initialData = dataProp || routeState.data || null;
+  
+  // State for fetched data (when navigating via URL with id param)
+  const [fetchedData, setFetchedData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Use fetched data if available and matches URL id, otherwise use prop/state data
+  // Priority: fetchedData (if matches URL) > initialData (if matches URL) > fetch needed
+  const data = fetchedData || initialData;
+  
+  // The actual contact ID - USE THE LOADED DATA'S ID as the source of truth
+  // This is the ID of the contact record displayed in the form
+  const activeContactId = data?.id || contactIdFromUrl || null;
+  
+  console.log('[ContactDetail] Data check:', {
+    contactIdFromUrl,
+    'data?.id': data?.id,
+    'initialData?.id': initialData?.id,
+    'fetchedData?.id': fetchedData?.id,
+    activeContactId,
+  });
+  
+  // Fetch contact data when URL id doesn't match current data
+  useEffect(() => {
+    // Always fetch if we have a URL id that doesn't match current data
+    if (contactIdFromUrl && contactIdFromUrl !== fetchedData?.id) {
+      // Check if initialData already has the right contact
+      if (initialData?.id === contactIdFromUrl) {
+        console.log('[ContactDetail] initialData matches URL id, no fetch needed');
+        return;
+      }
+      
+      setIsLoading(true);
+      console.log('[ContactDetail] Fetching contact:', contactIdFromUrl);
+      getRecord("contact", contactIdFromUrl)
+        .then((result) => {
+          console.log('[ContactDetail] Fetched contact:', result);
+          setFetchedData(result?.record || result);
+        })
+        .catch((err) => {
+          console.error('[ContactDetail] Failed to fetch contact:', err);
+        })
+        .finally(() => setIsLoading(false));
+    }
+  }, [contactIdFromUrl, initialData?.id, fetchedData?.id]);
   
   // Allow toggling between view and edit modes
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
@@ -236,10 +304,30 @@ export default function ContactDetail({
   // Layout selector for team discussion
   const [selectedLayout, setSelectedLayout] = useState<LayoutStyle>("best-practice");
   
+  // Local state for communications (updated by CommunicationsPanel after successful API calls)
+  const [communications, setCommunications] = useState({
+    emails: data?.refs?.links?.email || [],
+    phones: data?.refs?.links?.phone || [],
+    addresses: data?.refs?.links?.address || [],
+    domains: data?.refs?.links?.domain || [],
+  });
+  
   // Sync effectiveMode when mode prop changes
   useEffect(() => {
     setEffectiveMode(mode);
   }, [mode]);
+  
+  // Sync communications when data changes (e.g., after refetch)
+  useEffect(() => {
+    if (data?.refs?.links) {
+      setCommunications({
+        emails: data.refs.links.email || [],
+        phones: data.refs.links.phone || [],
+        addresses: data.refs.links.address || [],
+        domains: data.refs.links.domain || [],
+      });
+    }
+  }, [data?.refs?.links]);
   
   const contactFieldNames = useMemo(() => CONTACT_DETAIL_FIELDS.slice(), []);
   const {
@@ -376,6 +464,16 @@ export default function ContactDetail({
     { value: "staff", label: "Staff" },
     { value: "guest", label: "Guest" },
   ];
+
+  // Show loading state while fetching
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <span className="ml-2 text-gray-600">Loading contact...</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -560,18 +658,17 @@ export default function ContactDetail({
           </Section>
 
           {/* 3. Communications Panel - emails, phones, addresses, domains */}
-          {mode !== "add" && data?.id && (
+          {/* Use activeContactId which is guaranteed to match URL */}
+          {mode !== "add" && activeContactId && (
             <CommunicationsPanel
               entityType="contact"
-              entityId={data.id}
-              data={{
-                emails: data.refs?.links?.email || [],
-                phones: data.refs?.links?.phone || [],
-                addresses: data.refs?.links?.address || [],
-                domains: data.refs?.links?.domain || [],
-              }}
+              entityId={activeContactId}
+              contactId={activeContactId}
+              data={communications}
               onChange={(comms) => {
                 console.log('Communications updated:', comms);
+                // Update local state with new communications data
+                setCommunications(comms);
               }}
               defaultCollapsed={false}
             />
