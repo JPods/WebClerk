@@ -260,7 +260,7 @@ def default_refs() -> dict:
 # Denormalization fields for links - maps model name to list of fields to include when denormalizing
 LINK_DENORMALIZE_FIELDS = {
     "email": ["id", "email", "name", "type", "is_primary"],
-    "contact": ["id", "email", "name_first", "name_last", "company", "title", "role"],
+    "contact": ["id", "attention", "company", "email", "name_first", "name_last", "title", "role"],
     "phone": ["id", "number", "format", "name"],
     "location": ["id", "address1", "city", "state", "zip", "country", "full"],
     "item": ["id", "name", "sku", "description", "kind", "uom"],
