@@ -45,9 +45,11 @@ import {
 } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 import { 
-  FaSave, FaChevronDown, FaChevronRight, FaTimes, FaEdit,
-  FaUser, FaBuilding, FaIdCard, FaCog,
-  FaStar, FaThLarge, FaCompressAlt, FaAlignLeft, FaListAlt, FaColumns, FaLayerGroup
+  FaChevronDown,
+  FaChevronRight,
+  FaUser,
+  FaBuilding,
+  FaCog,
 } from "react-icons/fa";
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
 
@@ -63,48 +65,14 @@ import {
 } from "@/apps/common/components/panels";
 
 // ------------------------------------
-// Layout Selector for team discussion
+// Layout (reserved for future variations)
 // ------------------------------------
-type LayoutStyle = "best-practice" | "grid" | "compact" | "dense" | "horizontal" | "two-column";
-
-interface LayoutOption {
-  value: LayoutStyle;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const layoutOptions: LayoutOption[] = [
-  { value: "best-practice", label: "Best Practice", icon: <FaStar className="w-3.5 h-3.5" />, description: "Enterprise UX standard - collapsible sections" },
-  { value: "grid", label: "Grid", icon: <FaThLarge className="w-3.5 h-3.5" />, description: "3-column grid with labels above" },
-  { value: "compact", label: "Compact", icon: <FaCompressAlt className="w-3.5 h-3.5" />, description: "Dense 3-column layout" },
-  { value: "dense", label: "Dense", icon: <FaAlignLeft className="w-3.5 h-3.5" />, description: "Ultra-compact inline labels" },
-  { value: "horizontal", label: "Horizontal", icon: <FaListAlt className="w-3.5 h-3.5" />, description: "2-column with left labels" },
-  { value: "two-column", label: "Two Column", icon: <FaColumns className="w-3.5 h-3.5" />, description: "Card-based layout" },
-];
-
-function LayoutSelector({ value, onChange }: { value: LayoutStyle; onChange: (layout: LayoutStyle) => void }) {
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
-      <FaLayerGroup className="text-slate-400 w-3 h-3" />
-      {layoutOptions.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`p-1.5 rounded transition-all ${
-            value === option.value
-              ? "bg-blue-500 text-white shadow-sm"
-              : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-          }`}
-          title={`${option.label}: ${option.description}`}
-        >
-          {option.icon}
-        </button>
-      ))}
-    </div>
-  );
-}
+type CommunicationsData = {
+  emails?: any[];
+  phones?: any[];
+  addresses?: any[];
+  domains?: any[];
+};
 
 // ------------------------------------
 // Enterprise Field Row Component
@@ -301,11 +269,8 @@ export default function ContactDetail({
   // Allow toggling between view and edit modes
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
   
-  // Layout selector for team discussion
-  const [selectedLayout, setSelectedLayout] = useState<LayoutStyle>("best-practice");
-  
   // Local state for communications (updated by CommunicationsPanel after successful API calls)
-  const [communications, setCommunications] = useState({
+  const [communications, setCommunications] = useState<CommunicationsData>({
     emails: data?.communications?.emails || data?.refs?.links?.email || [],
     phones: data?.communications?.phones || data?.refs?.links?.phone || [],
     addresses: data?.communications?.addresses || data?.refs?.links?.address || [],
@@ -353,7 +318,7 @@ export default function ContactDetail({
     control,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(mode === "edit" ? updateContactSchema : contactSchema),
     defaultValues: {
@@ -554,10 +519,11 @@ export default function ContactDetail({
               </div>
             </>
           )}
-          <h5 className=" dark:text-white text-md font-semibold mt-6 mb-3 custom-header-inner">
-            Personal info
-          </h5>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+          <Section
+            title="Personal Information"
+            icon={<FaUser className="w-4 h-4" />}
+            defaultExpanded={true}
+          >
             {shouldRenderField("name_first") && (
               <FieldRow label="First Name" htmlFor="name_first" error={errors.name_first?.message} required>
                 <Input
