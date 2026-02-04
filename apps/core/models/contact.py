@@ -178,6 +178,68 @@ class Contact(StandardLinksMixin, BaseModel, AbstractBaseUser, PermissionsMixin)
         if self.is_superuser and not self.role:
             self.role = 'admin'
         super().save(*args, **kwargs)
+        
+        # After save, ensure account email exists as an Email record linked to this contact
+        self._ensure_account_email_linked()
+    
+    def _ensure_account_email_linked(self):
+        """
+        If the account email (self.email) is not already in refs.links.email,
+        create an Email record and link it with name='account'.
+        """
+        if not self.email:
+            return
+        
+        # Check if email already exists in refs.links.email
+        refs = self.refs if isinstance(self.refs, dict) else {}
+        links = refs.get('links', {})
+        if not isinstance(links, dict):
+            links = {}
+        email_links = links.get('email', [])
+        if not isinstance(email_links, list):
+            email_links = []
+        
+        # Check if account email is already linked
+        for email_entry in email_links:
+            if isinstance(email_entry, dict) and email_entry.get('email') == self.email:
+                return  # Already linked, nothing to do
+        
+        # Create the Email record and link it
+        try:
+            from apps.communications.models import Email
+            
+            # Check if an Email record with this address already exists
+            existing_email = Email.objects.filter(email=self.email).first()
+            if existing_email:
+                email_obj = existing_email
+            else:
+                email_obj = Email.objects.create(
+                    email=self.email,
+                    name='account',
+                    is_primary=True,
+                    is_verified=False,
+                )
+            
+            # Add to refs.links.email
+            email_link = {
+                'id': email_obj.id,
+                'email': email_obj.email,
+                'name': 'account',
+                'is_primary': True,
+            }
+            email_links.append(email_link)
+            links['email'] = email_links
+            refs['links'] = links
+            
+            # Update refs without triggering another full save (avoid recursion)
+            type(self).objects.filter(pk=self.pk).update(refs=refs)
+            # Refresh the in-memory refs
+            self.refs = refs
+        except Exception as e:
+            # Log but don't fail the contact save
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to auto-create account email record for contact {self.pk}: {e}")
     
     @property
     def display_name(self):
