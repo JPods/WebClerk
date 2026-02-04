@@ -29,7 +29,7 @@ class AddressAdmin(admin.ModelAdmin):
 @admin.register(Email)
 class EmailAdmin(admin.ModelAdmin):
     """Admin interface for Email model."""
-    list_display = ('id', 'email', 'name', 'is_primary', 'is_verified')
+    list_display = ('id', 'email', 'name','contact_id', 'is_primary', 'is_verified')
     list_filter = ('opt_out', 'is_primary', 'is_verified')
     search_fields = ('email', 'name', 'attention')
     #readonly_fields = ('uuid', 'status_display')
@@ -38,7 +38,7 @@ class EmailAdmin(admin.ModelAdmin):
     
     fieldsets = (
         (None, {
-            'fields': ('email', 'name', 'attention')
+            'fields': ('email', 'name', 'attention','contact_id')
         }),
         ('Status', {
             'fields': ('opt_out', 'is_primary')
@@ -52,13 +52,13 @@ class EmailAdmin(admin.ModelAdmin):
 @admin.register(Phone)
 class PhoneAdmin(admin.ModelAdmin):
     """Admin interface for Phone model."""
-    list_display = ('id', 'number', 'name', 'country_code', 'opt_out')  # Changed dt_verified to get_dt_verified
+    list_display = ('id', 'number', 'name','contact_id', 'contact_id', 'country_code', 'opt_out')  # Changed dt_verified to get_dt_verified
     list_filter = ('country_code', 'opt_out')  # Remove dt_verified from list_filter since it's now a property
     search_fields = ('number', 'name', 'attention')
     #readonly_fields = ('uuid')  # Add get_dt_verified
     fieldsets = (
         (None, {
-            'fields': ('number', 'country_code', 'format', 'name', 'attention', 'opt_out')
+            'fields': ('number', 'country_code', 'format', 'name', 'attention', 'opt_out','contact_id')
         }),
         ('Additional Info', {
             'fields': ('comments', 'refs', 'prefs', 'metadata')
@@ -71,13 +71,13 @@ class PhoneAdmin(admin.ModelAdmin):
 @admin.register(Domain)
 class DomainAdmin(admin.ModelAdmin):
     """Admin interface for Domain model."""
-    list_display = ('id', 'path', 'type')  # Use get_dt_verified
+    list_display = ('id', 'path', 'type','contact_id')  # Use get_dt_verified
     list_filter = ('type',)  # Remove dt_verified from list_filter
     search_fields = ('path', 'type')
     #readonly_fields = ('uuid')  # Use get_dt_verified
     fieldsets = (
         (None, {
-            'fields': ('path', 'type')
+            'fields': ('path', 'type','contact_id')
         }),
         ('Additional Info', {
             'fields': ('comments', 'refs', 'prefs', 'metadata')

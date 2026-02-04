@@ -5,6 +5,16 @@ from django.utils import timezone  # Add this import
 import uuid
 
 class Phone(BaseModel):
+    # Direct FK to contact - explicit ownership relationship
+    contact = models.ForeignKey(
+        'core.Contact',
+        on_delete=models.CASCADE,
+        related_name='phones',
+        null=True,
+        blank=True,
+        help_text="Contact this phone belongs to"
+    )
+    
     number = models.CharField(max_length=20, blank=True, help_text="Phone number")
     country_code = models.CharField(max_length=5, blank=True, help_text="Country code (e.g., +1)")
     format = models.CharField(max_length=50, blank=True, help_text="Formatted phone number")
@@ -19,6 +29,10 @@ class Phone(BaseModel):
         db_table = 'phones'
         verbose_name = 'Phone Number'
         verbose_name_plural = 'Phone Numbers'
+        indexes = [
+            models.Index(fields=['contact']),
+            models.Index(fields=['number']),
+        ]
         
     def __str__(self):
         if self.name:

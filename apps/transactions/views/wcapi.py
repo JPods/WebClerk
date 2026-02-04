@@ -313,6 +313,15 @@ class WCAPISaveView(APIView):
         record_id = body.get("id")
         data = body.get("data") or {}
 
+        # DEBUG: Print to stdout to see in runserver terminal
+        print(f"\n{'='*60}")
+        print(f"WCAPISaveView DEBUG:")
+        print(f"  model_key: {model_key}")
+        print(f"  record_id: {record_id}")
+        print(f"  data keys: {list(data.keys()) if isinstance(data, dict) else None}")
+        print(f"  contact_id from data: {data.get('contact_id') if isinstance(data, dict) else None}")
+        print(f"{'='*60}\n")
+
         ModelCls = registry.resolve(model_key or "")
         if not ModelCls or not isinstance(data, dict):
             return Response({"detail": "invalid payload"}, status=status.HTTP_400_BAD_REQUEST)

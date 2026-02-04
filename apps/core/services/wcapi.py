@@ -174,8 +174,8 @@ def save_item(model_key: str, *, request, data: Dict[str, Any], id: Any = None) 
             try:
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.debug("wcapi.save_item: created %s id=%s requested by user id=%s auth=%s payload_contact_id=%s",
-                             model_key, getattr(obj, "pk", None), getattr(user, "pk", None) or getattr(user, "id", None), getattr(user, "is_authenticated", None), contact_id)
+                logger.info("wcapi.save_item: created %s id=%s, raw_data_keys=%s, contact_id=%s, auth_user_id=%s",
+                             model_key, getattr(obj, "pk", None), list(data.keys()) if isinstance(data, dict) else None, contact_id, getattr(user, "pk", None) or getattr(user, "id", None))
             except Exception:
                 logger = None
 
