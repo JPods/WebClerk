@@ -6,6 +6,16 @@ from common.models import BaseModel
 from apps.communications.choices import EMAIL_OPT_OUT_CHOICES, EMAIL_TYPE_CHOICES
 
 class Email(BaseModel):
+    # Direct FK to contact - explicit ownership relationship
+    contact = models.ForeignKey(
+        'core.Contact',
+        on_delete=models.CASCADE,
+        related_name='emails',
+        null=True,
+        blank=True,
+        help_text="Contact this email belongs to"
+    )
+    
     email = models.EmailField(max_length=254, blank=False, help_text="Email address")
     name = models.CharField(max_length=100, blank=True, help_text="Display name for this email")
     attention = models.CharField(max_length=100, blank=True, help_text="Person or department attention line")
@@ -33,6 +43,7 @@ class Email(BaseModel):
         verbose_name = 'Email Address'
         verbose_name_plural = 'Email Addresses'
         indexes = [
+            models.Index(fields=['contact']),
             models.Index(fields=['email']),
             models.Index(fields=['is_primary']),
             models.Index(fields=['opt_out'])

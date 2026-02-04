@@ -955,6 +955,11 @@ class SaveWcapiView(APIView):
                 # Resolve contact id from payload or authenticated user
                 contact = None
                 contact_id = None
+                # DEBUG: Log all contact-related keys in parsed_data
+                console_logger.info(f"[SAVE_VIEW] DEBUG: parsed_data keys = {list(parsed_data.keys()) if isinstance(parsed_data, dict) else 'not a dict'}")
+                console_logger.info(f"[SAVE_VIEW] DEBUG: contact_id in parsed_data = {parsed_data.get('contact_id') if isinstance(parsed_data, dict) else None}")
+                console_logger.info(f"[SAVE_VIEW] DEBUG: contactId in parsed_data = {parsed_data.get('contactId') if isinstance(parsed_data, dict) else None}")
+                console_logger.info(f"[SAVE_VIEW] DEBUG: contact in parsed_data = {parsed_data.get('contact') if isinstance(parsed_data, dict) else None}")
                 if isinstance(parsed_data, dict):
                     # common variations
                     contact_id = parsed_data.get("contact_id") or parsed_data.get("contactId") or (parsed_data.get("contact") if isinstance(parsed_data.get("contact"), (int, str)) else None)
@@ -963,8 +968,10 @@ class SaveWcapiView(APIView):
                             contact_id = int(contact_id)
                     except Exception:
                         contact_id = None
+                console_logger.info(f"[SAVE_VIEW] DEBUG: resolved contact_id = {contact_id}, type = {type(contact_id).__name__}")
                 # Fallback to authenticated request user when available
                 if not contact_id and request.user and getattr(request.user, "is_authenticated", False):
+                    console_logger.info(f"[SAVE_VIEW] DEBUG: No contact_id from payload, falling back to auth user: {request.user.pk if hasattr(request.user, 'pk') else request.user.id}")
                     # If the authenticated user is a Contact instance (AUTH_USER_MODEL='core.Contact'), use it.
                     try:
                         if isinstance(request.user, Contact):
@@ -986,6 +993,15 @@ class SaveWcapiView(APIView):
                 except Exception:
                     pass
                 if contact:
+                    # Set the direct FK on the communication object
+                    if hasattr(obj, 'contact_id'):
+                        try:
+                            obj.contact_id = contact.pk
+                            obj.save(update_fields=['contact_id'])
+                            console_logger.info(f"[SAVE_VIEW] Set contact_id={contact.pk} on {model_key} id={obj.pk}")
+                        except Exception as fk_err:
+                            console_logger.warning(f"[SAVE_VIEW] Failed to set contact_id FK: {fk_err}")
+                    
                     # Build denormalized object from LINK_DENORMALIZE_FIELDS
                     fields = LINK_DENORMALIZE_FIELDS.get(bucket, ["id"]) or ["id"]
                     obj.refresh_from_db()

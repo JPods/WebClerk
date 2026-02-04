@@ -5,6 +5,16 @@ from common.models import BaseModel
 from apps.communications.choices import DOMAIN_STATUS_CHOICES, DOMAIN_TYPE_CHOICES
 
 class Domain(BaseModel):
+    # Direct FK to contact - explicit ownership relationship
+    contact = models.ForeignKey(
+        'core.Contact',
+        on_delete=models.CASCADE,
+        related_name='domains',
+        null=True,
+        blank=True,
+        help_text="Contact this domain belongs to"
+    )
+    
     path = models.CharField(max_length=255, blank=True, db_index=True, help_text="URL or handle (indexed)")
     type = models.CharField(max_length=50, blank=True, choices=DOMAIN_TYPE_CHOICES, default="", db_index=True)
     comment = models.TextField(blank=True, default="", help_text="General notes")
@@ -18,6 +28,7 @@ class Domain(BaseModel):
     class Meta:
         db_table = 'domains'
         indexes = [
+            models.Index(fields=['contact']),
             models.Index(fields=['path']),
             models.Index(fields=['type', 'status']),
         ]
