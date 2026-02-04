@@ -15,7 +15,7 @@ const OrderDetail = lazy(() => import("../apps/transactions/models/order/pages/O
 const InvoiceDetail = lazy(() => import("../apps/transactions/models/invoice/pages/InvoiceDetail"));
 const ProposalDetail = lazy(() => import("../apps/transactions/models/proposal/pages/ProposalDetail"));
 const ItemDetail = lazy(() => import("../apps/products/models/item/pages/ItemDetail"));
-const CustomerDetailPage = lazy(() => import("../apps/orgs/models/customer/pages/CustomerDetailPage"));
+const CustomerDetailPage = lazy(() => import("../apps/orgs/models/customer/pages/CustomerDetail"));
 const VendorDetail = lazy(() => import("../apps/orgs/models/vendor/pages/VendorDetail"));
 const ContactDetail = lazy(() => import("../apps/core/models/contact/pages/ContactDetail"));
 

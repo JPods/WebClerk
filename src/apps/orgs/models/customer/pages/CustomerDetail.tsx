@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchCustomers, deleteCustomer } from "../services/customerApi";
-import CustomerDetail from "./CustomerDisplay";
+import CustomerDisplay from "./CustomerDisplay";
 import { dynamicData } from "../../../../../model/dynamicData";
 import { useWindowManager } from "../../../../../context/WindowManagerContext";
 import { PageRoutes } from "../../../../../routes/Routes";
@@ -9,7 +9,7 @@ import { useDispatch } from "react-redux";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import RippleLoader from "@/components/common/RippleLoader";
 
-export default function CustomerDetailPage() {
+export default function CustomerDetail() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -96,7 +96,7 @@ export default function CustomerDetailPage() {
       {loading && <RippleLoader />}
       {error && <div className="text-red-600">{error}</div>}
       {!loading && !error && (
-        <CustomerDetail
+        <CustomerDisplay
           modeProp="view"
           dataProp={record}
           hideBreadcrumb
