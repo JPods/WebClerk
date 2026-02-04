@@ -13,9 +13,5 @@ include/
 **/__pycache__/
 .celery_started
 /Scripts
-<<<<<<< HEAD
-venv/
-=======
 venv/
 logs/
->>>>>>> c6b63d847e5b020a23c8f86a3c4ef22edeec659a
