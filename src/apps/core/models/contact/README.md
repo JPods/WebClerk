@@ -2,13 +2,17 @@
 
 ## Overview
 
-The Contact model manages person/entity records in the system. Contacts can be associated with customers, vendors, employees, manufacturers, and more. The `ContactDetail` component provides a comprehensive view/edit interface with inline communication record management.
+The Contact model manages person/entity records in the system. Contacts can be associated with customers, vendors, employees, manufacturers, and more. The `ContactDetail` component provides a comprehensive view/edit interface following enterprise UX best practices with collapsible sections, reusable panel components, and an integrated layout selector for team design discussions.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `pages/ContactDetail.tsx` | Main detail/edit form component |
+| `pages/ContactDetail.tsx` | Main detail/edit form - Enterprise Best Practices layout |
+| `pages/ContactDetailStart.tsx` | Alternative with layout selector switcher |
+| `pages/ContactDetailTwoColumn.tsx` | Two-column card-based layout |
+| `pages/ContactDetailHorizontal.tsx` | Horizontal 2-column layout |
+| `pages/ContactDetailDense.tsx` | Ultra-compact inline layout |
 | `pages/ContactList.tsx` | List view with filtering |
 | `services/contactApi.ts` | API service functions |
 | `types/contactType.ts` | TypeScript interfaces |
@@ -20,6 +24,15 @@ The Contact model manages person/entity records in the system. Contacts can be a
 
 ### Location
 `src/apps/core/models/contact/pages/ContactDetail.tsx`
+
+### Design Philosophy
+
+Based on UX research from Nielsen Norman Group, Luke Wroblewski, and Baymard Institute:
+- **Two-column layout** with labels on the left for scannability
+- **Collapsible sections** for logical field groupings
+- **Consistent label widths** for vertical alignment
+- **Visual hierarchy** with section headers and icons
+- **Keyboard navigation** support
 
 ### Props
 
@@ -40,99 +53,109 @@ interface ContactAddProps {
 |------|-------------|
 | `add` | Create new contact with password fields |
 | `edit` | Update existing contact (no password fields) |
-| `view` | Read-only display of contact data |
+| `view` | Read-only display - Edit button toggles to edit mode |
 
 ---
 
 ## Features
 
-### 1. Contact Fields
+### 1. Section Layout
 
-The component manages these contact fields:
+The component organizes fields into collapsible sections:
 
-**Identity**
-- `name_prefix`, `name_first`, `name_middle`, `name_last`, `name_suffix`
-- `email` (login email)
-- `company`, `title`, `department`
+| # | Section | Icon | Default | Contents |
+|---|---------|------|---------|----------|
+| 1 | Personal Information | 📇 | Expanded | Names (first, last, middle, prefix, suffix), Attention |
+| 2 | Company Information | 🏢 | Expanded | Company, Title, Department |
+| 3 | Communications | 📧 | Expanded | CommunicationsPanel (emails, phones, addresses, domains) |
+| 4 | Actions | ⚡ | Expanded | ActionsPanel |
+| 5 | Comments | 💬 | Collapsed | CommentsPanel |
+| 6 | Metadata | 📋 | Collapsed | MetadataPanel |
+| 7 | Preferences | ⚙️ | Collapsed | PrefsPanel |
+| 8 | References | 🔗 | Collapsed | RefsPanel |
+| 9 | Raw Data | 🗃️ | Collapsed | RawDataPanel (debug view) |
+| 10 | System IDs | 🔧 | Collapsed | customer_id, rep_id, vendor_id, etc. |
+| 11 | Account | 👤 | Collapsed | Email, Password (add mode only), Role, is_active, is_staff |
 
-**Credentials** (add mode only)
-- `password`, `cnf_password`
+### 2. Layout Selector
 
-**Reference IDs**
-- `customer_id`, `rep_id`, `vendor_id`
-- `employee_id`, `manufacturer_id`, `other_id`
+A toolbar in the header allows selecting different layouts for team design discussions:
 
-**Status**
-- `role` (user, admin, manager, staff, guest)
-- `is_active`, `is_staff`
+| Layout | Icon | Description |
+|--------|------|-------------|
+| **Best Practice** | ⭐ | Enterprise UX standard - collapsible sections |
+| **Grid** | ⊞ | 3-column grid with labels above |
+| **Compact** | ⊟ | Dense 3-column layout |
+| **Dense** | ≡ | Ultra-compact inline labels |
+| **Horizontal** | ☰ | 2-column with left labels |
+| **Two Column** | ⧉ | Card-based layout |
 
-### 2. Communication Tables
+### 3. View/Edit Mode Toggle
 
-The component includes four inline-editable communication tables:
+- **View mode**: Shows Edit button to switch to edit mode
+- **Edit mode**: Shows Cancel (returns to view) and Save buttons
+- **Add mode**: Shows Save button only
+- Uses `effectiveMode` state to allow runtime mode switching without route changes
 
-| Table | Icon | Fields |
-|-------|------|--------|
-| **Emails** | 📧 | id, address, name, type, is_primary |
-| **Phones** | 📞 | id, number, name, type, is_primary |
-| **Addresses** | 📍 | id, name, address_line1, city, state, postal_code |
-| **Domains** | 🌐 | id, domain, name, is_primary |
+### 4. Panel Components
 
-Each table supports:
-- ✅ Collapsible sections
-- ✅ Add new records
-- ✅ Inline editing
-- ✅ Delete with confirmation
-- ✅ Save to API
+Reusable panels from `@/apps/common/components/panels`:
 
-### 3. Admin Field Controls
+| Panel | Purpose |
+|-------|---------|
+| `CommunicationsPanel` | Emails, phones, addresses, domains with inline editing |
+| `CommentsPanel` | Comments/notes with threading |
+| `MetadataPanel` | System metadata (created, modified, etc.) |
+| `RefsPanel` | References and relationships |
+| `PrefsPanel` | User preferences |
+| `ActionsPanel` | Action items and tasks |
+| `RawDataPanel` | JSON view for debugging |
 
-Administrators can control field visibility and editability per-field:
+### 5. Admin Field Controls
+
+Administrators can control field visibility and editability per-field using `useDetailFieldAccess` hook:
 
 - **Show/Hide Toggle** - Control which fields are visible to non-admin users
 - **Read-Only Toggle** - Make fields read-only for non-admin users
-- **Save/Reset** - Persist or revert configuration changes
 
-Located at the bottom of the form (admin only).
+### 6. Auto-Created Account Email
+
+When a Contact is saved, the backend automatically creates an Email record linked to the contact if the account email doesn't already exist in `refs.links.email`. The Email is created with `name="account"` and `is_primary=true`.
 
 ---
 
 ## Component Architecture
 
-### Generic CommunicationTable
+### Core UI Components
 
 ```typescript
-interface CommunicationTableProps<T> {
+// Enterprise-style field row with fixed-width left label
+interface FieldRowProps {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  error?: string;
+  required?: boolean;
+  hint?: string;
+}
+
+// Collapsible section with icon header
+interface SectionProps {
   title: string;
   icon: React.ReactNode;
-  data: T[];
-  columns: { key: keyof T; label: string; render?: (item: T) => React.ReactNode }[];
-  onAdd: () => void;
-  onEdit: (item: T) => void;
-  onDelete: (item: T) => void;
-  onSave: (item: T) => void;
-  editingItem: T | null;
-  onEditChange: (field: keyof T, value: any) => void;
-  onCancelEdit: () => void;
-  disabled?: boolean;
+  children: React.ReactNode;
+  defaultExpanded?: boolean;
 }
 ```
-
-This generic component is reused for all four communication types.
 
 ### State Management
 
 ```typescript
-// Communication records
-const [emails, setEmails] = useState<EmailRecord[]>([]);
-const [phones, setPhones] = useState<PhoneRecord[]>([]);
-const [locations, setLocations] = useState<LocationRecord[]>([]);
-const [domains, setDomains] = useState<DomainRecord[]>([]);
+// Mode management (allows toggling view↔edit)
+const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
 
-// Editing state (one at a time per type)
-const [editingEmail, setEditingEmail] = useState<EmailRecord | null>(null);
-const [editingPhone, setEditingPhone] = useState<PhoneRecord | null>(null);
-const [editingLocation, setEditingLocation] = useState<LocationRecord | null>(null);
-const [editingDomain, setEditingDomain] = useState<DomainRecord | null>(null);
+// Layout selector for team discussion
+const [selectedLayout, setSelectedLayout] = useState<LayoutStyle>("best-practice");
 ```
 
 ### Form Validation
@@ -155,29 +178,10 @@ updateContact(payload: UpdateContactRequest): Promise<ContactApiTask>
 
 ### Communication APIs
 
-Each communication type has its own API service:
-
-```typescript
-// Email
-createEmail(payload: CreateEmailRequest): Promise<EmailApiTask>
-updateEmail(payload: UpdateEmailRequest): Promise<EmailApiTask>
-deleteEmail(model_name: string, id: number): Promise<any>
-
-// Phone
-createPhone(payload: CreatePhoneRequest): Promise<PhoneApiTask>
-updatePhone(payload: UpdatePhoneRequest): Promise<PhoneApiTask>
-deletePhone(id: number): Promise<any>
-
-// Location
-createLocation(payload: CreateLocationRequest): Promise<LocationApiTask>
-updateLocation(payload: UpdateLocationRequest): Promise<LocationApiTask>
-deleteLocation(id: number): Promise<any>
-
-// Domain
-createDomain(payload: CreateDomainRequest): Promise<DomainApiTask>
-updateDomain(payload: UpdateDomainRequest): Promise<DomainApiTask>
-deleteDomain(id: any): Promise<any>
-```
+Communications are managed through the `CommunicationsPanel` component which handles:
+- Emails, phones, addresses, and domains
+- Inline add/edit/delete with modal forms
+- Data stored in `refs.links.{email|phone|address|domain}`
 
 ---
 
@@ -188,7 +192,7 @@ deleteDomain(id: any): Promise<any>
 1. Contact data passed via `dataProp` or `location.state`
 2. `useEffect` normalizes data and calls `reset()` on form
 3. Communication records extracted from `data.refs.links`
-4. Each communication array populates its respective state
+4. Panels receive data via props
 
 ### Saving Contact
 
@@ -197,15 +201,12 @@ deleteDomain(id: any): Promise<any>
 3. `createContact` or `updateContact` called based on mode
 4. Success toast displayed, `onSaved` callback invoked
 
-### Saving Communications
+### Mode Switching
 
-1. User clicks Add/Edit on communication table
-2. `editingItem` state populated
-3. Row switches to input mode
-4. User edits and clicks Save
-5. API called (`create*` for id=0, `update*` for existing)
-6. Local state updated with response
-7. `editingItem` cleared
+1. View mode shows Edit button
+2. Clicking Edit sets `effectiveMode` to "edit"
+3. Cancel returns to "view" mode
+4. Save persists changes and optionally returns to view
 
 ---
 
@@ -217,19 +218,30 @@ deleteDomain(id: any): Promise<any>
 | `useDetailFieldAccess` | Admin field visibility/readonly controls |
 | `useDispatch` | Redux dispatch for toasts |
 | `useLocation` | React Router state access |
-| `useState` | Communication records and editing state |
-| `useCallback` | Memoized handlers |
+| `useState` | Mode and layout state |
 | `useMemo` | Memoized field names array |
-| `useEffect` | Data loading and normalization |
+| `useEffect` | Data loading and mode sync |
 
 ---
 
 ## Related Components
 
+### UI Components
 - `ComponentCard` - Card wrapper
 - `PageBreadcrumb` - Navigation breadcrumb
 - `Input` / `DropDown` / `Checkbox` - Form inputs
 - `Label` - Form field labels
+- `FieldRow` - Enterprise-style label-left field row
+- `Section` - Collapsible section container
+
+### Panel Components
+- `CommunicationsPanel` - Emails, phones, addresses, domains
+- `CommentsPanel` - Notes and comments
+- `MetadataPanel` - System metadata display
+- `RefsPanel` - References viewer/editor
+- `PrefsPanel` - Preferences editor
+- `ActionsPanel` - Action items
+- `RawDataPanel` - JSON debug view
 
 ---
 
@@ -247,6 +259,15 @@ deleteDomain(id: any): Promise<any>
 // or via route with state: { mode: 'edit', data: contactData }
 ```
 
+### View Mode (with Edit toggle)
+```tsx
+<ContactDetail 
+  modeProp="view" 
+  dataProp={contactData}
+/>
+// User can click Edit button to switch to edit mode
+```
+
 ### Inline Edit
 ```tsx
 <ContactDetail
@@ -259,11 +280,19 @@ deleteDomain(id: any): Promise<any>
 />
 ```
 
-### View Mode
-```tsx
-<ContactDetail 
-  modeProp="view" 
-  dataProp={contactData}
-  hideBreadcrumb={true}
-/>
-```
+---
+
+## Backend Integration
+
+### Auto-Created Account Email
+
+When a Contact is saved on the backend, the `Contact.save()` method automatically:
+
+1. Checks if `refs.links.email` contains the account email
+2. If not found, creates an `Email` record with:
+   - `email`: The contact's account email
+   - `name`: "account"
+   - `is_primary`: true
+3. Links the Email to the contact via `refs.links.email`
+
+This ensures every contact has their login email available in the communications list.

@@ -1,10 +1,11 @@
 /**
- * CommunicationsPanel - Manage emails, phones, and addresses linked to an entity
+ * CommunicationsPanel - Manage emails, phones, addresses, and domains linked to an entity
  * 
  * Data sources:
  * - refs.links.email: [{id, email, name, type, is_primary}]
  * - refs.links.phone: [{id, number, format, name}]
  * - refs.links.location: [{id, address1, city, state, zip, country, full}]
+ * - refs.links.domain: [{id, domain, name, is_primary}]
  * 
  * Role-based access:
  * - View: All roles (default)
@@ -13,10 +14,10 @@
 import React, { useState } from 'react';
 import { 
   FaEnvelope, FaPhone, FaMapMarkerAlt, FaChevronDown, FaChevronUp, 
-  FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaExternalLinkAlt
+  FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaExternalLinkAlt, FaGlobe
 } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
-import type { BasePanelProps, EmailLink, PhoneLink, AddressLink } from './types';
+import type { BasePanelProps, EmailLink, PhoneLink, AddressLink, DomainLink } from './types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,13 +27,14 @@ interface CommunicationsData {
   emails?: EmailLink[];
   phones?: PhoneLink[];
   addresses?: AddressLink[];
+  domains?: DomainLink[];
 }
 
 interface CommunicationsPanelProps extends Omit<BasePanelProps<CommunicationsData>, 'data'> {
   /** Communications data */
   data?: CommunicationsData;
   /** Show only specific types */
-  showTypes?: ('email' | 'phone' | 'address')[];
+  showTypes?: ('email' | 'phone' | 'address' | 'domain')[];
 }
 
 // ---------------------------------------------------------------------------
@@ -188,15 +190,72 @@ const AddressItem: React.FC<AddressItemProps> = ({ address, canEdit, onEdit, onD
 };
 
 // ---------------------------------------------------------------------------
+// Domain Item
+// ---------------------------------------------------------------------------
+interface DomainItemProps {
+  domain: DomainLink;
+  canEdit: boolean;
+  onSetPrimary?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
+
+const DomainItem: React.FC<DomainItemProps> = ({ domain, canEdit, onSetPrimary, onEdit, onDelete }) => (
+  <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
+    <FaGlobe size={12} className="text-slate-400 flex-shrink-0" />
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2">
+        <a 
+          href={`https://${domain.domain}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 hover:underline truncate"
+        >
+          {domain.domain}
+        </a>
+        {domain.is_primary && (
+          <FaStar size={10} className="text-amber-400" title="Primary" />
+        )}
+        {domain.verified && (
+          <span className="text-xs text-green-500">✓</span>
+        )}
+      </div>
+      {domain.name && (
+        <p className="text-xs text-slate-400">{domain.name}</p>
+      )}
+    </div>
+    {canEdit && (
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!domain.is_primary && onSetPrimary && (
+          <button onClick={onSetPrimary} className="p-1 text-slate-400 hover:text-amber-500" title="Set primary">
+            <FaRegStar size={10} />
+          </button>
+        )}
+        {onEdit && (
+          <button onClick={onEdit} className="p-1 text-slate-400 hover:text-blue-500" title="Edit">
+            <FaEdit size={10} />
+          </button>
+        )}
+        {onDelete && (
+          <button onClick={onDelete} className="p-1 text-slate-400 hover:text-red-500" title="Delete">
+            <FaTrash size={10} />
+          </button>
+        )}
+      </div>
+    )}
+  </div>
+);
+
+// ---------------------------------------------------------------------------
 // Add/Edit Modals
 // ---------------------------------------------------------------------------
 
 interface AddEditModalProps {
   isOpen: boolean;
-  type: 'email' | 'phone' | 'address';
-  data?: EmailLink | PhoneLink | AddressLink;
+  type: 'email' | 'phone' | 'address' | 'domain';
+  data?: EmailLink | PhoneLink | AddressLink | DomainLink;
   onClose: () => void;
-  onSave: (data: EmailLink | PhoneLink | AddressLink) => void;
+  onSave: (data: EmailLink | PhoneLink | AddressLink | DomainLink) => void;
 }
 
 const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose, onSave }) => {
@@ -214,7 +273,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ id: data?.id || Date.now(), ...formData } as EmailLink | PhoneLink | AddressLink);
+    onSave({ id: data?.id || Date.now(), ...formData } as EmailLink | PhoneLink | AddressLink | DomainLink);
     onClose();
   };
 
@@ -340,6 +399,38 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose
             </>
           )}
 
+          {type === 'domain' && (
+            <>
+              <div>
+                <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">Domain</label>
+                <input
+                  type="text"
+                  value={(formData.domain as string) || ''}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  placeholder="example.com"
+                  className="w-full px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                  required
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.is_primary as boolean || false}
+                  onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
+                />
+                Primary domain
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.verified as boolean || false}
+                  onChange={(e) => setFormData({ ...formData, verified: e.target.checked })}
+                />
+                Verified
+              </label>
+            </>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -382,8 +473,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'email' | 'phone' | 'address';
-    data?: EmailLink | PhoneLink | AddressLink;
+    type: 'email' | 'phone' | 'address' | 'domain';
+    data?: EmailLink | PhoneLink | AddressLink | DomainLink;
     index?: number;
   }>({ isOpen: false, type: 'email' });
 
@@ -402,24 +493,26 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   const emails = data.emails || [];
   const phones = data.phones || [];
   const addresses = data.addresses || [];
+  const domains = data.domains || [];
 
-  const totalItems = emails.length + phones.length + addresses.length;
+  const totalItems = emails.length + phones.length + addresses.length + domains.length;
 
   // Handlers
-  const handleAdd = (type: 'email' | 'phone' | 'address') => {
+  const handleAdd = (type: 'email' | 'phone' | 'address' | 'domain') => {
     setModalState({ isOpen: true, type, data: undefined });
   };
 
-  const handleEdit = (type: 'email' | 'phone' | 'address', item: EmailLink | PhoneLink | AddressLink, index: number) => {
+  const handleEdit = (type: 'email' | 'phone' | 'address' | 'domain', item: EmailLink | PhoneLink | AddressLink | DomainLink, index: number) => {
     setModalState({ isOpen: true, type, data: item, index });
   };
 
-  const handleDelete = (type: 'email' | 'phone' | 'address', index: number) => {
+  const handleDelete = (type: 'email' | 'phone' | 'address' | 'domain', index: number) => {
     if (!onChange) return;
     const newData = { ...data };
     if (type === 'email') newData.emails = emails.filter((_, i) => i !== index);
     if (type === 'phone') newData.phones = phones.filter((_, i) => i !== index);
     if (type === 'address') newData.addresses = addresses.filter((_, i) => i !== index);
+    if (type === 'domain') newData.domains = domains.filter((_, i) => i !== index);
     onChange(newData);
   };
 
@@ -429,7 +522,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
     onChange({ ...data, emails: newEmails });
   };
 
-  const handleSave = (item: EmailLink | PhoneLink | AddressLink) => {
+  const handleSave = (item: EmailLink | PhoneLink | AddressLink | DomainLink) => {
     if (!onChange) return;
     const newData = { ...data };
     const { type, index } = modalState;
@@ -449,6 +542,11 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
       if (index !== undefined) arr[index] = item as AddressLink;
       else arr.push(item as AddressLink);
       newData.addresses = arr;
+    } else if (type === 'domain') {
+      const arr = [...domains];
+      if (index !== undefined) arr[index] = item as DomainLink;
+      else arr.push(item as DomainLink);
+      newData.domains = arr;
     }
 
     onChange(newData);
@@ -568,6 +666,34 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                 </div>
               )}
 
+              {/* Domains */}
+              {showTypes.includes('domain') && domains.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Domains
+                    </h4>
+                    {canEdit && (
+                      <button
+                        onClick={() => handleAdd('domain')}
+                        className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400"
+                      >
+                        + Add
+                      </button>
+                    )}
+                  </div>
+                  {domains.map((domain, idx) => (
+                    <DomainItem
+                      key={domain.domain || idx}
+                      domain={domain}
+                      canEdit={canEdit}
+                      onEdit={() => handleEdit('domain', domain, idx)}
+                      onDelete={() => handleDelete('domain', idx)}
+                    />
+                  ))}
+                </div>
+              )}
+
               {/* Add buttons for empty sections */}
               {canEdit && (
                 <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
@@ -579,6 +705,9 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
                   )}
                   {showTypes.includes('address') && addresses.length === 0 && (
                     <button onClick={() => handleAdd('address')} className="text-xs text-teal-600 hover:underline">+ Address</button>
+                  )}
+                  {showTypes.includes('domain') && domains.length === 0 && (
+                    <button onClick={() => handleAdd('domain')} className="text-xs text-teal-600 hover:underline">+ Domain</button>
                   )}
                 </div>
               )}

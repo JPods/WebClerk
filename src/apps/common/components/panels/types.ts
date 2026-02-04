@@ -360,3 +360,10 @@ export interface AddressLink extends RefLink {
   country?: string;
   full?: string;
 }
+
+/** Domain link - matches Django LINK_DENORMALIZE_FIELDS.domain */
+export interface DomainLink extends RefLink {
+  domain?: string;
+  is_primary?: boolean;
+  verified?: boolean;
+}

@@ -44,8 +44,9 @@ import {
 } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 import { 
-  FaSave, FaChevronDown, FaChevronRight, FaTimes,
-  FaUser, FaBuilding, FaIdCard, FaCog
+  FaSave, FaChevronDown, FaChevronRight, FaTimes, FaEdit,
+  FaUser, FaBuilding, FaIdCard, FaCog,
+  FaStar, FaThLarge, FaCompressAlt, FaAlignLeft, FaListAlt, FaColumns, FaLayerGroup
 } from "react-icons/fa";
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
 
@@ -57,7 +58,52 @@ import {
   PrefsPanel,
   RawDataPanel,
   ActionsPanel,
+  CommunicationsPanel,
 } from "@/apps/common/components/panels";
+
+// ------------------------------------
+// Layout Selector for team discussion
+// ------------------------------------
+type LayoutStyle = "best-practice" | "grid" | "compact" | "dense" | "horizontal" | "two-column";
+
+interface LayoutOption {
+  value: LayoutStyle;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+}
+
+const layoutOptions: LayoutOption[] = [
+  { value: "best-practice", label: "Best Practice", icon: <FaStar className="w-3.5 h-3.5" />, description: "Enterprise UX standard - collapsible sections" },
+  { value: "grid", label: "Grid", icon: <FaThLarge className="w-3.5 h-3.5" />, description: "3-column grid with labels above" },
+  { value: "compact", label: "Compact", icon: <FaCompressAlt className="w-3.5 h-3.5" />, description: "Dense 3-column layout" },
+  { value: "dense", label: "Dense", icon: <FaAlignLeft className="w-3.5 h-3.5" />, description: "Ultra-compact inline labels" },
+  { value: "horizontal", label: "Horizontal", icon: <FaListAlt className="w-3.5 h-3.5" />, description: "2-column with left labels" },
+  { value: "two-column", label: "Two Column", icon: <FaColumns className="w-3.5 h-3.5" />, description: "Card-based layout" },
+];
+
+function LayoutSelector({ value, onChange }: { value: LayoutStyle; onChange: (layout: LayoutStyle) => void }) {
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
+      <FaLayerGroup className="text-slate-400 w-3 h-3" />
+      {layoutOptions.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`p-1.5 rounded transition-all ${
+            value === option.value
+              ? "bg-blue-500 text-white shadow-sm"
+              : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+          }`}
+          title={`${option.label}: ${option.description}`}
+        >
+          {option.icon}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ------------------------------------
 // Enterprise Field Row Component
@@ -184,6 +230,17 @@ export default function ContactDetail({
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
   
+  // Allow toggling between view and edit modes
+  const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
+  
+  // Layout selector for team discussion
+  const [selectedLayout, setSelectedLayout] = useState<LayoutStyle>("best-practice");
+  
+  // Sync effectiveMode when mode prop changes
+  useEffect(() => {
+    setEffectiveMode(mode);
+  }, [mode]);
+  
   const contactFieldNames = useMemo(() => CONTACT_DETAIL_FIELDS.slice(), []);
   const {
     isAdmin,
@@ -192,7 +249,7 @@ export default function ContactDetail({
   } = useDetailFieldAccess("contact", contactFieldNames);
 
   const isFieldDisabled = (fieldName: string) => {
-    if (mode === "view") return true;
+    if (effectiveMode === "view") return true;
     if (!isAdmin && isFieldReadOnly(fieldName)) return true;
     return false;
   };
@@ -324,28 +381,51 @@ export default function ContactDetail({
     <>
       {!hideBreadcrumb && !inline && (
         <PageBreadcrumb
-          pageTitle={mode === "edit" ? "Edit Contact" : mode === "view" ? "View Contact" : "Add Contact"}
+          pageTitle={effectiveMode === "edit" ? "Edit Contact" : effectiveMode === "view" ? "View Contact" : "Add Contact"}
         />
       )}
 
       <ComponentCard>
-        {/* Header with Title and Action Buttons */}
+        {/* Header with Title, Layout Selector, and Action Buttons */}
         <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">
-          <h3 className="dark:text-white text-lg font-semibold">
-            {mode === "edit" ? "Edit Contact" : mode === "view" ? "View Contact" : "Add New Contact"}
-          </h3>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              {onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                >
-                  <FaTimes className="w-3 h-3" />
-                  Cancel
-                </button>
-              )}
+          <div className="flex items-center gap-4">
+            <h3 className="dark:text-white text-lg font-semibold">
+              {effectiveMode === "edit" ? "Edit Contact" : effectiveMode === "view" ? "View Contact" : "Add New Contact"}
+            </h3>
+            {/* Layout Selector for team discussion */}
+            <LayoutSelector value={selectedLayout} onChange={setSelectedLayout} />
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Edit button - show in view mode to switch to edit */}
+            {effectiveMode === "view" && (
+              <button
+                type="button"
+                onClick={() => setEffectiveMode("edit")}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                <FaEdit className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            )}
+            {/* Cancel button - show for inline or when editing (to go back to view) */}
+            {(onCancelInline || effectiveMode === "edit") && effectiveMode !== "add" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onCancelInline) {
+                    onCancelInline();
+                  } else {
+                    setEffectiveMode("view");
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <FaTimes className="w-3 h-3" />
+                Cancel
+              </button>
+            )}
+            {/* Save button - show for add and edit modes */}
+            {effectiveMode !== "view" && (
               <button
                 type="submit"
                 form="contact-form"
@@ -353,15 +433,29 @@ export default function ContactDetail({
                 className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <FaSave className="w-3.5 h-3.5" />
-                {isSubmitting ? "Saving..." : mode === "add" ? "Create" : "Save"}
+                {isSubmitting ? "Saving..." : effectiveMode === "add" ? "Create" : "Save"}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <form id="contact-form" onSubmit={handleSubmit(onSubmit)} className="max-w-4xl">
           {/* 1. Personal Information Section - TOP */}
           <Section title="Personal Information" icon={<FaIdCard className="w-4 h-4" />} defaultExpanded={true}>
+            {/* Row 1: First Name (left), Prefix (right) */}
+            {shouldRenderField("name_first") && (
+              <FieldRow label="First Name" htmlFor="name_first" error={errors.name_first?.message} required>
+                <Input
+                  type="text"
+                  id="name_first"
+                  placeholder="First name"
+                  {...register("name_first")}
+                  error={!!errors.name_first?.message}
+                  disabled={isFieldDisabled("name_first")}
+                />
+              </FieldRow>
+            )}
+
             {shouldRenderField("name_prefix") && (
               <FieldRow label="Prefix" htmlFor="name_prefix">
                 <Input
@@ -374,15 +468,16 @@ export default function ContactDetail({
               </FieldRow>
             )}
 
-            {shouldRenderField("name_first") && (
-              <FieldRow label="First Name" htmlFor="name_first" error={errors.name_first?.message} required>
+            {/* Row 2: Last Name (left), Middle (right) */}
+            {shouldRenderField("name_last") && (
+              <FieldRow label="Last Name" htmlFor="name_last" error={errors.name_last?.message} required>
                 <Input
                   type="text"
-                  id="name_first"
-                  placeholder="First name"
-                  {...register("name_first")}
-                  error={!!errors.name_first?.message}
-                  disabled={isFieldDisabled("name_first")}
+                  id="name_last"
+                  placeholder="Last name"
+                  {...register("name_last")}
+                  error={!!errors.name_last?.message}
+                  disabled={isFieldDisabled("name_last")}
                 />
               </FieldRow>
             )}
@@ -399,15 +494,15 @@ export default function ContactDetail({
               </FieldRow>
             )}
 
-            {shouldRenderField("name_last") && (
-              <FieldRow label="Last Name" htmlFor="name_last" error={errors.name_last?.message} required>
+            {/* Row 3: Attention (left), Suffix (right) */}
+            {shouldRenderField("attention") && (
+              <FieldRow label="Attention" htmlFor="attention" hint="Auto-filled from first/last name">
                 <Input
                   type="text"
-                  id="name_last"
-                  placeholder="Last name"
-                  {...register("name_last")}
-                  error={!!errors.name_last?.message}
-                  disabled={isFieldDisabled("name_last")}
+                  id="attention"
+                  placeholder="Attention line"
+                  {...register("attention")}
+                  disabled={isFieldDisabled("attention")}
                 />
               </FieldRow>
             )}
@@ -420,18 +515,6 @@ export default function ContactDetail({
                   placeholder="Jr., Sr., III"
                   {...register("name_suffix")}
                   disabled={isFieldDisabled("name_suffix")}
-                />
-              </FieldRow>
-            )}
-
-            {shouldRenderField("attention") && (
-              <FieldRow label="Attention" htmlFor="attention" hint="Auto-filled from first/last name">
-                <Input
-                  type="text"
-                  id="attention"
-                  placeholder="Attention line"
-                  {...register("attention")}
-                  disabled={isFieldDisabled("attention")}
                 />
               </FieldRow>
             )}
@@ -476,7 +559,25 @@ export default function ContactDetail({
             )}
           </Section>
 
-          {/* 3. Actions Panel - expanded (only for edit/view) */}
+          {/* 3. Communications Panel - emails, phones, addresses, domains */}
+          {mode !== "add" && data?.id && (
+            <CommunicationsPanel
+              entityType="contact"
+              entityId={data.id}
+              data={{
+                emails: data.refs?.links?.email || [],
+                phones: data.refs?.links?.phone || [],
+                addresses: data.refs?.links?.address || [],
+                domains: data.refs?.links?.domain || [],
+              }}
+              onChange={(comms) => {
+                console.log('Communications updated:', comms);
+              }}
+              defaultCollapsed={false}
+            />
+          )}
+
+          {/* 4. Actions Panel - expanded (only for edit/view) */}
           {mode !== "add" && data?.id && (
             <ActionsPanel
               entityType="contact"
@@ -489,7 +590,7 @@ export default function ContactDetail({
             />
           )}
 
-          {/* 4. Comments Panel - collapsed */}
+          {/* 5. Comments Panel - collapsed */}
           {mode !== "add" && data?.id && (
             <CommentsPanel
               entityType="contact"
@@ -502,7 +603,7 @@ export default function ContactDetail({
             />
           )}
 
-          {/* 5. Metadata Panel - collapsed (admin only) */}
+          {/* 6. Metadata Panel - collapsed (admin only) */}
           {mode !== "add" && data?.id && isAdmin && (
             <MetadataPanel
               entityType="contact"
@@ -515,7 +616,7 @@ export default function ContactDetail({
             />
           )}
 
-          {/* 6. Prefs Panel - collapsed */}
+          {/* 7. Prefs Panel - collapsed */}
           {mode !== "add" && data?.id && (
             <PrefsPanel
               entityType="contact"
@@ -528,7 +629,7 @@ export default function ContactDetail({
             />
           )}
 
-          {/* 7. Refs Panel - collapsed (admin only) */}
+          {/* 8. Refs Panel - collapsed (admin only) */}
           {mode !== "add" && data?.id && isAdmin && (
             <RefsPanel
               entityType="contact"
@@ -541,7 +642,7 @@ export default function ContactDetail({
             />
           )}
 
-          {/* 8. Raw Data Panel - collapsed (admin only, seldom used) */}
+          {/* 9. Raw Data Panel - collapsed (admin only, seldom used) */}
           {mode !== "add" && data?.id && isAdmin && (
             <RawDataPanel
               entityType="contact"
@@ -551,7 +652,7 @@ export default function ContactDetail({
             />
           )}
 
-          {/* 9. System IDs Section - collapsed */}
+          {/* 10. System IDs Section - collapsed */}
           <Section title="System IDs" icon={<FaCog className="w-4 h-4" />} defaultExpanded={false}>
             {shouldRenderField("customer_id") && (
               <FieldRow label="Customer ID" htmlFor="customer_id">
@@ -641,7 +742,7 @@ export default function ContactDetail({
               </FieldRow>
             )}
 
-            {mode === "add" && (
+            {effectiveMode === "add" && (
               <>
                 {shouldRenderField("password") && (
                   <FieldRow label="Password" htmlFor="password" error={(errors as any).password?.message} required hint="Min 8 chars, not common">

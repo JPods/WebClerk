@@ -30,6 +30,7 @@ export type {
   EmailLink,
   PhoneLink,
   AddressLink,
+  DomainLink,
 } from './types';
 
 // Constants
