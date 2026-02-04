@@ -8,67 +8,72 @@
 // ---------------------------------------------------------------------------
 
 /** Available user roles in the system */
-export type UserRole = 
-  | 'admin' 
-  | 'superadmin' 
-  | 'super_admin'
-  | 'administrator'
-  | 'manager' 
-  | 'user' 
-  | 'viewer' 
-  | 'guest';
+export type UserRole =
+  | "admin"
+  | "superadmin"
+  | "super_admin"
+  | "administrator"
+  | "manager"
+  | "user"
+  | "viewer"
+  | "guest";
 
 /** Admin-level roles that have full access */
-export const ADMIN_ROLES: UserRole[] = ['admin', 'superadmin', 'super_admin', 'administrator'];
+export const ADMIN_ROLES: UserRole[] = [
+  "admin",
+  "superadmin",
+  "super_admin",
+  "administrator",
+];
 
 /** Manager-level roles (includes admin) */
-export const MANAGER_ROLES: UserRole[] = [...ADMIN_ROLES, 'manager'];
+export const MANAGER_ROLES: UserRole[] = [...ADMIN_ROLES, "manager"];
 
 /** Standard user roles (includes manager) */
-export const USER_ROLES: UserRole[] = [...MANAGER_ROLES, 'user'];
+export const USER_ROLES: UserRole[] = [...MANAGER_ROLES, "user"];
 
 /** All roles including viewers */
-export const ALL_ROLES: UserRole[] = [...USER_ROLES, 'viewer', 'guest'];
+export const ALL_ROLES: UserRole[] = [...USER_ROLES, "viewer", "guest"];
 
 // ---------------------------------------------------------------------------
 // Entity Types
 // ---------------------------------------------------------------------------
 
 /** Entity types that support panels */
-export type EntityType = 
+export type EntityType =
   // Core
-  | 'contact'
-  | 'setting'
+  | "contact"
+  | "setting"
   // Orgs
-  | 'customer'
-  | 'vendor'
-  | 'manufacturer'
-  | 'employee'
-  | 'rep'
-  | 'other'
+  | "customer"
+  | "vendor"
+  | "manufacturer"
+  | "employee"
+  | "rep"
+  | "other"
   // Transactions
-  | 'order'
-  | 'sales_order'
-  | 'invoice'
-  | 'purchase'
-  | 'purchase_order'
-  | 'proposal'
-  | 'workorder'
-  | 'work_order'
+  | "order"
+  | "sales_order"
+  | "invoice"
+  | "purchase"
+  | "purchase_order"
+  | "proposal"
+  | "workorder"
+  | "work_order"
   // Products
-  | 'item'
-  | 'category'
+  | "item"
+  | "category"
   // Communications
-  | 'email'
-  | 'phone'
-  | 'address'
-  | 'domain'
+  | "email"
+  | "phone"
+  | "address"
+  | "domain"
   // Support
-  | 'campaign'
-  | 'project'
+  | "campaign"
+  | "project"
   // Sync
-  | 'bundle'
-  | 'connection';
+  | "bundle"
+  | "connection";
 
 // ---------------------------------------------------------------------------
 // Permission Types
@@ -106,34 +111,34 @@ export const DEFAULT_PANEL_PERMISSIONS: Record<string, PanelPermissions> = {
 export interface BasePanelProps<T = unknown> {
   /** Type of entity (contact, order, customer, etc.) */
   entityType: EntityType;
-  
+
   /** ID of the entity */
   entityId: number;
-  
+
   /** The data to display */
   data: T;
-  
+
   /** Callback when data changes */
   onChange?: (data: T) => void;
-  
+
   /** Force read-only mode regardless of permissions */
   readOnly?: boolean;
-  
+
   /** Override default view roles */
   viewRoles?: UserRole[];
-  
+
   /** Override default edit roles */
   editRoles?: UserRole[];
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Compact display mode */
   compact?: boolean;
-  
+
   /** Title override (default: derived from panel type) */
   title?: string;
-  
+
   /** Whether panel is initially collapsed */
   defaultCollapsed?: boolean;
 }
@@ -202,16 +207,16 @@ export interface EntityRefs {
 /** Entity preferences structure */
 export interface EntityPrefs {
   display?: {
-    layout?: 'grid' | 'list' | 'card' | 'table';
+    layout?: "grid" | "list" | "card" | "table";
     columns?: string[];
-    sort?: { field: string; order: 'asc' | 'desc' };
-    theme?: 'light' | 'dark' | 'system';
+    sort?: { field: string; order: "asc" | "desc" };
+    theme?: "light" | "dark" | "system";
   };
   notifications?: {
     email?: boolean;
     sms?: boolean;
     push?: boolean;
-    frequency?: 'immediate' | 'daily' | 'weekly';
+    frequency?: "immediate" | "daily" | "weekly";
   };
   defaults?: Record<string, unknown>;
   [key: string]: unknown;
@@ -227,7 +232,7 @@ export interface CommentEntry {
   text: string;
   by?: string;
   ts?: number | string;
-  source?: 'Public' | 'Process' | 'Partner' | 'Notes';
+  source?: "Public" | "Process" | "Partner" | "Notes";
 }
 
 /** Comments structure with tabs */
@@ -243,13 +248,26 @@ export interface EntityComments {
 // ---------------------------------------------------------------------------
 
 /** Action/task status */
-export type ActionStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
+export type ActionStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "on_hold";
 
 /** Action/task priority */
-export type ActionPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type ActionPriority = "low" | "normal" | "high" | "urgent";
 
 /** Action/task kind */
-export type ActionKind = 'task' | 'followup' | 'call' | 'email' | 'review' | 'approve' | 'ship' | 'other';
+export type ActionKind =
+  | "task"
+  | "followup"
+  | "call"
+  | "email"
+  | "review"
+  | "approve"
+  | "ship"
+  | "other";
 
 /** Single action/task entry */
 export interface ActionEntry {
@@ -278,7 +296,7 @@ export interface QAEntry {
   answered_by?: string;
   asked_at?: string;
   answered_at?: string;
-  status?: 'open' | 'answered' | 'closed';
+  status?: "open" | "answered" | "closed";
 }
 
 // ---------------------------------------------------------------------------
@@ -340,6 +358,8 @@ export interface PaymentEntry {
 /** Email link - matches Django LINK_DENORMALIZE_FIELDS.email */
 export interface EmailLink extends RefLink {
   email?: string;
+  address?: string; // API returns 'address' field
+  value?: string; // Normalized 'value' field
   is_primary?: boolean;
   verified?: boolean;
 }
