@@ -1,6 +1,9 @@
 /**
  * CommunicationsPanel - Manage emails, phones, addresses, and domains linked to an entity
  * 
+ * This panel makes its own API calls to create/update/delete records via wcapi.
+ * On successful API response (200), it calls onChange to update the parent's local state.
+ * 
  * Data sources:
  * - refs.links.email: [{id, email, name, type, is_primary}]
  * - refs.links.phone: [{id, number, format, name}]
@@ -12,12 +15,17 @@
  * - Edit: User+ roles (default)
  */
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FaEnvelope, FaPhone, FaMapMarkerAlt, FaChevronDown, FaChevronUp, 
-  FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaExternalLinkAlt, FaGlobe
+  FaPlus, FaEdit, FaTrash, FaStar, FaRegStar, FaExternalLinkAlt, FaGlobe,
+  FaSpinner
 } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
 import type { BasePanelProps, EmailLink, PhoneLink, AddressLink, DomainLink } from './types';
+
+// WCAPI for save/delete operations
+import { saveRecord, deleteRecord } from '@/api/wcapi';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,6 +41,8 @@ interface CommunicationsData {
 interface CommunicationsPanelProps extends Omit<BasePanelProps<CommunicationsData>, 'data'> {
   /** Communications data */
   data?: CommunicationsData;
+  /** Contact ID to link new records to */
+  contactId?: number;
   /** Show only specific types */
   showTypes?: ('email' | 'phone' | 'address' | 'domain')[];
 }
@@ -256,9 +266,11 @@ interface AddEditModalProps {
   data?: EmailLink | PhoneLink | AddressLink | DomainLink;
   onClose: () => void;
   onSave: (data: EmailLink | PhoneLink | AddressLink | DomainLink) => void;
+  isSaving?: boolean;
+  contactId?: number;  // Debug: show which contact we're linking to
 }
 
-const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose, onSave }) => {
+const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose, onSave, isSaving = false, contactId }) => {
   const [formData, setFormData] = useState<Record<string, string | boolean>>({});
 
   React.useEffect(() => {
@@ -271,18 +283,39 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({ id: data?.id || Date.now(), ...formData } as EmailLink | PhoneLink | AddressLink | DomainLink);
+  // Handle click on overlay to prevent propagation
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 w-80 max-w-full mx-4">
-        <h3 className="text-sm font-semibold mb-4 text-slate-700 dark:text-slate-200 capitalize">
+  const handleModalClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent clicks inside modal from closing it
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent bubbling to parent form
+    // Don't include Date.now() as id - let the backend assign it
+    const payload = data?.id ? { id: data.id, ...formData } : { ...formData };
+    onSave(payload as EmailLink | PhoneLink | AddressLink | DomainLink);
+    // Note: onClose is called by handleSave on success
+  };
+
+  // Use portal to render modal outside the parent form
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={handleOverlayClick}
+    >
+      <div 
+        className="bg-white dark:bg-slate-800 rounded-lg p-4 w-80 max-w-full mx-4"
+        onClick={handleModalClick}
+      >
+        <h3 className="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200 capitalize">
           {data ? 'Edit' : 'Add'} {type}
         </h3>
+        <p className="text-xs text-slate-500 mb-4">Contact ID: <strong className="text-blue-600">{contactId ?? 'NOT SET'}</strong></p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {type === 'email' && (
@@ -435,20 +468,24 @@ const AddEditModal: React.FC<AddEditModalProps> = ({ isOpen, type, data, onClose
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded"
+              disabled={isSaving}
+              className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+              disabled={isSaving}
+              className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center gap-1.5"
             >
-              Save
+              {isSaving && <FaSpinner className="animate-spin" size={12} />}
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -460,6 +497,7 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   entityType: _entityType,
   entityId: _entityId,
   data = {},
+  contactId,
   onChange,
   readOnly = false,
   viewRoles,
@@ -468,9 +506,10 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
   compact = false,
   title = 'Contact Info',
   defaultCollapsed = false,
-  showTypes = ['email', 'phone', 'address'],
+  showTypes = ['email', 'phone', 'address', 'domain'],
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [isSaving, setIsSaving] = useState(false);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: 'email' | 'phone' | 'address' | 'domain';
@@ -506,50 +545,172 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
     setModalState({ isOpen: true, type, data: item, index });
   };
 
-  const handleDelete = (type: 'email' | 'phone' | 'address' | 'domain', index: number) => {
+  const handleDelete = async (type: 'email' | 'phone' | 'address' | 'domain', index: number) => {
     if (!onChange) return;
-    const newData = { ...data };
-    if (type === 'email') newData.emails = emails.filter((_, i) => i !== index);
-    if (type === 'phone') newData.phones = phones.filter((_, i) => i !== index);
-    if (type === 'address') newData.addresses = addresses.filter((_, i) => i !== index);
-    if (type === 'domain') newData.domains = domains.filter((_, i) => i !== index);
-    onChange(newData);
-  };
-
-  const handleSetPrimary = (index: number) => {
-    if (!onChange) return;
-    const newEmails = emails.map((e, i) => ({ ...e, is_primary: i === index }));
-    onChange({ ...data, emails: newEmails });
-  };
-
-  const handleSave = (item: EmailLink | PhoneLink | AddressLink | DomainLink) => {
-    if (!onChange) return;
-    const newData = { ...data };
-    const { type, index } = modalState;
-
-    if (type === 'email') {
-      const arr = [...emails];
-      if (index !== undefined) arr[index] = item as EmailLink;
-      else arr.push(item as EmailLink);
-      newData.emails = arr;
-    } else if (type === 'phone') {
-      const arr = [...phones];
-      if (index !== undefined) arr[index] = item as PhoneLink;
-      else arr.push(item as PhoneLink);
-      newData.phones = arr;
-    } else if (type === 'address') {
-      const arr = [...addresses];
-      if (index !== undefined) arr[index] = item as AddressLink;
-      else arr.push(item as AddressLink);
-      newData.addresses = arr;
-    } else if (type === 'domain') {
-      const arr = [...domains];
-      if (index !== undefined) arr[index] = item as DomainLink;
-      else arr.push(item as DomainLink);
-      newData.domains = arr;
+    
+    // Get the item to delete
+    let itemToDelete: { id?: number } | undefined;
+    if (type === 'email') itemToDelete = emails[index];
+    else if (type === 'phone') itemToDelete = phones[index];
+    else if (type === 'address') itemToDelete = addresses[index];
+    else if (type === 'domain') itemToDelete = domains[index];
+    
+    // If item has an id, delete from backend first
+    if (itemToDelete?.id) {
+      setIsSaving(true);
+      try {
+        await deleteRecord(type, itemToDelete.id);
+        // On success, update local state
+        const newData = { ...data };
+        if (type === 'email') newData.emails = emails.filter((_, i) => i !== index);
+        if (type === 'phone') newData.phones = phones.filter((_, i) => i !== index);
+        if (type === 'address') newData.addresses = addresses.filter((_, i) => i !== index);
+        if (type === 'domain') newData.domains = domains.filter((_, i) => i !== index);
+        onChange(newData);
+      } catch (err) {
+        console.error(`Failed to delete ${type}:`, err);
+        // Could show toast here
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      // No id means it's a new unsaved item, just remove from local state
+      const newData = { ...data };
+      if (type === 'email') newData.emails = emails.filter((_, i) => i !== index);
+      if (type === 'phone') newData.phones = phones.filter((_, i) => i !== index);
+      if (type === 'address') newData.addresses = addresses.filter((_, i) => i !== index);
+      if (type === 'domain') newData.domains = domains.filter((_, i) => i !== index);
+      onChange(newData);
     }
+  };
 
-    onChange(newData);
+  const handleSetPrimary = async (index: number) => {
+    if (!onChange) return;
+    const emailToUpdate = emails[index];
+    if (!emailToUpdate?.id) return;
+    
+    setIsSaving(true);
+    try {
+      // Update the email to be primary via wcapi - always include contact_id
+      await saveRecord('email', { 
+        id: emailToUpdate.id, 
+        is_primary: true,
+        contact_id: contactId 
+      });
+      // On success, update all emails locally
+      const newEmails = emails.map((e, i) => ({ ...e, is_primary: i === index }));
+      onChange({ ...data, emails: newEmails });
+    } catch (err) {
+      console.error('Failed to set primary email:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSave = async (item: EmailLink | PhoneLink | AddressLink | DomainLink) => {
+    if (!onChange) return;
+    const { type, index } = modalState;
+    
+    setIsSaving(true);
+    try {
+      // Build the payload for wcapi - always include contact_id
+      const payload: any = { ...item };
+      if (contactId) {
+        payload.contact_id = contactId;
+      } else {
+        console.warn('[CommunicationsPanel] No contactId provided!');
+      }
+      
+      console.log('[CommunicationsPanel] handleSave:', { 
+        type, 
+        contactId, 
+        'payload.contact_id': payload.contact_id,
+        fullPayload: JSON.stringify(payload)
+      });
+      
+      // Save via wcapi - it handles create vs update based on presence of id
+      const result = await saveRecord(type, payload);
+      console.log('[CommunicationsPanel] saveRecord result:', result);
+      
+      // On success (200), format the data for refs.links structure
+      // Format: {id, value, name} for email/phone/domain, or full object for address
+      const returnedId = result?.record?.id || result?.id || item.id;
+      
+      let linkItem: any;
+      if (type === 'email') {
+        // refs.links.email: [{id, value, name, is_primary}]
+        linkItem = {
+          id: returnedId,
+          value: (item as EmailLink).email || payload.email,
+          name: (item as EmailLink).name || payload.name || '',
+          is_primary: (item as EmailLink).is_primary || false,
+          // Keep original fields for display
+          email: (item as EmailLink).email || payload.email,
+        };
+      } else if (type === 'phone') {
+        // refs.links.phone: [{id, value, name}]
+        linkItem = {
+          id: returnedId,
+          value: (item as PhoneLink).number || payload.number,
+          name: (item as PhoneLink).name || payload.name || '',
+          number: (item as PhoneLink).number || payload.number,
+        };
+      } else if (type === 'domain') {
+        // refs.links.domain: [{id, value, name, is_primary}]
+        linkItem = {
+          id: returnedId,
+          value: (item as DomainLink).domain || payload.domain,
+          name: (item as DomainLink).name || payload.name || '',
+          is_primary: (item as DomainLink).is_primary || false,
+          domain: (item as DomainLink).domain || payload.domain,
+        };
+      } else if (type === 'address') {
+        // refs.links.address: [{id, name, full, address1, city, state, zip, country}]
+        const addr = item as AddressLink;
+        linkItem = {
+          id: returnedId,
+          name: addr.name || payload.name || '',
+          full: addr.full || `${addr.address1 || ''}\n${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}`.trim(),
+          address1: addr.address1 || payload.address1 || '',
+          city: addr.city || payload.city || '',
+          state: addr.state || payload.state || '',
+          zip: addr.zip || payload.zip || '',
+          country: addr.country || payload.country || '',
+        };
+      }
+      
+      // Update local state with the formatted link item
+      const newData = { ...data };
+      if (type === 'email') {
+        const arr = [...emails];
+        if (index !== undefined) arr[index] = linkItem as EmailLink;
+        else arr.push(linkItem as EmailLink);
+        newData.emails = arr;
+      } else if (type === 'phone') {
+        const arr = [...phones];
+        if (index !== undefined) arr[index] = linkItem as PhoneLink;
+        else arr.push(linkItem as PhoneLink);
+        newData.phones = arr;
+      } else if (type === 'address') {
+        const arr = [...addresses];
+        if (index !== undefined) arr[index] = linkItem as AddressLink;
+        else arr.push(linkItem as AddressLink);
+        newData.addresses = arr;
+      } else if (type === 'domain') {
+        const arr = [...domains];
+        if (index !== undefined) arr[index] = linkItem as DomainLink;
+        else arr.push(linkItem as DomainLink);
+        newData.domains = arr;
+      }
+
+      onChange(newData);
+      setModalState({ ...modalState, isOpen: false });
+    } catch (err) {
+      console.error(`Failed to save ${type}:`, err);
+      // Could show toast here
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -723,6 +884,8 @@ const CommunicationsPanel: React.FC<CommunicationsPanelProps> = ({
         data={modalState.data}
         onClose={() => setModalState({ ...modalState, isOpen: false })}
         onSave={handleSave}
+        isSaving={isSaving}
+        contactId={contactId}
       />
     </div>
   );
