@@ -267,7 +267,8 @@ export default function CustomerDetail({
   // Tab definitions - merged summary and overview
   const tabs = [
     { id: "overview", label: "Overview", icon: <FaBuilding size={14} /> },
-    { id: "communication", label: "Communication", icon: <FaPhone size={14} /> },
+    { id: "contact", label: "Contact", icon: <FaPhone size={14} /> },
+    // { id: "communication", label: "Communication", icon: <FaPhone size={14} /> },
     { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
     { id: "relations", label: "Relations", icon: <FaUsers size={14} /> },
     { id: "documents", label: "Documents", icon: <FaFileAlt size={14} /> },
