@@ -2,7 +2,8 @@
  * RefsLinksContactPanel - Display contacts grouped by purpose with editing support
  * Syncs with refs.links.contact structure from API
  */
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useWindowManager } from "@/context/WindowManagerContext";
 import {
   FaUser,
   FaEnvelope,
@@ -10,8 +11,273 @@ import {
   FaTimes,
   FaEdit,
   FaGlobe,
+  FaMapMarkerAlt,
+  FaPlus,
+  FaSave,
+  FaTrash,
+  FaChevronDown,
+  FaChevronRight,
+  FaSpinner,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
+import { fetchContacts } from "@/apps/core/models/contact/services/contactApi";
+import {
+  createEmail,
+  updateEmail,
+  deleteEmail,
+} from "@/apps/communications/models/email/services/emailApi";
+import {
+  createPhone,
+  updatePhone,
+  deletePhone,
+} from "@/apps/communications/models/phone/services/phoneApi";
+import {
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} from "@/apps/communications/models/address/services/addressApi";
+import {
+  createDomain,
+  updateDomain,
+  deleteDomain,
+} from "@/apps/communications/models/domain/services/domainApi";
+
+// ------------------------------------
+// Communication Record Types
+// ------------------------------------
+interface EmailRecord {
+  id: number;
+  address: string;
+  name?: string;
+  type?: string;
+  is_primary?: boolean;
+  is_verified?: boolean;
+}
+
+interface PhoneRecord {
+  id: number;
+  number: string;
+  name?: string;
+  type?: string;
+  is_primary?: boolean;
+}
+
+interface AddressRecord {
+  id: number;
+  name?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  type?: string;
+  full?: string;
+}
+
+interface DomainRecord {
+  id: number;
+  domain: string;
+  name?: string;
+  is_primary?: boolean;
+}
+
+// ------------------------------------
+// Communication Table Component
+// ------------------------------------
+interface CommunicationTableProps<T> {
+  title: string;
+  icon: React.ReactNode;
+  data: T[];
+  columns: {
+    key: keyof T | string;
+    label: string;
+    render?: (item: T) => React.ReactNode;
+  }[];
+  onAdd: () => void;
+  onEdit: (item: T) => void;
+  onDelete: (item: T) => void;
+  onSave: (item: T) => void;
+  editingItem: T | null;
+  onEditChange: (field: keyof T, value: any) => void;
+  onCancelEdit: () => void;
+  disabled?: boolean;
+}
+
+function CommunicationTable<T extends { id: number }>({
+  title,
+  icon,
+  data,
+  columns,
+  onAdd,
+  onEdit,
+  onDelete,
+  onSave,
+  editingItem,
+  onEditChange,
+  onCancelEdit,
+  disabled = false,
+}: CommunicationTableProps<T>) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <div className="border rounded-lg dark:border-slate-700 overflow-hidden mb-4">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? (
+            <FaChevronDown className="text-slate-400 w-3 h-3" />
+          ) : (
+            <FaChevronRight className="text-slate-400 w-3 h-3" />
+          )}
+          {icon}
+          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">
+            {title}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            ({data.length})
+          </span>
+        </div>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600"
+          >
+            <FaPlus className="w-2 h-2" /> Add
+          </button>
+        )}
+      </div>
+
+      {/* Table Content */}
+      {isExpanded && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-100 dark:bg-slate-700">
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={String(col.key)}
+                    className="px-2 py-1 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase"
+                  >
+                    {col.label}
+                  </th>
+                ))}
+                {!disabled && (
+                  <th className="px-2 py-1 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase w-20">
+                    Actions
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              {data.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length + 1}
+                    className="px-2 py-4 text-center text-slate-400 dark:text-slate-500"
+                  >
+                    No records found
+                  </td>
+                </tr>
+              ) : (
+                data.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  >
+                    {editingItem && editingItem.id === item.id ? (
+                      // Editing row
+                      <>
+                        {columns.map((col) => (
+                          <td key={String(col.key)} className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={String(
+                                (editingItem as any)[col.key] ?? "",
+                              )}
+                              onChange={(e) =>
+                                onEditChange(col.key as keyof T, e.target.value)
+                              }
+                              className="w-full px-2 py-1 text-xs border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            />
+                          </td>
+                        ))}
+                        <td className="px-2 py-1 text-right">
+                          <div className="flex justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => onSave(editingItem)}
+                              className="p-1 text-green-600 hover:text-green-700"
+                              title="Save"
+                            >
+                              <FaSave className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={onCancelEdit}
+                              className="p-1 text-slate-500 hover:text-slate-700"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      // View row
+                      <>
+                        {columns.map((col) => (
+                          <td
+                            key={String(col.key)}
+                            className="px-2 py-1 text-slate-700 dark:text-slate-300"
+                          >
+                            {col.render
+                              ? col.render(item)
+                              : String((item as any)[col.key] ?? "--")}
+                          </td>
+                        ))}
+                        {!disabled && (
+                          <td className="px-2 py-1 text-right">
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onEdit(item)}
+                                className="p-1 text-blue-600 hover:text-blue-700"
+                                title="Edit"
+                              >
+                                <FaEdit className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onDelete(item)}
+                                className="p-1 text-red-600 hover:text-red-700"
+                                title="Delete"
+                              >
+                                <FaTrash className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // API contact structure from refs.links.contact
 export interface RefContact {
@@ -23,10 +289,6 @@ export interface RefContact {
   full?: string;
   domain?: string;
   address?: any; // Added to fix compile error
-  address_id?: number;
-  email_id?: number;
-  phone_id?: number;
-  domain_id?: number;
 }
 
 // Helper to normalize refs.links.contact API data to RefContact[]
@@ -41,24 +303,6 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       base = c.contact;
       purpose = c.purpose || base.purpose || "";
     }
-    // Helper to extract and join all values from possible array/object
-    // const extractAll = (field: any, key = "value") => {
-    //   if (Array.isArray(field)) {
-    //     return field
-    //       .map((item) => {
-    //         if (typeof item === "object" && item !== null) {
-    //           return item[key] ?? "";
-    //         }
-    //         return item ?? "";
-    //       })
-    //       .filter(Boolean)
-    //       .join(", ");
-    //   }
-    //   if (typeof field === "object" && field !== null) {
-    //     return field[key] ?? "";
-    //   }
-    //   return field ?? "";
-    // };
     // Helper to extract and join all address full fields (newline separated)
     const extractAddressFull = (field: any) => {
       if (Array.isArray(field)) {
@@ -85,35 +329,14 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       }
       return typeof field === "string" ? field : "";
     };
-    const extractId = (field: any) => {
-      if (Array.isArray(field)) {
-        const first = field[0];
-        if (
-          typeof first === "object" &&
-          first !== null &&
-          first.id !== undefined
-        ) {
-          return first.id;
-        }
-      }
-      if (
-        typeof field === "object" &&
-        field !== null &&
-        field.id !== undefined
-      ) {
-        return field.id;
-      }
-      return undefined;
-    };
     const attention = base.attention || undefined;
     const addressFull = extractAddressFull(base.address);
-    const addressId = extractId(base.address);
     let contact_id = base.id;
     if (contact_id === undefined || contact_id === null || contact_id === "") {
       contact_id = idx + 1;
     }
     // Helper to normalize contact fields to array of {id, name, value}
-    const normalizeContactField = (field: any, fieldName: string) => {
+    const normalizeContactField = (field: any) => {
       if (Array.isArray(field)) {
         return field.map((item: any, idx: number) => {
           if (typeof item === "object" && item !== null) {
@@ -154,15 +377,11 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
       contact_id,
       purpose,
       attention,
-      email: normalizeContactField(base.email, "email"),
-      phone: normalizeContactField(base.phone, "phone"),
-      domain: normalizeContactField(base.domain, "domain"),
+      email: normalizeContactField(base.email),
+      phone: normalizeContactField(base.phone),
+      domain: normalizeContactField(base.domain),
       full: addressFull,
-      address: base.address, // <--- preserve original address array/object for modal editing
-      address_id: addressId,
-      email_id: extractId(base.email),
-      phone_id: extractId(base.phone),
-      domain_id: extractId(base.domain),
+      address: base.address, // preserve original address array/object for modal editing
     };
   });
 }
@@ -221,8 +440,6 @@ const ContactEditModal: React.FC<{
   onClose: () => void;
   onSave: (contact: RefContact) => void;
 }> = ({ contact, isOpen, onClose, onSave }) => {
-  // Always reset formData when a new contact is being edited (including same id with new data)
-
   // Support multiple emails, phones, domains, addresses
   type MultiContact = Omit<
     RefContact,
@@ -233,88 +450,544 @@ const ContactEditModal: React.FC<{
     domain?: string[];
     full?: string[];
   };
+
+  // Store original objects for id/name preservation (at top level of component)
+  const originalObjectsRef = React.useRef<{
+    email?: any[];
+    phone?: any[];
+    domain?: any[];
+  }>({});
+
   // Helper to split comma-separated values into arrays for editing
   const splitMulti = (val: string | undefined, sep: string) => {
     if (!val) return [""];
+    if (Array.isArray(val)) {
+      return val
+        .map((v: any) => (typeof v === "object" && v.value ? v.value : v))
+        .filter(Boolean);
+    }
     return val
       .split(sep)
       .map((v) => v.trim())
       .filter(Boolean);
   };
-  // Helper to extract address.full as a single value (no splitting)
-  // Helper to extract all address.full values from address array or object
-  const extractAddressFullArray = (address: any): string[] => {
-    if (Array.isArray(address)) {
-      return address
-        .map((item) =>
-          item && typeof item === "object" && typeof item.full === "string"
-            ? item.full
-            : "",
-        )
-        .filter(Boolean);
-    }
-    if (
-      typeof address === "object" &&
-      address !== null &&
-      typeof address.full === "string"
-    ) {
-      return [address.full];
-    }
-    if (typeof address === "string") {
-      return [address];
-    }
-    return [""];
-  };
-  // Helper to convert array of objects or string to array of strings for modal editing
-  const fieldToStringArray = (field: any, valueKey = "value") => {
-    if (Array.isArray(field)) {
-      // If array of objects with value/name/full
-      return field
-        .map((item) => {
-          if (typeof item === "object" && item !== null) {
-            return item[valueKey] ?? item.full ?? item.name ?? "";
-          }
-          return item ?? "";
-        })
-        .filter(Boolean);
-    }
-    if (typeof field === "object" && field !== null) {
-      return [field[valueKey] ?? field.full ?? field.name ?? ""];
-    }
-    if (typeof field === "string") {
-      return splitMulti(field, ",");
-    }
-    return [""];
-  };
 
+  // Convert RefContact to MultiContact for editing (no hooks inside)
   const toMulti = (c: RefContact | null): MultiContact => {
+    // Save original objects for id/name preservation
+    originalObjectsRef.current.email = Array.isArray(c?.email)
+      ? c.email
+      : undefined;
+    originalObjectsRef.current.phone = Array.isArray(c?.phone)
+      ? c.phone
+      : undefined;
+    originalObjectsRef.current.domain = Array.isArray(c?.domain)
+      ? c.domain
+      : undefined;
+
     let addressArr: string[] = [""];
     if (c?.address) {
-      addressArr = extractAddressFullArray(c.address);
-    } else if (c?.full) {
-      addressArr = fieldToStringArray(c.full, "full");
+      if (Array.isArray(c.address)) {
+        addressArr = c.address
+          .map((item: any) =>
+            item && typeof item === "object" && typeof item.full === "string"
+              ? item.full
+              : "",
+          )
+          .filter(Boolean);
+      } else if (
+        typeof c.address === "object" &&
+        c.address !== null &&
+        typeof c.address.full === "string"
+      ) {
+        addressArr = [c.address.full];
+      } else if (typeof c.address === "string") {
+        addressArr = [c.address];
+      }
     }
+    if (addressArr.length === 0) addressArr = [""];
+
     return {
       ...c,
       contact_id: c?.contact_id ?? 0,
       purpose: c?.purpose ?? "",
-      email: c?.email ? fieldToStringArray(c.email, "value") : [""],
-      phone: c?.phone ? fieldToStringArray(c.phone, "value") : [""],
-      domain: c?.domain ? fieldToStringArray(c.domain, "value") : [""],
+      email: Array.isArray(c?.email)
+        ? c.email.map((e: any) =>
+            typeof e === "object" && e.value ? e.value : e,
+          )
+        : c?.email
+        ? splitMulti(c.email, ",")
+        : [""],
+      phone: Array.isArray(c?.phone)
+        ? c.phone.map((p: any) =>
+            typeof p === "object" && p.value ? p.value : p,
+          )
+        : c?.phone
+        ? splitMulti(c.phone, ",")
+        : [""],
+      domain: Array.isArray(c?.domain)
+        ? c.domain.map((d: any) =>
+            typeof d === "object" && d.value ? d.value : d,
+          )
+        : c?.domain
+        ? splitMulti(c.domain, ",")
+        : [""],
       full: addressArr,
     };
   };
+
+  // Convert MultiContact back to RefContact for saving
   const fromMulti = (m: MultiContact): RefContact => ({
     ...m,
-    email: m.email?.filter(Boolean).join(", "),
-    phone: m.phone?.filter(Boolean).join(", "),
-    domain: m.domain?.filter(Boolean).join(", "),
-    full: m.full?.filter(Boolean).join(""), // treat as single value, no newline join
+    email:
+      m.email?.map((val, idx) => {
+        const orig = originalObjectsRef.current.email?.[idx];
+        return {
+          id: orig?.id ?? idx,
+          name: orig?.name ?? "",
+          value: val ?? "",
+        };
+      }) ?? [],
+    phone:
+      m.phone?.map((val, idx) => {
+        const orig = originalObjectsRef.current.phone?.[idx];
+        return {
+          id: orig?.id ?? idx,
+          name: orig?.name ?? "",
+          value: val ?? "",
+        };
+      }) ?? [],
+    domain:
+      m.domain?.map((val, idx) => {
+        const orig = originalObjectsRef.current.domain?.[idx];
+        return {
+          id: orig?.id ?? idx,
+          name: orig?.name ?? "",
+          value: val ?? "",
+        };
+      }) ?? [],
+    full:
+      Array.isArray(m.full) && m.full.length > 0
+        ? m.full.filter(Boolean).join("")
+        : m.full,
+    address: m.address,
   });
+
   const [formData, setFormData] = useState<MultiContact>(toMulti(contact));
+
+  // Communications state - fetched from contact model using contact_id
+  const [loading, setLoading] = useState(false);
+  const [emails, setEmails] = useState<EmailRecord[]>([]);
+  const [phones, setPhones] = useState<PhoneRecord[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
+  const [domains, setDomains] = useState<DomainRecord[]>([]);
+
+  // Editing state for each communication type
+  const [editingEmail, setEditingEmail] = useState<EmailRecord | null>(null);
+  const [editingPhone, setEditingPhone] = useState<PhoneRecord | null>(null);
+  const [editingAddress, setEditingAddress] = useState<AddressRecord | null>(
+    null,
+  );
+  const [editingDomain, setEditingDomain] = useState<DomainRecord | null>(null);
+
   React.useEffect(() => {
     setFormData(toMulti(contact));
   }, [contact]);
+
+  // Fetch full contact data when modal opens with a valid contact_id
+  useEffect(() => {
+    const fetchContactData = async () => {
+      if (!isOpen || !contact?.contact_id || contact.contact_id <= 0) {
+        // Reset communications if no valid contact_id
+        setEmails([]);
+        setPhones([]);
+        setAddresses([]);
+        setDomains([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await fetchContacts(contact.contact_id);
+        const data = response?.data;
+
+        if (data && data.refs?.links) {
+          // Load communication records from refs.links
+          setEmails(
+            (data.refs.links.email ?? []).map((e: any) => ({
+              id: e.id ?? 0,
+              address: e.address ?? e.email ?? "",
+              name: e.name ?? "",
+              type: e.type ?? "",
+              is_primary: e.is_primary ?? false,
+              is_verified: e.is_verified ?? false,
+            })),
+          );
+
+          setPhones(
+            (data.refs.links.phone ?? []).map((p: any) => ({
+              id: p.id ?? 0,
+              number: p.number ?? "",
+              name: p.name ?? "",
+              type: p.type ?? "",
+              is_primary: p.is_primary ?? false,
+            })),
+          );
+
+          setAddresses(
+            (data.refs.links.address ?? []).map((l: any) => ({
+              id: l.id ?? 0,
+              name: l.name ?? "",
+              address_line1: l.address_line1 ?? l.address ?? "",
+              address_line2: l.address_line2 ?? "",
+              city: l.city ?? "",
+              state: l.state ?? "",
+              postal_code: l.postal_code ?? "",
+              country: l.country ?? "",
+              type: l.type ?? "",
+              full: l.full ?? "",
+            })),
+          );
+
+          setDomains(
+            (data.refs.links.domain ?? []).map((d: any) => ({
+              id: d.id ?? 0,
+              domain: d.domain ?? d.path ?? d.name ?? "",
+              name: d.name ?? "",
+              is_primary: d.is_primary ?? false,
+            })),
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching contact data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContactData();
+  }, [isOpen, contact?.contact_id]);
+
+  // Communication Handlers
+  // EMAIL HANDLERS
+  const handleAddEmail = useCallback(() => {
+    const newEmail: EmailRecord = {
+      id: 0,
+      address: "",
+      name: "",
+      type: "",
+      is_primary: false,
+      is_verified: false,
+    };
+    setEditingEmail(newEmail);
+    setEmails((prev) => [...prev, newEmail]);
+  }, []);
+
+  const handleEditEmail = useCallback((email: EmailRecord) => {
+    setEditingEmail({ ...email });
+  }, []);
+
+  const handleDeleteEmail = useCallback(async (email: EmailRecord) => {
+    if (!window.confirm("Delete this email?")) return;
+    try {
+      if (email.id > 0) {
+        await deleteEmail("email", email.id);
+      }
+      setEmails((prev) =>
+        prev.filter(
+          (e) =>
+            e.id !== email.id || (e.id === 0 && e.address !== email.address),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+    }
+  }, []);
+
+  const handleSaveEmail = useCallback(
+    async (email: EmailRecord) => {
+      try {
+        if (!email.address) {
+          alert("Email address is required");
+          return;
+        }
+        const payload = {
+          id: email.id || 0,
+          email: email.address,
+          name: email.name || "",
+          type: email.type,
+          is_primary: email.is_primary ?? false,
+          is_verified: email.is_verified ?? false,
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          email.id > 0
+            ? await updateEmail(payload as any)
+            : await createEmail(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || email.id;
+          setEmails((prev) =>
+            prev.map((e) =>
+              e.id === email.id || (e.id === 0 && e.address === email.address)
+                ? { ...email, id: savedId }
+                : e,
+            ),
+          );
+          setEditingEmail(null);
+        }
+      } catch (error) {
+        console.error("Failed to save email:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handleEmailChange = useCallback(
+    (field: keyof EmailRecord, value: any) => {
+      setEditingEmail((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
+
+  // PHONE HANDLERS
+  const handleAddPhone = useCallback(() => {
+    const newPhone: PhoneRecord = {
+      id: 0,
+      number: "",
+      name: "",
+      type: "",
+      is_primary: false,
+    };
+    setEditingPhone(newPhone);
+    setPhones((prev) => [...prev, newPhone]);
+  }, []);
+
+  const handleEditPhone = useCallback((phone: PhoneRecord) => {
+    setEditingPhone({ ...phone });
+  }, []);
+
+  const handleDeletePhone = useCallback(async (phone: PhoneRecord) => {
+    if (!window.confirm("Delete this phone?")) return;
+    try {
+      if (phone.id > 0) {
+        await deletePhone(phone.id);
+      }
+      setPhones((prev) =>
+        prev.filter(
+          (p) => p.id !== phone.id || (p.id === 0 && p.number !== phone.number),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete phone:", error);
+    }
+  }, []);
+
+  const handleSavePhone = useCallback(
+    async (phone: PhoneRecord) => {
+      try {
+        if (!phone.number) {
+          alert("Phone number is required");
+          return;
+        }
+        const payload = {
+          number: phone.number,
+          name: phone.name || "",
+          country_code: "",
+          opt_out: false,
+          attention: "",
+          format: "",
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          phone.id > 0
+            ? await updatePhone({ ...payload, id: String(phone.id) } as any)
+            : await createPhone(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || phone.id;
+          setPhones((prev) =>
+            prev.map((p) =>
+              p.id === phone.id || (p.id === 0 && p.number === phone.number)
+                ? { ...phone, id: savedId }
+                : p,
+            ),
+          );
+          setEditingPhone(null);
+        }
+      } catch (error) {
+        console.error("Failed to save phone:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handlePhoneChange = useCallback(
+    (field: keyof PhoneRecord, value: any) => {
+      setEditingPhone((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
+
+  // ADDRESS HANDLERS
+  const handleAddAddress = useCallback(() => {
+    const newAddress: AddressRecord = {
+      id: 0,
+      name: "",
+      address_line1: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "",
+      type: "",
+    };
+    setEditingAddress(newAddress);
+    setAddresses((prev) => [...prev, newAddress]);
+  }, []);
+
+  const handleEditAddress = useCallback((addr: AddressRecord) => {
+    setEditingAddress({ ...addr });
+  }, []);
+
+  const handleDeleteAddress = useCallback(async (addr: AddressRecord) => {
+    if (!window.confirm("Delete this address?")) return;
+    try {
+      if (addr.id > 0) {
+        await deleteAddress(addr.id);
+      }
+      setAddresses((prev) =>
+        prev.filter(
+          (l) =>
+            l.id !== addr.id ||
+            (l.id === 0 && l.address_line1 !== addr.address_line1),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete address:", error);
+    }
+  }, []);
+
+  const handleSaveAddress = useCallback(
+    async (addr: AddressRecord) => {
+      try {
+        const payload = {
+          address1: addr.address_line1 || "",
+          address2: addr.address_line2 || "",
+          address_type: addr.type || "",
+          full: addr.full || "",
+          city: addr.city || "",
+          state: addr.state || "",
+          zip: addr.postal_code || "",
+          country: addr.country || "",
+          latitude: 0,
+          longitude: 0,
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          addr.id > 0
+            ? await updateAddress({ ...payload, id: String(addr.id) } as any)
+            : await createAddress(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || addr.id;
+          setAddresses((prev) =>
+            prev.map((l) =>
+              l.id === addr.id ||
+              (l.id === 0 && l.address_line1 === addr.address_line1)
+                ? { ...addr, id: savedId }
+                : l,
+            ),
+          );
+          setEditingAddress(null);
+        }
+      } catch (error) {
+        console.error("Failed to save address:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handleAddressChange = useCallback(
+    (field: keyof AddressRecord, value: any) => {
+      setEditingAddress((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
+
+  // DOMAIN HANDLERS
+  const handleAddDomain = useCallback(() => {
+    const newDomain: DomainRecord = {
+      id: 0,
+      domain: "",
+      name: "",
+      is_primary: false,
+    };
+    setEditingDomain(newDomain);
+    setDomains((prev) => [...prev, newDomain]);
+  }, []);
+
+  const handleEditDomain = useCallback((domain: DomainRecord) => {
+    setEditingDomain({ ...domain });
+  }, []);
+
+  const handleDeleteDomain = useCallback(async (domain: DomainRecord) => {
+    if (!window.confirm("Delete this domain?")) return;
+    try {
+      if (domain.id > 0) {
+        await deleteDomain(domain.id);
+      }
+      setDomains((prev) =>
+        prev.filter(
+          (d) =>
+            d.id !== domain.id || (d.id === 0 && d.domain !== domain.domain),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to delete domain:", error);
+    }
+  }, []);
+
+  const handleSaveDomain = useCallback(
+    async (domain: DomainRecord) => {
+      try {
+        if (!domain.domain) {
+          alert("Domain is required");
+          return;
+        }
+        const payload = {
+          path: domain.domain,
+          type: "",
+          contact_id: contact?.contact_id,
+        };
+        const res =
+          domain.id > 0
+            ? await updateDomain({ ...payload, id: String(domain.id) } as any)
+            : await createDomain(payload as any);
+
+        if (res) {
+          const savedId = (res as any).id || domain.id;
+          setDomains((prev) =>
+            prev.map((d) =>
+              d.id === domain.id || (d.id === 0 && d.domain === domain.domain)
+                ? { ...domain, id: savedId }
+                : d,
+            ),
+          );
+          setEditingDomain(null);
+        }
+      } catch (error) {
+        console.error("Failed to save domain:", error);
+      }
+    },
+    [contact?.contact_id],
+  );
+
+  const handleDomainChange = useCallback(
+    (field: keyof DomainRecord, value: any) => {
+      setEditingDomain((prev) => (prev ? { ...prev, [field]: value } : null));
+    },
+    [],
+  );
 
   if (!isOpen || !contact) return null;
 
@@ -323,10 +996,12 @@ const ContactEditModal: React.FC<{
     value: string | string[],
     idx?: number,
   ) => {
-    if (["email", "phone", "domain", "address"].includes(field)) {
+    if (["email", "phone", "domain", "address", "full"].includes(field)) {
       setFormData((prev) => {
-        const arr = Array.isArray(prev[field])
+        let arr: string[] = Array.isArray(prev[field])
           ? [...(prev[field] as string[])]
+          : typeof prev[field] === "string"
+          ? [prev[field] as string]
           : [""];
         if (typeof idx === "number") {
           arr[idx] = value ? (value as string) : "";
@@ -566,6 +1241,147 @@ const ContactEditModal: React.FC<{
               </div>
             ))}
           </div>
+
+          {/* ----------------------------------
+              COMMUNICATIONS SECTION
+              Fetched from contact model using contact_id
+          ---------------------------------- */}
+          {contact?.contact_id && contact.contact_id > 0 && (
+            <>
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                  <FaUser className="text-blue-500" />
+                  Communications
+                  {loading && (
+                    <FaSpinner className="animate-spin w-3 h-3 text-blue-500" />
+                  )}
+                </h5>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  Contact ID: {contact.contact_id}
+                </p>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <FaSpinner className="animate-spin w-6 h-6 text-blue-500" />
+                  <span className="ml-2 text-sm text-slate-500">
+                    Loading contact data...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {/* Emails Table */}
+                  <CommunicationTable<EmailRecord>
+                    title="Emails"
+                    icon={<FaEnvelope className="text-blue-500 w-3 h-3" />}
+                    data={emails}
+                    columns={[
+                      { key: "address", label: "Email" },
+                      { key: "name", label: "Name" },
+                      {
+                        key: "is_primary",
+                        label: "Primary",
+                        render: (e) => (e.is_primary ? "✓" : ""),
+                      },
+                    ]}
+                    onAdd={handleAddEmail}
+                    onEdit={handleEditEmail}
+                    onDelete={handleDeleteEmail}
+                    onSave={handleSaveEmail}
+                    editingItem={editingEmail}
+                    onEditChange={handleEmailChange}
+                    onCancelEdit={() => {
+                      if (editingEmail?.id === 0) {
+                        setEmails((prev) => prev.filter((e) => e.id !== 0));
+                      }
+                      setEditingEmail(null);
+                    }}
+                  />
+
+                  {/* Phones Table */}
+                  <CommunicationTable<PhoneRecord>
+                    title="Phones"
+                    icon={<FaPhone className="text-green-500 w-3 h-3" />}
+                    data={phones}
+                    columns={[
+                      { key: "number", label: "Phone" },
+                      { key: "name", label: "Name" },
+                      {
+                        key: "is_primary",
+                        label: "Primary",
+                        render: (p) => (p.is_primary ? "✓" : ""),
+                      },
+                    ]}
+                    onAdd={handleAddPhone}
+                    onEdit={handleEditPhone}
+                    onDelete={handleDeletePhone}
+                    onSave={handleSavePhone}
+                    editingItem={editingPhone}
+                    onEditChange={handlePhoneChange}
+                    onCancelEdit={() => {
+                      if (editingPhone?.id === 0) {
+                        setPhones((prev) => prev.filter((p) => p.id !== 0));
+                      }
+                      setEditingPhone(null);
+                    }}
+                  />
+
+                  {/* Addresses Table */}
+                  <CommunicationTable<AddressRecord>
+                    title="Addresses"
+                    icon={<FaMapMarkerAlt className="text-red-500 w-3 h-3" />}
+                    data={addresses}
+                    columns={[
+                      { key: "address_line1", label: "Address" },
+                      { key: "city", label: "City" },
+                      { key: "state", label: "State" },
+                      { key: "postal_code", label: "Zip" },
+                    ]}
+                    onAdd={handleAddAddress}
+                    onEdit={handleEditAddress}
+                    onDelete={handleDeleteAddress}
+                    onSave={handleSaveAddress}
+                    editingItem={editingAddress}
+                    onEditChange={handleAddressChange}
+                    onCancelEdit={() => {
+                      if (editingAddress?.id === 0) {
+                        setAddresses((prev) => prev.filter((l) => l.id !== 0));
+                      }
+                      setEditingAddress(null);
+                    }}
+                  />
+
+                  {/* Domains Table */}
+                  <CommunicationTable<DomainRecord>
+                    title="Domains"
+                    icon={<FaGlobe className="text-purple-500 w-3 h-3" />}
+                    data={domains}
+                    columns={[
+                      { key: "domain", label: "Domain" },
+                      { key: "name", label: "Name" },
+                      {
+                        key: "is_primary",
+                        label: "Primary",
+                        render: (d) => (d.is_primary ? "✓" : ""),
+                      },
+                    ]}
+                    onAdd={handleAddDomain}
+                    onEdit={handleEditDomain}
+                    onDelete={handleDeleteDomain}
+                    onSave={handleSaveDomain}
+                    editingItem={editingDomain}
+                    onEditChange={handleDomainChange}
+                    onCancelEdit={() => {
+                      if (editingDomain?.id === 0) {
+                        setDomains((prev) => prev.filter((d) => d.id !== 0));
+                      }
+                      setEditingDomain(null);
+                    }}
+                  />
+                </>
+              )}
+            </>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
@@ -582,7 +1398,7 @@ const ContactEditModal: React.FC<{
             }}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
           >
-            Save QQQ send to server update local
+            Save Contact
           </button>
         </div>
       </div>
@@ -596,7 +1412,7 @@ const ContactBlock: React.FC<{
   onRemove?: () => void;
   onEdit?: () => void;
 }> = ({ contact, isEditing, onRemove, onEdit }) => {
-  console.log("contact", contact);
+  console.log("[DEBUG] ContactBlock render contact", contact);
   const displayName =
     contact.attention ||
     (typeof contact.contact_id === "number" && contact.contact_id > 0
@@ -631,6 +1447,8 @@ const ContactBlock: React.FC<{
     contact.full.trim()
   );
   const noDetails = !hasEmail && !hasPhone && !hasDomain && !hasAddress;
+
+  //console.log("contact.email", contact.email);
 
   return (
     <div className="relative group">
@@ -671,7 +1489,7 @@ const ContactBlock: React.FC<{
         {/* Always render the card body for consistent layout */}
         <div className="flex flex-col gap-1 ml-5 mt-2 text-slate-500 dark:text-slate-400 min-h-[24px]">
           {/* Render all emails with id, name, value if array of objects, else fallback to string */}
-          {Array.isArray(contact.email) &&
+          {Array.isArray(contact.email) ? (
             contact.email.map((emailObj: any, idx: number) =>
               emailObj && typeof emailObj === "object" && emailObj.value ? (
                 <table className="w-full text-xs" key={emailObj.id ?? idx}>
@@ -689,45 +1507,35 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {emailObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {emailObj.name}
                       </td>
-                      <td className="align-middle text-left">
-                        <div className="flex items-center gap-1">
-                          <FaEnvelope size={10} />
-                          <a
-                            href={`mailto:${emailObj.value}`}
-                            className="hover:text-blue-500"
-                          >
-                            {emailObj.value}
-                          </a>
-                        </div>
+                      <td className="w-8 text-left align-middle">
+                        <FaEnvelope size={10} />
+                      </td>
+                      <td className="text-left align-middle">
+                        <a
+                          href={`mailto:${emailObj.value}`}
+                          className="hover:text-blue-500"
+                        >
+                          {emailObj.value}
+                        </a>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.email === "string" &&
+            contact.email.trim() !== "" ? (
+            <span>{contact.email}</span>
+          ) : null}
 
           {/* Render all phones with id, name, value if array of objects, else fallback to string */}
-          {Array.isArray(contact.phone) &&
+          {Array.isArray(contact.phone) ? (
             contact.phone.map((phoneObj: any, idx: number) =>
               phoneObj && typeof phoneObj === "object" && phoneObj.value ? (
                 <table className="w-full text-xs" key={phoneObj.id ?? idx}>
@@ -745,45 +1553,35 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {phoneObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {phoneObj.name}
                       </td>
-                      <td className="align-middle text-left">
-                        <div className="flex items-center gap-1">
-                          <FaPhone size={10} />
-                          <a
-                            href={`tel:${phoneObj.value}`}
-                            className="hover:text-blue-500"
-                          >
-                            {phoneObj.value}
-                          </a>
-                        </div>
+                      <td className="w-8 text-left align-middle">
+                        <FaPhone size={10} />
+                      </td>
+                      <td className="text-left align-middle">
+                        <a
+                          href={`tel:${phoneObj.value}`}
+                          className="hover:text-blue-500"
+                        >
+                          {phoneObj.value}
+                        </a>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.phone === "string" &&
+            contact.phone.trim() !== "" ? (
+            <span>{contact.phone}</span>
+          ) : null}
 
           {/* Render all domains with id, name, value if array of objects, else fallback to string */}
-          {Array.isArray(contact.domain) &&
+          {Array.isArray(contact.domain) ? (
             contact.domain.map((domainObj: any, idx: number) =>
               domainObj && typeof domainObj === "object" && domainObj.value ? (
                 <table className="w-full text-xs" key={domainObj.id ?? idx}>
@@ -801,47 +1599,37 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {domainObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {domainObj.name}
                       </td>
-                      <td className="align-middle text-left">
-                        <div className="flex items-center gap-1">
-                          <FaGlobe size={10} />
-                          <a
-                            href={`https://${domainObj.value}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-blue-500"
-                          >
-                            {domainObj.value}
-                          </a>
-                        </div>
+                      <td className="w-8 text-left align-middle">
+                        <FaGlobe size={10} />
+                      </td>
+                      <td className="text-left align-middle">
+                        <a
+                          href={`https://${domainObj.value}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-500"
+                        >
+                          {domainObj.value}
+                        </a>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.domain === "string" &&
+            contact.domain.trim() !== "" ? (
+            <span>{contact.domain}</span>
+          ) : null}
 
           {/* Render all addresses as array of objects (id, name, full), else fallback to string */}
-          {Array.isArray(contact.address) &&
+          {Array.isArray(contact.address) ? (
             contact.address.map((addrObj: any, idx: number) =>
               addrObj && typeof addrObj === "object" && addrObj.full ? (
                 <table className="w-full text-xs" key={addrObj.id ?? idx}>
@@ -859,34 +1647,27 @@ const ContactBlock: React.FC<{
                   )}
                   <tbody>
                     <tr>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                        }}
-                      >
+                      <td className="w-10 text-left align-middle text-slate-400">
                         {addrObj.id}
                       </td>
-                      <td
-                        className="pr-2 align-middle text-slate-400 text-left"
-                        style={{
-                          width: "80px",
-                          minWidth: "80px",
-                          maxWidth: "80px",
-                        }}
-                      >
+                      <td className="w-24 text-left align-middle text-slate-400">
                         {addrObj.name}
                       </td>
-                      <td className="align-middle whitespace-pre-line text-left">
+                      <td className="w-8 text-left align-middle">
+                        {/* You can use an icon here if desired */}
+                      </td>
+                      <td className="text-left align-middle whitespace-pre-line">
                         {addrObj.full}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               ) : null,
-            )}
+            )
+          ) : typeof contact.address === "string" &&
+            contact.address.trim() !== "" ? (
+            <span>{contact.address}</span>
+          ) : null}
           {/* If no details at all, show placeholder */}
           {noDetails && (
             <span className="text-xs italic text-slate-400">
@@ -906,7 +1687,7 @@ const PurposeSection: React.FC<{
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
 }> = ({ purpose, contacts, isEditing, onRemove, onEdit }) => {
-  console.log("purpose,contacts", purpose, contacts);
+  console.log("[DEBUG] PurposeSection", purpose, contacts);
   return (
     <div className="border-b border-slate-200 dark:border-slate-700 pb-0 last:border-0 last:pb-0 bg-success-50 cus-bg-purple-light">
       <div className="flex items-center justify-between bg-success-200">
@@ -947,12 +1728,14 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   onEdit,
   onChange,
 }) => {
+  const { ensureWindow, activateWindow, activePath } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addContactPurpose, setAddContactPurpose] = useState<string>("");
 
   const grouped = groupContactsByPurpose(contacts);
+  //const grouped = groupContactsByPurpose(contacts);
 
   // Get all unique purposes, with standard ones first
   const allPurposes = new Set([
@@ -968,18 +1751,58 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         : 0) + 1
     );
   };
-
+  const openWindow = (path: string, title: string) => {
+    ensureWindow(path, title);
+    activateWindow(path);
+  };
   const handleEditContact = (contact: RefContact) => {
     setEditingContact(contact);
     setIsModalOpen(true);
   };
 
   const handleSaveContact = (updatedContact: RefContact) => {
+    console.log("onChange", onChange);
     if (onChange) {
-      const newContacts = contacts.map((c) =>
-        c.contact_id === updatedContact.contact_id ? updatedContact : c,
+      // Debug: log contacts before update
+      console.log("[DEBUG] contacts before update", contacts);
+      // Update by both contact_id and purpose
+      const updatedId = Number(updatedContact.contact_id);
+      const updatedPurpose = updatedContact.purpose;
+      let replaced = false;
+      const newContacts = contacts.map((c) => {
+        if (
+          Number(c.contact_id) === updatedId &&
+          c.purpose === updatedPurpose
+        ) {
+          replaced = true;
+          // Always use updatedContact values for multi-value fields
+          return {
+            ...c,
+            ...updatedContact,
+            email: updatedContact.email,
+            phone: updatedContact.phone,
+            domain: updatedContact.domain,
+            address: updatedContact.address,
+          };
+        }
+        return c;
+      });
+      // If not found, add as new
+      if (!replaced) {
+        newContacts.push(updatedContact);
+      }
+      // Remove any accidental duplicates (same contact_id and purpose)
+      const dedupedContacts = newContacts.filter(
+        (c, idx, arr) =>
+          arr.findIndex(
+            (x) =>
+              Number(x.contact_id) === Number(c.contact_id) &&
+              x.purpose === c.purpose,
+          ) === idx,
       );
-      onChange(newContacts);
+      // Debug: log contacts after update
+      console.log("[DEBUG] contacts after update", dedupedContacts);
+      onChange([...dedupedContacts]);
     }
     if (onEdit) {
       onEdit(updatedContact);
@@ -1021,7 +1844,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       </div>
     );
   }
-  console.log("contacts", contacts);
+
   return (
     <>
       {/* Edit Contact Modal */}
@@ -1062,15 +1885,17 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         }}
       />
 
-      {/* Add Contact Section */}
+      {/* Add Contact Section - Navigate to Contact List/Add page */}
       {isEditing && (
         <div className="flex justify-end mb-1 px-2">
           <button
             type="button"
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
-            onClick={() => handleAddContact()}
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            onClick={() => openWindow("/core/contact/list", "Contact")}
           >
-            + Add New Contact
+            <FaPlus className="w-3 h-3" />
+            Add New Contact
+            <FaExternalLinkAlt className="w-3 h-3" />
           </button>
         </div>
       )}
