@@ -10,6 +10,10 @@ export interface ContactAddProps {
   inline?: boolean;
   onCancelInline?: () => void;
   getContactData?: (contactId?: number) => Promise<void>;
+  /** ID passed from WcapiRouteHandler or parent component */
+  id?: number;
+  /** Alias for id - used by WcapiRouteHandler */
+  recordId?: number;
 }
 
 /* -----------------------------
@@ -92,10 +96,11 @@ export interface CreateContactRequest {
   name_first: string;
   name_last: string;
   name_middle?: string;
-  email: string;
-  company?: string;
   name_suffix?: string;
   name_prefix?: string;
+  attention?: string;
+  email: string;
+  company?: string;
   title?: string;
   department?: string;
   comment?: string;

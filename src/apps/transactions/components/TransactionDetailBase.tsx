@@ -198,6 +198,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("summary");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Trigger refetch when incremented
+
+  // Refresh function to reload data
+  const refreshData = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   // Debug log the props
   console.log("[TransactionDetailBase] Props:", {
@@ -264,25 +270,35 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
 
   // Fetch data - skip if dataProp is provided (inline mode with pre-loaded data)
   // Also skip if modeProp is 'add' (handled by separate effect above)
+  // Track if we've done initial load with dataProp
+  const [initialDataPropUsed, setInitialDataPropUsed] = useState(false);
+
   useEffect(() => {
     // Skip fetch for "add" mode - handled by the add mode effect
     if (modeProp === "add") {
       return;
     }
 
-    // If dataProp is provided, use it directly instead of fetching
-    if (dataProp) {
+    // If dataProp is provided AND we haven't used it yet AND refreshKey is 0 (initial load)
+    // use dataProp directly instead of fetching
+    if (dataProp && !initialDataPropUsed && refreshKey === 0) {
       setData(dataProp);
       setEditData(dataProp);
       setLoading(false);
+      setInitialDataPropUsed(true);
       return;
     }
 
+    // For refreshKey > 0 (after save), always fetch fresh data from API
     const loadData = async () => {
       if (!id) return;
 
       setLoading(true);
       setError(null);
+      console.log(
+        "[TransactionDetailBase] Fetching data from API, refreshKey:",
+        refreshKey,
+      );
 
       try {
         let result: Transaction;
@@ -295,6 +311,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
           result = apiResult.record ?? apiResult;
         }
 
+        console.log(
+          "[TransactionDetailBase] Fresh data loaded:",
+          result?.refs?.links?.contact,
+        );
         setData(result);
         setEditData(result);
       } catch (e) {
@@ -305,7 +325,16 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     };
 
     loadData();
-  }, [id, modelName, typeLabel, fetchData, dataProp, modeProp]);
+  }, [
+    id,
+    modelName,
+    typeLabel,
+    fetchData,
+    dataProp,
+    modeProp,
+    refreshKey,
+    initialDataPropUsed,
+  ]);
 
   // Build tabs list - use stable reference for badge count
   const contactCount = data?.refs?.links?.contact?.length ?? 0;
@@ -657,6 +686,31 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               currentData.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
+            orderId={currentData?.id}
+            onChange={(newContacts) => {
+              // Update editData.refs.links.contact in edit mode
+              if (isEditing && editData) {
+                setEditData({
+                  ...editData,
+                  refs: {
+                    ...editData.refs,
+                    links: {
+                      ...((editData.refs && editData.refs.links) || {}),
+                      contact: newContacts,
+                    },
+                  },
+                });
+                setHasUnsavedChanges(true);
+              }
+            }}
+            onSaveSuccess={async () => {
+              // Refresh data after successful contact save
+              console.log(
+                "[TransactionDetailBase] Contact saved, refreshing from API...",
+              );
+              // Force refetch from API - this will update both data and editData
+              refreshData();
+            }}
           />
         );
 
