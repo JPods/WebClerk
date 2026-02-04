@@ -306,10 +306,10 @@ export default function ContactDetail({
   
   // Local state for communications (updated by CommunicationsPanel after successful API calls)
   const [communications, setCommunications] = useState({
-    emails: data?.refs?.links?.email || [],
-    phones: data?.refs?.links?.phone || [],
-    addresses: data?.refs?.links?.address || [],
-    domains: data?.refs?.links?.domain || [],
+    emails: data?.communications?.emails || data?.refs?.links?.email || [],
+    phones: data?.communications?.phones || data?.refs?.links?.phone || [],
+    addresses: data?.communications?.addresses || data?.refs?.links?.address || [],
+    domains: data?.communications?.domains || data?.refs?.links?.domain || [],
   });
   
   // Sync effectiveMode when mode prop changes
@@ -319,15 +319,15 @@ export default function ContactDetail({
   
   // Sync communications when data changes (e.g., after refetch)
   useEffect(() => {
-    if (data?.refs?.links) {
+    if (data?.communications || data?.refs?.links) {
       setCommunications({
-        emails: data.refs.links.email || [],
-        phones: data.refs.links.phone || [],
-        addresses: data.refs.links.address || [],
-        domains: data.refs.links.domain || [],
+        emails: data.communications?.emails || data.refs?.links?.email || [],
+        phones: data.communications?.phones || data.refs?.links?.phone || [],
+        addresses: data.communications?.addresses || data.refs?.links?.address || [],
+        domains: data.communications?.domains || data.refs?.links?.domain || [],
       });
     }
-  }, [data?.refs?.links]);
+  }, [data?.communications, data?.refs?.links]);
   
   const contactFieldNames = useMemo(() => CONTACT_DETAIL_FIELDS.slice(), []);
   const {
