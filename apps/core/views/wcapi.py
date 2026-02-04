@@ -526,6 +526,30 @@ class WCAPIGetView(APIView):
                 payload["refs"] = normalize_refs_for_response(payload.get("refs"))
             except Exception:
                 pass
+            
+            # For contact records, include communications via FK relationship
+            if model_key == 'contact':
+                try:
+                    from apps.communications.models import Email, Phone, Address, Domain
+                    
+                    # Fetch communications linked via FK
+                    emails_qs = Email.objects.filter(contact_id=obj.pk, is_deleted=False)
+                    phones_qs = Phone.objects.filter(contact_id=obj.pk, is_deleted=False)
+                    addresses_qs = Address.objects.filter(contact_id=obj.pk, is_deleted=False)
+                    domains_qs = Domain.objects.filter(contact_id=obj.pk, is_deleted=False)
+                    
+                    # Serialize each to dict
+                    communications = {
+                        'emails': [services.to_dict(e) for e in emails_qs],
+                        'phones': [services.to_dict(p) for p in phones_qs],
+                        'addresses': [services.to_dict(a) for a in addresses_qs],
+                        'domains': [services.to_dict(d) for d in domains_qs],
+                    }
+                    payload['communications'] = communications
+                    logger.info(f"WCAPIGetView: contact {obj.pk} has {len(communications['emails'])} emails, {len(communications['phones'])} phones via FK")
+                except Exception as comm_err:
+                    logger.warning(f"WCAPIGetView: Failed to load communications for contact {obj.pk}: {comm_err}")
+            
             if self._should_include_lines(model_key):
                 payload["lines"] = self._collect_lines(obj, model_key, request)
                 if "results" in payload and "results" not in field_names and isinstance(payload["results"], list):

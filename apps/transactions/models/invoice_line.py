@@ -8,6 +8,8 @@ class InvoiceLine(BaseSellLineModel):
         related_name="lines",
         on_delete=models.CASCADE,
         db_column="invoice_id",
+        null=True,
+        blank=True,
     )
 
     class Meta:

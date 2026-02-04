@@ -5,6 +5,16 @@ import uuid
 from typing import Any, Dict, Optional
 
 class Address(BaseModel):
+    # Direct FK to contact - explicit ownership relationship
+    contact = models.ForeignKey(
+        'core.Contact',
+        on_delete=models.CASCADE,
+        related_name='addresses',
+        null=True,
+        blank=True,
+        help_text="Contact this address belongs to"
+    )
+    
     address1 = models.CharField(max_length=255, blank=True)
     address2 = models.CharField(max_length=255, blank=True)
     address_type = models.CharField(max_length=255, blank=True)
@@ -22,6 +32,9 @@ class Address(BaseModel):
     class Meta:
         # keep the existing table name to avoid extra DB churn during rename
         db_table = 'locations'
+        indexes = [
+            models.Index(fields=['contact']),
+        ]
 
     def __str__(self):
         return f"{self.address1}, {self.city}, {self.state}"
