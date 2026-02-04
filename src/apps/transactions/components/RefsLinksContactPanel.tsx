@@ -18,7 +18,7 @@ import {
 } from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
 import { CommunicationsPanel } from "@/apps/common/components/panels";
-import { getRecord, saveRecord } from "@/api/wcapi";
+import { getRecord, getRecords, saveRecord } from "@/api/wcapi";
 
 // ------------------------------------
 // Communication Record Types
@@ -241,10 +241,66 @@ const ContactEditModal: React.FC<{
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [domains, setDomains] = useState<DomainRecord[]>([]);
 
-  // Fetch contact data from API using contact_id (similar to ContactDetail.tsx)
+  // Contact selection state
+  const [contactsList, setContactsList] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [selectedContactId, setSelectedContactId] = useState<number>(0);
+  const [selectedPurpose, setSelectedPurpose] = useState<string>("");
+  const [loadingContacts, setLoadingContacts] = useState(false);
+
+  // Initialize selected values when modal opens or contact changes
+  useEffect(() => {
+    if (isOpen && contact) {
+      setSelectedContactId(contact.contact_id || 0);
+      setSelectedPurpose(contact.purpose || "");
+    }
+  }, [isOpen, contact]);
+
+  // Fetch contacts list on modal open
+  useEffect(() => {
+    const fetchContactsList = async () => {
+      if (!isOpen) return;
+
+      setLoadingContacts(true);
+      try {
+        const result = (await getRecords("contact", {
+          is_active: true,
+          limit: 500,
+        })) as any;
+        // API returns results array
+        const records =
+          result?.results || result?.records || result?.data || [];
+        console.log(
+          "[ContactEditModal] Fetched contacts list:",
+          records.length,
+          "from result keys:",
+          Object.keys(result || {}),
+        );
+
+        // Map to simple id/name structure
+        const contacts = records.map((c: any) => ({
+          id: c.id,
+          name: c.name || c.attention || c.full_name || `Contact #${c.id}`,
+        }));
+        setContactsList(contacts);
+      } catch (error) {
+        console.error(
+          "[ContactEditModal] Error fetching contacts list:",
+          error,
+        );
+      } finally {
+        setLoadingContacts(false);
+      }
+    };
+
+    fetchContactsList();
+  }, [isOpen]);
+
+  // Fetch contact data from API using selectedContactId (similar to ContactDetail.tsx)
   useEffect(() => {
     const fetchContactData = async () => {
-      if (!isOpen || !contact?.contact_id || contact.contact_id <= 0) {
+      if (!isOpen || !selectedContactId || selectedContactId <= 0) {
         setEmails([]);
         setPhones([]);
         setAddresses([]);
@@ -255,7 +311,7 @@ const ContactEditModal: React.FC<{
       setLoading(true);
       try {
         // Fetch contact data from contact model using getRecord
-        const result = await getRecord("contact", contact.contact_id);
+        const result = await getRecord("contact", selectedContactId);
         const data = result?.record || result;
         console.log("[ContactEditModal] Fetched contact data:", data);
 
@@ -327,7 +383,7 @@ const ContactEditModal: React.FC<{
     };
 
     fetchContactData();
-  }, [isOpen, contact?.contact_id]);
+  }, [isOpen, selectedContactId]);
 
   if (!isOpen || !contact) return null;
 
@@ -365,7 +421,7 @@ const ContactEditModal: React.FC<{
 
         <div className="flex-1 overflow-y-auto px-5 pb-6 pt-4 space-y-4">
           {/* COMMUNICATIONS PANEL - Fetches data from contact model using contact_id */}
-          {contact?.contact_id && contact.contact_id > 0 && (
+          {selectedContactId > 0 && (
             <>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -377,11 +433,35 @@ const ContactEditModal: React.FC<{
               ) : (
                 <>
                   <div>
-                    <div className="flex items-between gap-2 mb-1">
+                    <div className="flex-1 items-center gap-1 mb-1">
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        contact_id
+                        Contact
                       </label>
-                      <span>#{contact?.contact_id}</span>
+                      <select
+                        value={selectedContactId || ""}
+                        onChange={(e) => {
+                          const newId = parseInt(e.target.value, 10) || 0;
+                          console.log(
+                            "[ContactEditModal] Contact changed:",
+                            newId,
+                          );
+                          setSelectedContactId(newId);
+                        }}
+                        disabled={loadingContacts}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                      >
+                        <option value="">-- Select Contact --</option>
+                        {contactsList.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            #{c.id} - {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      {loadingContacts && (
+                        <span className="text-xs text-slate-500 ml-2">
+                          Loading contacts...
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -390,8 +470,14 @@ const ContactEditModal: React.FC<{
                         Purpose
                       </label>
                       <select
-                        value={contact?.purpose || ""}
-                        onChange={() => {}}
+                        value={selectedPurpose || ""}
+                        onChange={(e) => {
+                          console.log(
+                            "[ContactEditModal] Purpose changed:",
+                            e.target.value,
+                          );
+                          setSelectedPurpose(e.target.value);
+                        }}
                         className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                       >
                         <option value="">-- Select Purpose --</option>
@@ -420,8 +506,8 @@ const ContactEditModal: React.FC<{
                   </div>
                   <CommunicationsPanel
                     entityType="contact"
-                    entityId={contact.contact_id}
-                    contactId={contact.contact_id}
+                    entityId={selectedContactId}
+                    contactId={selectedContactId}
                     data={{
                       emails: emails.map((e) => ({
                         id: e.id,
@@ -558,10 +644,11 @@ const ContactEditModal: React.FC<{
 
                 // Build contact data in the format expected by order refs.links.contact
                 // Format: {purpose, contact: {id, email: [{id, name, value}], phone: [...], domain: [...], address: [{id, name, full}]}}
+                // Use selectedContactId and selectedPurpose (which may have been changed via dropdowns)
                 const contactPayload = {
-                  purpose: contact.purpose,
+                  purpose: selectedPurpose,
                   contact: {
-                    id: contact.contact_id,
+                    id: selectedContactId,
                     email: emails.map((e) => ({
                       id: e.id,
                       name: e.name || "",
@@ -588,43 +675,85 @@ const ContactEditModal: React.FC<{
                 console.log("[ContactEditModal] Saving contact to order:", {
                   orderId,
                   contactPayload,
+                  originalContactId: contact.contact_id,
+                  newContactId: selectedContactId,
+                  originalPurpose: contact.purpose,
+                  newPurpose: selectedPurpose,
                   emailCount: contactPayload.contact.email.length,
                 });
 
                 // Save to order model - update refs.links.contact
                 // The API expects the full refs.links.contact array, so we need to:
                 // 1. Fetch current order to get existing contacts
-                // 2. Update the specific contact by id and purpose
-                // 3. Save back to order
+                // 2. Update the specific contact by original id and purpose (find by original values)
+                // 3. Save back to order with new selectedContactId and selectedPurpose
                 const orderResult = await getRecord("order", orderId);
                 const orderData = orderResult?.record || orderResult;
                 const existingContacts = orderData?.refs?.links?.contact || [];
 
-                // Find and update the contact with matching id and purpose
-                let updated = false;
-                const updatedContacts = existingContacts.map((c: any) => {
-                  const cId = c.contact?.id || c.id;
-                  if (
-                    cId === contact.contact_id &&
-                    c.purpose === contact.purpose
-                  ) {
-                    updated = true;
-                    return contactPayload;
-                  }
-                  return c;
+                console.log(
+                  "[ContactEditModal] Existing contacts:",
+                  existingContacts,
+                );
+                console.log("[ContactEditModal] Looking for original:", {
+                  originalContactId: contact.contact_id,
+                  originalPurpose: contact.purpose,
                 });
+
+                // Find and update the contact with matching ORIGINAL id and purpose
+                let updated = false;
+                const updatedContacts = existingContacts.map(
+                  (c: any, index: number) => {
+                    // Get the contact id from the nested structure
+                    const cId = c.contact?.id || c.id;
+                    const cPurpose = c.purpose;
+
+                    console.log(
+                      `[ContactEditModal] Checking contact[${index}]:`,
+                      {
+                        cId,
+                        cPurpose,
+                        matchesId: cId === contact.contact_id,
+                        matchesPurpose: cPurpose === contact.purpose,
+                      },
+                    );
+
+                    // Match by original contact_id AND purpose
+                    if (
+                      cId === contact.contact_id &&
+                      cPurpose === contact.purpose
+                    ) {
+                      updated = true;
+                      console.log(
+                        `[ContactEditModal] Found match at index ${index}, replacing with:`,
+                        contactPayload,
+                      );
+                      return contactPayload; // This now has the new selectedContactId and selectedPurpose
+                    }
+                    return c;
+                  },
+                );
+
+                console.log("[ContactEditModal] Updated:", updated);
 
                 // If not found, add as new
                 if (!updated) {
+                  console.log(
+                    "[ContactEditModal] No match found, adding as new contact",
+                  );
                   updatedContacts.push(contactPayload);
                 }
 
-                // Save to order
+                // Save to order - wrap refs in proper mode/value structure for save_view.py
+                // The backend expects: { field_name: { mode: 'update', value: <actual_value> } }
                 const savePayload = {
                   id: orderId,
                   refs: {
-                    links: {
-                      contact: updatedContacts,
+                    mode: "update",
+                    value: {
+                      links: {
+                        contact: updatedContacts,
+                      },
                     },
                   },
                 };
@@ -636,10 +765,44 @@ const ContactEditModal: React.FC<{
                 await saveRecord("order", savePayload);
                 console.log("[ContactEditModal] Save successful");
 
-                // Notify parent of success
-                onSave(contact);
+                // Build updated contact object with new selectedContactId and selectedPurpose
+                const updatedContact: RefContact = {
+                  ...contact,
+                  contact_id: selectedContactId,
+                  purpose: selectedPurpose,
+                  email: emails.map((e) => ({
+                    id: e.id,
+                    name: e.name || "",
+                    value: e.address || "",
+                  })),
+                  phone: phones.map((p) => ({
+                    id: p.id,
+                    name: p.name || "",
+                    value: p.number || "",
+                  })),
+                  domain: domains.map((d) => ({
+                    id: d.id,
+                    name: d.name || "",
+                    value: d.domain || "",
+                  })),
+                  address: addresses.map((a) => ({
+                    id: a.id,
+                    name: a.name || "",
+                    full: a.full || "",
+                  })),
+                };
+
+                // If onSaveSuccess is provided, it will refresh data from API
+                // so we don't need to update local state via onSave
                 if (onSaveSuccess) {
+                  // API refresh will handle the data update
+                  console.log(
+                    "[ContactEditModal] Triggering API refresh via onSaveSuccess",
+                  );
                   onSaveSuccess();
+                } else {
+                  // No API refresh, update local state
+                  onSave(updatedContact);
                 }
                 onClose();
               } catch (error) {
@@ -657,6 +820,290 @@ const ContactEditModal: React.FC<{
           >
             {saving && <FaSpinner className="animate-spin w-4 h-4" />}
             {saving ? "Saving..." : "Save Contact"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Add New Purpose Modal - Add a new contact with a specific purpose
+const AddPurposeModal: React.FC<{
+  isOpen: boolean;
+  orderId?: number;
+  existingContacts: RefContact[];
+  onClose: () => void;
+  onChange?: (newContact: RefContact) => void; // For instant local state update
+  onSaveSuccess?: () => void;
+}> = ({
+  isOpen,
+  orderId,
+  existingContacts,
+  onClose,
+  onChange,
+  onSaveSuccess,
+}) => {
+  const [saving, setSaving] = useState(false);
+  const [selectedPurpose, setSelectedPurpose] = useState<string>("");
+  const [selectedContactId, setSelectedContactId] = useState<number>(0);
+  const [contactsList, setContactsList] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [validationError, setValidationError] = useState<string>("");
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPurpose("");
+      setSelectedContactId(0);
+      setValidationError("");
+    }
+  }, [isOpen]);
+
+  // Fetch contacts list on modal open
+  useEffect(() => {
+    const fetchContactsList = async () => {
+      if (!isOpen) return;
+
+      setLoadingContacts(true);
+      try {
+        const result = (await getRecords("contact", {
+          is_active: true,
+          limit: 500,
+        })) as any;
+        const records =
+          result?.results || result?.records || result?.data || [];
+        console.log("[AddPurposeModal] Fetched contacts list:", records.length);
+
+        const contacts = records.map((c: any) => ({
+          id: c.id,
+          name: c.name || c.attention || c.full_name || `Contact #${c.id}`,
+        }));
+        setContactsList(contacts);
+      } catch (error) {
+        console.error("[AddPurposeModal] Error fetching contacts list:", error);
+      } finally {
+        setLoadingContacts(false);
+      }
+    };
+
+    fetchContactsList();
+  }, [isOpen]);
+
+  // Validate for duplicate contact_id + purpose combinations
+  useEffect(() => {
+    if (selectedPurpose && selectedContactId > 0) {
+      const isDuplicate = existingContacts.some(
+        (c) =>
+          Number(c.contact_id) === selectedContactId &&
+          c.purpose === selectedPurpose,
+      );
+      if (isDuplicate) {
+        setValidationError(
+          `This contact already exists with purpose "${formatPurpose(
+            selectedPurpose,
+          )}"`,
+        );
+      } else {
+        setValidationError("");
+      }
+    } else {
+      setValidationError("");
+    }
+  }, [selectedPurpose, selectedContactId, existingContacts]);
+
+  const handleSave = async () => {
+    if (!orderId) {
+      console.warn("[AddPurposeModal] No orderId to save");
+      return;
+    }
+
+    if (!selectedPurpose || selectedContactId <= 0) {
+      setValidationError("Please select both a purpose and a contact");
+      return;
+    }
+
+    if (validationError) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Build contact payload in the format expected by order refs.links.contact
+      const contactPayload = {
+        purpose: selectedPurpose,
+        contact: {
+          id: selectedContactId,
+          email: [],
+          phone: [],
+          domain: [],
+          address: [],
+        },
+      };
+
+      console.log(
+        "[AddPurposeModal] Adding new purpose contact:",
+        contactPayload,
+      );
+
+      // Fetch current order to get existing contacts
+      const orderResult = await getRecord("order", orderId);
+      const orderData = orderResult?.record || orderResult;
+      const existingOrderContacts = orderData?.refs?.links?.contact || [];
+
+      // Add the new contact
+      const updatedContacts = [...existingOrderContacts, contactPayload];
+
+      // Save to order with proper mode/value structure
+      const savePayload = {
+        id: orderId,
+        refs: {
+          mode: "update",
+          value: {
+            links: {
+              contact: updatedContacts,
+            },
+          },
+        },
+      };
+
+      console.log("[AddPurposeModal] Saving order payload:", savePayload);
+      await saveRecord("order", savePayload);
+      console.log("[AddPurposeModal] Save successful");
+
+      // Build RefContact for instant local state update
+      const newRefContact: RefContact = {
+        contact_id: selectedContactId,
+        purpose: selectedPurpose,
+        email: [],
+        phone: [],
+        domain: [],
+        address: [],
+      };
+
+      // Instant UI update via onChange (ContactBlock will fetch its own communications)
+      if (onChange) {
+        console.log(
+          "[AddPurposeModal] Triggering instant local state update",
+          newRefContact,
+        );
+        onChange(newRefContact);
+      }
+
+      // Optional: Trigger background API refresh for full sync
+      // (UI already updated, this ensures data consistency)
+      if (onSaveSuccess) {
+        onSaveSuccess();
+      }
+      onClose();
+    } catch (error) {
+      console.error("[AddPurposeModal] Error saving:", error);
+      alert("Failed to add new purpose. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[200000] flex items-center justify-center">
+      <div
+        className="pointer-events-auto absolute inset-0 bg-black/30"
+        onClick={onClose}
+      />
+      <div className="pointer-events-auto relative w-full max-w-md mx-4 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            Add New Purpose
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            <FaTimes size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Purpose Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Purpose <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedPurpose}
+              onChange={(e) => setSelectedPurpose(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select a purpose...</option>
+              {STANDARD_PURPOSES.map((purpose) => (
+                <option key={purpose} value={purpose}>
+                  {formatPurpose(purpose)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Contact Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Contact <span className="text-red-500">*</span>
+            </label>
+            {loadingContacts ? (
+              <div className="flex items-center gap-2 py-2">
+                <FaSpinner className="animate-spin w-4 h-4 text-blue-500" />
+                <span className="text-sm text-slate-500">
+                  Loading contacts...
+                </span>
+              </div>
+            ) : (
+              <select
+                value={selectedContactId}
+                onChange={(e) => setSelectedContactId(Number(e.target.value))}
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value={0}>Select a contact...</option>
+                {contactsList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (#{c.id})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Validation Error */}
+          {validationError && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
+              {validationError}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={
+              saving ||
+              !selectedPurpose ||
+              selectedContactId <= 0 ||
+              !!validationError
+            }
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving && <FaSpinner className="animate-spin w-4 h-4" />}
+            {saving ? "Adding..." : "Add Purpose"}
           </button>
         </div>
       </div>
@@ -1073,6 +1520,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   const { ensureWindow, activateWindow } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddPurposeModalOpen, setIsAddPurposeModalOpen] = useState(false);
 
   const grouped = groupContactsByPurpose(contacts);
   //const grouped = groupContactsByPurpose(contacts);
@@ -1095,30 +1543,42 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   console.log("contacts edit", contacts);
   const handleSaveContact = (updatedContact: RefContact) => {
     if (onChange) {
-      // Update by both contact_id and purpose
-      const updatedId = Number(updatedContact.contact_id);
-      const updatedPurpose = updatedContact.purpose;
+      // Find the ORIGINAL contact using editingContact (before any changes)
+      // and replace it with the updatedContact (which has new contact_id and purpose)
+      const originalId = editingContact ? Number(editingContact.contact_id) : 0;
+      const originalPurpose = editingContact?.purpose || "";
+
+      console.log("[handleSaveContact] Finding original:", {
+        originalId,
+        originalPurpose,
+        newId: updatedContact.contact_id,
+        newPurpose: updatedContact.purpose,
+      });
+
       let replaced = false;
       const newContacts = contacts.map((c) => {
+        // Match by ORIGINAL contact_id and purpose
         if (
-          Number(c.contact_id) === updatedId &&
-          c.purpose === updatedPurpose
+          Number(c.contact_id) === originalId &&
+          c.purpose === originalPurpose
         ) {
           replaced = true;
-          // Always use updatedContact values for multi-value fields
+          console.log(
+            "[handleSaveContact] Replacing contact:",
+            c,
+            "with:",
+            updatedContact,
+          );
+          // Replace with the updated contact (new contact_id and purpose)
           return {
-            ...c,
             ...updatedContact,
-            email: updatedContact.email,
-            phone: updatedContact.phone,
-            domain: updatedContact.domain,
-            address: updatedContact.address,
           };
         }
         return c;
       });
       // If not found, add as new
       if (!replaced) {
+        console.log("[handleSaveContact] Adding as new contact");
         newContacts.push(updatedContact);
       }
       // Remove any accidental duplicates (same contact_id and purpose)
@@ -1130,6 +1590,7 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
               x.purpose === c.purpose,
           ) === idx,
       );
+      console.log("[handleSaveContact] Final contacts:", dedupedContacts);
       onChange([...dedupedContacts]);
     }
     if (onEdit) {
@@ -1169,17 +1630,44 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
         onSaveSuccess={onSaveSuccess}
       />
 
+      {/* Add Purpose Modal */}
+      <AddPurposeModal
+        isOpen={isAddPurposeModalOpen}
+        orderId={orderId}
+        existingContacts={contacts}
+        onClose={() => setIsAddPurposeModalOpen(false)}
+        onChange={(newContact) => {
+          // Instant local state update - add new contact to existing contacts
+          if (onChange) {
+            console.log(
+              "[RefsLinksContactPanel] Adding new contact to local state:",
+              newContact,
+            );
+            onChange([...contacts, newContact]);
+          }
+        }}
+        onSaveSuccess={onSaveSuccess}
+      />
+
       {/* Add Contact Section - Navigate to Contact List/Add page */}
       {isEditing && (
         <div className="flex justify-end mb-1 px-2">
           <button
             type="button"
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="me-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
             onClick={() => openWindow("/core/contact/list", "Contact")}
           >
             <FaPlus className="w-3 h-3" />
             Add New Contact
             <FaExternalLinkAlt className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            onClick={() => setIsAddPurposeModalOpen(true)}
+          >
+            <FaPlus className="w-3 h-3" />
+            Add New Purpose
           </button>
         </div>
       )}
