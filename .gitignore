@@ -1,7 +1,10 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*
 .github/
 .local/
 .vscode/
 .env
+.env-example
 bin/
 lib/
 include/
