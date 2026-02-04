@@ -82,65 +82,60 @@ const EmailItem: React.FC<EmailItemProps> = ({
   onSetPrimary,
   onEdit,
   onDelete,
-}) => {
-  // Support multiple field names: email, address, value
-  const emailAddress = email.email || email.address || email.value || "";
-
-  return (
-    <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
-      <FaEnvelope size={12} className="text-slate-400 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <a
-            href={`mailto:${emailAddress}`}
-            className="text-sm text-blue-600 hover:underline truncate"
-          >
-            {emailAddress}
-          </a>
-          {email.is_primary && (
-            <FaStar size={10} className="text-amber-400" title="Primary" />
-          )}
-        </div>
-        {(email.name || email.type) && (
-          <p className="text-xs text-slate-400">
-            {[email.name, email.type].filter(Boolean).join(" • ")}
-          </p>
+}) => (
+  <div className="flex items-center gap-2 py-1.5 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2">
+    <FaEnvelope size={12} className="text-slate-400 flex-shrink-0" />
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2">
+        <a
+          href={`mailto:${email.email}`}
+          className="text-sm text-blue-600 hover:underline truncate"
+        >
+          {email.email}
+        </a>
+        {email.is_primary && (
+          <FaStar size={10} className="text-amber-400" title="Primary" />
         )}
       </div>
-      {canEdit && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {!email.is_primary && onSetPrimary && (
-            <button
-              onClick={onSetPrimary}
-              className="p-1 text-slate-400 hover:text-amber-500"
-              title="Set primary"
-            >
-              <FaRegStar size={10} />
-            </button>
-          )}
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              className="p-1 text-slate-400 hover:text-blue-500"
-              title="Edit"
-            >
-              <FaEdit size={10} />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={onDelete}
-              className="p-1 text-slate-400 hover:text-red-500"
-              title="Delete"
-            >
-              <FaTrash size={10} />
-            </button>
-          )}
-        </div>
+      {(email.name || email.type) && (
+        <p className="text-xs text-slate-400">
+          {[email.name, email.type].filter(Boolean).join(" • ")}
+        </p>
       )}
     </div>
-  );
-};
+    {canEdit && (
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!email.is_primary && onSetPrimary && (
+          <button
+            onClick={onSetPrimary}
+            className="p-1 text-slate-400 hover:text-amber-500"
+            title="Set primary"
+          >
+            <FaRegStar size={10} />
+          </button>
+        )}
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="p-1 text-slate-400 hover:text-blue-500"
+            title="Edit"
+          >
+            <FaEdit size={10} />
+          </button>
+        )}
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="p-1 text-slate-400 hover:text-red-500"
+            title="Delete"
+          >
+            <FaTrash size={10} />
+          </button>
+        )}
+      </div>
+    )}
+  </div>
+);
 
 interface PhoneItemProps {
   phone: PhoneLink;

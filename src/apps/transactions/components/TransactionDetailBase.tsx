@@ -198,6 +198,12 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("summary");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Trigger refetch when incremented
+
+  // Refresh function to reload data
+  const refreshData = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   // Debug log the props
   console.log("[TransactionDetailBase] Props:", {
@@ -305,7 +311,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
     };
 
     loadData();
-  }, [id, modelName, typeLabel, fetchData, dataProp, modeProp]);
+  }, [id, modelName, typeLabel, fetchData, dataProp, modeProp, refreshKey]);
 
   // Build tabs list - use stable reference for badge count
   const contactCount = data?.refs?.links?.contact?.length ?? 0;
@@ -657,6 +663,7 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
               currentData.refs?.links?.contact ?? [],
             )}
             isEditing={isEditing}
+            orderId={currentData?.id}
             onChange={(newContacts) => {
               // Update editData.refs.links.contact in edit mode
               if (isEditing && editData) {
@@ -672,6 +679,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
                 });
                 setHasUnsavedChanges(true);
               }
+            }}
+            onSaveSuccess={() => {
+              // Refresh data after successful contact save
+              console.log(
+                "[TransactionDetailBase] Contact saved, refreshing...",
+              );
+              refreshData();
             }}
           />
         );

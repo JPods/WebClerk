@@ -18,7 +18,7 @@ import {
 } from "react-icons/fa";
 import type { ContactPurpose } from "../types/transactionTypes";
 import { CommunicationsPanel } from "@/apps/common/components/panels";
-import { getRecord } from "@/api/wcapi";
+import { getRecord, saveRecord } from "@/api/wcapi";
 
 // ------------------------------------
 // Communication Record Types
@@ -178,10 +178,12 @@ export function normalizeRefsLinksContact(apiContacts: any[]): RefContact[] {
 interface RefsLinksContactPanelProps {
   contacts: RefContact[];
   isEditing?: boolean;
+  orderId?: number; // Order ID for saving contact data
   onAdd?: (purpose: ContactPurpose | string) => void;
   onRemove?: (contactId: number) => void;
   onEdit?: (contact: RefContact) => void;
   onChange?: (contacts: RefContact[]) => void;
+  onSaveSuccess?: () => void; // Callback after successful save
 }
 
 // Standard purposes in display order
@@ -226,11 +228,14 @@ const groupContactsByPurpose = (
 const ContactEditModal: React.FC<{
   contact: RefContact | null;
   isOpen: boolean;
+  orderId?: number;
   onClose: () => void;
   onSave: (contact: RefContact) => void;
-}> = ({ contact, isOpen, onClose, onSave }) => {
+  onSaveSuccess?: () => void;
+}> = ({ contact, isOpen, orderId, onClose, onSave, onSaveSuccess }) => {
   // Communications state - fetched from contact model using contact_id
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [emails, setEmails] = useState<EmailRecord[]>([]);
   const [phones, setPhones] = useState<PhoneRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
@@ -254,12 +259,22 @@ const ContactEditModal: React.FC<{
         const data = result?.record || result;
         console.log("[ContactEditModal] Fetched contact data:", data);
 
-        if (data && data.refs?.links) {
-          // Load communication records from refs.links
+        // Contact model returns data in "communications" object, not refs.links
+        const comms = data?.communications;
+        console.log("[ContactEditModal] Communications data:", {
+          emailsCount: comms?.emails?.length || 0,
+          phonesCount: comms?.phones?.length || 0,
+          addressesCount: comms?.addresses?.length || 0,
+          domainsCount: comms?.domains?.length || 0,
+        });
+
+        if (comms) {
+          // Load communication records from communications object
+          // Email structure: {id, name, email, type, is_primary, is_verified, ...}
           setEmails(
-            (data.refs.links.email ?? []).map((e: any) => ({
+            (comms.emails ?? []).map((e: any) => ({
               id: e.id ?? 0,
-              address: e.address ?? e.email ?? "",
+              address: e.email ?? e.address ?? "",
               name: e.name ?? "",
               type: e.type ?? "",
               is_primary: e.is_primary ?? false,
@@ -267,35 +282,38 @@ const ContactEditModal: React.FC<{
             })),
           );
 
+          // Phone structure: {id, name, number/phone, type, is_primary, ...}
           setPhones(
-            (data.refs.links.phone ?? []).map((p: any) => ({
+            (comms.phones ?? []).map((p: any) => ({
               id: p.id ?? 0,
-              number: p.number ?? "",
+              number: p.number ?? p.phone ?? "",
               name: p.name ?? "",
               type: p.type ?? "",
               is_primary: p.is_primary ?? false,
             })),
           );
 
+          // Address structure: {id, name, full, address_line1, city, state, ...}
           setAddresses(
-            (data.refs.links.address ?? []).map((a: any) => ({
+            (comms.addresses ?? []).map((a: any) => ({
               id: a.id ?? 0,
               name: a.name ?? "",
-              address_line1: a.address_line1 ?? a.address ?? "",
-              address_line2: a.address_line2 ?? "",
+              address_line1: a.address_line1 ?? a.address1 ?? a.address ?? "",
+              address_line2: a.address_line2 ?? a.address2 ?? "",
               city: a.city ?? "",
               state: a.state ?? "",
-              postal_code: a.postal_code ?? "",
+              postal_code: a.postal_code ?? a.zip ?? "",
               country: a.country ?? "",
               type: a.type ?? "",
               full: a.full ?? "",
             })),
           );
 
+          // Domain structure: {id, name, domain, is_primary, ...}
           setDomains(
-            (data.refs.links.domain ?? []).map((d: any) => ({
+            (comms.domains ?? []).map((d: any) => ({
               id: d.id ?? 0,
-              domain: d.domain ?? d.path ?? d.name ?? "",
+              domain: d.domain ?? d.path ?? d.url ?? "",
               name: d.name ?? "",
               is_primary: d.is_primary ?? false,
             })),
@@ -437,7 +455,19 @@ const ContactEditModal: React.FC<{
                     }}
                     onChange={(comms) => {
                       // Update local state with new communications data
-                      if (comms.emails) {
+                      // Only update if we have data to prevent accidental overwrites
+                      console.log(
+                        "[ContactEditModal] CommunicationsPanel onChange:",
+                        {
+                          emailsCount: comms.emails?.length,
+                          phonesCount: comms.phones?.length,
+                          addressesCount: comms.addresses?.length,
+                          domainsCount: comms.domains?.length,
+                          currentEmailsCount: emails.length,
+                        },
+                      );
+
+                      if (comms.emails && comms.emails.length > 0) {
                         setEmails(
                           comms.emails.map((e: any) => ({
                             id: e.id ?? 0,
@@ -449,7 +479,7 @@ const ContactEditModal: React.FC<{
                           })),
                         );
                       }
-                      if (comms.phones) {
+                      if (comms.phones && comms.phones.length > 0) {
                         setPhones(
                           comms.phones.map((p: any) => ({
                             id: p.id ?? 0,
@@ -460,7 +490,7 @@ const ContactEditModal: React.FC<{
                           })),
                         );
                       }
-                      if (comms.addresses) {
+                      if (comms.addresses && comms.addresses.length > 0) {
                         setAddresses(
                           comms.addresses.map((a: any) => ({
                             id: a.id ?? 0,
@@ -476,7 +506,7 @@ const ContactEditModal: React.FC<{
                           })),
                         );
                       }
-                      if (comms.domains) {
+                      if (comms.domains && comms.domains.length > 0) {
                         setDomains(
                           comms.domains.map((d: any) => ({
                             id: d.id ?? 0,
@@ -499,18 +529,134 @@ const ContactEditModal: React.FC<{
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            disabled={saving}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
-            onClick={() => {
-              onSave(contact);
-              onClose();
+            onClick={async () => {
+              if (!orderId || !contact) {
+                console.warn(
+                  "[ContactEditModal] No orderId or contact to save",
+                );
+                onSave(contact);
+                onClose();
+                return;
+              }
+
+              setSaving(true);
+              try {
+                // Log current state counts before building payload
+                console.log("[ContactEditModal] Current state counts:", {
+                  emailsCount: emails.length,
+                  phonesCount: phones.length,
+                  domainsCount: domains.length,
+                  addressesCount: addresses.length,
+                  emails: emails.map((e) => ({ id: e.id, address: e.address })),
+                });
+
+                // Build contact data in the format expected by order refs.links.contact
+                // Format: {purpose, contact: {id, email: [{id, name, value}], phone: [...], domain: [...], address: [{id, name, full}]}}
+                const contactPayload = {
+                  purpose: contact.purpose,
+                  contact: {
+                    id: contact.contact_id,
+                    email: emails.map((e) => ({
+                      id: e.id,
+                      name: e.name || "",
+                      value: e.address || "",
+                    })),
+                    phone: phones.map((p) => ({
+                      id: p.id,
+                      name: p.name || "",
+                      value: p.number || "",
+                    })),
+                    domain: domains.map((d) => ({
+                      id: d.id,
+                      name: d.name || "",
+                      value: d.domain || "",
+                    })),
+                    address: addresses.map((a) => ({
+                      id: a.id,
+                      name: a.name || "",
+                      full: a.full || "",
+                    })),
+                  },
+                };
+
+                console.log("[ContactEditModal] Saving contact to order:", {
+                  orderId,
+                  contactPayload,
+                  emailCount: contactPayload.contact.email.length,
+                });
+
+                // Save to order model - update refs.links.contact
+                // The API expects the full refs.links.contact array, so we need to:
+                // 1. Fetch current order to get existing contacts
+                // 2. Update the specific contact by id and purpose
+                // 3. Save back to order
+                const orderResult = await getRecord("order", orderId);
+                const orderData = orderResult?.record || orderResult;
+                const existingContacts = orderData?.refs?.links?.contact || [];
+
+                // Find and update the contact with matching id and purpose
+                let updated = false;
+                const updatedContacts = existingContacts.map((c: any) => {
+                  const cId = c.contact?.id || c.id;
+                  if (
+                    cId === contact.contact_id &&
+                    c.purpose === contact.purpose
+                  ) {
+                    updated = true;
+                    return contactPayload;
+                  }
+                  return c;
+                });
+
+                // If not found, add as new
+                if (!updated) {
+                  updatedContacts.push(contactPayload);
+                }
+
+                // Save to order
+                const savePayload = {
+                  id: orderId,
+                  refs: {
+                    links: {
+                      contact: updatedContacts,
+                    },
+                  },
+                };
+
+                console.log(
+                  "[ContactEditModal] Saving order payload:",
+                  savePayload,
+                );
+                await saveRecord("order", savePayload);
+                console.log("[ContactEditModal] Save successful");
+
+                // Notify parent of success
+                onSave(contact);
+                if (onSaveSuccess) {
+                  onSaveSuccess();
+                }
+                onClose();
+              } catch (error) {
+                console.error(
+                  "[ContactEditModal] Error saving contact:",
+                  error,
+                );
+                alert("Failed to save contact. Please try again.");
+              } finally {
+                setSaving(false);
+              }
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            disabled={saving}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            Save Contact
+            {saving && <FaSpinner className="animate-spin w-4 h-4" />}
+            {saving ? "Saving..." : "Save Contact"}
           </button>
         </div>
       </div>
@@ -555,40 +701,43 @@ const ContactBlock: React.FC<{
         const result = await getRecord("contact", contact.contact_id);
         const data = result?.record || result;
 
-        if (data && data.refs?.links) {
-          // Map emails from refs.links.email
+        // Contact model returns data in "communications" object
+        const comms = data?.communications;
+
+        if (comms) {
+          // Map emails from communications.emails
           setEmails(
-            (data.refs.links.email ?? []).map((e: any) => ({
+            (comms.emails ?? []).map((e: any) => ({
               id: e.id ?? 0,
               name: e.name ?? "",
-              value: e.address ?? e.email ?? "",
+              value: e.email ?? e.address ?? "",
               is_primary: e.is_primary ?? false,
             })),
           );
 
-          // Map phones from refs.links.phone
+          // Map phones from communications.phones
           setPhones(
-            (data.refs.links.phone ?? []).map((p: any) => ({
+            (comms.phones ?? []).map((p: any) => ({
               id: p.id ?? 0,
               name: p.name ?? "",
-              value: p.number ?? "",
+              value: p.number ?? p.phone ?? "",
               is_primary: p.is_primary ?? false,
             })),
           );
 
-          // Map domains from refs.links.domain
+          // Map domains from communications.domains
           setDomains(
-            (data.refs.links.domain ?? []).map((d: any) => ({
+            (comms.domains ?? []).map((d: any) => ({
               id: d.id ?? 0,
               name: d.name ?? "",
-              value: d.domain ?? d.path ?? "",
+              value: d.domain ?? d.path ?? d.url ?? "",
               is_primary: d.is_primary ?? false,
             })),
           );
 
-          // Map addresses from refs.links.address
+          // Map addresses from communications.addresses
           setAddresses(
-            (data.refs.links.address ?? []).map((a: any) => ({
+            (comms.addresses ?? []).map((a: any) => ({
               id: a.id ?? 0,
               name: a.name ?? "",
               full: a.full ?? "",
@@ -915,9 +1064,11 @@ const PurposeSection: React.FC<{
 const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
   contacts = [],
   isEditing = false,
+  orderId,
   onRemove,
   onEdit,
   onChange,
+  onSaveSuccess,
 }) => {
   const { ensureWindow, activateWindow } = useWindowManager();
   const [editingContact, setEditingContact] = useState<RefContact | null>(null);
@@ -1009,11 +1160,13 @@ const RefsLinksContactPanel: React.FC<RefsLinksContactPanelProps> = ({
       <ContactEditModal
         contact={editingContact}
         isOpen={isModalOpen}
+        orderId={orderId}
         onClose={() => {
           setIsModalOpen(false);
           setEditingContact(null);
         }}
         onSave={handleSaveContact}
+        onSaveSuccess={onSaveSuccess}
       />
 
       {/* Add Contact Section - Navigate to Contact List/Add page */}
