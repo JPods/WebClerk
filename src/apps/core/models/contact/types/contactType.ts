@@ -92,10 +92,11 @@ export interface CreateContactRequest {
   name_first: string;
   name_last: string;
   name_middle?: string;
-  email: string;
-  company?: string;
   name_suffix?: string;
   name_prefix?: string;
+  attention?: string;
+  email: string;
+  company?: string;
   title?: string;
   department?: string;
   comment?: string;
