@@ -152,6 +152,13 @@ interface TransactionDetailBaseProps {
   idProp?: number | string;
 
   /** Callback for cancel action in inline mode */
+
+  /** Callback for Add Task action */
+  onAddTask?: () => void;
+  /** Whether to show Add Task button */
+  showTaskButton?: boolean;
+  /** Number of pending tasks (for badge) */
+  taskCount?: number;
 }
 
 const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
@@ -177,6 +184,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   modeProp,
   dataProp,
   idProp,
+  onAddTask,
+  showTaskButton = false,
+  taskCount,
 }) => {
   // Default no-op for handleAddItem to avoid reference error
   const handleAddItem = () => {};
@@ -850,6 +860,9 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             canDelete={canDelete}
             canClone={canClone}
             canTransfer={canTransfer}
+            onAddTask={onAddTask}
+            showTaskButton={showTaskButton}
+            taskCount={taskCount}
           />
         </div>
       )}

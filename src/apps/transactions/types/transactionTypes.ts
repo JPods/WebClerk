@@ -6,36 +6,36 @@
 
 // --- Status & Choice Types ---
 
-export type TransactionStatus = 
-  | 'planned' 
-  | 'released' 
-  | 'in_progress' 
-  | 'hold' 
-  | 'complete' 
-  | 'canceled'
-  | 'draft'
-  | 'pending'
-  | 'approved'
-  | 'rejected';
+export type TransactionStatus =
+  | "planned"
+  | "released"
+  | "in_progress"
+  | "hold"
+  | "complete"
+  | "canceled"
+  | "draft"
+  | "pending"
+  | "approved"
+  | "rejected";
 
-export type TransactionParentType = 
-  | 'order'
-  | 'invoice' 
-  | 'proposal' 
-  | 'purchase_order' 
-  | 'workorder' 
-  | 'requisition'
-  | 'project';
+export type TransactionParentType =
+  | "order"
+  | "invoice"
+  | "proposal"
+  | "purchase_order"
+  | "workorder"
+  | "requisition"
+  | "project";
 
-export type ContactPurpose = 
-  | 'billto' 
-  | 'shipto' 
-  | 'attention' 
-  | 'approver' 
-  | 'cc' 
-  | 'notify' 
-  | 'buyer'
-  | 'seller'
+export type ContactPurpose =
+  | "billto"
+  | "shipto"
+  | "attention"
+  | "approver"
+  | "cc"
+  | "notify"
+  | "buyer"
+  | "seller"
   | string;
 
 // --- Denormalized Link Types ---
@@ -81,7 +81,11 @@ export interface TransactionRefsLinks {
   item?: ItemDenorm[];
   email?: Array<{ id: number; email?: string; type?: string }>;
   phone?: Array<{ id: number; number?: string; type?: string }>;
-  location?: Array<{ id: number; type?: string; address?: Record<string, unknown> }>;
+  location?: Array<{
+    id: number;
+    type?: string;
+    address?: Record<string, unknown>;
+  }>;
   document?: number[];
   project?: number[];
   warehouse?: number[];
@@ -184,26 +188,47 @@ export interface TransactionComments {
     process?: CommentEntry[];
     foreign?: CommentEntry[];
   };
-  records?: Record<string, {
-    public?: CommentEntry[];
-    process?: CommentEntry[];
-    foreign?: CommentEntry[];
-  }>;
+  records?: Record<
+    string,
+    {
+      public?: CommentEntry[];
+      process?: CommentEntry[];
+      foreign?: CommentEntry[];
+    }
+  >;
 }
 
 // --- Actions Structure (from ActionsMixin) ---
 
 export interface ActionItem {
   id?: number;
+  ida?: string;
   required?: boolean;
-  status?: 'pending' | 'done' | 'blocked' | 'canceled';
+  status?: "pending" | "done" | "blocked" | "canceled" | "In progress" | string;
   who?: number;
   who_name?: string;
   when?: number | string;
   what?: string;
-  kind?: 'followup' | 'review' | 'ship' | 'approve' | 'call' | 'email' | 'task' | string;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  kind?:
+    | "followup"
+    | "review"
+    | "ship"
+    | "approve"
+    | "call"
+    | "email"
+    | "task"
+    | string;
+  priority?: "low" | "normal" | "high" | "urgent" | number;
+  difficulty?: number;
+  percent_complete?: number;
+  progress?: number;
   notes?: string;
+  description?: string | Record<string, string>;
+  action?: string | Record<string, string>;
+  project_name?: string;
+  project_id?: number;
+  kanban_column?: string;
+  assigned_to?: Array<{ id: string | number; name: string }>;
   completed_at?: number | string;
   completed_by?: number;
   extra?: Record<string, unknown>;
@@ -211,11 +236,11 @@ export interface ActionItem {
 
 export interface TransactionActions {
   required?: boolean;
-  status?: 'pending' | 'done' | 'blocked';
+  status?: "pending" | "done" | "blocked";
   who?: number;
   when?: number;
   what?: string;
-  kind?: 'followup' | 'review' | 'ship' | 'approve' | string;
+  kind?: "followup" | "review" | "ship" | "approve" | string;
   extra?: Record<string, unknown>;
   action_next?: {
     who?: string;
@@ -301,23 +326,23 @@ export interface Transaction {
   id: number;
   uuid?: string;
   ida?: string;
-  
+
   // Status & priority
   status: TransactionStatus;
   priority?: string;
   price_level?: string;
-  
+
   // Primary relationship FKs (the source of truth)
   customer_id: number;
   vendor_id: number;
   manufacturer_id: number;
   parent_id?: number | null;
   parent_type?: TransactionParentType | null;
-  
+
   // Denormalized totals for quick access
   total?: number | null;
   balance?: number | null;
-  
+
   // JSONB fields from TransactionBaseModel
   totals?: TransactionTotals;
   cost?: HeaderCost;
@@ -326,20 +351,20 @@ export interface Transaction {
   flow?: TransactionFlow;
   source?: TransactionSource;
   action?: TransactionActions;
-  
+
   // JSONB fields from BaseModel mixins
   metadata?: TransactionMetadata;
   refs?: TransactionRefs;
   prefs?: TransactionPrefs;
   comments?: TransactionComments;
   actions?: TransactionActions;
-  
+
   // Lifecycle fields
   is_active?: boolean;
   is_deleted?: boolean;
   is_archived?: boolean;
   is_locked?: boolean;
-  
+
   // Timestamps
   dt_created?: string;
   dt_modified?: string;
@@ -429,7 +454,7 @@ export interface TransactionLine {
   id: number;
   uuid?: string;
   parent?: number;
-  
+
   // Line item info
   item?: LineItem;
   quantity?: LineQuantity;
@@ -437,13 +462,13 @@ export interface TransactionLine {
   price?: LinePrice;
   tax?: LineTax;
   physical?: LinePhysical;
-  
+
   // From BaseModel
   metadata?: TransactionMetadata;
   refs?: TransactionRefs;
   prefs?: TransactionPrefs;
   comments?: TransactionComments;
-  
+
   // Timestamps
   dt_created?: string;
   dt_modified?: string;
@@ -455,7 +480,15 @@ export interface TransactionLine {
 export interface FieldConfig {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'datetime' | 'select' | 'checkbox' | 'textarea' | 'json';
+  type?:
+    | "text"
+    | "number"
+    | "date"
+    | "datetime"
+    | "select"
+    | "checkbox"
+    | "textarea"
+    | "json";
   options?: string[];
   mandatory?: boolean;
   locked?: boolean;
@@ -469,28 +502,33 @@ export interface FieldConfig {
 export const getContactDisplayName = (contact: ContactDenorm): string => {
   if (contact.display_name) return contact.display_name;
   const parts = [contact.name_first, contact.name_last].filter(Boolean);
-  if (parts.length > 0) return parts.join(' ');
+  if (parts.length > 0) return parts.join(" ");
   return `Contact #${contact.id}`;
 };
 
 export const formatPurpose = (purpose?: string): string => {
-  if (!purpose) return '';
+  if (!purpose) return "";
   const mapping: Record<string, string> = {
-    billto: 'Bill To',
-    shipto: 'Ship To',
-    attention: 'Attention',
-    approver: 'Approver',
-    cc: 'CC',
-    notify: 'Notify',
-    buyer: 'Buyer',
-    seller: 'Seller',
+    billto: "Bill To",
+    shipto: "Ship To",
+    attention: "Attention",
+    approver: "Approver",
+    cc: "CC",
+    notify: "Notify",
+    buyer: "Buyer",
+    seller: "Seller",
   };
-  return mapping[purpose.toLowerCase()] || purpose.charAt(0).toUpperCase() + purpose.slice(1);
+  return (
+    mapping[purpose.toLowerCase()] ||
+    purpose.charAt(0).toUpperCase() + purpose.slice(1)
+  );
 };
 
-export const groupContactsByPurpose = (contacts: ContactDenorm[]): Record<string, ContactDenorm[]> => {
+export const groupContactsByPurpose = (
+  contacts: ContactDenorm[],
+): Record<string, ContactDenorm[]> => {
   return contacts.reduce((acc, contact) => {
-    const purpose = contact.purpose || 'other';
+    const purpose = contact.purpose || "other";
     if (!acc[purpose]) acc[purpose] = [];
     acc[purpose].push(contact);
     return acc;
@@ -501,18 +539,15 @@ export const groupContactsByPurpose = (contacts: ContactDenorm[]): Record<string
 
 export const isTransaction = (obj: unknown): obj is Transaction => {
   return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    'id' in obj &&
-    'status' in obj
+    typeof obj === "object" && obj !== null && "id" in obj && "status" in obj
   );
 };
 
 export const isTransactionLine = (obj: unknown): obj is TransactionLine => {
   return (
-    typeof obj === 'object' &&
+    typeof obj === "object" &&
     obj !== null &&
-    'id' in obj &&
-    ('item' in obj || 'quantity' in obj || 'price' in obj)
+    "id" in obj &&
+    ("item" in obj || "quantity" in obj || "price" in obj)
   );
 };

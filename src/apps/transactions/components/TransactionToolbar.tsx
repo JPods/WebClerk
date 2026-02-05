@@ -21,6 +21,7 @@ import {
   FaTrash,
   FaSpinner,
   FaChevronDown,
+  FaTasks,
 } from "react-icons/fa";
 
 // Transaction types for transfer dropdown
@@ -67,6 +68,12 @@ interface TransactionToolbarProps {
   canClone?: boolean;
   /** Whether transfer is allowed */
   canTransfer?: boolean;
+  /** Callback for Add Task action */
+  onAddTask?: () => void;
+  /** Whether to show Add Task button */
+  showTaskButton?: boolean;
+  /** Number of pending tasks (for badge) */
+  taskCount?: number;
   /** Custom class name */
   className?: string;
 }
@@ -88,6 +95,9 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
   canDelete = true,
   canClone = true,
   canTransfer = true,
+  onAddTask,
+  showTaskButton = true,
+  taskCount,
   className = "",
 }) => {
   const [showTransferMenu, setShowTransferMenu] = useState(false);
@@ -208,6 +218,25 @@ const TransactionToolbar: React.FC<TransactionToolbarProps> = ({
 
       {/* Middle: Secondary actions */}
       <div className="flex items-center gap-2">
+        {/* Add Task */}
+        {!isNewRecord && showTaskButton && onAddTask && (
+          <button
+            type="button"
+            onClick={onAddTask}
+            disabled={actionInProgress !== null}
+            className={`${secondaryButton} text-xs relative`}
+            title="Add Task"
+          >
+            <FaTasks size={14} />
+            <span className="hidden md:inline">Task</span>
+            {taskCount !== undefined && taskCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-blue-500 rounded-full">
+                {taskCount > 9 ? "9+" : taskCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Clone */}
         {!isNewRecord && canClone && onClone && (
           <button
