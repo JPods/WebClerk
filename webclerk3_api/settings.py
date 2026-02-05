@@ -271,6 +271,11 @@ STATIC_URL = 'static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Additional directories for static files (beyond app static folders)
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # Includes /static/images/ for uploaded content
+]
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.Contact'

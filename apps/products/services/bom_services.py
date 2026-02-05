@@ -13,13 +13,13 @@ from apps.products.models.bill_of_material import BillOfMaterial
 
 def list_bom_lines(parent_id: int, *, as_of: date | None = None, revision: str | None = None) -> Iterable[BillOfMaterial]:
     """Return BOM lines for a parent filtered by optional effective window and revision."""
-    qs = BillOfMaterial.objects.filter(parent_id=parent_id)
+    qs = BillOfMaterial.objects.filter(item_id=parent_id).select_related('item_id', 'component_id')
     if revision is not None:
         qs = qs.filter(revision=revision)
     if as_of:
         qs = qs.filter(
-            (Q(effective_from__isnull=True) | Q(effective_from__lte=as_of)) &
-            (Q(effective_to__isnull=True) | Q(effective_to__gte=as_of))
+            (Q(dt_effective_from__isnull=True) | Q(dt_effective_from__lte=as_of)) &
+            (Q(dt_effective_to__isnull=True) | Q(dt_effective_to__gte=as_of))
         )
     return qs.order_by('sequence', 'id')
 

@@ -28,6 +28,14 @@
     - [Housekeeping](#housekeeping)
   - [Quick Reference](#quick-reference)
   - [Purchase Order Receiving](#purchase-order-receiving)
+  - [Bill of Materials (BOM)](#bill-of-materials-bom)
+    - [BOM Model](#bom-model)
+    - [BOM REST Endpoints](#bom-rest-endpoints)
+    - [Serializer Computed Fields](#serializer-computed-fields)
+    - [React Component](#react-component)
+    - [Test Data Structure](#test-data-structure)
+    - [Management Commands](#management-commands)
+    - [Source Data](#source-data)
 
 <!-- TOC END -->
 
@@ -414,3 +422,137 @@ curl -X POST \
       }' \
   http://localhost:8000/transactions/purchase-orders/42/receive/
 ```
+
+## Bill of Materials (BOM)
+
+The `BillOfMaterial` model tracks parent-child component relationships for assembled/bundled items.
+
+### BOM Model
+
+Located at `apps/products/models/bill_of_material.py`. Key fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `item_id` | FK → Item | Parent (assembled) item |
+| `component_id` | FK → Item | Child component item |
+| `quantity` | Decimal | Quantity needed per assembly |
+| `cost_snapshot` | Decimal | Component unit cost at creation |
+| `scrap_factor` | Decimal | Scrap ratio (0-1) |
+| `sequence` | Int | Sort order |
+| `revision` | Char | BOM revision code |
+| `dt_effective_from/to` | Date | Effectivity window |
+| `is_alternate` | Bool | Alternate component flag |
+| `alternate_group` | Char | Group key for alternates |
+
+### BOM REST Endpoints
+
+Base path: `/api/products/items/<parent_id>/bom/`
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/products/items/<id>/bom/` | GET | List BOM lines for parent item |
+| `/api/products/items/<id>/bom/` | POST | Create new BOM line |
+| `/api/products/items/<id>/bom/<line_id>/` | GET | Get single BOM line detail |
+| `/api/products/items/<id>/bom/<line_id>/` | PUT/PATCH | Update BOM line |
+| `/api/products/items/<id>/bom/<line_id>/` | DELETE | Delete BOM line |
+| `/api/products/items/<id>/bom/recalc-cost/` | POST | Recalculate cost snapshots |
+
+Query parameters for list:
+- `as_of=YYYY-MM-DD` - Resolve BOM at historical date (effectivity filtering)
+- `revision=CODE` - Filter to specific revision
+
+### Serializer Computed Fields
+
+The `BillOfMaterialSerializer` returns these computed fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `extended_cost` | Decimal | `quantity × cost_snapshot` |
+| `component_child_count` | Int | Count of BOM children for this component (0 if not a subassembly) |
+| `refs.links.bom` | Array | Nested BOM children of this component (one level deep) |
+
+Example response with nested data:
+```json
+{
+  "id": 32,
+  "component": {"id": 255, "sku": "BB110", "name": "..."},
+  "quantity": "1.0000",
+  "cost_snapshot": "40.0000",
+  "extended_cost": 40.0,
+  "component_child_count": 1,
+  "refs": {
+    "links": {
+      "bom": [
+        {"id": 25, "component": {"sku": "BB105"}, "quantity": "10.0000", ...}
+      ]
+    }
+  }
+}
+```
+
+### React Component
+
+`BOMSection` in `React2025/src/apps/products/models/item/components/BOMSection.tsx`:
+
+- Lazy-loads BOM data when section is expanded
+- Displays component SKU, description, quantity, unit cost, extended cost
+- Shows total extended cost across all components
+- Badge indicators for:
+  - **Child count** (info badge) - Shows when component has its own BOM children
+  - **Optional** (warning badge)
+  - **Alternate** (primary badge)
+  - **Scrap %** (error badge)
+- Refreshes automatically when viewing different items
+
+### Test Data Structure
+
+Seeded via `python manage.py seed_sample_bom`. Baseball equipment kits:
+
+**BB401** (WS Baseball Starter Inventory - 8 components):
+| Child | Qty | Description |
+|-------|:---:|-------------|
+| BB1 | 5 | All-Star BB1 Bat Carry Bag/Rack |
+| BB105 | 7 | Little League Baseballs |
+| BB103 | 10 | Batting Glove-Wilson |
+| BB102 | 1 | Batting Glove, Saranac |
+| BB101 | 11 | Little League Bat |
+| BB100 | 1 | Fielders Glove-Wilson, G. Brut |
+| BB110 | 1 | Little League Baseballs, Box of 10 dozen |
+| BB405 | 6 | WS Baseball Starter Inventory |
+
+**bb401_2** (variant kit - 7 components):
+Same as BB401 minus BB405.
+
+**BB404** (smaller starter kit - 4 components):
+| Child | Qty | Description |
+|-------|:---:|-------------|
+| BB102 | 2 | Batting Glove, Saranac |
+| BB101 | 1 | Little League Bat |
+| BB103 | 1 | Batting Glove-Wilson |
+| BB110 | 1 | Little League Baseballs, Box of 10 dozen |
+
+**BB110** (nested BOM - 1 component):
+| Child | Qty | Description |
+|-------|:---:|-------------|
+| BB105 | 10 | Little League Baseballs |
+
+> **Note:** BB110 is both a parent (contains BB105) AND a child (used in BB401/BB404) — demonstrating nested BOM support.
+
+### Management Commands
+
+```bash
+# Seed test BOM data (clears existing, inserts baseball kit data)
+python manage.py seed_sample_bom
+
+# Dry run (preview without changes)
+python manage.py seed_sample_bom --dry-run
+
+# Import from TSV file
+python manage.py import_bom_tsv path/to/bom.tsv
+```
+
+### Source Data
+
+Test data files in `readmes/topics/inventory/`:
+- `bom_parent.json` - Parent items with `BomHasChild=True`
+- `bom_children.json` - Component relationships
