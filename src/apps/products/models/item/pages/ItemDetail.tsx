@@ -21,6 +21,7 @@ import { useDispatch } from "react-redux";
 import { useLocation, useParams } from "react-router";
 import { itemSchema } from "../utils/itemSchema";
 import { ItemAddProps } from "../types/itemType";
+import BOMSection from "../components/BOMSection";
 
 // ============================================================================
 // Types
@@ -122,6 +123,7 @@ interface DataSectionProps {
   children: React.ReactNode;
   collapsible?: boolean;
   defaultOpen?: boolean;
+  noTable?: boolean; // If true, don't wrap children in <Table>
 }
 
 function DataSection({
@@ -129,6 +131,7 @@ function DataSection({
   children,
   collapsible = true,
   defaultOpen = true,
+  noTable = false,
 }: DataSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -161,7 +164,7 @@ function DataSection({
       </div>
       {isOpen && (
         <div className="border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-lg overflow-hidden">
-          <Table>{children}</Table>
+          {noTable ? children : <Table>{children}</Table>}
         </div>
       )}
     </div>
@@ -348,9 +351,14 @@ function ItemDataView({ data }: { data: ItemData }) {
 
       {/* Inventory / Quantity - Horizontal Layout */}
       {data.quantity && (
-        <DataSection title="Inventory Status" defaultOpen={true}>
+        <DataSection title="Inventory Status" defaultOpen={true} noTable>
           <InventoryGrid quantity={data.quantity} />
         </DataSection>
+      )}
+
+      {/* Bill of Materials */}
+      {data.id && (
+        <BOMSection itemId={data.id} defaultOpen={false} />
       )}
 
       {/* Flags */}

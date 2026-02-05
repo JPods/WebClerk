@@ -47,7 +47,7 @@ type CachedEntry = {
   timestamp: number;
 };
 
-const CACHE_PREFIX = "wc_cache_v1:";
+const CACHE_PREFIX = "wc_cache_v2:";
 
 // Drop cached GET responses; used when identity changes so old-user data is not reused
 export const clearResponseCache = () => {
