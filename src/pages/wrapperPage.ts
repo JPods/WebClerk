@@ -33,7 +33,7 @@ import AppPhoneDetail from "../apps/communications/models/phone/pages/PhoneDetai
 
 // Orgs
 import CustomerList from "../apps/orgs/models/customer/pages/CustomerList";
-import CustomerDetailPage from "../apps/orgs/models/customer/pages/CustomerDetailPage";
+import CustomerDetailPage from "../apps/orgs/models/customer/pages/CustomerDetail";
 import CustomerAddPage from "../apps/orgs/models/customer/pages/CustomerAddPage";
 import CustomerEditPage from "../apps/orgs/models/customer/pages/CustomerEditPage";
 import EmployeeList from "../apps/orgs/models/employee/pages/EmployeeList";

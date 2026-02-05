@@ -8,7 +8,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { FaSave, FaTimes, FaEdit, FaChevronLeft, FaPlus, FaTrash, FaUser, FaMapMarkerAlt, FaPhone, FaEnvelope, FaFileAlt, FaDatabase, FaChartBar, FaDollarSign, FaLink, FaCog } from 'react-icons/fa';
 import { showToast } from '@/store/slices/toastSlice';
-import PageBreadcrumb from '@/components/common/PageBreadCrumb';
+import DetailShell from '@/components/common/DetailShell';
 import ComponentCard from '@/components/common/ComponentCard';
 import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgMetrics } from '../types/orgTypes';
 import orgApi from '../services/orgApi';
@@ -138,7 +138,7 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
             type="text"
             value={org.uuid || ''}
             disabled
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 font-mono text-xs"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 font-mono text-xs"
           />
         </div>
         {/* version (read-only) */}
@@ -177,7 +177,7 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
             type="text"
             value={org.created_at || org.dt_created || ''}
             disabled
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 text-xs"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 text-xs"
           />
         </div>
         <div>
@@ -186,7 +186,7 @@ const InfoTab: React.FC<{ org: Organization; editing: boolean; onChange: (update
             type="text"
             value={org.updated_at || org.dt_modified || ''}
             disabled
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 text-xs"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 text-xs"
           />
         </div>
       </div>
@@ -859,73 +859,86 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
   // Inline mode rendering
   if (isInline) {
     return (
-      <ComponentCard title={org.id ? `${title} #${org.id}` : `New ${title}`}>
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {!editing && (
+      <DetailShell
+        title={title}
+        mode={inlineMode === 'add' ? 'add' : editing ? 'edit' : 'view'}
+        inline
+        hideBreadcrumb
+        onCancelInline={onClose}
+        showInlineHeader={false}
+        card={false}
+      >
+        <ComponentCard title={org.id ? `${title} #${org.id}` : `New ${title}`}>
+          {/* Header */}
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {!editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
+                >
+                  <FaEdit size={12} /> Edit
+                </button>
+              )}
+            </div>
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:text-slate-400">
+              <FaTimes size={18} />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-700">
+            {tabs.map((tab) => (
               <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600"
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium ${
+                  activeTab === tab.key
+                    ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
               >
-                <FaEdit size={12} /> Edit
+                {tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
-            )}
+            ))}
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:text-slate-400">
-            <FaTimes size={18} />
-          </button>
-        </div>
 
-        {/* Tabs */}
-        <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-700">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium ${
-                activeTab === tab.key
-                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-              }`}
-            >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+          {/* Tab Content */}
+          <div className="min-h-50">{renderTabContent()}</div>
 
-        {/* Tab Content */}
-        <div className="min-h-[200px]">{renderTabContent()}</div>
-
-        {/* Actions */}
-        {editing && (
-          <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
-            <button
-              onClick={handleCancel}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              <FaSave size={12} />
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        )}
-      </ComponentCard>
+          {/* Actions */}
+          {editing && (
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+              <button
+                onClick={handleCancel}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                <FaSave size={12} />
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          )}
+        </ComponentCard>
+      </DetailShell>
     );
   }
 
   // Standalone mode rendering
   return (
-    <>
-      <PageBreadcrumb pageTitle={org.display_name || 'New'} />
-
+    <DetailShell
+      title={title}
+      mode={editing ? 'edit' : 'view'}
+      breadcrumbTitle={org.display_name || 'New'}
+      card={false}
+    >
       <ComponentCard title={org.id ? `${title} Details` : `New ${title}`}>
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -983,9 +996,9 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="min-h-[300px]">{renderTabContent()}</div>
+        <div className="min-h-75">{renderTabContent()}</div>
       </ComponentCard>
-    </>
+    </DetailShell>
   );
 };
 

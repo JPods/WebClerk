@@ -23,11 +23,11 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
+import DetailShell from "@/components/common/DetailShell";
+import ComponentCard from "@/components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import Input from "../../../../../components/form/input/InputField";
 import DropDown from "../../../../../components/form/input/DropDown";
-import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
 import { createContact, updateContact } from "../services/contactApi";
 import { showToast } from "../../../../../store/slices/toastSlice";
 import { useDispatch } from "react-redux";
@@ -45,9 +45,11 @@ import {
 } from "../types/contactType";
 import Checkbox from "../../../../../components/form/input/Checkbox";
 import { 
-  FaSave, FaChevronDown, FaChevronRight, FaTimes, FaEdit,
-  FaUser, FaBuilding, FaIdCard, FaCog,
-  FaStar, FaThLarge, FaCompressAlt, FaAlignLeft, FaListAlt, FaColumns, FaLayerGroup
+  FaChevronDown,
+  FaChevronRight,
+  FaUser,
+  FaBuilding,
+  FaCog,
 } from "react-icons/fa";
 import { useDetailFieldAccess } from "@/hooks/useDetailFieldAccess";
 
@@ -63,48 +65,14 @@ import {
 } from "@/apps/common/components/panels";
 
 // ------------------------------------
-// Layout Selector for team discussion
+// Layout (reserved for future variations)
 // ------------------------------------
-type LayoutStyle = "best-practice" | "grid" | "compact" | "dense" | "horizontal" | "two-column";
-
-interface LayoutOption {
-  value: LayoutStyle;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const layoutOptions: LayoutOption[] = [
-  { value: "best-practice", label: "Best Practice", icon: <FaStar className="w-3.5 h-3.5" />, description: "Enterprise UX standard - collapsible sections" },
-  { value: "grid", label: "Grid", icon: <FaThLarge className="w-3.5 h-3.5" />, description: "3-column grid with labels above" },
-  { value: "compact", label: "Compact", icon: <FaCompressAlt className="w-3.5 h-3.5" />, description: "Dense 3-column layout" },
-  { value: "dense", label: "Dense", icon: <FaAlignLeft className="w-3.5 h-3.5" />, description: "Ultra-compact inline labels" },
-  { value: "horizontal", label: "Horizontal", icon: <FaListAlt className="w-3.5 h-3.5" />, description: "2-column with left labels" },
-  { value: "two-column", label: "Two Column", icon: <FaColumns className="w-3.5 h-3.5" />, description: "Card-based layout" },
-];
-
-function LayoutSelector({ value, onChange }: { value: LayoutStyle; onChange: (layout: LayoutStyle) => void }) {
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
-      <FaLayerGroup className="text-slate-400 w-3 h-3" />
-      {layoutOptions.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`p-1.5 rounded transition-all ${
-            value === option.value
-              ? "bg-blue-500 text-white shadow-sm"
-              : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-          }`}
-          title={`${option.label}: ${option.description}`}
-        >
-          {option.icon}
-        </button>
-      ))}
-    </div>
-  );
-}
+type CommunicationsData = {
+  emails?: any[];
+  phones?: any[];
+  addresses?: any[];
+  domains?: any[];
+};
 
 // ------------------------------------
 // Enterprise Field Row Component
@@ -301,11 +269,8 @@ export default function ContactDetail({
   // Allow toggling between view and edit modes
   const [effectiveMode, setEffectiveMode] = useState<"add" | "edit" | "view">(mode);
   
-  // Layout selector for team discussion
-  const [selectedLayout, setSelectedLayout] = useState<LayoutStyle>("best-practice");
-  
   // Local state for communications (updated by CommunicationsPanel after successful API calls)
-  const [communications, setCommunications] = useState({
+  const [communications, setCommunications] = useState<CommunicationsData>({
     emails: data?.communications?.emails || data?.refs?.links?.email || [],
     phones: data?.communications?.phones || data?.refs?.links?.phone || [],
     addresses: data?.communications?.addresses || data?.refs?.links?.address || [],
@@ -353,7 +318,7 @@ export default function ContactDetail({
     control,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(mode === "edit" ? updateContactSchema : contactSchema),
     defaultValues: {
@@ -476,71 +441,89 @@ export default function ContactDetail({
   }
 
   return (
-    <>
-      {!hideBreadcrumb && !inline && (
-        <PageBreadcrumb
-          pageTitle={effectiveMode === "edit" ? "Edit Contact" : effectiveMode === "view" ? "View Contact" : "Add Contact"}
-        />
-      )}
-
+    <DetailShell
+      title="Contact"
+      mode={mode}
+      inline={inline}
+      hideBreadcrumb={hideBreadcrumb}
+      onCancelInline={onCancelInline}
+      card={false}
+    >
       <ComponentCard>
-        {/* Header with Title, Layout Selector, and Action Buttons */}
-        <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {effectiveMode === "edit" ? "Edit Contact" : effectiveMode === "view" ? "View Contact" : "Add New Contact"}
-            </h3>
-            {/* Layout Selector for team discussion */}
-            <LayoutSelector value={selectedLayout} onChange={setSelectedLayout} />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Edit button - show in view mode to switch to edit */}
-            {effectiveMode === "view" && (
-              <button
-                type="button"
-                onClick={() => setEffectiveMode("edit")}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                <FaEdit className="w-3.5 h-3.5" />
-                Edit
-              </button>
-            )}
-            {/* Cancel button - show for inline or when editing (to go back to view) */}
-            {(onCancelInline || effectiveMode === "edit") && effectiveMode !== "add" && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (onCancelInline) {
-                    onCancelInline();
-                  } else {
-                    setEffectiveMode("view");
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <FaTimes className="w-3 h-3" />
-                Cancel
-              </button>
-            )}
-            {/* Save button - show for add and edit modes */}
-            {effectiveMode !== "view" && (
-              <button
-                type="submit"
-                form="contact-form"
-                disabled={isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <FaSave className="w-3.5 h-3.5" />
-                {isSubmitting ? "Saving..." : effectiveMode === "add" ? "Create" : "Save"}
-              </button>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+            {shouldRenderField("email") && (
+              <div>
+                <Label htmlFor="email">email</Label>
+                <Input
+                  type="email"
+                  id="email"
+                  placeholder="Primary email address for login"
+                  {...register("email")}
+                  error={errors.email && errors.email.message ? true : false}
+                  hint={errors.email && errors.email.message}
+                  disabled={isFieldDisabled("email")}
+                />
+              </div>
             )}
           </div>
-        </div>
-
-        <form id="contact-form" onSubmit={handleSubmit(onSubmit)} className="max-w-4xl">
-          {/* 1. Personal Information Section - TOP */}
-          <Section title="Personal Information" icon={<FaIdCard className="w-4 h-4" />} defaultExpanded={true}>
-            {/* Row 1: First Name (left), Prefix (right) */}
+          {mode === "add" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                {shouldRenderField("password") && (
+                  <div>
+                    <Label htmlFor="password">password</Label>
+                    <Input
+                      type="password"
+                      id="password"
+                      placeholder="Password"
+                      {...register("password" as any)}
+                      error={
+                        (errors as any).password &&
+                        (errors as any).password.message
+                          ? true
+                          : false
+                      }
+                      hint={
+                        (errors as any).password?.message ||
+                        "Your password can't be too similar to your other personal information. Your password must contain at least 8 characters. Your password can't be a commonly used password. Your password can't be entirely numeric."
+                      }
+                      disabled={isFieldDisabled("password")}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                {shouldRenderField("cnf_password") && (
+                  <div>
+                    <Label htmlFor="cnf_password">cnf_password</Label>
+                    <Input
+                      type="password"
+                      id="cnf_password"
+                      placeholder="Confirm Password"
+                      {...register("cnf_password" as any)}
+                      error={
+                        (errors as any).cnf_password &&
+                        (errors as any).cnf_password.message
+                          ? true
+                          : false
+                      }
+                      hint={
+                        (errors as any).cnf_password?.message ||
+                        "Enter the same password as before, for verification."
+                      }
+                      disabled={isFieldDisabled("cnf_password")}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          <Section
+            title="Personal Information"
+            icon={<FaUser className="w-4 h-4" />}
+            defaultExpanded={true}
+          >
             {shouldRenderField("name_first") && (
               <FieldRow label="First Name" htmlFor="name_first" error={errors.name_first?.message} required>
                 <Input
@@ -919,6 +902,6 @@ export default function ContactDetail({
           </Section>
         </form>
       </ComponentCard>
-    </>
+    </DetailShell>
   );
 }
