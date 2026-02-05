@@ -79,3 +79,30 @@ export type {
   TransactionPartyType,
   TransactionPartySelectorProps,
 } from "./PartySelector";
+
+// Transaction Task Modal
+export { default as TransactionTaskModal } from "./TransactionTaskModal";
+export type {
+  TransactionTaskModalProps,
+  TransactionTaskFormState,
+  TaskKind,
+  TaskPriority,
+  TaskStatus,
+  AssigneeInfo,
+  ProjectOption,
+  ContactOption,
+} from "./TransactionTaskModal.types";
+export {
+  createDefaultTaskState,
+  TASK_KIND_OPTIONS,
+  PRIORITY_OPTIONS,
+  STATUS_OPTIONS,
+  PROGRESS_OPTIONS,
+  DIFFICULTY_OPTIONS,
+  PRIORITY_VALUES,
+  VALUE_TO_PRIORITY,
+  STATUS_CONFIG,
+} from "./TransactionTaskModal.types";
+
+// Transaction Tasks Hook
+export { default as useTransactionTasks } from "./useTransactionTasks";
