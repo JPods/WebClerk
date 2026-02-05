@@ -432,14 +432,24 @@ export function useTransactionTasks({
           parent_id: parentId,
         });
 
+        console.log("[useTransactionTasks] createTask payload:", payload);
         const response = await saveRecord("action", payload);
+        console.log("[useTransactionTasks] createTask response:", response);
 
         // Extract the created action ID from response
         const createdId =
           response?.id || response?.record?.id || response?.data?.id;
 
-        // Refresh tasks list
-        await fetchTasks();
+        if (createdId) {
+          // Refresh tasks list - include the new ID when fetching by IDs
+          if (useActionIds) {
+            const newIds = [...actionIds, createdId];
+            console.log("[useTransactionTasks] Refreshing by new IDs:", newIds);
+            await fetchTasksByIds(newIds);
+          } else {
+            await fetchTasks();
+          }
+        }
 
         return createdId || null;
       } catch (err) {
@@ -450,7 +460,14 @@ export function useTransactionTasks({
         setIsSaving(false);
       }
     },
-    [parentType, parentId, fetchTasks],
+    [
+      parentType,
+      parentId,
+      fetchTasks,
+      fetchTasksByIds,
+      useActionIds,
+      actionIds,
+    ],
   );
 
   // Update an existing task

@@ -27,6 +27,7 @@ import type {
 } from "../../../types/transactionTypes";
 import SummaryCard from "@/apps/transactions/components/SummaryCard";
 import LinesCard from "@/apps/transactions/components/LinesCard";
+import { saveRecord } from "@/api/wcapi";
 // import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 // Order specific fields that extend base Transaction
@@ -124,6 +125,7 @@ const ActionsTable: React.FC<{
   onCreateTask?: (task: TransactionTaskFormState) => Promise<number | null>;
   onUpdateTask?: (task: TransactionTaskFormState) => Promise<boolean>;
   onActionIdsChange?: (ids: number[]) => void;
+  onAutoSaveOrderActions?: (ids: number[]) => Promise<void>;
   contacts?: Array<{ id: string | number; label: string; email?: string }>;
   projects?: Array<{ id: string | number; name?: string; intent?: string }>;
 }> = ({
@@ -137,6 +139,7 @@ const ActionsTable: React.FC<{
   onCreateTask,
   onUpdateTask,
   onActionIdsChange,
+  onAutoSaveOrderActions,
   contacts = [],
   projects = [],
 }) => {
@@ -360,11 +363,27 @@ const ActionsTable: React.FC<{
               project_name: resolvedProjectName || undefined,
             };
             const createdId = await onCreateTask(taskFormState);
+            console.log(
+              "[ActionsTable] onCreateTask returned createdId:",
+              createdId,
+            );
             if (createdId) {
               // Add the new action ID to the order's actions.ids array
+              const newIds = [...actionIds, createdId];
               if (onActionIdsChange) {
-                const newIds = [...actionIds, createdId];
+                console.log(
+                  "[ActionsTable] Calling onActionIdsChange with newIds:",
+                  newIds,
+                );
                 onActionIdsChange(newIds);
+              }
+              // Auto-save the order with the new action IDs
+              if (onAutoSaveOrderActions) {
+                console.log(
+                  "[ActionsTable] Auto-saving order.actions.ids:",
+                  newIds,
+                );
+                await onAutoSaveOrderActions(newIds);
               }
               setShowAddForm(false);
             }
@@ -1014,11 +1033,37 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
 
       // Handler to update the action IDs in the order
       const handleActionIdsChange = (ids: number[]) => {
+        console.log("[OrderDetail] handleActionIdsChange called with:", ids);
         if (onFieldChange) {
+          console.log(
+            "[OrderDetail] Updating order.actions.ids via onFieldChange",
+          );
           onFieldChange("actions", {
             ...orderData.actions,
             ids: ids,
           });
+        }
+      };
+
+      // Handler to auto-save the order with updated action IDs
+      const handleAutoSaveOrderActions = async (ids: number[]) => {
+        console.log("[OrderDetail] Auto-saving order.actions.ids:", ids);
+        if (orderData.id) {
+          try {
+            await saveRecord("order", {
+              id: orderData.id,
+              actions: {
+                ...orderData.actions,
+                ids: ids,
+              },
+            });
+            console.log("[OrderDetail] Order.actions.ids saved successfully");
+          } catch (error) {
+            console.error(
+              "[OrderDetail] Failed to save order.actions.ids:",
+              error,
+            );
+          }
         }
       };
 
@@ -1037,6 +1082,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
               onCreateTask={createTask}
               onUpdateTask={updateTask}
               onActionIdsChange={handleActionIdsChange}
+              onAutoSaveOrderActions={handleAutoSaveOrderActions}
               onUpdateAction={handleUpdateAction}
               onDeleteAction={handleDeleteAction}
               contacts={contacts}
