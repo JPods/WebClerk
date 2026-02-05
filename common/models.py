@@ -220,6 +220,11 @@ def default_metadata() -> dict:
     # Canonical keys; specific apps can mirror or promote to columns when needed for performance.
     "flow": {},   # e.g., lineage hints, parent/child hops for reporting
     "source": {}, # e.g., campaign/vendor/manufacturer attribution for analytics
+        "images": {
+            "primary": "",      # hero image path
+            "gallery": [],      # additional view paths
+            "thumbnail": "",    # list/grid display path
+        },
         "history": {
             "created": {"dt": now_ms, "contact_id": 0},
             "modified": {"dt": now_ms, "contact_id": 0},
