@@ -24,11 +24,19 @@ class QuestionAnswer(BaseModel):
     """
 
     question = models.CharField(max_length=500, blank=True, null=True, db_index=True)
-    answer = models.TextField(blank=True, null=True)
+    answer = models.CharField(max_length=500, blank=True, null=True)
     # Link to configured question definition (Setting) if available
     setting_id = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions')
-    contact_id = models.ForeignKey('core.Contact', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_answers')
-    answered_by_name = models.CharField(max_length=255, blank=True, null=True)
+    question_id = models.IntegerField(blank=True, null=True, help_text="ID of the question in the Setting if applicable")
+    answer_id = models.IntegerField(blank=True, null=True, help_text="ID of the selected answer option if applicable")
+
+    # Denormalized snapshot of who answered: {"id": <contact_id>, "attention": <contact_attention>}
+    answered_by = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Stores contact.id and contact.attention of who answered"
+    )
+
     status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     sequence = models.IntegerField(default=0, db_index=True)
     count_accessed = models.IntegerField(default=0)
@@ -46,6 +54,25 @@ class QuestionAnswer(BaseModel):
         return self.question or f"QuestionAnswer {self.id}"
 
     # --- helpers ---------------------------------------------------------
+    def set_answered_by(self, contact):
+        """Populate answered_by from a Contact instance.
+        
+        Args:
+            contact: A Contact model instance or dict with 'id' and 'attention' keys.
+        """
+        if contact is None:
+            self.answered_by = None
+        elif isinstance(contact, dict):
+            self.answered_by = {
+                'id': contact.get('id'),
+                'attention': contact.get('attention'),
+            }
+        else:
+            self.answered_by = {
+                'id': contact.id,
+                'attention': getattr(contact, 'attention', None),
+            }
+
     def increment_access(self, by: int = 1, update_history: bool = True):
         if not self.pk:
             return

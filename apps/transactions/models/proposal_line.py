@@ -8,6 +8,8 @@ class ProposalLine(BaseSellLineModel):
         related_name="lines",
         on_delete=models.CASCADE,
         db_column="proposal_id",
+        null=True,
+        blank=True,
     )
 
     class Meta:

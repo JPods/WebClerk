@@ -8,6 +8,8 @@ class WorkOrderLine(BaseExecLineModel):
         related_name="lines",
         on_delete=models.CASCADE,
         db_column="workorder_id",
+        null=True,
+        blank=True,
     )
 
     class Meta:
