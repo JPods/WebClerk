@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/orgs/', include('apps.orgs.urls')),
     path('api/docs/', include('apps.docs.urls')),
     path('api/transactions/', include('apps.transactions.urls')),
+    path('api/products/', include('apps.products.urls')),
 
     # Admin swagger
     path('admin/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='admin-swagger'),
