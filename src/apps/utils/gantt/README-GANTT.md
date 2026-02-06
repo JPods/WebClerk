@@ -6,6 +6,9 @@ Consolidated Gantt chart using SVAR Gantt (`@svar-ui/react-gantt`) supporting:
 - **Single project view** - Display one project's tasks
 - **Multi-project view** - Select and display multiple projects simultaneously  
 - **Embeddable mode** - Use as component within other pages (e.g., ProjectDetail)
+- **Critical path highlighting** - Identify tasks with zero slack
+- **Baseline comparison** - Compare current vs original planned dates
+- **Export options** - PNG and PDF export
 
 ---
 
@@ -222,6 +225,88 @@ Staff members can customize their badge appearance by setting `prefs.badge` on t
 
 ---
 
+## Advanced Features
+
+### Critical Path Highlighting
+
+Tasks with zero slack (float) are on the critical path and displayed with a **red border**. The critical path represents the longest sequence of dependent tasks that determines the minimum project duration.
+
+```typescript
+// ganttDataMapper.ts - markCriticalPath()
+// Calculates slack for each task using forward/backward pass
+// Tasks with slack === 0 get task.critical = true
+```
+
+### Milestone Markers
+
+Tasks with `duration = 0` are automatically displayed as **diamond (◆) markers** instead of bars:
+
+```
+Regular task:  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+Milestone:     ◆
+```
+
+### Baseline Comparison (Δ Base Column)
+
+Compare current schedule vs original planned dates:
+
+| Column | Shows |
+|--------|-------|
+| Δ Base | Variance in days: `+3d` (delayed, red), `-2d` (ahead, green), `—` (no baseline) |
+
+**Backend fields (Action model):**
+- `dt_start_original` - Original planned start date (BigIntegerField, ms timestamp)
+- `dt_end_original` - Original planned end date (BigIntegerField, ms timestamp)
+
+**Set Baseline button:**
+- Saves current `dt_start` → `dt_start_original` 
+- Saves current `dt_deadline` → `dt_end_original`
+- For all visible tasks
+
+### Slack/Float Display
+
+The **Slack** column shows how much buffer each task has before it impacts the project:
+
+| Value | Meaning |
+|-------|---------|
+| `0d` (red) | Critical path - no buffer |
+| `3d` | 3 days of slack available |
+| `—` | Cannot calculate (missing dependencies) |
+
+### Export Options
+
+Located in the toolbar dropdown:
+
+- **Export PNG** - Captures the Gantt chart using `html2canvas`
+- **Export PDF** - Opens browser print dialog (Ctrl+P) for PDF save
+
+### Undo/Redo
+
+Track changes to task dates with full undo/redo support:
+
+| Action | Shortcut |
+|--------|----------|
+| Undo | `Ctrl+Z` (Mac: `Cmd+Z`) |
+| Redo | `Ctrl+Shift+Z` or `Ctrl+Y` |
+
+- Up to 50 actions stored in history
+- Toolbar buttons show count: `↶ (3)`, `↷ (1)`
+- Only tracks date changes (drag operations)
+
+### Link Deletion
+
+Right-click on a dependency link arrow to delete:
+
+```
+Task A ──────▶ Task B
+        (right-click)
+        ┌─────────────┐
+        │ Delete Link │
+        └─────────────┘
+```
+
+---
+
 ## API Integration
 
 | Endpoint | Purpose |
@@ -273,12 +358,25 @@ Staff members can customize their badge appearance by setting `prefs.badge` on t
   - `README-GANTT-IMPLEMENTATION.md`
   - `README-UNIFIED-GANTT.md`
 
+### ✅ Recently Completed
+
+- [x] **Critical Path Highlighting** - Tasks on critical path have red borders (Feb 2026)
+- [x] **Milestone Support** - Tasks with duration=0 displayed as diamond markers
+- [x] **Link Deletion** - Right-click context menu to delete task dependencies
+- [x] **Baseline Comparison** - "Δ Base" column shows variance from original dates
+  - New fields: `dt_start_original`, `dt_end_original` on Action model
+  - Set Baseline button saves current dates as baseline
+- [x] **Slack/Float Display** - "Slack" column shows buffer in days (0d = red/critical)
+- [x] **Export to PNG** - Uses html2canvas to capture chart
+- [x] **Export to PDF** - Opens print dialog for printing/PDF
+- [x] **Undo/Redo** - History stacks for task changes
+  - Keyboard: `Ctrl+Z` (undo), `Ctrl+Shift+Z` or `Ctrl+Y` (redo)
+  - Toolbar buttons with history count indicators
+
 ### 🔮 Future Enhancements
 
-- [ ] Task dependency links visualization
-- [ ] Export to PDF/image
-- [ ] Baseline comparison view
 - [ ] Resource view (grouped by assignee)
+- [ ] Gantt baseline bars (visual ghost bars showing original schedule)
 
 ---
 
@@ -300,6 +398,15 @@ Staff members can customize their badge appearance by setting `prefs.badge` on t
 | Multi-language task titles | ✓ |
 | URL-based project selection | ✓ |
 | Embeddable component | ✓ |
+| **Critical path highlighting** | ✓ |
+| **Milestone markers (♦)** | ✓ |
+| **Link deletion (right-click)** | ✓ |
+| **Baseline comparison (Δ Base column)** | ✓ |
+| **Slack/float display column** | ✓ |
+| **Export to PNG** | ✓ |
+| **Export to PDF** | ✓ |
+| **Undo/Redo (Ctrl+Z/Y)** | ✓ |
+| **Set Baseline button** | ✓ |
 
 ---
 

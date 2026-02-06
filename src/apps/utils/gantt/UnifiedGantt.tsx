@@ -297,6 +297,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Sidebar collapsed state (collapsed by default)
   const [selectorCollapsed, setSelectorCollapsed] = useState(true);
   
+  // Task list (grid) collapsed state - shows only minimal columns when collapsed
+  const [taskListCollapsed, setTaskListCollapsed] = useState(false);
+  
   // Project selection state
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(() => {
     if (projectId) return [projectId];
@@ -376,9 +379,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     setRedoStack([]); // Clear redo stack on new action
   }, []);
   
-  // Export dropdown state
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
-
   // Refs
   const ganttContainerRef = useRef<HTMLDivElement | null>(null);
   const ganttApiRef = useRef<IApi | null>(null);
@@ -1089,116 +1089,450 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     await refetchActions();
   }, [refetchActions]);
   
-  // Print handler - prints the Gantt chart area
-  const handlePrint = useCallback(() => {
-    // Create print-specific styles
-    const printStyles = document.createElement("style");
-    printStyles.id = "gantt-print-styles";
-    printStyles.textContent = `
-      @media print {
-        @page {
-          size: landscape;
-          margin: 0.5in;
-        }
-        
-        /* Hide non-Gantt elements */
-        body > *:not(.gantt-print-container) { display: none !important; }
-        header, footer, nav, aside { display: none !important; }
-        
-        /* Show Gantt container */
-        .gantt-print-container {
-          display: block !important;
-          position: absolute !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100% !important;
-          height: auto !important;
-          overflow: visible !important;
-          background: white !important;
-        }
-        
-        /* Gantt specific styles */
-        .wx-gantt, .wx-layout, .wx-content {
-          height: auto !important;
-          overflow: visible !important;
-        }
-        
-        .wx-chart, .wx-table-container {
-          overflow: visible !important;
-        }
-        
-        /* Ensure all content is visible */
-        .wx-area, .wx-bars, .wx-scale {
-          overflow: visible !important;
-        }
-        
-        /* Hide scrollbars */
-        ::-webkit-scrollbar { display: none !important; }
-        * { scrollbar-width: none !important; }
-        
-        /* Ensure good contrast */
-        .wx-bar, .wx-task { 
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-      }
-    `;
-    
-    // Add print class to container
+  // Helper to format date for display
+  const formatDateShort = (date: Date | null | undefined): string => {
+    if (!date) return '—';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+  };
+  
+  // Print handler - opens a new window with task list table + timeline visualization
+  const handlePrint = useCallback(async () => {
     const container = ganttContainerRef.current;
-    if (container) {
-      container.classList.add("gantt-print-container");
+    if (!container) {
+      alert("Unable to print: Gantt container not found");
+      return;
     }
     
-    // Add styles and print
-    document.head.appendChild(printStyles);
+    // Build project names header
+    const projectNames = selectedProjectIds.map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.title || proj?.project_name || `Project ${id}`;
+    }).join(', ');
     
-    window.print();
-    
-    // Cleanup after print dialog closes
-    setTimeout(() => {
-      const styleEl = document.getElementById("gantt-print-styles");
-      if (styleEl) styleEl.remove();
-      if (container) {
-        container.classList.remove("gantt-print-container");
+    // Calculate date range for the timeline
+    let minDate = new Date();
+    let maxDate = new Date();
+    ganttData.tasks.forEach(task => {
+      if (task.start instanceof Date) {
+        if (task.start < minDate) minDate = new Date(task.start);
+        if (task.start > maxDate) maxDate = new Date(task.start);
       }
-    }, 100);
-  }, []);
-  
-  // Export to PNG handler
-  const handleExportPNG = useCallback(async () => {
-    const container = ganttContainerRef.current;
-    if (!container) return;
+      if (task.end instanceof Date) {
+        if (task.end < minDate) minDate = new Date(task.end);
+        if (task.end > maxDate) maxDate = new Date(task.end);
+      }
+    });
     
-    try {
-      // Dynamically import html2canvas
-      const html2canvas = (await import("html2canvas")).default;
+    // Add padding to date range
+    minDate.setDate(minDate.getDate() - 2);
+    maxDate.setDate(maxDate.getDate() + 2);
+    const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    // Build task list table rows with visual timeline bars (using inline styles for print compatibility)
+    const taskRows = ganttData.tasks.map(task => {
+      const mapped = task as GanttMappedTask;
+      const startDate = task.start instanceof Date ? formatDateShort(task.start) : '—';
+      const endDate = task.end instanceof Date ? formatDateShort(task.end) : '—';
+      const progress = typeof task.progress === 'number' ? Math.round(task.progress * 100) : 0;
+      const slack = typeof mapped.slack === 'number' ? `${mapped.slack}d` : '—';
+      const critical = mapped.critical ? '●' : '';
       
-      const canvas = await html2canvas(container, {
-        backgroundColor: "#ffffff",
-        scale: 2, // Higher resolution
-        logging: false,
-        useCORS: true,
-      });
+      // Calculate bar position and width for timeline visualization
+      let barLeft = 0;
+      let barWidth = 0;
+      if (task.start instanceof Date && task.end instanceof Date) {
+        const startOffset = (task.start.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+        const duration = Math.max(1, (task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24));
+        barLeft = (startOffset / totalDays) * 100;
+        barWidth = Math.max((duration / totalDays) * 100, 1);
+      }
       
-      // Download the image
-      const link = document.createElement("a");
-      link.download = `gantt-chart-${new Date().toISOString().split("T")[0]}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    } catch (error) {
-      console.error("Failed to export PNG:", error);
-      alert("Failed to export PNG. Please try using the Print function instead.");
+      const barColor = mapped.critical ? '#dc2626' : '#3b82f6';
+      const progressWidth = Math.min(progress, 100);
+      
+      // Use fully inline styles for maximum print compatibility
+      return `<tr>
+        <td>${task.text || '—'}</td>
+        <td style="text-align:center">${startDate}</td>
+        <td style="text-align:center">${endDate}</td>
+        <td style="text-align:center">${progress}%</td>
+        <td style="text-align:center">${slack}</td>
+        <td style="text-align:center;color:${mapped.critical ? '#dc2626' : '#9ca3af'}">${critical}</td>
+        <td style="padding:2px 4px;min-width:300px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
+          <div style="position:relative;height:14px;background:#e5e7eb;border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
+            <div style="position:absolute;left:${barLeft}%;width:${barWidth}%;height:100%;background:${barColor};border-radius:2px;min-width:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
+              <div style="width:${progressWidth}%;height:100%;background:rgba(0,0,0,0.25);border-radius:2px 0 0 2px;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;"></div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    
+    // Generate month labels for timeline header
+    const monthLabels: string[] = [];
+    const monthPositions: { label: string; left: number }[] = [];
+    const tempDate = new Date(minDate);
+    while (tempDate <= maxDate) {
+      const dayOffset = (tempDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+      const leftPos = (dayOffset / totalDays) * 100;
+      if (tempDate.getDate() === 1 || monthLabels.length === 0) {
+        monthPositions.push({
+          label: tempDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          left: leftPos
+        });
+      }
+      tempDate.setDate(tempDate.getDate() + 7); // Move week by week
     }
     
-    setExportMenuOpen(false);
-  }, []);
+    const timelineHeader = monthPositions.map(m => 
+      `<span style="position:absolute;left:${m.left}%;font-size:8px;color:#6b7280;">${m.label}</span>`
+    ).join('');
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!printWindow) {
+      alert("Please allow popups to print the Gantt chart");
+      return;
+    }
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Gantt Chart - ${projectNames}</title>
+          <style>
+            * { 
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            body { 
+              margin: 0; 
+              padding: 20px; 
+              background: white;
+              font-family: system-ui, -apple-system, sans-serif;
+              font-size: 11px;
+            }
+            .print-header {
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .print-header h1 {
+              margin: 0 0 4px 0;
+              font-size: 16px;
+              font-weight: 600;
+              color: #111827;
+            }
+            .print-header p {
+              margin: 0;
+              font-size: 10px;
+              color: #6b7280;
+            }
+            
+            /* Task List Section */
+            .task-list-section {
+              margin-bottom: 20px;
+            }
+            .task-list-section h2 {
+              font-size: 14px;
+              font-weight: 600;
+              margin: 0 0 10px 0;
+              color: #374151;
+            }
+            .task-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 9px;
+            }
+            .task-table th {
+              background: #f3f4f6;
+              border: 1px solid #d1d5db;
+              padding: 4px 6px;
+              text-align: left;
+              font-weight: 600;
+              color: #374151;
+              white-space: nowrap;
+            }
+            .task-table td {
+              border: 1px solid #e5e7eb;
+              padding: 3px 6px;
+              color: #4b5563;
+            }
+            .task-table tr:nth-child(even) {
+              background: #f9fafb;
+            }
+            
+            /* Timeline visualization */
+            .timeline-header {
+              position: relative;
+              height: 16px;
+              background: #f9fafb;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .timeline-cell {
+              padding: 2px 4px !important;
+              min-width: 300px;
+            }
+            .timeline-bar-container {
+              position: relative;
+              height: 14px;
+              background: #e5e7eb;
+              border-radius: 2px;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            .timeline-bar {
+              position: absolute;
+              height: 100%;
+              border-radius: 2px;
+              min-width: 4px;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            .timeline-progress {
+              height: 100%;
+              background: rgba(0,0,0,0.25);
+              border-radius: 2px 0 0 2px;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            
+            @media print {
+              @page { 
+                size: landscape; 
+                margin: 0.3in; 
+              }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+              body { padding: 0; font-size: 8px; }
+              .print-header { margin-bottom: 8px; }
+              .task-table { font-size: 7px; }
+              .task-table th, .task-table td { padding: 2px 4px; }
+              .timeline-cell { min-width: 250px; }
+              .timeline-bar-container {
+                background: #e5e7eb !important;
+              }
+              .timeline-bar {
+                background-color: inherit !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">
+            <h1>Project Gantt Chart</h1>
+            <p>${projectNames} | Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | ${ganttData.tasks.length} tasks</p>
+          </div>
+          
+          <!-- Task List with Timeline -->
+          <div class="task-list-section">
+            <table class="task-table">
+              <thead>
+                <tr>
+                  <th style="width:22%">Task Name</th>
+                  <th style="width:8%;text-align:center">Start</th>
+                  <th style="width:8%;text-align:center">End</th>
+                  <th style="width:6%;text-align:center">Progress</th>
+                  <th style="width:6%;text-align:center">Slack</th>
+                  <th style="width:5%;text-align:center">Crit</th>
+                  <th style="width:45%">
+                    <div style="position:relative;height:16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">${timelineHeader}</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                ${taskRows}
+              </tbody>
+            </table>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 200);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  }, [projects, selectedProjectIds, ganttData.tasks]);
   
-  // Export to PDF handler (uses print dialog with PDF option)
-  const handleExportPDF = useCallback(() => {
-    handlePrint();
-    setExportMenuOpen(false);
-  }, [handlePrint]);
+  // Export to SVG handler - creates a true vector graphic
+  const handleExportSVG = useCallback(() => {
+    if (ganttData.tasks.length === 0) {
+      alert("No tasks to export");
+      return;
+    }
+    
+    // Helper to escape XML special characters
+    const escapeXml = (str: string): string => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+    
+    // Configuration
+    const leftPanelWidth = 200;
+    const rowHeight = 28;
+    const headerHeight = 50;
+    const padding = 10;
+    const chartWidth = 800;
+    const totalWidth = leftPanelWidth + chartWidth + padding * 2;
+    const totalHeight = headerHeight + ganttData.tasks.length * rowHeight + padding * 2;
+    
+    // Calculate date range
+    let minDate = new Date();
+    let maxDate = new Date();
+    ganttData.tasks.forEach(task => {
+      if (task.start instanceof Date) {
+        if (task.start < minDate) minDate = new Date(task.start);
+        if (task.start > maxDate) maxDate = new Date(task.start);
+      }
+      if (task.end instanceof Date) {
+        if (task.end < minDate) minDate = new Date(task.end);
+        if (task.end > maxDate) maxDate = new Date(task.end);
+      }
+    });
+    minDate.setDate(minDate.getDate() - 3);
+    maxDate.setDate(maxDate.getDate() + 3);
+    const totalDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    // Build project names
+    const projectNames = selectedProjectIds.map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.title || proj?.project_name || `Project ${id}`;
+    }).join(', ');
+    
+    // Generate month/week markers
+    const dateMarkers: { label: string; x: number }[] = [];
+    const tempDate = new Date(minDate);
+    let lastMonth = -1;
+    while (tempDate <= maxDate) {
+      const dayOffset = (tempDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+      const xPos = leftPanelWidth + padding + (dayOffset / totalDays) * chartWidth;
+      
+      if (tempDate.getMonth() !== lastMonth) {
+        dateMarkers.push({
+          label: tempDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          x: xPos
+        });
+        lastMonth = tempDate.getMonth();
+      }
+      tempDate.setDate(tempDate.getDate() + 7);
+    }
+    
+    // Generate SVG content
+    let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}">
+  <defs>
+    <style>
+      .title { font: bold 14px system-ui, -apple-system, sans-serif; fill: #111827; }
+      .subtitle { font: 9px system-ui, sans-serif; fill: #6b7280; }
+      .task-name { font: 10px system-ui, sans-serif; fill: #374151; }
+      .date-label { font: 8px system-ui, sans-serif; fill: #9ca3af; }
+      .header-bg { fill: #f9fafb; }
+      .grid-line { stroke: #e5e7eb; stroke-width: 0.5; }
+      .task-bar { rx: 3; ry: 3; }
+      .task-bar-normal { fill: #3b82f6; }
+      .task-bar-critical { fill: #dc2626; }
+      .progress-overlay { fill: rgba(0,0,0,0.2); }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="${totalWidth}" height="${totalHeight}" fill="white"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="${totalWidth}" height="${headerHeight}" class="header-bg"/>
+  <text x="${padding}" y="20" class="title">Project Gantt Chart</text>
+  <text x="${padding}" y="35" class="subtitle">${escapeXml(projectNames)} | ${ganttData.tasks.length} tasks | ${new Date().toLocaleDateString()}</text>
+  
+  <!-- Date markers -->
+  ${dateMarkers.map(m => `<text x="${m.x}" y="45" class="date-label">${m.label}</text>`).join('\n  ')}
+  
+  <!-- Separator line -->
+  <line x1="0" y1="${headerHeight}" x2="${totalWidth}" y2="${headerHeight}" class="grid-line"/>
+  <line x1="${leftPanelWidth}" y1="${headerHeight}" x2="${leftPanelWidth}" y2="${totalHeight}" class="grid-line"/>
+`;
+    
+    // Add task rows
+    ganttData.tasks.forEach((task, index) => {
+      const mapped = task as GanttMappedTask;
+      const y = headerHeight + index * rowHeight;
+      const rawTaskName = (task.text || '—').slice(0, 30) + ((task.text || '').length > 30 ? '...' : '');
+      const taskName = escapeXml(rawTaskName);
+      const progress = typeof task.progress === 'number' ? Math.round(task.progress * 100) : 0;
+      const isCritical = mapped.critical;
+      
+      // Calculate bar position
+      let barX = leftPanelWidth + padding;
+      let barWidth = 0;
+      if (task.start instanceof Date && task.end instanceof Date) {
+        const startOffset = (task.start.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+        const duration = Math.max(1, (task.end.getTime() - task.start.getTime()) / (1000 * 60 * 60 * 24));
+        barX = leftPanelWidth + padding + (startOffset / totalDays) * chartWidth;
+        barWidth = Math.max((duration / totalDays) * chartWidth, 4);
+      }
+      
+      // Row background (alternating)
+      if (index % 2 === 0) {
+        svgContent += `  <rect x="0" y="${y}" width="${totalWidth}" height="${rowHeight}" fill="#fafafa"/>\n`;
+      }
+      
+      // Grid line
+      svgContent += `  <line x1="0" y1="${y + rowHeight}" x2="${totalWidth}" y2="${y + rowHeight}" class="grid-line"/>\n`;
+      
+      // Task name
+      svgContent += `  <text x="${padding}" y="${y + rowHeight / 2 + 4}" class="task-name">${taskName}</text>\n`;
+      
+      // Task bar
+      if (barWidth > 0) {
+        const barY = y + 6;
+        const barHeight = rowHeight - 12;
+        const barClass = isCritical ? 'task-bar-critical' : 'task-bar-normal';
+        
+        svgContent += `  <rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" class="task-bar ${barClass}"/>\n`;
+        
+        // Progress overlay
+        if (progress > 0) {
+          const progressWidth = (progress / 100) * barWidth;
+          svgContent += `  <rect x="${barX}" y="${barY}" width="${progressWidth}" height="${barHeight}" class="progress-overlay" rx="3" ry="3"/>\n`;
+        }
+      }
+    });
+    
+    svgContent += `</svg>`;
+    
+    // Download the SVG
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    const fileProjectNames = selectedProjectIds.map(id => {
+      const proj = projects.find(p => String(p.id) === String(id));
+      return proj?.title || proj?.project_name || id;
+    }).join('-').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 50);
+    
+    link.download = `gantt-${fileProjectNames || 'chart'}-${new Date().toISOString().split("T")[0]}.svg`;
+    link.href = url;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+  }, [projects, selectedProjectIds, ganttData.tasks]);
   
   // Set baseline handler - saves current dates as original planned dates
   const handleSetBaseline = useCallback(async () => {
@@ -1309,21 +1643,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleUndo, handleRedo]);
   
-  // Close export menu when clicking outside
-  useEffect(() => {
-    if (!exportMenuOpen) return;
-    
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Element;
-      if (!target.closest("[data-export-menu]")) {
-        setExportMenuOpen(false);
-      }
-    };
-    
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [exportMenuOpen]);
-  
   const isLoading = isLoadingProjects || isLoadingActions;
   const error = projectsError || actionsError;
   
@@ -1336,12 +1655,26 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     return lookup;
   }, [ganttData.tasks]);
   
+  // Minimal column configuration when task list is collapsed
+  const collapsedColumns: IColumnConfig[] = useMemo(() => [
+    {
+      id: "taskIda",
+      header: "#",
+      width: 50,
+      align: "center",
+      template: (_value: unknown, task: GanttMappedTask) => task?.taskIda || "-",
+    },
+  ], []);
+  
   // Choose columns based on mode - create dynamically with task lookup
   const activeColumns = useMemo(() => {
+    if (taskListCollapsed) {
+      return collapsedColumns;
+    }
     return isSingleProjectMode 
       ? createGanttColumnsSingleProject(taskLookup) 
       : createGanttColumns(taskLookup);
-  }, [isSingleProjectMode, taskLookup]);
+  }, [isSingleProjectMode, taskLookup, taskListCollapsed, collapsedColumns]);
 
   // Get the project name for single-project mode header
   const singleProjectName = useMemo(() => {
@@ -1470,6 +1803,30 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 ))}
               </div>
               
+              {/* Task list collapse toggle */}
+              <button
+                type="button"
+                onClick={() => setTaskListCollapsed(!taskListCollapsed)}
+                className={combineClassNames(
+                  "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition",
+                  taskListCollapsed
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:bg-indigo-900/50"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                )}
+                title={taskListCollapsed ? "Expand task list columns" : "Collapse task list columns"}
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {taskListCollapsed ? (
+                    // Expand icon (columns expanding right)
+                    <path d="M9 4h11M9 8h7M9 12h4M9 16h7M9 20h11M4 12l3-3v6l-3-3z" strokeLinecap="round" strokeLinejoin="round"/>
+                  ) : (
+                    // Collapse icon (columns collapsing left)
+                    <path d="M4 4h11M4 8h7M4 12h4M4 16h7M4 20h11M21 12l-3-3v6l3-3z" strokeLinecap="round" strokeLinejoin="round"/>
+                  )}
+                </svg>
+                {taskListCollapsed ? "Show List" : "Hide List"}
+              </button>
+              
               {/* Refresh button */}
               <button
                 type="button"
@@ -1520,54 +1877,19 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                 Print
               </button>
               
-              {/* Export dropdown */}
-              <div className="relative" data-export-menu>
-                <button
-                  type="button"
-                  onClick={() => setExportMenuOpen(!exportMenuOpen)}
-                  disabled={ganttData.tasks.length === 0}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                  title="Export chart"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Export
-                  <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
-                    <path d="M2.5 4.5l3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  </svg>
-                </button>
-                {exportMenuOpen && (
-                  <div className="absolute right-0 z-50 mt-1 w-36 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800" data-export-menu>
-                    <button
-                      type="button"
-                      onClick={handleExportPNG}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <path d="M21 15l-5-5L5 21"/>
-                      </svg>
-                      PNG Image
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleExportPDF}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="12" y1="18" x2="12" y2="12"/>
-                        <line x1="9" y1="15" x2="15" y2="15"/>
-                      </svg>
-                      PDF (Print)
-                    </button>
-                  </div>
-                )}
-              </div>
-              
+              {/* Export SVG button */}
+              <button
+                type="button"
+                onClick={handleExportSVG}
+                disabled={ganttData.tasks.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                title="Export as scalable vector graphic (SVG)"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                SVG
+              </button>              
               {/* Set Baseline button */}
               <button
                 type="button"
