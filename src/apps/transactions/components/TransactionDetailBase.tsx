@@ -751,7 +751,13 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         return <DocumentsTab />;
 
       case "qa":
-        return <QATab />;
+        return (
+          <QATab
+            transactionType={transactionType}
+            transactionId={currentData?.id}
+            canEdit={isEditing}
+          />
+        );
 
       case "metadata":
         return isAdmin ? (

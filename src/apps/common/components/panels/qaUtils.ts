@@ -180,20 +180,109 @@ export async function getQAQuestions(groupName: string): Promise<QAQuestionsSett
 }
 
 /**
- * Fetch all Q&A question groups
+ * Fetch all Q&A question groups, optionally filtered by model_target
  */
-export async function getAllQAQuestionGroups(): Promise<QAQuestionsSetting[]> {
+export async function getAllQAQuestionGroups(modelTarget?: string): Promise<QAQuestionsSetting[]> {
   try {
-    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
-      params: {
-        model_name: 'setting',
-        purpose: 'qa_questions',
-      },
-    });
+    const params: Record<string, string> = {
+      model_name: 'setting',
+      purpose: 'qa_questions',
+    };
+    if (modelTarget) {
+      params.model_target = modelTarget;
+    }
+    const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params });
     return res.data.data.results || [];
   } catch (err: any) {
     console.error('Failed to fetch Q&A question groups:', err);
     return [];
+  }
+}
+
+/** Scoped question groups organized by level */
+export interface ScopedQAGroups {
+  global: QAQuestionsSetting[];        // model_target is null/empty
+  appLevel: QAQuestionsSetting[];      // model_target matches the app (e.g., "transactions")
+  modelSpecific: QAQuestionsSetting[]; // model_target matches the specific model
+  all: QAQuestionsSetting[];           // combined list (model > app > global priority)
+}
+
+/**
+ * App registry - maps app names to their models
+ * Used for app-level QA question scoping
+ */
+export const APP_MODEL_REGISTRY: Record<string, string[]> = {
+  transactions: ['order', 'purchase', 'workorder', 'invoice', 'estimate', 'quote', 'receipt', 'payment'],
+  contacts: ['customer', 'vendor', 'contact', 'employee', 'company'],
+  inventory: ['item', 'inventory', 'location', 'warehouse', 'bin'],
+  projects: ['project', 'task', 'milestone'],
+  accounting: ['journal', 'gl_account', 'ledger', 'tax'],
+};
+
+/**
+ * Get the app name for a given model
+ */
+export function getAppForModel(modelName: string): string | null {
+  for (const [appName, models] of Object.entries(APP_MODEL_REGISTRY)) {
+    if (models.includes(modelName)) {
+      return appName;
+    }
+  }
+  return null;
+}
+
+/**
+ * Check if a model_target value is an app name
+ */
+export function isAppName(target: string): boolean {
+  return target in APP_MODEL_REGISTRY;
+}
+
+/**
+ * Fetch Q&A question groups scoped for a specific model
+ * Returns groups organized by scope level:
+ * - global: applies to all models (model_target is null)
+ * - appLevel: applies to all models in the same app (e.g., all transactions)
+ * - modelSpecific: applies only to this model
+ */
+export async function getScopedQAQuestionGroups(modelName?: string): Promise<ScopedQAGroups> {
+  try {
+    // Fetch all groups in one call
+    const allGroups = await getAllQAQuestionGroups();
+    
+    const global: QAQuestionsSetting[] = [];
+    const appLevel: QAQuestionsSetting[] = [];
+    const modelSpecific: QAQuestionsSetting[] = [];
+    
+    const appName = modelName ? getAppForModel(modelName) : null;
+    
+    for (const group of allGroups) {
+      if (!group.model_target) {
+        // No model_target = global
+        global.push(group);
+      } else if (isAppName(group.model_target)) {
+        // Target is an app name
+        if (appName && group.model_target === appName) {
+          // Matches the model's app
+          appLevel.push(group);
+        }
+      } else if (modelName && group.model_target === modelName) {
+        // Matches specific model
+        modelSpecific.push(group);
+      }
+      // Groups with model_target that don't match are excluded
+    }
+    
+    return {
+      global,
+      appLevel,
+      modelSpecific,
+      // Combined: model-specific first, then app-level, then global
+      all: [...modelSpecific, ...appLevel, ...global],
+    };
+  } catch (err: any) {
+    console.error('Failed to fetch scoped Q&A question groups:', err);
+    return { global: [], appLevel: [], modelSpecific: [], all: [] };
   }
 }
 
