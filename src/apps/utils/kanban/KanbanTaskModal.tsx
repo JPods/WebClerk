@@ -114,6 +114,14 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
     []
   );
 
+  const statusToProgress: Record<string, number> = {
+    "0": 0,
+    "5": 5,
+    "30": 20,
+    review: 70,
+    "100": 100,
+  };
+
   const priorityToNumeric: Record<TaskPriority, number> = {
     low: 1,
     medium: 2,
@@ -414,7 +422,13 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => onFieldChange("percent_complete", option.value)}
+                      onClick={() => {
+                        onFieldChange("percent_complete", option.value);
+                        const mappedProgress = statusToProgress[option.value];
+                        if (mappedProgress !== undefined) {
+                          onFieldChange("progress", String(mappedProgress));
+                        }
+                      }}
                       className={`${base} ${active ? activeClass : inactiveClass}`}
                       disabled={isSaving}
                     >
