@@ -892,6 +892,8 @@ const updateTaskFormState = (
     if (Number.isFinite(numericProgress)) {
       let derivedStatus: string | null = null;
       if (numericProgress >= 100) {
+        derivedStatus = "100";
+      } else if (numericProgress >= 70) {
         derivedStatus = "review";
       } else if (numericProgress <= 0) {
         derivedStatus = "0";
