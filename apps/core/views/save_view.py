@@ -1062,6 +1062,41 @@ class SaveWcapiView(APIView):
                     console_logger.debug(f"[SAVE_VIEW] Appended contact link for action ID: {obj.id}")
             except Exception as e:
                 console_logger.error(f"[SAVE_VIEW] Failed to append contact link: {e}")
+            
+            # Auto-schedule action based on parent dependencies (Finish-to-Start)
+            # When refs.parents is set, update dt_start to latest parent's dt_end
+            try:
+                from apps.core.services.action_service import auto_schedule_from_parents
+                refs_data = parsed_data.get('refs.parents') or parsed_data.get('refs', {})
+                if isinstance(refs_data, dict) and refs_data.get('value'):
+                    # refs.parents was explicitly updated
+                    refs_data = refs_data.get('value')
+                refs_obj = getattr(obj, 'refs', {}) or {}
+                if isinstance(refs_obj, dict) and refs_obj.get('parents'):
+                    schedule_result = auto_schedule_from_parents(obj, save=True)
+                    if schedule_result.get('updated'):
+                        console_logger.info(
+                            f"[SAVE_VIEW] Auto-scheduled action {obj.id}: dt_start set to {schedule_result.get('dt_start')} "
+                            f"(from parent {schedule_result.get('latest_parent_id')})"
+                        )
+            except Exception as e:
+                console_logger.error(f"[SAVE_VIEW] Failed to auto-schedule action: {e}")
+            
+            # Cascading reschedule: if this action's dates changed, push children forward
+            try:
+                from apps.core.services.action_service import check_and_reschedule_children
+                # Check if dt_start or duration was updated
+                dt_start_changed = 'dt_start' in parsed_data
+                duration_changed = 'duration' in parsed_data
+                if dt_start_changed or duration_changed:
+                    rescheduled = check_and_reschedule_children(obj, save=True)
+                    if rescheduled:
+                        console_logger.info(
+                            f"[SAVE_VIEW] Cascading reschedule: {len(rescheduled)} children rescheduled for action {obj.id}"
+                        )
+            except Exception as e:
+                console_logger.error(f"[SAVE_VIEW] Failed to cascade reschedule children: {e}")
+                
         obj_id = getattr(obj, 'id', None)
         console_logger.debug(f"[SAVE_VIEW] Save completed, object ID: {obj_id}")
         console_logger.debug(f"[SAVE_VIEW] Starting post-save hooks...")
@@ -1945,6 +1980,39 @@ class SaveWcapiView(APIView):
                     console_logger.debug(f"[SAVE_VIEW] Appended contact link for action ID: {obj.id}")
             except Exception as e:
                 console_logger.error(f"[SAVE_VIEW] Failed to append contact link: {e}")
+            
+            # Auto-schedule action based on parent dependencies (Finish-to-Start)
+            # When refs.parents is set, update dt_start to latest parent's dt_end
+            try:
+                from apps.core.services.action_service import auto_schedule_from_parents
+                refs_data = parsed_data.get('refs.parents') or parsed_data.get('refs', {})
+                if isinstance(refs_data, dict) and refs_data.get('value'):
+                    refs_data = refs_data.get('value')
+                refs_obj = getattr(obj, 'refs', {}) or {}
+                if isinstance(refs_obj, dict) and refs_obj.get('parents'):
+                    schedule_result = auto_schedule_from_parents(obj, save=True)
+                    if schedule_result.get('updated'):
+                        console_logger.info(
+                            f"[SAVE_VIEW] Auto-scheduled action {obj.id}: dt_start set to {schedule_result.get('dt_start')} "
+                            f"(from parent {schedule_result.get('latest_parent_id')})"
+                        )
+            except Exception as e:
+                console_logger.error(f"[SAVE_VIEW] Failed to auto-schedule action: {e}")
+            
+            # Cascading reschedule: if this action's dates changed, push children forward
+            try:
+                from apps.core.services.action_service import check_and_reschedule_children
+                # Check if dt_start or duration was updated
+                dt_start_changed = 'dt_start' in parsed_data
+                duration_changed = 'duration' in parsed_data
+                if dt_start_changed or duration_changed:
+                    rescheduled = check_and_reschedule_children(obj, save=True)
+                    if rescheduled:
+                        console_logger.info(
+                            f"[SAVE_VIEW] Cascading reschedule: {len(rescheduled)} children rescheduled for action {obj.id}"
+                        )
+            except Exception as e:
+                console_logger.error(f"[SAVE_VIEW] Failed to cascade reschedule children: {e}")
 
         obj_id = getattr(obj, 'id', None)
         console_logger.debug(f"[SAVE_VIEW] Save completed, object ID: {obj_id}")

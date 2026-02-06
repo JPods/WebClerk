@@ -8,13 +8,41 @@ from apps.core.utils import registry, policy
 
 def to_dict(obj: Model, *, allow: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     data = model_to_dict(obj)
+    
+    # Explicitly add fields that model_to_dict might miss
+    # (id, ida, and other non-editable or special fields)
+    for field in obj._meta.get_fields():
+        name = getattr(field, 'name', None)
+        if name and name not in data:
+            try:
+                value = getattr(obj, name, None)
+                # Skip reverse relations and callables
+                if not callable(value) and not hasattr(value, 'all'):
+                    data[name] = value
+            except Exception:
+                pass
+    
+    # Ensure key fields are always present
+    if 'id' not in data:
+        data['id'] = getattr(obj, 'pk', None) or getattr(obj, 'id', None)
+    if 'ida' not in data and hasattr(obj, 'ida'):
+        data['ida'] = getattr(obj, 'ida', None)
+    if 'duration' not in data and hasattr(obj, 'duration'):
+        data['duration'] = getattr(obj, 'duration', None)
+    if 'percent_complete' not in data and hasattr(obj, 'percent_complete'):
+        data['percent_complete'] = getattr(obj, 'percent_complete', None)
+    if 'project_ida' not in data and hasattr(obj, 'project_ida'):
+        data['project_ida'] = getattr(obj, 'project_ida', None)
+    if 'dt_start' not in data and hasattr(obj, 'dt_start'):
+        data['dt_start'] = getattr(obj, 'dt_start', None)
+    
     filtered = {k: data.get(k) for k in allow} if allow else data
 
     field_map = {}
     try:
         field_map = {f.name: f for f in obj._meta.get_fields() if getattr(f, "name", None)}
     except Exception:
-        field_map = {}
+        pass
 
     json_field_names = set()
     for name, field in field_map.items():

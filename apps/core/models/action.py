@@ -22,6 +22,7 @@ class Action(BaseModel):
     # Project information
     project_name = models.CharField(max_length=255, blank=True, null=True)
     project_id = models.BigIntegerField(default=0, db_index=True)
+    project_ida = models.CharField(max_length=255, blank=True, null=True)
 
     # Kanban board and workflow management
     sequence = models.PositiveIntegerField(default=0)
@@ -41,6 +42,10 @@ class Action(BaseModel):
     dt_updated = models.BigIntegerField(default=0, db_index=True)
     #days
     duration = models.IntegerField(blank=True, null=True)
+    
+    # Original planned dates for baseline comparison
+    dt_start_original = models.BigIntegerField(blank=True, null=True)
+    dt_end_original = models.BigIntegerField(blank=True, null=True)
 
     # Audit info: who created / updated etc.
     created_by = models.JSONField(blank=True, null=True)
