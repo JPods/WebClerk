@@ -7,12 +7,16 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView
 )
+from apps.docs.urls import upload_urlpatterns
 
 urlpatterns = [
     # API Documentation
     path('wcapi/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('wcapi/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('wcapi/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    
+    # Document upload endpoints
+    path('wcapi/', include(upload_urlpatterns)),
 
     # Core API endpoints
     path('', include('apps.core.urls')),

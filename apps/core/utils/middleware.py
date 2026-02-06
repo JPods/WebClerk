@@ -19,6 +19,7 @@ class JSONOnlyMiddleware(MiddlewareMixin):
         '/api/schema/',
         '/api/swagger/',
         '/api/redoc/',
+        '/wcapi/upload/',  # File upload requires multipart/form-data
     )
     
     def __init__(self, get_response):
