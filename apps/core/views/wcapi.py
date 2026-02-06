@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Set
 import logging
 
+logger = logging.getLogger(__name__)
+
 from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -273,6 +275,14 @@ class WCAPIGetView(APIView):
         filters = {}
         field_names = {f.name for f in ModelCls._meta.get_fields()}
         
+        # Build a map of field name to field type for type coercion
+        field_types = {}
+        for f in ModelCls._meta.get_fields():
+            if hasattr(f, 'get_internal_type'):
+                field_types[f.name] = f.get_internal_type()
+        
+        logger.info(f"[_parse_filters] model_key={model_key}, query_params={dict(request.query_params)}")
+        
         for key, value in request.query_params.items():
             # Skip reserved parameters
             if key in {'model_name', 'id', 'fields', 'limit', 'offset', 'page', 'page_size', 
@@ -283,6 +293,16 @@ class WCAPIGetView(APIView):
             field_base = key.split('__')[0]
             if field_base not in field_names:
                 continue
+            
+            # Type coercion for boolean fields
+            field_type = field_types.get(field_base, '')
+            if field_type == 'BooleanField' or field_type == 'NullBooleanField':
+                if value.lower() in ('true', '1', 'yes'):
+                    value = True
+                elif value.lower() in ('false', '0', 'no'):
+                    value = False
+                elif value.lower() in ('null', 'none', ''):
+                    value = None
             
             # Support common lookup formats
             if '__' in key:
@@ -303,6 +323,7 @@ class WCAPIGetView(APIView):
             
             filters[key] = value
         
+        logger.info(f"[_parse_filters] Parsed filters: {filters}")
         return filters
 
     def _parse_search(self, request, model_key: str, ModelCls) -> Optional[str]:
@@ -363,6 +384,7 @@ class WCAPIGetView(APIView):
         Handles both regular filters and 'ne' (not equal) filters.
         """
         if not filters:
+            logger.info("[_apply_filters] No filters to apply")
             return qs
         
         # Separate 'ne' filters (not equal)
@@ -375,16 +397,20 @@ class WCAPIGetView(APIView):
             else:
                 regular_filters[key] = value
         
+        logger.info(f"[_apply_filters] regular_filters={regular_filters}, ne_filters={ne_filters}")
+        
         try:
             # Apply regular filters
             if regular_filters:
                 qs = qs.filter(**regular_filters)
+                logger.info(f"[_apply_filters] Filter applied with {regular_filters}")
             
             # Apply not-equal filters using Q object negation
             for key, value in ne_filters.items():
                 qs = qs.exclude(**{key: value})
-        except Exception:
+        except Exception as e:
             # If filtering fails, return the queryset as-is
+            logger.error(f"[_apply_filters] Filter failed: {e}")
             pass
         
         return qs
