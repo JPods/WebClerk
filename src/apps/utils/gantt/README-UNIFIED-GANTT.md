@@ -134,6 +134,41 @@ static readonly gantt: string = "/gantt";
 └────────────────────────────────────────────────────────────────┘
 ```
 
+## Data Model: Action Relationships
+
+### Parent-Child (Gantt Dependencies)
+
+The `Action` model uses `.refs.parents[]` to store one-way parent relationships for Gantt dependencies:
+
+```json
+{
+  "refs": {
+    "parents": [
+      { "id": 123, "model_name": "action" }
+    ]
+  }
+}
+```
+
+This creates a dependency link where the current action depends on action 123 completing first. The Gantt component reads these to render dependency arrows and calculate critical paths.
+
+### Other Links (Non-Gantt)
+
+For non-Gantt relationships (e.g., linking an action to a contact, document, or other model), use `.refs.links.model_names[]`:
+
+```json
+{
+  "refs": {
+    "links": {
+      "contact": [{ "id": 456 }],
+      "document": [{ "id": 789 }]
+    }
+  }
+}
+```
+
+This separation ensures Gantt dependency logic only processes parent relationships, while other cross-model references remain available for different features.
+
 ## Implementation Steps
 
 ### Phase 1: Create Core Component ✓

@@ -39,7 +39,7 @@ import {
   priorityOptions,
   toTimestampMilliseconds,
   updateTaskFormState,
-} from "./GanttPage";
+} from "../shared/taskFormUtils";
 
 import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
@@ -329,6 +329,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     isRefreshing,
     refetchActions,
     refetchAll,
+    updateTaskLocally,
   } = useGanttData({
     selectedProjectIds,
     enabled: true,
@@ -383,6 +384,8 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   const ganttContainerRef = useRef<HTMLDivElement | null>(null);
   const ganttApiRef = useRef<IApi | null>(null);
   const taskColorMapRef = useRef<Map<string, TaskColorInfo>>(new Map());
+  // Ref to hold latest update handler for use in init callback
+  const handleSvarUpdateTaskRef = useRef<((ev: { id: string | number; task: Partial<ITask> }) => Promise<boolean>) | null>(null);
 
   // Column options for KanbanTaskModal
   const columnOptions = useMemo(() => {
@@ -477,11 +480,9 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     (task: KanbanTask): TaskFormState => {
       const taskColumn = Object.values(board.columns).find((column) => column?.task_ids?.includes(task.id));
       const normalizedStart = normalizeIncomingDateValue((task as any).dt_start);
-      const normalizedEnd = normalizeIncomingDateValue((task as any).dt_end);
       const normalizedDue = normalizeIncomingDateValue((task as any).dt_deadline);
-      const shouldFallbackStart = !normalizedStart && !normalizedEnd && !normalizedDue;
+      const shouldFallbackStart = !normalizedStart && !normalizedDue;
       const resolvedStartDate = shouldFallbackStart ? formatDateTimeLocal(new Date()) : normalizedStart;
-      const resolvedEndDate = normalizedEnd || "";
       const resolvedDueDate = normalizedDue || "";
       const normalizedDifficulty = normalizeNumericSelectValue(
         task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
@@ -497,7 +498,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         dt_deadline: resolvedDueDate,
         dt_start: resolvedStartDate,
         dt_completed: "",
-        dt_expected: resolvedEndDate,
+        dt_expected: resolvedDueDate,
         assignee: task.assignee || task.assigned_to?.[0]?.name || "",
         difficulty: String(normalizedDifficulty),
         progress: String(normalizedProgress),
@@ -527,7 +528,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         status: ganttTask.columnTitle || "Uncategorized",
         dt_deadline: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
         dt_start: ganttTask.start instanceof Date ? ganttTask.start.toISOString() : undefined,
-        dt_end: ganttTask.end instanceof Date ? ganttTask.end.toISOString() : undefined,
         progress: toProgressPercentage(ganttTask.progress),
         assignee: ganttTask.assignee,
         tags: [],
@@ -678,7 +678,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
       const dueTimestamp = toTimestampMilliseconds(state.dt_deadline);
       const startTimestamp = toTimestampMilliseconds(state.dt_start);
-      const endTimestamp = toTimestampMilliseconds(state.dt_expected);
       const resolvedProgress = Number(state.progress) || 0;
 
       const payloadItem: Record<string, unknown> = {
@@ -711,10 +710,6 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         dt_start: {
           mode: "update",
           value: startTimestamp,
-        },
-        dt_end: {
-          mode: "update",
-          value: endTimestamp,
         },
         assigned_to: {
           mode: "update",
@@ -768,7 +763,10 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
 
   const handleSvarUpdateTask = useCallback(
     async ({ id, task }: { id: string | number; task: Partial<ITask> }) => {
+      console.log("[Gantt] handleSvarUpdateTask called (before checks)", { id, task });
       if (!id) return false;
+
+      console.log("[Gantt] handleSvarUpdateTask proceeding", { id, task });
 
       try {
         // Find the original task to record old values for undo
@@ -783,6 +781,7 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
           const oldValue = originalTask?.start instanceof Date ? originalTask.start.getTime() : null;
           const newValue = task.start.getTime();
           payload["dt_start"] = { mode: "update", value: newValue };
+          console.log("[Gantt] dt_start changed:", { oldValue, newValue });
           // Record for undo
           if (oldValue !== newValue) {
             pushToUndoStack({ taskId: String(id), field: "dt_start", oldValue, newValue });
@@ -791,28 +790,53 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         if (task.end instanceof Date) {
           const oldValue = originalTask?.end instanceof Date ? originalTask.end.getTime() : null;
           const newValue = task.end.getTime();
-          payload["dt_end"] = { mode: "update", value: newValue };
           payload["dt_deadline"] = { mode: "update", value: newValue };
+          console.log("[Gantt] dt_deadline changed:", { oldValue, newValue });
           if (oldValue !== newValue) {
-            pushToUndoStack({ taskId: String(id), field: "dt_end", oldValue, newValue });
+            pushToUndoStack({ taskId: String(id), field: "dt_deadline", oldValue, newValue });
           }
         }
+        
+        // Calculate and save duration when both start and end are available
+        const startDate = task.start instanceof Date ? task.start : (originalTask?.start instanceof Date ? originalTask.start : null);
+        const endDate = task.end instanceof Date ? task.end : (originalTask?.end instanceof Date ? originalTask.end : null);
+        if (startDate && endDate) {
+          const durationDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+          payload["duration"] = { mode: "update", value: durationDays };
+          console.log("[Gantt] duration calculated:", durationDays, "days");
+        }
+        
         if (typeof task.progress === "number") {
-          payload["prefs.userdefined.progress"] = {
+          payload["percent_complete"] = {
             mode: "update",
             value: Math.round(task.progress * 100),
           };
         }
 
+        console.log("[Gantt] Saving payload:", payload);
         await patchAction(payload);
+        console.log("[Gantt] Save completed for task", id);
+        
+        // Update local React state to keep ganttData in sync with the new values
+        const localUpdates: { start?: Date; end?: Date; progress?: number } = {};
+        if (task.start instanceof Date) localUpdates.start = task.start;
+        if (task.end instanceof Date) localUpdates.end = task.end;
+        if (typeof task.progress === "number") localUpdates.progress = task.progress;
+        
+        updateTaskLocally(id, localUpdates);
+        console.log("[Gantt] Local state updated for task", id);
+        
         return true;
       } catch (error) {
         console.error("Failed to update task:", error);
         return false;
       }
     },
-    [ganttData.tasks, pushToUndoStack]
+    [ganttData.tasks, pushToUndoStack, updateTaskLocally]
   );
+
+  // Keep ref updated for use in init callback
+  handleSvarUpdateTaskRef.current = handleSvarUpdateTask;
 
   /**
    * Check if adding a link from source → target would create a circular dependency.
@@ -1705,6 +1729,31 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
         .dark .today-highlight {
           background-color: rgba(239, 68, 68, 0.15) !important;
         }
+        /* Add resize cursor zones on task bar edges */
+        .wx-bar:not(.wx-milestone) {
+          cursor: move;
+        }
+        /* Left justify header date cells */
+        .wx-scale .wx-cell {
+          justify-content: flex-start !important;
+          padding-left: 8px !important;
+        }
+        .wx-bar:not(.wx-milestone)::before,
+        .wx-bar:not(.wx-milestone)::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          width: 8px;
+          height: 100%;
+          cursor: ew-resize;
+          z-index: 10;
+        }
+        .wx-bar:not(.wx-milestone)::before {
+          left: 0;
+        }
+        .wx-bar:not(.wx-milestone)::after {
+          right: 0;
+        }
       `}</style>
       <div className={combineClassNames("flex h-[calc(100vh-4rem)]", className)}>
       {/* Project Selector Sidebar - Collapsible */}
@@ -2040,11 +2089,62 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
                       return '';
                     }}
                     init={(api) => {
+                      console.log("[Gantt] init callback called, api:", api);
                       ganttApiRef.current = api;
                       api.detach(GANTT_COLOR_EVENT_TAG);
                       const rerender = () => scheduleColorRefresh();
                       api.on("render-data", rerender, { tag: GANTT_COLOR_EVENT_TAG });
-                      api.on("update-task", rerender, { tag: GANTT_COLOR_EVENT_TAG });
+                      // Intercept update-task to catch the event before it's processed
+                      api.intercept("update-task", (ev: { id: string | number; task: Partial<ITask>; diff?: number; inProgress?: boolean; eventSource?: string }) => {
+                        console.log("[Gantt API INTERCEPT] update-task event", {
+                          id: ev.id,
+                          task: ev.task,
+                          diff: ev.diff,
+                          inProgress: ev.inProgress,
+                          eventSource: ev.eventSource,
+                          hasStart: ev.task?.start !== undefined,
+                          hasEnd: ev.task?.end !== undefined,
+                        });
+                        return ev; // Must return the event to continue processing
+                      }, { tag: GANTT_COLOR_EVENT_TAG });
+                      // Handle task updates from drag-and-drop via API event
+                      api.on("update-task", (ev: { id: string | number; task: Partial<ITask> }) => {
+                        console.log("[Gantt API] update-task event fired", ev);
+                        if (handleSvarUpdateTaskRef.current) {
+                          handleSvarUpdateTaskRef.current(ev);
+                        }
+                        rerender();
+                      }, { tag: GANTT_COLOR_EVENT_TAG });
+                      // Intercept drag-task to see what happens during drag
+                      api.intercept("drag-task", (ev: { id?: string | number; width?: number; left?: number; top?: number; inProgress?: boolean }) => {
+                        console.log("[Gantt API INTERCEPT] drag-task event", {
+                          id: ev.id,
+                          width: ev.width,
+                          left: ev.left,
+                          top: ev.top,
+                          inProgress: ev.inProgress,
+                          eventType: ev.width !== undefined ? "RESIZE (edge drag)" : "MOVE (center drag)"
+                        });
+                        return ev;
+                      }, { tag: GANTT_COLOR_EVENT_TAG });
+                      // Listen for drag-task events (might fire during drag)
+                      api.on("drag-task", (ev: { id?: string | number; width?: number; left?: number; inProgress?: boolean }) => {
+                        console.log("[Gantt API] drag-task event fired", {
+                          id: ev.id,
+                          width: ev.width,
+                          left: ev.left,
+                          inProgress: ev.inProgress
+                        });
+                      }, { tag: GANTT_COLOR_EVENT_TAG });
+                      // Intercept move-task to prevent vertical row reordering
+                      api.intercept("move-task", (ev: unknown) => {
+                        console.log("[Gantt API INTERCEPT] move-task event blocked (vertical reorder disabled)", ev);
+                        return false; // Return false to prevent vertical reordering
+                      }, { tag: GANTT_COLOR_EVENT_TAG });
+                      // Listen for move-task events (for logging only)
+                      api.on("move-task", (ev: unknown) => {
+                        console.log("[Gantt API] move-task event fired", ev);
+                      }, { tag: GANTT_COLOR_EVENT_TAG });
                       // Also rerender when links change
                       api.on("add-link", rerender, { tag: GANTT_COLOR_EVENT_TAG });
                       api.on("delete-link", rerender, { tag: GANTT_COLOR_EVENT_TAG });
