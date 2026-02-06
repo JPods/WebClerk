@@ -242,6 +242,31 @@ class Action(BaseModel):
             if resolved_id:
                 self.contact_id = resolved_id
         
+        # Duration-based date calculation
+        # Duration is in days, dates are in milliseconds
+        from django.utils import timezone
+        one_day_ms = 24 * 60 * 60 * 1000
+        
+        # Helper to check if a date value is "empty" (None or 0)
+        def is_empty(val):
+            return val is None or val == 0
+        
+        # Only apply logic if duration is set and positive
+        if self.duration and self.duration > 0:
+            duration_ms = self.duration * one_day_ms
+            
+            if is_empty(self.dt_start) and is_empty(self.dt_deadline):
+                # Both missing: set dt_start to today, dt_deadline = dt_start + duration
+                now_ms = int(timezone.now().timestamp() * 1000)
+                self.dt_start = now_ms
+                self.dt_deadline = now_ms + duration_ms
+            elif is_empty(self.dt_start) and not is_empty(self.dt_deadline):
+                # dt_start missing but dt_deadline set: dt_start = dt_deadline - duration
+                self.dt_start = self.dt_deadline - duration_ms
+            elif not is_empty(self.dt_start):
+                # dt_start is set: dt_deadline = dt_start + duration
+                self.dt_deadline = self.dt_start + duration_ms
+        
         # compute changed_fields before save
         changed_fields = []
         if self.pk:
