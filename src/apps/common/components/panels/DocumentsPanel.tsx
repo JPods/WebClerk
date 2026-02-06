@@ -3,27 +3,62 @@
  * 
  * Data source: refs.links.document
  * 
+ * Upload flow:
+ * 1. File selected → upload to storage
+ * 2. Create Document record with metadata
+ * 3. Add RefLink to parent's refs.links.document[]
+ * 
  * Role-based access:
  * - View: All roles (default)
  * - Edit: User+ roles (default)
+ * 
+ * @see readmes/topics/document-uploads.md
  */
 import React, { useState, useRef } from 'react';
 import { 
   FaFile, FaChevronDown, FaChevronUp, FaPlus, FaTrash, FaDownload,
-  FaFilePdf, FaFileImage, FaFileWord, FaFileExcel, FaFileAlt
+  FaFilePdf, FaFileImage, FaFileWord, FaFileExcel, FaFileAlt, FaSpinner
 } from 'react-icons/fa';
 import { usePermissions } from './usePermissions';
-import type { BasePanelProps, DocumentEntry } from './types';
+import type { BasePanelProps, RefLink } from './types';
+import { 
+  uploadDocument, 
+  deleteDocument as deleteDocRecord,
+  getDocumentUrl,
+  formatFileSize as formatSize,
+} from './documentUpload';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentEntry[]>, 'data'> {
-  /** Documents array */
-  data?: DocumentEntry[];
-  /** Callback for file upload */
-  onUpload?: (file: File) => Promise<DocumentEntry>;
+/** Extended document entry with document_id for API tracking */
+interface DocumentRefLink extends RefLink {
+  /** Document record ID */
+  document_id?: number;
+  /** File size in bytes */
+  size?: number;
+  /** Upload timestamp */
+  uploaded_at?: string;
+  /** Uploader identifier */
+  uploaded_by?: string;
+  /** Direct URL to file */
+  url?: string;
+}
+
+interface DocumentsPanelProps extends Omit<BasePanelProps<DocumentRefLink[]>, 'data' | 'entityType' | 'entityId'> {
+  /** Parent entity type (e.g., 'sales_order', 'contact') */
+  parentType?: string;
+  /** Parent entity ID */
+  parentId?: number;
+  /** Documents array (RefLinks from refs.links.document) */
+  data?: DocumentRefLink[];
+  /** Purpose/category for uploaded documents */
+  purpose?: string;
+  /** Max file size in bytes */
+  maxFileSize?: number;
+  /** Allowed file extensions */
+  allowedExtensions?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -50,9 +85,7 @@ const getFileIcon = (type?: string, name?: string): React.ReactNode => {
 
 const formatFileSize = (bytes?: number): string => {
   if (!bytes) return '--';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return formatSize(bytes);
 };
 
 const formatDate = (dateStr?: string): string => {
@@ -69,12 +102,13 @@ const formatDate = (dateStr?: string): string => {
 // ---------------------------------------------------------------------------
 
 interface DocumentRowProps {
-  doc: DocumentEntry;
+  doc: DocumentRefLink;
   canEdit: boolean;
   onDelete?: () => void;
+  onDownload?: () => void;
 }
 
-const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete }) => (
+const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete, onDownload }) => (
   <div className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded group">
     {/* Icon */}
     <div className="text-xl">
@@ -84,7 +118,7 @@ const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete }) => 
     {/* Info */}
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
-        {doc.name}
+        {doc.name || doc.display || 'Untitled'}
       </p>
       <div className="flex items-center gap-3 text-xs text-slate-500">
         <span>{formatFileSize(doc.size)}</span>
@@ -95,16 +129,14 @@ const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete }) => 
 
     {/* Actions */}
     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-      {doc.url && (
-        <a
-          href={doc.url}
-          target="_blank"
-          rel="noopener noreferrer"
+      {(doc.url || doc.document_id) && (
+        <button
+          onClick={onDownload}
           className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
           title="Download"
         >
           <FaDownload size={12} />
-        </a>
+        </button>
       )}
       {canEdit && onDelete && (
         <button
@@ -124,11 +156,13 @@ const DocumentRow: React.FC<DocumentRowProps> = ({ doc, canEdit, onDelete }) => 
 // ---------------------------------------------------------------------------
 
 const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
-  entityType: _entityType,
-  entityId: _entityId,
+  parentType,
+  parentId,
   data = [],
   onChange,
-  onUpload,
+  purpose = 'attachment',
+  maxFileSize,
+  allowedExtensions,
   readOnly = false,
   viewRoles,
   editRoles,
@@ -139,6 +173,8 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check permissions
@@ -149,7 +185,9 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     forceReadOnly: readOnly,
   });
 
+  // Can edit only if we have onChange callback AND (parentType/parentId for API mode OR just onChange for local mode)
   const canEdit = permCanEdit && !!onChange;
+  const hasApiPersistence = !!(parentType && parentId);
 
   if (!canView) return null;
 
@@ -157,41 +195,116 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (onUpload) {
-      setIsUploading(true);
-      try {
-        const newDoc = await onUpload(file);
-        if (onChange) {
-          onChange([...data, newDoc]);
-        }
-      } catch (err) {
-        console.error('Upload failed:', err);
-      } finally {
-        setIsUploading(false);
-      }
-    } else if (onChange) {
-      // Create local document entry without actual upload
-      const newDoc: DocumentEntry = {
-        id: Date.now(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        uploaded_at: new Date().toISOString(),
-        uploaded_by: 'current_user',
-      };
-      onChange([...data, newDoc]);
+    // Validate file size
+    if (maxFileSize && file.size > maxFileSize) {
+      setError(`File size exceeds maximum of ${formatSize(maxFileSize)}`);
+      return;
     }
 
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    // Validate file extension
+    if (allowedExtensions) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      if (!allowedExtensions.includes(ext)) {
+        setError(`File type .${ext} not allowed`);
+        return;
+      }
+    }
+
+    setError(null);
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      if (hasApiPersistence) {
+        // Full API upload flow: upload file + create Document record
+        const result = await uploadDocument(
+          {
+            file,
+            parentType: parentType!,
+            parentId: parentId!,
+            purpose,
+          },
+          setUploadProgress
+        );
+
+        // Build RefLink for refs.links.document
+        const docRefLink: DocumentRefLink = {
+          id: result.document.id,
+          document_id: result.document.id,
+          name: result.document.name,
+          display: result.document.name,
+          type: result.document.mime_type,
+          purpose,
+          size: result.document.size_bytes,
+          uploaded_at: new Date().toISOString(),
+          url: result.url,
+        };
+
+        if (onChange) {
+          onChange([...data, docRefLink]);
+        }
+      } else if (onChange) {
+        // Local mode: create local entry without API
+        const localDoc: DocumentRefLink = {
+          id: Date.now(),
+          name: file.name,
+          display: file.name,
+          type: file.type,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+          uploaded_by: 'current_user',
+        };
+        onChange([...data, localDoc]);
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleDelete = (index: number) => {
+  const handleDelete = async (index: number) => {
     if (!onChange) return;
+
+    const doc = data[index];
+
+    // If we have a document_id, delete the Document record too
+    if (hasApiPersistence && doc.document_id) {
+      try {
+        await deleteDocRecord(doc.document_id);
+      } catch (err) {
+        console.error('Failed to delete document record:', err);
+      }
+    }
+
     onChange(data.filter((_, i) => i !== index));
   };
+
+  const handleDownload = async (doc: DocumentRefLink) => {
+    if (doc.url) {
+      window.open(doc.url, '_blank');
+      return;
+    }
+
+    // Get presigned URL if we have document_id
+    if (doc.document_id) {
+      const url = await getDocumentUrl(doc.document_id);
+      if (url) {
+        window.open(url, '_blank');
+      }
+    }
+  };
+
+  // Build accept attribute for file input
+  const acceptAttr = allowedExtensions 
+    ? allowedExtensions.map(ext => `.${ext}`).join(',')
+    : undefined;
 
   return (
     <div className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 ${className}`}>
@@ -220,7 +333,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
               className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50"
               title="Upload document"
             >
-              <FaPlus size={12} />
+              {isUploading ? <FaSpinner className="animate-spin" size={12} /> : <FaPlus size={12} />}
             </button>
           )}
           {isCollapsed ? <FaChevronDown size={12} /> : <FaChevronUp size={12} />}
@@ -231,6 +344,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       <input
         ref={fileInputRef}
         type="file"
+        accept={acceptAttr}
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -238,9 +352,26 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
       {/* Content */}
       {!isCollapsed && (
         <div className={compact ? 'p-2' : 'p-4'}>
+          {/* Upload progress */}
           {isUploading && (
             <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-600">
-              Uploading...
+              <div className="flex items-center gap-2">
+                <FaSpinner className="animate-spin" size={10} />
+                <span>Uploading... {uploadProgress}%</span>
+              </div>
+              <div className="mt-1 h-1 bg-blue-100 rounded overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 transition-all duration-200"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-600">
+              {error}
             </div>
           )}
 
@@ -265,6 +396,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
                   doc={doc}
                   canEdit={canEdit}
                   onDelete={() => handleDelete(index)}
+                  onDownload={() => handleDownload(doc)}
                 />
               ))}
             </div>
