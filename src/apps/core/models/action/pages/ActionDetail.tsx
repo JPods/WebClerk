@@ -367,7 +367,7 @@ export default function ActionDetail({
           {/* Dates */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold dark:text-white border-b pb-2">Dates</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="dt_start">dt_start</Label>
                 <Input
@@ -394,6 +394,23 @@ export default function ActionDetail({
                   {...register("dt_end")}
                   disabled={mode === "view"}
                 />
+              </div>
+              <div>
+                <Label>Duration</Label>
+                <div className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  {data?.duration != null 
+                    ? `${data.duration} day${data.duration !== 1 ? 's' : ''}`
+                    : (data?.dt_start && data?.dt_deadline
+                      ? (() => {
+                          const start = new Date(data.dt_start);
+                          const end = new Date(data.dt_deadline);
+                          const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                          return `${days} day${days !== 1 ? 's' : ''}`;
+                        })()
+                      : '—'
+                    )
+                  }
+                </div>
               </div>
             </div>
           </div>

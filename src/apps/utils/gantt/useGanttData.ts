@@ -39,6 +39,9 @@ export interface UseGanttDataResult {
   refetchProjects: () => Promise<void>;
   refetchActions: () => Promise<void>;
   refetchAll: () => Promise<void>;
+  
+  // Optimistic updates
+  updateTaskLocally: (taskId: string | number, updates: { start?: Date; end?: Date; progress?: number }) => void;
 }
 
 // Type guard for checking if response is valid
@@ -54,9 +57,15 @@ const isValidResponse = (response: unknown): response is { data: unknown } => {
 // Handles axios response: { data: { status, data: { results: [...] } } }
 // Or direct API response: { status, data: { results: [...] } }
 const extractRecordsFromResponse = (response: unknown): Record<string, unknown>[] => {
-  if (!isValidResponse(response)) return [];
+  console.log('[useGanttData] extractRecordsFromResponse input:', response);
+  
+  if (!isValidResponse(response)) {
+    console.log('[useGanttData] Response is not valid (no data property)');
+    return [];
+  }
   
   let payload = response.data;
+  console.log('[useGanttData] Initial payload:', payload);
   
   // Handle axios wrapper: response.data is the API response body
   // API response body has shape: { status, data: { results: [...] } }
@@ -65,6 +74,7 @@ const extractRecordsFromResponse = (response: unknown): Record<string, unknown>[
     // Check if this is the API response wrapper with status field
     if ("status" in apiBody && apiBody.data) {
       payload = apiBody.data;
+      console.log('[useGanttData] Unwrapped API body, payload now:', payload);
     }
   }
   
@@ -161,22 +171,29 @@ export const useGanttData = ({
   
   // Fetch projects
   const refetchProjects = useCallback(async () => {
+    console.log('[useGanttData] refetchProjects called, enabled:', enabled);
     if (!enabled) return;
     
     setIsLoadingProjects(true);
     setProjectsError(null);
     
     try {
+      console.log('[useGanttData] Calling Projects API with is_active:true, limit:500');
       const response = await Projects({ is_active: true, limit: 500 });
+      console.log('[useGanttData] Projects API response:', response);
       
       if (!isMountedRef.current) return;
       
       const records = extractRecordsFromResponse(response);
+      console.log(`[useGanttData] Fetched ${records.length} projects from API`, 
+        records.map(r => ({ id: r.id, name: r.name, is_active: r.is_active })));
+      
       const projectOptions = records
         .map(parseProjectOption)
         .filter((p): p is ProjectOption => p !== null)
         .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       
+      console.log(`[useGanttData] Parsed ${projectOptions.length} project options`);
       setProjects(projectOptions);
     } catch (error) {
       if (!isMountedRef.current) return;
@@ -210,6 +227,7 @@ export const useGanttData = ({
         const batchResults = await Promise.all(
           batch.map(async (projectId) => {
             try {
+              console.log(`[useGanttData] Fetching actions for project_id=${projectId} (type: ${typeof projectId})`);
               const response = await Actions({
                 project_id: projectId,
                 is_active: true,
@@ -217,6 +235,8 @@ export const useGanttData = ({
               });
               
               const records = extractRecordsFromResponse(response);
+              console.log(`[useGanttData] Received ${records.length} actions for project_id=${projectId}`, 
+                records.slice(0, 3).map(r => ({ id: r.id, project_id: r.project_id })));
               
               const actions = records as unknown as ApiKanbanItem[];
               
@@ -333,6 +353,32 @@ export const useGanttData = ({
     };
   }, [autoRefresh, isModalOpen, selectedProjectIds.length, refetchActions]);
   
+  // Optimistically update a task's dates in local state (for drag-and-drop)
+  const updateTaskLocally = useCallback((
+    taskId: string | number,
+    updates: { start?: Date; end?: Date; progress?: number }
+  ) => {
+    setGanttData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((task) => {
+        if (String(task.id) === String(taskId)) {
+          const updatedTask = { ...task };
+          if (updates.start !== undefined) {
+            updatedTask.start = updates.start;
+          }
+          if (updates.end !== undefined) {
+            updatedTask.end = updates.end;
+          }
+          if (updates.progress !== undefined) {
+            updatedTask.progress = updates.progress;
+          }
+          return updatedTask;
+        }
+        return task;
+      }),
+    }));
+  }, []);
+  
   return {
     projects,
     isLoadingProjects,
@@ -345,5 +391,6 @@ export const useGanttData = ({
     refetchProjects,
     refetchActions,
     refetchAll,
+    updateTaskLocally,
   };
 };

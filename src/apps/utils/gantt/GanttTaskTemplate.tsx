@@ -150,14 +150,16 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
         alignItems: "center",
         gap: "4px",
         height: "100%",
-        paddingLeft: "4px",
-        paddingRight: "4px",
+        paddingLeft: "8px",  // Increased padding to leave room for drag handles
+        paddingRight: "8px", // Increased padding to leave room for drag handles
         overflow: "hidden",
         // Critical path: red left border
         borderLeft: isCritical ? "3px solid #dc2626" : "none",
         marginLeft: isCritical ? "-3px" : "0",
         // Subtle red background tint for critical path
         backgroundColor: isCritical ? "rgba(239, 68, 68, 0.15)" : "transparent",
+        // Allow pointer events to pass through to parent for edge resizing
+        pointerEvents: "none",
       }}
       title={isCritical ? "Critical Path" : undefined}
     >
@@ -177,6 +179,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
             backgroundColor: "#dc2626",
             color: "#ffffff",
             flexShrink: 0,
+            pointerEvents: "auto", // Re-enable pointer events for badges
           }}
           title="Critical Path"
         >
@@ -199,6 +202,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
           backgroundColor: priorityColor.bg,
           color: priorityColor.text,
           flexShrink: 0,
+          pointerEvents: "auto", // Re-enable pointer events for badges
         }}
         title={`Priority: ${priority}`}
       >
@@ -221,6 +225,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
             backgroundColor: getAssigneeBadgeColorForUser(firstAssigned).bg,
             color: getAssigneeBadgeColorForUser(firstAssigned).text,
             flexShrink: 0,
+            pointerEvents: "auto", // Re-enable pointer events for badges
           }}
           title={firstAssigned.name || String(firstAssigned.id)}
         >
@@ -236,6 +241,7 @@ export const GanttTaskTemplate: FC<GanttTaskTemplateProps> = ({ data }) => {
           whiteSpace: "nowrap",
           flex: 1,
           fontSize: "12px",
+          pointerEvents: "auto", // Re-enable pointer events for text (double-click to edit)
         }}
       >
         {task.text}
