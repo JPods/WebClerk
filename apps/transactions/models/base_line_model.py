@@ -332,14 +332,27 @@ class BaseSellLineModel(BaseLineCore):
         # Calculate sell extended
         if self.price:
             unit_price = self.price.get("unit", 0)
-            discount_amount = self.price.get("discount_amount", 0)
-            extended = float(_to_decimal(quantity * unit_price - discount_amount, places=self.price.get("precision", 2)))
+            discount_amount = self.price.get("discount_amount", None)
+            discount_percent = self.price.get("discount_percent", 0) or 0
+            precision = self.price.get("precision", 2)
+            gross = _to_decimal(quantity * unit_price, places=precision)
+            if discount_amount is None or (discount_amount == 0 and discount_percent):
+                discount_amount = float(_to_decimal(gross * (Decimal(discount_percent) / Decimal("100")), places=precision))
+            self.price["discount_amount"] = float(_to_decimal(discount_amount, places=precision))
+            extended = float(_to_decimal(gross - Decimal(str(self.price["discount_amount"])), places=precision))
             self.price["extended"] = extended
 
         # Calculate cost extended
         if self.cost:
             unit_cost = self.cost.get("unit", 0)
-            extended_cost = float(_to_decimal(quantity * unit_cost, places=self.cost.get("precision", 2)))
+            discount_cost_amount = self.cost.get("discount_amount", None)
+            discount_cost_percent = self.cost.get("discount_percent", 0) or 0
+            precision = self.cost.get("precision", 2)
+            gross_cost = _to_decimal(quantity * unit_cost, places=precision)
+            if discount_cost_amount is None or (discount_cost_amount == 0 and discount_cost_percent):
+                discount_cost_amount = float(_to_decimal(gross_cost * (Decimal(discount_cost_percent) / Decimal("100")), places=precision))
+            self.cost["discount_amount"] = float(_to_decimal(discount_cost_amount, places=precision))
+            extended_cost = float(_to_decimal(gross_cost - Decimal(str(self.cost["discount_amount"])), places=precision))
             self.cost["extended"] = extended_cost
 
 

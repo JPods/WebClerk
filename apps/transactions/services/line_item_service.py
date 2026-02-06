@@ -814,16 +814,27 @@ class LineItemService:
         # Calculate price extended (for sell-side)
         if hasattr(line, 'price') and isinstance(line.price, dict):
             unit_price = line.price.get('unit', 0) or 0
-            discount_amount = line.price.get('discount_amount', 0) or 0
+            discount_amount = line.price.get('discount_amount', None)
+            discount_percent = line.price.get('discount_percent', 0) or 0
             precision = line.price.get('precision', 2)
-            extended = round(float(quantity) * float(unit_price) - float(discount_amount), precision)
+            gross = float(quantity) * float(unit_price)
+            if discount_amount is None or (discount_amount == 0 and discount_percent):
+                discount_amount = gross * float(discount_percent) / 100.0
+            line.price['discount_amount'] = round(float(discount_amount or 0), precision)
+            extended = round(gross - float(discount_amount or 0), precision)
             line.price['extended'] = extended
-        
-        # Calculate cost extended
+
+        # Calculate cost extended (includes cost discount)
         if isinstance(line.cost, dict):
             unit_cost = line.cost.get('unit', 0) or 0
+            discount_cost_amount = line.cost.get('discount_amount', None)
+            discount_cost_percent = line.cost.get('discount_percent', 0) or 0
             precision = line.cost.get('precision', 2)
-            extended_cost = round(float(quantity) * float(unit_cost), precision)
+            gross_cost = float(quantity) * float(unit_cost)
+            if discount_cost_amount is None or (discount_cost_amount == 0 and discount_cost_percent):
+                discount_cost_amount = gross_cost * float(discount_cost_percent) / 100.0
+            line.cost['discount_amount'] = round(float(discount_cost_amount or 0), precision)
+            extended_cost = round(gross_cost - float(discount_cost_amount or 0), precision)
             line.cost['extended'] = extended_cost
     
     def _extract_price_from_search(self, search_result: Dict[str, Any]) -> Optional[float]:
