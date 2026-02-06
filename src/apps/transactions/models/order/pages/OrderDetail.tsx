@@ -534,7 +534,7 @@ const ActionsTable: React.FC<{
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-28">
                   Project
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-20">
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-15">
                   Status
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-16">
@@ -586,7 +586,7 @@ const ActionsTable: React.FC<{
                             : action.action ?? action.what ?? "--"}
                         </span>
                         {(action.description || action.notes) && (
-                          <span className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-[200px]">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-200">
                             {typeof action.description === "object"
                               ? action.description?.en ?? action.notes ?? ""
                               : action.description ?? action.notes ?? ""}
@@ -600,9 +600,9 @@ const ActionsTable: React.FC<{
                     </td>
 
                     {/* Status */}
-                    <td className="px-4 py-1">
+                    <td className="px-2 py-1">
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusColor(
+                        className={`inline-flex px-2 py-1 text-xs whitespace-nowrap rounded-full capitalize ${getStatusColor(
                           action.status,
                         )}`}
                       >
