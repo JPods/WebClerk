@@ -44,6 +44,10 @@ SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
     ("purchase_defaults", "Purchase Defaults"),
     ("accounting_defaults", "Accounting Defaults"),
     ("keywords", "Keyword Tracking"),
+    ("workbench_fields", "Workbench Fields"),
+    ("detail_field_access", "Detail Field Access"),
+    ("qa_counters", "Q&A Counters"),
+    ("qa_questions", "Q&A Questions"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

@@ -17,18 +17,32 @@ from django.contrib.postgres.indexes import GinIndex
 class QuestionAnswer(BaseModel):
     """Question/Answer instance captured for inspections, checklists, how-to flows.
 
-    Questions are defined in Setting records (purpose='questions', name=<inspection name>).
+    Questions are defined in Setting records (purpose='qa_questions', name=<group name>).
     This model stores the resolved question text and the user's answer along with
     sequencing and access / security metadata.
     Health stored in metadata.health; history in metadata.history.
     """
 
     question = models.CharField(max_length=500, blank=True, null=True, db_index=True)
-    answer = models.TextField(blank=True, null=True)
+    answer = models.CharField(max_length=500, blank=True, null=True)
     # Link to configured question definition (Setting) if available
     setting_id = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions')
-    contact_id = models.ForeignKey('core.Contact', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_answers')
-    answered_by_name = models.CharField(max_length=255, blank=True, null=True)
+    question_id = models.IntegerField(blank=True, null=True, help_text="ID of the question in the Setting if applicable")
+    answer_id = models.IntegerField(blank=True, null=True, help_text="ID of the selected answer option if applicable")
+    
+    # Parent record linkage (e.g., sales_order, project, etc.)
+    parent_type = models.CharField(max_length=100, blank=True, null=True, db_index=True,
+                                   help_text="Model name of the parent record (e.g., 'sales_order')")
+    parent_id = models.IntegerField(blank=True, null=True, db_index=True,
+                                    help_text="ID of the parent record")
+
+    # Denormalized snapshot of who answered: {"id": <contact_id>, "attention": <contact_attention>}
+    answered_by = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Stores contact.id and contact.attention of who answered"
+    )
+
     status = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     sequence = models.IntegerField(default=0, db_index=True)
     count_accessed = models.IntegerField(default=0)
@@ -40,12 +54,32 @@ class QuestionAnswer(BaseModel):
             GinIndex(fields=["search_vector"], name="qa_search_gin"),
             models.Index(fields=["status"], name="qa_status_idx"),
             models.Index(fields=["question"], name="qa_question_idx"),
+            models.Index(fields=["parent_type", "parent_id"], name="qa_parent_idx"),
         ]
 
     def __str__(self):
         return self.question or f"QuestionAnswer {self.id}"
 
     # --- helpers ---------------------------------------------------------
+    def set_answered_by(self, contact):
+        """Populate answered_by from a Contact instance.
+        
+        Args:
+            contact: A Contact model instance or dict with 'id' and 'attention' keys.
+        """
+        if contact is None:
+            self.answered_by = None
+        elif isinstance(contact, dict):
+            self.answered_by = {
+                'id': contact.get('id'),
+                'attention': contact.get('attention'),
+            }
+        else:
+            self.answered_by = {
+                'id': contact.id,
+                'attention': getattr(contact, 'attention', None),
+            }
+
     def increment_access(self, by: int = 1, update_history: bool = True):
         if not self.pk:
             return

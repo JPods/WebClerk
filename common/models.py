@@ -243,6 +243,66 @@ def default_metadata() -> dict:
     }
 
 
+def default_document_metadata() -> dict:
+    """Extended metadata structure for Document model.
+    
+    Includes base metadata plus document-specific fields:
+    - address: Physical location/geolocation where document was created
+    - virus: Malware scan status and results
+    - exif: Extracted EXIF data from images
+    """
+    base = default_metadata()
+    base.update({
+        # Physical address / geolocation provenance
+        "address": {
+            "street": "",
+            "street2": "",
+            "city": "",
+            "state": "",
+            "postal_code": "",
+            "country": "",
+            "geo": {
+                "lat": None,        # latitude
+                "lng": None,        # longitude  
+                "altitude": None,   # meters above sea level
+                "accuracy": None,   # GPS accuracy in meters
+            },
+            "source": "",  # "exif" | "manual" | "gps" | "ip_lookup" | "browser"
+            "captured_at": 0,  # timestamp when location was captured
+        },
+        # Virus/malware scan status
+        "virus": {
+            "status": "pending",  # "pending" | "scanning" | "clean" | "infected" | "error" | "skipped"
+            "scanner": "",         # e.g., "clamav", "virustotal", "windows_defender"
+            "scanner_version": "",
+            "scanned_at": 0,       # timestamp of last scan
+            "threat": None,        # threat name if infected
+            "quarantined": False,  # whether file was quarantined
+            "details": {},         # scanner-specific details
+        },
+        # EXIF metadata extracted from images
+        "exif": {
+            "camera_make": "",
+            "camera_model": "",
+            "lens": "",
+            "focal_length": None,
+            "aperture": None,
+            "shutter_speed": "",
+            "iso": None,
+            "flash": False,
+            "orientation": 1,
+            "width": None,
+            "height": None,
+            "datetime_original": 0,  # when photo was taken
+            "datetime_digitized": 0,
+            "software": "",
+            "copyright": "",
+            "raw": {},  # full raw EXIF data
+        },
+    })
+    return base
+
+
 def default_refs() -> dict:
     """Lightweight relationship & classification structure (keywords/tags/links...)."""
     return {
