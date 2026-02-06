@@ -1,201 +1,138 @@
-import React, { useState } from "react";
+/**
+ * QATab - Transaction Q&A tab using QAPanel
+ * 
+ * Displays template-based questions from Settings organized by scope:
+ * - Global: applies to all models (model_target is null)
+ * - App-level: applies to all models in the same app (e.g., "transactions")
+ * - Model-specific: applies only to this model type
+ *
+ * When API persistence is configured (transactionType + transactionId),
+ * answers are saved to the database.
+ */
+import React, { useState, useEffect } from "react";
+import { QAPanel, getScopedQAQuestionGroups, getAppForModel, type ScopedQAGroups } from "@/apps/common/components/panels";
 
-interface QAItem {
-  question: string;
-  answer: string;
+interface QATabProps {
+  /** Transaction type for API persistence (e.g., "order", "purchase") */
+  transactionType?: string;
+  /** Transaction ID for API persistence */
+  transactionId?: number;
+  /** Question group name for template questions */
+  questionGroup?: string;
+  /** Whether user can edit */
+  canEdit?: boolean;
 }
 
-const QATab: React.FC = () => {
-  const [qaList, setQAList] = useState<QAItem[]>([]);
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
-  const [editQuestion, setEditQuestion] = useState("");
-  const [editAnswer, setEditAnswer] = useState("");
+const QATab: React.FC<QATabProps> = ({
+  transactionType,
+  transactionId,
+  questionGroup: initialGroup,
+  canEdit = true,
+}) => {
+  const [scopedGroups, setScopedGroups] = useState<ScopedQAGroups>({ global: [], appLevel: [], modelSpecific: [], all: [] });
+  const [selectedGroup, setSelectedGroup] = useState<string>(initialGroup || '');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAddQA = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question.trim() || !answer.trim()) return;
-    setQAList([...qaList, { question, answer }]);
-    setQuestion("");
-    setAnswer("");
-    setAdding(false);
-  };
+  // Get app name for display
+  const appName = transactionType ? getAppForModel(transactionType) : null;
+  const appLabel = appName ? appName.charAt(0).toUpperCase() + appName.slice(1) : 'App';
+  const modelLabel = transactionType ? transactionType.charAt(0).toUpperCase() + transactionType.slice(1) : 'Model';
 
-  const handleDeleteQA = (idx: number) => {
-    setQAList(qaList.filter((_, i) => i !== idx));
-    if (expandedIdx === idx) setExpandedIdx(null);
-    if (editingIdx === idx) setEditingIdx(null);
-  };
+  // Load available question groups scoped to this model
+  useEffect(() => {
+    async function loadGroups() {
+      setIsLoading(true);
+      const groups = await getScopedQAQuestionGroups(transactionType);
+      setScopedGroups(groups);
+      // Don't auto-select - user must explicitly choose a group
+      setIsLoading(false);
+    }
+    loadGroups();
+  }, [transactionType]);
 
-  const handleEditQA = (idx: number) => {
-    setEditingIdx(idx);
-    setEditQuestion(qaList[idx].question);
-    setEditAnswer(qaList[idx].answer);
-  };
+  // If we have both transactionType and transactionId, use API persistence
+  const hasApiPersistence = !!(transactionType && transactionId);
 
-  const handleSaveEditQA = (idx: number) => {
-    if (!editQuestion.trim() || !editAnswer.trim()) return;
-    setQAList(
-      qaList.map((qa, i) =>
-        i === idx ? { question: editQuestion, answer: editAnswer } : qa,
-      ),
+  if (isLoading) {
+    return (
+      <div className="w-full mt-4 p-6 bg-white dark:bg-slate-800 rounded-lg border text-center text-slate-400">
+        Loading question groups...
+      </div>
     );
-    setEditingIdx(null);
-  };
+  }
+
+  const hasModelSpecific = scopedGroups.modelSpecific.length > 0;
+  const hasAppLevel = scopedGroups.appLevel.length > 0;
+  const hasGlobal = scopedGroups.global.length > 0;
 
   return (
-    <div className="w-full mt-8 p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow">
-      <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
-        QA List
-      </h3>
-      <div className="mb-6">
-        {qaList.length === 0 && (
-          <div className="text-slate-400">No Q&A yet.</div>
-        )}
-        {qaList.map((qa, idx) => (
-          <div
-            key={idx}
-            className="mb-2 border-b border-slate-200 dark:border-slate-700"
-          >
-            <div className="flex justify-between items-center">
-              <button
-                type="button"
-                className="flex-1 text-left py-2 px-2 font-medium text-slate-800 dark:text-slate-200 focus:outline-none flex justify-between items-center"
-                onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
-              >
-                <span>{qa.question}</span>
-                <span className="ml-2 text-xs">
-                  {expandedIdx === idx ? "▲" : "▼"}
-                </span>
-              </button>
-              <div className="flex gap-2 ml-2">
-                <button
-                  type="button"
-                  className="text-blue-600 hover:underline text-xs"
-                  onClick={() => handleEditQA(idx)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="text-red-600 hover:underline text-xs"
-                  onClick={() => handleDeleteQA(idx)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-            {editingIdx === idx ? (
-              <form
-                className="py-2 px-4 bg-slate-50 dark:bg-slate-900/30 rounded"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSaveEditQA(idx);
-                }}
-              >
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Question
-                  </label>
-                  <input
-                    type="text"
-                    value={editQuestion}
-                    onChange={(e) => setEditQuestion(e.target.value)}
-                    className="w-full rounded border border-slate-300 dark:border-slate-600 px-2 py-1 text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                    required
-                  />
-                </div>
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Answer
-                  </label>
-                  <textarea
-                    value={editAnswer}
-                    onChange={(e) => setEditAnswer(e.target.value)}
-                    className="w-full rounded border border-slate-300 dark:border-slate-600 px-2 py-1 text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                    required
-                    rows={2}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded text-xs font-medium"
-                    onClick={() => setEditingIdx(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : expandedIdx === idx ? (
-              <div className="py-2 px-4 text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/30 rounded">
-                {qa.answer}
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-      {adding ? (
-        <form onSubmit={handleAddQA} className="space-y-3 mb-2">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Question
-            </label>
-            <input
-              type="text"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="w-full rounded border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-              placeholder="Enter question"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Answer
-            </label>
-            <textarea
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              className="w-full rounded border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-              placeholder="Enter answer"
-              required
-              rows={2}
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded text-sm font-medium"
-              onClick={() => setAdding(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          type="button"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
-          onClick={() => setAdding(true)}
+    <div className="w-full mt-4 space-y-4">
+      {/* Question Group Selector with scope labels */}
+      <div className="flex items-center gap-3 px-1">
+        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+          Question Group:
+        </label>
+        <select
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
+          className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
         >
-          + Add Q&A
-        </button>
+          <option value="">-- Select Group --</option>
+          
+          {/* Model-specific groups first */}
+          {hasModelSpecific && (
+            <optgroup label={`${modelLabel} Only`}>
+              {scopedGroups.modelSpecific.map((group) => (
+                <option key={group.id} value={group.name}>
+                  {group.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          
+          {/* App-level groups */}
+          {hasAppLevel && (
+            <optgroup label={`All ${appLabel}`}>
+              {scopedGroups.appLevel.map((group) => (
+                <option key={group.id} value={group.name}>
+                  {group.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          
+          {/* Global groups */}
+          {hasGlobal && (
+            <optgroup label="All Models">
+              {scopedGroups.global.map((group) => (
+                <option key={group.id} value={group.name}>
+                  {group.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+        
+        <span className="text-xs text-slate-400">
+          {scopedGroups.all.length} groups
+        </span>
+      </div>
+
+      {/* QA Panel */}
+      {selectedGroup ? (
+        <QAPanel
+          key={selectedGroup} // Force remount when group changes
+          title={selectedGroup}
+          questionGroup={selectedGroup}
+          parentType={hasApiPersistence ? transactionType : undefined}
+          parentId={hasApiPersistence ? transactionId : undefined}
+          readOnly={!canEdit}
+          defaultCollapsed={false}
+        />
+      ) : (
+        <div className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-center text-slate-400">
+          Select a question group to view Q&A
+        </div>
       )}
     </div>
   );

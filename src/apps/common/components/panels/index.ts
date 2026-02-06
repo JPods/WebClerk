@@ -67,6 +67,10 @@ export {
   getQAQuestions,
   getQAAnswers,
   getAllQAQuestionGroups,
+  getScopedQAQuestionGroups,
+  getAppForModel,
+  isAppName,
+  APP_MODEL_REGISTRY,
   getQACounters,
   saveQAAnswer,
   deleteQAAnswer,
@@ -82,6 +86,7 @@ export type {
   QACountersData,
   QAEffectiveOptions,
   QAAnswerRecord,
+  ScopedQAGroups,
 } from './qaUtils';
 
 // Document upload utilities and types
