@@ -100,18 +100,26 @@ def calculate_line_extended(line_data: Dict[str, Any]) -> Dict[str, Decimal]:
     price = line_data.get('price', {}) or {}
     unit_price = _d(price.get('unit', 0))
     discount_pc = _d(price.get('discount_percent', 0))
-    
+
     gross = qty * unit_price
-    discount_amount = gross * (discount_pc / Decimal("100"))
+    raw_discount_amount = price.get('discount_amount', None)
+    if raw_discount_amount is None:
+        discount_amount = gross * (discount_pc / Decimal("100"))
+    else:
+        discount_amount = _d(raw_discount_amount)
     extended = gross - discount_amount
-    
+
     # Cost calculations
     cost = line_data.get('cost', {}) or {}
     unit_cost = _d(cost.get('unit', 0))
     discount_cost_pc = _d(cost.get('discount_percent', 0))
-    
+
     gross_cost = qty * unit_cost
-    discount_cost = gross_cost * (discount_cost_pc / Decimal("100"))
+    raw_cost_discount = cost.get('discount_amount', None)
+    if raw_cost_discount is None:
+        discount_cost = gross_cost * (discount_cost_pc / Decimal("100"))
+    else:
+        discount_cost = _d(raw_cost_discount)
     cost_extended = gross_cost - discount_cost
     
     return {
