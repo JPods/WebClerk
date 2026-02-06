@@ -390,12 +390,12 @@ export class LineItemService {
 
     // Price calculations
     const gross = qty * unitPrice;
-    const discountAmount = gross * (discountPc / 100);
+    const discountAmount = this.getDiscountAmount(line, gross, discountPc);
     const extended = gross - discountAmount;
 
     // Cost calculations
     const grossCost = qty * unitCost;
-    const discountCost = grossCost * (costDiscountPc / 100);
+    const discountCost = this.getCostDiscountAmount(line, grossCost, costDiscountPc);
     const costExtended = grossCost - discountCost;
 
     // Margin (internal use only)
@@ -469,6 +469,21 @@ export class LineItemService {
     return 0;
   }
 
+  private getDiscountAmount(
+    line: TransactionLine,
+    gross: number,
+    discountPc: number
+  ): number {
+    if (typeof line.price === 'object' && line.price !== null) {
+      const p = line.price as Record<string, unknown>;
+      const discountAmount = Number(p.discount_amount ?? 0);
+      if (discountAmount) {
+        return discountAmount;
+      }
+    }
+    return gross * (discountPc / 100);
+  }
+
   private getUnitCost(line: TransactionLine): number {
     if (typeof line.cost === 'object' && line.cost !== null) {
       const c = line.cost as Record<string, unknown>;
@@ -483,6 +498,21 @@ export class LineItemService {
       return Number(c.discount_percent ?? 0) || 0;
     }
     return 0;
+  }
+
+  private getCostDiscountAmount(
+    line: TransactionLine,
+    grossCost: number,
+    discountPc: number
+  ): number {
+    if (typeof line.cost === 'object' && line.cost !== null) {
+      const c = line.cost as Record<string, unknown>;
+      const discountAmount = Number(c.discount_amount ?? 0);
+      if (discountAmount) {
+        return discountAmount;
+      }
+    }
+    return grossCost * (discountPc / 100);
   }
 }
 
