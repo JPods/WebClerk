@@ -85,9 +85,9 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
 
   const progress = useMemo(() => {
     if (tasks.length === 0) return 0;
-    const withProgress = tasks.filter((task) => typeof task.progress === "number");
+    const withProgress = tasks.filter((task) => typeof task.percent_complete === "number");
     if (withProgress.length === 0) return 0;
-    const total = withProgress.reduce((acc, task) => acc + (task.progress ?? 0), 0);
+    const total = withProgress.reduce((acc, task) => acc + (task.percent_complete ?? 0), 0);
     return Math.round(total / withProgress.length);
   }, [tasks]);
 
@@ -118,7 +118,7 @@ const KanbanColumnComponent: React.FC<KanbanColumnProps> = ({ column, tasks, onD
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
           <span className="inline-flex h-2 w-2 rounded-full bg-indigo-400" />
-          {progress}% avg. progress
+          {progress}% avg. percent_complete
         </div>
       </header>
 

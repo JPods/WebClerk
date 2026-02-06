@@ -81,10 +81,10 @@ interface KanbanDragLayerProps {
             )}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-300">
-            {typeof task.progress === "number" && (
+            {typeof task.percent_complete === "number" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-200">
                 <span className="h-2 w-2 rounded-full bg-indigo-400" />
-                {Math.round(Math.max(0, Math.min(100, task.progress)))}%
+                {Math.round(Math.max(0, Math.min(100, task.percent_complete)))}%
               </span>
             )}
             {task.assignee && (

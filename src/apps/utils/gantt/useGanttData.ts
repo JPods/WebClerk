@@ -101,6 +101,7 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
   const name = typeof record.name === "string" ? record.name : undefined;
   const slug = typeof record.slug === "string" ? record.slug : undefined;
   const intent = typeof record.intent === "string" ? record.intent : undefined;
+  const ida = typeof record.ida === "string" ? record.ida : undefined;
   
   // Since we already filter by is_active in the API call, accept all returned projects
   // Only filter out if explicitly marked as inactive
@@ -117,6 +118,7 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
     name: name || intent || `Project ${idStr}`,
     slug,
     intent,
+    ida,
   };
 };
 
@@ -215,15 +217,18 @@ export const useGanttData = ({
               });
               
               const records = extractRecordsFromResponse(response);
+              
               const actions = records as unknown as ApiKanbanItem[];
               
               // Find project name using ref to avoid dependency on projects state
               const project = projectsRef.current.find((p) => p.id === projectId);
               const projectName = project?.name || project?.intent || `Project ${projectId}`;
+              const projectIda = project?.ida;
               
               return {
                 projectId,
                 projectName,
+                projectIda,
                 actions,
               };
             } catch (error) {

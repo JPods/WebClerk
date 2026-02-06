@@ -175,13 +175,8 @@ const navItems: NavItem[] = [
   },
   {
     icon: <CalenderIcon />,
-    name: "SVAR Gantt",
-    path: "/svar-gantt",
-  },
-  {
-    icon: <CalenderIcon />,
-    name: "Multi‑Project Gantt",
-    path: PageRoutes.multiProjectGantt,
+    name: "Gantt",
+    path: PageRoutes.gantt,
   },
   // {
   //   name: "Pages",

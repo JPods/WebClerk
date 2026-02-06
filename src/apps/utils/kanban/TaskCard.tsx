@@ -79,11 +79,11 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
   const priorityText = priorityLabel[wc3Priority];
 
   const progressLabel = useMemo(() => {
-    const pct = task.progress;
+    const pct = task.percent_complete;
     if (typeof pct !== "number") return null;
     const clamped = Math.max(0, Math.min(100, Math.round(pct)));
     return `${clamped}%`;
-  }, [task.progress]);
+  }, [task.percent_complete]);
 
   return (
     <div

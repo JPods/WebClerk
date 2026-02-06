@@ -6,19 +6,54 @@ const DEFAULT_START_OFFSET_DAYS = -5;
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+// Debug flag
+let _mapperDebugLogged = false;
+
+export interface BadgePrefs {
+  bg_color?: string;     // hex color for badge background
+  text_color?: string;   // hex color for badge text
+  initials?: string;     // custom initials override
+}
+
+export interface AssignedUser {
+  id: string | number;
+  name?: string;
+  is_staff?: boolean;
+  prefs?: {
+    badge?: BadgePrefs;
+  };
+}
+
 export interface GanttMappedTask extends ITask {
   projectId: string;
   projectName: string;
+  projectIda?: string;
+  taskIda?: string;
+  percentComplete?: number;
   columnId?: string;
   columnTitle?: string;
   priority?: string;
+  priorityValue?: number;
   assignee?: string;
+  assignedTo?: AssignedUser[];
   apiId: string;
+  details?: string;
+  /** Parent task IDs from refs.parents - used for dependency links */
+  refParents?: string[];
+  /** True if this task is on the critical path */
+  isCritical?: boolean;
+  /** Slack/float in days - how much buffer before becoming critical */
+  slack?: number;
+  /** Original planned start date for baseline comparison */
+  dtStartOriginal?: Date;
+  /** Original planned end date for baseline comparison */
+  dtEndOriginal?: Date;
 }
 
 export interface ProjectActionData {
   projectId: string;
   projectName: string;
+  projectIda?: string;
   actions: ApiKanbanItem[];
 }
 
@@ -41,6 +76,7 @@ const mapPriorityLabel = (value?: number | null): string => {
 };
 
 // Date parsing utilities
+// Normalizes dates to midday to prevent timezone-related day shifts
 const parseDateValue = (value?: string | number | null): Date | null => {
   if (!value) return null;
   
@@ -48,7 +84,14 @@ const parseDateValue = (value?: string | number | null): Date | null => {
     // Handle Unix timestamps (seconds or milliseconds)
     const timestamp = value > 1e12 ? value : value * 1000;
     const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? null : date;
+    if (Number.isNaN(date.getTime())) return null;
+    
+    // Normalize to midday of the UTC date to avoid timezone boundary issues
+    // Extract UTC date components and create a new date at local noon
+    const utcYear = date.getUTCFullYear();
+    const utcMonth = date.getUTCMonth();
+    const utcDay = date.getUTCDate();
+    return new Date(utcYear, utcMonth, utcDay, 12, 0, 0, 0);
   }
   
   if (typeof value === "string") {
@@ -57,7 +100,13 @@ const parseDateValue = (value?: string | number | null): Date | null => {
     
     // Try parsing as ISO string or common formats
     const parsed = new Date(trimmed);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    if (Number.isNaN(parsed.getTime())) return null;
+    
+    // Normalize to midday to avoid timezone issues
+    const utcYear = parsed.getUTCFullYear();
+    const utcMonth = parsed.getUTCMonth();
+    const utcDay = parsed.getUTCDate();
+    return new Date(utcYear, utcMonth, utcDay, 12, 0, 0, 0);
   }
   
   return null;
@@ -121,38 +170,46 @@ export const calculateDurationDays = (start: Date, end: Date): number => {
 };
 
 /**
- * Normalize progress value to 0-1 ratio
+ * Normalize progress value to 0-100 range (SVAR Gantt expects 0-100)
  */
 export const normalizeProgress = (value?: number | string | null): number | undefined => {
   if (value === null || value === undefined) return undefined;
   
-  const numValue = typeof value === "string" ? parseFloat(value) : value;
+  const numValue = typeof value === "string" ? parseFloat(value.replace(/%$/, "")) : value;
   if (Number.isNaN(numValue)) return undefined;
   
-  // If value > 1, assume it's a percentage
-  if (numValue > 1) {
-    return Math.max(0, Math.min(1, numValue / 100));
+  // If value is a decimal (0-1 range), convert to percentage
+  if (numValue > 0 && numValue <= 1) {
+    return Math.max(0, Math.min(100, numValue * 100));
   }
   
-  return Math.max(0, Math.min(1, numValue));
+  // Assume it's already in 0-100 range
+  return Math.max(0, Math.min(100, numValue));
 };
 
 /**
  * Extract progress from various possible locations in the API response
  */
 const extractProgress = (action: ApiKanbanItem): number | undefined => {
+  const actionRecord = action as Record<string, unknown>;
+  
   const candidates = [
+    // Canonical field used by kanbanDataMapper
+    actionRecord["percent_complete"],
+    // Common progress fields
     action.progress,
-    action.progress_percent,
-    action.progress_percentage,
-    action.completion,
-    action.completion_percent,
-    action.completion_percentage,
+    actionRecord["progress_percent"],
+    actionRecord["progress_percentage"],
+    // Completion fields
+    actionRecord["completion"],
+    actionRecord["completion_percent"],
+    actionRecord["completion_percentage"],
+    // Nested in prefs
     action.prefs?.userdefined?.progress,
   ];
   
   for (const candidate of candidates) {
-    const normalized = normalizeProgress(candidate);
+    const normalized = normalizeProgress(candidate as number | string | null | undefined);
     if (normalized !== undefined) {
       return normalized;
     }
@@ -162,36 +219,132 @@ const extractProgress = (action: ApiKanbanItem): number | undefined => {
 };
 
 /**
+ * Extract the action text from an API item
+ * Checks both nested action object (action.en) and flat properties (action_en)
+ */
+const extractActionText = (action: ApiKanbanItem): string => {
+  // Check nested action object first (highest priority)
+  const nestedAction = action.action;
+  if (nestedAction && typeof nestedAction === "object") {
+    const nestedEn = nestedAction.en;
+    if (typeof nestedEn === "string" && nestedEn.trim()) {
+      return nestedEn;
+    }
+    // Try any other language in the nested object
+    const firstValue = Object.values(nestedAction).find(
+      (v) => typeof v === "string" && v.trim()
+    );
+    if (firstValue) {
+      return firstValue;
+    }
+  }
+  
+  // Fall back to flat properties
+  if (action.action_en && typeof action.action_en === "string" && action.action_en.trim()) {
+    return action.action_en;
+  }
+  if (action.action_ar && typeof action.action_ar === "string" && action.action_ar.trim()) {
+    return action.action_ar;
+  }
+  if (action.action_bn && typeof action.action_bn === "string" && action.action_bn.trim()) {
+    return action.action_bn;
+  }
+  if (action.action_es && typeof action.action_es === "string" && action.action_es.trim()) {
+    return action.action_es;
+  }
+  
+  return "Untitled Action";
+};
+
+
+
+/**
  * Map a single API action to SVAR Gantt task format
  */
 export const mapApiActionToGanttTask = (
   action: ApiKanbanItem,
   projectId: string,
   projectName: string,
-  projectColor?: string
+  projectColor?: string,
+  projectIda?: string
 ): GanttMappedTask => {
   const start = resolveTaskStartDate(action);
   const end = resolveTaskEndDate(action, start);
-  const duration = calculateDurationDays(start, end);
-  const progress = extractProgress(action);
+  
+  // Extract duration - prefer explicit duration field, otherwise calculate from dates
+  // Default to 7 days if duration is null, 0, or invalid
+  const actionRecord = action as Record<string, unknown>;
+  
+  // DEBUG: Log first record to see what fields are coming from API
+  if (!_mapperDebugLogged) {
+    console.log("[GanttMapper] API action record keys:", Object.keys(actionRecord));
+    console.log("[GanttMapper] action.id:", action.id);
+    console.log("[GanttMapper] actionRecord.ida:", actionRecord.ida, "type:", typeof actionRecord.ida);
+    console.log("[GanttMapper] actionRecord.project_ida:", actionRecord.project_ida, "type:", typeof actionRecord.project_ida);
+    console.log("[GanttMapper] actionRecord.duration:", actionRecord.duration);
+    console.log("[GanttMapper] actionRecord.percent_complete:", actionRecord.percent_complete);
+    console.log("[GanttMapper] Full record (first 2000 chars):", JSON.stringify(actionRecord, null, 2).slice(0, 2000));
+    _mapperDebugLogged = true;
+  }
+  
+  const DEFAULT_DURATION = 7;
+  let duration: number;
+  if (typeof actionRecord.duration === "number" && actionRecord.duration > 0) {
+    duration = actionRecord.duration;
+  } else {
+    const calculatedDuration = calculateDurationDays(start, end);
+    duration = calculatedDuration > 0 ? calculatedDuration : DEFAULT_DURATION;
+  }
+  
+  // Extract percent_complete directly
+  let percentComplete = 0;
+  if (typeof actionRecord.percent_complete === "number") {
+    percentComplete = actionRecord.percent_complete;
+  } else {
+    const extracted = extractProgress(action);
+    percentComplete = extracted ?? 0;
+  }
+  
+  // Extract task ida from the action record
+  const taskIda = typeof actionRecord.ida === "string" ? actionRecord.ida : undefined;
+  
+  // Extract project_ida from the action record (overrides project-level if present)
+  const actionProjectIda = typeof actionRecord.project_ida === "string" && actionRecord.project_ida 
+    ? actionRecord.project_ida 
+    : projectIda;
   
   const task: GanttMappedTask = {
     id: action.id,
     apiId: action.id,
-    text: action.action_en || action.project_name || "Untitled Action",
+    text: extractActionText(action),
+    taskIda,
+    projectIda: actionProjectIda,
+    percentComplete,
     start,
     end,
     duration,
-    progress,
-    type: "task",
+    progress: percentComplete, // SVAR expects 0-100 for progress bar
+    type: duration === 0 || !duration ? "milestone" : "task", // 0-duration shows as diamond
     parent: action.refs?.links?.parent,
     projectId,
     projectName,
     columnId: action.kanban_column || undefined,
     columnTitle: action.kanban_column || undefined,
     priority: mapPriorityLabel(action.priority),
+    priorityValue: typeof action.priority === "number" ? action.priority : undefined,
     assignee: action.assigned_to?.[0]?.name,
+    assignedTo: Array.isArray(action.assigned_to) ? action.assigned_to.map((a: any) => ({
+      id: a.id ?? a.contact_id,
+      name: a.name ?? a.attention,
+      is_staff: a.is_staff,
+      prefs: a.prefs?.badge ? { badge: a.prefs.badge } : undefined,
+    })) : undefined,
     details: action.description_en || action.comments?.public || undefined,
+    // Store refs.parents for link manipulation
+    refParents: extractRefParents(action),
+    // Original planned dates for baseline comparison
+    dtStartOriginal: parseDateValue(actionRecord.dt_start_original as number | undefined),
+    dtEndOriginal: parseDateValue(actionRecord.dt_end_original as number | undefined),
   };
   
   // Add color if provided
@@ -204,38 +357,285 @@ export const mapApiActionToGanttTask = (
 };
 
 /**
- * Create links between tasks based on sequence/order within a project
+ * Extract refs.parents array from action as string[]
  */
-const createProjectLinks = (tasks: GanttMappedTask[], projectId: string): ILink[] => {
-  const projectTasks = tasks.filter((t) => t.projectId === projectId);
-  
-  if (projectTasks.length < 2) return [];
-  
-  // Sort by start date, then by id
-  const sorted = [...projectTasks].sort((a, b) => {
-    const aTime = a.start instanceof Date ? a.start.getTime() : 0;
-    const bTime = b.start instanceof Date ? b.start.getTime() : 0;
-    if (aTime === bTime) {
-      return String(a.id ?? "").localeCompare(String(b.id ?? ""));
-    }
-    return aTime - bTime;
-  });
-  
+const extractRefParents = (action: ApiKanbanItem): string[] => {
+  const refs = action.refs as Record<string, unknown> | undefined;
+  const parents = refs?.parents;
+  if (!Array.isArray(parents)) return [];
+  return parents.map((p) => String(p));
+};
+
+/**
+ * Create links between tasks based on refs.parents[] dependencies
+ * Each parent ID in refs.parents[] creates a finish-to-start link
+ */
+const createDependencyLinks = (
+  tasks: GanttMappedTask[],
+  actions: ApiKanbanItem[]
+): ILink[] => {
   const links: ILink[] = [];
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    if (prev.id && curr.id) {
-      links.push({
-        id: `link-${projectId}-${i}`,
-        source: prev.id,
-        target: curr.id,
-        type: "e2s", // end-to-start
-      });
+  const taskIdSet = new Set(tasks.map((t) => String(t.id)));
+  
+  for (const action of actions) {
+    const targetId = action.id;
+    if (!targetId) continue;
+    
+    // Get parent IDs from refs.parents[]
+    const refs = action.refs as Record<string, unknown> | undefined;
+    const parents = refs?.parents;
+    
+    if (!Array.isArray(parents) || parents.length === 0) continue;
+    
+    for (const parentId of parents) {
+      const sourceId = String(parentId);
+      
+      // Only create link if both source and target exist in our task set
+      if (taskIdSet.has(sourceId) && taskIdSet.has(String(targetId))) {
+        links.push({
+          id: `dep-${sourceId}-${targetId}`,
+          source: Number(sourceId) || sourceId, // SVAR prefers numeric IDs
+          target: Number(targetId) || targetId,
+          type: "e2s", // end-to-start (finish-to-start)
+        });
+      }
     }
   }
   
   return links;
+};
+
+/**
+ * Topological sort tasks so children appear after their parents.
+ * Tasks without dependencies are sorted by start date.
+ * Children appear after their latest (most recent in list) parent.
+ */
+const topologicalSortByDependencies = (tasks: GanttMappedTask[]): GanttMappedTask[] => {
+  if (tasks.length === 0) return [];
+  
+  // Build lookup maps
+  const taskById = new Map<string, GanttMappedTask>();
+  const taskParents = new Map<string, string[]>(); // taskId -> [parentIds]
+  const taskChildren = new Map<string, string[]>(); // taskId -> [childIds]
+  
+  for (const task of tasks) {
+    const taskId = String(task.id);
+    taskById.set(taskId, task);
+    const parents = (task as any).refParents || [];
+    taskParents.set(taskId, parents.map(String));
+    
+    for (const parentId of parents) {
+      const parentIdStr = String(parentId);
+      if (!taskChildren.has(parentIdStr)) {
+        taskChildren.set(parentIdStr, []);
+      }
+      taskChildren.get(parentIdStr)!.push(taskId);
+    }
+  }
+  
+  // Separate tasks: those with parents vs root tasks (no parents)
+  const rootTasks: GanttMappedTask[] = [];
+  const childTasks: GanttMappedTask[] = [];
+  
+  for (const task of tasks) {
+    const taskId = String(task.id);
+    const parents = taskParents.get(taskId) || [];
+    // Only count parents that are in our task set
+    const validParents = parents.filter((p) => taskById.has(p));
+    
+    if (validParents.length === 0) {
+      rootTasks.push(task);
+    } else {
+      childTasks.push(task);
+    }
+  }
+  
+  // Sort root tasks by start date
+  rootTasks.sort((a, b) => {
+    const aTime = a.start instanceof Date ? a.start.getTime() : 0;
+    const bTime = b.start instanceof Date ? b.start.getTime() : 0;
+    return aTime - bTime;
+  });
+  
+  // Build result with topological ordering
+  const result: GanttMappedTask[] = [];
+  const placed = new Set<string>();
+  
+  // Helper to place a task and then place its children
+  const placeTask = (task: GanttMappedTask) => {
+    const taskId = String(task.id);
+    if (placed.has(taskId)) return;
+    
+    // Check if all parents are placed
+    const parents = taskParents.get(taskId) || [];
+    const validParents = parents.filter((p) => taskById.has(p));
+    
+    for (const parentId of validParents) {
+      if (!placed.has(parentId)) {
+        // Parent not placed yet, place it first
+        const parent = taskById.get(parentId);
+        if (parent) {
+          placeTask(parent);
+        }
+      }
+    }
+    
+    // Now place this task
+    if (!placed.has(taskId)) {
+      result.push(task);
+      placed.add(taskId);
+    }
+    
+    // Place children of this task (sorted by their start date)
+    const children = taskChildren.get(taskId) || [];
+    const childTasksToPlace = children
+      .map((cid) => taskById.get(cid))
+      .filter((t): t is GanttMappedTask => t !== undefined && !placed.has(String(t.id)))
+      .sort((a, b) => {
+        const aTime = a.start instanceof Date ? a.start.getTime() : 0;
+        const bTime = b.start instanceof Date ? b.start.getTime() : 0;
+        return aTime - bTime;
+      });
+    
+    for (const child of childTasksToPlace) {
+      placeTask(child);
+    }
+  };
+  
+  // Place all root tasks (this will cascade to their children)
+  for (const rootTask of rootTasks) {
+    placeTask(rootTask);
+  }
+  
+  // Place any remaining child tasks that weren't reached (handles orphaned children)
+  for (const childTask of childTasks) {
+    if (!placed.has(String(childTask.id))) {
+      placeTask(childTask);
+    }
+  }
+  
+  return result;
+};
+
+/**
+ * Calculate and mark critical path tasks.
+ * The critical path is the longest path through the project that determines
+ * the minimum project duration. Tasks on this path have zero float/slack.
+ * 
+ * Uses forward pass (earliest start/finish) and backward pass (latest start/finish)
+ * to identify tasks where ES == LS (zero float = critical).
+ */
+const markCriticalPath = (tasks: GanttMappedTask[]): void => {
+  if (tasks.length === 0) return;
+  
+  // Build dependency maps
+  const taskById = new Map<string, GanttMappedTask>();
+  const taskParents = new Map<string, string[]>();
+  const taskChildren = new Map<string, string[]>();
+  
+  for (const task of tasks) {
+    const taskId = String(task.id);
+    taskById.set(taskId, task);
+    
+    const parents = (task as any).refParents || [];
+    const validParents = parents.map(String).filter((p: string) => {
+      // Parent must exist in our task set
+      return tasks.some((t) => String(t.id) === p);
+    });
+    taskParents.set(taskId, validParents);
+    
+    for (const parentId of validParents) {
+      if (!taskChildren.has(parentId)) {
+        taskChildren.set(parentId, []);
+      }
+      taskChildren.get(parentId)!.push(taskId);
+    }
+  }
+  
+  // Get task end time in ms 
+  const getTaskEnd = (task: GanttMappedTask): number => {
+    if (task.end instanceof Date) return task.end.getTime();
+    if (task.start instanceof Date && task.duration) {
+      return task.start.getTime() + task.duration * DAY_IN_MS;
+    }
+    return task.start instanceof Date ? task.start.getTime() : 0;
+  };
+  
+  // Get task duration in ms
+  const getTaskDuration = (task: GanttMappedTask): number => {
+    if (task.duration) return task.duration * DAY_IN_MS;
+    if (task.start instanceof Date && task.end instanceof Date) {
+      return Math.max(0, task.end.getTime() - task.start.getTime());
+    }
+    return DAY_IN_MS; // Default 1 day
+  };
+  
+  // Forward pass: calculate earliest start (ES) and earliest finish (EF)
+  const earliestStart = new Map<string, number>();
+  const earliestFinish = new Map<string, number>();
+  
+  // Process in topological order (tasks sorted so parents come before children)
+  for (const task of tasks) {
+    const taskId = String(task.id);
+    const parents = taskParents.get(taskId) || [];
+    
+    // ES = max of all parent EFs, or task's own start if no parents
+    let es = task.start instanceof Date ? task.start.getTime() : 0;
+    for (const parentId of parents) {
+      const parentEF = earliestFinish.get(parentId);
+      if (parentEF !== undefined && parentEF > es) {
+        es = parentEF;
+      }
+    }
+    
+    earliestStart.set(taskId, es);
+    earliestFinish.set(taskId, es + getTaskDuration(task));
+  }
+  
+  // Find project end (latest EF)
+  let projectEnd = 0;
+  for (const ef of earliestFinish.values()) {
+    if (ef > projectEnd) projectEnd = ef;
+  }
+  
+  // Backward pass: calculate latest start (LS) and latest finish (LF)
+  const latestStart = new Map<string, number>();
+  const latestFinish = new Map<string, number>();
+  
+  // Process in reverse topological order
+  for (let i = tasks.length - 1; i >= 0; i--) {
+    const task = tasks[i];
+    const taskId = String(task.id);
+    const children = taskChildren.get(taskId) || [];
+    
+    // LF = min of all children's LS, or project end if no children
+    let lf = projectEnd;
+    for (const childId of children) {
+      const childLS = latestStart.get(childId);
+      if (childLS !== undefined && childLS < lf) {
+        lf = childLS;
+      }
+    }
+    
+    latestFinish.set(taskId, lf);
+    latestStart.set(taskId, lf - getTaskDuration(task));
+  }
+  
+  // Mark critical path: tasks where ES == LS (zero float)
+  // Also calculate slack (LS - ES) in days
+  const tolerance = DAY_IN_MS / 24; // 1 hour tolerance for floating point
+  for (const task of tasks) {
+    const taskId = String(task.id);
+    const es = earliestStart.get(taskId) || 0;
+    const ls = latestStart.get(taskId) || 0;
+    
+    // Calculate slack in days (LS - ES)
+    const slackMs = ls - es;
+    task.slack = Math.max(0, Math.round(slackMs / DAY_IN_MS * 10) / 10); // Round to 1 decimal
+    
+    // Critical if start times match (zero slack)
+    task.isCritical = Math.abs(slackMs) < tolerance;
+  }
 };
 
 /**
@@ -246,32 +646,41 @@ export const mapProjectActionsToGantt = (
   projectColors: Map<string, string>
 ): GanttDataset => {
   const allTasks: GanttMappedTask[] = [];
-  const allLinks: ILink[] = [];
+  const allActions: ApiKanbanItem[] = [];
+  const seenTaskIds = new Set<string>();
   
-  for (const { projectId, projectName, actions } of projectsData) {
+  for (const { projectId, projectName, projectIda, actions } of projectsData) {
     const projectColor = projectColors.get(projectId);
     
     const projectTasks = actions
       .filter((action) => action.id) // Ensure action has an ID
       .map((action) =>
-        mapApiActionToGanttTask(action, projectId, projectName, projectColor)
-      );
+        mapApiActionToGanttTask(action, projectId, projectName, projectColor, projectIda)
+      )
+      // Deduplicate tasks by ID to prevent React key warnings
+      .filter((task) => {
+        const taskIdStr = String(task.id);
+        if (seenTaskIds.has(taskIdStr)) {
+          return false;
+        }
+        seenTaskIds.add(taskIdStr);
+        return true;
+      });
     
     allTasks.push(...projectTasks);
-    
-    // Create links for this project's tasks
-    const projectLinks = createProjectLinks(projectTasks, projectId);
-    allLinks.push(...projectLinks);
+    allActions.push(...actions);
   }
   
-  // Sort all tasks by start date for consistent display
-  allTasks.sort((a, b) => {
-    const aTime = a.start instanceof Date ? a.start.getTime() : 0;
-    const bTime = b.start instanceof Date ? b.start.getTime() : 0;
-    return aTime - bTime;
-  });
+  // Create dependency links from refs.parents[]
+  const allLinks = createDependencyLinks(allTasks, allActions);
   
-  return { tasks: allTasks, links: allLinks };
+  // Topological sort: place children after their parents while maintaining chronological order
+  const sortedTasks = topologicalSortByDependencies(allTasks);
+  
+  // Calculate and mark critical path
+  markCriticalPath(sortedTasks);
+  
+  return { tasks: sortedTasks, links: allLinks };
 };
 
 /**

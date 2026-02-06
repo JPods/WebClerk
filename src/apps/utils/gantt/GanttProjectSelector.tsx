@@ -9,6 +9,7 @@ export interface ProjectOption {
   name?: string;
   slug?: string;
   intent?: string;
+  ida?: string;
   actionCount?: number;
 }
 

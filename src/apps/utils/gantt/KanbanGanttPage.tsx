@@ -1,3 +1,10 @@
+/**
+ * @deprecated This component is deprecated. Use UnifiedGantt or UnifiedGanttPage instead.
+ * Routes to /kanban-gantt now redirect to /gantt.
+ * 
+ * This custom DnD-based Gantt implementation has been replaced by SVAR Gantt.
+ * See README-UNIFIED-GANTT.md for migration details.
+ */
   // Assignee UI mode state for edit modal
   const [editAssigneeUIMode, setEditAssigneeUIMode] = useState<'dropdown' | 'chips'>('dropdown');
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";

@@ -65,6 +65,7 @@ import KanbanBoardDataPage from "../apps/utils/kanban/KanbanBoardDataPage";
 import KanbanGanttPage from "../apps/utils/gantt/GanttPage";
 import SvarGanttPage from "../apps/utils/gantt/SvarGanttPage";
 import MultiProjectGanttPage from "../apps/utils/gantt/MultiProjectGanttPage";
+import UnifiedGanttPage from "../apps/utils/gantt/UnifiedGanttPage";
 import NotionTrackerPage from "./notion/NotionTrackerPage";
 
 export {
@@ -88,6 +89,7 @@ export {
   KanbanGanttPage,
   SvarGanttPage,
   MultiProjectGanttPage,
+  UnifiedGanttPage,
   AuditList,
   AuditDetail,
   CurrencyList,
