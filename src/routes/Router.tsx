@@ -98,6 +98,7 @@ import ReceiptDetail from "../apps/transactions/models/receipt/pages/ReceiptDeta
 import InventoryAdjustmentList from "../apps/transactions/models/inventory_adjustment/pages/InventoryAdjustmentList";
 // Redux store is not used directly here; pages connect as needed.
 import Test from "../pages/test/Test";
+import QATestPage from "../pages/test/QATestPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import ActionList from "../apps/core/models/action/pages/ActionList";
 import ActionDetail from "../apps/core/models/action/pages/ActionDetail";
@@ -115,6 +116,7 @@ const Router: React.FC = () => {
         <Route path={PageRoutes.login} element={<SignIn />} />
         <Route path={PageRoutes.register} element={<SignUp />} />
         <Route path="/test" element={<Test />} />
+        <Route path="/test/qa" element={<QATestPage />} />
         {/* Protected routes */}
         <Route element={<PrivateRoute />}>
           {/* Universal WCAPI route handler */}

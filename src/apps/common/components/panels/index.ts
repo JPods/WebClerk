@@ -62,5 +62,53 @@ export { default as FinancialsPanel } from './FinancialsPanel';
 export { default as CommunicationsPanel } from './CommunicationsPanel';
 export { default as LinkagesPanel } from './LinkagesPanel';
 
+// Q&A utilities and types
+export {
+  getQAQuestions,
+  getQAAnswers,
+  getAllQAQuestionGroups,
+  getQACounters,
+  saveQAAnswer,
+  deleteQAAnswer,
+  getEffectiveOptions,
+  uploadQAImage,
+} from './qaUtils';
+export type {
+  QAQuestionTemplate,
+  QAAnswerChoice,
+  QAQuestionDef,
+  QAQuestionsData,
+  QAQuestionsSetting,
+  QACountersData,
+  QAEffectiveOptions,
+  QAAnswerRecord,
+} from './qaUtils';
+
+// Document upload utilities and types
+export {
+  uploadDocument,
+  uploadDocuments,
+  uploadDocumentWithLocation,
+  deleteDocument,
+  getDocumentUrl,
+  formatFileSize,
+  isAllowedFileType,
+  validateFile,
+  getBrowserGeolocation,
+  useDocumentUpload,
+} from './documentUpload';
+export type {
+  DocumentRecord,
+  DocumentMetadata,
+  DocumentAddress,
+  VirusScanResult,
+  ExifData,
+  GeoLocation,
+  UploadDocumentOptions,
+  UploadDocumentResult,
+  UploadProgressCallback,
+} from './documentUpload';
+
 // Linkages types (exported from component file)
 export type { LinkageData, LinkedRecord, LinkagesPanelProps } from './LinkagesPanel';
+
