@@ -314,6 +314,10 @@ def default_refs() -> dict:
         "links": {"contact": [], "item": []},
         #setting record populates links from #"related_models": []
 
+        # Parent action IDs for Gantt dependencies (finish-to-start links)
+        # These specify which actions must complete before this action can start
+        "parents": [],
+
         # Execution gating: identify upstream dependencies by model keys.
         # Example: {"action": [1,2], "work_order": [5], "work_order_line": [9,10]}
         "depends_on": {},
