@@ -1,4 +1,5 @@
 import React from "react";
+import { Navigate } from "react-router";
 import { PageRoutes } from "./Routes";
 // import { CustomerDashboard as CustomerDashboardPage } from '../apps/orgs/models/customer/pages/CustomerDashboard';
 import {
@@ -18,6 +19,7 @@ import {
   NotionTrackerPage,
   SvarGanttPage,
   MultiProjectGanttPage,
+  UnifiedGanttPage,
   UserProfiles,
   AuditList,
   AuditDetail,
@@ -124,9 +126,12 @@ export const protectedRoutesConfig = [
   { path: PageRoutes.notionTracker, element: <NotionTrackerPage /> },
   { path: PageRoutes.kanbanBoard, element: <KanbanBoardPage /> },
   { path: PageRoutes.kanbanBoardData, element: <KanbanBoardDataPage /> },
-  { path: PageRoutes.kanbanGantt, element: <KanbanGanttPage /> },
-  { path: PageRoutes.svarGantt, element: <SvarGanttPage /> },
-  { path: PageRoutes.multiProjectGantt, element: <MultiProjectGanttPage /> },
+  // Unified Gantt - single/multi-project support
+  { path: PageRoutes.gantt, element: <UnifiedGanttPage /> },
+  // Deprecated routes - redirect to unified gantt
+  { path: PageRoutes.kanbanGantt, element: <Navigate to="/gantt" replace /> },
+  { path: PageRoutes.svarGantt, element: <Navigate to="/gantt" replace /> },
+  { path: PageRoutes.multiProjectGantt, element: <Navigate to="/gantt" replace /> },
   { path: PageRoutes.actionList, element: <ActionListPage /> },
   { path: PageRoutes.actionDetail, element: <ActionDetail /> },
   { path: PageRoutes.adminWorkbench, element: <AdminWorkbench /> },

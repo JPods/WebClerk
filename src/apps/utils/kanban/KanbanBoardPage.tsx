@@ -404,8 +404,7 @@ const createInitialTaskFormState = (columnId: string): TaskFormState => ({
   dt_expected: "",
   assigned_to: [],
   difficulty: DEFAULT_DIFFICULTY_STRING,
-  progress: DEFAULT_PROGRESS_STRING,
-  percent_complete: "0",
+  percent_complete: DEFAULT_PROGRESS_STRING,
   is_active: "true",
 });
 
@@ -886,10 +885,11 @@ const updateTaskFormState = (
     return { ...prev, is_active: value };
   }
 
-  if (field === "progress") {
-    const next: TaskFormState = { ...prev, progress: value };
+  if (field === "percent_complete") {
+    const next: TaskFormState = { ...prev, percent_complete: value };
     const numericProgress = Number(value);
     if (Number.isFinite(numericProgress)) {
+      // Derive status for column selection
       let derivedStatus: string | null = null;
       if (numericProgress >= 100) {
         derivedStatus = "review";
@@ -899,23 +899,14 @@ const updateTaskFormState = (
         derivedStatus = "30";
       }
 
-      next.percent_complete = derivedStatus;
-
       if (options?.columns?.length && options.fallbackColumnId) {
         next.columnId = pickColumnForStatus(derivedStatus, options.columns, options.fallbackColumnId);
       }
-    }
-    return next;
-  }
-
-  if (field === "percent_complete") {
-    const next: TaskFormState = { ...prev, percent_complete: value };
-    if (options?.columns?.length && options.fallbackColumnId) {
-      next.columnId = pickColumnForStatus(value, options.columns, options.fallbackColumnId);
-    }
-    if (value === "100" && !prev.dt_completed) {
-      const now = formatDateTimeLocalString(new Date());
-      next.dt_completed = ensureEndAfterStart(prev.dt_start, now);
+      
+      if (numericProgress >= 100 && !prev.dt_completed) {
+        const now = formatDateTimeLocalString(new Date());
+        next.dt_completed = ensureEndAfterStart(prev.dt_start, now);
+      }
     }
     return next;
   }
@@ -1513,8 +1504,8 @@ const KanbanBoardPage: React.FC = () => {
   );
 
   const createProgressOptions = useMemo(
-    () => extendNumericOptionStrings(PROGRESS_OPTIONS, createTaskState.progress),
-    [createTaskState.progress]
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, createTaskState.percent_complete),
+    [createTaskState.percent_complete]
   );
 
   const editDifficultyOptions = useMemo(
@@ -1523,8 +1514,8 @@ const KanbanBoardPage: React.FC = () => {
   );
 
   const editProgressOptions = useMemo(
-    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.progress),
-    [editTaskState.progress]
+    () => extendNumericOptionStrings(PROGRESS_OPTIONS, editTaskState.percent_complete),
+    [editTaskState.percent_complete]
   );
 
   const languageOptions = useMemo(() => {
@@ -1611,7 +1602,7 @@ const KanbanBoardPage: React.FC = () => {
       task.difficulty ?? PRIORITY_TO_VALUE[task.priority],
       DEFAULT_DIFFICULTY
     );
-    const normalizedProgress = normalizeNumericSelectValue(task.progress ?? 0, DEFAULT_PROGRESS);
+    const normalizedProgress = normalizeNumericSelectValue(task.percent_complete ?? 0, DEFAULT_PROGRESS);
     const normalizedProjectId = task.project_id ?? selectedProjectId ?? "";
     const normalizedIsActive = task.is_active;
 
@@ -1626,7 +1617,6 @@ const KanbanBoardPage: React.FC = () => {
       dt_expected: normalizeIncomingDateValue(task.dt_expected),
       assigned_to: Array.isArray(task.assigned_to) ? task.assigned_to.map(a => ({ id: a.id, name: a.name || a.id })) : [],
       difficulty: normalizedDifficulty,
-      progress: normalizedProgress,
       percent_complete: String(normalizedProgress),
       is_active: typeof normalizedIsActive === "boolean" ? String(normalizedIsActive) : "true",
     });
@@ -1999,13 +1989,13 @@ const KanbanBoardPage: React.FC = () => {
     const parsedDifficulty = Number(state.difficulty);
     const resolvedDifficulty = Number.isNaN(parsedDifficulty) || parsedDifficulty <= 0 ? fallbackDifficulty : parsedDifficulty;
 
-    const fallbackProgress = baseTask?.progress ?? 0;
-    const parsedProgress = Number(state.progress);
+    const fallbackProgress = baseTask?.percent_complete ?? 0;
+    const parsedProgress = Number(state.percent_complete);
     const resolvedProgress = clampPercentageValue(
       Number.isNaN(parsedProgress) || parsedProgress < 0 ? fallbackProgress : parsedProgress
     );
     const resolvedBurndown = clampPercentageValue(
-      mode === "edit" && baseTask ? baseTask.progress ?? resolvedProgress : resolvedProgress
+      mode === "edit" && baseTask ? baseTask.percent_complete ?? resolvedProgress : resolvedProgress
     );
 
     const payloadItem: Record<string, unknown> = {
@@ -2024,7 +2014,7 @@ const KanbanBoardPage: React.FC = () => {
       dt_start: startTimestamp ?? null,
       dt_completed: completedTimestamp ?? null,
       dt_expected: toTimestampMilliseconds(state.dt_expected) ?? null,
-      progress: resolvedProgress,
+      percent_complete: resolvedProgress,
       // Backend drops numeric 0 via truthy checks; keep as string to satisfy NOT NULL constraint.
       burndown: serializeBurndownValue(resolvedBurndown),
     };

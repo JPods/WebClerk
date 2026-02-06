@@ -145,7 +145,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   };
 
   const difficultyValue = snapToDifficultyStop(Number(formState.difficulty) || 10);
-  const progressValue = Math.max(0, Math.min(100, Number(formState.progress) || 0));
+  const progressValue = Math.max(0, Math.min(100, Number(formState.percent_complete) || 0));
 
   const visibleTranslations = translations.filter((entry, index) => {
     if (index === 0) return true;
@@ -326,14 +326,14 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </div>
 
           <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">progress</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">percent_complete</label>
             <input
               type="range"
               min={0}
               max={100}
               step={5}
               value={progressValue}
-              onChange={(e) => onFieldChange("progress", String(Math.max(0, Math.min(100, Number(e.target.value) || 0))))}
+              onChange={(e) => onFieldChange("percent_complete", String(Math.max(0, Math.min(100, Number(e.target.value) || 0))))}
               disabled={isSaving}
               className="w-full accent-indigo-600"
             />

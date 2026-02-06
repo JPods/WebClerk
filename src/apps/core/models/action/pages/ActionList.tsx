@@ -20,7 +20,7 @@ interface ActionData {
   priority?: number;
   difficulty?: number;
   status?: string;
-  progress?: number;
+  percent_complete?: number;
   dt_deadline?: number | string | null;
   dt_start?: number | string | null;
   dt_end?: number | string | null;
@@ -303,7 +303,7 @@ const ActionListPage = () => {
         width: "130px",
       },
       {
-        name: "Priority",
+        name: "priority",
         selector: (row: ActionData) => row.priority || 0,
         sortable: true,
         width: "110px",
@@ -314,21 +314,21 @@ const ActionListPage = () => {
         ),
       },
       {
-        name: "Progress",
-        selector: (row: ActionData) => row.progress || 0,
+        name: "percent_complete",
+        selector: (row: ActionData) => row.percent_complete || 0,
         sortable: true,
         width: "110px",
         cell: (row: ActionData) => (
           <div className="w-full">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                {row.progress || 0}%
+                {row.percent_complete || 0}%
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(100, row.progress || 0)}%` }}
+                style={{ width: `${Math.min(100, row.percent_complete || 0)}%` }}
               ></div>
             </div>
           </div>

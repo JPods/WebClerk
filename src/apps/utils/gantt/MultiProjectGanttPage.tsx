@@ -1,3 +1,10 @@
+/**
+ * @deprecated This component is deprecated. Use UnifiedGantt or UnifiedGanttPage instead.
+ * Routes to /multi-project-gantt now redirect to /gantt.
+ * 
+ * Multi-project mode is now the default: <UnifiedGanttPage /> or <UnifiedGantt />
+ * See README-UNIFIED-GANTT.md for migration details.
+ */
 // ...existing code...
 /**
  * Multi-Project Gantt Page
@@ -42,6 +49,7 @@ import { GanttProjectSelector, getProjectColor } from "./GanttProjectSelector";
 import { useGanttData, AUTO_REFRESH_INTERVAL_MS } from "./useGanttData";
 import type { GanttMappedTask } from "./ganttDataMapper";
 import { getGanttDateRange } from "./ganttDataMapper";
+import { GanttTaskTemplate } from "./GanttTaskTemplate";
 
 // Gantt column configuration
 const ganttDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -826,6 +834,7 @@ const MultiProjectGanttPage: React.FC = () => {
                       onShowEditor={handleShowEditor}
                       onItemDoubleClick={handleShowEditor}
                       onUpdateTask={handleSvarUpdateTask}
+                      taskTemplate={GanttTaskTemplate}
                       init={(api) => {
                         ganttApiRef.current = api;
                         api.detach(GANTT_COLOR_EVENT_TAG);

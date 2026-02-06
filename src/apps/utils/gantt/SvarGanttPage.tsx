@@ -1,6 +1,14 @@
+/**
+ * @deprecated This component is deprecated. Use UnifiedGantt or UnifiedGanttPage instead.
+ * Routes to /svar-gantt now redirect to /gantt.
+ * 
+ * Single-project mode is now: <UnifiedGantt projectId="123" showSelector={false} />
+ * See README-UNIFIED-GANTT.md for migration details.
+ */
 // ...existing code...
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Gantt, Willow } from "@svar-ui/react-gantt";
+import { GanttTaskTemplate } from "./GanttTaskTemplate";
 import type { IApi, IColumnConfig, ILink, ITask } from "@svar-ui/react-gantt";
 import "@svar-ui/react-gantt/all.css";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
@@ -1585,6 +1593,7 @@ const SvarGanttPage: React.FC = () => {
                   links={visibleData.links}
                   columns={ganttColumns}
                   scales={activeScales}
+                  taskTemplate={GanttTaskTemplate}
                   onShowEditor={handleShowEditor}
                   onItemDoubleClick={handleShowEditor}
                   onMoveTask={handleSvarMoveTask}
