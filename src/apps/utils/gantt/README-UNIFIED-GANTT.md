@@ -180,6 +180,17 @@ This is the base for UnifiedGantt. The main change is extracting reusable props.
 - ✓ Manual refresh button
 - ✓ Multi-language support for task titles
 
+## New Features (Feb 2026)
+
+- ✓ **Critical path highlighting** - Red borders on tasks with zero slack
+- ✓ **Milestone markers** - Diamond (◆) for duration=0 tasks
+- ✓ **Link deletion** - Right-click context menu
+- ✓ **Baseline comparison** - Δ Base column shows schedule variance
+- ✓ **Slack/float display** - Slack column shows buffer in days
+- ✓ **Export PNG** - html2canvas capture
+- ✓ **Export PDF** - Print dialog
+- ✓ **Undo/Redo** - Ctrl+Z/Y with history tracking
+
 ## Known Issues & Future Work
 
 ### Type Cleanup Needed
@@ -197,8 +208,5 @@ definitions. The following areas need alignment:
 
 ### Future Enhancements
 
-- [ ] Add task dependency links visualization
-- [ ] Export to PNG/PDF
-- [ ] Critical path highlighting
-- [ ] Resource allocation view
-- [ ] Baseline comparison
+- [ ] Resource allocation view (grouped by assignee)
+- [ ] Gantt baseline bars (visual ghost bars showing original schedule)
