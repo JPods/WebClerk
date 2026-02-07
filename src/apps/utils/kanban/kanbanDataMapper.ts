@@ -197,12 +197,77 @@ const normalizeProgressInput = (value?: number): number | undefined => {
 };
 
 const extractProgressValue = (item: ApiKanbanItem): number | undefined => {
-  // Only use percent_complete as canonical field
-  const candidate = coerceNumericValue((item as Record<string, unknown>)["percent_complete"]);
-  if (candidate !== undefined) {
-    return normalizeProgressInput(candidate);
+  // Prefer percent_complete, but accept legacy/common alternatives from WC payloads.
+  const record = item as Record<string, unknown>;
+  const candidates: unknown[] = [
+    record["percent_complete"],
+    record["progress_percent"],
+    record["progress_percentage"],
+    record["progress"],
+    record["completion_percent"],
+    record["completion_percentage"],
+    record["completion"],
+  ];
+
+  // Nested prefs.userdefined.progress (some feeds stash progress here)
+  const prefs = record["prefs"];
+  if (prefs && typeof prefs === "object" && !Array.isArray(prefs)) {
+    const userdefined = (prefs as Record<string, unknown>)["userdefined"];
+    if (userdefined && typeof userdefined === "object" && !Array.isArray(userdefined)) {
+      candidates.push((userdefined as Record<string, unknown>)["progress"]);
+    }
   }
+
+  for (const raw of candidates) {
+    const numeric = coerceNumericValue(raw);
+    if (numeric !== undefined) {
+      return normalizeProgressInput(numeric);
+    }
+  }
+
   return undefined;
+};
+
+const deriveProgressFromStatus = (status: unknown): number | undefined => {
+  if (status === null || status === undefined) {
+    return undefined;
+  }
+
+  if (typeof status === "number" && Number.isFinite(status)) {
+    return normalizeProgressInput(status);
+  }
+
+  if (typeof status === "string") {
+    const trimmed = status.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    // Numeric status sometimes comes through as a string.
+    const numeric = Number(trimmed.replace(/%$/, ""));
+    if (!Number.isNaN(numeric)) {
+      return normalizeProgressInput(numeric);
+    }
+
+    const key = normalizeColumnKey(trimmed);
+    if (["backlog", "todo", "icebox", "uncategorized"].includes(key)) return 0;
+    if (["hold", "paused", "waiting", "onhold"].includes(key)) return 5;
+    if (["inprogress", "progress", "doing", "inprocess", "in-process", "inprocess"].includes(key)) return 30;
+    if (["review", "qa", "verify", "verification", "testing"].includes(key)) return 70;
+    if (["done", "complete", "completed", "finished", "closed"].includes(key)) return 100;
+  }
+
+  return undefined;
+};
+
+const deriveProgressFromColumnId = (columnId: string): number => {
+  const normalized = normalizeColumnKey(columnId.replace(/^column-/, ""));
+  if (["backlog", "todo", "uncategorized", "icebox"].includes(normalized)) return 0;
+  if (["hold", "paused", "waiting", "onhold"].includes(normalized)) return 5;
+  if (["progress", "inprogress", "inprocess", "doing", "wip", "workinprogress"].includes(normalized)) return 30;
+  if (["review", "testing", "qa", "verification", "verify"].includes(normalized)) return 70;
+  if (["complete", "completed", "done", "finished"].includes(normalized)) return 100;
+  return 0;
 };
 
 const extractSequenceValue = (item: ApiKanbanItem): number | undefined => {
@@ -424,7 +489,10 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       })) ?? [];
 
     const tags = item.refs?.tags ?? [];
-    const progressValue = extractProgressValue(item);
+    const progressValue =
+      extractProgressValue(item) ??
+      deriveProgressFromStatus(item.status) ??
+      deriveProgressFromColumnId(columnId);
     const sequenceValue = extractSequenceValue(item);
 
     tasks[item.id] = {
@@ -465,7 +533,7 @@ export const createBoardDataFromApi = (items: ApiKanbanItem[]): BoardData => {
       tags: tags.length ? tags : undefined,
       linkage: item.linkage ?? undefined,
       remarks: item.comments?.public || undefined,
-      progress: progressValue,
+      percent_complete: progressValue,
       sequence: sequenceValue,
       refs: item.refs,
     };

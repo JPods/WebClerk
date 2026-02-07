@@ -1,6 +1,6 @@
-import { ChangeEvent, FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { KanbanTask, TaskPriority } from "../../type/kanban";
+import type { KanbanTask, TaskPriority } from "./type/kanban";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
 
 interface LanguageOption {
@@ -66,6 +66,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   modalError,
   formState,
   onFieldChange,
+  columnOptions,
   assigneeOptions = [],
   projectOptions = [],
   translations,
@@ -121,6 +122,85 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
     review: 70,
     "100": 100,
   };
+
+  const normalizeKey = (input: string) => input.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+  const derivedStatusFromColumn = useMemo(() => {
+    const raw = typeof formState.columnId === "string" ? formState.columnId : "";
+    const normalized = normalizeKey(raw.replace(/^column-/, ""));
+    if (!normalized) {
+      return null;
+    }
+
+    if (["backlog", "todo", "uncategorized", "icebox"].some((k) => normalized.includes(k))) return "0";
+    if (["hold", "onhold", "paused", "waiting"].some((k) => normalized.includes(k))) return "5";
+    if (["progress", "inprogress", "inprocess", "doing", "wip"].some((k) => normalized.includes(k))) return "30";
+    if (["review", "qa", "verify", "verification", "testing"].some((k) => normalized.includes(k))) return "review";
+    if (["complete", "completed", "done", "finished"].some((k) => normalized.includes(k))) return "100";
+    return null;
+  }, [formState.columnId]);
+
+  const pickColumnIdForStatus = useCallback(
+    (statusKey: string): string | undefined => {
+      const keywords: Record<string, string[]> = {
+        "0": ["backlog", "todo", "uncategorized", "icebox"],
+        "5": ["hold", "onhold", "paused", "waiting"],
+        "30": ["inprogress", "progress", "doing", "wip", "inprocess"],
+        review: ["review", "qa", "verify", "verification", "testing"],
+        "100": ["complete", "completed", "done", "finished"],
+      };
+
+      const list = keywords[statusKey] ?? [];
+      if (!list.length) {
+        return undefined;
+      }
+
+      const normalizedColumns = (columnOptions ?? []).map((column) => ({
+        id: column.id,
+        idKey: normalizeKey(column.id.replace(/^column-/, "")),
+        titleKey: normalizeKey(column.title),
+      }));
+
+      for (const word of list) {
+        const key = normalizeKey(word);
+        const match = normalizedColumns.find((column) => column.idKey.includes(key) || column.titleKey.includes(key));
+        if (match) {
+          return match.id;
+        }
+      }
+
+      return undefined;
+    },
+    [columnOptions]
+  );
+
+  const normalizedPercentComplete = useMemo(() => {
+    const raw = formState.percent_complete;
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric)) {
+      return String(Math.max(0, Math.min(100, numeric)));
+    }
+    const mapped = statusToProgress[raw];
+    if (mapped !== undefined) {
+      return String(mapped);
+    }
+    return "0";
+  }, [formState.percent_complete, statusToProgress]);
+
+  const derivedStatusKey = useMemo(() => {
+    if (derivedStatusFromColumn) {
+      return derivedStatusFromColumn;
+    }
+    const numeric = Number(normalizedPercentComplete);
+    if (!Number.isFinite(numeric)) {
+      return "0";
+    }
+    if (numeric >= 100) return "100";
+    if (numeric >= 70) return "review";
+    if (numeric <= 0) return "0";
+    if (numeric <= 5) return "5";
+    return "30";
+  }, [derivedStatusFromColumn, normalizedPercentComplete]);
 
   const priorityToNumeric: Record<TaskPriority, number> = {
     low: 1,
@@ -413,7 +493,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">status</label>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {statusOptions.map((option) => {
-                  const active = formState.percent_complete === option.value;
+                  const active = derivedStatusKey === option.value;
                   const base =
                     "flex-1 min-w-[96px] rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition sm:flex-none";
                   const activeClass = "border-indigo-500 bg-indigo-600 text-white shadow";
@@ -423,10 +503,12 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                       key={option.value}
                       type="button"
                       onClick={() => {
-                        onFieldChange("percent_complete", option.value);
                         const mappedProgress = statusToProgress[option.value];
-                        if (mappedProgress !== undefined) {
-                          onFieldChange("progress", String(mappedProgress));
+                        onFieldChange("percent_complete", String(mappedProgress ?? 0));
+
+                        const nextColumnId = pickColumnIdForStatus(option.value);
+                        if (nextColumnId) {
+                          onFieldChange("columnId", nextColumnId);
                         }
                       }}
                       className={`${base} ${active ? activeClass : inactiveClass}`}
