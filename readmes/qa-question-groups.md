@@ -4,7 +4,7 @@ QA question groups are template-based Q&A systems fetched from backend Settings.
 
 ## Scope Levels
 
-| Level | `model_target` Value | Example | Shows For |
+| Level | `parent_model` Value | Example | Shows For |
 |-------|---------------------|---------|-----------|
 | **Global** | `null` or empty | Planning, Prepress | All models |
 | **App-level** | App name (e.g., `"transactions"`) | Transaction Review | All models in that app |
@@ -56,7 +56,7 @@ import { QAPanel } from '@/apps/common/components/panels';
 // Template mode with API persistence
 <QAPanel
   questionGroup="Planning"
-  parentType="order"
+  parentModel="order"
   parentId={22}
   readOnly={false}
 />
@@ -70,7 +70,7 @@ import { QAPanel } from '@/apps/common/components/panels';
 // Hybrid mode (template + freeform)
 <QAPanel
   questionGroup="Planning"
-  parentType="order"
+  parentModel="order"
   parentId={22}
   readOnly={false}
 />
@@ -105,7 +105,11 @@ const app = getAppForModel('order'); // 'transactions'
 ### Fetching & Saving Answers
 
 ```typescript
-import { getQAAnswers, saveQAAnswer, deleteQAAnswer } from '@/apps/common/components/panels';
+import { getQAAnswers, saveQAAnswer, deleteQAAnswer, applyQuestionGroup } from '@/apps/common/components/panels';
+
+// Apply a question group (create QA records for all questions)
+const result = await applyQuestionGroup('Planning', 'order', 22);
+// Returns: { success: true, created_count: 5, existing_count: 0, records: [...] }
 
 // Get answers for a record
 const answers = await getQAAnswers('order', 22);
@@ -117,7 +121,7 @@ const saved = await saveQAAnswer({
   setting_id: 119,
   question_id: 1001,
   answer_id: 10001,
-  parent_type: 'order',
+  parent_model: 'order',
   parent_id: 22,
   status: 'answered',
 });
@@ -133,7 +137,7 @@ interface QAQuestionsSetting {
   id: number;
   purpose: string;
   name: string;
-  model_target?: string;
+  parent_model?: string;
   role?: string;
   data: QAQuestionsData;
 }
@@ -173,7 +177,7 @@ interface QAAnswerRecord {
   setting_id?: number;
   question_id?: number;
   answer_id?: number;
-  parent_type: string;
+  parent_model: string;  // Model name of parent (e.g., 'order', 'customer')
   parent_id: number;
   status?: 'open' | 'answered' | 'closed';
 }
@@ -194,11 +198,11 @@ When viewing an order, the dropdown displays:
 
 ```
 -- Select Group --
-▼ Order Only           (groups with model_target = "order")
+▼ Order Only           (groups with parent_model = "order")
     Order Checklist
-▼ All Transactions     (groups with model_target = "transactions")
+▼ All Transactions     (groups with parent_model = "transactions")
     Transaction Review
-▼ All Models           (groups with model_target = null)
+▼ All Models           (groups with parent_model = null)
     Planning
     Prepress
     Press
@@ -214,7 +218,7 @@ When viewing an order, the dropdown displays:
 
 ### Answer Persistence
 
-- **With `parentType` + `parentId`**: Answers saved to `QuestionAnswer` model via API
+- **With `parentModel` + `parentId`**: Answers saved to `QuestionAnswer` model via API
 - **Without**: Answers managed in local state via `onChange` callback
 
 ## Files

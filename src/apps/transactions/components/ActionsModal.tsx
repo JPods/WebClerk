@@ -13,14 +13,10 @@
  * - Language picker
  * - is_active toggle
  */
-import React, {
-  ChangeEvent,
-  FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { FaSpinner } from "react-icons/fa";
+import { SearchableSelect } from "@/components/ui/dropdown/SearchableSelect";
 
 // ------------------------------------
 // Types
@@ -207,6 +203,10 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
     () => formStateProp ?? createInitialActionFormState(),
   );
 
+  // Internal saving state for when parent doesn't provide isSaving prop
+  const [internalSaving, setInternalSaving] = useState(false);
+  const isCurrentlySaving = isSaving || internalSaving;
+
   // Track if we've initialized from formStateProp for this modal open
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -278,6 +278,17 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
     [],
   );
 
+  const statusToProgress: Record<string, number> = useMemo(
+    () => ({
+      "0": 0,
+      "5": 5,
+      "30": 20,
+      review: 70,
+      "100": 100,
+    }),
+    [],
+  );
+
   const difficultyStops = useMemo(
     () => [10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100],
     [],
@@ -316,26 +327,16 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
     );
   }, [activeTranslationId, visibleTranslations]);
 
+  const progressValue = useMemo(() => {
+    const statusProgress = statusToProgress[formState.percent_complete];
+    if (statusProgress !== undefined) {
+      return statusProgress;
+    }
+    return Math.max(0, Math.min(100, Number(formState.progress) || 0));
+  }, [formState.percent_complete, formState.progress, statusToProgress]);
+
   // Early return AFTER all hooks
   if (!isOpen) return null;
-
-  const handleAssigneeSelect = (event: ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = event.target.value;
-    if (!selectedId) return;
-
-    const option = assigneeOptions.find((opt) => opt.id === selectedId);
-    const label = option?.label ?? selectedId;
-    const existing = (formState.assigned_to || []).some(
-      (assignee) => assignee.id === selectedId,
-    );
-    if (!existing) {
-      onFieldChange("assigned_to", [
-        ...(formState.assigned_to || []),
-        { id: selectedId, name: label },
-      ]);
-    }
-    setAssigneeSelection("");
-  };
 
   const priorityToNumeric: Record<TaskPriority, number> = {
     low: 1,
@@ -369,10 +370,6 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   const difficultyValue = snapToDifficultyStop(
     Number(formState.difficulty) || 10,
   );
-  const progressValue = Math.max(
-    0,
-    Math.min(100, Number(formState.progress) || 0),
-  );
 
   const formId = `actions-modal-form-${mode}`;
   const canRemoveTranslation = translations.length > 1;
@@ -400,7 +397,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
             onClick={onClose}
             className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
             aria-label="Close modal"
-            disabled={isSaving}
+            disabled={isCurrentlySaving}
           >
             <svg
               className="h-5 w-5"
@@ -423,12 +420,19 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         <form
           id={formId}
           className="flex-1 space-y-3 overflow-y-auto px-5 py-4 no-scrollbar"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             // Call onSubmit if provided (for custom handling)
             onSubmit?.(e);
-            // Call onSave with form data
-            onSave?.(formState);
+            // Call onSave with form data and track saving state
+            if (onSave) {
+              setInternalSaving(true);
+              try {
+                await onSave(formState);
+              } finally {
+                setInternalSaving(false);
+              }
+            }
           }}
         >
           {modalError && (
@@ -456,7 +460,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   }
                   placeholder="Localized task title"
                   required
-                  disabled={isSaving}
+                  disabled={isCurrentlySaving}
                   data-testid={`${
                     mode === "create" ? "create" : "edit"
                   }-translation-title`}
@@ -479,7 +483,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     )
                   }
                   placeholder="Localized context, acceptance criteria, or notes"
-                  disabled={isSaving}
+                  disabled={isCurrentlySaving}
                 />
               </div>
 
@@ -507,19 +511,35 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     </span>
                   ))}
                 </div>
-                <select
-                  className={controlClass}
-                  value={assigneeSelection}
-                  onChange={handleAssigneeSelect}
-                  disabled={isSaving}
-                >
-                  <option value="">Select assignee...</option>
-                  {assigneeOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={assigneeOptions.map((opt) => ({
+                    value: opt.id,
+                    label: opt.label,
+                  }))}
+                  value={assigneeSelection || null}
+                  onChange={(val) => {
+                    if (!val) return;
+                    const selectedId = String(val);
+                    const option = assigneeOptions.find(
+                      (opt) => opt.id === selectedId,
+                    );
+                    const label = option?.label ?? selectedId;
+                    const existing = (formState.assigned_to || []).some(
+                      (assignee) => assignee.id === selectedId,
+                    );
+                    if (!existing) {
+                      onFieldChange("assigned_to", [
+                        ...(formState.assigned_to || []),
+                        { id: selectedId, name: label },
+                      ]);
+                    }
+                    setAssigneeSelection("");
+                  }}
+                  placeholder="Select assignee..."
+                  searchPlaceholder="Search assignees..."
+                  disabled={isCurrentlySaving}
+                  clearable={false}
+                />
               </div>
             </div>
           )}
@@ -544,7 +564,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   const mapped = numericToPriority[next] ?? formState.priority;
                   onFieldChange("priority", mapped as TaskPriority);
                 }}
-                disabled={isSaving}
+                disabled={isCurrentlySaving}
                 className="w-full accent-indigo-600"
               />
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
@@ -574,7 +594,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   );
                   onFieldChange("difficulty", String(next));
                 }}
-                disabled={isSaving}
+                disabled={isCurrentlySaving}
                 className="w-full accent-indigo-600"
               />
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
@@ -603,7 +623,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   ),
                 )
               }
-              disabled={isSaving}
+              disabled={isCurrentlySaving}
               className="w-full accent-indigo-600"
             />
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
@@ -626,7 +646,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     step={60}
                     value={formState.dt_start}
                     onChange={(e) => onFieldChange("dt_start", e.target.value)}
-                    disabled={isSaving}
+                    disabled={isCurrentlySaving}
                     className={controlClass}
                   />
                 </div>
@@ -641,7 +661,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     onChange={(e) =>
                       onFieldChange("dt_deadline", e.target.value)
                     }
-                    disabled={isSaving}
+                    disabled={isCurrentlySaving}
                     className={controlClass}
                   />
                 </div>
@@ -658,7 +678,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     onChange={(e) =>
                       onFieldChange("dt_completed", e.target.value)
                     }
-                    disabled={isSaving}
+                    disabled={isCurrentlySaving}
                     className={controlClass}
                   />
                 </div>
@@ -672,7 +692,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     onChange={(event) =>
                       onFieldChange("projectId", event.target.value)
                     }
-                    disabled={isSaving}
+                    disabled={isCurrentlySaving}
                   >
                     <option value="">Select project...</option>
                     {projectOptions.map((option) => (
@@ -699,17 +719,34 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     "border-indigo-500 bg-indigo-600 text-white shadow";
                   const inactiveClass =
                     "border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-200";
+                  // Map status values to kanban column names
+                  const statusToKanbanColumn: Record<string, string> = {
+                    "0": "Backlog",
+                    "5": "On Hold",
+                    "30": "In Progress",
+                    review: "Review",
+                    "100": "Done",
+                  };
                   return (
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() =>
-                        onFieldChange("percent_complete", option.value)
-                      }
+                      onClick={() => {
+                        onFieldChange("percent_complete", option.value);
+                        // Sync progress with status
+                        const mappedProgress = statusToProgress[option.value];
+                        if (mappedProgress !== undefined) {
+                          onFieldChange("progress", String(mappedProgress));
+                        }
+                        // Sync kanban_column with status
+                        const kanbanColumn =
+                          statusToKanbanColumn[option.value] || option.label;
+                        onFieldChange("columnId", kanbanColumn);
+                      }}
                       className={`${base} ${
                         active ? activeClass : inactiveClass
                       }`}
-                      disabled={isSaving}
+                      disabled={isCurrentlySaving}
                     >
                       {option.label}
                     </button>
@@ -748,7 +785,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     type="button"
                     onClick={onLanguagePickerToggle}
                     className="rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
-                    disabled={isSaving}
+                    disabled={isCurrentlySaving}
                   >
                     {languagePickerState.isOpen
                       ? "Hide language"
@@ -758,7 +795,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => onRemoveTranslation(activeTranslation.id)}
-                      disabled={!canRemoveTranslation || isSaving}
+                      disabled={!canRemoveTranslation || isCurrentlySaving}
                       className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-rose-100 disabled:text-rose-300 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-900/40"
                     >
                       Remove
@@ -782,7 +819,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                           onChange={(event) =>
                             onLanguageSelectionChange(event.target.value)
                           }
-                          disabled={isSaving}
+                          disabled={isCurrentlySaving}
                         >
                           <option value="">Select a language…</option>
                           {languagePickerOptions.map((option) => (
@@ -806,7 +843,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                               onLanguageCustomChange(event.target.value)
                             }
                             placeholder="e.g. fr"
-                            disabled={isSaving}
+                            disabled={isCurrentlySaving}
                           />
                         </div>
                       )}
@@ -816,7 +853,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                           type="button"
                           onClick={onLanguagePickerSubmit}
                           className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
-                          disabled={isSaving}
+                          disabled={isCurrentlySaving}
                         >
                           Add
                         </button>
@@ -824,7 +861,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                           type="button"
                           onClick={onLanguagePickerCancel}
                           className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                          disabled={isSaving}
+                          disabled={isCurrentlySaving}
                         >
                           Cancel
                         </button>
@@ -859,14 +896,14 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     event.target.checked ? "true" : "false",
                   )
                 }
-                disabled={isSaving}
+                disabled={isCurrentlySaving}
               />
             </label>
           </div>
           <button
             type="button"
             onClick={onClose}
-            disabled={isSaving}
+            disabled={isCurrentlySaving}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Cancel
@@ -874,9 +911,12 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           <button
             type="submit"
             form={formId}
-            disabled={isSaving}
+            disabled={isCurrentlySaving}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-400"
           >
+            {isCurrentlySaving && (
+              <FaSpinner className="animate-spin w-4 h-4" />
+            )}
             {submitLabel}
           </button>
         </div>

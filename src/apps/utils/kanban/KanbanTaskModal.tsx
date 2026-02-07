@@ -1,7 +1,25 @@
+<<<<<<< HEAD
 import { ChangeEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
+=======
+import {
+  ChangeEvent,
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
+import type { KanbanTask, TaskPriority } from "../../type/kanban";
+import type {
+  TaskFormEditableField,
+  TaskFormState,
+  TranslationFormEntry,
+} from "./taskFormTypes";
+>>>>>>> 9a668a267b60c1fbf38f3421f891b0e77fab0d18
 
 interface LanguageOption {
   value: string;
@@ -39,7 +57,11 @@ interface KanbanTaskModalProps {
   progressOptions: string[];
   assigneeOptions?: AssigneeOption[];
   translations: TranslationFormEntry[];
-  onTranslationFieldChange: (entryId: string, field: keyof TranslationFormEntry, value: string) => void;
+  onTranslationFieldChange: (
+    entryId: string,
+    field: keyof TranslationFormEntry,
+    value: string,
+  ) => void;
   onRemoveTranslation: (entryId: string) => void;
   languagePickerOptions: LanguageOption[];
   languagePickerState: LanguagePickerState;
@@ -96,9 +118,14 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
     const option = assigneeOptions.find((opt) => opt.id === selectedId);
     const label = option?.label ?? selectedId;
-    const existing = (formState.assigned_to || []).some((assignee: any) => assignee.id === selectedId);
+    const existing = (formState.assigned_to || []).some(
+      (assignee: any) => assignee.id === selectedId,
+    );
     if (!existing) {
-      onFieldChange("assigned_to", [...(formState.assigned_to || []), { id: selectedId, name: label }]);
+      onFieldChange("assigned_to", [
+        ...(formState.assigned_to || []),
+        { id: selectedId, name: label },
+      ]);
     }
     setAssigneeSelection("");
   };
@@ -112,7 +139,7 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
       { value: "100", label: "Completed" },
       // { value: "101", label: "Canceled" },
     ],
-    []
+    [],
   );
 
   const statusToProgress: Record<string, number> = {
@@ -217,7 +244,10 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
   };
 
   const currentPriorityNumeric = priorityToNumeric[formState.priority] ?? 2;
-  const difficultyStops = useMemo(() => [10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100], []);
+  const difficultyStops = useMemo(
+    () => [10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100],
+    [],
+  );
   const snapToDifficultyStop = (value: number) => {
     const bounded = Math.max(10, Math.min(100, value));
     let closest = difficultyStops[0];
@@ -232,23 +262,34 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
     return closest;
   };
 
-  const difficultyValue = snapToDifficultyStop(Number(formState.difficulty) || 10);
-  const progressValue = Math.max(0, Math.min(100, Number(formState.percent_complete) || 0));
+  const difficultyValue = snapToDifficultyStop(
+    Number(formState.difficulty) || 10,
+  );
+  const progressValue = Math.max(
+    0,
+    Math.min(100, Number(formState.percent_complete) || 0),
+  );
 
   const visibleTranslations = translations.filter((entry, index) => {
     if (index === 0) return true;
-    const hasContent = Boolean(entry.title?.trim() || entry.description?.trim());
+    const hasContent = Boolean(
+      entry.title?.trim() || entry.description?.trim(),
+    );
     return hasContent;
   });
 
-  const [activeTranslationId, setActiveTranslationId] = useState<string>(() => visibleTranslations[0]?.id ?? "");
+  const [activeTranslationId, setActiveTranslationId] = useState<string>(
+    () => visibleTranslations[0]?.id ?? "",
+  );
 
   useEffect(() => {
     if (!visibleTranslations.length) {
       setActiveTranslationId("");
       return;
     }
-    const exists = visibleTranslations.some((entry) => entry.id === activeTranslationId);
+    const exists = visibleTranslations.some(
+      (entry) => entry.id === activeTranslationId,
+    );
     if (!exists) {
       setActiveTranslationId(visibleTranslations[0].id);
     }
@@ -256,7 +297,10 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
   const activeTranslation = useMemo(() => {
     if (!activeTranslationId) return visibleTranslations[0];
-    return visibleTranslations.find((entry) => entry.id === activeTranslationId) ?? visibleTranslations[0];
+    return (
+      visibleTranslations.find((entry) => entry.id === activeTranslationId) ??
+      visibleTranslations[0]
+    );
   }, [activeTranslationId, visibleTranslations]);
 
   const formId = `kanban-task-form-${mode}`;
@@ -272,8 +316,12 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
       <div className="pointer-events-auto ml-auto flex h-full w-full max-h-screen flex-col overflow-hidden border-l border-gray-200 bg-white shadow-2xl no-scrollbar dark:border-gray-800 dark:bg-gray-900 sm:w-[480px] lg:w-[33vw] lg:min-w-[360px]">
         <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {title}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {description}
+            </p>
           </div>
           <button
             type="button"
@@ -282,13 +330,28 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             aria-label="Close modal"
             disabled={isSaving}
           >
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M6 6l8 8M14 6l-8 8"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
         </div>
 
-        <form id={formId} className="flex-1 space-y-3 overflow-y-auto px-5 py-4 no-scrollbar" onSubmit={onSubmit}>
+        <form
+          id={formId}
+          className="flex-1 space-y-3 overflow-y-auto px-5 py-4 no-scrollbar"
+          onSubmit={onSubmit}
+        >
           {modalError && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
               {modalError}
@@ -296,27 +359,46 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           )}
 
           {activeTranslation && (
-            <div className="space-y-2">{/* Translation section */}
+            <div className="space-y-2">
+              {/* Translation section */}
               <div>
-                <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">action</label>
+                <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                  action
+                </label>
                 <input
                   className={controlClass}
                   value={activeTranslation.title}
-                  onChange={(event) => onTranslationFieldChange(activeTranslation.id, "title", event.target.value)}
+                  onChange={(event) =>
+                    onTranslationFieldChange(
+                      activeTranslation.id,
+                      "title",
+                      event.target.value,
+                    )
+                  }
                   placeholder="Localized task title"
                   required
                   disabled={isSaving}
-                  data-testid={`${mode === "create" ? "create" : "edit"}-translation-title`}
+                  data-testid={`${
+                    mode === "create" ? "create" : "edit"
+                  }-translation-title`}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">description</label>
+                <label className="text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
+                  description
+                </label>
                 <textarea
                   className={textareaClass}
                   rows={2}
                   value={activeTranslation.description}
-                  onChange={(event) => onTranslationFieldChange(activeTranslation.id, "description", event.target.value)}
+                  onChange={(event) =>
+                    onTranslationFieldChange(
+                      activeTranslation.id,
+                      "description",
+                      event.target.value,
+                    )
+                  }
                   placeholder="Localized context, acceptance criteria, or notes"
                   disabled={isSaving}
                 />
@@ -334,7 +416,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                         type="button"
                         className="ml-2 text-indigo-500 hover:text-rose-500"
                         onClick={() => {
-                          const next = (formState.assigned_to || []).filter((x: any) => x.id !== a.id);
+                          const next = (formState.assigned_to || []).filter(
+                            (x: any) => x.id !== a.id,
+                          );
                           onFieldChange("assigned_to", next);
                         }}
                       >
@@ -364,7 +448,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
                 <span>priority</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{formState.priority}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {formState.priority}
+                </span>
               </div>
               <input
                 type="range"
@@ -391,7 +477,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
                 <span>difficulty</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{difficultyValue}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {difficultyValue}
+                </span>
               </div>
               <input
                 type="range"
@@ -400,7 +488,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 step={5}
                 value={difficultyValue}
                 onChange={(e) => {
-                  const next = snapToDifficultyStop(Number(e.target.value) || difficultyValue);
+                  const next = snapToDifficultyStop(
+                    Number(e.target.value) || difficultyValue,
+                  );
                   onFieldChange("difficulty", String(next));
                 }}
                 disabled={isSaving}
@@ -414,14 +504,23 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
           </div>
 
           <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">percent_complete</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              percent_complete
+            </label>
             <input
               type="range"
               min={0}
               max={100}
               step={5}
               value={progressValue}
-              onChange={(e) => onFieldChange("percent_complete", String(Math.max(0, Math.min(100, Number(e.target.value) || 0))))}
+              onChange={(e) =>
+                onFieldChange(
+                  "percent_complete",
+                  String(
+                    Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                  ),
+                )
+              }
               disabled={isSaving}
               className="w-full accent-indigo-600"
             />
@@ -436,7 +535,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
               <div className="space-y-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_start</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    dt_start
+                  </label>
                   <input
                     type="datetime-local"
                     step={60}
@@ -447,12 +548,16 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_deadline</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    dt_deadline
+                  </label>
                   <input
                     type="datetime-local"
                     step={60}
                     value={formState.dt_deadline}
-                    onChange={(e) => onFieldChange("dt_deadline", e.target.value)}
+                    onChange={(e) =>
+                      onFieldChange("dt_deadline", e.target.value)
+                    }
                     disabled={isSaving}
                     className={controlClass}
                   />
@@ -460,22 +565,30 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
               </div>
               <div className="space-y-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">dt_completed</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    dt_completed
+                  </label>
                   <input
                     type="datetime-local"
                     step={60}
                     value={formState.dt_completed}
-                    onChange={(e) => onFieldChange("dt_completed", e.target.value)}
+                    onChange={(e) =>
+                      onFieldChange("dt_completed", e.target.value)
+                    }
                     disabled={isSaving}
                     className={controlClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Project</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Project
+                  </label>
                   <select
                     className={controlClass}
                     value={formState.projectId ?? ""}
-                    onChange={(event) => onFieldChange("projectId", event.target.value)}
+                    onChange={(event) =>
+                      onFieldChange("projectId", event.target.value)
+                    }
                     disabled={isSaving}
                   >
                     <option value="">Select project...</option>
@@ -490,14 +603,18 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                status
+              </label>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {statusOptions.map((option) => {
                   const active = derivedStatusKey === option.value;
                   const base =
                     "flex-1 min-w-[96px] rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition sm:flex-none";
-                  const activeClass = "border-indigo-500 bg-indigo-600 text-white shadow";
-                  const inactiveClass = "border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-200";
+                  const activeClass =
+                    "border-indigo-500 bg-indigo-600 text-white shadow";
+                  const inactiveClass =
+                    "border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-200";
                   return (
                     <button
                       key={option.value}
@@ -511,7 +628,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                           onFieldChange("columnId", nextColumnId);
                         }
                       }}
-                      className={`${base} ${active ? activeClass : inactiveClass}`}
+                      className={`${base} ${
+                        active ? activeClass : inactiveClass
+                      }`}
                       disabled={isSaving}
                     >
                       {option.label}
@@ -519,17 +638,23 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Selecting a status updates the kanban column automatically.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Selecting a status updates the kanban column automatically.
+              </p>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Language
+              </label>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-[180px] space-y-1">
                   <select
                     className={controlClass}
                     value={activeTranslation?.id || ""}
-                    onChange={(event) => setActiveTranslationId(event.target.value)}
+                    onChange={(event) =>
+                      setActiveTranslationId(event.target.value)
+                    }
                     disabled={isSaving || visibleTranslations.length <= 1}
                   >
                     {visibleTranslations.map((entry, idx) => (
@@ -546,7 +671,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                     className="rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 transition hover:border-indigo-400 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
                     disabled={isSaving}
                   >
-                    {languagePickerState.isOpen ? "Hide language" : "Add language"}
+                    {languagePickerState.isOpen
+                      ? "Hide language"
+                      : "Add language"}
                   </button>
                   {activeTranslation && (
                     <button
@@ -566,11 +693,15 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                   <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                       <div className="flex-1 space-y-1">
-                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">selection</label>
+                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          selection
+                        </label>
                         <select
                           className={controlBaseClass}
                           value={languagePickerState.selection}
-                          onChange={(event) => onLanguageSelectionChange(event.target.value)}
+                          onChange={(event) =>
+                            onLanguageSelectionChange(event.target.value)
+                          }
                           disabled={isSaving}
                         >
                           <option value="">Select a language…</option>
@@ -585,11 +716,15 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
 
                       {languagePickerState.selection === "__custom" && (
                         <div className="flex-1 space-y-1">
-                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">customValue</label>
+                          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            customValue
+                          </label>
                           <input
                             className={controlBaseClass}
                             value={languagePickerState.customValue}
-                            onChange={(event) => onLanguageCustomChange(event.target.value)}
+                            onChange={(event) =>
+                              onLanguageCustomChange(event.target.value)
+                            }
                             placeholder="e.g. fr"
                             disabled={isSaving}
                           />
@@ -616,7 +751,9 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                       </div>
                     </div>
                     {languagePickerState.error && (
-                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">{languagePickerState.error}</p>
+                      <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                        {languagePickerState.error}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -628,12 +765,19 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-white/95 px-5 py-3 backdrop-blur dark:border-gray-800">
           <div className="mr-auto flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2 text-sm dark:border-gray-800">
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
-              <span>{formState.is_active === "false" ? "Inactive" : "Active"}</span>
+              <span>
+                {formState.is_active === "false" ? "Inactive" : "Active"}
+              </span>
               <input
                 type="checkbox"
                 className="h-4 w-8 cursor-pointer accent-indigo-600"
                 checked={formState.is_active !== "false"}
-                onChange={(event) => onFieldChange("is_active", event.target.checked ? "true" : "false")}
+                onChange={(event) =>
+                  onFieldChange(
+                    "is_active",
+                    event.target.checked ? "true" : "false",
+                  )
+                }
                 disabled={isSaving}
               />
             </label>

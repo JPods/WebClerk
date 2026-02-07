@@ -101,7 +101,7 @@ export default function SettingList() {
     },
     {
       name: "Model Target",
-      selector: (row) => row.model_target || "--",
+      selector: (row) => row.parent_model || "--",
       sortable: true,
       width: "15%",
     },

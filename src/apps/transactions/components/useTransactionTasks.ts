@@ -230,6 +230,11 @@ const formStateToApi = (
     payload.project_name = task.project_name;
   }
 
+  // Handle kanban column (matching KanbanBoardPage pattern)
+  if (task.kanban_column) {
+    payload.kanban_column = task.kanban_column;
+  }
+
   // Handle parent transaction link
   if (task.parent_type) {
     payload.parent_type = task.parent_type;

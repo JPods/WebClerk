@@ -76,6 +76,7 @@ export {
   deleteQAAnswer,
   getEffectiveOptions,
   uploadQAImage,
+  applyQuestionGroup,
 } from './qaUtils';
 export type {
   QAQuestionTemplate,
@@ -87,6 +88,7 @@ export type {
   QAEffectiveOptions,
   QAAnswerRecord,
   ScopedQAGroups,
+  ApplyQuestionGroupResponse,
 } from './qaUtils';
 
 // Document upload utilities and types

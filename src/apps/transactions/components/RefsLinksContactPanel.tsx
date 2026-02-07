@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from "react";
 import { useWindowManager } from "@/context/WindowManagerContext";
+import { SearchableSelect } from "@/components/ui/dropdown/SearchableSelect";
 import {
   FaUser,
   FaEnvelope,
@@ -200,13 +201,9 @@ const STANDARD_PURPOSES = [
   "sales",
 ];
 
-// Helper to format purpose label
+// Helper to format purpose label (during dev: return raw value for alignment)
 const formatPurpose = (purpose: string): string => {
-  return purpose
-    .replace(/_/g, " ")
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  return purpose;  // Dev mode: exact field names
 };
 
 // Helper to group contacts by purpose
@@ -433,36 +430,28 @@ const ContactEditModal: React.FC<{
               ) : (
                 <>
                   <div>
-                    <div className="flex-1 items-center gap-1 mb-1">
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Contact
-                      </label>
-                      <select
-                        value={selectedContactId || ""}
-                        onChange={(e) => {
-                          const newId = parseInt(e.target.value, 10) || 0;
-                          console.log(
-                            "[ContactEditModal] Contact changed:",
-                            newId,
-                          );
-                          setSelectedContactId(newId);
-                        }}
-                        disabled={loadingContacts}
-                        className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                      >
-                        <option value="">-- Select Contact --</option>
-                        {contactsList.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            #{c.id} - {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      {loadingContacts && (
-                        <span className="text-xs text-slate-500 ml-2">
-                          Loading contacts...
-                        </span>
-                      )}
-                    </div>
+                    <SearchableSelect
+                      label="Contact"
+                      options={contactsList.map((c) => ({
+                        value: c.id,
+                        label: `#${c.id} - ${c.name}`,
+                        description: c.name,
+                      }))}
+                      value={selectedContactId || null}
+                      onChange={(val) => {
+                        const newId =
+                          typeof val === "number"
+                            ? val
+                            : parseInt(String(val), 10) || 0;
+
+                        setSelectedContactId(newId);
+                      }}
+                      placeholder="-- Select Contact --"
+                      searchPlaceholder="Search contacts..."
+                      loading={loadingContacts}
+                      disabled={loadingContacts}
+                      clearable={false}
+                    />
                   </div>
                   <div>
                     <div className="flex-1 items-center gap-1 mb-1">
@@ -1050,30 +1039,28 @@ const AddPurposeModal: React.FC<{
 
           {/* Contact Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Contact <span className="text-red-500">*</span>
-            </label>
-            {loadingContacts ? (
-              <div className="flex items-center gap-2 py-2">
-                <FaSpinner className="animate-spin w-4 h-4 text-blue-500" />
-                <span className="text-sm text-slate-500">
-                  Loading contacts...
-                </span>
-              </div>
-            ) : (
-              <select
-                value={selectedContactId}
-                onChange={(e) => setSelectedContactId(Number(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value={0}>Select a contact...</option>
-                {contactsList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} (#{c.id})
-                  </option>
-                ))}
-              </select>
-            )}
+            <SearchableSelect
+              label="Contact"
+              options={contactsList.map((c) => ({
+                value: c.id,
+                label: `${c.name} (#${c.id})`,
+                description: c.name,
+              }))}
+              value={selectedContactId || null}
+              onChange={(val) => {
+                const newId =
+                  typeof val === "number"
+                    ? val
+                    : parseInt(String(val), 10) || 0;
+                setSelectedContactId(newId);
+              }}
+              placeholder="Select a contact..."
+              searchPlaceholder="Search contacts..."
+              loading={loadingContacts}
+              disabled={loadingContacts}
+              clearable={false}
+              size="md"
+            />
           </div>
 
           {/* Validation Error */}

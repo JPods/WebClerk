@@ -5,17 +5,8 @@ import { useAppSelector } from '../../store/hooks';
 import { NetworkInfo } from '../../routes/network';
 import { getModelNames, getModelDetail, getRecords, getRecord, saveRecord, getWorkbenchFieldsSetting, saveWorkbenchFieldsSetting, getAllWorkbenchFieldsSettings } from '../../api/wcapi';
 
-const toTitleCase = (value: string): string => {
-  return value
-    .replace(/[-_]+/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
+// Dev mode: return raw field names for alignment
+const toTitleCase = (value: string): string => value;
 
 const colBase = 'relative flex h-full min-h-0 flex-col rounded-lg border border-gray-200 bg-white shadow-sm';
 

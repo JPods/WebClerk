@@ -4,7 +4,7 @@
  * Keeps item search and lines management capabilities
  */
 import React, { useCallback, useState, useEffect } from "react";
-import { FaTruck, FaTrash, FaCheck, FaTimes, FaTasks } from "react-icons/fa";
+import { FaTruck, FaCheck, FaTasks } from "react-icons/fa";
 
 // Import base component and shared types
 import TransactionDetailBase, {
@@ -79,7 +79,7 @@ const OrderHeader: React.FC<{
   isEditing: boolean;
   onChange?: (field: keyof Order, value: unknown) => void;
   onStatusChange?: (status: string) => void;
-}> = ({ data, isEditing, onChange, onStatusChange }) => {
+}> = ({ data, isEditing, onChange }) => {
   // Extract customer info from refs.links
   const customerInfo = data.refs?.links?.customer?.[0];
   const billingContact = data.refs?.links?.contact?.find(
@@ -97,9 +97,6 @@ const OrderHeader: React.FC<{
     { value: "E", label: "E - Special" },
   ];
 
-  // const handlePurposeChange = (value: string) => {
-  //   setValue("purpose", value);
-  // };
   return (
     <SummaryCard
       data={data}
@@ -146,37 +143,6 @@ const ActionsTable: React.FC<{
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingAction, setEditingAction] = useState<ActionItem | null>(null);
-  const [pendingDeleteIdx, setPendingDeleteIdx] = useState<number | null>(null);
-
-  const handleDeleteClick = (idx: number) => {
-    if (pendingDeleteIdx === idx) {
-      onDeleteAction?.(idx);
-      setPendingDeleteIdx(null);
-    } else {
-      setPendingDeleteIdx(idx);
-    }
-  };
-
-  const handleToggleComplete = (idx: number, action: ActionItem) => {
-    if (onUpdateAction) {
-      const newStatus = action.status === "done" ? "pending" : "done";
-      onUpdateAction(idx, {
-        ...action,
-        status: newStatus,
-        completed_at:
-          newStatus === "done" ? new Date().toISOString() : undefined,
-      });
-    }
-  };
-
-  const formatDate = (dateVal?: number | string) => {
-    if (!dateVal) return "--";
-    const date =
-      typeof dateVal === "number"
-        ? new Date(dateVal * 1000)
-        : new Date(dateVal);
-    return date.toLocaleDateString();
-  };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -344,7 +310,21 @@ const ActionsTable: React.FC<{
               description: formData.translations[0]?.description || "",
               kind: "task",
               priority: formData.priority,
-              status: formData.percent_complete === "100" ? "done" : "pending",
+              // Map percent_complete to status: "0"=pending, "5"=blocked, "30"=in_progress, "review"=review, "100"=done
+              status: (() => {
+                switch (formData.percent_complete) {
+                  case "100":
+                    return "done";
+                  case "30":
+                    return "in_progress";
+                  case "5":
+                    return "blocked";
+                  case "review":
+                    return "review";
+                  default:
+                    return "pending";
+                }
+              })(),
               dt_start: formData.dt_start || undefined,
               dt_deadline: formData.dt_deadline || undefined,
               dt_completed:
@@ -361,6 +341,7 @@ const ActionsTable: React.FC<{
               })),
               project_id: resolvedProjectId,
               project_name: resolvedProjectName || undefined,
+              kanban_column: formData.columnId || undefined,
             };
             const createdId = await onCreateTask(taskFormState);
             console.log(
@@ -528,7 +509,6 @@ const ActionsTable: React.FC<{
         }))}
       />
 
-      {console.log("actions", actions)}
       {/* Actions Table */}
       {!actions.length ? (
         <div className="text-center py-12 text-slate-400">
@@ -554,10 +534,7 @@ const ActionsTable: React.FC<{
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-28">
                   Project
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-24">
-                  Column
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-20">
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-15">
                   Status
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-16">
@@ -570,7 +547,7 @@ const ActionsTable: React.FC<{
                   Difficulty
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide w-28">
-                  Assigned To
+                  Assigned
                 </th>
               </tr>
             </thead>
@@ -609,7 +586,7 @@ const ActionsTable: React.FC<{
                             : action.action ?? action.what ?? "--"}
                         </span>
                         {(action.description || action.notes) && (
-                          <span className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-[200px]">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-200">
                             {typeof action.description === "object"
                               ? action.description?.en ?? action.notes ?? ""
                               : action.description ?? action.notes ?? ""}
@@ -621,14 +598,11 @@ const ActionsTable: React.FC<{
                     <td className="px-2 py-1 text-xs text-slate-600 dark:text-slate-300">
                       {action.project_name ?? "--"}
                     </td>
-                    {/* Kanban Column */}
-                    <td className="px-2 py-1 text-xs text-slate-600 dark:text-slate-300 capitalize">
-                      {action.kanban_column}
-                    </td>
+
                     {/* Status */}
-                    <td className="px-4 py-1">
+                    <td className="px-2 py-1">
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                        className={`inline-flex px-2 py-1 text-xs whitespace-nowrap rounded-full capitalize ${getStatusColor(
                           action.status,
                         )}`}
                       >
@@ -642,7 +616,11 @@ const ActionsTable: React.FC<{
                     {/* Priority */}
                     <td
                       className={`px-2 py-1 text-xs font-medium capitalize ${getPriorityColor(
-                        action.priority,
+                        typeof action.priority === "number"
+                          ? ["", "low", "normal", "high", "urgent"][
+                              action.priority
+                            ]
+                          : action.priority,
                       )}`}
                     >
                       {typeof action.priority === "number"
@@ -829,15 +807,18 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
   );
 
   // Update action IDs when dataProp changes
+  // Merge server IDs with local state to avoid losing newly created IDs
   useEffect(() => {
     const orderData = dataProp as Order;
     console.log("[OrderDetail] dataProp changed, actions:", orderData?.actions);
-    if (orderData?.actions?.ids) {
-      console.log(
-        "[OrderDetail] Setting currentActionIds to:",
-        orderData.actions.ids,
-      );
-      setCurrentActionIds(orderData.actions.ids);
+    const serverActionIds = orderData?.actions?.ids ?? [];
+    if (serverActionIds.length > 0) {
+      // Merge server IDs with any local IDs that aren't on the server yet
+      setCurrentActionIds((prevIds) => {
+        const merged = [...new Set([...serverActionIds, ...prevIds])];
+        console.log("[OrderDetail] Merged actionIds:", merged);
+        return merged;
+      });
     }
   }, [dataProp]);
 
@@ -867,7 +848,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     deleteTask,
     contacts,
     projects,
-    fetchTasksByIds,
   } = useTransactionTasks({
     parentType: "order",
     parentId: currentOrderId,
@@ -883,19 +863,13 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
     setIsTaskModalOpen(true);
   }, []);
 
-  // Open edit task modal
-  const handleOpenEditTask = useCallback((task: TransactionTaskFormState) => {
-    setEditingTask(task);
-    setTaskModalMode("edit");
-    setIsTaskModalOpen(true);
-  }, []);
-
   // Handle task submit
   const handleTaskSubmit = useCallback(
     async (task: TransactionTaskFormState) => {
       let success = false;
       if (taskModalMode === "create") {
-        success = await createTask(task);
+        const result = await createTask(task);
+        success = result !== null;
       } else {
         success = await updateTask(task);
       }
@@ -986,7 +960,9 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         project_name: task.project_name,
         kanban_column: task.kanban_column,
         assigned_to: task.assigned_to?.map((a) => ({ id: a.id, name: a.name })),
-        who: task.assigned_to?.[0]?.id,
+        who: task.assigned_to?.[0]?.id
+          ? Number(task.assigned_to[0].id)
+          : undefined,
         who_name: task.assigned_to?.[0]?.name,
         when: task.dt_deadline
           ? new Date(task.dt_deadline).getTime()
@@ -1034,6 +1010,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
       // Handler to update the action IDs in the order
       const handleActionIdsChange = (ids: number[]) => {
         console.log("[OrderDetail] handleActionIdsChange called with:", ids);
+        // Update local state for useTransactionTasks hook
+        setCurrentActionIds(ids);
         if (onFieldChange) {
           console.log(
             "[OrderDetail] Updating order.actions.ids via onFieldChange",
@@ -1053,8 +1031,11 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
             await saveRecord("order", {
               id: orderData.id,
               actions: {
-                ...orderData.actions,
-                ids: ids,
+                mode: "update",
+                value: {
+                  ...orderData.actions,
+                  ids: ids,
+                },
               },
             });
             console.log("[OrderDetail] Order.actions.ids saved successfully");
@@ -1067,15 +1048,19 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
         }
       };
 
-      // Get current action IDs from order data
-      const currentActionIds: number[] = orderData.actions?.ids ?? [];
+      // Get current action IDs - use state which includes newly created task IDs
+      // that may not be in orderData yet
+      const actionIdsForTable: number[] =
+        currentActionIds.length > 0
+          ? currentActionIds
+          : orderData.actions?.ids ?? [];
 
       switch (tabId) {
         case "actions":
           return (
             <ActionsTable
               actions={currentActions}
-              actionIds={currentActionIds}
+              actionIds={actionIdsForTable}
               isEditing={isEditing}
               isLocked={orderData.is_locked}
               onAddAction={handleAddAction}
@@ -1095,7 +1080,15 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           return null;
       }
     },
-    [renderHeaderFn, contacts, projects, createTask, updateTask, tasks],
+    [
+      renderHeaderFn,
+      contacts,
+      projects,
+      createTask,
+      updateTask,
+      tasks,
+      currentActionIds,
+    ],
   );
 
   // Custom header renderer

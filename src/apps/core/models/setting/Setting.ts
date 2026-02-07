@@ -12,7 +12,7 @@ export interface Setting {
   name?: string;
   purpose?: string;
   role?: string;
-  model_target?: string;
+  parent_model?: string;
   data?: Record<string, any>;
   metadata?: Record<string, any>;
   refs?: Record<string, any>;

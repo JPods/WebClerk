@@ -166,14 +166,14 @@ export default function SettingDetail({
               />
             </div>
             <div>
-              <Label htmlFor="model_target">model_target</Label>
+              <Label htmlFor="parent_model">parent_model</Label>
               <Input
                 type="text"
-                id="model_target"
+                id="parent_model"
                 placeholder="Model Target"
-                {...register("model_target")}
-                error={errors.model_target && errors.model_target.message ? true : false}
-                hint={errors.model_target && errors.model_target.message}
+                {...register("parent_model")}
+                error={errors.parent_model && errors.parent_model.message ? true : false}
+                hint={errors.parent_model && errors.parent_model.message}
                 disabled={mode === "view"}
               />
             </div>

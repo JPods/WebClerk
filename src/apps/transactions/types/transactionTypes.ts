@@ -248,6 +248,7 @@ export interface TransactionActions {
     what?: string;
   };
   items?: ActionItem[];
+  ids?: number[];
 }
 
 // --- TransactionBaseModel JSONB Fields ---
