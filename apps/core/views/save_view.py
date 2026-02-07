@@ -1429,6 +1429,11 @@ class SaveWcapiView(APIView):
 
         # Required: model_name (singular)
         raw_model_name = data.get('model_name')
+        # If model_name not found in data, check query params
+        if not raw_model_name:
+            raw_model_name = request.query_params.get('model_name')
+            if raw_model_name:
+                data['model_name'] = raw_model_name
         if not raw_model_name:
             console_logger.error(f"[SAVE_VIEW] Missing model_name")
             return api_response(success=False, status_code=400, message='Missing required field: model_name', error={'code':'missing_model_name','details':'Provide model_name (singular)'})
