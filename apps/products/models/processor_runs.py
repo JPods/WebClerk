@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from django.db import models
 
+from common.models import BaseModel
 from apps.products.choices import PROCESSOR_RUN_TYPE_CHOICES
 
 
-class InventoryAdjustmentProcessorRun(models.Model):
+class InventoryAdjustmentProcessorRun(BaseModel):
     """Audit log of each pending adjustment processor invocation."""
 
     @property
@@ -34,8 +35,6 @@ class InventoryAdjustmentProcessorRun(models.Model):
     reserved_conflict_skipped = models.IntegerField(default=0)
     dry_run = models.BooleanField(default=False)
     summary = models.JSONField(default=dict, blank=True)
-
-    # dt_created is inherited from BaseModel/CoreModel
 
     class Meta:
         indexes = [

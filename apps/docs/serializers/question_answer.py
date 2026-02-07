@@ -26,10 +26,10 @@ class QuestionAnswerSerializer(serializers.ModelSerializer):
             'status',
             'sequence',
             'metadata',
-            'created_at',
-            'updated_at',
+            'dt_created',
+            'dt_modified',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'setting_name']
+        read_only_fields = ['id', 'dt_created', 'dt_modified', 'setting_name']
 
 
 class QuestionAnswerCreateSerializer(serializers.ModelSerializer):
