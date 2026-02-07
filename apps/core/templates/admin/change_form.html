@@ -55,9 +55,26 @@
         const formData = new FormData(form);
         const payload = {};
         
+        // First, find all checkboxes to handle unchecked ones (they're not in FormData)
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+        const checkboxNames = new Set();
+        checkboxes.forEach(cb => {
+            if (cb.name && !cb.name.startsWith('_')) {
+                checkboxNames.add(cb.name);
+                // Default to false, will be set to true below if checked
+                payload[cb.name] = false;
+            }
+        });
+        
         for (const [key, value] of formData.entries()) {
             // Skip csrf and internal Django fields
             if (key.startsWith('csrf') || key.startsWith('_') || key.startsWith('initial-')) continue;
+            
+            // Handle checkbox values - "on" means true
+            if (checkboxNames.has(key)) {
+                payload[key] = (value === 'on' || value === true || value === 'true');
+                continue;
+            }
             
             // Handle JSON fields - try to parse them
             if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {

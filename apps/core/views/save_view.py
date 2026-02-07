@@ -1380,13 +1380,23 @@ class SaveWcapiView(APIView):
         
         console_logger.info(f"[SAVE_VIEW] Authentication passed for user: {getattr(request.user, 'id', 'unknown')}")
 
-        # Parse JSON body
+        # Parse JSON body - use request.data if available (DRF already parsed), fallback to body
         try:
             console_logger.debug(f"[SAVE_VIEW] Parsing JSON body...")
-            data = json.loads(request.body)
+            if hasattr(request, 'data') and request.data:
+                data = dict(request.data)
+            else:
+                data = json.loads(request.body)
         except json.JSONDecodeError as e:
             console_logger.error(f"[SAVE_VIEW] JSON parse error: {e}")
             return api_response(success=False, status_code=400, message='Invalid JSON', error={'code':'parse_error','details': str(e)})
+
+        # Convert HTML checkbox values: "on" -> True, "off" -> False
+        for key, value in list(data.items()):
+            if value == 'on':
+                data[key] = True
+            elif value == 'off':
+                data[key] = False
 
         # Handle nested 'data' key for compatibility with some clients
         if 'data' in data and isinstance(data['data'], dict):
