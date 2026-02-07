@@ -17,29 +17,42 @@ from .models.receipt import Receipt
 class TransactionTotalsDisplayMixin:
     """Display computed totals from JSON totals field and format dt_created as date."""
 
+    def _get_totals(self, obj):
+        """Get totals as dict, handling string JSON or dict."""
+        import json
+        totals = getattr(obj, 'totals', None)
+        if totals is None:
+            return {}
+        if isinstance(totals, str):
+            try:
+                return json.loads(totals)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        return totals if isinstance(totals, dict) else {}
+
     @admin.display(description="Total")
     def totals_total(self, obj):
-        totals = getattr(obj, 'totals', None) or {}
+        totals = self._get_totals(obj)
         val = totals.get('total')
-        return f"{val:,.2f}" if val is not None else "-"
+        return f"{val:,.2f}" if val is not None else "0.00"
 
     @admin.display(description="Cost")
     def totals_cost(self, obj):
-        totals = getattr(obj, 'totals', None) or {}
+        totals = self._get_totals(obj)
         val = totals.get('cost')
-        return f"{val:,.2f}" if val is not None else "-"
+        return f"{val:,.2f}" if val is not None else "0.00"
 
     @admin.display(description="Margin %")
     def totals_margin_pc(self, obj):
-        totals = getattr(obj, 'totals', None) or {}
+        totals = self._get_totals(obj)
         val = totals.get('margin_pc')
         return f"{val:.1f}%" if val is not None else "-"
 
     @admin.display(description="Balance")
     def totals_balance(self, obj):
-        totals = getattr(obj, 'totals', None) or {}
+        totals = self._get_totals(obj)
         val = totals.get('balance')
-        return f"{val:,.2f}" if val is not None else "-"
+        return f"{val:,.2f}" if val is not None else "0.00"
 
     @admin.display(description="Created")
     def date_created(self, obj):
@@ -55,20 +68,33 @@ class TransactionTotalsDisplayMixin:
 class LineDisplayMixin:
     """Display computed fields from JSON item and quantity fields for line models."""
 
+    def _get_json_field(self, obj, field_name):
+        """Get JSON field as dict, handling string JSON or dict."""
+        import json
+        val = getattr(obj, field_name, None)
+        if val is None:
+            return {}
+        if isinstance(val, str):
+            try:
+                return json.loads(val)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        return val if isinstance(val, dict) else {}
+
     @admin.display(description="Qty")
     def qty_placed(self, obj):
-        quantity = getattr(obj, 'quantity', None) or {}
+        quantity = self._get_json_field(obj, 'quantity')
         val = quantity.get('placed')
         return val if val is not None else "-"
 
     @admin.display(description="Item IDA")
     def item_ida_item(self, obj):
-        item = getattr(obj, 'item', None) or {}
+        item = self._get_json_field(obj, 'item')
         return item.get('ida_item') or "-"
 
     @admin.display(description="Description")
     def item_description(self, obj):
-        item = getattr(obj, 'item', None) or {}
+        item = self._get_json_field(obj, 'item')
         desc = item.get('description') or ""
         return desc[:50] + "..." if len(desc) > 50 else desc or "-"
 

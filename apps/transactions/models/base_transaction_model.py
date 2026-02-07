@@ -16,18 +16,18 @@ def default_totals() -> Dict[str, Any]:
     # Header-level searchable totals (designed for frequent filtering).
     # Keep keys flat for common query patterns and indexability.
     return {
-        "subtotal": None,   # sum of line extended sell before tax/ship/discount
-        "discount": None,   # header discount amount
-        "taxable": None,    # subtotal - discount subject to tax
-        "tax": None,        # sales tax amount
-        "shipping": None,   # shipping/handling charged to customer
-        "other": None,      # misc charges
-        "total": None,      # grand total customer-facing
-        "cost": None,       # total cost (for margin compute)
-        "margin": None,     # total - cost
-        "margin_pc": None,  # (margin / total)*100 (safe on total>0)
-        "received": None,   # payments received (for invoices)
-        "balance": None,    # total - received (for invoices)
+        "subtotal": 0,      # sum of line extended sell before tax/ship/discount
+        "discount": 0,      # header discount amount
+        "taxable": 0,       # subtotal - discount subject to tax
+        "tax": 0,           # sales tax amount
+        "shipping": 0,      # shipping/handling charged to customer
+        "other": 0,         # misc charges
+        "total": 0,         # grand total customer-facing
+        "cost": 0,          # total cost (for margin compute)
+        "margin": 0,        # total - cost
+        "margin_pc": 0,     # (margin / total)*100 (safe on total>0)
+        "received": 0,      # payments received (for invoices)
+        "balance": 0,       # total - received (for invoices)
     }
 
 
