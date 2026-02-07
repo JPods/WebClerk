@@ -10,6 +10,7 @@ import { FaSave, FaTimes, FaEdit, FaChevronLeft, FaPlus, FaTrash, FaUser, FaMapM
 import { showToast } from '@/store/slices/toastSlice';
 import DetailShell from '@/components/common/DetailShell';
 import ComponentCard from '@/components/common/ComponentCard';
+import OrgFinancialsPanel from './OrgFinancialsPanel';
 import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgMetrics } from '../types/orgTypes';
 import orgApi from '../services/orgApi';
 
@@ -419,68 +420,6 @@ const RelationsTab: React.FC<{
   );
 };
 
-// Financial Tab - Structured editor for financial data
-const FinancialTab: React.FC<{
-  financial: OrgFinancial | undefined;
-  editing: boolean;
-  onChange: (financial: OrgFinancial) => void;
-}> = ({ financial, editing, onChange }) => {
-  const data = financial || { credit: {}, balances: {}, due_buckets: [], metrics: {} };
-
-  return (
-    <div className="space-y-6">
-      {/* Credit Section */}
-      <div>
-        <h4 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Credit</h4>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Credit Limit</label>
-            <input
-              type="number"
-              value={data.credit?.limit ?? ''}
-              onChange={(e) => onChange({ ...data, credit: { ...data.credit, limit: e.target.value ? Number(e.target.value) : undefined } })}
-              disabled={!editing}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">Credit Used</label>
-            <input
-              type="number"
-              value={data.credit?.used ?? ''}
-              onChange={(e) => onChange({ ...data, credit: { ...data.credit, used: e.target.value ? Number(e.target.value) : undefined } })}
-              disabled={!editing}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-700"
-            />
-          </div>
-        </div>
-      </div>
-      
-      {/* Balances - JSON editor */}
-      <div>
-        <h4 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Balances</h4>
-        <JsonObjectEditor
-          data={data.balances || {}}
-          editing={editing}
-          onChange={(balances) => onChange({ ...data, balances: balances as OrgFinancial['balances'] })}
-          label="Balances JSON"
-        />
-      </div>
-
-      {/* Metrics - JSON editor */}
-      <div>
-        <h4 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Financial Metrics</h4>
-        <JsonObjectEditor
-          data={data.metrics || {}}
-          editing={editing}
-          onChange={(metrics) => onChange({ ...data, metrics: metrics as OrgFinancial['metrics'] })}
-          label="Metrics JSON"
-        />
-      </div>
-    </div>
-  );
-};
-
 // Metrics Tab - Structured editor for counts and periods
 const MetricsTab: React.FC<{
   metrics: OrgMetrics | undefined;
@@ -783,10 +722,12 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         );
       case 'financial':
         return (
-          <FinancialTab
+          <OrgFinancialsPanel
             financial={org.financial}
+            orgType={org.org_type}
             editing={editing}
             onChange={(financial) => handleChange({ financial })}
+            defaultCollapsed={false}
           />
         );
       case 'metrics':
