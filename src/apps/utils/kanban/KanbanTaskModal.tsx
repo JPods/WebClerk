@@ -1,25 +1,7 @@
-<<<<<<< HEAD
 import { ChangeEvent, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KanbanTask, TaskPriority } from "./type/kanban";
 import type { TaskFormEditableField, TaskFormState, TranslationFormEntry } from "./taskFormTypes";
-=======
-import {
-  ChangeEvent,
-  FormEvent,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
-import type { KanbanTask, TaskPriority } from "../../type/kanban";
-import type {
-  TaskFormEditableField,
-  TaskFormState,
-  TranslationFormEntry,
-} from "./taskFormTypes";
->>>>>>> 9a668a267b60c1fbf38f3421f891b0e77fab0d18
 
 interface LanguageOption {
   value: string;
