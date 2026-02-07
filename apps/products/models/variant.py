@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from django.db import models
-from django.utils import timezone
+
+from common.models import BaseModel
 
 
-class Variant(models.Model):
+class Variant(BaseModel):
 
     """Concrete materialized variant row for performance and clarity.
 
@@ -21,7 +22,6 @@ class Variant(models.Model):
     attrs = models.JSONField(default=dict, blank=True)
     set_uuid = models.UUIDField(db_index=True)
     variant_uuid = models.UUIDField(db_index=True, unique=True)
-    # dt_created and dt_modified are inherited from BaseModel/CoreModel
 
     @property
     def ida(self):
@@ -42,13 +42,6 @@ class Variant(models.Model):
         indexes = [
             models.Index(fields=['parent_item'], name='variant_parent_idx'),
         ]
-
-    def save(self, *args, **kwargs):  # pragma: no cover simple
-        now_ms = int(timezone.now().timestamp() * 1000)
-        if not self.pk and not self.dt_created:
-            self.dt_created = now_ms
-        self.dt_modified = now_ms
-        return super().save(*args, **kwargs)
 
     def __str__(self):  # pragma: no cover
         iid = getattr(self, 'item_id', None)

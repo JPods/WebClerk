@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from django.db import models
 
+from common.models import BaseModel
 
-class InventoryMetricsSnapshot(models.Model):
+
+class InventoryMetricsSnapshot(BaseModel):
     @property
     def ida(self):
         return str(self.pk)
@@ -18,7 +20,6 @@ class InventoryMetricsSnapshot(models.Model):
     Keep lean; prune externally if growth becomes large.
     """
 
-    # dt_created is inherited from BaseModel/CoreModel
     metrics = models.JSONField()
 
     class Meta:
