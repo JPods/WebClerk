@@ -194,7 +194,7 @@ class Command(BaseCommand):
 
             if field_type == 'CharField':
                 max_length = getattr(field, 'max_length', 100)
-                if field_name == 'model_target' and model._meta.label == 'core.Setting':
+                if field_name == 'parent_model' and model._meta.label == 'core.Setting':
                     value = random.choice(VALID_MODEL_NAMES)
                 elif field_name == 'email' and model._meta.label == 'core.Contact':
                     # Special emails for first two contacts

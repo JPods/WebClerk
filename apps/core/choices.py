@@ -2,6 +2,8 @@
 
 Centralizing these tuples keeps models, serializers, and tenant seeding
 aligned without duplicating literal lists of roles or workflow states.
+
+NOTE: During development, labels match values exactly for easier debugging.
 """
 
 from typing import Final, Tuple
@@ -10,44 +12,44 @@ Choice = Tuple[object, str]
 ChoiceList = Tuple[Choice, ...]
 
 CONTACT_ROLE_CHOICES: Final[ChoiceList] = (
-    ("", "---------"),
-    ("user", "User"),
-    ("employee", "Employee"),
-    ("admin", "Admin"),
+    ("", ""),
+    ("user", "user"),
+    ("employee", "employee"),
+    ("admin", "admin"),
 )
 
 ACTION_KANBAN_COLUMNS: Final[ChoiceList] = (
-    ("", "---------"),
+    ("", ""),
     ("Backlog", "Backlog"),
     ("Planning", "Planning"),
-    ("InProcess", "In Process"),
+    ("InProcess", "InProcess"),
     ("Review", "Review"),
     ("Complete", "Complete"),
 )
 
 ACTION_DIFFICULTY_LEVELS: Final[ChoiceList] = (
-    (None, "---------"),
-    (100, "Extreme"),
-    (50, "Hard"),
-    (15, "Moderate"),
-    (10, "Normal"),
-    (4, "Easy"),
-    (1, "Trivial"),
+    (None, ""),
+    (100, "100"),
+    (50, "50"),
+    (15, "15"),
+    (10, "10"),
+    (4, "4"),
+    (1, "1"),
 )
 
 SETTING_PURPOSE_CHOICES: Final[ChoiceList] = (
-    ("", "---------"),
-    ("view_edit", "View / Edit Matrix"),
-    ("constants", "User Constants"),
-    ("db_defaults", "Database Defaults"),
-    ("sales_defaults", "Sales Defaults"),
-    ("purchase_defaults", "Purchase Defaults"),
-    ("accounting_defaults", "Accounting Defaults"),
-    ("keywords", "Keyword Tracking"),
-    ("workbench_fields", "Workbench Fields"),
-    ("detail_field_access", "Detail Field Access"),
-    ("qa_counters", "Q&A Counters"),
-    ("qa_questions", "Q&A Questions"),
+    ("", ""),
+    ("view_edit", "view_edit"),
+    ("constants", "constants"),
+    ("db_defaults", "db_defaults"),
+    ("sales_defaults", "sales_defaults"),
+    ("purchase_defaults", "purchase_defaults"),
+    ("accounting_defaults", "accounting_defaults"),
+    ("keywords", "keywords"),
+    ("workbench_fields", "workbench_fields"),
+    ("detail_field_access", "detail_field_access"),
+    ("qa_counters", "qa_counters"),
+    ("qa_questions", "qa_questions"),
 )
 
 DEFAULT_SELECT_LISTS: Final[dict[str, dict[str, ChoiceList]]] = {

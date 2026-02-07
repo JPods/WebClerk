@@ -101,8 +101,8 @@ class Command(BaseCommand):
                     f'with {len(questions)} questions'
                 ))
             else:
-                # Get model_target - use None/blank for "all"
-                mt = setting_meta.get('model_target', '')
+                # Get parent_model - use None/blank for "all"
+                mt = setting_meta.get('parent_model', '')
                 if mt == 'all':
                     mt = None
                 
@@ -111,7 +111,7 @@ class Command(BaseCommand):
                     purpose='qa_questions',
                     name=group_name,
                     defaults={
-                        'model_target': mt,
+                        'parent_model': mt,
                         'role': setting_meta.get('role', 'all'),
                         'data': data_payload,
                     }
@@ -137,7 +137,7 @@ class Command(BaseCommand):
                 purpose='qa_counters',
                 defaults={
                     'name': 'counters',
-                    'model_target': 'question_answer',
+                    'parent_model': 'question_answer',
                     'role': 'all',
                     'data': counters_data,
                 }

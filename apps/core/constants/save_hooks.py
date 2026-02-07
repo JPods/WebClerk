@@ -6,7 +6,7 @@ defined in Setting records with purpose='save_pre_post'.
 
 Setting record structure:
 - purpose: 'save_pre_post'
-- model_target: The model name this hook applies to (e.g., 'contact', 'proposal')
+- parent_model: The model name this hook applies to (e.g., 'contact', 'proposal')
 - name: Descriptive name (e.g., 'contact_validation', 'audit_trail')
 - data: {
     'save_pre': 'Python script to execute before save (synchronous)',
@@ -64,7 +64,7 @@ def get_save_hooks(model_name: str) -> Dict[str, Dict[str, Any]]:
         hooks: Dict[str, Dict[str, Any]] = {}
         settings_qs = Setting.objects.filter(
             purpose='save_pre_post',
-            model_target=model_name,
+            parent_model=model_name,
             is_active=True
         ).only('name', 'data')
 
@@ -230,10 +230,10 @@ def get_all_save_hooks() -> Dict[str, Dict[str, Dict[str, Any]]]:
     settings_qs = Setting.objects.filter(
         purpose='save_pre_post',
         is_active=True
-    ).only('name', 'model_target', 'data')
+    ).only('name', 'parent_model', 'data')
 
     for setting in settings_qs:
-        model_name = setting.model_target
+        model_name = setting.parent_model
         hook_name = setting.name
 
         if model_name not in all_hooks:

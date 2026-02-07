@@ -34,7 +34,7 @@ class Command(BaseCommand):
             
             # Test 5: Try the specific query that was failing
             self.stdout.write("Testing the failing query with .only()...")
-            settings = Setting.objects.filter(is_active=True).only('model_target', 'purpose', 'data')
+            settings = Setting.objects.filter(is_active=True).only('parent_model', 'purpose', 'data')
             settings_list = list(settings)  # Force evaluation
             self.stdout.write(f"✅ Query with .only() succeeded: {len(settings_list)} records")
             
@@ -42,7 +42,7 @@ class Command(BaseCommand):
             self.stdout.write("Testing data processing...")
             for i, setting in enumerate(settings_list[:3]):  # Process first 3
                 purpose = setting.purpose or 'general'
-                model_name = setting.model_target or 'general'
+                model_name = setting.parent_model or 'general'
                 data = setting.data or {}
                 self.stdout.write(f"   Setting {i+1}: {model_name}:{purpose} = {len(str(data))} chars")
                 if i >= 2:  # Only process first 3

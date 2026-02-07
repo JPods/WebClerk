@@ -27,12 +27,14 @@ class QuestionAnswer(BaseModel):
     answer = models.CharField(max_length=500, blank=True, null=True)
     # Link to configured question definition (Setting) if available
     setting_id = models.ForeignKey('core.Setting', on_delete=models.SET_NULL, blank=True, null=True, related_name='qa_questions')
-    question_id = models.IntegerField(blank=True, null=True, help_text="ID of the question in the Setting if applicable")
-    answer_id = models.IntegerField(blank=True, null=True, help_text="ID of the selected answer option if applicable")
+    question_id = models.IntegerField(blank=True, null=True, 
+                                      help_text="ID of the question from Setting.data.questions[].id")
+    answer_id = models.IntegerField(blank=True, null=True, 
+                                    help_text="ID of selected answer from Setting.data.questions[].answers[].id - set when user responds")
     
     # Parent record linkage (e.g., sales_order, project, etc.)
-    parent_type = models.CharField(max_length=100, blank=True, null=True, db_index=True,
-                                   help_text="Model name of the parent record (e.g., 'sales_order')")
+    parent_model = models.CharField(max_length=100, blank=True, null=True, db_index=True,
+                                   help_text="Model name of the parent record (e.g., 'order', 'customer')")
     parent_id = models.IntegerField(blank=True, null=True, db_index=True,
                                     help_text="ID of the parent record")
 
@@ -54,7 +56,7 @@ class QuestionAnswer(BaseModel):
             GinIndex(fields=["search_vector"], name="qa_search_gin"),
             models.Index(fields=["status"], name="qa_status_idx"),
             models.Index(fields=["question"], name="qa_question_idx"),
-            models.Index(fields=["parent_type", "parent_id"], name="qa_parent_idx"),
+            models.Index(fields=["parent_model", "parent_id"], name="qa_parent_idx"),
         ]
 
     def __str__(self):
