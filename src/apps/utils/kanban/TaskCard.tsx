@@ -79,11 +79,11 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
   const priorityText = priorityLabel[wc3Priority];
 
   const progressLabel = useMemo(() => {
-    const pct = task.progress;
+    const pct = task.percent_complete;
     if (typeof pct !== "number") return null;
     const clamped = Math.max(0, Math.min(100, Math.round(pct)));
     return `${clamped}%`;
-  }, [task.progress]);
+  }, [task.percent_complete]);
 
   return (
     <div
@@ -161,6 +161,24 @@ const TaskCardComponent: React.FC<TaskCardProps> = ({ task, columnId, index, onD
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
             Due:
              {new Date(task.properties.dates.due.dt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+        )}
+
+        {/* Duration display */}
+        {(task.duration != null || (task.dt_start && task.dt_deadline)) && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 text-[11px] font-medium text-purple-600 dark:bg-purple-500/10 dark:text-purple-200">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {task.duration != null 
+              ? `${task.duration}d`
+              : (() => {
+                  const start = new Date(task.dt_start!);
+                  const end = new Date(task.dt_deadline!);
+                  const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                  return `${days}d`;
+                })()
+            }
           </span>
         )}
 

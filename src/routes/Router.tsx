@@ -19,12 +19,10 @@ import {
   Home,
   KanbanBoardDataPage,
   KanbanBoardPage,
-  KanbanGanttPage,
   NotionTrackerPage,
   SignIn,
   SignUp,
-  SvarGanttPage,
-  MultiProjectGanttPage,
+  UnifiedGanttPage,
   UserProfiles,
   // Accounts
   AuditList,
@@ -223,9 +221,10 @@ const Router: React.FC = () => {
             path={PageRoutes.kanbanBoardData}
             element={<KanbanBoardDataPage />}
           />
-          <Route path={PageRoutes.kanbanGantt} element={<KanbanGanttPage />} />
-          <Route path={PageRoutes.svarGantt} element={<SvarGanttPage />} />
-          <Route path={PageRoutes.multiProjectGantt} element={<MultiProjectGanttPage />} />
+          <Route path={PageRoutes.gantt} element={<UnifiedGanttPage />} />
+          <Route path={PageRoutes.kanbanGantt} element={<Navigate to={PageRoutes.gantt} replace />} />
+          <Route path={PageRoutes.svarGantt} element={<Navigate to={PageRoutes.gantt} replace />} />
+          <Route path={PageRoutes.multiProjectGantt} element={<Navigate to={PageRoutes.gantt} replace />} />
           <Route path={PageRoutes.actionList} element={<ActionList />} />
           <Route path={PageRoutes.actionDetail} element={<ActionDetail />} />
           <Route

@@ -41,32 +41,65 @@ export function getFrontendDataSet(): DataSetInfo {
 }
 
 /**
- * Fetch backend system info including data set identification
+ * Fetch backend system info including data set identification.
+ * Returns null if the endpoint is not available (expected in some environments).
  */
 export async function fetchBackendSystemInfo(
   apiBaseUrl: string = "",
-): Promise<SystemInfo> {
-  const url = `${apiBaseUrl}/wcapi/get/?model_name=system_info`;
-  const response = await fetch(url, {
-    method: "GET",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+): Promise<SystemInfo | null> {
+  // Try /wcapi/system_info/ first, fall back to me endpoint for basic info
+  const primaryUrl = `${apiBaseUrl}/wcapi/system_info/`;
+  const fallbackUrl = `${apiBaseUrl}/wcapi/me/`;
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch system info: ${response.status}`);
+  try {
+    // Try primary system_info endpoint
+    const response = await fetch(primaryUrl, {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.ok) {
+      const json = await response.json();
+      // Unwrap envelope if present (AutoEnvelopeMiddleware wraps responses)
+      if (json.data && typeof json.data === "object" && json.data.data_set) {
+        return json.data;
+      }
+      if (json.data_set) {
+        return json;
+      }
+    }
+  } catch {
+    // Primary endpoint not available, continue to fallback
   }
 
-  const json = await response.json();
+  // Fallback: try to get basic info from /me/ endpoint
+  try {
+    const response = await fetch(fallbackUrl, {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
 
-  // Unwrap envelope if present (AutoEnvelopeMiddleware wraps responses)
-  if (json.data && typeof json.data === "object" && json.data.data_set) {
-    return json.data;
+    if (response.ok) {
+      const json = await response.json();
+      const data = json.data || json;
+      // Construct minimal SystemInfo from available data
+      if (data.data_set) {
+        return {
+          data_set: data.data_set,
+          database: data.database || { host: "unknown", name: "unknown" },
+          server: data.server || { debug: false, django_version: [], python_version: "unknown" },
+          message: data.message || "OK",
+        };
+      }
+    }
+  } catch {
+    // Fallback also failed silently
   }
 
-  return json;
+  // No system info available - this is expected in some environments
+  return null;
 }
 
 /**

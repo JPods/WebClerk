@@ -97,7 +97,7 @@ export interface KanbanTask {
   start_by?: any;
   end_by?: any;
   tags?: string[];
-  progress?: number;
+  percent_complete?: number;
   backend_id?: string;
   status?: string;
   language_codes?: string[];
