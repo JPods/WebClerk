@@ -6,6 +6,21 @@ from common.models import BaseModel
 from apps.transactions.choices import PROJECT_ATTENTION_CHOICES, PROJECT_STATUS_CHOICES
 
 
+# Color palette for projects (matches frontend GanttProjectSelector.tsx)
+PROJECT_COLOR_PALETTE = [
+    "#3b82f6",  # blue-500
+    "#10b981",  # emerald-500
+    "#f59e0b",  # amber-500
+    "#ef4444",  # red-500
+    "#8b5cf6",  # violet-500
+    "#ec4899",  # pink-500
+    "#06b6d4",  # cyan-500
+    "#84cc16",  # lime-500
+    "#f97316",  # orange-500
+    "#6366f1",  # indigo-500
+]
+
+
 def default_objective():  # lightweight structured goal definition
     return {
         "summary": "",
@@ -120,10 +135,54 @@ class Project(BaseModel):
         if errors:
             raise ValidationError(errors)
 
+    def _get_next_palette_color(self):
+        """Get the next color from the palette based on existing colored projects.
+        
+        Cycles through the palette so colors repeat if there are more projects than colors.
+        """
+        # Count existing active projects that already have a color assigned (excluding self)
+        projects_with_colors = 0
+        for proj in Project.objects.filter(is_active=True).exclude(pk=self.pk):
+            prefs = proj.prefs or {}
+            if isinstance(prefs, dict):
+                action_prefs = prefs.get('action', {})
+                if isinstance(action_prefs, dict) and action_prefs.get('color'):
+                    projects_with_colors += 1
+        return PROJECT_COLOR_PALETTE[projects_with_colors % len(PROJECT_COLOR_PALETTE)]
+
+    def _ensure_action_color(self):
+        """Auto-assign prefs.action.color if not already set.
+        
+        Administrators can manually override by setting prefs.action.color explicitly.
+        """
+        prefs = getattr(self, 'prefs', None) or {}
+        if not isinstance(prefs, dict):
+            prefs = {}
+        
+        # Check if action.color is already set
+        action_prefs = prefs.get('action', {})
+        if isinstance(action_prefs, dict) and action_prefs.get('color'):
+            # Color already set, don't override (allows admin manual override)
+            return
+        
+        # Auto-assign color from palette
+        color = self._get_next_palette_color()
+        
+        # Ensure nested structure exists
+        if 'action' not in prefs or not isinstance(prefs.get('action'), dict):
+            prefs['action'] = {}
+        prefs['action']['color'] = color
+        
+        self.prefs = prefs
+
     def save(self, *args, **kwargs):
         # derive counters & validate
         if not self.slug and self.intent:
             self.slug = slugify(self.intent)[:180]
+        
+        # Auto-assign action color if not set
+        self._ensure_action_color()
+        
         self._recompute_task_counters()
         self.full_clean(exclude=None)
         super().save(*args, **kwargs)

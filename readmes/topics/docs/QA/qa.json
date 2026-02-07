@@ -1,0 +1,360 @@
+[ {"name":"qa","purpose":"Store Q&A data","is_active":true, "security_level":1,"model_target":"all","data":[]},
+  {
+    "id": 11,
+    "type": "Planning",
+    "question": "Imposition",
+    "sequence": 2,
+    "answers": [
+      { "answer": "Divorced", "id": 124 },
+      { "answer": "Married", "id": 125 },
+      { "answer": "Single", "id": 126 }
+    ]
+  },
+  {
+    "id": 13,
+    "type": "Planning",
+    "question": "Inventory stock size",
+    "sequence": 2,
+    "answers": [
+      { "answer": "No Response", "id": 122 },
+      { "answer": "Response", "id": 123 }
+    ]
+  },
+  {
+    "id": 14,
+    "type": "Planning",
+    "question": "Colors per side",
+    "sequence": 2,
+    "answers": [
+      { "answer": "Not Budgeted", "id": 116 },
+      { "answer": "Buying", "id": 117 },
+      { "answer": "Obligated", "id": 118 },
+      { "answer": "Currently not interested", "id": 119 },
+      { "answer": "Wrong type of Customer", "id": 120 },
+      { "answer": "Interested", "id": 121 }
+    ]
+  },
+  {
+    "id": 15,
+    "type": "Planning",
+    "question": "Number of pages per form",
+    "sequence": 2,
+    "answers": [
+      { "answer": "Remove from list", "id": 113 },
+      { "answer": "No response", "id": 114 },
+      { "answer": "Response", "id": 115 }
+    ]
+  },
+  {
+    "id": 16,
+    "type": "Planning",
+    "question": "Numbers of forms",
+    "sequence": 2,
+    "answers": [
+      { "answer": "Remove from list", "id": 109 },
+      { "answer": "Not budgeted", "id": 110 },
+      { "answer": "Budgeted", "id": 111 },
+      { "answer": "Interested", "id": 112 }
+    ]
+  },
+  {
+    "id": 19,
+    "type": "Planning",
+    "question": "Press sheet size",
+    "sequence": 2,
+    "answers": [
+      { "answer": "28 x 40", "id": 98 },
+      { "answer": "26 x 40", "id": 99 },
+      { "answer": "25 x 38", "id": 100 },
+      { "answer": "24 x 36", "id": 101 },
+      { "answer": "23 x 35", "id": 102 },
+      { "answer": "19 x 25", "id": 103 },
+      { "answer": "20 x 28", "id": 104 },
+      { "answer": "18.75 x 23.5", "id": 105 },
+      { "answer": "13.25 x 28", "id": 106 },
+      { "answer": "12.5 x 19", "id": 107 },
+      { "answer": "12 x 18", "id": 108 }
+    ]
+  },
+  {
+    "id": 21,
+    "type": "Planning",
+    "question": "Stock Weight",
+    "sequence": 2,
+    "answers": [
+      { "answer": "100", "id": 94 },
+      { "answer": "80", "id": 95 },
+      { "answer": "70", "id": 96 },
+      { "answer": "", "id": 152 }
+    ]
+  },
+  {
+    "id": 22,
+    "type": "Planning",
+    "question": "Stock type/name",
+    "sequence": 2,
+    "answers": [
+      { "answer": "#2 dull text", "id": 90 },
+      { "answer": "#3 dull text", "id": 91 },
+      { "answer": "#2 gloss text", "id": 92 },
+      { "answer": "#3 gloss text", "id": 93 }
+    ]
+  },
+  {
+    "id": 23,
+    "type": "Planning",
+    "question": "Line screen",
+    "sequence": 2,
+    "answers": [
+      { "answer": "175", "id": 87 },
+      { "answer": "150", "id": 88 },
+      { "answer": "133", "id": 89 }
+    ]
+  },
+  {
+    "id": 24,
+    "type": "Planning",
+    "question": "Trim Size",
+    "sequence": 2,
+    "answers": [
+      { "answer": "4", "id": 83 },
+      { "answer": "3", "id": 84 },
+      { "answer": "2", "id": 85 },
+      { "answer": "1", "id": 86 }
+    ]
+  },
+  {
+    "id": 25,
+    "type": "Planning",
+    "question": "Final size",
+    "sequence": 2,
+    "answers": [
+      { "answer": "16", "id": 78 },
+      { "answer": "8", "id": 79 },
+      { "answer": "6", "id": 80 },
+      { "answer": "4", "id": 81 },
+      { "answer": "2", "id": 82 }
+    ]
+  },
+  {
+    "id": 26,
+    "type": "Prepress",
+    "question": "Type of job",
+    "sequence": 2,
+    "answers": [
+      { "answer": "6", "id": 72 },
+      { "answer": "5", "id": 73 },
+      { "answer": "4", "id": 74 },
+      { "answer": "3", "id": 75 },
+      { "answer": "2", "id": 76 },
+      { "answer": "1", "id": 77 }
+    ]
+  },
+  {
+    "id": 27,
+    "type": "Prepress",
+    "question": "job bleed",
+    "sequence": 2,
+    "answers": [
+      { "answer": "28 x 40", "id": 63 },
+      { "answer": "26 x 40", "id": 64 },
+      { "answer": "25 x 38", "id": 65 },
+      { "answer": "24 x 36", "id": 66 },
+      { "answer": "23 x 35", "id": 67 },
+      { "answer": "19 x 25", "id": 68 },
+      { "answer": "18.75 x 23.5", "id": 69 },
+      { "answer": "13.25 x 28", "id": 70 },
+      { "answer": "12 x 18", "id": 71 }
+    ]
+  },
+  {
+    "id": 28,
+    "type": "Prepress",
+    "question": "Rerun material location",
+    "sequence": 2,
+    "answers": [
+      { "answer": "8", "id": 55 },
+      { "answer": "7", "id": 56 },
+      { "answer": "6", "id": 57 },
+      { "answer": "5", "id": 58 },
+      { "answer": "4", "id": 59 },
+      { "answer": "3", "id": 60 },
+      { "answer": "2", "id": 61 },
+      { "answer": "1", "id": 62 }
+    ]
+  },
+  {
+    "id": 29,
+    "type": "Prepress",
+    "question": "Files furnished via",
+    "sequence": 2,
+    "answers": [
+      { "answer": "SW", "id": 51 },
+      { "answer": "OSO", "id": 52 },
+      { "answer": "WF", "id": 53 },
+      { "answer": "WT", "id": 54 }
+    ]
+  },
+  {
+    "id": 32,
+    "type": "Press",
+    "question": "Press job prints on",
+    "sequence": 3,
+    "answers": [
+      { "answer": "rerun w/ revisions", "id": 48 },
+      { "answer": "rerun", "id": 49 },
+      { "answer": "new", "id": 50 }
+    ]
+  },
+  {
+    "id": 33,
+    "type": "Press",
+    "question": "job require aqueous coating",
+    "sequence": 3,
+    "answers": [
+      { "answer": "no", "id": 46 },
+      { "answer": "yes", "id": 47 }
+    ]
+  },
+  {
+    "id": 34,
+    "type": "Press",
+    "question": "job require varnish",
+    "sequence": 3,
+    "answers": [
+      { "answer": "digital files from archives", "id": 43 },
+      { "answer": "standing film", "id": 44 },
+      { "answer": "standing plates or film", "id": 45 }
+    ]
+  },
+  {
+    "id": 35,
+    "type": "Press",
+    "question": "job score",
+    "sequence": 3,
+    "answers": [
+      { "answer": "e-mail", "id": 38 },
+      { "answer": "floppy", "id": 39 },
+      { "answer": "Wam-Net", "id": 40 },
+      { "answer": "Disk", "id": 41 },
+      { "answer": "FTP(rapid transit)", "id": 42 }
+    ]
+  },
+  {
+    "id": 36,
+    "type": "Press",
+    "question": "job pref",
+    "sequence": 3,
+    "answers": [
+      { "answer": "customer color proff", "id": 35 },
+      { "answer": "lasers", "id": 36 },
+      { "answer": "tear sheets", "id": 37 }
+    ]
+  },
+  {
+    "id": 37,
+    "type": "Press",
+    "question": "Match color to",
+    "sequence": 3,
+    "answers": [
+      { "answer": "dylux", "id": 30 },
+      { "answer": "dupont", "id": 31 },
+      { "answer": "iris color proof", "id": 32 },
+      { "answer": "epson color proof", "id": 33 },
+      { "answer": "faxed laser", "id": 34 }
+    ]
+  },
+  {
+    "id": 38,
+    "type": "Press",
+    "question": "tab count on press",
+    "sequence": 3,
+    "answers": [
+      { "answer": "CD(7-40)", "id": 23 },
+      { "answer": "Jun-40", "id": 24 },
+      { "answer": "28-May", "id": 25 },
+      { "answer": "28-Apr", "id": 26 },
+      { "answer": "Feb-40", "id": 27 },
+      { "answer": "25-Feb", "id": 28 },
+      { "answer": "28-Jan", "id": 29 }
+    ]
+  },
+  {
+    "id": 39,
+    "type": "Finishing",
+    "question": "type of finishing required",
+    "sequence": 4,
+    "answers": [
+      { "answer": "gloss", "id": 21 },
+      { "answer": "satin", "id": 22 }
+    ]
+  },
+  {
+    "id": 40,
+    "type": "jitSetup",
+    "question": "Install in computers.",
+    "sequence": 0,
+    "answers": [
+      { "answer": "gloss", "id": 19 },
+      { "answer": "satin", "id": 20 }
+    ]
+  },
+  {
+    "id": 41,
+    "type": "jitSetup",
+    "question": "Install computers.",
+    "sequence": 0,
+    "answers": [
+      { "answer": "No", "id": 17 },
+      { "answer": "Yes", "id": 18 }
+    ]
+  },
+  {
+    "id": 42,
+    "type": "jitSetup",
+    "question": "Account Codes",
+    "sequence": 0,
+    "answers": [
+      { "answer": "No", "id": 15 },
+      { "answer": "Yes", "id": 16 }
+    ]
+  },
+  {
+    "id": 43,
+    "type": "jitSetup",
+    "question": "Bills of Material",
+    "sequence": 0,
+    "answers": [
+      { "answer": "run to densities", "id": 12 },
+      { "answer": "color proof", "id": 13 },
+      { "answer": "tearsheets", "id": 14 }
+    ]
+  },
+  {
+    "id": 44,
+    "type": "jitSetup",
+    "question": "Carriers",
+    "sequence": 0,
+    "answers": [
+      { "answer": "other", "id": 6 },
+      { "answer": "500", "id": 7 },
+      { "answer": "250", "id": 8 },
+      { "answer": "100", "id": 9 },
+      { "answer": "50", "id": 10 },
+      { "answer": "25", "id": 11 }
+    ]
+  },
+  {
+    "id": 45,
+    "type": "jitSetup",
+    "question": "Customers",
+    "sequence": 0,
+    "answers": [
+      { "answer": "carton", "id": 1 },
+      { "answer": "shrink-wrap", "id": 2 },
+      { "answer": "stitch", "id": 3 },
+      { "answer": "fold", "id": 4 },
+      { "answer": "trim", "id": 5 }
+    ]
+  }
+]

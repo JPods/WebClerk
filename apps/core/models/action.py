@@ -267,6 +267,38 @@ class Action(BaseModel):
                 # dt_start is set: dt_deadline = dt_start + duration
                 self.dt_deadline = self.dt_start + duration_ms
         
+        # Enforce parent dependency constraint: dt_start >= max(parent.dt_deadline)
+        # If this action has parents in refs.parents[], ensure we don't start before they finish
+        refs = getattr(self, 'refs', {}) or {}
+        if isinstance(refs, dict):
+            parent_ids = refs.get('parents', [])
+            if parent_ids and isinstance(parent_ids, list):
+                from apps.core.models import Action as ActionModel
+                latest_parent_deadline = None
+                
+                for parent_id in parent_ids:
+                    try:
+                        parent_id_int = int(parent_id)
+                        parent_action = ActionModel.objects.filter(id=parent_id_int).first()
+                        if parent_action:
+                            # Use dt_deadline first, fall back to dt_start + duration
+                            parent_end = parent_action.dt_deadline
+                            if not parent_end and parent_action.dt_start and parent_action.duration:
+                                parent_end = parent_action.dt_start + (parent_action.duration * one_day_ms)
+                            
+                            if parent_end and (latest_parent_deadline is None or parent_end > latest_parent_deadline):
+                                latest_parent_deadline = parent_end
+                    except (ValueError, TypeError):
+                        continue
+                
+                # If we have a constraint, enforce dt_start >= latest_parent_deadline
+                if latest_parent_deadline is not None:
+                    if is_empty(self.dt_start) or self.dt_start < latest_parent_deadline:
+                        self.dt_start = latest_parent_deadline
+                        # Recalculate dt_deadline if duration is set
+                        if self.duration and self.duration > 0:
+                            self.dt_deadline = self.dt_start + (self.duration * one_day_ms)
+        
         # compute changed_fields before save
         changed_fields = []
         if self.pk:
