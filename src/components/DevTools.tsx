@@ -51,15 +51,17 @@ export function DevTools({ position = 'bottom-left' }: DevToolsProps): React.Rea
   const fetchConfig = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/wcapi/get/?model_name=dev_config');
+      // Try dedicated dev_config endpoint first
+      const response = await fetch('/wcapi/dev/config/');
       if (response.ok) {
         const json = await response.json();
         // Handle nested response: { data: { data: { ... } } } or { data: { ... } }
         const configData = json.data?.data || json.data;
         setConfig(configData);
       }
-    } catch (err) {
-      console.error('Failed to fetch dev config:', err);
+      // If endpoint doesn't exist (404), just don't show config - this is expected
+    } catch {
+      // Network error - silently fail, dev config is optional
     } finally {
       setIsLoading(false);
     }

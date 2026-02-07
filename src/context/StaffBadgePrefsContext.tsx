@@ -53,7 +53,8 @@ export const StaffBadgePrefsProvider: React.FC<{ children: React.ReactNode }> = 
         limit: 500, // Should be more than enough for most organizations
       });
 
-      const contacts = ((response as any)?.records || response || []) as StaffContact[];
+      const rawContacts = (response as any)?.records || response;
+      const contacts: StaffContact[] = Array.isArray(rawContacts) ? rawContacts : [];
       const prefsMap = new Map<number, BadgePrefs>();
 
       for (const contact of contacts) {

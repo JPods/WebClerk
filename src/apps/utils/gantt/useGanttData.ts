@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Actions, Projects } from "../../../api/userProfile";
 import type { ApiKanbanItem } from "../kanban/kanbanDataMapper";
-import type { ProjectOption } from "./GanttProjectSelector";
+import type { ProjectOption, ProjectPrefs } from "./GanttProjectSelector";
 import { getProjectColor } from "./GanttProjectSelector";
 import {
   GanttDataset,
+  GanttMapOptions,
+  GanttMappedTask,
   ProjectActionData,
   mapProjectActionsToGantt,
 } from "./ganttDataMapper";
@@ -20,6 +22,10 @@ export interface UseGanttDataOptions {
   enabled?: boolean;
   autoRefresh?: boolean;
   isModalOpen?: boolean;
+  /** Whether to auto-sort tasks by start date (default: true) */
+  sortByDate?: boolean;
+  /** Custom task order (task IDs) - used when sortByDate is false */
+  customTaskOrder?: string[];
 }
 
 export interface UseGanttDataResult {
@@ -42,6 +48,10 @@ export interface UseGanttDataResult {
   
   // Optimistic updates
   updateTaskLocally: (taskId: string | number, updates: { start?: Date; end?: Date; progress?: number }) => void;
+  
+  // Task reordering
+  reorderTaskLocally: (fromIndex: number, toIndex: number) => void;
+  getTaskOrder: () => string[];
 }
 
 // Type guard for checking if response is valid
@@ -113,6 +123,18 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
   const intent = typeof record.intent === "string" ? record.intent : undefined;
   const ida = typeof record.ida === "string" ? record.ida : undefined;
   
+  // Parse prefs.action.color for project-specific task colors
+  let prefs: ProjectPrefs | undefined;
+  if (record.prefs && typeof record.prefs === "object") {
+    const prefsObj = record.prefs as Record<string, unknown>;
+    if (prefsObj.action && typeof prefsObj.action === "object") {
+      const actionPrefs = prefsObj.action as Record<string, unknown>;
+      if (typeof actionPrefs.color === "string") {
+        prefs = { action: { color: actionPrefs.color } };
+      }
+    }
+  }
+  
   // Since we already filter by is_active in the API call, accept all returned projects
   // Only filter out if explicitly marked as inactive
   const isExplicitlyInactive =
@@ -129,6 +151,7 @@ const parseProjectOption = (record: Record<string, unknown>): ProjectOption | nu
     slug,
     intent,
     ida,
+    prefs,
   };
 };
 
@@ -146,6 +169,8 @@ export const useGanttData = ({
   enabled = true,
   autoRefresh = true,
   isModalOpen = false,
+  sortByDate = true,
+  customTaskOrder,
 }: UseGanttDataOptions): UseGanttDataResult => {
   // Project state
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -165,9 +190,13 @@ export const useGanttData = ({
   const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
   const projectsRef = useRef<ProjectOption[]>([]);
+  const sortByDateRef = useRef(sortByDate);
+  const customTaskOrderRef = useRef(customTaskOrder);
   
-  // Keep projectsRef in sync with projects state
+  // Keep refs in sync with props
   projectsRef.current = projects;
+  sortByDateRef.current = sortByDate;
+  customTaskOrderRef.current = customTaskOrder;
   
   // Fetch projects
   const refetchProjects = useCallback(async () => {
@@ -267,14 +296,20 @@ export const useGanttData = ({
       
       if (!isMountedRef.current) return;
       
-      // Build color map based on selection order
+      // Build color map based on selection order, preferring project.prefs.action.color
       const colorMap = new Map<string, string>();
       selectedProjectIds.forEach((id) => {
-        colorMap.set(id, getProjectColor(id, selectedProjectIds));
+        const project = projectsRef.current.find((p) => p.id === id);
+        const prefsColor = project?.prefs?.action?.color;
+        colorMap.set(id, getProjectColor(id, selectedProjectIds, prefsColor));
       });
       
-      // Map to Gantt format
-      const mappedData = mapProjectActionsToGantt(projectsDataArray, colorMap);
+      // Map to Gantt format with sorting options
+      const mapOptions: GanttMapOptions = {
+        sortByDate: sortByDateRef.current,
+        customOrder: customTaskOrderRef.current,
+      };
+      const mappedData = mapProjectActionsToGantt(projectsDataArray, colorMap, mapOptions);
       
       setGanttData(mappedData);
       setLastRefreshTime(new Date());
@@ -379,6 +414,28 @@ export const useGanttData = ({
     }));
   }, []);
   
+  // Reorder task in the local task list (drag-and-drop support)
+  const reorderTaskLocally = useCallback((fromIndex: number, toIndex: number) => {
+    setGanttData((prev) => {
+      if (fromIndex < 0 || fromIndex >= prev.tasks.length ||
+          toIndex < 0 || toIndex >= prev.tasks.length ||
+          fromIndex === toIndex) {
+        return prev;
+      }
+      
+      const newTasks = [...prev.tasks];
+      const [movedTask] = newTasks.splice(fromIndex, 1);
+      newTasks.splice(toIndex, 0, movedTask);
+      
+      return { ...prev, tasks: newTasks };
+    });
+  }, []);
+  
+  // Get current task order as array of IDs
+  const getTaskOrder = useCallback((): string[] => {
+    return ganttData.tasks.map((task) => String(task.id));
+  }, [ganttData.tasks]);
+  
   return {
     projects,
     isLoadingProjects,
@@ -392,5 +449,7 @@ export const useGanttData = ({
     refetchActions,
     refetchAll,
     updateTaskLocally,
+    reorderTaskLocally,
+    getTaskOrder,
   };
 };

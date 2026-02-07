@@ -4,6 +4,12 @@
 
 import React, { useState, useMemo } from "react";
 
+export interface ProjectPrefs {
+  action?: {
+    color?: string;  // Hex color for project tasks, e.g., "#3b82f6"
+  };
+}
+
 export interface ProjectOption {
   id: string;
   name?: string;
@@ -11,6 +17,7 @@ export interface ProjectOption {
   intent?: string;
   ida?: string;
   actionCount?: number;
+  prefs?: ProjectPrefs;
 }
 
 interface GanttProjectSelectorProps {
@@ -35,10 +42,33 @@ const PROJECT_COLOR_PALETTE = [
   "#6366f1", // indigo-500
 ];
 
-export const getProjectColor = (projectId: string, selectedIds: string[]): string => {
+/**
+ * Get the color for a project.
+ * Priority: project.prefs.action.color > palette based on selection order
+ */
+export const getProjectColor = (
+  projectId: string,
+  selectedIds: string[],
+  projectPrefsColor?: string
+): string => {
+  // Prefer explicitly set color from project.prefs.action.color
+  if (projectPrefsColor && /^#[0-9A-Fa-f]{6}$/.test(projectPrefsColor)) {
+    return projectPrefsColor;
+  }
+  // Fall back to palette based on selection order
   const index = selectedIds.indexOf(projectId);
   if (index === -1) return PROJECT_COLOR_PALETTE[0];
   return PROJECT_COLOR_PALETTE[index % PROJECT_COLOR_PALETTE.length];
+};
+
+/**
+ * Get project color using full ProjectOption (convenience wrapper)
+ */
+export const getProjectColorFromOption = (
+  project: ProjectOption,
+  selectedIds: string[]
+): string => {
+  return getProjectColor(project.id, selectedIds, project.prefs?.action?.color);
 };
 
 export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
@@ -152,8 +182,9 @@ export const GanttProjectSelector: React.FC<GanttProjectSelectorProps> = ({
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
             {filteredProjects.map((project) => {
               const isSelected = selectedIds.includes(project.id);
+              // Use project.prefs.action.color if available, otherwise use palette color
               const color = isSelected
-                ? getProjectColor(project.id, selectedIds)
+                ? getProjectColor(project.id, selectedIds, project.prefs?.action?.color)
                 : undefined;
 
               return (

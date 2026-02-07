@@ -406,23 +406,30 @@ const createDependencyLinks = (
 };
 
 /**
- * Topological sort tasks so children appear after their parents.
- * Tasks without dependencies are sorted by start date.
- * Children appear after their latest (most recent in list) parent.
+ * Sort tasks so that children appear immediately after their last parent is placed.
+ * 
+ * This ensures that when viewing the task list:
+ * 1. Root tasks (no parents) are sorted by start date (earliest first)
+ * 2. A child task waits until ALL its parents are placed
+ * 3. Once ready, the child is inserted immediately after its last placed parent
+ * 
+ * Example: If Task C depends on A and B, and root order is A, B, X, Y
+ *          Then C appears right after B: A, B, C, X, Y
  */
 const topologicalSortByDependencies = (tasks: GanttMappedTask[]): GanttMappedTask[] => {
   if (tasks.length === 0) return [];
   
   // Build lookup maps
   const taskById = new Map<string, GanttMappedTask>();
-  const taskParents = new Map<string, string[]>(); // taskId -> [parentIds]
-  const taskChildren = new Map<string, string[]>(); // taskId -> [childIds]
+  const taskParents = new Map<string, Set<string>>(); // taskId -> Set of valid parentIds
+  const taskChildren = new Map<string, string[]>();   // taskId -> [childIds]
   
   for (const task of tasks) {
     const taskId = String(task.id);
     taskById.set(taskId, task);
+    
     const parents = (task as any).refParents || [];
-    taskParents.set(taskId, parents.map(String));
+    taskParents.set(taskId, new Set(parents.map(String)));
     
     for (const parentId of parents) {
       const parentIdStr = String(parentId);
@@ -433,24 +440,29 @@ const topologicalSortByDependencies = (tasks: GanttMappedTask[]): GanttMappedTas
     }
   }
   
-  // Separate tasks: those with parents vs root tasks (no parents)
+  // Filter parent sets to only include tasks that exist in our set
+  for (const [taskId, parents] of taskParents) {
+    const validParents = new Set<string>();
+    for (const parentId of parents) {
+      if (taskById.has(parentId)) {
+        validParents.add(parentId);
+      }
+    }
+    taskParents.set(taskId, validParents);
+  }
+  
+  // Separate tasks: root tasks (no valid parents) vs dependent tasks
   const rootTasks: GanttMappedTask[] = [];
-  const childTasks: GanttMappedTask[] = [];
   
   for (const task of tasks) {
     const taskId = String(task.id);
-    const parents = taskParents.get(taskId) || [];
-    // Only count parents that are in our task set
-    const validParents = parents.filter((p) => taskById.has(p));
-    
-    if (validParents.length === 0) {
+    const parents = taskParents.get(taskId) || new Set();
+    if (parents.size === 0) {
       rootTasks.push(task);
-    } else {
-      childTasks.push(task);
     }
   }
   
-  // Sort root tasks by start date
+  // Sort root tasks by start date (earliest first)
   rootTasks.sort((a, b) => {
     const aTime = a.start instanceof Date ? a.start.getTime() : 0;
     const bTime = b.start instanceof Date ? b.start.getTime() : 0;
@@ -460,57 +472,71 @@ const topologicalSortByDependencies = (tasks: GanttMappedTask[]): GanttMappedTas
   // Build result with topological ordering
   const result: GanttMappedTask[] = [];
   const placed = new Set<string>();
+  const unplacedParentCount = new Map<string, number>(); // Track how many parents still need placing
   
-  // Helper to place a task and then place its children
-  const placeTask = (task: GanttMappedTask) => {
-    const taskId = String(task.id);
-    if (placed.has(taskId)) return;
+  // Initialize unplaced parent counts
+  for (const [taskId, parents] of taskParents) {
+    unplacedParentCount.set(taskId, parents.size);
+  }
+  
+  // Helper to get and mark ready children (all parents placed), sorted by start date
+  const getReadyChildren = (placedParentId: string): GanttMappedTask[] => {
+    const children = taskChildren.get(placedParentId) || [];
+    const ready: GanttMappedTask[] = [];
     
-    // Check if all parents are placed
-    const parents = taskParents.get(taskId) || [];
-    const validParents = parents.filter((p) => taskById.has(p));
-    
-    for (const parentId of validParents) {
-      if (!placed.has(parentId)) {
-        // Parent not placed yet, place it first
-        const parent = taskById.get(parentId);
-        if (parent) {
-          placeTask(parent);
+    for (const childId of children) {
+      if (placed.has(childId)) continue;
+      
+      // Decrement unplaced parent count
+      const remaining = (unplacedParentCount.get(childId) || 1) - 1;
+      unplacedParentCount.set(childId, remaining);
+      
+      // Child is ready only if ALL parents are placed (remaining = 0)
+      if (remaining <= 0) {
+        const child = taskById.get(childId);
+        if (child) {
+          ready.push(child);
         }
       }
     }
     
-    // Now place this task
-    if (!placed.has(taskId)) {
-      result.push(task);
-      placed.add(taskId);
-    }
+    // Sort ready children by start date (earliest first)
+    ready.sort((a, b) => {
+      const aTime = a.start instanceof Date ? a.start.getTime() : 0;
+      const bTime = b.start instanceof Date ? b.start.getTime() : 0;
+      return aTime - bTime;
+    });
     
-    // Place children of this task (sorted by their start date)
-    const children = taskChildren.get(taskId) || [];
-    const childTasksToPlace = children
-      .map((cid) => taskById.get(cid))
-      .filter((t): t is GanttMappedTask => t !== undefined && !placed.has(String(t.id)))
-      .sort((a, b) => {
-        const aTime = a.start instanceof Date ? a.start.getTime() : 0;
-        const bTime = b.start instanceof Date ? b.start.getTime() : 0;
-        return aTime - bTime;
-      });
+    return ready;
+  };
+  
+  // Place a task and immediately cascade to any children that become ready
+  const placeTask = (task: GanttMappedTask) => {
+    const taskId = String(task.id);
+    if (placed.has(taskId)) return;
     
-    for (const child of childTasksToPlace) {
+    result.push(task);
+    placed.add(taskId);
+    
+    // Get children that are now ready (all their parents placed)
+    const readyChildren = getReadyChildren(taskId);
+    
+    // Recursively place ready children (they'll cascade to their children)
+    for (const child of readyChildren) {
       placeTask(child);
     }
   };
   
-  // Place all root tasks (this will cascade to their children)
+  // Place all root tasks (this cascades to children as they become ready)
   for (const rootTask of rootTasks) {
     placeTask(rootTask);
   }
   
-  // Place any remaining child tasks that weren't reached (handles orphaned children)
-  for (const childTask of childTasks) {
-    if (!placed.has(String(childTask.id))) {
-      placeTask(childTask);
+  // Handle any orphaned tasks (parents don't exist in our set)
+  for (const task of tasks) {
+    const taskId = String(task.id);
+    if (!placed.has(taskId)) {
+      placeTask(task);
     }
   }
   
@@ -639,12 +665,24 @@ const markCriticalPath = (tasks: GanttMappedTask[]): void => {
 };
 
 /**
+ * Options for mapping project actions to Gantt format
+ */
+export interface GanttMapOptions {
+  /** Whether to automatically sort tasks by start date (default: true) */
+  sortByDate?: boolean;
+  /** Custom task order (task IDs) to use instead of auto-sorting when sortByDate is false */
+  customOrder?: string[];
+}
+
+/**
  * Map multiple projects' actions to SVAR Gantt format
  */
 export const mapProjectActionsToGantt = (
   projectsData: ProjectActionData[],
-  projectColors: Map<string, string>
+  projectColors: Map<string, string>,
+  options: GanttMapOptions = {}
 ): GanttDataset => {
+  const { sortByDate = true, customOrder } = options;
   const allTasks: GanttMappedTask[] = [];
   const allActions: ApiKanbanItem[] = [];
   const seenTaskIds = new Set<string>();
@@ -674,13 +712,40 @@ export const mapProjectActionsToGantt = (
   // Create dependency links from refs.parents[]
   const allLinks = createDependencyLinks(allTasks, allActions);
   
-  // Topological sort: place children after their parents while maintaining chronological order
-  const sortedTasks = topologicalSortByDependencies(allTasks);
+  // Determine task ordering based on options
+  let orderedTasks: GanttMappedTask[];
+  
+  if (!sortByDate && customOrder && customOrder.length > 0) {
+    // Use custom order: place tasks in the order specified, with any remaining tasks at the end
+    const orderMap = new Map<string, number>();
+    customOrder.forEach((id, index) => orderMap.set(id, index));
+    
+    orderedTasks = [...allTasks].sort((a, b) => {
+      const aOrder = orderMap.get(String(a.id));
+      const bOrder = orderMap.get(String(b.id));
+      
+      // Tasks in customOrder come first, sorted by their order
+      if (aOrder !== undefined && bOrder !== undefined) {
+        return aOrder - bOrder;
+      }
+      // Tasks in customOrder come before tasks not in it
+      if (aOrder !== undefined) return -1;
+      if (bOrder !== undefined) return 1;
+      // Tasks not in customOrder keep original order
+      return 0;
+    });
+  } else if (sortByDate) {
+    // Topological sort: place children after their parents while maintaining chronological order
+    orderedTasks = topologicalSortByDependencies(allTasks);
+  } else {
+    // No sorting - keep order as received from API (natural order)
+    orderedTasks = allTasks;
+  }
   
   // Calculate and mark critical path
-  markCriticalPath(sortedTasks);
+  markCriticalPath(orderedTasks);
   
-  return { tasks: sortedTasks, links: allLinks };
+  return { tasks: orderedTasks, links: allLinks };
 };
 
 /**
