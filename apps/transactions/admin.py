@@ -67,14 +67,16 @@ class JSONBFieldsetMixin:
 
 @admin.register(Invoice)
 class InvoiceAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_created")
-    search_fields = ("id",)
+    list_display = ("id", "ida", "status", "customer_id", "total", "balance", "priority", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(InvoiceLine)
 class InvoiceLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "invoice_id", "status")
-    list_filter = ("status",)
+    list_display = ("id", "ida", "invoice_id", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 ##
@@ -87,8 +89,9 @@ class InvoiceLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
 
 @admin.register(WorkOrderLine)
 class WorkOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "workorder_id", "status")
-    list_filter = ("status",)
+    list_display = ("id", "ida", "workorder_id", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
     # Admin bulk actions used in tests
     actions = [
@@ -145,22 +148,23 @@ class WorkOrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_created", "status")
-    list_filter = ("status",)
-    search_fields = ("id",)
+    list_display = ("id", "ida", "status", "customer_id", "total", "balance", "priority", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(OrderLine)
 class OrderLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "order_id", "status")
-    list_filter = ("status",)
+    list_display = ("id", "ida", "order_id", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(Purchase)
 class PurchaseAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_created", "status")
-    list_filter = ("status",)
-    search_fields = ("id",)
+    list_display = ("id", "ida", "status", "vendor_id", "total", "balance", "priority", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(Project)
@@ -172,47 +176,51 @@ class ProjectAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
 
 @admin.register(PurchaseLine)
 class PurchaseLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "purchase", "status")
-    list_filter = ("status",)
+    list_display = ("id", "ida", "purchase", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(Proposal)
 class ProposalAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_created", "status")
-    list_filter = ("status",)
-    search_fields = ("id",)
+    list_display = ("id", "ida", "status", "customer_id", "total", "balance", "priority", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(ProposalLine)
 class ProposalLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "proposal_id", "status")
-    list_filter = ("status",)
+    list_display = ("id", "ida", "proposal_id", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(Requisition)
 class RequisitionAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_created", "status")
-    list_filter = ("status",)
-    search_fields = ("id",)
+    list_display = ("id", "ida", "name", "purpose", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida", "name")
 
 
 @admin.register(RequisitionLine)
 class RequisitionLineAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "requisition_id", "status")
-    list_filter = ("status",)
+    list_display = ("id", "ida", "requisition_id", "status", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 @admin.register(Receipt)
 class ReceiptAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_received")
-    search_fields = ("id",)
+    list_display = ("id", "ida", "dt_received", "is_active", "dt_created")
+    list_filter = ("is_active",)
+    search_fields = ("id", "ida")
 
 
 @admin.register(WorkOrder)
 class WorkOrderAdmin(JSONBFieldsetMixin, admin.ModelAdmin):
-    list_display = ("id", "dt_created", "status")
-    list_filter = ("status",)
-    search_fields = ("id",)
+    list_display = ("id", "ida", "status", "customer_id", "total", "balance", "priority", "is_active", "dt_created")
+    list_filter = ("status", "is_active")
+    search_fields = ("id", "ida")
 
 
 ##
