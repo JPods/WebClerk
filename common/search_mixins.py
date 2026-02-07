@@ -101,7 +101,7 @@ class PrefixAndSearchView(APIView):
             # Lazy import to avoid cycles
             from apps.core.models.setting import Setting  # type: ignore
             setting = (Setting.objects
-                       .filter(model_target=model_key, purpose='keywords', is_active=True)
+                       .filter(parent_model=model_key, purpose='keywords', is_active=True)
                        .order_by('-dt_modified')
                        .first())
             if not setting or not isinstance(setting.data, dict):

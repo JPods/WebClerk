@@ -92,7 +92,7 @@ class SettingsDrivenCRUDMixin:
                     continue
                 if rec.get("purpose") != self.SETTINGS_PURPOSE:
                     continue
-                mk_raw = rec.get("model_target") or rec.get("model_name") or ""
+                mk_raw = rec.get("parent_model") or rec.get("model_name") or ""
                 mk = mk_raw.strip().lower()
                 if mk:
                     out[mk] = rec
@@ -107,7 +107,7 @@ class SettingsDrivenCRUDMixin:
             return None, None
         try:
             row = (
-                Setting.objects.filter(is_active=True, purpose=self.SETTINGS_PURPOSE, model_target=model_key)
+                Setting.objects.filter(is_active=True, purpose=self.SETTINGS_PURPOSE, parent_model=model_key)
                 .order_by("-id")
                 .first()
             )
@@ -119,7 +119,7 @@ class SettingsDrivenCRUDMixin:
                     "name": getattr(row, "name", model_key),
                     "purpose": row.purpose,
                     "role": getattr(row, "role", "all"),
-                    "model_target": row.model_target,
+                    "parent_model": row.parent_model,
                     "data": getattr(row, "data", {}) or {},
                     "comment": getattr(row, "comment", "") or "",
                 },

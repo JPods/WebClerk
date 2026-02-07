@@ -10,6 +10,7 @@ from apps.core.views.choices import ChoiceCatalogView
 from apps.core.views.system_info import SystemInfoView
 from apps.core.views.dev_tools import dev_config_status, dev_switch_mode, dev_restart_servers
 from apps.transactions.views.wcapi import WCAPITransactionSaveView
+from apps.docs.views_qa import ApplyQuestionsView, ListQuestionGroupsView, ParentQAView
 
 urlpatterns = [
     # Auth API
@@ -34,6 +35,10 @@ urlpatterns = [
     path("wcapi/model_name/detail/", ModelDetailView.as_view(), name="model-detail"),
     path("wcapi/choices/", ChoiceCatalogView.as_view(), name="wcapi-choice-catalog"),
     path("wcapi/system-info/", SystemInfoView.as_view(), name="system-info"),
+    # QA endpoints
+    path("wcapi/qa/apply/", ApplyQuestionsView.as_view(), name="wcapi-qa-apply"),
+    path("wcapi/qa/groups/", ListQuestionGroupsView.as_view(), name="wcapi-qa-groups"),
+    path("wcapi/qa/<str:parent_model>/<int:parent_id>/", ParentQAView.as_view(), name="wcapi-qa-parent"),
     # Dev tools endpoints (development only)
     path("wcapi/dev/config/", dev_config_status, name="dev-config"),
     path("wcapi/dev/switch/", dev_switch_mode, name="dev-switch"),

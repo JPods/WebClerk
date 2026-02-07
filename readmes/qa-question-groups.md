@@ -4,7 +4,7 @@ QA question groups are defined in the `Setting` model with `purpose='qa_question
 
 ## Scope Levels
 
-| Level | `model_target` Value | Example | Shows For |
+| Level | `parent_model` Value | Example | Shows For |
 |-------|---------------------|---------|-----------|
 | **Global** | `null` or empty | Planning, Prepress | All models |
 | **App-level** | App name (e.g., `"transactions"`) | Transaction Review | All models in that app |
@@ -32,7 +32,7 @@ from apps.core.models.setting import Setting
 Setting.objects.create(
     purpose='qa_questions',
     name='General Checklist',
-    model_target=None,  # or omit entirely
+    parent_model=None,  # or omit entirely
     data={
         'template': {
             'allow_freeform': True,
@@ -60,7 +60,7 @@ Setting.objects.create(
 Setting.objects.create(
     purpose='qa_questions',
     name='Transaction Review',
-    model_target='transactions',  # Applies to order, purchase, workorder, etc.
+    parent_model='transactions',  # Applies to order, purchase, workorder, etc.
     data={
         'template': {'allow_freeform': True},
         'questions': [
@@ -83,7 +83,7 @@ Setting.objects.create(
 Setting.objects.create(
     purpose='qa_questions',
     name='Order Checklist',
-    model_target='order',  # Only shows for orders
+    parent_model='order',  # Only shows for orders
     data={
         'template': {'allow_freeform': True},
         'questions': [
@@ -149,13 +149,49 @@ Question-level options override template defaults.
 ```
 GET /wcapi/get/?model_name=setting&purpose=qa_questions
 GET /wcapi/get/?model_name=setting&purpose=qa_questions&name=Planning
-GET /wcapi/get/?model_name=setting&purpose=qa_questions&model_target=order
+GET /wcapi/get/?model_name=setting&purpose=qa_questions&parent_model=order
 ```
 
 ### Fetch Answers for a Record
 
 ```
-GET /wcapi/get/?model_name=question_answer&parent_type=order&parent_id=22
+GET /wcapi/get/?model_name=question_answer&parent_model=order&parent_id=22
+```
+
+Or use the dedicated QA endpoint:
+
+```
+GET /api/docs/qa/order/22/
+GET /api/docs/qa/order/22/?question_group=Planning
+```
+
+### Apply Question Group (Create QA Records)
+
+Create QuestionAnswer records for all questions in a template:
+
+```
+POST /api/docs/qa/apply/
+{
+  "question_group": "Planning",
+  "parent_model": "order",
+  "parent_id": 22
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "created_count": 5,
+  "existing_count": 0,
+  "records": [...]
+}
+```
+
+### List Available Question Groups
+
+```
+GET /api/docs/qa/groups/
 ```
 
 ### Save Answer
@@ -170,12 +206,29 @@ POST /wcapi/save/
     "setting_id": 119,
     "question_id": 1001,
     "answer_id": 10001,
-    "parent_type": "order",
+    "parent_model": "order",
     "parent_id": 22,
     "status": "answered"
   }
 }
 ```
+
+## QuestionAnswer Model Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | int | Primary key |
+| `question` | str | Question text |
+| `answer` | str | Answer text (freeform or selected choice) |
+| `setting_id` | FK | Link to Setting (question template) |
+| `question_id` | int | ID of question within Setting |
+| `answer_id` | int | ID of selected answer choice |
+| `parent_model` | str | Model name of parent record (e.g., 'order', 'customer') |
+| `parent_id` | int | ID of parent record |
+| `status` | str | 'open', 'answered', 'closed' |
+| `sequence` | int | Display order |
+| `metadata` | json | Options, choices, images, etc. |
+| `answered_by` | json | Contact who answered: `{id, attention}` |
 
 ## Existing Groups
 
@@ -209,9 +262,9 @@ The `QATab` component in React automatically:
 Dropdown display:
 ```
 -- Select Group --
-▼ Order Only           (model_target = "order")
-▼ All Transactions     (model_target = "transactions")  
-▼ All Models           (model_target = null)
+▼ Order Only           (parent_model = "order")
+▼ All Transactions     (parent_model = "transactions")  
+▼ All Models           (parent_model = null)
 ```
 
 ## Future Enhancements
@@ -227,7 +280,7 @@ Dropdown display:
 Setting.objects.create(
     purpose='qa_questions',
     name='New Template',
-    model_target='order',  # or app name or null for global
+    parent_model='order',  # or app name or null for global
     data=provided_json
 )
 ```

@@ -4,7 +4,7 @@ QA Views - API endpoints for question/answer operations.
 Endpoints:
 - POST /api/docs/qa/apply/ - Apply a question template to a parent record
 - GET  /api/docs/qa/groups/ - List available question groups
-- GET  /api/docs/qa/{parent_type}/{parent_id}/ - Get QA records for a parent
+- GET  /api/docs/qa/{parent_model}/{parent_id}/ - Get QA records for a parent
 """
 
 from rest_framework.views import APIView
@@ -28,7 +28,7 @@ class ApplyQuestionsView(APIView):
     Request body:
     {
         "question_group": "Planning",
-        "parent_type": "sales_order",
+        "parent_model": "order",
         "parent_id": 123,
         "contact_data": {"id": 456, "attention": "John Doe"}  // optional
     }
@@ -45,18 +45,19 @@ class ApplyQuestionsView(APIView):
     
     def post(self, request):
         question_group = request.data.get('question_group')
-        parent_type = request.data.get('parent_type')
+        setting_id = request.data.get('setting_id')  # Optional: direct lookup by ID
+        parent_model = request.data.get('parent_model')
         parent_id = request.data.get('parent_id')
         contact_data = request.data.get('contact_data')
         
-        if not question_group:
+        if not question_group and not setting_id:
             return Response(
-                {'error': 'question_group is required'},
+                {'error': 'question_group or setting_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if not parent_type:
+        if not parent_model:
             return Response(
-                {'error': 'parent_type is required'},
+                {'error': 'parent_model is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         if not parent_id:
@@ -69,7 +70,8 @@ class ApplyQuestionsView(APIView):
             service = QAService()
             records = service.apply_questions(
                 question_group=question_group,
-                parent_type=parent_type,
+                setting_id=int(setting_id) if setting_id else None,
+                parent_model=parent_model,
                 parent_id=int(parent_id),
                 user=request.user,
                 contact_data=contact_data
@@ -147,8 +149,8 @@ class ListQuestionGroupsView(APIView):
 class ParentQAView(APIView):
     """Get QA records for a parent record.
     
-    GET /api/docs/qa/{parent_type}/{parent_id}/
-    GET /api/docs/qa/{parent_type}/{parent_id}/?question_group=Planning
+    GET /api/docs/qa/{parent_model}/{parent_id}/
+    GET /api/docs/qa/{parent_model}/{parent_id}/?question_group=Planning
     
     Response:
     {
@@ -157,13 +159,13 @@ class ParentQAView(APIView):
     """
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, parent_type, parent_id):
+    def get(self, request, parent_model, parent_id):
         question_group = request.query_params.get('question_group')
         
         try:
             service = QAService()
             records = service.get_questions_for_parent(
-                parent_type=parent_type,
+                parent_model=parent_model,
                 parent_id=int(parent_id),
                 question_group=question_group
             )

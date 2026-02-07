@@ -208,9 +208,9 @@ class ActionAdmin(admin.ModelAdmin):
 @admin.register(Setting)
 class SettingAdmin(admin.ModelAdmin):
     """Admin interface for Setting model."""
-    list_display = ('id', 'name', 'purpose', 'model_target', 'role')
+    list_display = ('id', 'name', 'purpose', 'parent_model', 'role')
     list_filter = ('purpose', 'role')
-    search_fields = ('name', 'purpose', 'model_target')
+    search_fields = ('name', 'purpose', 'parent_model')
     readonly_fields = ('uuid', 'dt_created', 'dt_modified')
 
 
