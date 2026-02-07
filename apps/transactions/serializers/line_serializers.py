@@ -171,9 +171,10 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'uuid', 'situation', 'objective', 'priority', 'status', 'attention',
+            'id', 'uuid', 'name', 'situation', 'objective', 'priority', 'status', 'attention',
             'contact_id', 'tasks', 'burndown', 'category', 'intent', 'logistics',
-            'profit', 'profit_velocity', 'security_level', 'data', 'dt_created', 'dt_modified', 'version'
+            'profit', 'profit_velocity', 'security_level', 'data', 'prefs',
+            'dt_created', 'dt_modified', 'version'
         ]
     read_only_fields = ['id', 'uuid', 'burndown', 'dt_created', 'dt_modified', 'version']
 
