@@ -330,11 +330,11 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">progress</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">percent_complete</label>
                 <select
                   className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  value={formState.progress}
-                  onChange={(event) => onFieldChange("progress", event.target.value)}
+                  value={formState.percent_complete}
+                  onChange={(event) => onFieldChange("percent_complete", event.target.value)}
                   disabled={isSaving}
                 >
                   {progressOptions.map((option) => (
@@ -417,8 +417,8 @@ export const KanbanTaskModal: React.FC<KanbanTaskModalProps> = ({
                 <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Current Task Status</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500 dark:text-gray-400">Progress:</span>
-                    <span className="ml-1 font-medium text-gray-900 dark:text-white">{currentTask.progress || 0}%</span>
+                    <span className="text-gray-500 dark:text-gray-400">percent_complete:</span>
+                    <span className="ml-1 font-medium text-gray-900 dark:text-white">{currentTask.percent_complete || 0}%</span>
                   </div>
                   <div>
                     <span className="text-gray-500 dark:text-gray-400">Tags:</span>

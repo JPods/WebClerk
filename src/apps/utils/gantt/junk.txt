@@ -1,3 +1,0 @@
-Let's clean up the action data
-Loop through records 
-with the following behaviors

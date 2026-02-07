@@ -33,6 +33,8 @@
   static readonly notionTracker: string = "/notion-tracker";
   static readonly kanbanBoard: string = "/kanban-board";
   static readonly kanbanBoardData: string = "/kanban-board-data";
+  static readonly gantt: string = "/gantt";
+  // Deprecated gantt routes - redirect to /gantt
   static readonly kanbanGantt: string = "/kanban-gantt";
   static readonly svarGantt: string = "/svar-gantt";
   static readonly multiProjectGantt: string = "/multi-project-gantt";

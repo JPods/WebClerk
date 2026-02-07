@@ -24,7 +24,7 @@ const actionSchema = z.object({
   priority: z.number().min(1).max(4).optional(),
   difficulty: z.number().min(1).max(5).optional(),
   status: z.string().optional(),
-  progress: z.number().min(0).max(100).optional(),
+  percent_complete: z.number().min(0).max(100).optional(),
   dt_deadline: z.string().optional(),
   dt_start: z.string().optional(),
   dt_end: z.string().optional(),
@@ -85,7 +85,7 @@ export default function ActionDetail({
       setValue("priority", data.priority || 1);
       setValue("difficulty", data.difficulty || 1);
       setValue("status", data.status || "");
-      setValue("progress", data.progress || 0);
+      setValue("percent_complete", data.percent_complete || 0);
       setValue("project_name", data.project_name || "");
       
       // Format dates for input fields
@@ -128,7 +128,7 @@ export default function ActionDetail({
       priority: formValues.priority || 1,
       difficulty: formValues.difficulty || 1,
       status: formValues.status || "active",
-      progress: formValues.progress || 0,
+      percent_complete: formValues.percent_complete || 0,
       dt_deadline: formValues.dt_deadline ? new Date(formValues.dt_deadline).toISOString() : null,
       dt_start: formValues.dt_start ? new Date(formValues.dt_start).toISOString() : null,
       dt_end: formValues.dt_end ? new Date(formValues.dt_end).toISOString() : null,
@@ -213,7 +213,7 @@ export default function ActionDetail({
           <div className="space-y-4">
             <h4 className="text-md font-semibold dark:text-white border-b pb-2">Action Title</h4>
             <div>
-              <Label htmlFor="action_en">Action (English) *</Label>
+              <Label htmlFor="action_en">action_en *</Label>
               <Input
                 type="text"
                 id="action_en"
@@ -225,7 +225,7 @@ export default function ActionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="action_ar">Action (Arabic)</Label>
+              <Label htmlFor="action_ar">action_ar</Label>
               <Input
                 type="text"
                 id="action_ar"
@@ -235,7 +235,7 @@ export default function ActionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="action_bn">Action (Bengali)</Label>
+              <Label htmlFor="action_bn">action_bn</Label>
               <Input
                 type="text"
                 id="action_bn"
@@ -250,7 +250,7 @@ export default function ActionDetail({
           <div className="space-y-4">
             <h4 className="text-md font-semibold dark:text-white border-b pb-2">Description</h4>
             <div>
-              <Label htmlFor="description_en">Description (English)</Label>
+              <Label htmlFor="description_en">description_en</Label>
               <textarea
                 id="description_en"
                 rows={3}
@@ -261,7 +261,7 @@ export default function ActionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="description_ar">Description (Arabic)</Label>
+              <Label htmlFor="description_ar">description_ar</Label>
               <textarea
                 id="description_ar"
                 rows={3}
@@ -272,7 +272,7 @@ export default function ActionDetail({
               />
             </div>
             <div>
-              <Label htmlFor="description_bn">Description (Bengali)</Label>
+              <Label htmlFor="description_bn">description_bn</Label>
               <textarea
                 id="description_bn"
                 rows={3}
@@ -289,7 +289,7 @@ export default function ActionDetail({
             <h4 className="text-md font-semibold dark:text-white border-b pb-2">Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="project_name">Project Name</Label>
+                <Label htmlFor="project_name">project_name</Label>
                 <Input
                   type="text"
                   id="project_name"
@@ -299,7 +299,7 @@ export default function ActionDetail({
                 />
               </div>
               <div>
-                <Label htmlFor="kanban_column">Kanban Column</Label>
+                <Label htmlFor="kanban_column">kanban_column</Label>
                 <Input
                   type="text"
                   id="kanban_column"
@@ -309,7 +309,7 @@ export default function ActionDetail({
                 />
               </div>
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">status</Label>
                 <select
                   id="status"
                   {...register("status")}
@@ -324,7 +324,7 @@ export default function ActionDetail({
                 </select>
               </div>
               <div>
-                <Label htmlFor="priority">Priority (1-4)</Label>
+                <Label htmlFor="priority">priority</Label>
                 <select
                   id="priority"
                   {...register("priority", { valueAsNumber: true })}
@@ -338,7 +338,7 @@ export default function ActionDetail({
                 </select>
               </div>
               <div>
-                <Label htmlFor="difficulty">Difficulty (1-5)</Label>
+                <Label htmlFor="difficulty">difficulty</Label>
                 <Input
                   type="number"
                   id="difficulty"
@@ -350,14 +350,14 @@ export default function ActionDetail({
                 />
               </div>
               <div>
-                <Label htmlFor="progress">Progress (%)</Label>
+                <Label htmlFor="percent_complete">percent_complete</Label>
                 <Input
                   type="number"
-                  id="progress"
+                  id="percent_complete"
                   min="0"
                   max="100"
                   placeholder="0-100"
-                  {...register("progress", { valueAsNumber: true })}
+                  {...register("percent_complete", { valueAsNumber: true })}
                   disabled={mode === "view"}
                 />
               </div>
@@ -367,9 +367,9 @@ export default function ActionDetail({
           {/* Dates */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold dark:text-white border-b pb-2">Dates</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <Label htmlFor="dt_start">Start Date</Label>
+                <Label htmlFor="dt_start">dt_start</Label>
                 <Input
                   type="date"
                   id="dt_start"
@@ -378,7 +378,7 @@ export default function ActionDetail({
                 />
               </div>
               <div>
-                <Label htmlFor="dt_deadline">Due Date</Label>
+                <Label htmlFor="dt_deadline">dt_deadline</Label>
                 <Input
                   type="date"
                   id="dt_deadline"
@@ -387,13 +387,30 @@ export default function ActionDetail({
                 />
               </div>
               <div>
-                <Label htmlFor="dt_end">End Date</Label>
+                <Label htmlFor="dt_end">dt_end</Label>
                 <Input
                   type="date"
                   id="dt_end"
                   {...register("dt_end")}
                   disabled={mode === "view"}
                 />
+              </div>
+              <div>
+                <Label>Duration</Label>
+                <div className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                  {data?.duration != null 
+                    ? `${data.duration} day${data.duration !== 1 ? 's' : ''}`
+                    : (data?.dt_start && data?.dt_deadline
+                      ? (() => {
+                          const start = new Date(data.dt_start);
+                          const end = new Date(data.dt_deadline);
+                          const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                          return `${days} day${days !== 1 ? 's' : ''}`;
+                        })()
+                      : '—'
+                    )
+                  }
+                </div>
               </div>
             </div>
           </div>

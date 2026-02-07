@@ -40,12 +40,16 @@ export function useDataSetInfo(autoFetch: boolean = true): UseDataSetInfoResult 
       const info = await fetchBackendSystemInfo(NetworkInfo.API_URL);
       setBackend(info);
       
-      // Log to console for debugging
-      logDataSetInfo(frontend, info);
+      // Log to console for debugging (only if we got info)
+      if (info) {
+        logDataSetInfo(frontend, info);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch system info';
-      setError(errorMessage);
-      console.error('Failed to fetch backend system info:', errorMessage);
+      // Only log errors in development, system_info endpoint may not exist
+      if (import.meta.env.DEV) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch system info';
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

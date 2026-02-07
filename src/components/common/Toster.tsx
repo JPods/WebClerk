@@ -14,7 +14,6 @@ const toastColors = {
 
 const Toster = () => {
   const { message, type, open } = useSelector((state: RootState) => state.toast);
-  console.log("Toast message:", type, message, open);
   const dispatch = useDispatch();
   
   useEffect(() => {

@@ -3,7 +3,6 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import ComponentCard from "../../../../../components/common/ComponentCard";
 import Label from "../../../../../components/form/Label";
 import { Input } from "../../../../../components/wrapper";
 
@@ -15,6 +14,7 @@ import { useLocation } from "react-router";
 import { vendorSchema } from "../utils/vendorSchema";
 import { VendorAddProps } from "../types/vendorType";
 import Checkbox from "@/components/form/input/Checkbox";
+import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
 
 export default function VendorDetail({
   modeProp,
@@ -30,12 +30,13 @@ export default function VendorDetail({
     register,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty, isSubmitting },
     reset,
     control,
+    watch,
   } = useForm<z.infer<typeof vendorSchema>>({
     resolver: zodResolver(vendorSchema),
-    defaultValues: { is_active: false, version: 1, org_type: "Rep" },
+    defaultValues: { is_active: false, version: 1, org_type: "Vendor" },
   });
 
   const location = useLocation();
@@ -55,9 +56,8 @@ export default function VendorDetail({
       reset({});
     }
   }, [data, reset, setValue, mode]);
-  console.log("errors", errors);
+
   const onSubmit = async (formData: z.infer<typeof vendorSchema>) => {
-    console.log("formData", formData);
     try {
       const res =
         mode === "add"
@@ -81,6 +81,24 @@ export default function VendorDetail({
     }
   };
 
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    if (mode === "add") {
+      reset();
+    } else if (data) {
+      reset(data);
+    }
+  };
+
+  const headerDisplayName =
+    watch("display_name") || data?.display_name || "New Vendor";
+  const headerIsActive = Boolean(watch("is_active") ?? data?.is_active);
+  const headerOrgType = watch("org_type") || data?.org_type || "Vendor";
+  const headerVersion = watch("version") ?? data?.version ?? 1;
+
   return (
     <>
       {!hideBreadcrumb && !inline && (
@@ -94,95 +112,124 @@ export default function VendorDetail({
           }
         />
       )}
-      <ComponentCard>
-        {inline && (
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="dark:text-white text-lg font-semibold">
-              {mode === "edit"
-                ? "Edit Vendor"
-                : mode === "view"
-                ? "View Vendor"
-                : "Add New Vendor"}
-            </h3>
-            {onCancelInline && (
+
+      <div className="h-full flex flex-col bg-white dark:bg-slate-900">
+        <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {headerDisplayName}
+              </h2>
+              <div className="flex items-center gap-3 mt-1">
+                <span
+                  className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                    headerIsActive
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                  }`}
+                >
+                  {headerIsActive ? "Active" : "Inactive"}
+                </span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  {headerOrgType} • v{headerVersion}
+                </span>
+                {(mode === "edit" || mode === "add") && isDirty && (
+                  <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                    Unsaved changes
+                  </span>
+                )}
+              </div>
+            </div>
+            {inline && onCancelInline && (
               <button
                 type="button"
                 onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="ml-4 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                title="Close"
               >
-                &times;
+                Close
               </button>
             )}
           </div>
+        </div>
+
+        {(mode === "edit" || mode === "add") && (
+          <div className="sticky top-0 z-20 mx-0 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+            <TransactionToolbar
+              transactionType="order"
+              transactionId={data?.id}
+              isDirty={isDirty}
+              isSaving={isSubmitting}
+              isEditing
+              onSave={handleSubmit(async (fd) => {
+                await onSubmit(fd);
+              })}
+              onSaveAndClose={
+                inline && onCancelInline
+                  ? handleSubmit(async (fd) => {
+                      await onSubmit(fd);
+                      onCancelInline();
+                    })
+                  : undefined
+              }
+              onCancel={handleCancel}
+              canClone={false}
+              canTransfer={false}
+              canDelete={false}
+              showTaskButton={false}
+            />
+          </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="display_name">display_name</Label>
-              <Input
-                type="text"
-                id="display_name"
-                placeholder="Display Name"
-                {...register("display_name")}
-                error={
-                  errors.display_name && errors.display_name.message
-                    ? true
-                    : false
-                }
-                hint={errors.display_name && errors.display_name.message}
-                disabled={mode === "view"}
-              />
+
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit(onSubmit)} className="h-full">
+            <div className="p-4 space-y-4">
+              <div>
+                <Label htmlFor="display_name">Display Name</Label>
+                <Input
+                  type="text"
+                  id="display_name"
+                  placeholder="Display Name"
+                  {...register("display_name")}
+                  error={!!errors.display_name}
+                  hint={errors.display_name?.message}
+                  disabled={mode === "view"}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Input
+                  type="text"
+                  id="status"
+                  placeholder="Status"
+                  {...register("status")}
+                  error={!!errors.status}
+                  hint={errors.status?.message}
+                  disabled={mode === "view"}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex items-center">
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="is_active"
+                      checked={field.value ?? false}
+                      onChange={field.onChange}
+                      label="Active"
+                    />
+                  )}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="status">status</Label>
-              <Input
-                type="text"
-                id="status"
-                placeholder="status"
-                {...register("status")}
-                error={errors.status && errors.status.message ? true : false}
-                hint={errors.status && errors.status.message}
-                disabled={mode === "view"}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="is_active"
-                    checked={field.value ?? false}
-                    onChange={field.onChange}
-                    label="is_active"
-                  />
-                )}
-              />
-            </div>
-          </div>
-          {mode !== "view" && (
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
-              >
-                {mode === "edit" ? "Update" : "Submit"}
-              </button>
-              {inline && onCancelInline && (
-                <button
-                  type="button"
-                  onClick={onCancelInline}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
-        </form>
-      </ComponentCard>
+          </form>
+        </div>
+      </div>
     </>
   );
 }
