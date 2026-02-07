@@ -18,6 +18,7 @@ import "@svar-ui/react-gantt/all.css";
 import KanbanTaskModal from "../kanban/KanbanTaskModal";
 import type { TaskFormEditableField, TaskFormState } from "../kanban/taskFormTypes";
 import { patchAction } from "../../../api/userProfile";
+import { saveRecord, getRecord } from "../../../api/wcapi";
 import { createEmptyBoardData } from "../kanban/kanbanDataMapper";
 import type { BoardData, KanbanTask, TaskPriority } from "../kanban/type/kanban";
 import {
@@ -89,8 +90,45 @@ const formatDate = (value?: Date) => (value ? ganttDateFormatter.format(value) :
 // SVAR template signature: (value: string, task: ITask, column: IColumnConfig)
 // The task with all custom properties is in the 2nd argument
 
+// Reorder column for manual task ordering (shown when auto-sort is disabled)
+// Uses a global event emitter pattern since SVAR templates can't directly call React state setters
+let _reorderCallback: ((taskId: string, direction: 'up' | 'down') => void) | null = null;
+
+const createReorderColumn = (): IColumnConfig => ({
+  id: "reorder",
+  header: "#",
+  width: 55,
+  align: "center",
+  template: (_value: unknown, task: GanttMappedTask, _column: IColumnConfig) => {
+    const taskId = String(task?.id || "");
+    // Render up/down arrow buttons as HTML
+    return `
+      <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+        <button 
+          onclick="window.__ganttMoveTask?.('${taskId}', 'up')"
+          style="border:none;background:transparent;cursor:pointer;padding:2px;color:#6b7280;line-height:1;"
+          title="Move up"
+        >▲</button>
+        <button 
+          onclick="window.__ganttMoveTask?.('${taskId}', 'down')"
+          style="border:none;background:transparent;cursor:pointer;padding:2px;color:#6b7280;line-height:1;"
+          title="Move down"
+        >▼</button>
+      </div>
+    `;
+  },
+});
+
 // Factory function to create columns (taskLookup no longer needed since task is in arg[1])
-const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>): IColumnConfig[] => [
+const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): IColumnConfig[] => {
+  const columns: IColumnConfig[] = [];
+  
+  // Add reorder column first if enabled
+  if (includeReorder) {
+    columns.push(createReorderColumn());
+  }
+  
+  columns.push(
   {
     id: "taskIda",
     header: "IDA",
@@ -172,12 +210,14 @@ const createGanttColumns = (_taskLookup: Map<string, GanttMappedTask>): IColumnC
       if (varianceDays > 0) return `<span style="color:#dc2626;font-weight:600">+${varianceDays}d</span>`;
       return `<span style="color:#059669">${varianceDays}d</span>`;
     },
-  },
-];
+  });
+  
+  return columns;
+};
 
 // Factory for single-project mode (hides project column)
-const createGanttColumnsSingleProject = (taskLookup: Map<string, GanttMappedTask>): IColumnConfig[] => 
-  createGanttColumns(taskLookup).filter((col) => col.id !== "projectIda");
+const createGanttColumnsSingleProject = (taskLookup: Map<string, GanttMappedTask>, includeReorder: boolean = false): IColumnConfig[] => 
+  createGanttColumns(taskLookup, includeReorder).filter((col) => col.id !== "projectIda");
 
 type ScalePresetKey = "day" | "week" | "month" | "quarter";
 type ScaleConfig = { unit: string; step: number; format: (date: Date) => string };
@@ -300,6 +340,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   // Task list (grid) collapsed state - shows only minimal columns when collapsed
   const [taskListCollapsed, setTaskListCollapsed] = useState(false);
   
+  // Sorting state - auto-sort by start date toggle
+  const [autoSortByDate, setAutoSortByDate] = useState(true);
+  
+  // Custom task order (used when autoSortByDate is false)
+  const [customTaskOrder, setCustomTaskOrder] = useState<string[]>([]);
+  
   // Project selection state
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(() => {
     if (projectId) return [projectId];
@@ -313,7 +359,12 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     }
   }, [projectId]);
   
-  // Modal state
+  // Refs for task order saving (placed before useGanttData since they don't depend on it)
+  const saveOrderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingOrderRef = useRef(false);
+  const hasLoadedOrderRef = useRef<string | null>(null); // Track which project's order we've loaded
+  
+  // Modal state (placed here to be available for useGanttData)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editAssigneeUIMode, setEditAssigneeUIMode] = useState<'dropdown' | 'chips'>('dropdown');
   
@@ -330,12 +381,156 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     refetchActions,
     refetchAll,
     updateTaskLocally,
+    reorderTaskLocally,
+    getTaskOrder,
   } = useGanttData({
     selectedProjectIds,
     enabled: true,
     autoRefresh: autoRefresh,
     isModalOpen: isEditModalOpen,
+    sortByDate: autoSortByDate,
+    customTaskOrder: autoSortByDate ? undefined : customTaskOrder,
   });
+  
+  // Save task order to project.refs.links.actions
+  // Uses debouncing to avoid excessive API calls during rapid reordering
+  const saveTaskOrderToProject = useCallback(async (tasks: GanttMappedTask[]) => {
+    // Only save in single-project mode
+    if (!projectId || selectedProjectIds.length !== 1) {
+      console.log('[UnifiedGantt] Skipping save: not in single-project mode');
+      return;
+    }
+    
+    // Build the action order array in the required format
+    const actionOrder = tasks.map((task) => ({
+      id: Number(task.id),
+      "action.en": task.text || task.title || "",
+    }));
+    
+    try {
+      isSavingOrderRef.current = true;
+      const payload = {
+        id: Number(projectId),
+        refs: {
+          links: {
+            actions: actionOrder,
+          },
+        },
+      };
+      
+      console.log('[UnifiedGantt] Saving task order to project:', payload);
+      await saveRecord("project", payload);
+      console.log('[UnifiedGantt] Task order saved successfully');
+    } catch (error) {
+      console.error('[UnifiedGantt] Failed to save task order:', error);
+    } finally {
+      isSavingOrderRef.current = false;
+    }
+  }, [projectId, selectedProjectIds]);
+  
+  // Debounced save function
+  const debouncedSaveOrder = useCallback((tasks: GanttMappedTask[]) => {
+    // Clear any pending save
+    if (saveOrderTimeoutRef.current) {
+      clearTimeout(saveOrderTimeoutRef.current);
+    }
+    
+    // Schedule new save after 500ms delay
+    saveOrderTimeoutRef.current = setTimeout(() => {
+      saveTaskOrderToProject(tasks);
+    }, 500);
+  }, [saveTaskOrderToProject]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveOrderTimeoutRef.current) {
+        clearTimeout(saveOrderTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Setup global handler for task reorder buttons
+  // This is needed because SVAR templates render HTML strings, not React components
+  useEffect(() => {
+    const handleMoveTask = (taskId: string, direction: 'up' | 'down') => {
+      const currentTasks = ganttData.tasks;
+      const taskIndex = currentTasks.findIndex((t) => String(t.id) === taskId);
+      if (taskIndex === -1) return;
+      
+      const newIndex = direction === 'up' 
+        ? Math.max(0, taskIndex - 1)
+        : Math.min(currentTasks.length - 1, taskIndex + 1);
+      
+      if (newIndex !== taskIndex) {
+        reorderTaskLocally(taskIndex, newIndex);
+        // Update custom order state
+        setCustomTaskOrder(getTaskOrder());
+        
+        // Save order to project (debounced)
+        // Calculate the new tasks array for saving
+        const newTasks = [...currentTasks];
+        const [movedTask] = newTasks.splice(taskIndex, 1);
+        newTasks.splice(newIndex, 0, movedTask);
+        debouncedSaveOrder(newTasks);
+      }
+    };
+    
+    // Attach to window for HTML button onclick access
+    (window as any).__ganttMoveTask = handleMoveTask;
+    
+    return () => {
+      delete (window as any).__ganttMoveTask;
+    };
+  }, [ganttData.tasks, reorderTaskLocally, getTaskOrder, debouncedSaveOrder]);
+  
+  // Load saved task order from project.refs.links.actions on mount / project change
+  useEffect(() => {
+    // Only load in single-project mode
+    if (!projectId || selectedProjectIds.length !== 1) {
+      return;
+    }
+    
+    // Avoid re-loading for the same project
+    if (hasLoadedOrderRef.current === projectId) {
+      return;
+    }
+    
+    const loadSavedTaskOrder = async () => {
+      try {
+        console.log('[UnifiedGantt] Loading saved task order for project:', projectId);
+        const project = await getRecord("project", Number(projectId));
+        
+        if (!project) {
+          console.log('[UnifiedGantt] Project not found');
+          return;
+        }
+        
+        const savedActions = project?.refs?.links?.actions;
+        if (Array.isArray(savedActions) && savedActions.length > 0) {
+          // Extract IDs in order from saved actions
+          const savedOrder = savedActions
+            .filter((a: any) => a && typeof a.id === 'number')
+            .map((a: any) => String(a.id));
+          
+          if (savedOrder.length > 0) {
+            console.log('[UnifiedGantt] Found saved task order:', savedOrder);
+            setCustomTaskOrder(savedOrder);
+            setAutoSortByDate(false); // Disable auto-sort to use custom order
+            hasLoadedOrderRef.current = projectId;
+          }
+        } else {
+          console.log('[UnifiedGantt] No saved task order found');
+          hasLoadedOrderRef.current = projectId;
+        }
+      } catch (error) {
+        console.error('[UnifiedGantt] Failed to load saved task order:', error);
+        hasLoadedOrderRef.current = projectId; // Mark as loaded to avoid retries
+      }
+    };
+    
+    loadSavedTaskOrder();
+  }, [projectId, selectedProjectIds]);
   
   // Gantt display state
   const [scalePreset, setScalePreset] = useState<ScalePresetKey>("week");
@@ -433,46 +628,104 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     const container = ganttContainerRef.current;
     if (!container) return;
 
-    const rows = container.querySelectorAll<HTMLElement>("[data-id]");
+    // SVAR Gantt uses CSS variables for colors, not direct style properties
+    // We need to find task bar elements and set CSS custom properties on them
+    const bars = container.querySelectorAll<HTMLElement>(".wx-bar");
     const newMap = new Map<string, TaskColorInfo>();
 
-    rows.forEach((row) => {
-      const taskId = row.getAttribute("data-id");
+    bars.forEach((bar) => {
+      // Try multiple ways to find task ID:
+      // 1. Check the bar itself for data-id
+      let taskId = bar.getAttribute("data-id");
+      
+      // 2. Check closest parent with data-id
+      if (!taskId) {
+        const closestWithId = bar.closest("[data-id]");
+        if (closestWithId) {
+          taskId = closestWithId.getAttribute("data-id");
+        }
+      }
+      
+      // 3. Walk up the DOM as fallback
+      if (!taskId) {
+        let parent = bar.parentElement;
+        while (parent && parent !== container) {
+          if (parent.hasAttribute("data-id")) {
+            taskId = parent.getAttribute("data-id");
+            break;
+          }
+          parent = parent.parentElement;
+        }
+      }
+      
       if (!taskId) return;
 
       const task = ganttData.tasks.find((t) => String(t.id) === taskId);
       if (!task) return;
 
-      const color = getProjectColor(task.projectId, selectedProjectIds);
+      // Get project prefs color if available (use String() for safe comparison)
+      const project = projects.find((p) => String(p.id) === String(task.projectId));
+      const prefsColor = project?.prefs?.action?.color;
+      const color = getProjectColor(String(task.projectId), selectedProjectIds, prefsColor);
       const textColor = pickReadableTextColor(color);
 
       newMap.set(taskId, { color, textColor, type: task.type });
 
-      // Apply colors to row elements
-      const bar = row.querySelector<HTMLElement>(".wx-bar");
-      const progress = row.querySelector<HTMLElement>(".wx-progress");
-      const textEl = row.querySelector<HTMLElement>(".wx-content");
-
-      if (bar) {
-        bar.style.backgroundColor = color;
-        bar.style.borderColor = color;
+      // Apply SVAR CSS variables on the bar element
+      bar.style.setProperty("--wx-gantt-task-color", color);
+      bar.style.setProperty("--wx-gantt-task-fill-color", color);
+      bar.style.setProperty("--wx-gantt-task-border-color", color);
+      bar.style.setProperty("--wx-gantt-task-font-color", textColor);
+      
+      // Apply direct styles with !important to override SVAR defaults
+      bar.style.setProperty("background-color", color, "important");
+      bar.style.setProperty("border-color", color, "important");
+      bar.style.setProperty("background", color, "important");
+      
+      // Also set as data attribute for CSS targeting
+      bar.setAttribute("data-project-color", color);
+      
+      // Find and style progress bar elements (SVAR uses multiple class names)
+      const progressSelectors = [".wx-progress", ".wx-progress-percent", ".wx-progress-wrapper .wx-progress-percent"];
+      for (const selector of progressSelectors) {
+        const progress = bar.querySelector<HTMLElement>(selector);
+        if (progress) {
+          progress.style.setProperty("background-color", color, "important");
+          progress.style.opacity = "0.7";
+        }
       }
-      if (progress) {
-        progress.style.backgroundColor = color;
-        progress.style.opacity = "0.7";
-      }
-      if (textEl) {
-        textEl.style.color = textColor;
+      
+      // Find and style text content elements
+      const textSelectors = [".wx-content", ".wx-text"];
+      for (const selector of textSelectors) {
+        const textEl = bar.querySelector<HTMLElement>(selector);
+        if (textEl) {
+          textEl.style.setProperty("color", textColor, "important");
+        }
       }
     });
 
     taskColorMapRef.current = newMap;
-  }, [ganttData.tasks, selectedProjectIds]);
+  }, [ganttData.tasks, selectedProjectIds, projects]);
 
   const scheduleColorRefresh = useCallback(() => {
+    // Multiple refresh attempts to catch SVAR's async rendering
+    // Immediate refresh
     requestAnimationFrame(() => {
       refreshTaskColorCache();
     });
+    // Quick follow-up
+    setTimeout(() => {
+      refreshTaskColorCache();
+    }, 50);
+    // Delayed refresh to catch any late renders
+    setTimeout(() => {
+      refreshTaskColorCache();
+    }, 150);
+    // Final catch-all
+    setTimeout(() => {
+      refreshTaskColorCache();
+    }, 300);
   }, [refreshTaskColorCache]);
 
   // Derive form state from a task
@@ -1032,10 +1285,49 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
     setGanttKey((prev) => prev + 1);
   }, [selectedProjectIds]);
   
+  // Refresh task bar colors when tasks, projects (with prefs), or selection changes
   useEffect(() => {
     refreshTaskColorCache();
     scheduleColorRefresh();
-  }, [ganttData.tasks, refreshTaskColorCache, scheduleColorRefresh]);
+  }, [ganttData.tasks, projects, refreshTaskColorCache, scheduleColorRefresh]);
+  
+  // MutationObserver to apply colors when SVAR adds new bar elements
+  useEffect(() => {
+    const container = ganttContainerRef.current;
+    if (!container) return;
+    
+    const observer = new MutationObserver((mutations) => {
+      let hasNewBars = false;
+      for (const mutation of mutations) {
+        if (mutation.type === "childList") {
+          for (const node of mutation.addedNodes) {
+            if (node instanceof HTMLElement) {
+              // Check if it's a bar or contains bars
+              if (node.classList.contains("wx-bar") || node.querySelector(".wx-bar")) {
+                hasNewBars = true;
+                break;
+              }
+            }
+          }
+        }
+        if (hasNewBars) break;
+      }
+      
+      if (hasNewBars) {
+        // Debounce to avoid excessive calls
+        requestAnimationFrame(() => {
+          refreshTaskColorCache();
+        });
+      }
+    });
+    
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+    });
+    
+    return () => observer.disconnect();
+  }, [refreshTaskColorCache]);
   
   // Link context menu handler
   useEffect(() => {
@@ -1691,14 +1983,16 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
   ], []);
   
   // Choose columns based on mode - create dynamically with task lookup
+  // Include reorder column when auto-sort is disabled
   const activeColumns = useMemo(() => {
+    const includeReorder = !autoSortByDate;
     if (taskListCollapsed) {
       return collapsedColumns;
     }
     return isSingleProjectMode 
-      ? createGanttColumnsSingleProject(taskLookup) 
-      : createGanttColumns(taskLookup);
-  }, [isSingleProjectMode, taskLookup, taskListCollapsed, collapsedColumns]);
+      ? createGanttColumnsSingleProject(taskLookup, includeReorder) 
+      : createGanttColumns(taskLookup, includeReorder);
+  }, [isSingleProjectMode, taskLookup, taskListCollapsed, collapsedColumns, autoSortByDate]);
 
   // Get the project name for single-project mode header
   const singleProjectName = useMemo(() => {
@@ -1833,6 +2127,27 @@ export const UnifiedGantt: React.FC<UnifiedGanttProps> = ({
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Auto-sort checkbox */}
+              <label
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                title="When enabled, tasks are automatically sorted by start date. Disable to manually reorder by dragging rows."
+              >
+                <input
+                  type="checkbox"
+                  checked={autoSortByDate}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setAutoSortByDate(newValue);
+                    // When disabling auto-sort, capture current order
+                    if (!newValue) {
+                      setCustomTaskOrder(getTaskOrder());
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                />
+                <span className="whitespace-nowrap">Auto-sort</span>
+              </label>
+              
               {/* Scale buttons */}
               <div className="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
                 {scaleButtons.map((button) => (
