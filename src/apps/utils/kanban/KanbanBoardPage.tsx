@@ -897,6 +897,8 @@ const updateTaskFormState = (
         derivedStatus = "review";
       } else if (numericProgress <= 0) {
         derivedStatus = "0";
+      } else if (numericProgress <= 5) {
+        derivedStatus = "5";
       } else {
         derivedStatus = "30";
       }
@@ -913,7 +915,6 @@ const updateTaskFormState = (
     return next;
   }
 
-  return prev;
   return prev;
 };
 
