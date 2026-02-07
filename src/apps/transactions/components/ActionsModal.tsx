@@ -278,6 +278,17 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
     [],
   );
 
+  const statusToProgress: Record<string, number> = useMemo(
+    () => ({
+      "0": 0,
+      "5": 5,
+      "30": 20,
+      review: 70,
+      "100": 100,
+    }),
+    [],
+  );
+
   const difficultyStops = useMemo(
     () => [10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100],
     [],
@@ -316,6 +327,14 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
     );
   }, [activeTranslationId, visibleTranslations]);
 
+  const progressValue = useMemo(() => {
+    const statusProgress = statusToProgress[formState.percent_complete];
+    if (statusProgress !== undefined) {
+      return statusProgress;
+    }
+    return Math.max(0, Math.min(100, Number(formState.progress) || 0));
+  }, [formState.percent_complete, formState.progress, statusToProgress]);
+
   // Early return AFTER all hooks
   if (!isOpen) return null;
 
@@ -350,10 +369,6 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
   const difficultyValue = snapToDifficultyStop(
     Number(formState.difficulty) || 10,
-  );
-  const progressValue = Math.max(
-    0,
-    Math.min(100, Number(formState.progress) || 0),
   );
 
   const formId = `actions-modal-form-${mode}`;
@@ -718,6 +733,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                       type="button"
                       onClick={() => {
                         onFieldChange("percent_complete", option.value);
+                        // Sync progress with status
+                        const mappedProgress = statusToProgress[option.value];
+                        if (mappedProgress !== undefined) {
+                          onFieldChange("progress", String(mappedProgress));
+                        }
                         // Sync kanban_column with status
                         const kanbanColumn =
                           statusToKanbanColumn[option.value] || option.label;
