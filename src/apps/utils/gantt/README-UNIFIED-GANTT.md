@@ -225,6 +225,46 @@ This is the base for UnifiedGantt. The main change is extracting reusable props.
 - ✓ **Export PNG** - html2canvas capture
 - ✓ **Export PDF** - Print dialog
 - ✓ **Undo/Redo** - Ctrl+Z/Y with history tracking
+- ✓ **Project-specific bar colors** - Task bars use `project.prefs.action.color`
+
+## Project Color Configuration
+
+Task bars are colored based on each project's color preference. Colors are set via `project.prefs.action.color`.
+
+### Setting a Project Color
+
+1. **Via API**: Update the project record with a prefs object:
+   ```json
+   {
+     "id": 123,
+     "prefs": {
+       "action": {
+         "color": "#e11d48"
+       }
+     }
+   }
+   ```
+
+2. **Fallback**: If no color is set, tasks use a default color palette based on selection order.
+
+### How It Works
+
+1. `useGanttData` hook parses `project.prefs.action.color` when fetching projects
+2. `getProjectColor()` returns the prefs color if valid hex, otherwise falls back to palette
+3. `refreshTaskColorCache()` applies colors to `.wx-bar` elements via:
+   - CSS custom properties (`--wx-gantt-task-color`, etc.)
+   - Inline styles with `!important` to override SVAR defaults
+   - `data-project-color` attribute for CSS targeting
+4. MutationObserver reapplies colors when SVAR renders new bars
+
+### CSS Variables Used
+
+```css
+--wx-gantt-task-color         /* Main bar background */
+--wx-gantt-task-fill-color    /* Progress indicator */
+--wx-gantt-task-border-color  /* Bar border */
+--wx-gantt-task-font-color    /* Text color (auto-calculated for contrast) */
+```
 
 ## Known Issues & Future Work
 
