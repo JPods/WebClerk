@@ -47,7 +47,7 @@ export interface QAQuestionsSetting {
   id: number;
   purpose: string;
   name: string;
-  model_target?: string;
+  parent_model?: string;
   role?: string;
   data: QAQuestionsData;
 }
@@ -76,7 +76,7 @@ export interface QAAnswerRecord {
   setting_id?: number;        // FK to Setting (question template)
   question_id?: number;       // ID of question within Setting
   answer_id?: number;         // ID of selected answer (single select)
-  parent_type: string;
+  parent_model: string;       // Model name of parent (e.g., 'order', 'customer')
   parent_id: number;
   status?: 'open' | 'answered' | 'closed';
   sequence?: number;
@@ -87,6 +87,8 @@ export interface QAAnswerRecord {
       uploaded_at: string;
       uploaded_by?: number;
     }>;
+    options?: QAEffectiveOptions;
+    answers?: QAAnswerChoice[];  // Available choices from template
   };
   answered_by?: { id: number; attention?: string };
   created_at?: string;
@@ -180,7 +182,7 @@ export async function getQAQuestions(groupName: string): Promise<QAQuestionsSett
 }
 
 /**
- * Fetch all Q&A question groups, optionally filtered by model_target
+ * Fetch all Q&A question groups, optionally filtered by parent_model
  */
 export async function getAllQAQuestionGroups(modelTarget?: string): Promise<QAQuestionsSetting[]> {
   try {
@@ -189,7 +191,7 @@ export async function getAllQAQuestionGroups(modelTarget?: string): Promise<QAQu
       purpose: 'qa_questions',
     };
     if (modelTarget) {
-      params.model_target = modelTarget;
+      params.parent_model = modelTarget;
     }
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', { params });
     return res.data.data.results || [];
@@ -201,9 +203,9 @@ export async function getAllQAQuestionGroups(modelTarget?: string): Promise<QAQu
 
 /** Scoped question groups organized by level */
 export interface ScopedQAGroups {
-  global: QAQuestionsSetting[];        // model_target is null/empty
-  appLevel: QAQuestionsSetting[];      // model_target matches the app (e.g., "transactions")
-  modelSpecific: QAQuestionsSetting[]; // model_target matches the specific model
+  global: QAQuestionsSetting[];        // parent_model is null/empty
+  appLevel: QAQuestionsSetting[];      // parent_model matches the app (e.g., "transactions")
+  modelSpecific: QAQuestionsSetting[]; // parent_model matches the specific model
   all: QAQuestionsSetting[];           // combined list (model > app > global priority)
 }
 
@@ -232,7 +234,7 @@ export function getAppForModel(modelName: string): string | null {
 }
 
 /**
- * Check if a model_target value is an app name
+ * Check if a parent_model value is an app name
  */
 export function isAppName(target: string): boolean {
   return target in APP_MODEL_REGISTRY;
@@ -241,7 +243,7 @@ export function isAppName(target: string): boolean {
 /**
  * Fetch Q&A question groups scoped for a specific model
  * Returns groups organized by scope level:
- * - global: applies to all models (model_target is null)
+ * - global: applies to all models (parent_model is null)
  * - appLevel: applies to all models in the same app (e.g., all transactions)
  * - modelSpecific: applies only to this model
  */
@@ -257,20 +259,20 @@ export async function getScopedQAQuestionGroups(modelName?: string): Promise<Sco
     const appName = modelName ? getAppForModel(modelName) : null;
     
     for (const group of allGroups) {
-      if (!group.model_target) {
-        // No model_target = global
+      if (!group.parent_model) {
+        // No parent_model = global
         global.push(group);
-      } else if (isAppName(group.model_target)) {
+      } else if (isAppName(group.parent_model)) {
         // Target is an app name
-        if (appName && group.model_target === appName) {
+        if (appName && group.parent_model === appName) {
           // Matches the model's app
           appLevel.push(group);
         }
-      } else if (modelName && group.model_target === modelName) {
+      } else if (modelName && group.parent_model === modelName) {
         // Matches specific model
         modelSpecific.push(group);
       }
-      // Groups with model_target that don't match are excluded
+      // Groups with parent_model that don't match are excluded
     }
     
     return {
@@ -288,22 +290,25 @@ export async function getScopedQAQuestionGroups(modelName?: string): Promise<Sco
 
 /**
  * Fetch answers for a parent record
+ * Returns answers sorted by id (oldest first, newest at bottom)
  */
 export async function getQAAnswers(
-  parentType: string,
+  parentModel: string,
   parentId: number
 ): Promise<QAAnswerRecord[]> {
   try {
     const res = await apiClient.get<ApiEnvelope<GetListPayload>>('/wcapi/get/', {
       params: {
         model_name: 'question_answer',
-        parent_type: parentType,
+        parent_model: parentModel,
         parent_id: parentId,
       },
     });
-    return res.data.data.results || [];
+    const results = res.data.data.results || [];
+    // Sort by id ascending so newest answers are at the bottom
+    return results.sort((a, b) => (a.id || 0) - (b.id || 0));
   } catch (err: any) {
-    console.error(`Failed to fetch Q&A answers for ${parentType}/${parentId}:`, err);
+    console.error(`Failed to fetch Q&A answers for ${parentModel}/${parentId}:`, err);
     return [];
   }
 }
@@ -340,6 +345,46 @@ export async function deleteQAAnswer(id: number): Promise<boolean> {
   }
 }
 
+/** Response from applyQuestionGroup */
+export interface ApplyQuestionGroupResponse {
+  success: boolean;
+  created_count: number;
+  existing_count: number;
+  records: QAAnswerRecord[];
+}
+
+/**
+ * Apply a question group template to a parent record.
+ * 
+ * This creates QuestionAnswer records for all questions in the template
+ * with status='open'. The backend handles the batch creation atomically.
+ * 
+ * @param questionGroup - Name of the question group (e.g., 'Planning')
+ * @param settingId - ID of the Setting record containing the question template
+ * @param parentModel - Model name of the parent (e.g., 'order', 'customer')
+ * @param parentId - ID of the parent record
+ * @returns Response with created/existing counts and all QA records
+ */
+export async function applyQuestionGroup(
+  questionGroup: string,
+  settingId: number,
+  parentModel: string,
+  parentId: number
+): Promise<ApplyQuestionGroupResponse> {
+  try {
+    const res = await apiClient.post<{ data: ApplyQuestionGroupResponse }>('/wcapi/qa/apply/', {
+      question_group: questionGroup,
+      setting_id: settingId,
+      parent_model: parentModel,
+      parent_id: parentId,
+    });
+    return res.data.data || res.data;
+  } catch (err: any) {
+    console.error('Failed to apply question group:', err);
+    throw err;
+  }
+}
+
 /**
  * Upload image for Q&A answer
  * 
@@ -349,12 +394,12 @@ export async function deleteQAAnswer(id: number): Promise<boolean> {
  */
 export async function uploadQAImage(
   file: File,
-  parentType: string,
+  parentModel: string,
   parentId: number
 ): Promise<{ path: string; filename: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('parent_type', parentType);
+  formData.append('parent_model', parentModel);
   formData.append('parent_id', String(parentId));
   formData.append('purpose', 'qa_image');
 

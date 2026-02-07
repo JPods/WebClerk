@@ -1,9 +1,7 @@
 import React, { useMemo } from "react";
 
-const formatLabel = (value: string) =>
-  value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+// Dev mode: return raw field names for alignment
+const formatLabel = (value: string) => value;
 
 const isObjectValue = (value: unknown) =>
   typeof value === "object" && value !== null;

@@ -201,13 +201,9 @@ const STANDARD_PURPOSES = [
   "sales",
 ];
 
-// Helper to format purpose label
+// Helper to format purpose label (during dev: return raw value for alignment)
 const formatPurpose = (purpose: string): string => {
-  return purpose
-    .replace(/_/g, " ")
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  return purpose;  // Dev mode: exact field names
 };
 
 // Helper to group contacts by purpose

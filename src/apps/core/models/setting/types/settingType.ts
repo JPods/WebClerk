@@ -3,7 +3,7 @@ export interface Setting {
   name?: string;
   purpose?: string;
   role?: string;
-  model_target?: string;
+  parent_model?: string;
   data?: any;
   created_at: number;
   updated_at: number;
@@ -14,7 +14,7 @@ export interface CreateSettingRequest {
   name?: string;
   purpose?: string;
   role?: string;
-  model_target?: string;
+  parent_model?: string;
   data?: any;
 }
 

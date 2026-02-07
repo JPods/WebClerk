@@ -4,7 +4,7 @@ export const settingSchema = z.object({
   name: z.string().optional(),
   purpose: z.string().optional(),
   role: z.string().optional(),
-  model_target: z.string().optional(),
+  parent_model: z.string().optional(),
   data: z.any().optional(),
 });
 
