@@ -15,6 +15,8 @@ import { customerSchema } from "../utils/customerSchema";
 import { CustomerAddProps } from "../types/customerType";
 import Checkbox from "@/components/form/input/Checkbox";
 import CustomerDataPanel from "./CustomerDataPanel";
+import TransactionToolbar from "@/apps/transactions/components/TransactionToolbar";
+import JsonFieldEditor from "@/apps/transactions/components/JsonFieldEditor";
 
 
 // Professional customer display component for right-side column
@@ -78,8 +80,11 @@ export default function CustomerDetail({
   dataProp,
   hideBreadcrumb: _hideBreadcrumb,
   onSaved,
+  inline = false,
+  onCancelInline,
   onPrev,
   onNext,
+  onCancel,
   onEdit,
   onDelete,
 }: CustomerAddProps) {
@@ -90,7 +95,7 @@ export default function CustomerDetail({
     register,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty, isSubmitting },
     reset,
     control,
     watch,
@@ -154,7 +159,66 @@ export default function CustomerDetail({
     }
   };
 
-  const onSubmit = async (formData: CustomerFormValues) => {
+  const safeParseJson = (raw: string | undefined, fallback: unknown) => {
+    if (!raw || raw.trim() === "") return fallback;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  };
+
+  const resetToDefaults = () => {
+    if (mode === "add") {
+      reset({
+        is_active: false,
+        version: 1,
+        org_type: "customer",
+        ...Object.fromEntries(
+          Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+        ),
+      });
+      return;
+    }
+
+    if (data) {
+      const nextValues: Record<string, unknown> = {
+        is_active: data.is_active ?? false,
+        version: data.version ?? 1,
+        org_type: data.org_type ?? "customer",
+        display_name: data.display_name ?? "",
+        status: data.status ?? "",
+      };
+      Object.keys(JSON_DEFAULTS).forEach((key) => {
+        nextValues[key] = JSON.stringify(data[key] ?? JSON_DEFAULTS[key], null, 2);
+      });
+      reset(nextValues as CustomerFormValues);
+      return;
+    }
+
+    reset({
+      is_active: false,
+      version: 1,
+      org_type: "customer",
+      ...Object.fromEntries(
+        Object.entries(JSON_DEFAULTS).map(([k, v]) => [k, JSON.stringify(v)]),
+      ),
+    });
+  };
+
+  const handleCancel = () => {
+    if (inline && onCancelInline) {
+      onCancelInline();
+      return;
+    }
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    resetToDefaults();
+  };
+
+  const saveCustomer = async (formData: CustomerFormValues) => {
     try {
       const jsonPayload: Record<string, any> = {};
       Object.keys(JSON_DEFAULTS).forEach((key) => {
@@ -187,10 +251,17 @@ export default function CustomerDetail({
         if (onSaved) {
           onSaved();
         }
+        return true;
       }
+      return false;
     } catch (error: any) {
       dispatch(showToast({ message: error.message, type: "error" }));
+      return false;
     }
+  };
+
+  const onSubmit = async (formData: CustomerFormValues) => {
+    await saveCustomer(formData);
   };
 
   // Action buttons configuration based on mode
@@ -198,6 +269,19 @@ export default function CustomerDetail({
     const buttons = [];
 
     if (mode === "view") {
+      if (onCancel) {
+        buttons.push(
+          <button
+            key="close"
+            type="button"
+            onClick={onCancel}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+            title="Close"
+          >
+            Close
+          </button>
+        );
+      }
       if (onEdit) {
         buttons.push(
           <button
@@ -267,8 +351,7 @@ export default function CustomerDetail({
   // Tab definitions - merged summary and overview
   const tabs = [
     { id: "overview", label: "Overview", icon: <FaBuilding size={14} /> },
-    { id: "contact", label: "Contact", icon: <FaPhone size={14} /> },
-    // { id: "communication", label: "Communication", icon: <FaPhone size={14} /> },
+    { id: "communication", label: "Contact", icon: <FaPhone size={14} /> },
     { id: "financial", label: "Financial", icon: <FaDollarSign size={14} /> },
     { id: "relations", label: "Relations", icon: <FaUsers size={14} /> },
     { id: "documents", label: "Documents", icon: <FaFileAlt size={14} /> },
@@ -330,7 +413,7 @@ export default function CustomerDetail({
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900">
       {/* Compact Header */}
-      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -347,6 +430,11 @@ export default function CustomerDetail({
               <span className="text-sm text-slate-500 dark:text-slate-400">
                 {customerData.org_type || 'customer'} • v{customerData.version ?? 1}
               </span>
+              {(mode === "edit" || mode === "add") && isDirty && (
+                <span className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                  Unsaved changes
+                </span>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 ml-4">
@@ -354,8 +442,38 @@ export default function CustomerDetail({
           </div>
         </div>
       </div>
+
+      {/* Transaction-style Toolbar (edit/add mode) */}
+      {(mode === "edit" || mode === "add") && (
+        <div className="sticky top-0 z-20 mx-0 px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+          <TransactionToolbar
+            transactionType="order"
+            transactionId={data?.id}
+            isDirty={isDirty}
+            isSaving={isSubmitting}
+            isEditing
+            onSave={handleSubmit(async (fd) => {
+              await saveCustomer(fd);
+            })}
+            onSaveAndClose={
+              (inline ? !!onCancelInline : !!onCancel)
+                ? handleSubmit(async (fd) => {
+                    const ok = await saveCustomer(fd);
+                    if (ok) handleCancel();
+                  })
+                : undefined
+            }
+            onCancel={handleCancel}
+            canClone={false}
+            canTransfer={false}
+            canDelete={false}
+            showTaskButton={false}
+          />
+        </div>
+      )}
+
       {/* Tab Navigation */}
-      <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-700">
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-700">
         <nav className="px-4">
           <div className="flex gap-1 py-2">
             {tabs.map((tab) => (
@@ -506,12 +624,59 @@ export default function CustomerDetail({
 
             {/* Other tabs with structured data display */}
             {activeTab !== "overview" && (
-              <CustomerDataPanel
-                data={getTabData(activeTab)}
-                showScalars={false}
-                grouped={false}
-                onSelectCategory={() => {}}
-              />
+              mode === "view" ? (
+                <CustomerDataPanel
+                  data={getTabData(activeTab)}
+                  showScalars={false}
+                  grouped={false}
+                  onSelectCategory={() => {}}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {(
+                    {
+                      communication: [
+                        { field: "contacts", label: "contacts" },
+                        { field: "locations", label: "locations" },
+                        { field: "domains", label: "domains" },
+                        { field: "phones", label: "phones" },
+                        { field: "emails", label: "emails" },
+                      ],
+                      financial: [{ field: "financial", label: "financial" }],
+                      relations: [{ field: "relations", label: "relations" }],
+                      documents: [{ field: "docs", label: "docs" }],
+                      connections: [{ field: "connections", label: "connections" }],
+                      data: [{ field: "data", label: "data" }],
+                      metrics: [{ field: "metrics", label: "metrics" }],
+                      gl_accounts: [{ field: "gl_accounts", label: "gl_accounts" }],
+                    } as Record<
+                      string,
+                      Array<{ field: keyof CustomerFormValues; label: string }>
+                    >
+                  )[activeTab]?.map(({ field, label }) => (
+                    <JsonFieldEditor
+                      key={String(field)}
+                      label={label}
+                      value={safeParseJson(
+                        formData[field] as unknown as string | undefined,
+                        JSON_DEFAULTS[String(field)],
+                      )}
+                      readonly={false}
+                      defaultExpanded
+                      maxHeight="520px"
+                      onChange={(val) => {
+                        setValue(
+                          field,
+                          JSON.stringify(val ?? JSON_DEFAULTS[String(field)], null, 2) as any,
+                          { shouldDirty: true, shouldValidate: true },
+                        );
+                      }}
+                    />
+                  )) ?? (
+                    <div className="text-slate-400 text-sm">No editor for this tab.</div>
+                  )}
+                </div>
+              )
             )}
           </div>
         </form>
