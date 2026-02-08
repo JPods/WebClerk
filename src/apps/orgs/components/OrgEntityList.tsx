@@ -84,13 +84,10 @@ export default function OrgEntityList<T = any>({
 
 
   const handleRowDoubleClick = useCallback((row: any) => {
-    if (!routes?.detail) return;
-    const id = row.id;
-    const path = routes.detail(id);
-    const display = row.display_name || row.name || `${title || modelKey} ${id}`;
-    ensureWindow(path, display, { maximized: false });
-    activateWindow(path);
-  }, [ensureWindow, activateWindow, routes, modelKey, title]);
+    // Double-click opens inline edit mode (not floating window)
+    setSelectedRow(row);
+    setDetailMode("edit");
+  }, []);
 
   const handleEdit = useCallback((row: any) => {
     if (!routes?.edit) return;

@@ -81,12 +81,223 @@ export interface OrgRelations {
 
 export interface OrgCredit {
   limit?: number;
-  used?: number;
+  high?: number;
+  available?: number;
+  used?: number;  // legacy
+  terms_days?: number;  // vendor
 }
 
 export interface OrgBalances {
-  open?: number;
+  due?: number;
+  current?: number;
+  open_orders?: number;
+  open_pos?: number;  // vendor
+  total_exposure?: number;
+  open?: number;  // legacy
   [key: string]: number | undefined;
+}
+
+export interface OrgAging {
+  future?: number;
+  period_1?: number;
+  period_2?: number;
+  period_3?: number;
+}
+
+export interface OrgPayment {
+  days_avg_paid?: number;
+  days_pay?: number;
+  dt_last_payment?: string | null;
+  last_payment_amount?: number;
+}
+
+export interface OrgSales {
+  mtd?: number;
+  ytd?: number;
+  lifetime?: number;
+  dt_last_sale?: string | null;
+  last_sale_amount?: number;
+}
+
+export interface OrgCosts {
+  mtd?: number;
+  ytd?: number;
+}
+
+export interface OrgMargin {
+  mtd?: number;
+  ytd?: number;
+  pct?: number;
+}
+
+export interface OrgReturns {
+  mtd?: number;
+  ytd?: number;
+  count?: number;
+}
+
+export interface OrgDeposits {
+  unapplied?: number;
+}
+
+export interface OrgCollection {
+  cost_mtd?: number;
+  cost_ytd?: number;
+  cost_alltime?: number;
+}
+
+export interface OrgMinimums {
+  order?: number;
+  payment?: number;
+  purchase?: number;
+}
+
+export interface OrgStatCategory {
+  issued?: { count: number; value: number };
+  canceled?: { count: number; value: number };
+  executed?: { count: number; value: number };
+}
+
+export interface OrgStats {
+  proposals?: OrgStatCategory;
+  orders?: OrgStatCategory;
+  invoices?: OrgStatCategory;
+  payments?: OrgStatCategory;
+  purchases?: OrgStatCategory;
+}
+
+export interface OrgComplaints {
+  our_fault?: number;
+  their_fault?: number;
+  unresolved?: number;
+  costs?: { us?: number; partner?: number; rep?: number };
+}
+
+export interface OrgSmallStingCategory {
+  count?: number;
+  value?: number;
+}
+
+export interface OrgSmallStings {
+  received?: { count: number; value: number; paid: number; pending: number };
+  issued?: { count: number; value: number; collected: number; pending: number };
+  by_category?: {
+    shipping?: OrgSmallStingCategory;
+    billing?: OrgSmallStingCategory;
+    quality?: OrgSmallStingCategory;
+    service?: OrgSmallStingCategory;
+    other?: OrgSmallStingCategory;
+  };
+}
+
+// --- Type-keyed Financial Sections ---
+
+export interface OrgFinancialCommon {
+  currency?: string;
+  account?: {
+    dt_opened?: string | null;
+    dt_last_activity?: string | null;
+    hold?: boolean;
+    cod_only?: boolean;
+    inactive?: boolean;
+  };
+  rating?: {
+    internal?: string | number | null;
+    comments?: string;
+    credit_score?: number | null;
+  };
+  settings?: {
+    discount_pct?: number;
+    tax_exempt?: boolean;
+    tax_exempt_id?: string;
+    terms_id?: number | null;
+    notes?: string;
+  };
+}
+
+export interface OrgFinancialCustomer {
+  credit?: OrgCredit;
+  balances?: OrgBalances;
+  aging?: OrgAging;
+  payment?: OrgPayment;
+  sales?: OrgSales;
+  margin?: OrgMargin;
+  returns?: OrgReturns;
+  deposits?: OrgDeposits;
+  collection?: OrgCollection;
+  minimums?: OrgMinimums;
+  stats?: OrgStats;
+  complaints?: OrgComplaints;
+  small_stings?: OrgSmallStings;
+}
+
+export interface OrgFinancialVendor {
+  credit?: OrgCredit;
+  balances?: OrgBalances;
+  aging?: OrgAging;
+  purchases?: OrgSales;  // re-using shape
+  costs?: OrgCosts;
+  payments_made?: { mtd?: number; ytd?: number; dt_last_payment?: string | null };
+  minimums?: OrgMinimums;
+  stats?: OrgStats;
+  complaints?: OrgComplaints;
+  small_stings?: OrgSmallStings;
+}
+
+export interface OrgFinancialRep {
+  commissions?: {
+    mtd?: number;
+    ytd?: number;
+    lifetime?: number;
+    pending?: number;
+    paid?: number;
+    rate_pct?: number;
+  };
+  sales_credited?: { mtd?: number; ytd?: number; lifetime?: number };
+  customers_count?: number;
+  stats?: OrgStats;
+}
+
+export interface OrgFinancialEmployee {
+  payroll?: {
+    salary?: number;
+    rate_hourly?: number;
+    rate_type?: 'salary' | 'hourly' | 'commission';
+  };
+  expenses?: { mtd?: number; ytd?: number; pending?: number };
+  commissions?: { mtd?: number; ytd?: number };
+  time?: { hours_mtd?: number; hours_ytd?: number };
+}
+
+export interface OrgFinancialManufacturer {
+  purchases?: OrgSales;
+  rebates?: { earned_ytd?: number; received_ytd?: number; pending?: number };
+  pricing_tier?: string | null;
+  lead_time_days?: number;
+  freight_terms?: string;
+  min_order?: number;
+  stats?: OrgStats;
+}
+
+export interface OrgFx {
+  gain_loss_mtd?: number;
+  gain_loss_ytd?: number;
+  gain_loss_alltime?: number;
+}
+
+export interface OrgFinancial {
+  common?: OrgFinancialCommon;
+  customer?: OrgFinancialCustomer;
+  vendor?: OrgFinancialVendor;
+  rep?: OrgFinancialRep;
+  employee?: OrgFinancialEmployee;
+  manufacturer?: OrgFinancialManufacturer;
+  fx?: OrgFx;
+  // Legacy flat fields for backwards compatibility
+  credit?: OrgCredit;
+  balances?: OrgBalances;
+  due_buckets?: OrgDueBucket[];
+  metrics?: OrgFinancialMetrics;
 }
 
 export interface OrgDueBucket {
@@ -96,13 +307,6 @@ export interface OrgDueBucket {
 
 export interface OrgFinancialMetrics {
   ytd?: { sales?: number };
-}
-
-export interface OrgFinancial {
-  credit?: OrgCredit;
-  balances?: OrgBalances;
-  due_buckets?: OrgDueBucket[];
-  metrics?: OrgFinancialMetrics;
 }
 
 export interface OrgDoc {
