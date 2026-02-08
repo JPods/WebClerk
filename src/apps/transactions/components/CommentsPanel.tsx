@@ -12,6 +12,7 @@ interface CommentMessage {
   user: string;
   mgs: string;
   time: string;
+  user_id?: number | string;
 }
 
 interface TransactionComments {
@@ -27,6 +28,7 @@ interface CommentsPanelProps {
   onChange?: (comments: TransactionComments) => void;
   onSave?: (comments: TransactionComments) => Promise<void>;
   currentUser?: string;
+  currentUserId?: number | string;
 }
 
 type TabKey = "public" | "process" | "partner" | "notes";
@@ -64,6 +66,7 @@ interface CommentListProps {
   onDelete: (index: number) => void;
   onEdit?: (index: number, message: CommentMessage) => void;
   currentUser?: string;
+  currentUserId?: number | string;
 }
 
 const CommentList: React.FC<CommentListProps> = ({
@@ -74,6 +77,7 @@ const CommentList: React.FC<CommentListProps> = ({
   onDelete,
   onEdit,
   currentUser = "You",
+  currentUserId,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -116,10 +120,11 @@ const CommentList: React.FC<CommentListProps> = ({
         month: "short",
         day: "2-digit",
       });
-      const newMessage = {
+      const newMessage: CommentMessage = {
         user: currentUser,
         mgs: inputValue.trim(),
         time: timeStr,
+        user_id: currentUserId,
       };
       console.log(
         "[CommentsPanel.CommentList] Calling onAdd with message",
@@ -264,6 +269,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
   onChange,
   onSave,
   currentUser,
+  currentUserId,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>("public");
   const [isSaving, setIsSaving] = useState(false);
@@ -441,6 +447,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
             onDelete={(idx) => handleDeleteMessage("public", idx)}
             onEdit={(idx, msg) => handleEditMessage("public", idx, msg)}
             currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
         {activeTab === "process" && (
@@ -452,6 +459,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
             onDelete={(idx) => handleDeleteMessage("process", idx)}
             onEdit={(idx, msg) => handleEditMessage("process", idx, msg)}
             currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
         {activeTab === "partner" && (
@@ -463,6 +471,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
             onDelete={(idx) => handleDeleteMessage("partner", idx)}
             onEdit={(idx, msg) => handleEditMessage("partner", idx, msg)}
             currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
         {activeTab === "notes" && (
@@ -474,6 +483,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
             onDelete={(idx) => handleDeleteMessage("notes", idx)}
             onEdit={(idx, msg) => handleEditMessage("notes", idx, msg)}
             currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
       </div>

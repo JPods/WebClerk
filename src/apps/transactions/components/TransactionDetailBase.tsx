@@ -9,6 +9,7 @@ import { normalizeRefsLinksContact } from "./RefsLinksContactPanel";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { useAppSelector } from "../../../store/hooks";
 import {
   FaArrowLeft,
   FaEdit,
@@ -195,6 +196,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   const id = idProp?.toString() ?? dataProp?.id?.toString() ?? urlId;
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const displayName = user ? `${user.name_first}${user.name_last}` : "You";
 
   // State
   const [data, setData] = useState<Transaction | null>(null);
@@ -796,6 +799,8 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             isEditing={isEditing}
             onChange={(val) => handleFieldChange("comments", val)}
             onSave={handleCommentsSave}
+            currentUser={displayName}
+            currentUserId={user?.id}
           />
         );
 
