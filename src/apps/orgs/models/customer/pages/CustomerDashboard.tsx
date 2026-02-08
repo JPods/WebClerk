@@ -59,7 +59,7 @@ const objectFields = [
   "domains",
   "emails",
   "financial",
-  "locations",
+  "addresses",
   "phones",
   "relations",
 ];

@@ -37,7 +37,7 @@ export function CustomerDataPanel({ data, showScalars = true, grouped = false, o
   }
   if (grouped) {
     const GROUPS: Array<{ id: string; label: string; keys: string[] }> = [
-      { id: "communication", label: "Communication", keys: ["contacts", "locations", "domains", "phones", "emails"] },
+      { id: "communication", label: "Communication", keys: ["contacts", "addresses", "domains", "phones", "emails"] },
       { id: "documents", label: "Documents", keys: ["docs"] },
       { id: "financial", label: "Financial", keys: ["financial"] },
       { id: "relations", label: "Relations", keys: ["relations"] },

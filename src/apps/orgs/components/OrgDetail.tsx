@@ -15,7 +15,7 @@ import type { Organization, OrgType, OrgStatus, OrgRelations, OrgFinancial, OrgM
 import orgApi from '../services/orgApi';
 
 // --- Types ---
-type AspectKey = 'contacts' | 'locations' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'relations' | 'refs' | 'prefs' | 'metadata';
+type AspectKey = 'contacts' | 'addresses' | 'phones' | 'emails' | 'docs' | 'domains' | 'connections' | 'data' | 'financial' | 'gl_accounts' | 'metrics' | 'relations' | 'refs' | 'prefs' | 'metadata';
 
 interface TabConfig {
   key: AspectKey | 'info';
@@ -510,7 +510,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
         is_active: true,
         org_type: orgType,
         contacts: [],
-        locations: [],
+        addresses: [],
         domains: [],
         phones: [],
         emails: [],
@@ -579,7 +579,7 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
   const defaultTabs: TabConfig[] = [
     { key: 'info', label: 'Info', icon: <FaUser size={14} /> },
     { key: 'contacts', label: 'Contacts', icon: <FaUser size={14} /> },
-    { key: 'locations', label: 'Locations', icon: <FaMapMarkerAlt size={14} /> },
+    { key: 'addresses', label: 'Addresses', icon: <FaMapMarkerAlt size={14} /> },
     { key: 'phones', label: 'Phones', icon: <FaPhone size={14} /> },
     { key: 'emails', label: 'Emails', icon: <FaEnvelope size={14} /> },
     { key: 'docs', label: 'Docs', icon: <FaFileAlt size={14} /> },
@@ -662,12 +662,12 @@ const OrgDetail: React.FC<OrgDetailProps> = ({
             maxItems={15}
           />
         );
-      case 'locations':
+      case 'addresses':
         return (
           <AspectListTab
-            items={org.locations || []}
+            items={org.addresses || []}
             editing={editing}
-            onChange={(items) => handleChange({ locations: items as Organization['locations'] })}
+            onChange={(items) => handleChange({ addresses: items as Organization['addresses'] })}
             fields={locationFields}
             maxItems={10}
           />

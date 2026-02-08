@@ -9,7 +9,7 @@ type Customer = {
   version?: number;
   is_active?: boolean;
   contacts?: string;
-  locations?: string;
+  addresses?: string;
   docs?: string;
 };
 
@@ -38,7 +38,7 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
 
 export default function CustomerHeader({ data }: { data: Customer }) {
   const contactsData = typeof data.contacts === "string" ? JSON.parse(data.contacts || "[]") : data.contacts || [];
-  const locationsData = typeof data.locations === "string" ? JSON.parse(data.locations || "[]") : data.locations || [];
+  const addressesData = typeof data.addresses === "string" ? JSON.parse(data.addresses || "[]") : data.addresses || [];
   const docsData = typeof data.docs === "string" ? JSON.parse(data.docs || "[]") : data.docs || [];
 
   return (
@@ -91,8 +91,8 @@ export default function CustomerHeader({ data }: { data: Customer }) {
               <dd className="font-semibold text-slate-900 dark:text-white">{Array.isArray(contactsData) ? contactsData.length : 0}</dd>
             </div>
             <div className="flex justify-between items-center">
-              <dt className="text-slate-500 dark:text-slate-400 flex items-center gap-1"><FaMapMarkerAlt size={12} /> Locations</dt>
-              <dd className="font-semibold text-slate-900 dark:text-white">{Array.isArray(locationsData) ? locationsData.length : 0}</dd>
+              <dt className="text-slate-500 dark:text-slate-400 flex items-center gap-1"><FaMapMarkerAlt size={12} /> Addresses</dt>
+              <dd className="font-semibold text-slate-900 dark:text-white">{Array.isArray(addressesData) ? addressesData.length : 0}</dd>
             </div>
             <div className="flex justify-between items-center">
               <dt className="text-slate-500 dark:text-slate-400 flex items-center gap-1"><FaFileAlt size={12} /> Documents</dt>
