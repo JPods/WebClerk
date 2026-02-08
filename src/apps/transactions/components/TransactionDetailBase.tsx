@@ -599,15 +599,22 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
   // Check if form has changed
   const isDirty = useMemo(() => {
     if (!data || !editData) return false;
-    return JSON.stringify(data) !== JSON.stringify(editData);
+    const dirty = JSON.stringify(data) !== JSON.stringify(editData);
+    console.log("[TransactionDetailBase] isDirty computed", {
+      isDirty: dirty,
+      dataId: data?.id,
+      editDataId: editData?.id,
+    });
+    return dirty;
   }, [data, editData]);
 
   // Handle field changes during edit
   const handleFieldChange = (field: string, value: unknown) => {
-    console.log("[TransactionDetailBase] handleFieldChange", {
+    console.log("[TransactionDetailBase] handleFieldChange START", {
       field,
       value,
       hasEditData: !!editData,
+      currentEditDataId: editData?.id,
     });
     if (editData) {
       // Deep merge for comments to persist tab messages
@@ -620,6 +627,10 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
             ...value,
           },
         };
+        console.log("[TransactionDetailBase] Comments field updated", {
+          oldComments: editData.comments,
+          newComments: newData.comments,
+        });
       } else {
         newData = { ...editData, [field]: value } as Transaction;
       }
@@ -728,11 +739,63 @@ const TransactionDetailBase: React.FC<TransactionDetailBaseProps> = ({
         // Always use editData.comments if editing, otherwise data.comments
         const commentsSource =
           isEditing && editData ? editData.comments : data?.comments;
+
+        // Auto-save comments handler
+        const handleCommentsSave = async (
+          newComments: Record<string, unknown>,
+        ) => {
+          if (!editData) return;
+
+          const payloadWithComments = {
+            ...editData,
+            comments: {
+              ...editData.comments,
+              ...newComments,
+            },
+            id: data?.id,
+          };
+
+          console.log(
+            "[TransactionDetailBase] Auto-saving comments...",
+            payloadWithComments.comments,
+          );
+          dispatch(showToast({ message: "Saving comment...", type: "info" }));
+
+          try {
+            const hasLines =
+              Array.isArray(editData.lines) && editData.lines.length > 0;
+            const apiResult = hasLines
+              ? await saveTransactionWithLines(modelName, payloadWithComments)
+              : await saveRecord(modelName, payloadWithComments);
+
+            const result = apiResult.record ?? apiResult;
+            console.log(
+              "[TransactionDetailBase] Comments auto-save success!",
+              result?.comments,
+            );
+
+            // Update local state with saved data
+            setData(result);
+            setEditData(result);
+            dispatch(showToast({ message: "Comment saved!", type: "success" }));
+          } catch (error) {
+            console.error(
+              "[TransactionDetailBase] Comments auto-save failed:",
+              error,
+            );
+            dispatch(
+              showToast({ message: "Failed to save comment", type: "error" }),
+            );
+            throw error;
+          }
+        };
+
         return (
           <CommentsPanel
             comments={commentsSource ?? {}}
             isEditing={isEditing}
             onChange={(val) => handleFieldChange("comments", val)}
+            onSave={handleCommentsSave}
           />
         );
 
