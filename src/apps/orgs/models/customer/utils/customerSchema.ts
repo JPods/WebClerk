@@ -7,7 +7,7 @@ export const customerSchema = z.object({
   version: z.number().default(1),
   is_active: z.boolean().default(false),
   contacts: z.string().optional(),
-  locations: z.string().optional(),
+  addresses: z.string().optional(),
   domains: z.string().optional(),
   phones: z.string().optional(),
   emails: z.string().optional(),

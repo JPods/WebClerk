@@ -30,7 +30,7 @@ interface Customer {
   version?: number;
   is_active?: boolean;
   contacts?: any;
-  locations?: any;
+  addresses?: any;
   domains?: any;
   phones?: any;
   emails?: any;
@@ -45,7 +45,7 @@ interface Customer {
 
 const JSON_DEFAULTS: Record<string, any> = {
   contacts: [],
-  locations: [],
+  addresses: [],
   domains: [],
   phones: [],
   emails: [],
@@ -388,7 +388,7 @@ export default function CustomerDetail({
 
     // Define which fields belong to each tab
     const tabFieldMapping: Record<string, string[]> = {
-      communication: ['contacts', 'locations', 'domains', 'phones', 'emails'],
+      communication: ['contacts', 'addresses', 'domains', 'phones', 'emails'],
       financial: ['financial'],
       relations: ['relations'],
       documents: ['docs'],
@@ -637,7 +637,7 @@ export default function CustomerDetail({
                     {
                       communication: [
                         { field: "contacts", label: "contacts" },
-                        { field: "locations", label: "locations" },
+                        { field: "addresses", label: "addresses" },
                         { field: "domains", label: "domains" },
                         { field: "phones", label: "phones" },
                         { field: "emails", label: "emails" },

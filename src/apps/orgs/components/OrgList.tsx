@@ -201,13 +201,13 @@ const OrgList: React.FC<OrgListProps> = ({
       ),
     },
     {
-      name: 'Locations',
-      selector: (row: Organization) => row.locations?.length || 0,
+      name: 'Addresses',
+      selector: (row: Organization) => row.addresses?.length || 0,
       sortable: true,
       width: '100px',
       cell: (row: Organization) => (
         <span className="text-slate-600 dark:text-slate-300">
-          {row.locations?.length || 0}
+          {row.addresses?.length || 0}
         </span>
       ),
     },

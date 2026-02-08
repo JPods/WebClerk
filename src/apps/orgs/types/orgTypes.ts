@@ -12,7 +12,7 @@ export type OrgStatus = 'active' | 'prospect' | 'inactive' | 'retired' | '';
 // Aspect limit constants (match backend ASPECT_LIMITS)
 export const ASPECT_LIMITS = {
   contacts: 15,
-  locations: 10,
+  addresses: 10,
   domains: 10,
   phones: 10,
   emails: 10,
@@ -338,7 +338,7 @@ export interface Organization {
   
   // Aspect JSONB fields
   contacts: OrgContact[];
-  locations: OrgLocation[];
+  addresses: OrgLocation[];
   domains?: OrgDomain[];
   phones: OrgPhone[];
   emails: OrgEmail[];
@@ -389,7 +389,7 @@ export interface OrgCreateRequest {
   status?: OrgStatus;
   is_active?: boolean;
   contacts?: OrgContact[];
-  locations?: OrgLocation[];
+  addresses?: OrgLocation[];
   domains?: OrgDomain[];
   phones?: OrgPhone[];
   emails?: OrgEmail[];
@@ -435,7 +435,7 @@ export const createEmptyOrg = (orgType: OrgType): Partial<Organization> => ({
   status: 'active',
   is_active: true,
   contacts: [],
-  locations: [],
+  addresses: [],
   domains: [],
   phones: [],
   emails: [],
