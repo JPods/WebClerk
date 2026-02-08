@@ -13,11 +13,11 @@ class OrgBaseAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Make all JSON aspect fields optional
+        # Make all JSON aspect fields optional (alphabetical)
         aspect_fields = [
-            'contacts', 'addresses', 'domains', 'phones', 'emails', 
-            'relations', 'financial', 'docs', 'connections', 'data', 
-            'metrics', 'gl_accounts'
+            'actions', 'addresses', 'comments', 'connections', 'contacts', 'data',
+            'docs', 'domains', 'emails', 'financial', 'gl_accounts', 'metadata',
+            'metrics', 'phones', 'prefs', 'refs', 'relations', 'relationship_stats', 'stats',
         ]
         
         for field_name in aspect_fields:
@@ -43,13 +43,30 @@ class OrgBaseAdmin(admin.ModelAdmin):
     form = OrgBaseAdminForm
     # Show `company` (alias property) in list display; searches still operate against DB column `display_name`.
     list_display = ("id", "company", "org_type", "status", "is_active", "version")
-    list_filter = ("org_type", "status", "is_active")
-    search_fields = ("display_name", "domains", "contacts")
-    readonly_fields = ("version", "dt_created", "dt_modified")
+    list_filter = ("org_type", "status", "is_active", "is_deleted", "is_archived")
+    search_fields = ("display_name", "domains", "contacts", "email", "phone")
+    readonly_fields = ("id", "uuid", "ida", "dt_created", "dt_modified", "version")
+    
+    # Scalar fields alphabetical, then JSONB fields alphabetical
     fieldsets = (
-        (None, {"fields": ("display_name", "org_type", "status", "is_active")}),
-        ("Aspects", {"fields": ("contacts", "addresses", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
-        ("Versioning", {"fields": ("version", "dt_created", "dt_modified")}),
+        ("Identity", {"fields": (
+            "attention", "contact_id", "display_name", "email", "org_type", "phone", "price_level", "status",
+        )}),
+        ("Lifecycle", {"fields": (
+            "health_rating", "is_active", "is_archived", "is_deleted", "security_level",
+        )}),
+        ("Aspects (JSONB)", {
+            "fields": (
+                "actions", "addresses", "comments", "connections", "contacts", "data", 
+                "docs", "domains", "emails", "financial", "gl_accounts", "metadata",
+                "metrics", "phones", "prefs", "refs", "relations", "relationship_stats", "stats",
+            ),
+            "classes": ("collapse",),
+        }),
+        ("System (read-only)", {
+            "fields": ("id", "uuid", "ida", "dt_created", "dt_modified", "version"),
+            "classes": ("collapse",),
+        }),
     )
     
     def save_model(self, request, obj, form, change):

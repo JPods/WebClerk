@@ -279,8 +279,6 @@ def default_connections():  # pointers only, e.g. {"email_svc": "vault:cred:123"
 def default_access():  # pragma: no cover - legacy
 	return {}
 
-default_locations = default_addresses  # pragma: no cover - legacy alias
-
 
 def default_data():  # small misc extras (avoid unbounded growth)
 	return {}
