@@ -15,7 +15,7 @@ class OrgBaseAdminForm(forms.ModelForm):
         
         # Make all JSON aspect fields optional
         aspect_fields = [
-            'contacts', 'locations', 'domains', 'phones', 'emails', 
+            'contacts', 'addresses', 'domains', 'phones', 'emails', 
             'relations', 'financial', 'docs', 'connections', 'data', 
             'metrics', 'gl_accounts'
         ]
@@ -48,7 +48,7 @@ class OrgBaseAdmin(admin.ModelAdmin):
     readonly_fields = ("version", "dt_created", "dt_modified")
     fieldsets = (
         (None, {"fields": ("display_name", "org_type", "status", "is_active")}),
-        ("Aspects", {"fields": ("contacts", "locations", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
+        ("Aspects", {"fields": ("contacts", "addresses", "domains", "phones", "emails", "relations", "financial", "docs", "connections", "data", "metrics", "gl_accounts"), 'classes': ('collapse',)}),
         ("Versioning", {"fields": ("version", "dt_created", "dt_modified")}),
     )
     

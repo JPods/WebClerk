@@ -275,9 +275,11 @@ def default_docs():  # list[{id, kind, name, size, sha256}]
 def default_connections():  # pointers only, e.g. {"email_svc": "vault:cred:123"}
 	return {}
 
-# Legacy default for historical migration 0001_initial (kept to allow migrations to load)
+# Legacy defaults for historical migration 0001_initial (kept to allow migrations to load)
 def default_access():  # pragma: no cover - legacy
 	return {}
+
+default_locations = default_addresses  # pragma: no cover - legacy alias
 
 
 def default_data():  # small misc extras (avoid unbounded growth)

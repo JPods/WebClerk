@@ -27,7 +27,7 @@ class OrgBaseSerializer(serializers.ModelSerializer):
             "status",
             "is_active",
             "contacts",
-            "locations",
+            "addresses",
             "phones",
             "emails",
             "domains",
