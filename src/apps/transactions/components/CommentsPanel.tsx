@@ -1,19 +1,34 @@
 /**
  * CommentsPanel - Display and edit transaction comments
- * Tabs: Public | Process | Partner | History (notes)
+ * Tabs: Public | Process | Partner | Notes
+ * Structure: {notes: [], public: [], process: [], partner: []}
+ * Each array contains: {user, mgs, time}
  */
 import React, { useState } from "react";
-import { FaComment, FaCog, FaHandshake, FaHistory } from "react-icons/fa";
-import type {
-  TransactionComments,
-  CommentEntry,
-} from "../types/transactionTypes";
+import { FaComment, FaCog, FaHandshake, FaEdit, FaTrash } from "react-icons/fa";
 import { Input } from "@/components/wrapper";
 
+interface CommentMessage {
+  user: string;
+  mgs: string;
+  time: string;
+  user_id?: number | string;
+}
+
+interface TransactionComments {
+  notes?: CommentMessage[];
+  public?: CommentMessage[];
+  process?: CommentMessage[];
+  partner?: CommentMessage[];
+}
+
 interface CommentsPanelProps {
-  comments: TransactionComments | undefined;
+  comments?: TransactionComments;
   isEditing?: boolean;
   onChange?: (comments: TransactionComments) => void;
+  onSave?: (comments: TransactionComments) => Promise<void>;
+  currentUser?: string;
+  currentUserId?: number | string;
 }
 
 type TabKey = "public" | "process" | "partner" | "notes";
@@ -43,274 +58,197 @@ const TabButton: React.FC<{
   </button>
 );
 
-interface MessageInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
-  disabled: boolean;
-  placeholder: string;
-}
-
-// MessageInput is unused, so it can be removed.
-
-interface NotesHistoryProps {
-  notes: CommentEntry[];
+interface CommentListProps {
+  messages: CommentMessage[];
+  tabKey: TabKey;
   isEditing: boolean;
-  onAdd?: (noteText?: string) => void;
-  message?: string;
+  onAdd: (message: CommentMessage) => void;
+  onDelete: (index: number) => void;
+  onEdit?: (index: number, message: CommentMessage) => void;
+  currentUser?: string;
+  currentUserId?: number | string;
 }
 
-const NotesHistory: React.FC<NotesHistoryProps> = ({
-  notes,
+const CommentList: React.FC<CommentListProps> = ({
+  messages,
+  tabKey,
   isEditing,
   onAdd,
-  message,
+  onDelete,
+  onEdit,
+  currentUser = "You",
+  currentUserId,
 }) => {
-  const [inputValue, setInputValue] = React.useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [notes.length]);
-
-  return (
-    <div className="flex flex-col h-64 bg-slate-100">
-      {/* Message display */}
-      {message && (
-        <div className="mb-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs text-center">
-          {message}
-        </div>
-      )}
-      {/* Notes history container */}
-      <div
-        ref={scrollRef}
-        className="flex-1 h-64 overflow-y-scroll border rounded bg-success-50 dark:bg-slate-800 mb-2 pr-1 space-y-3"
-      >
-        {notes.length === 0 && (
-          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-            <FaHistory size={24} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No notes recorded</p>
-          </div>
-        )}
-        {notes.map((note, idx) => (
-          <div
-            key={idx}
-            className={`mb-2 px-2 py-1 ${
-              idx !== notes.length - 1
-                ? "border-b border-purple-100 dark:border-slate-700"
-                : ""
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1 text-xs text-slate-500 dark:text-white font-medium">
-              <span>
-                {note.by === "current_user" ? "You" : note.by || "Unknown"}
-              </span>
-              <span>•</span>
-              <span>
-                {note.ts
-                  ? new Date(note.ts).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      year: "numeric",
-                      month: "short",
-                      day: "2-digit",
-                    })
-                  : "Unknown"}
-              </span>
-              {note.source && (
-                <>
-                  <span>•</span>
-                  <span
-                    className={`italic ${
-                      note.source === "Public"
-                        ? "text-blue-700 dark:text-blue-300"
-                        : note.source === "Process"
-                        ? "text-green-700 dark:text-green-300"
-                        : note.source === "Partner"
-                        ? "text-purple-700 dark:text-purple-300"
-                        : "text-slate-700 dark:text-white"
-                    }`}
-                  >
-                    {note.source}
-                  </span>
-                </>
-              )}
-            </div>
-            <div
-              className={`text-sm wrap-break-word font-medium ${
-                note.source === "Public"
-                  ? "text-blue-700 dark:text-blue-300"
-                  : note.source === "Process"
-                  ? "text-green-700 dark:text-green-300"
-                  : note.source === "Partner"
-                  ? "text-purple-700 dark:text-purple-300"
-                  : "text-slate-700 dark:text-white"
-              }`}
-            >
-              {note.text}
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* Input area container */}
-      {isEditing && (
-        <div className="flex gap-2 p-2 bg-purple-200 dark:bg-slate-800 border-t border-purple-200 dark:border-slate-700 rounded-b">
-          <Input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a note..."
-            className="flex-1 rounded border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && inputValue.trim()) {
-                if (onAdd) {
-                  onAdd(inputValue.trim());
-                  setInputValue("");
-                }
-              }
-            }}
-            disabled={!isEditing}
-          />
-          <button
-            className="px-3 py-2 rounded bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
-            onClick={() => {
-              if (inputValue.trim() && onAdd) {
-                onAdd(inputValue.trim());
-                setInputValue("");
-              }
-            }}
-            disabled={!inputValue.trim()}
-          >
-            Send
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// WhatsApp-like input for public, process, partner tabs
-interface TabWithInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  isEditing: boolean;
-  label: string;
-  placeholder: string;
-}
-
-const TabWithInput: React.FC<
-  TabWithInputProps & {
-    tabKey: TabKey;
-    onAddHistory?: (entry: CommentEntry) => void;
-  }
-> = ({
-  value,
-  onChange,
-  isEditing,
-  label,
-  placeholder,
-  tabKey,
-  onAddHistory,
-}) => {
-  const [inputValue, setInputValue] = React.useState("");
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-
-  // Always render messages from value prop
-  // Store and display timestamps for each message using delimiter
-  const messages = value
-    ? value
-        .split(/\n/)
-        .filter(Boolean)
-        .map((line) => {
-          const [text, ts] = line.split("|||");
-          return { text, ts };
-        })
-    : [];
-
-  React.useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages.length]);
 
+  const getTabColor = () => {
+    switch (tabKey) {
+      case "public":
+        return "text-blue-700 dark:text-blue-300";
+      case "process":
+        return "text-green-700 dark:text-green-300";
+      case "partner":
+        return "text-purple-700 dark:text-purple-300";
+      case "notes":
+        return "text-slate-700 dark:text-white";
+      default:
+        return "text-slate-700 dark:text-white";
+    }
+  };
+
   const handleSend = () => {
+    console.log("[DEBUG] Send button clicked! inputValue:", inputValue);
     if (inputValue.trim()) {
+      console.log("[CommentsPanel.CommentList] handleSend triggered", {
+        inputValue: inputValue.trim(),
+        tabKey,
+      });
       const now = new Date();
-      const ts = now.toLocaleString([], {
+      const timeStr = now.toLocaleString([], {
         hour: "2-digit",
         minute: "2-digit",
         year: "numeric",
         month: "short",
         day: "2-digit",
       });
-      const line = `${inputValue.trim()}|||${ts}`;
-      onChange(value ? value + "\n" + line : line);
+      const newMessage: CommentMessage = {
+        user: currentUser,
+        mgs: inputValue.trim(),
+        time: timeStr,
+        user_id: currentUserId,
+      };
+      console.log(
+        "[CommentsPanel.CommentList] Calling onAdd with message",
+        newMessage,
+      );
+      console.log("[DEBUG] onAdd prop exists?", typeof onAdd);
+      onAdd(newMessage);
+      console.log("[CommentsPanel.CommentList] onAdd returned, clearing input");
       setInputValue("");
-      if (onAddHistory) {
-        onAddHistory({
-          ts: now.toISOString(),
-          by: "current_user",
-          text: inputValue.trim(),
-          source: tabKey.charAt(0).toUpperCase() + tabKey.slice(1),
-        });
-      }
+    } else {
+      console.log("[DEBUG] Send button: inputValue is empty/whitespace");
     }
+  };
+
+  const handleEditSave = (index: number) => {
+    if (editValue.trim() && onEdit) {
+      const updatedMsg = { ...messages[index], mgs: editValue.trim() };
+      onEdit(index, updatedMsg);
+      setEditingIndex(null);
+      setEditValue("");
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditingIndex(null);
+    setEditValue("");
   };
 
   return (
     <div className="flex flex-col h-64">
-      <label className="block text-xs font-medium text-slate-700 dark:text-slate-400 mb-1">
-        {label}
-      </label>
-      {/* Message history container */}
+      {/* Messages display area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-scroll border rounded bg-purple-50 dark:bg-slate-800 mb-2 pr-1"
+        className="flex-1 overflow-y-auto border rounded bg-slate-50 dark:bg-slate-800 mb-2 pr-1 space-y-2 p-2"
       >
-        <div
-          className={`text-sm px-2 py-1 ${
-            tabKey === "public"
-              ? "text-blue-700 dark:text-blue-300"
-              : tabKey === "process"
-              ? "text-green-700 dark:text-green-300"
-              : tabKey === "partner"
-              ? "text-purple-700 dark:text-purple-300"
-              : "text-slate-700 dark:text-white"
-          }`}
-        >
-          {messages.length === 0 ? (
-            <span className="text-slate-400">No messages yet.</span>
-          ) : (
-            messages.map((msg, idx) => (
-              <div key={idx} className="mb-2">
-                <span>{msg.text}</span>
-                {msg.ts && (
-                  <span className="ml-2 text-xs text-slate-500">{msg.ts}</span>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        {messages.length === 0 ? (
+          <div className="text-center py-8 text-slate-400">
+            <p className="text-sm">No messages yet</p>
+          </div>
+        ) : (
+          messages.map((msg, idx) => (
+            <div key={idx} className="border-l-4 border-blue-300 pl-2 py-1">
+              {editingIndex === idx ? (
+                <div className="space-y-1">
+                  <Input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder="Edit message..."
+                    className="flex-1 rounded border border-blue-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                  />
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleEditSave(idx)}
+                      className="px-2 py-1 rounded bg-green-500 text-white text-xs font-semibold hover:bg-green-600"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={handleEditCancel}
+                      className="px-2 py-1 rounded bg-slate-400 text-white text-xs font-semibold hover:bg-slate-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                      <span>{msg.user}</span>
+                      <span>•</span>
+                      <span>{msg.time}</span>
+                    </div>
+                    {isEditing && (
+                      <div className="flex gap-1">
+                        {onEdit && (
+                          <button
+                            onClick={() => {
+                              setEditingIndex(idx);
+                              setEditValue(msg.mgs);
+                            }}
+                            className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 text-xs"
+                            title="Edit"
+                          >
+                            <FaEdit size={12} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onDelete(idx)}
+                          className="text-red-500 hover:text-red-700 dark:hover:text-red-300 text-xs"
+                          title="Delete"
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p
+                    className={`text-sm font-medium wrap-break-word ${getTabColor()}`}
+                  >
+                    {msg.mgs}
+                  </p>
+                </>
+              )}
+            </div>
+          ))
+        )}
       </div>
-      {/* Input area container */}
+
+      {/* Input area */}
       {isEditing && (
-        <div className="flex gap-2 p-2 bg-success-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-b">
+        <div className="flex gap-2 p-2 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600 rounded-b">
           <Input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 rounded border border-success-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-success-500 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            placeholder={`Add ${tabKey} comment...`}
+            className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-white"
             onKeyDown={(e) => {
               if (e.key === "Enter" && inputValue.trim()) {
                 handleSend();
               }
             }}
-            disabled={!isEditing}
           />
           <button
             className="px-3 py-2 rounded bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
@@ -325,64 +263,147 @@ const TabWithInput: React.FC<
   );
 };
 
-interface CommentsPanelProps {
-  comments: TransactionComments | undefined;
-  isEditing?: boolean;
-  onChange?: (comments: TransactionComments) => void;
-  message?: string;
-}
-
 const CommentsPanel: React.FC<CommentsPanelProps> = ({
   comments = {},
   isEditing = false,
   onChange,
-  message,
+  onSave,
+  currentUser,
+  currentUserId,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>("public");
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Local fallback state for tab messages
-  const [localTabValues, setLocalTabValues] = useState({
-    public: comments?.public || "",
-    process: comments?.process || "",
-    partner: comments?.partner || "",
-  });
-
-  // Sync local state with comments prop if it changes
-  React.useEffect(() => {
-    setLocalTabValues({
-      public: comments?.public || "",
-      process: comments?.process || "",
-      partner: comments?.partner || "",
+  // CRUD Operations - with auto-save
+  const handleAddMessage = async (tabKey: TabKey, message: CommentMessage) => {
+    console.log("[CommentsPanel] handleAddMessage called", {
+      tabKey,
+      message,
+      hasOnChange: !!onChange,
+      hasOnSave: !!onSave,
     });
-  }, [comments?.public, comments?.process, comments?.partner]);
+    const current = comments[tabKey] || [];
+    const updated = [...current, message];
+    const newComments = { ...comments, [tabKey]: updated };
+    console.log("[CommentsPanel] Updated messages array", {
+      current,
+      updated,
+      newComments,
+    });
 
-  const handleFieldChange = (
-    field: "public" | "process" | "partner",
-    value: string,
-  ) => {
-    setLocalTabValues((prev) => ({ ...prev, [field]: value }));
+    // Update local state first
     if (onChange) {
-      onChange({ ...comments, [field]: value });
+      console.log(
+        "[CommentsPanel] Calling onChange with comments",
+        newComments,
+      );
+      onChange(newComments);
+    }
+
+    // Auto-save to database
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        console.log("[CommentsPanel] Auto-saving comments to database...");
+        await onSave(newComments);
+        console.log("[CommentsPanel] Auto-save successful!");
+      } catch (error) {
+        console.error("[CommentsPanel] Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
-  const handleAddNote = (noteText?: string, source?: string) => {
-    if (onChange && noteText && noteText.trim()) {
-      const newNote: CommentEntry = {
-        ts: new Date().toISOString(),
-        by: "current_user", // TODO: Get from auth context
-        text: noteText.trim(),
-        source,
-      };
-      const currentNotes = comments?.notes || [];
-      onChange({ ...comments, notes: [...currentNotes, newNote] });
+  const handleDeleteMessage = async (tabKey: TabKey, index: number) => {
+    console.log("[CommentsPanel] handleDeleteMessage called", {
+      tabKey,
+      index,
+      hasOnChange: !!onChange,
+      hasOnSave: !!onSave,
+    });
+    const current = comments[tabKey] || [];
+    const updated = current.filter((_, i) => i !== index);
+    const newComments = { ...comments, [tabKey]: updated };
+
+    // Update local state first
+    if (onChange) {
+      console.log(
+        "[CommentsPanel] Calling onChange with comments",
+        newComments,
+      );
+      onChange(newComments);
+    }
+
+    // Auto-save to database
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        console.log("[CommentsPanel] Auto-saving comments to database...");
+        await onSave(newComments);
+        console.log("[CommentsPanel] Auto-save successful!");
+      } catch (error) {
+        console.error("[CommentsPanel] Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
-  const notesCount = comments?.notes?.length || 0;
+  const handleEditMessage = async (
+    tabKey: TabKey,
+    index: number,
+    message: CommentMessage,
+  ) => {
+    console.log("[CommentsPanel] handleEditMessage called", {
+      tabKey,
+      index,
+      message,
+      hasOnChange: !!onChange,
+      hasOnSave: !!onSave,
+    });
+    const current = comments[tabKey] || [];
+    const updated = current.map((m, i) => (i === index ? message : m));
+    const newComments = { ...comments, [tabKey]: updated };
+
+    // Update local state first
+    if (onChange) {
+      console.log(
+        "[CommentsPanel] Calling onChange with comments",
+        newComments,
+      );
+      onChange(newComments);
+    }
+
+    // Auto-save to database
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        console.log("[CommentsPanel] Auto-saving comments to database...");
+        await onSave(newComments);
+        console.log("[CommentsPanel] Auto-save successful!");
+      } catch (error) {
+        console.error("[CommentsPanel] Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const getTabCount = (tabKey: TabKey) => {
+    return comments[tabKey]?.length || 0;
+  };
 
   return (
     <div className="space-y-4">
+      {/* Saving indicator */}
+      {isSaving && (
+        <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+          Saving comment...
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="flex border-b border-slate-200 dark:border-slate-700">
         <TabButton
@@ -390,75 +411,79 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
           onClick={() => setActiveTab("public")}
           icon={<FaComment size={12} />}
           label="Public"
+          count={getTabCount("public")}
         />
         <TabButton
           active={activeTab === "process"}
           onClick={() => setActiveTab("process")}
           icon={<FaCog size={12} />}
           label="Process"
+          count={getTabCount("process")}
         />
         <TabButton
           active={activeTab === "partner"}
           onClick={() => setActiveTab("partner")}
           icon={<FaHandshake size={12} />}
           label="Partner"
+          count={getTabCount("partner")}
         />
         <TabButton
           active={activeTab === "notes"}
           onClick={() => setActiveTab("notes")}
-          icon={<FaHistory size={12} />}
-          label="History"
-          count={notesCount}
+          icon={<FaEdit size={12} />}
+          label="Notes"
+          count={getTabCount("notes")}
         />
       </div>
 
       {/* Tab Content */}
       <div className="min-h-40">
-        {/* Public Tab */}
         {activeTab === "public" && (
-          <TabWithInput
-            value={localTabValues.public}
-            onChange={(v) => handleFieldChange("public", v)}
-            isEditing={isEditing}
-            label="Public Comment (visible to customer)"
-            placeholder="Customer-visible notes..."
+          <CommentList
+            messages={comments.public || []}
             tabKey="public"
-            onAddHistory={(entry) => handleAddNote(entry.text, entry.source)}
+            isEditing={isEditing}
+            onAdd={(msg) => handleAddMessage("public", msg)}
+            onDelete={(idx) => handleDeleteMessage("public", idx)}
+            onEdit={(idx, msg) => handleEditMessage("public", idx, msg)}
+            currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
-        {/* Process Tab */}
         {activeTab === "process" && (
-          <TabWithInput
-            value={localTabValues.process}
-            onChange={(v) => handleFieldChange("process", v)}
-            isEditing={isEditing}
-            label="Process Notes (internal only)"
-            placeholder="Internal process notes..."
+          <CommentList
+            messages={comments.process || []}
             tabKey="process"
-            onAddHistory={(entry) => handleAddNote(entry.text, entry.source)}
+            isEditing={isEditing}
+            onAdd={(msg) => handleAddMessage("process", msg)}
+            onDelete={(idx) => handleDeleteMessage("process", idx)}
+            onEdit={(idx, msg) => handleEditMessage("process", idx, msg)}
+            currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
-        {/* Partner Tab */}
         {activeTab === "partner" && (
-          <TabWithInput
-            value={localTabValues.partner}
-            onChange={(v) => handleFieldChange("partner", v)}
-            isEditing={isEditing}
-            label="Partner Notes (shared with vendors)"
-            placeholder="Partner/vendor notes..."
+          <CommentList
+            messages={comments.partner || []}
             tabKey="partner"
-            onAddHistory={(entry) => handleAddNote(entry.text, entry.source)}
+            isEditing={isEditing}
+            onAdd={(msg) => handleAddMessage("partner", msg)}
+            onDelete={(idx) => handleDeleteMessage("partner", idx)}
+            onEdit={(idx, msg) => handleEditMessage("partner", idx, msg)}
+            currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
-        {/* Notes Tab */}
         {activeTab === "notes" && (
-          <NotesHistory
-            notes={comments?.notes || []}
+          <CommentList
+            messages={comments.notes || []}
+            tabKey="notes"
             isEditing={isEditing}
-            onAdd={
-              isEditing ? (note) => handleAddNote(note, undefined) : undefined
-            }
-            message={message}
+            onAdd={(msg) => handleAddMessage("notes", msg)}
+            onDelete={(idx) => handleDeleteMessage("notes", idx)}
+            onEdit={(idx, msg) => handleEditMessage("notes", idx, msg)}
+            currentUser={currentUser || "You"}
+            currentUserId={currentUserId}
           />
         )}
       </div>
