@@ -16,8 +16,8 @@ def default_contacts():  # list[{id,name,role,phones:[...],emails:[...]}]
 	return []
 
 
-def default_locations():  # list[{id,type,address:{...},geo:{lat,lng}}]
-	return []
+def default_addresses():  # list[{id,type,address:{...},geo:{lat,lng}}]
+    return []
 
 
 def default_domains():  # list[{domain, verified:bool, dt_verified:int_ms}]

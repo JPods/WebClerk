@@ -26,7 +26,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	# Per-aspect item count soft limits (govern snapshot size). Tune as needed.
 	ASPECT_LIMITS: dict[str, int] = {
 		"contacts": 15,
-		"locations": 10,
+		"addresses": 10,
 		"domains": 10,
 		"phones": 10,
 		"emails": 10,
@@ -41,8 +41,13 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 
 	org_type = models.CharField(max_length=20, choices=OrgType.choices, db_index=True, blank=True, null=True)
 	display_name = models.CharField(max_length=255, db_index=True)
+	contact_id = models.IntegerField(blank=True, null=True)  # optional pointer to primary contact (could be denormalized from contacts aspect)
+	attention = models.CharField(max_length=255, blank=True, null=True)  # optional attention line for mailing
+	email = models.EmailField(blank=True, null=True)  # optional primary email (could be denormalized from emails aspect)
+	phone = models.CharField(max_length=50, blank=True, null=True)  # optional primary phone (could be denormalized from phones aspect)
 	# New alias property: prefer `company` in code, `display_name` remains the DB column until an explicit migration is performed.
 	# Keep `display_name` as the actual DB-backed field for now for smooth migrations; provide a `company` property to use in code.
+	price_level = models.CharField(max_length=30, blank=True, null=True)  # e.g. retail, wholesale; optional for future use
 	status = models.CharField(
 		max_length=30,
 		blank=True,
@@ -62,7 +67,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 	# Aspect JSONB fields -------------------------------------------------
 	# denormalized hybrid of table data into a flatter structure
 	contacts = models.JSONField(default=default_contacts)
-	locations = models.JSONField(default=default_locations)
+	addresses = models.JSONField(default=default_addresses)
 	domains = models.JSONField(default=default_domains)
 	phones = models.JSONField(default=default_phones)
 	emails = models.JSONField(default=default_emails)
@@ -145,7 +150,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 					"status": getattr(self, 'status', None),
 					"is_active": getattr(self, 'is_active', True),
 					"contacts": [],
-					"locations": [],
+					"addresses": [],
 					"domains": [],
 					"phones": [],
 					"emails": [],
@@ -255,7 +260,7 @@ class OrgBase(StandardLinksMixin, RelationshipStatsMixin, StatsMixin, BaseModel)
 		from normalized child tables when they exist.
 		"""
 		target_aspects = aspects or [
-			"contacts","locations","domains","phones","emails","relations","financial","docs","connections","data","metrics","gl_accounts"
+			"contacts","addresses","domains","phones","emails","relations","financial","docs","connections","data","metrics","gl_accounts"
 		]
 		for a in target_aspects:
 			if prune:
