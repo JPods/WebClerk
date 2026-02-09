@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
@@ -14,6 +15,9 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { billOfMaterialSchema } from "../utils/billOfMaterialSchema";
 import { BillOfMaterialAddProps } from "../types/billOfMaterialType";
+import { ClipboardList, Package, FileText, Layers } from "lucide-react";
+
+const STORAGE_KEY = "billOfMaterialDetail_columnCount";
 
 export default function BillOfMaterialDetail({
   modeProp,
@@ -24,6 +28,7 @@ export default function BillOfMaterialDetail({
   onCancelInline,
 }: BillOfMaterialAddProps) {
   const dispatch = useDispatch();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   const {
     register,
@@ -39,6 +44,7 @@ export default function BillOfMaterialDetail({
   const routeState = (location.state as any) || {};
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+
   useEffect(() => {
     if (mode === "add") {
       reset();
@@ -100,73 +106,94 @@ export default function BillOfMaterialDetail({
                 ? "View Bill of Material"
                 : "Add New Bill of Material"}
             </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+              {onCancelInline && (
+                <button
+                  type="button"
+                  onClick={onCancelInline}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
+        {!inline && (
+          <div className="flex justify-end mb-4">
+            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+          </div>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField
+              label="Name"
+              htmlFor="name"
+              required
+              icon={<ClipboardList size={14} />}
+              error={errors.name?.message}
+            >
               <Input
                 type="text"
                 id="name"
                 placeholder="Bill of Material Name"
                 {...register("name")}
-                error={errors.name && errors.name.message ? true : false}
-                hint={errors.name && errors.name.message}
                 disabled={mode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="product_id">Product ID</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Product ID"
+              htmlFor="product_id"
+              icon={<Package size={14} />}
+              error={errors.product_id?.message}
+            >
               <Input
                 type="text"
                 id="product_id"
                 placeholder="Product ID"
                 {...register("product_id")}
-                error={errors.product_id && errors.product_id.message ? true : false}
-                hint={errors.product_id && errors.product_id.message}
                 disabled={mode === "view"}
               />
-            </div>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Components"
+              htmlFor="components"
+              icon={<Layers size={14} />}
+              error={errors.components?.message}
+            >
+              <Input
+                type="text"
+                id="components"
+                placeholder="Components (JSON)"
+                {...register("components")}
+                disabled={mode === "view"}
+              />
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
+
+          <HorizontalField
+            label="Description"
+            htmlFor="description"
+            icon={<FileText size={14} />}
+            error={errors.description?.message}
+          >
             <Input
               type="text"
               id="description"
               placeholder="Description"
               {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
               disabled={mode === "view"}
             />
-          </div>
-          <div>
-            <Label htmlFor="components">Components (JSON)</Label>
-            <Input
-              type="text"
-              id="components"
-              placeholder="Components"
-              {...register("components")}
-              error={errors.components && errors.components.message ? true : false}
-              hint={errors.components && errors.components.message}
-              disabled={mode === "view"}
-            />
-          </div>
+          </HorizontalField>
+
           {mode !== "view" && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
                 {mode === "edit" ? "Update" : "Submit"}
               </button>

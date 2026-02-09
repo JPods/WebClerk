@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import ComponentCard from "../../../../../components/common/ComponentCard";
-import Label from "../../../../../components/form/Label";
+import { HorizontalField } from "../../../../../components/form/HorizontalField";
+import { useColumnCount, ColumnSelector, getGridClassName } from "../../../../../components/form/useColumnCount";
 import { Input } from "../../../../../components/wrapper";
 
 import PageBreadcrumb from "../../../../../components/common/PageBreadCrumb";
@@ -14,6 +15,9 @@ import { useDispatch } from "react-redux";
 import { useLocation } from "react-router";
 import { itemXrefSchema } from "../utils/itemXrefSchema";
 import { ItemXrefAddProps } from "../types/itemXrefType";
+import { Link2, Package, GitBranch, FileText } from "lucide-react";
+
+const STORAGE_KEY = "itemXrefDetail_columnCount";
 
 export default function ItemXrefDetail({
   modeProp,
@@ -24,6 +28,7 @@ export default function ItemXrefDetail({
   onCancelInline,
 }: ItemXrefAddProps) {
   const dispatch = useDispatch();
+  const [columnCount, setColumnCount] = useColumnCount(STORAGE_KEY, 3);
 
   const {
     register,
@@ -39,6 +44,7 @@ export default function ItemXrefDetail({
   const routeState = (location.state as any) || {};
   const mode: "add" | "edit" | "view" = modeProp || routeState.mode || "add";
   const data = dataProp || routeState.data || null;
+
   useEffect(() => {
     if (mode === "add") {
       reset();
@@ -100,73 +106,95 @@ export default function ItemXrefDetail({
                 ? "View Item Xref"
                 : "Add New Item Xref"}
             </h3>
-            {onCancelInline && (
-              <button
-                type="button"
-                onClick={onCancelInline}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                &times;
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+              {onCancelInline && (
+                <button
+                  type="button"
+                  onClick={onCancelInline}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="item_id_1">Item ID 1</Label>
+        {!inline && (
+          <div className="flex justify-end mb-4">
+            <ColumnSelector columnCount={columnCount} setColumnCount={setColumnCount} />
+          </div>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className={getGridClassName(columnCount)}>
+            <HorizontalField
+              label="Item ID 1"
+              htmlFor="item_id_1"
+              required
+              icon={<Package size={14} />}
+              error={errors.item_id_1?.message}
+            >
               <Input
                 type="text"
                 id="item_id_1"
                 placeholder="Item ID 1"
                 {...register("item_id_1")}
-                error={errors.item_id_1 && errors.item_id_1.message ? true : false}
-                hint={errors.item_id_1 && errors.item_id_1.message}
                 disabled={mode === "view"}
               />
-            </div>
-            <div>
-              <Label htmlFor="item_id_2">Item ID 2</Label>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Item ID 2"
+              htmlFor="item_id_2"
+              required
+              icon={<Link2 size={14} />}
+              error={errors.item_id_2?.message}
+            >
               <Input
                 type="text"
                 id="item_id_2"
                 placeholder="Item ID 2"
                 {...register("item_id_2")}
-                error={errors.item_id_2 && errors.item_id_2.message ? true : false}
-                hint={errors.item_id_2 && errors.item_id_2.message}
                 disabled={mode === "view"}
               />
-            </div>
+            </HorizontalField>
+
+            <HorizontalField
+              label="Relationship"
+              htmlFor="relationship_type"
+              icon={<GitBranch size={14} />}
+              error={errors.relationship_type?.message}
+            >
+              <Input
+                type="text"
+                id="relationship_type"
+                placeholder="Relationship Type"
+                {...register("relationship_type")}
+                disabled={mode === "view"}
+              />
+            </HorizontalField>
           </div>
-          <div>
-            <Label htmlFor="relationship_type">Relationship Type</Label>
-            <Input
-              type="text"
-              id="relationship_type"
-              placeholder="Relationship Type"
-              {...register("relationship_type")}
-              error={errors.relationship_type && errors.relationship_type.message ? true : false}
-              hint={errors.relationship_type && errors.relationship_type.message}
-              disabled={mode === "view"}
-            />
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
+
+          <HorizontalField
+            label="Description"
+            htmlFor="description"
+            icon={<FileText size={14} />}
+            error={errors.description?.message}
+          >
             <Input
               type="text"
               id="description"
               placeholder="Description"
               {...register("description")}
-              error={errors.description && errors.description.message ? true : false}
-              hint={errors.description && errors.description.message}
               disabled={mode === "view"}
             />
-          </div>
+          </HorizontalField>
+
           {mode !== "view" && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
+                className="flex items-center px-4 py-2 text-white bg-brand-500 rounded-md hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-900"
               >
                 {mode === "edit" ? "Update" : "Submit"}
               </button>
