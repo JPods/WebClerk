@@ -46,6 +46,10 @@ export { default as PrintPreviewModal } from "./PrintPreviewModal";
 // Attachments
 export { default as AttachmentsTab } from "./AttachmentsTab";
 
+// Payment Modals
+export { default as AddPaymentModal } from "./AddPaymentModal";
+export { default as ApplyPaymentModal } from "./ApplyPaymentModal";
+
 // Item Search (shared across all transaction types)
 export { default as TransactionItemSearch } from "./TransactionItemSearch";
 export type { ItemSearchResult } from "./TransactionItemSearch";

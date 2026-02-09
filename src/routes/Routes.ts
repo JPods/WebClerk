@@ -66,6 +66,8 @@
     "/transactions/invoice/list";
   static readonly transactionsInvoiceDetail: string =
     "/transactions/invoice/detail/:id?";
+  static readonly transactionsApplyPayments: string =
+    "/transactions/apply-payments";
 
   static readonly transactionsPurchaseOrderList: string =
     "/transactions/purchase-order/list";

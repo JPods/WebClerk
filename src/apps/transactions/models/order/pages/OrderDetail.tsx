@@ -4,13 +4,14 @@
  * Keeps item search and lines management capabilities
  */
 import React, { useCallback, useState, useEffect } from "react";
-import { FaTruck, FaCheck, FaTasks } from "react-icons/fa";
+import { FaTruck, FaCheck, FaTasks, FaMoneyBillWave } from "react-icons/fa";
 
 // Import base component and shared types
 import TransactionDetailBase, {
   TransactionTab,
 } from "../../../components/TransactionDetailBase";
 import FieldLabel from "../../../components/FieldLabel";
+import AddPaymentModal from "../../../components/AddPaymentModal";
 
 // Import existing components
 import ActionsModal from "../../../components/ActionsModal";
@@ -79,7 +80,11 @@ const OrderHeader: React.FC<{
   isEditing: boolean;
   onChange?: (field: keyof Order, value: unknown) => void;
   onStatusChange?: (status: string) => void;
-}> = ({ data, isEditing, onChange }) => {
+  onPaymentAdded?: () => void;
+}> = ({ data, isEditing, onChange, onPaymentAdded }) => {
+  // State for Add Payment modal
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
+
   // Extract customer info from refs.links
   const customerInfo = data.refs?.links?.customer?.[0];
   const billingContact = data.refs?.links?.contact?.find(
@@ -88,6 +93,11 @@ const OrderHeader: React.FC<{
   const shippingContact = data.refs?.links?.contact?.find(
     (c) => c.purpose === "shipto",
   );
+
+  // Get contact ID for payment - prefer billing contact, fall back to any contact
+  const paymentContactId = billingContact?.id || 
+    data.refs?.links?.contact?.[0]?.id ||
+    null;
 
   const priceLable = [
     { value: "A", label: "A - Retail" },
@@ -98,15 +108,42 @@ const OrderHeader: React.FC<{
   ];
 
   return (
-    <SummaryCard
-      data={data}
-      isEditing={isEditing}
-      onChange={onChange}
-      priceLable={priceLable}
-      customerInfo={customerInfo}
-      billingContact={billingContact}
-      shippingContact={shippingContact}
-    />
+    <div className="space-y-4">
+      <SummaryCard
+        data={data}
+        isEditing={isEditing}
+        onChange={onChange}
+        priceLable={priceLable}
+        customerInfo={customerInfo}
+        billingContact={billingContact}
+        shippingContact={shippingContact}
+      />
+      
+      {/* Quick Actions */}
+      <div className="flex gap-2">
+        <button 
+          onClick={() => setShowAddPaymentModal(true)}
+          className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <FaMoneyBillWave size={14} />
+          Add Payment
+        </button>
+      </div>
+
+      {/* Add Payment Modal */}
+      <AddPaymentModal
+        isOpen={showAddPaymentModal}
+        onClose={() => setShowAddPaymentModal(false)}
+        orderId={data.id || 0}
+        contactId={paymentContactId ? Number(paymentContactId) : null}
+        customerName={customerInfo?.display_name}
+        orderTotal={data.totals?.total ?? data.total}
+        onPaymentAdded={() => {
+          setShowAddPaymentModal(false);
+          onPaymentAdded?.();
+        }}
+      />
+    </div>
   );
 };
 
@@ -924,6 +961,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
           onChange as ((field: keyof Order, value: unknown) => void) | undefined
         }
         onStatusChange={handleStatusChange}
+        onPaymentAdded={() => {
+          // Reload to refresh order data after payment added
+          window.location.reload();
+        }}
       />
     ),
     [handleStatusChange],
